@@ -16,35 +16,24 @@
  */
 package org.apache.calcite.sql.ddl;
 
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlCreate;
-import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.Pair;
 
 import java.util.List;
 import java.util.Objects;
 
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * Parse tree for {@code CREATE SCHEMA} statement.
  */
-public class SqlCreateSchema extends SqlCreate
-    implements SqlExecutableStatement {
-  private final SqlIdentifier name;
+public class SqlCreateSchema extends SqlCreate {
+  public final SqlIdentifier name;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE SCHEMA", SqlKind.CREATE_SCHEMA);
@@ -71,19 +60,5 @@ public class SqlCreateSchema extends SqlCreate
       writer.keyword("IF NOT EXISTS");
     }
     name.unparse(writer, leftPrec, rightPrec);
-  }
-
-  public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
-    final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
-    if (subSchema0 != null) {
-      if (!getReplace() && !ifNotExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.schemaExists(pair.right));
-      }
-    }
-    final Schema subSchema = new AbstractSchema();
-    pair.left.add(pair.right, subSchema);
   }
 }

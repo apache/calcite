@@ -80,8 +80,8 @@ import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.server.DdlExecutor;
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -93,6 +93,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.ExtraSqlTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -146,7 +147,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   @Deprecated // to be removed before 2.0
   public static final List<RelOptRule> ENUMERABLE_RULES =
       EnumerableRules.ENUMERABLE_RULES;
-
 
   /** Whether the bindable convention should be the root convention of any
    * plan. If not, enumerable convention is the default. */
@@ -357,12 +357,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {
-    if (node instanceof SqlExecutableStatement) {
-      SqlExecutableStatement statement = (SqlExecutableStatement) node;
-      statement.execute(context);
-      return;
-    }
-    throw new UnsupportedOperationException();
+    final CalciteConnectionConfig config = context.config();
+    final SqlParserImplFactory parserFactory =
+        config.parserFactory(SqlParserImplFactory.class, SqlParserImpl.FACTORY);
+    final DdlExecutor ddlExecutor = parserFactory.getDdlExecutor();
+    ddlExecutor.executeDdl(context, node);
   }
 
   /** Factory method for default SQL parser. */

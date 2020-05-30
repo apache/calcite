@@ -274,8 +274,7 @@ public abstract class QuidemTest {
       case "blank":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.PARSER_FACTORY,
-                "org.apache.calcite.sql.parser.parserextensiontesting"
-                    + ".ExtensionSqlParserImpl#FACTORY")
+                ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
             .with(CalciteAssert.SchemaSpec.BLANK)
             .connect();
       case "seq":

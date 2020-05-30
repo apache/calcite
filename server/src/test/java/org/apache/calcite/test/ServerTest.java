@@ -18,9 +18,22 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.server.DdlExecutorImpl;
+import org.apache.calcite.server.ServerDdlExecutor;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.ddl.SqlCreateForeignSchema;
+import org.apache.calcite.sql.ddl.SqlCreateFunction;
+import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
+import org.apache.calcite.sql.ddl.SqlCreateSchema;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateType;
+import org.apache.calcite.sql.ddl.SqlCreateView;
+import org.apache.calcite.sql.ddl.SqlDropFunction;
+import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
+import org.apache.calcite.sql.ddl.SqlDropSchema;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -57,11 +70,36 @@ class ServerTest {
     return DriverManager.getConnection(URL,
         CalciteAssert.propBuilder()
             .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlDdlParserImpl.class.getName() + "#FACTORY")
+                ServerDdlExecutor.class.getName() + "#PARSER_FACTORY")
             .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
                 "true")
             .set(CalciteConnectionProperty.FUN, "standard,oracle")
             .build());
+  }
+
+  /** Contains calls to all overloaded {@code execute} methods in
+   * {@link DdlExecutorImpl} to silence warnings that these methods are not
+   * called. (They are, not from this test, but via reflection.) */
+  @Test void testAll() {
+    //noinspection ConstantConditions
+    if (true) {
+      return;
+    }
+    final ServerDdlExecutor executor = ServerDdlExecutor.INSTANCE;
+    final Object o = "x";
+    final CalcitePrepare.Context context = (CalcitePrepare.Context) o;
+    executor.execute((SqlNode) o, context);
+    executor.execute((SqlCreateFunction) o, context);
+    executor.execute((SqlCreateTable) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateMaterializedView) o, context);
+    executor.execute((SqlCreateView) o, context);
+    executor.execute((SqlCreateType) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateForeignSchema) o, context);
+    executor.execute((SqlDropMaterializedView) o, context);
+    executor.execute((SqlDropFunction) o, context);
+    executor.execute((SqlDropSchema) o, context);
   }
 
   @Test void testStatement() throws Exception {
@@ -181,9 +219,10 @@ class ServerTest {
         boolean f = s.execute("create function if not exists s.t\n"
                 + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
                 + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+        fail("expected error, got " + f);
       } catch (SQLException e) {
         assertThat(e.getMessage(),
-                containsString("CREATE FUNCTION is not supported yet"));
+            containsString("CREATE FUNCTION is not supported"));
       }
     }
   }

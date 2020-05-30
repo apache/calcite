@@ -39,8 +39,8 @@ public class SqlAttributeDefinition extends SqlCall {
   private static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("ATTRIBUTE_DEF", SqlKind.ATTRIBUTE_DEF);
 
-  final SqlIdentifier name;
-  final SqlDataTypeSpec dataType;
+  public final SqlIdentifier name;
+  public final SqlDataTypeSpec dataType;
   final SqlNode expression;
   final SqlCollation collation;
 

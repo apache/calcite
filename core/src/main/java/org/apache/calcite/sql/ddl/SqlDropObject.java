@@ -17,13 +17,10 @@
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.sql.SqlDrop;
-import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
@@ -31,15 +28,13 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW},
  * {@code DROP MATERIALIZED VIEW} and {@code DROP TYPE} statements.
  */
-abstract class SqlDropObject extends SqlDrop
-    implements SqlExecutableStatement {
-  protected final SqlIdentifier name;
+public abstract class SqlDropObject extends SqlDrop {
+  public final SqlIdentifier name;
 
   /** Creates a SqlDropObject. */
   SqlDropObject(SqlOperator operator, SqlParserPos pos, boolean ifExists,
@@ -61,46 +56,5 @@ abstract class SqlDropObject extends SqlDrop
   }
 
   public void execute(CalcitePrepare.Context context) {
-    final List<String> path = context.getDefaultSchemaPath();
-    CalciteSchema schema = context.getRootSchema();
-    for (String p : path) {
-      schema = schema.getSubSchema(p, true);
-    }
-    final boolean existed;
-    switch (getKind()) {
-    case DROP_TABLE:
-    case DROP_MATERIALIZED_VIEW:
-      existed = schema.removeTable(name.getSimple());
-      if (!existed && !ifExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.tableNotFound(name.getSimple()));
-      }
-      break;
-    case DROP_VIEW:
-      // Not quite right: removes any other functions with the same name
-      existed = schema.removeFunction(name.getSimple());
-      if (!existed && !ifExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.viewNotFound(name.getSimple()));
-      }
-      break;
-    case DROP_TYPE:
-      existed = schema.removeType(name.getSimple());
-      if (!existed && !ifExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.typeNotFound(name.getSimple()));
-      }
-      break;
-    case DROP_FUNCTION:
-      existed = schema.removeFunction(name.getSimple());
-      if (!existed && !ifExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.functionNotFound(name.getSimple()));
-      }
-      break;
-    case OTHER_DDL:
-    default:
-      throw new AssertionError(getKind());
-    }
   }
 }

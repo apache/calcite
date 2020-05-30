@@ -16,51 +16,31 @@
  */
 package org.apache.calcite.sql.ddl;
 
-import org.apache.calcite.adapter.jdbc.JdbcSchema;
-import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.model.JsonSchema;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaFactory;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCreate;
-import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parse tree for {@code CREATE FOREIGN SCHEMA} statement.
  */
-public class SqlCreateForeignSchema extends SqlCreate
-    implements SqlExecutableStatement {
-  private final SqlIdentifier name;
-  private final SqlNode type;
-  private final SqlNode library;
+public class SqlCreateForeignSchema extends SqlCreate {
+  public final SqlIdentifier name;
+  public final SqlNode type;
+  public final SqlNode library;
   private final SqlNodeList optionList;
 
   private static final SqlOperator OPERATOR =
@@ -107,7 +87,7 @@ public class SqlCreateForeignSchema extends SqlCreate
       writer.keyword("OPTIONS");
       SqlWriter.Frame frame = writer.startList("(", ")");
       int i = 0;
-      for (Pair<SqlIdentifier, SqlNode> c : options(optionList)) {
+      for (Pair<SqlIdentifier, SqlNode> c : options()) {
         if (i++ > 0) {
           writer.sep(",");
         }
@@ -118,60 +98,9 @@ public class SqlCreateForeignSchema extends SqlCreate
     }
   }
 
-  public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
-    final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
-    if (subSchema0 != null) {
-      if (!getReplace() && !ifNotExists) {
-        throw SqlUtil.newContextException(name.getParserPosition(),
-            RESOURCE.schemaExists(pair.right));
-      }
-    }
-    final Schema subSchema;
-    final String libraryName;
-    if (type != null) {
-      Preconditions.checkArgument(library == null);
-      final String typeName = (String) value(this.type);
-      final JsonSchema.Type type =
-          Util.enumVal(JsonSchema.Type.class,
-              typeName.toUpperCase(Locale.ROOT));
-      if (type != null) {
-        switch (type) {
-        case JDBC:
-          libraryName = JdbcSchema.Factory.class.getName();
-          break;
-        default:
-          libraryName = null;
-        }
-      } else {
-        libraryName = null;
-      }
-      if (libraryName == null) {
-        throw SqlUtil.newContextException(this.type.getParserPosition(),
-            RESOURCE.schemaInvalidType(typeName,
-                Arrays.toString(JsonSchema.Type.values())));
-      }
-    } else {
-      Preconditions.checkArgument(library != null);
-      libraryName = (String) value(library);
-    }
-    final SchemaFactory schemaFactory =
-        AvaticaUtils.instantiatePlugin(SchemaFactory.class, libraryName);
-    final Map<String, Object> operandMap = new LinkedHashMap<>();
-    for (Pair<SqlIdentifier, SqlNode> option : options(optionList)) {
-      operandMap.put(option.left.getSimple(), value(option.right));
-    }
-    subSchema =
-        schemaFactory.create(pair.left.plus(), pair.right, operandMap);
-    pair.left.add(pair.right, subSchema);
-  }
-
-  /** Returns the value of a literal, converting
-   * {@link NlsString} into String. */
-  private static Comparable value(SqlNode node) {
-    final Comparable v = SqlLiteral.value(node);
-    return v instanceof NlsString ? ((NlsString) v).getValue() : v;
+  /** Returns options as a list of (name, value) pairs. */
+  public List<Pair<SqlIdentifier, SqlNode>> options() {
+    return options(optionList);
   }
 
   private static List<Pair<SqlIdentifier, SqlNode>> options(

@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.function.Experimental;
  * <p>NOTE: Subject to change without notice.
  */
 @Experimental
+@Deprecated // to be removed before 1.25
 public interface SqlExecutableStatement {
   void execute(CalcitePrepare.Context context);
 }

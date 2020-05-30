@@ -29,7 +29,7 @@ public abstract class SqlCreate extends SqlDdl {
   boolean replace;
 
   /** Whether "IF NOT EXISTS" was specified. */
-  protected final boolean ifNotExists;
+  public final boolean ifNotExists;
 
   /** Creates a SqlCreate. */
   public SqlCreate(SqlOperator operator, SqlParserPos pos, boolean replace,

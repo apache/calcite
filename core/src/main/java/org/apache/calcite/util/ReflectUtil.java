@@ -523,7 +523,17 @@ public abstract class ReflectUtil {
         try {
           final Object o = method.invoke(visitor, args);
           return returnClazz.cast(o);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException("While invoking method '" + method + "'",
+              e);
+        } catch (InvocationTargetException e) {
+          final Throwable target = e.getTargetException();
+          if (target instanceof RuntimeException) {
+            throw (RuntimeException) target;
+          }
+          if (target instanceof Error) {
+            throw (Error) target;
+          }
           throw new RuntimeException("While invoking method '" + method + "'",
               e);
         }

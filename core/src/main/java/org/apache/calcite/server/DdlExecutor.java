@@ -14,8 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.server;
+
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.sql.SqlNode;
 
 /**
- * Tests for expressions.
+ * Executes DDL commands.
  */
-package org.apache.calcite.linq4j.tree;
+public interface DdlExecutor {
+  /** DDL executor that cannot handle any DDL. */
+  DdlExecutor USELESS = (context, node) -> {
+    throw new UnsupportedOperationException("DDL not supported: " + node);
+  };
+
+  /** Executes a DDL statement.
+   *
+   * <p>The statement identified itself as DDL in the
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.ParseResult#kind} field. */
+  void executeDdl(CalcitePrepare.Context context, SqlNode node);
+}
