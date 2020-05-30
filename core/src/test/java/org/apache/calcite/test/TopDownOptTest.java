@@ -25,7 +25,6 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.ProjectSortTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 
 import com.google.common.collect.ImmutableList;
@@ -324,7 +323,6 @@ class Query extends RelOptTestBase {
 
     // pushing down sort should be handled by top-down optimization.
     planner.removeRule(SortProjectTransposeRule.INSTANCE);
-    planner.removeRule(ProjectSortTransposeRule.INSTANCE);
   }
 
   public static Query create(String sql) {
