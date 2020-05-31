@@ -27,6 +27,13 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.24.0">1.24.0</a> / under development
+{: #v1-24-0}
+
+#### Breaking Changes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4032">CALCITE-4032</a>]
+  Mark `CalcMergeRule` as `TransformationRule`
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / 2020-05-23
 {: #v1-23-0}
