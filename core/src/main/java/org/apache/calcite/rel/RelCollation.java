@@ -39,7 +39,7 @@ public interface RelCollation extends RelMultipleTrait {
   /**
    * Returns the ordinals of the key columns.
    */
-  default @Nonnull List<Integer> getKeys() {
+  default @Nonnull ImmutableIntList getKeys() {
     final List<RelFieldCollation> collations = getFieldCollations();
     final int size = collations.size();
     final int[] keys = new int[size];

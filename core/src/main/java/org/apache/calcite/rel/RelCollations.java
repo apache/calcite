@@ -17,6 +17,7 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
@@ -185,6 +186,41 @@ public class RelCollations {
     final List<Integer> distinctKeys = Util.distinctList(keys);
     for (RelCollation collation : collations) {
       if (contains(collation, distinctKeys)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Returns whether a collation contains a given list of keys regardless
+   * the order.
+   *
+   * @param collation Collation
+   * @param keys List of keys
+   * @return Whether the collection contains the given keys
+   */
+  private static boolean containsOrderless(RelCollation collation,
+      List<Integer> keys) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
+    final ImmutableBitSet keysBitSet = ImmutableBitSet.of(distinctKeys);
+    List<Integer> colKeys = Util.distinctList(collation.getKeys());
+    if (colKeys.size() < distinctKeys.size()) {
+      return false;
+    }
+    ImmutableBitSet bitset = ImmutableBitSet.of(
+        colKeys.subList(0, distinctKeys.size()));
+    return bitset.equals(keysBitSet);
+  }
+
+  /**
+   * Returns whether one of a list of collations contains the given list of keys
+   * regardless the order.
+   */
+  public static boolean containsOrderless(List<RelCollation> collations,
+      List<Integer> keys) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
+    for (RelCollation collation : collations) {
+      if (containsOrderless(collation, distinctKeys)) {
         return true;
       }
     }

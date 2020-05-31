@@ -454,8 +454,6 @@ public class RelMdCollation
         : "EnumerableMergeJoin unsupported for join type " + joinType;
 
     final ImmutableList<RelCollation> leftCollations = mq.collations(left);
-    assert RelCollations.contains(leftCollations, leftKeys)
-        : "cannot merge join: left input is not sorted on left keys";
     if (!joinType.projectsRight()) {
       return leftCollations;
     }
@@ -464,8 +462,6 @@ public class RelMdCollation
     builder.addAll(leftCollations);
 
     final ImmutableList<RelCollation> rightCollations = mq.collations(right);
-    assert RelCollations.contains(rightCollations, rightKeys)
-        : "cannot merge join: right input is not sorted on right keys";
     final int leftFieldCount = left.getRowType().getFieldCount();
     for (RelCollation collation : rightCollations) {
       builder.add(RelCollations.shift(collation, leftFieldCount));

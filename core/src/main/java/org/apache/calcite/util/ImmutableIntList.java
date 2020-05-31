@@ -264,6 +264,18 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ImmutableIntList.copyOf(Iterables.concat(this, list));
   }
 
+  /**
+   * Increments {@code offset} to each element of the list and
+   * returns a new int list.
+   */
+  public ImmutableIntList incr(int offset) {
+    final int[] integers = new int[ints.length];
+    for (int i = 0; i < ints.length; i++) {
+      integers[i] = ints[i] + offset;
+    }
+    return new ImmutableIntList(integers);
+  }
+
   /** Special sub-class of {@link ImmutableIntList} that is always
    * empty and has only one instance. */
   private static class EmptyImmutableIntList extends ImmutableIntList {
