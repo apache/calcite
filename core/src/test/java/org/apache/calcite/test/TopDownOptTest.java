@@ -25,6 +25,8 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.SortJoinCopyRule;
+import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 
 import com.google.common.collect.ImmutableList;
@@ -287,6 +289,222 @@ class TopDownOptTest extends RelOptTestBase {
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .check();
   }
+
+  // Not push down sort for hash join in full outer join case.
+  @Test void testHashJoinFullOuterJoinNotPushDownSort() {
+    final String sql = "select * from\n"
+        + "sales.emp r full outer join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.job desc nulls last, r.ename nulls first";
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .check();
+  }
+
+  // Push down sort to left input.
+  @Test void testHashJoinLeftOuterJoinPushDownSort() {
+    final String sql = "select * from\n"
+        + "(select contactno, email from customer.contact_peek) r left outer join\n"
+        + "(select acctno, type from customer.account) s\n"
+        + "on r.contactno=s.acctno and r.email=s.type\n"
+        + "order by r.contactno desc, r.email desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Push down sort to left input.
+  @Test void testHashJoinLeftOuterJoinPushDownSort2() {
+    final String sql = "select * from\n"
+        + "customer.contact_peek r left outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno=s.acctno and r.email=s.type\n"
+        + "order by r.fname desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Push down sort to left input.
+  @Test void testHashJoinInnerJoinPushDownSort() {
+    final String sql = "select * from\n"
+        + "(select contactno, email from customer.contact_peek) r inner join\n"
+        + "(select acctno, type from customer.account) s\n"
+        + "on r.contactno=s.acctno and r.email=s.type\n"
+        + "order by r.contactno desc, r.email desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // do not push down sort.
+  @Test void testHashJoinRightOuterJoinPushDownSort() {
+    final String sql = "select * from\n"
+        + "(select contactno, email from customer.contact_peek) r right outer join\n"
+        + "(select acctno, type from customer.account) s\n"
+        + "on r.contactno=s.acctno and r.email=s.type\n"
+        + "order by s.acctno desc, s.type desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // push sort to left input
+  @Test void testNestedLoopJoinLeftOuterJoinPushDownSort() {
+    final String sql = "select * from\n"
+        + " customer.contact_peek r left outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno>s.acctno and r.email<s.type\n"
+        + "order by r.contactno desc, r.email desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // push sort to left input
+  @Test void testNestedLoopJoinLeftOuterJoinPushDownSort2() {
+    final String sql = "select * from\n"
+        + " customer.contact_peek r left outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno>s.acctno and r.email<s.type\n"
+        + "order by r.fname desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // do not push sort to left input cause sort keys are on right input.
+  @Test void testNestedLoopJoinLeftOuterJoinSortKeyOnRightInput() {
+    final String sql = "select * from\n"
+        + " customer.contact_peek r left outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno>s.acctno and r.email<s.type\n"
+        + "order by s.acctno desc, s.type desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // do not push down sort to right input because traits propagation does not work
+  // for right/full outer join.
+  @Test void testNestedLoopJoinRightOuterJoinSortPushDown() {
+    final String sql = "select r.contactno, r.email, s.acctno, s.type from\n"
+        + " customer.contact_peek r right outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno>s.acctno and r.email<s.type\n"
+        + "order by s.acctno desc, s.type desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation can be derived from left input so that top Sort is removed.
+  @Test void testHashJoinTraitDerivation() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r\n"
+        + "join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.ename desc, r.job desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation can be derived from left input so that top Sort is removed.
+  @Test void testHashJoinTraitDerivation2() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by mgr desc limit 10) r\n"
+        + "join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.mgr desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation derived from left input is not what the top Sort needs.
+  @Test void testHashJoinTraitDerivationNegativeCase() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by mgr desc limit 10) r\n"
+        + "join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.mgr";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation can be derived from left input so that top Sort is removed.
+  @Test void testNestedLoopJoinTraitDerivation() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r\n"
+        + "join sales.bonus s on r.ename>s.ename and r.job<s.job\n"
+        + "order by r.ename desc, r.job desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation can be derived from left input so that top Sort is removed.
+  @Test void testNestedLoopJoinTraitDerivation2() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by mgr limit 10) r\n"
+        + "join sales.bonus s on r.ename>s.ename and r.job<s.job\n"
+        + "order by r.mgr";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Collation derived from left input is not what the top Sort needs.
+  @Test void testNestedLoopJoinTraitDerivationNegativeCase() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by mgr limit 10) r\n"
+        + "join sales.bonus s on r.ename>s.ename and r.job<s.job\n"
+        + "order by r.mgr desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
 }
 
 /**
@@ -323,6 +541,10 @@ class Query extends RelOptTestBase {
 
     // pushing down sort should be handled by top-down optimization.
     planner.removeRule(SortProjectTransposeRule.INSTANCE);
+
+    // Sort will only be pushed down by traits propagation.
+    planner.removeRule(SortJoinTransposeRule.INSTANCE);
+    planner.removeRule(SortJoinCopyRule.INSTANCE);
   }
 
   public static Query create(String sql) {
