@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -64,7 +63,7 @@ public class EnumerableSortedAggregate extends Aggregate implements EnumerableRe
     }
 
     RelTraitSet inputTraits = getInput().getTraitSet();
-    RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
+    RelCollation collation = required.getCollation();
     ImmutableBitSet requiredKeys = ImmutableBitSet.of(RelCollations.ordinals(collation));
     ImmutableBitSet groupKeys = ImmutableBitSet.range(groupSet.cardinality());
 

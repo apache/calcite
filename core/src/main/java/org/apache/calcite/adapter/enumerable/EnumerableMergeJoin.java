@@ -99,7 +99,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // Required collation keys can be subset or superset of merge join keys.
-    RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
+    RelCollation collation = required.getCollation();
     List<Integer> reqKeys = RelCollations.ordinals(collation);
     ImmutableBitSet reqKeySet = ImmutableBitSet.of(reqKeys);
 
@@ -132,7 +132,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           required.replace(leftCollation),
           required.replace(rightCollation)));
     }
-    // TODO: support subset keys and superset keys
+    // TODO: support subset keys and superset keys (CALCITE-4015).
     return null;
   }
 
