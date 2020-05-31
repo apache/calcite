@@ -20,6 +20,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.collect.Lists;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -80,6 +82,20 @@ class RelCollationTest {
         is(false));
     assertThat(RelCollations.contains(collation1, Arrays.asList()),
         is(true));
+  }
+
+  /** Unit test for {@link RelCollations#containsOrderless(List, List)}. */
+  @Test void testCollationContainsOrderless() {
+    final List<RelCollation> collations = Lists.newArrayList(collation(2, 3, 1));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 2)), is(true));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 3)), is(true));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2)), is(true));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2, 1)), is(true));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2, 1, 0)), is(false));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 3, 0)), is(false));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(1)), is(false));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 1)), is(false));
+    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(0)), is(false));
   }
 
   /**

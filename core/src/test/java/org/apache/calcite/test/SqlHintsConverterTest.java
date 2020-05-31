@@ -30,7 +30,9 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
@@ -440,6 +442,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "from emp join dept on emp.deptno = dept.deptno";
     RelOptPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
     Tester tester1 = tester.withDecorrelation(true)
         .withClusterFactory(
             relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
@@ -448,7 +451,9 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
-        EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+        EnumerableRules.ENUMERABLE_SORT_RULE,
+        AbstractConverter.ExpandConversionRule.INSTANCE);
     Program program = Programs.of(ruleSet);
     RelTraitSet toTraits = rel
         .getCluster()
