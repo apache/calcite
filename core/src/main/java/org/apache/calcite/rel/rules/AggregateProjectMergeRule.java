@@ -113,13 +113,16 @@ public class AggregateProjectMergeRule extends RelOptRule implements Transformat
         aggregate.copy(aggregate.getTraitSet(), project.getInput(),
             newGroupSet, newGroupingSets, aggCalls.build());
 
-    // Add a project if the group set is not in the same order or
-    // contains duplicates.
+    // Add a project if the group set is not in the same order
+    // or contains duplicates
+    // or has aliases.
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     final List<Integer> newKeys =
         Lists.transform(aggregate.getGroupSet().asList(), map::get);
-    if (!newKeys.equals(newGroupSet.asList())) {
+    final List<String> originalFieldNames = aggregate.getRowType().getFieldNames();
+    if (!newKeys.equals(newGroupSet.asList())
+        || !originalFieldNames.equals(newAggregate.getRowType().getFieldNames())) {
       final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
@@ -128,7 +131,7 @@ public class AggregateProjectMergeRule extends RelOptRule implements Transformat
            i < newAggregate.getRowType().getFieldCount(); i++) {
         posList.add(i);
       }
-      relBuilder.project(relBuilder.fields(posList));
+      relBuilder.projectNamed(relBuilder.fields(posList), originalFieldNames, true);
     }
 
     return relBuilder.build();
