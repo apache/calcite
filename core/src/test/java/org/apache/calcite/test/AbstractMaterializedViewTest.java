@@ -60,7 +60,7 @@ import java.util.Properties;
 import java.util.function.Function;
 
 /**
- * Abstract class to provide testing environment & utils for extensions.
+ * Abstract class to provide testing environment and utilities for extensions.
  */
 public abstract class AbstractMaterializedViewTest {
 
