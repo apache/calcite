@@ -2873,7 +2873,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testFloorPresto() {
+  @Test void testFloorPresto() {
     String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
     String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
     sql(query)
@@ -2909,7 +2909,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testFloorWeek() {
+  @Test void testFloorWeek() {
     final String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     final String expectedClickHouse = "SELECT toMonday(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
@@ -3051,7 +3051,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testFloorMonth() {
+  @Test void testFloorMonth() {
     final String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
     final String expectedClickHouse = "SELECT toStartOfMonth(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
@@ -4707,7 +4707,7 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testCubeWithGroupBy() {
+  @Test void testCubeWithGroupBy() {
     final String query = "select count(*) "
         + "from \"foodmart\".\"product\" "
         + "group by cube(\"product_id\",\"product_class_id\")";
@@ -4728,7 +4728,7 @@ class RelToSqlConverterTest {
         .ok(expectedPresto);
   }
 
-  @Test public void testRollupWithGroupBy() {
+  @Test void testRollupWithGroupBy() {
     final String query = "select count(*) "
         + "from \"foodmart\".\"product\" "
         + "group by rollup(\"product_id\",\"product_class_id\")";
