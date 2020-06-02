@@ -307,6 +307,13 @@ public interface RelOptPlanner {
   void prune(RelNode rel);
 
   /**
+   * Check whether or not a RelNode is pruned
+   * @param rel the node to check
+   * @return true if rel is pruned, false if otherwise
+   */
+  boolean isPruned(RelNode rel);
+
+  /**
    * Registers a class of RelNode. If this class of RelNode has been seen
    * before, does nothing.
    *

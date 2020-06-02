@@ -535,7 +535,7 @@ class RelSet {
 
     for (RelNode rel : getParentRels()) {
       RelSet set = planner.getSet(rel);
-      if (set.id != this.id) {
+      if (set.id != this.id && !planner.isPruned(rel)) {
         results.add(set);
       }
     }

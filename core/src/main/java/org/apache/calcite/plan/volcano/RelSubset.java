@@ -293,7 +293,7 @@ public class RelSubset extends AbstractRelNode {
     return list;
   }
 
-  public RelSet getSet() {
+  RelSet getSet() {
     return set;
   }
 
