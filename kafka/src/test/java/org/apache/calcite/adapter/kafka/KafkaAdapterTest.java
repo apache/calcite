@@ -74,7 +74,7 @@ class KafkaAdapterTest {
 
   @Test void testFilterWithProject() {
     assertModel(MODEL)
-        .with(CalciteConnectionProperty.TOP_DOWN_OPT.camelName(), false)
+        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
         .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
             + " WHERE MSG_OFFSET>0")
         .limit(1)

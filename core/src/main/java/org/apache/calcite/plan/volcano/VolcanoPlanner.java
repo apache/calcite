@@ -136,13 +136,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Holds rule calls waiting to be fired.
    */
-  IRuleQueue<?> ruleQueue;
-
-  /**
-   * The RuleDriver that apply rules in top-down manners.
-   * May be null if the planner does not enable top-down optimization
-   */
-  private TopDownRuleDriver ruleDriver = null;
+  RuleDriver ruleDriver;
 
   /**
    * Holds the currently registered RelTraitDefs.
@@ -187,16 +181,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   final RelOptCost infCost;
 
   /**
-   * Optimization tasks including trait propagation, enforcement.
-   */
-  final Deque<OptimizeTask> tasks = new ArrayDeque<>();
-
-  /**
-   * The id generator for optimization tasks.
-   */
-  int nextTaskId = 0;
-
-  /**
    * Whether to enable top-down optimization or not.
    */
   boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
@@ -205,11 +189,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * extra roots for explorations
    */
   Set<RelSubset> explorationRoots = new HashSet<>();
-
-  /**
-   * Whether to enable top-down trait propagation
-   */
-  boolean topDownTraits = CalciteSystemProperty.TOPDOWN_TRAITS.value();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -243,18 +222,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // If LOGGER is debug enabled, enable provenance information to be captured
     this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
         : Util.blackholeMap();
-    if (topDownOpt) {
-      topDownTraits = true;
-    }
     initRuleQueue();
   }
 
   private void initRuleQueue() {
     if (topDownOpt) {
       ruleDriver = new TopDownRuleDriver(this);
-      ruleQueue = ruleDriver.ruleQueue();
     } else {
-      ruleQueue = new RuleQueue(this);
+      ruleDriver = new MultiPhasedRuleDriver(this);
     }
   }
 
@@ -281,24 +256,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return;
     }
     topDownOpt = value;
-    if (value) {
-      topDownTraits = true;
-    }
     initRuleQueue();
-  }
-
-  /**
-   * Enable or disable top-down trait propagation.
-   *
-   * <p>Note: Enabling top-down propagation will automatically disable
-   * the use of AbstractConverter and related rules.</p>
-   */
-  public void setTopDownTraitPropagates(boolean value) {
-    topDownTraits = value;
-    if (!value && topDownOpt) {
-      topDownOpt = false;
-      initRuleQueue();
-    }
   }
 
   // implement RelOptPlanner
@@ -442,10 +400,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.mapDigestToRel.clear();
     this.mapRel2Subset.clear();
     this.prunedNodes.clear();
-    this.ruleQueue.clear();
-    if (ruleDriver != null) {
-      ruleDriver.reset();
-    }
+    this.ruleDriver.clear();
     this.materializations.clear();
     this.latticeByName.clear();
     this.provenanceMap.clear();
@@ -560,11 +515,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ensureRootConverters();
     registerMaterializations();
 
-    if (topDownOpt) {
-      applyRulesTopDown();
-    } else {
-      applyRules();
-    }
+    ruleDriver.drive();
 
     if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
@@ -584,68 +535,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
     return cheapest;
-  }
-
-  /**
-   * <p>The algorithm will execute rules in top-down ways,
-   * inspired by the Columbia optimizer generator
-   */
-  private void applyRulesTopDown() {
-    ruleDriver.execute();
-  }
-
-  /**
-   * The algorithm executes repeatedly in a series of phases. In each phase
-   * the exact rules that may be fired varies. The mapping of phases to rule
-   * sets is maintained in the {@link #ruleQueue}.
-   *
-   * <p>In each phase, the planner then iterates over the rule matches presented
-   * by the rule queue until the rule queue becomes empty.
-   */
-  private void applyRules() {
-    final RuleQueue ruleQueue = (RuleQueue) this.ruleQueue;
-
-    PLANNING:
-    for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
-      while (true) {
-        LOGGER.debug("PLANNER = {}; PHASE = {}; COST = {}",
-            this, phase.toString(), root.bestCost);
-
-        VolcanoRuleMatch match = ruleQueue.popMatch(phase);
-        if (match == null) {
-          break;
-        }
-
-        assert match.getRule().matches(match);
-        try {
-          match.onMatch();
-        } catch (VolcanoTimeoutException e) {
-          LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
-          root = canonize(root);
-          ruleQueue.clear(phase);
-          break PLANNING;
-        }
-
-        // The root may have been merged with another
-        // subset. Find the new root subset.
-        root = canonize(root);
-      }
-
-      ruleQueue.clear(phase);
-    }
-
-    if (topDownTraits) {
-      tasks.push(OptimizeTask.create(root));
-      while (!tasks.isEmpty()) {
-        OptimizeTask task = tasks.peek();
-        if (task.hasSubTask()) {
-          tasks.push(task.nextSubTask());
-          continue;
-        }
-        task = tasks.pop();
-        task.execute();
-      }
-    }
   }
 
   @Override public void checkCancel() {
@@ -856,11 +745,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return null;
     }
     return set.getSubset(traits);
-  }
-
-  boolean isSeedNode(RelNode node) {
-    final RelSet set = getSubset(node).set;
-    return set.seeds.contains(node);
   }
 
   RelNode changeTraitsUsingConverters(
@@ -1127,6 +1011,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (prunedNodes.contains(duplicateRel)) {
       prunedNodes.add(rel);
     }
+  }
+
+  /**
+   * Find the new root subset in case the root is merged with another subset
+   */
+  void canonize() {
+    root = canonize(root);
   }
 
   /**
@@ -1668,7 +1559,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               getOperand0(),
               rels,
               nodeInputs);
-      volcanoPlanner.ruleQueue.addMatch(match);
+      volcanoPlanner.ruleDriver.getRuleQueue().addMatch(match);
     }
   }
 

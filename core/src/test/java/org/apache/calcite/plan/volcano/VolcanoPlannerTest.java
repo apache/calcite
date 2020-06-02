@@ -65,7 +65,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -502,18 +502,18 @@ class VolcanoPlannerTest {
 
     // verify that the rule match cannot be popped,
     // as the related node has been pruned
+    RuleQueue ruleQueue = planner.ruleDriver.getRuleQueue();
     while (true) {
-      IRuleQueue<?> ruleQueue = planner.ruleQueue;
       VolcanoRuleMatch ruleMatch;
-      if (ruleQueue instanceof RuleQueue) {
-        ruleMatch = ((RuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      if (ruleQueue instanceof VolcanoRuleQueue) {
+        ruleMatch = ((VolcanoRuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
       } else {
         ruleMatch = ((CascadeRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
       }
       if (ruleMatch == null) {
         break;
       }
-      assertFalse(ruleMatch.rels[0] == leafRel);
+      assertNotSame(leafRel, ruleMatch.rels[0]);
     }
   }
 

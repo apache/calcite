@@ -85,7 +85,7 @@ public class RelSubset extends AbstractRelNode {
   /**
    * Optimization task state
    */
-  OptimizeTask.State taskState;
+  OptimizeState taskState;
 
   /**
    * cost of best known plan (it may have improved since)
@@ -503,7 +503,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelOptCost getWinnerCost() {
-    if (bestCost == upperBound && taskState == OptimizeTask.State.COMPLETED) {
+    if (bestCost == upperBound && taskState == OptimizeState.COMPLETED) {
       return bestCost;
     }
     // if bestCost != upperBound, it means optimize failed
@@ -514,11 +514,11 @@ public class RelSubset extends AbstractRelNode {
     if (ub.isLt(bestCost)) {
       upperBound = ub;
     }
-    taskState = OptimizeTask.State.EXECUTING;
+    taskState = OptimizeState.OPTIMIZING;
   }
 
   public void optimized() {
-    taskState = OptimizeTask.State.COMPLETED;
+    taskState = OptimizeState.COMPLETED;
   }
 
   public boolean resetOptimizing() {
@@ -767,5 +767,10 @@ public class RelSubset extends AbstractRelNode {
       }
       return p;
     }
+  }
+
+  enum OptimizeState {
+    OPTIMIZING,
+    COMPLETED
   }
 }

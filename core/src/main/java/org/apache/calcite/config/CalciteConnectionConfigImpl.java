@@ -165,10 +165,6 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.SPARK.wrap(properties).getBoolean();
   }
 
-  @Override public boolean topDownOpt() {
-    return CalciteConnectionProperty.TOP_DOWN_OPT.wrap(properties).getBoolean();
-  }
-
   public boolean forceDecorrelate() {
     return CalciteConnectionProperty.FORCE_DECORRELATE.wrap(properties)
         .getBoolean();

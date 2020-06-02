@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -33,7 +37,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Predicate;
 
-class TopDownRuleDriver {
+class TopDownRuleDriver implements RuleDriver {
 
   /**
    * the Logger
@@ -77,7 +81,7 @@ class TopDownRuleDriver {
 
   //~ Methods ----------------------------------------------------------------
 
-  void execute() {
+  @Override public void drive() {
     TaskDescriptor description = new TaskDescriptor();
     tasks.push(new OptimizeGroup(planner.root, planner.infCost));
     exploreMaterializationRoots();
@@ -102,11 +106,11 @@ class TopDownRuleDriver {
     }
   }
 
-  public CascadeRuleQueue ruleQueue() {
+  @Override public CascadeRuleQueue getRuleQueue() {
     return ruleQueue;
   }
 
-  public void reset() {
+  @Override public void clear() {
     ruleQueue.clear();
     tasks.clear();
     passThroughCache.clear();
@@ -127,7 +131,7 @@ class TopDownRuleDriver {
     }
   }
 
-  void onSetMerged(RelSet set) {
+  public void onSetMerged(RelSet set) {
     applyGenerator(null, () -> clearProcessed(set));
   }
 
@@ -148,7 +152,7 @@ class TopDownRuleDriver {
     }
   }
 
-  void onProduce(RelNode node, RelSubset subset) {
+  public void onProduce(RelNode node, RelSubset subset) {
     if (applying == null || subset.set
         != VolcanoPlanner.equivRoot(applying.group().set)) {
       return;
@@ -170,7 +174,7 @@ class TopDownRuleDriver {
         List<RelSubset> subsetsToPassThrough = new ArrayList<>();
         for (RelSubset otherSubset : set.subsets) {
           if (!otherSubset.isRequired() || otherSubset != planner.root
-              && otherSubset.taskState != OptimizeTask.State.EXECUTING) {
+              && otherSubset.taskState != RelSubset.OptimizeState.OPTIMIZING) {
             continue;
           }
           if (node.getTraitSet().satisfies(otherSubset.getTraitSet())) {
@@ -198,7 +202,7 @@ class TopDownRuleDriver {
       }
     } else {
       boolean optimizing = subset.set.subsets.stream()
-          .anyMatch(s -> s.taskState == OptimizeTask.State.EXECUTING);
+          .anyMatch(s -> s.taskState == RelSubset.OptimizeState.OPTIMIZING);
       tasks.push(
           new OptimizeMExpr(node, applying.group(),
               applying.exploring() && !optimizing));
@@ -784,12 +788,108 @@ class TopDownRuleDriver {
           return;
         }
       }
-      // in case there would be some implementations using rules to propagate traits
+      // in case there would be some implementations using rules to
+      // e traits
       tasks.push(new ApplyRules(mExpr, group, false));
       if (!passThroughCache.contains(mExpr.getId())) {
-        applyGenerator(this,
-            () -> new OptimizeTask.RelNodeOptTask(mExpr).execute());
+        applyGenerator(this, this::derive);
       }
+    }
+
+    private void derive() {
+      if (!(mExpr instanceof PhysicalNode)
+          || ((PhysicalNode) mExpr).getDeriveMode() == DeriveMode.PROHIBITED) {
+        return;
+      }
+
+      PhysicalNode rel = (PhysicalNode) mExpr;
+      DeriveMode mode = rel.getDeriveMode();
+      int arity = rel.getInputs().size();
+      // for OMAKASE
+      List<List<RelTraitSet>> inputTraits = new ArrayList<>(arity);
+
+      for (int i = 0; i < arity; i++) {
+        int childId = i;
+        if (mode == DeriveMode.RIGHT_FIRST) {
+          childId = arity - i - 1;
+        }
+
+        RelSubset input = (RelSubset) rel.getInput(childId);
+        List<RelTraitSet> traits = new ArrayList<>();
+        inputTraits.add(traits);
+
+        final int numSubset = input.set.subsets.size();
+        for (int j = 0; j < numSubset; j++) {
+          RelSubset subset = input.set.subsets.get(j);
+          if (!subset.isDelivered() || equalsSansConvention(
+              subset.getTraitSet(), rel.getCluster().traitSet())) {
+            // TODO: should use matching type to determine
+            // Ideally we should stop deriving new relnodes when the
+            // subset's traitSet equals with input traitSet, but
+            // in case someone manually builds a physical relnode
+            // tree, which is highly discouraged, without specifying
+            // correct traitSet, e.g.
+            //   EnumerableFilter  [].ANY
+            //       -> EnumerableMergeJoin  [a].Hash[a]
+            // We should still be able to derive the correct traitSet
+            // for the dumb filter, even though the filter's traitSet
+            // should be derived from the MergeJoin when it is created.
+            // But if the subset's traitSet equals with the default
+            // empty traitSet sans convention (the default traitSet
+            // from cluster may have logical convention, NONE, which
+            // is not interesting), we are safe to ignore it, because
+            // a physical filter with non default traitSet, but has a
+            // input with default empty traitSet, e.g.
+            //   EnumerableFilter  [a].Hash[a]
+            //       -> EnumerableProject  [].ANY
+            // is definitely wrong, we should fail fast.
+            continue;
+          }
+
+          if (mode == DeriveMode.OMAKASE) {
+            traits.add(subset.getTraitSet());
+          } else {
+            RelNode newRel = rel.derive(subset.getTraitSet(), childId);
+            if (newRel != null && !planner.isRegistered(newRel)) {
+              RelSubset relSubset = planner.register(newRel, rel);
+              assert relSubset.set == planner.getSubset(rel).set;
+            }
+          }
+        }
+
+        if (mode == DeriveMode.LEFT_FIRST
+            || mode == DeriveMode.RIGHT_FIRST) {
+          break;
+        }
+      }
+
+      if (mode == DeriveMode.OMAKASE) {
+        List<RelNode> relList = rel.derive(inputTraits);
+        for (RelNode relNode : relList) {
+          if (!planner.isRegistered(relNode)) {
+            planner.register(relNode, rel);
+          }
+        }
+      }
+    }
+
+
+    /**
+     * Returns whether the 2 traitSets are equal without Convention.
+     * It assumes they have the same traitDefs order.
+     */
+    private boolean equalsSansConvention(RelTraitSet ts1, RelTraitSet ts2) {
+      assert ts1.size() == ts2.size();
+      for (int i = 0; i < ts1.size(); i++) {
+        RelTrait trait = ts1.getTrait(i);
+        if (trait.getTraitDef() == ConventionTraitDef.INSTANCE) {
+          continue;
+        }
+        if (!trait.equals(ts2.getTrait(i))) {
+          return false;
+        }
+      }
+      return true;
     }
 
     @Override public void describe(TaskDescriptor desc) {

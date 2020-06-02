@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -76,20 +75,9 @@ class RelSet {
   RelNode rel;
 
   /**
-   * The position indicator of rel node that is to be processed.
-   */
-  private int relCursor = 0;
-
-  /**
    * Exploring state of current RelSet
    */
   ExploringState exploringState;
-
-  /**
-   * The relnodes after applying logical rules and physical rules,
-   * before trait propagation and enforcement.
-   */
-  final Set<RelNode> seeds = new HashSet<>();
 
   /**
    * Records conversions / enforcements that have happened on the
@@ -169,32 +157,6 @@ class RelSet {
       }
     }
     return null;
-  }
-
-  public int getSeedSize() {
-    if (seeds.isEmpty()) {
-      seeds.addAll(rels);
-    }
-    return seeds.size();
-  }
-
-  public boolean hasNextPhysicalNode() {
-    while (relCursor < rels.size()) {
-      RelNode node = rels.get(relCursor);
-      if (node instanceof PhysicalNode
-          && node.getConvention() != Convention.NONE) {
-        // enforcer may be manually created for some reason
-        if (relCursor < getSeedSize() || !node.isEnforcer()) {
-          return true;
-        }
-      }
-      relCursor++;
-    }
-    return false;
-  }
-
-  public RelNode nextPhysicalNode() {
-    return rels.get(relCursor++);
   }
 
   /**
@@ -320,8 +282,8 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter && (planner.topDownOpt || !planner.topDownTraits)) {
-      addConverters(subset, required, !planner.topDownTraits);
+    if (needsConverter) {
+      addConverters(subset, required, !planner.topDownOpt);
     }
 
     return subset;

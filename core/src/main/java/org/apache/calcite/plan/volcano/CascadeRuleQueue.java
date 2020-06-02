@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 /**
  * A rule queue that manage rule matches for cascade planner
  */
-public class CascadeRuleQueue implements IRuleQueue<Pair<RelNode, Predicate<VolcanoRuleMatch>>> {
+public class CascadeRuleQueue implements RuleQueue {
 
   private final VolcanoPlanner planner;
 
@@ -81,12 +81,14 @@ public class CascadeRuleQueue implements IRuleQueue<Pair<RelNode, Predicate<Volc
     return null;
   }
 
-  @Override public void clear(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
-    matches.remove(category.getKey().getId());
-  }
-
-  @Override public void clear() {
+  @Override public boolean clear() {
+    boolean empty = matches.isEmpty();
     matches.clear();
     names.clear();
+    return !empty;
+  }
+
+  public VolcanoRuleMatch popLogicalMatch(RelNode rel) {
+    return null;
   }
 }

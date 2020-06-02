@@ -51,8 +51,8 @@ LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(MGR=[$3])
-  EnumerableSort(sort0=[$3], dir0=[DESC-nulls-last])
+EnumerableSort(sort0=[$0], dir0=[DESC-nulls-last])
+  EnumerableProject(MGR=[$3])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -77,8 +77,8 @@ EnumerableSortedAggregate(group=[{0, 1, 2}])
   EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
     EnumerableProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
       EnumerableLimit(fetch=[100])
-        EnumerableProject(ENAME=[$1], MGR=[$3], SAL=[$5])
-          EnumerableSort(sort0=[$1], sort1=[$3], sort2=[$5], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+        EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+          EnumerableProject(ENAME=[$1], MGR=[$3], SAL=[$5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -147,8 +147,8 @@ LogicalSort(sort0=[$1], dir0=[DESC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
-  EnumerableSort(sort0=[$7], dir0=[DESC])
+EnumerableSort(sort0=[$1], dir0=[DESC])
+  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -233,8 +233,8 @@ EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL
       EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
         EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
           EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
@@ -267,8 +267,8 @@ EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL
         EnumerableLimit(fetch=[100])
           EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
