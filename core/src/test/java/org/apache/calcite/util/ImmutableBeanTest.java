@@ -253,6 +253,26 @@ class ImmutableBeanTest {
         .withChar('a').nTimes(2), is("aa"));
   }
 
+  @Test void testSubBean() {
+    assertThat(ImmutableBeans.create(SubBean.class)
+            .withBuzz(7).withBaz("x").withBar(true).toString(),
+        is("{Bar=true, Baz=x, Buzz=7}"));
+
+    assertThat(ImmutableBeans.create(MyBean.class)
+            .withBar(true).as(SubBean.class)
+            .withBuzz(7).withBaz("x").toString(),
+        is("{Bar=true, Baz=x, Buzz=7}"));
+
+    // Up-casting to MyBean does not discard value of sub-class property,
+    // "buzz". This is a feature, not a bug. It will allow us to down-cast
+    // later. (If we down-cast to a different sub-class where "buzz" has a
+    // different type, that would be a problem.)
+    assertThat(ImmutableBeans.create(SubBean.class)
+            .withBuzz(5).withBar(false).as(MyBean.class)
+            .withBaz("z").toString(),
+        is("{Bar=false, Baz=z, Buzz=5}"));
+  }
+
   /** Bean whose default value is not a valid value for the enum;
    * used in {@link #testValidate()}. */
   interface BeanWhoseDefaultIsBadEnumValue {
@@ -356,7 +376,11 @@ class ImmutableBeanTest {
     // TODO it is an error to declare an boolean property to be not required
 
   /** A simple bean with properties of various types, no defaults. */
-  interface MyBean {
+  public interface MyBean {
+    default <T> T as(Class<T> class_) {
+      return ImmutableBeans.copy(class_, this);
+    }
+
     @ImmutableBeans.Property
     int getFoo();
     MyBean withFoo(int x);
@@ -449,5 +473,16 @@ class ImmutableBeanTest {
     @ImmutableBeans.Property
     char getChar();
     BeanWithDefault withChar(char c);
+  }
+
+  /** A bean that extends another bean.
+   *
+   * <p>Its {@code with} methods return either the base interface
+   * or the derived interface.
+   */
+  public interface SubBean extends MyBean {
+    @ImmutableBeans.Property
+    int getBuzz();
+    SubBean withBuzz(int i);
   }
 }
