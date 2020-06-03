@@ -1899,8 +1899,14 @@ public class SubstitutionVisitor {
         if (i < 0) {
           return null;
         }
+        // When an SqlAggFunction does not support roll up, it will return null, which means that
+        // it cannot do secondary aggregation and the materialization recognition will fail.
+        final SqlAggFunction aggFunction = getRollup(aggregateCall.getAggregation());
+        if (aggFunction == null) {
+          return null;
+        }
         aggregateCalls.add(
-            AggregateCall.create(getRollup(aggregateCall.getAggregation()),
+            AggregateCall.create(aggFunction,
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 aggregateCall.ignoreNulls(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,

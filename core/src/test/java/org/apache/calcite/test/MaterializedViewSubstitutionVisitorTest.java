@@ -496,7 +496,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   /** Aggregation query at coarser level of aggregation than aggregation
    * materialization. Requires an additional aggregate to roll up. Note that
    * COUNT is rolled up using SUM0. */
-  @Test void testAggregateRollUp() {
+  @Test void testAggregateRollUp1() {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"")
@@ -507,6 +507,21 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "  LogicalAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
+  }
+
+  /**
+   * stddev_pop aggregate function does not support roll up.
+   */
+  @Test void testAggregateRollUp2() {
+    final String mv = ""
+        + "select \"empid\", stddev_pop(\"deptno\") "
+        + "from \"emps\" "
+        + "group by \"empid\", \"deptno\"";
+    final String query = ""
+        + "select \"empid\", stddev_pop(\"deptno\") "
+        + "from \"emps\" "
+        + "group by \"empid\"";
+    sql(mv, query).noMat();
   }
 
   /** Aggregation query with groupSets at coarser level of aggregation than
@@ -1336,12 +1351,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   }
 
   @Test void testSubQuery() {
-    String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
+    final String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
         + "where \"empid\" = (\n"
         + "  select max(\"empid\") from \"emps\"\n"
         + "  where \"deptno\" = e1.\"deptno\")";
     final String m = "select \"empid\", \"deptno\" from \"emps\"\n";
-    System.out.println("hello");
     sql(m, q).ok();
   }
 
