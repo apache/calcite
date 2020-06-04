@@ -145,6 +145,12 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
         .build();
   }
 
+  public boolean matches(RelOptRuleCall call) {
+    Join join = call.rel(0);
+    // SEMI and ANTI join cannot be swapped.
+    return join.getJoinType().projectsRight();
+  }
+
   public void onMatch(final RelOptRuleCall call) {
     Join join = call.rel(0);
 
