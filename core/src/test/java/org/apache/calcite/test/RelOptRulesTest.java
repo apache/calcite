@@ -5624,6 +5624,55 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4042">[CALCITE-4042]
+   * JoinCommuteRule must not match SEMI / ANTI join</a>. */
+  @Test void testSwapSemiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode input = relBuilder
+        .scan("EMP")
+        .scan("DEPT")
+        .semiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+    testSwapJoinShouldNotMatch(input);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4042">[CALCITE-4042]
+   * JoinCommuteRule must not match SEMI / ANTI join</a>. */
+  @Test void testSwapAntiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode input = relBuilder
+        .scan("EMP")
+        .scan("DEPT")
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+    testSwapJoinShouldNotMatch(input);
+  }
+
+  private void testSwapJoinShouldNotMatch(RelNode input) {
+    final HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addRuleInstance(JoinCommuteRule.SWAP_OUTER)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(input);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = RelOptUtil.toString(input);
+    final String planAfter = RelOptUtil.toString(output);
+    assertEquals(planBefore, planAfter);
+  }
+
   @Test void testPushJoinCondDownToProject() {
     final String sql = "select d.deptno, e.deptno from sales.dept d, sales.emp e\n"
         + " where d.deptno + 10 = e.deptno * 2";
