@@ -487,8 +487,8 @@ public class RelBuilder {
                 p.e.right.getName()));
       }
     }
-    throw new IllegalArgumentException("no aliased field found; fields are: "
-        + fields);
+    throw new IllegalArgumentException("{alias=" + alias + ",fieldName=" + fieldName + "} "
+        + "field not found; fields are: " + fields);
   }
 
   /** Returns a reference to a given field of a record-valued expression. */
