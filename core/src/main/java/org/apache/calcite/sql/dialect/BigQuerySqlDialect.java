@@ -476,6 +476,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
     String regexStr = call.operand(1).toString();
+    regexStr = regexStr.replace("\\", "\\\\");
     String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
     return SqlLiteral.createCharString(regexLiteral,
         call.operand(1).getParserPosition());

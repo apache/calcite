@@ -4164,6 +4164,20 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testRegexSubstrFunction5ArgswithBackSlash() {
+    final String query = "select regexp_substr('chocolate Chip cookies','[-\\_] V[0-9]+',"
+        + " 1,1,'i')\n"
+        + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
+    final String expected = "SELECT "
+        + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)[-\\\\_] V[0-9]+') [OFFSET(0)]\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+
   @Test
   public void testTimestampFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
