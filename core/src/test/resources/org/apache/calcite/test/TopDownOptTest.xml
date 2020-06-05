@@ -1116,4 +1116,124 @@ EnumerableProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testCorrelateInnerJoinDeriveLeft">
+    <Resource name="sql">
+      <![CDATA[select * from emp e join dept d on e.deptno=d.deptno order by e.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+  EnumerableSort(sort0=[$1], dir0=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateInnerJoinNoDerive">
+    <Resource name="sql">
+      <![CDATA[select * from emp e join dept d on e.deptno=d.deptno order by e.ename, d.name]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateLeftJoinDeriveLeft">
+    <Resource name="sql">
+      <![CDATA[select * from emp e left join dept d on e.deptno=d.deptno order by e.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  EnumerableSort(sort0=[$1], dir0=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateLeftJoinNoDerive">
+    <Resource name="sql">
+      <![CDATA[select * from emp e left join dept d on e.deptno=d.deptno order by e.ename, d.name]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateSemiJoinDeriveLeft">
+    <Resource name="sql">
+      <![CDATA[select * from dept d where exists
+            (select 1 from emp e where e.deptno=d.deptno) order by d.name]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO=[$7], $f0=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
+  EnumerableSort(sort0=[$1], dir0=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+  EnumerableFilter(condition=[=($cor2.DEPTNO, $0)])
+    EnumerableProject(DEPTNO=[$7], $f0=[true])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>
