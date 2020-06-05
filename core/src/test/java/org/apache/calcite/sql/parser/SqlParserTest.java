@@ -5749,19 +5749,6 @@ public class SqlParserTest {
         .ok("INTERVAL '0' MONTH(0)");
   }
 
-  @Test void testSqlParserPosPlus() throws Exception {
-    final String sql = "insert into emps select * from emps";
-    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
-    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
-      @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
-      }
-    });
-    assertTrue(sqlNodeVisited != sqlNode);
-    assertTrue(sqlNodeVisited.getKind() == SqlKind.INSERT);
-  }
-
   /**
    * Runs tests for INTERVAL... DAY that should pass parser but fail
    * validator. A substantially identical set of tests exists in
@@ -5814,6 +5801,19 @@ public class SqlParserTest {
     // just need to check for 0
     expr("INTERVAL '0' DAY(0)")
         .ok("INTERVAL '0' DAY(0)");
+  }
+
+  @Test void testVisitSqlInsertWithSqlShuttle() throws Exception {
+    final String sql = "insert into emps select * from emps";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    assertTrue(sqlNodeVisited != sqlNode);
+    assertTrue(sqlNodeVisited.getKind() == SqlKind.INSERT);
   }
 
   /**

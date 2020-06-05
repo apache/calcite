@@ -203,7 +203,13 @@ public class SqlParserPos implements Serializable {
   }
 
   private static Iterable<SqlParserPos> toPos(Iterable<SqlNode> nodes) {
-    return Iterables.transform(nodes, SqlNode::getParserPosition);
+    return Iterables.transform(nodes, node -> {
+      if (node == null) {
+        return null;
+      } else {
+        return node.getParserPosition();
+      }
+    });
   }
 
   /**
