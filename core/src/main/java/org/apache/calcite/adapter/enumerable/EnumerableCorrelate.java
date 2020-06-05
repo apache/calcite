@@ -21,9 +21,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -32,11 +36,13 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Correlate} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -79,6 +85,35 @@ public class EnumerableCorrelate extends Correlate
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
     return new EnumerableCorrelate(getCluster(),
         traitSet, left, right, correlationId, requiredColumns, joinType);
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    final RelCollation collation = required.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+
+    // EnumerableCorrelate traits passdown shall only pass through collation to left input.
+    // This is because for EnumerableCorrelate always uses left input as the outer loop,
+    // thus only left input can preserve ordering.
+
+    for (RelFieldCollation relFieldCollation : collation.getFieldCollations()) {
+      // If field collation belongs to right input: bail out.
+      if (relFieldCollation.getFieldIndex() >= getLeft().getRowType().getFieldCount()) {
+        return null;
+      }
+    }
+
+    final RelTraitSet passThroughTraitSet = traitSet.replace(collation);
+    return Pair.of(passThroughTraitSet,
+        ImmutableList.of(
+            passThroughTraitSet,
+            passThroughTraitSet.replace(RelCollations.EMPTY)));
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    return DeriveMode.LEFT_FIRST;
   }
 
   public Result implement(EnumerableRelImplementor implementor,
