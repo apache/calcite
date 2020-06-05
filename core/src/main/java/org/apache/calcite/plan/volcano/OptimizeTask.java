@@ -228,8 +228,7 @@ abstract class OptimizeTask {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
             if (newRel != null && !planner.isRegistered(newRel)) {
               RelSubset relSubset = planner.register(newRel, node);
-              // TODO: CALCITE-4030
-              // assert relSubset.set == planner.getSubset(node).set;
+              assert relSubset.set == planner.getSubset(node).set;
             }
           }
         }
@@ -293,7 +292,8 @@ abstract class OptimizeTask {
     }
 
     private void propagateTraits() {
-      int size = subset.set.getSeedSize();
+      int size = Math.min(subset.set.getSeedSize(),
+          subset.set.rels.size());
 
       for (int i = 0; i < size; i++) {
         RelNode rel = subset.set.rels.get(i);
