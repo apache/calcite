@@ -25,6 +25,8 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 
 import com.google.common.collect.ImmutableList;
@@ -129,6 +131,72 @@ class TopDownOptTest extends RelOptTestBase {
         + "on r.job=s.job and r.ename=s.ename";
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .check();
+  }
+
+  // Order by left field(s): push down sort to left input.
+  @Test void testCorrelateInnerJoinDeriveLeft() {
+    final String sql = "select * from emp e\n"
+        + "join dept d on e.deptno=d.deptno\n"
+        + "order by e.ename";
+    Query.create(sql)
+        .addRule(JoinToCorrelateRule.INSTANCE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Order by contains right field: sort cannot be pushed down.
+  @Test void testCorrelateInnerJoinNoDerive() {
+    final String sql = "select * from emp e\n"
+        + "join dept d on e.deptno=d.deptno\n"
+        + "order by e.ename, d.name";
+    Query.create(sql)
+        .addRule(JoinToCorrelateRule.INSTANCE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Order by left field(s): push down sort to left input.
+  @Test void testCorrelateLeftJoinDeriveLeft() {
+    final String sql = "select * from emp e\n"
+        + "left join dept d on e.deptno=d.deptno\n"
+        + "order by e.ename";
+    Query.create(sql)
+        .addRule(JoinToCorrelateRule.INSTANCE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Order by contains right field: sort cannot be pushed down.
+  @Test void testCorrelateLeftJoinNoDerive() {
+    final String sql = "select * from emp e\n"
+        + "left join dept d on e.deptno=d.deptno\n"
+        + "order by e.ename, d.name";
+    Query.create(sql)
+        .addRule(JoinToCorrelateRule.INSTANCE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // Order by left field(s): push down sort to left input.
+  @Test void testCorrelateSemiJoinDeriveLeft() {
+    final String sql = "select * from dept d\n"
+        + "where exists (select 1 from emp e where e.deptno=d.deptno)\n"
+        + "order by d.name";
+    Query.create(sql)
+        .addRule(JoinToCorrelateRule.INSTANCE)
+        .addRule(SemiJoinRule.JOIN)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
 
