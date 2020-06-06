@@ -35,9 +35,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Util;
 
 /**
  * RelMdMaxRowCount supplies a default implementation of
@@ -202,19 +200,7 @@ public class RelMdMaxRowCount
   }
 
   public Double getMaxRowCount(RelSubset rel, RelMetadataQuery mq) {
-    // FIXME This is a short-term fix for [CALCITE-1018]. A complete
-    // solution will come with [CALCITE-1048].
-    Util.discard(Bug.CALCITE_1048_FIXED);
-    for (RelNode node : rel.getRels()) {
-      if (node instanceof Sort) {
-        Sort sort = (Sort) node;
-        if (sort.fetch != null) {
-          return (double) RexLiteral.intValue(sort.fetch);
-        }
-      }
-    }
-
-    return Double.POSITIVE_INFINITY;
+    return mq.getMaxRowCount(rel.getOriginal());
   }
 
   // Catch-all rule when none of the others apply.

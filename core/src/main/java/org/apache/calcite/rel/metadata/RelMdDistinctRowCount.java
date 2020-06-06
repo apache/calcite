@@ -31,7 +31,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
@@ -264,23 +263,6 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(RelSubset rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    final RelNode best = rel.getBest();
-    if (best != null) {
-      return mq.getDistinctRowCount(best, groupKey, predicate);
-    }
-    if (!Bug.CALCITE_1048_FIXED) {
-      return getDistinctRowCount((RelNode) rel, mq, groupKey, predicate);
-    }
-    Double d = null;
-    for (RelNode r2 : rel.getRels()) {
-      try {
-        Double d2 = mq.getDistinctRowCount(r2, groupKey, predicate);
-        d = NumberUtil.min(d, d2);
-      } catch (CyclicMetadataException e) {
-        // Ignore this relational expression; there will be non-cyclic ones
-        // in this set.
-      }
-    }
-    return d;
+    return mq.getDistinctRowCount(rel.getOriginal(), groupKey, predicate);
   }
 }

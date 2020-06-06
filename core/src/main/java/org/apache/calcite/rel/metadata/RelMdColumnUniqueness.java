@@ -391,31 +391,7 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(RelSubset rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    int nullCount = 0;
-    for (RelNode rel2 : rel.getRels()) {
-      if (rel2 instanceof Aggregate
-          || rel2 instanceof Filter
-          || rel2 instanceof Values
-          || rel2 instanceof Sort
-          || rel2 instanceof TableScan
-          || simplyProjects(rel2, columns)) {
-        try {
-          final Boolean unique = mq.areColumnsUnique(rel2, columns, ignoreNulls);
-          if (unique != null) {
-            if (unique) {
-              return true;
-            }
-          } else {
-            ++nullCount;
-          }
-        } catch (CyclicMetadataException e) {
-          // Ignore this relational expression; there will be non-cyclic ones
-          // in this set.
-        }
-      }
-    }
-    return nullCount == 0 ? false : null;
+    return mq.areColumnsUnique(rel.getOriginal(), columns, ignoreNulls);
   }
 
   private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {

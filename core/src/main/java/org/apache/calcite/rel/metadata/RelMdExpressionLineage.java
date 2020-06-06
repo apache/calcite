@@ -42,7 +42,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -105,8 +104,7 @@ public class RelMdExpressionLineage
 
   public Set<RexNode> getExpressionLineage(RelSubset rel,
       RelMetadataQuery mq, RexNode outputExpression) {
-    return mq.getExpressionLineage(Util.first(rel.getBest(), rel.getOriginal()),
-        outputExpression);
+    return mq.getExpressionLineage(rel.getOriginal(), outputExpression);
   }
 
   /**

@@ -41,7 +41,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -99,7 +98,7 @@ public class RelMdAllPredicates
 
   public RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
-    return mq.getAllPredicates(Util.first(rel.getBest(), rel.getOriginal()));
+    return mq.getAllPredicates(rel.getOriginal());
   }
 
   /**
