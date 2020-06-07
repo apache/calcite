@@ -199,28 +199,61 @@ public class RelCollations {
    * @param keys List of keys
    * @return Whether the collection contains the given keys
    */
-  private static boolean containsOrderless(RelCollation collation,
+  public static boolean containsOrderless(RelCollation collation,
       List<Integer> keys) {
     final List<Integer> distinctKeys = Util.distinctList(keys);
     final ImmutableBitSet keysBitSet = ImmutableBitSet.of(distinctKeys);
     List<Integer> colKeys = Util.distinctList(collation.getKeys());
+
     if (colKeys.size() < distinctKeys.size()) {
       return false;
+    } else {
+      ImmutableBitSet bitset = ImmutableBitSet.of(
+          colKeys.subList(0, distinctKeys.size()));
+      return bitset.equals(keysBitSet);
     }
-    ImmutableBitSet bitset = ImmutableBitSet.of(
-        colKeys.subList(0, distinctKeys.size()));
-    return bitset.equals(keysBitSet);
+  }
+
+  /** Returns whether a collation is contained by a given list of keys regardless ordering.
+   *
+   * @param collation Collation
+   * @param keys List of keys
+   * @return Whether the collection contains the given keys
+   */
+  public static boolean containsOrderless(
+      List<Integer> keys, RelCollation collation) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
+    List<Integer> colKeys = Util.distinctList(collation.getKeys());
+
+    if (colKeys.size() > distinctKeys.size()) {
+      return false;
+    } else {
+      return colKeys.stream().allMatch(i -> distinctKeys.contains(i));
+    }
   }
 
   /**
    * Returns whether one of a list of collations contains the given list of keys
    * regardless the order.
    */
-  public static boolean containsOrderless(List<RelCollation> collations,
-      List<Integer> keys) {
-    final List<Integer> distinctKeys = Util.distinctList(keys);
+  public static boolean collationsContainKeysOrderless(
+      List<RelCollation> collations, List<Integer> keys) {
     for (RelCollation collation : collations) {
-      if (containsOrderless(collation, distinctKeys)) {
+      if (containsOrderless(collation, keys)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether one of a list of collations is contained by the given list of keys
+   * regardless the order.
+   */
+  public static boolean keysContainCollationsOrderless(
+      List<Integer> keys,  List<RelCollation> collations) {
+    for (RelCollation collation : collations) {
+      if (containsOrderless(keys, collation)) {
         return true;
       }
     }

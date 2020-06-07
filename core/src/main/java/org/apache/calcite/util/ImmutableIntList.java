@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -165,6 +166,15 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
   /** Returns an array of {@code int}s with the same contents as this list. */
   public int[] toIntArray() {
     return ints.clone();
+  }
+
+  /** Returns an List of {@code Integer}. */
+  public List<Integer> toIntegerList() {
+    ArrayList<Integer> arrayList = new ArrayList<>(size());
+    for (int i : ints) {
+      arrayList.add(i);
+    }
+    return arrayList;
   }
 
   public Integer get(int index) {

@@ -100,10 +100,52 @@ class TopDownOptTest extends RelOptTestBase {
     Query.create(sql).check();
   }
 
+  @Test void testSortMergeJoinSubsetKey() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.job desc nulls last";
+    Query.create(sql).check();
+  }
+
+  @Test void testSortMergeJoinSubsetKey2() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal\n"
+        + "order by r.sal, r.ename desc nulls last";
+    Query.create(sql).check();
+  }
+
+  @Test void testSortMergeJoinSupersetKey() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by r.job desc nulls last, r.ename, r.sal desc";
+    Query.create(sql).check();
+  }
+
   @Test void testSortMergeJoinRight() {
     final String sql = "select * from\n"
         + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
         + "order by s.job desc nulls last, s.ename nulls first";
+    Query.create(sql).check();
+  }
+
+  @Test void testSortMergeJoinRightSubsetKey() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by s.job desc nulls last";
+    Query.create(sql).check();
+  }
+
+  @Test void testSortMergeJoinRightSubsetKey2() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal\n"
+        + "order by s.sal, s.ename desc nulls last";
+    Query.create(sql).check();
+  }
+
+  @Test void testSortMergeJoinRightSupersetKey() {
+    final String sql = "select * from\n"
+        + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
+        + "order by s.job desc nulls last, s.ename, s.sal desc";
     Query.create(sql).check();
   }
 
