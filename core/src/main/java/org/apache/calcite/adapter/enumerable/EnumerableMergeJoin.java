@@ -57,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.rel.RelCollations.containsOrderless;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link EnumerableConvention enumerable calling convention} using
  * a merge algorithm. */
@@ -80,8 +82,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     boolean isDistinct = Util.isDistinct(joinInfo.leftKeys)
         && Util.isDistinct(joinInfo.rightKeys);
 
-    if (!RelCollations.containsOrderless(leftCollations, joinInfo.leftKeys)
-        || !RelCollations.containsOrderless(rightCollations, joinInfo.rightKeys)) {
+    if (!RelCollations.collationsContainKeysOrderless(leftCollations, joinInfo.leftKeys)
+        || !RelCollations.collationsContainKeysOrderless(rightCollations, joinInfo.rightKeys)) {
       if (isDistinct) {
         throw new RuntimeException("wrong collation in left or right input");
       }
@@ -97,8 +99,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     // legit, but not yet supported:
     // SELECT * FROM foo JOIN bar ON foo.a = bar.c AND foo.b = bar.d;
     // MergeJoin has collation on [a, d], or [b, c]
-    if (!RelCollations.containsOrderless(collations, joinInfo.leftKeys)
-        && !RelCollations.containsOrderless(collations, rightKeys)) {
+    if (!RelCollations.collationsContainKeysOrderless(collations, joinInfo.leftKeys)
+        && !RelCollations.collationsContainKeysOrderless(collations, rightKeys)
+        && !RelCollations.keysContainCollationsOrderless(joinInfo.leftKeys, collations)
+        && !RelCollations.keysContainCollationsOrderless(rightKeys, collations)) {
       if (isDistinct) {
         throw new RuntimeException("wrong collation for mergejoin");
       }
@@ -130,35 +134,125 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         CorrelationId.setOf(variablesStopped), joinType);
   }
 
+  /**
+   * Pass collations through can have three cases:
+   * 1. If sort keys are equal to either left join keys, or right join keys,
+   * collations can be pushed to both join sides with correct mappings.
+   * For example, for the query
+   *    select * from foo join bar on foo.a=bar.b order by foo.a desc
+   * after traits pass through it will be equivalent to
+   *    select * from
+   *        (select * from foo order by foo.a desc)
+   *        join
+   *        (select * from bar order by bar.b desc)
+   *
+   * 2. If sort keys are sub-set of either left join keys, or right join keys,
+   * collations have to be extended to cover all joins keys before passing through,
+   * because merge join requires all join keys are sorted.
+   * For example, for the query
+   *    select * from foo join bar
+   *        on foo.a=bar.b and foo.c=bar.d
+   *        order by foo.a desc
+   * after traits pass through it will be equivalent to
+   *    select * from
+   *        (select * from foo order by foo.a desc, foo.c)
+   *        join
+   *        (select * from bar order by bar.b desc, bar.d)
+   *
+   * 3. If sort keys are super-set of either left join keys, or right join keys,
+   * but not both, collations can be completely passed to the join key whose join
+   * keys match the prefix of collations. Meanwhile, partial mapped collations can
+   * be passed to another join side to make sure join keys are sorted.
+   * For example, for the query
+   *    select * from foo join bar
+   *        on foo.a=bar.b and foo.c=bar.d
+   *        order by foo.a desc, foo.c desc, foo.e
+   * after traits pass through it will be equivalent to
+   *    select * from
+   *        (select * from foo order by foo.a desc, foo.c desc, foo.e)
+   *        join
+   *        (select * from bar order by bar.b desc, bar.d desc)
+   */
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // Required collation keys can be subset or superset of merge join keys.
     RelCollation collation = required.getCollation();
-    List<Integer> reqKeys = RelCollations.ordinals(collation);
-    ImmutableBitSet reqKeySet = ImmutableBitSet.of(reqKeys);
+    int leftInputFieldCount = left.getRowType().getFieldCount();
 
+    List<Integer> reqKeys = RelCollations.ordinals(collation);
+    List<Integer> leftKeys = joinInfo.leftKeys.toIntegerList();
+    List<Integer> rightKeys =
+        joinInfo.rightKeys.incr(leftInputFieldCount).toIntegerList();
+
+    ImmutableBitSet reqKeySet = ImmutableBitSet.of(reqKeys);
     ImmutableBitSet leftKeySet = ImmutableBitSet.of(joinInfo.leftKeys);
     ImmutableBitSet rightKeySet = ImmutableBitSet.of(joinInfo.rightKeys)
-        .shift(left.getRowType().getFieldCount());
+        .shift(leftInputFieldCount);
 
-    // Only consider exact key match for now
     if (reqKeySet.equals(leftKeySet)) {
+      // if sort keys equal to left join keys, we can pass through all collations directly.
       Mappings.TargetMapping mapping = buildMapping(true);
       RelCollation rightCollation = collation.apply(mapping);
       return Pair.of(
           required, ImmutableList.of(required,
           required.replace(rightCollation)));
+    } else if (containsOrderless(leftKeys, collation)) {
+      // if sort keys are subset of left join keys, we can extend collations to make sure all join
+      // keys are sorted.
+      collation = extendCollation(collation, leftKeys);
+      Mappings.TargetMapping mapping = buildMapping(true);
+      RelCollation rightCollation = collation.apply(mapping);
+      return Pair.of(
+          required, ImmutableList.of(required.replace(collation),
+              required.replace(rightCollation)));
+    } else if (containsOrderless(collation, leftKeys)
+        && reqKeys.stream().allMatch(i -> i < leftInputFieldCount)) {
+      // if sort keys are superset of left join keys, and left join keys is prefix of sort keys
+      // (order not matter), also sort keys are all from left join input.
+      Mappings.TargetMapping mapping = buildMapping(true);
+      RelCollation rightCollation =
+          RexUtil.apply(
+              mapping,
+              intersectCollationAndJoinKey(collation, joinInfo.leftKeys));
+      return Pair.of(
+          required, ImmutableList.of(required,
+              required.replace(rightCollation)));
     } else if (reqKeySet.equals(rightKeySet)) {
-      RelCollation rightCollation = RelCollations.shift(collation,
-          -left.getRowType().getFieldCount());
+      // if sort keys equal to right join keys, we can pass through all collations directly.
+      RelCollation rightCollation = RelCollations.shift(collation, -leftInputFieldCount);
       Mappings.TargetMapping mapping = buildMapping(false);
       RelCollation leftCollation = rightCollation.apply(mapping);
       return Pair.of(
           required, ImmutableList.of(
           required.replace(leftCollation),
           required.replace(rightCollation)));
+    } else if (containsOrderless(rightKeys, collation)) {
+      // if sort keys are subset of right join keys, we can extend collations to make sure all join
+      // keys are sorted.
+      collation = extendCollation(collation, rightKeys);
+      RelCollation rightCollation = RelCollations.shift(collation, -leftInputFieldCount);
+      Mappings.TargetMapping mapping = buildMapping(false);
+      RelCollation leftCollation = RexUtil.apply(mapping, rightCollation);
+      return Pair.of(
+          required, ImmutableList.of(
+              required.replace(leftCollation),
+              required.replace(rightCollation)));
+    } else if (containsOrderless(collation, rightKeys)
+        && reqKeys.stream().allMatch(i -> i >= leftInputFieldCount)) {
+      // if sort keys are superset of right join keys, and right join keys is prefix of sort keys
+      // (order not matter), also sort keys are all from right join input.
+      RelCollation rightCollation = RelCollations.shift(collation, -leftInputFieldCount);
+      Mappings.TargetMapping mapping = buildMapping(false);
+      RelCollation leftCollation =
+          RexUtil.apply(
+              mapping,
+              intersectCollationAndJoinKey(rightCollation, joinInfo.rightKeys));
+      return Pair.of(
+          required, ImmutableList.of(
+              required.replace(leftCollation),
+              required.replace(rightCollation)));
     }
-    // TODO: support subset keys and superset keys (CALCITE-4015).
+
     return null;
   }
 
@@ -220,6 +314,48 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         (left2Right ? left : right).getRowType().getFieldCount(),
         (left2Right ? right : left).getRowType().getFieldCount());
     return mapping;
+  }
+
+  /**
+   * This function extends collation by appending new collation fields defined on keys.
+   */
+  private RelCollation extendCollation(RelCollation collation, List<Integer> keys) {
+    List<RelFieldCollation> fieldsForNewCollation = new ArrayList<>(keys.size());
+    fieldsForNewCollation.addAll(collation.getFieldCollations());
+
+    ImmutableBitSet keysBitset = ImmutableBitSet.of(keys);
+    ImmutableBitSet colKeysBitset = ImmutableBitSet.of(collation.getKeys());
+    ImmutableBitSet exceptBitset = keysBitset.except(colKeysBitset);
+    for (Integer i : exceptBitset.toList()) {
+      fieldsForNewCollation.add(new RelFieldCollation(i));
+    }
+    return RelCollations.of(fieldsForNewCollation);
+  }
+
+  /**
+   * This function will remove collations that are not defined on join keys.
+   * For example:
+   *    select * from
+   *    foo join bar
+   *    on foo.a = bar.a and foo.c=bar.c
+   *    order by bar.a, bar.c, bar.b;
+   *
+   * The collation [bar.a, bar.c, bar.b] can be pushed down to bar. However, only
+   * [a, c] can be pushed down to foo. This function will help create [a, c] for foo by removing
+   * b from the required collation, because b is not defined on join keys.
+   *
+   * @param collation collation defined on the JOIN
+   * @param joinKeys  the join keys
+   */
+  private RelCollation intersectCollationAndJoinKey(
+      RelCollation collation, ImmutableIntList joinKeys) {
+    List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    for (RelFieldCollation rf : collation.getFieldCollations()) {
+      if (joinKeys.contains(rf.getFieldIndex())) {
+        fieldCollations.add(rf);
+      }
+    }
+    return RelCollations.of(fieldCollations);
   }
 
   public static EnumerableMergeJoin create(RelNode left, RelNode right,

@@ -84,18 +84,68 @@ class RelCollationTest {
         is(true));
   }
 
-  /** Unit test for {@link RelCollations#containsOrderless(List, List)}. */
-  @Test void testCollationContainsOrderless() {
+  /** Unit test for {@link RelCollations#collationsContainKeysOrderless(List, List)}. */
+  @Test void testCollationsContainKeysOrderless() {
     final List<RelCollation> collations = Lists.newArrayList(collation(2, 3, 1));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 2)), is(true));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 3)), is(true));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2)), is(true));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2, 1)), is(true));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 2, 1, 0)), is(false));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(2, 3, 0)), is(false));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(1)), is(false));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(3, 1)), is(false));
-    assertThat(RelCollations.containsOrderless(collations, Arrays.asList(0)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 2)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 3)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2, 1)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2, 1, 0)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 3, 0)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(1)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 1)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(0)), is(false));
+  }
+
+  /** Unit test for {@link RelCollations#keysContainCollationsOrderless(List, List)}. */
+  @Test void testKeysContainCollationsOrderless() {
+    final List<Integer> keys = Arrays.asList(2, 3, 1);
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 2))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 3))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2, 1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2, 1, 0))), is(false));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 3, 0))), is(false));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(0))), is(false));
   }
 
   /**
