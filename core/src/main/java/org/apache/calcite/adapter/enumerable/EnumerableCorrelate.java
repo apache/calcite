@@ -112,6 +112,20 @@ public class EnumerableCorrelate extends Correlate
             passThroughTraitSet.replace(RelCollations.EMPTY)));
   }
 
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    // should only derive traits (limited to collation for now) from left input.
+    assert childId == 0;
+
+    final RelCollation collation = childTraits.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+
+    final RelTraitSet traits = traitSet.replace(collation);
+    return Pair.of(traits, ImmutableList.of(traits));
+  }
+
   @Override public DeriveMode getDeriveMode() {
     return DeriveMode.LEFT_FIRST;
   }
