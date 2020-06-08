@@ -778,7 +778,7 @@ public class SqlWindow extends SqlCall {
    * An enumeration of types of bounds in a window: <code>CURRENT ROW</code>,
    * <code>UNBOUNDED PRECEDING</code>, and <code>UNBOUNDED FOLLOWING</code>.
    */
-  enum Bound {
+  enum Bound implements Symbolizable {
     CURRENT_ROW("CURRENT ROW"),
     UNBOUNDED_PRECEDING("UNBOUNDED PRECEDING"),
     UNBOUNDED_FOLLOWING("UNBOUNDED FOLLOWING");
@@ -791,14 +791,6 @@ public class SqlWindow extends SqlCall {
 
     public String toString() {
       return sql;
-    }
-
-    /**
-     * Creates a parse-tree node representing an occurrence of this bound
-     * type at a particular position in the parsed text.
-     */
-    public SqlNode symbol(SqlParserPos pos) {
-      return SqlLiteral.createSymbol(this, pos);
     }
   }
 

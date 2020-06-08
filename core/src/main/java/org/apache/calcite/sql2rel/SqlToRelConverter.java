@@ -483,7 +483,7 @@ public class SqlToRelConverter {
    * @return New root relational expression after decorrelation
    */
   public RelNode decorrelate(SqlNode query, RelNode rootRel) {
-    if (!enableDecorrelation()) {
+    if (!config.isDecorrelationEnabled()) {
       return rootRel;
     }
     final RelNode result = decorrelateQuery(rootRel);
@@ -779,8 +779,9 @@ public class SqlToRelConverter {
         RelDataTypeField field = fields.get(i);
         undoProjects.add(
             Pair.of(
-                (RexNode) new RexInputRef(
-                    squished.get(origin), field.getType()),
+                new RexInputRef(
+                    squished.get(origin),
+                    field.getType()),
                 field.getName()));
       }
 
@@ -2606,9 +2607,8 @@ public class SqlToRelConverter {
             .union(p.requiredColumns);
       }
 
-      LogicalCorrelate corr = LogicalCorrelate.create(leftRel, innerRel,
+      return LogicalCorrelate.create(leftRel, innerRel,
           p.id, requiredCols, joinType);
-      return corr;
     }
 
     final RelNode node =
@@ -2986,7 +2986,7 @@ public class SqlToRelConverter {
         // at all.  The rest of the system doesn't like 0-tuples, so we
         // select a dummy constant here.
         final RexNode zero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
-        preExprs = ImmutableList.of(Pair.of(zero, (String) null));
+        preExprs = ImmutableList.of(Pair.of(zero, null));
       }
 
       final RelNode inputRel = bb.root;
@@ -4044,7 +4044,7 @@ public class SqlToRelConverter {
               }, null, false);
         }
         RelDataType multisetType = validator.getValidatedNodeType(call);
-        ((SqlValidatorImpl) validator).setValidatedNodeType(list,
+        validator.setValidatedNodeType(list,
             multisetType.getComponentType());
         input = convertQueryOrInList(usedBb, list, null);
         break;
@@ -5414,8 +5414,6 @@ public class SqlToRelConverter {
               collation,
               type,
               nameMap.get(outerCall.toString()));
-      final AggregatingSelectScope.Resolved r =
-          aggregatingSelectScope.resolved.get();
       RexNode rex =
           rexBuilder.addAggCall(
               aggCall,
