@@ -123,7 +123,7 @@ public class EnumerableCorrelate extends Correlate
     }
 
     final RelTraitSet traits = traitSet.replace(collation);
-    return Pair.of(traits, ImmutableList.of(traits));
+    return Pair.of(traits, ImmutableList.of(traits, right.getTraitSet()));
   }
 
   @Override public DeriveMode getDeriveMode() {
