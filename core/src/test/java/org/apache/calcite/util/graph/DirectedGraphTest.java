@@ -161,9 +161,14 @@ class DirectedGraphTest {
   }
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {
-    // A - B - C - D
-    //  \     /
-    //   +- E - F
+    //    D         F
+    //    ^         ^
+    //    |         |
+    //    C <------ +
+    //    ^         |
+    //    |         |
+    //    |         |
+    //    B <- A -> E
     final DefaultDirectedGraph<String, DefaultEdge> graph =
         DefaultDirectedGraph.create();
     graph.addVertex("A");
@@ -181,14 +186,15 @@ class DirectedGraphTest {
     return graph;
   }
 
-  /** Unit test for
-   * {@link org.apache.calcite.util.graph.Graphs.FrozenGraph}. */
-  @Test void testPaths() {
-    //       B -> C
-    //      /      \
-    //     A        E
-    //      \      /
-    //       D -->
+  private DefaultDirectedGraph<String, DefaultEdge> createDag1() {
+    //    +--> E <--+
+    //    |         |
+    //    C         |
+    //    ^         D
+    //    |         ^
+    //    |         |
+    //    |         |
+    //    B <-- A --+
     final DefaultDirectedGraph<String, DefaultEdge> graph =
         DefaultDirectedGraph.create();
     graph.addVertex("A");
@@ -202,6 +208,13 @@ class DirectedGraphTest {
     graph.addEdge("A", "D");
     graph.addEdge("D", "E");
     graph.addEdge("C", "E");
+    return graph;
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.util.graph.Graphs.FrozenGraph}. */
+  @Test void testPaths() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
     final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(graph);
     assertEquals("[A, B]", frozenGraph.getShortestPath("A", "B").toString());
@@ -213,6 +226,18 @@ class DirectedGraphTest {
     assertNull(frozenGraph.getShortestPath("D", "C"));
     assertEquals("[[D, E]]", frozenGraph.getPaths("D", "E").toString());
     assertEquals("[D, E]", frozenGraph.getShortestPath("D", "E").toString());
+  }
+
+  @Test void testDistances() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
+    final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
+        Graphs.makeImmutable(graph);
+    assertEquals(1, frozenGraph.getShortestDistance("A", "B"));
+    assertEquals(2, frozenGraph.getShortestDistance("A", "E"));
+    assertEquals(-1, frozenGraph.getShortestDistance("B", "A"));
+    assertEquals(-1, frozenGraph.getShortestDistance("D", "C"));
+    assertEquals(1, frozenGraph.getShortestDistance("D", "E"));
+    assertEquals(0, frozenGraph.getShortestDistance("B", "B"));
   }
 
   /** Unit test for {@link org.apache.calcite.util.graph.CycleDetector}. */

@@ -137,6 +137,20 @@ public class Graphs {
       return shortestPaths.get(Pair.of(from, to));
     }
 
+    /**
+     * Returns the shortest distance between two points, -1, if there is no path.
+     * @param from From
+     * @param to To
+     * @return The shortest distance, -1, if there is no path.
+     */
+    public int getShortestDistance(V from, V to) {
+      if (from.equals(to)) {
+        return 0;
+      }
+      List<V> path = shortestPaths.get(Pair.of(from, to));
+      return path == null ? -1 : path.size() - 1;
+    }
+
     private void findPaths(V from, V to, List<List<V>> list) {
       final List<V> shortestPath = shortestPaths.get(Pair.of(from, to));
       if (shortestPath == null) {
