@@ -137,7 +137,7 @@ public class RelSubset extends AbstractRelNode {
   /**
    * RelNode ids that is invoked passThrough method before
    */
-  Set<Integer> passThroughCache;
+  Set<RelNode> passThroughCache;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -503,7 +503,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelOptCost getWinnerCost() {
-    if (bestCost == upperBound && taskState == OptimizeState.COMPLETED) {
+    if (taskState == OptimizeState.COMPLETED && bestCost.isLe(upperBound)) {
       return bestCost;
     }
     // if bestCost != upperBound, it means optimize failed
@@ -511,8 +511,12 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public void startOptimize(RelOptCost ub) {
-    if (ub.isLt(bestCost)) {
+    assert getWinnerCost() == null : this + " is already optimized";
+    if (upperBound.isLt(ub)) {
       upperBound = ub;
+      if (bestCost.isLt(upperBound)) {
+        upperBound = bestCost;
+      }
     }
     taskState = OptimizeState.OPTIMIZING;
   }
@@ -534,8 +538,8 @@ public class RelSubset extends AbstractRelNode {
     }
     if (passThroughCache == null) {
       passThroughCache = new HashSet<>();
-      passThroughCache.add(rel.getId());
-    } else if (!passThroughCache.add(rel.getId())) {
+      passThroughCache.add(rel);
+    } else if (!passThroughCache.add(rel)) {
       return null;
     }
     return ((PhysicalNode) rel).passThrough(this.getTraitSet());
