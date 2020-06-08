@@ -460,12 +460,13 @@ public interface SqlValidator {
   /**
    * Saves the type of a {@link SqlNode}, now that it has been validated.
    *
+   * <p>This method is only for internal use. The validator should drive the
+   * type-derivation process, and store nodes' types when they have been derived.
+   *
    * @param node A SQL parse tree node, never null
    * @param type Its type; must not be null
-   * @deprecated This method should not be in the {@link SqlValidator}
-   * interface. The validator should drive the type-derivation process, and
-   * store nodes' types when they have been derived.
    */
+  @API(status = API.Status.INTERNAL, since = "1.24")
   void setValidatedNodeType(
       SqlNode node,
       RelDataType type);

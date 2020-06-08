@@ -40,16 +40,8 @@ public class SqlExplain extends SqlCall {
   /**
    * The level of abstraction with which to display the plan.
    */
-  public enum Depth {
-    TYPE, LOGICAL, PHYSICAL;
-
-    /**
-     * Creates a parse-tree node representing an occurrence of this symbol
-     * at a particular position in the parsed text.
-     */
-    public SqlLiteral symbol(SqlParserPos pos) {
-      return SqlLiteral.createSymbol(this, pos);
-    }
+  public enum Depth implements Symbolizable {
+    TYPE, LOGICAL, PHYSICAL
   }
 
   //~ Instance fields --------------------------------------------------------

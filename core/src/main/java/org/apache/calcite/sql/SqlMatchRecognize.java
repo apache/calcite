@@ -236,7 +236,7 @@ public class SqlMatchRecognize extends SqlCall {
   /**
    * Options for {@code AFTER MATCH} clause.
    */
-  public enum AfterOption {
+  public enum AfterOption implements Symbolizable {
     SKIP_TO_NEXT_ROW("SKIP TO NEXT ROW"),
     SKIP_PAST_LAST_ROW("SKIP PAST LAST ROW");
 
@@ -248,14 +248,6 @@ public class SqlMatchRecognize extends SqlCall {
 
     @Override public String toString() {
       return sql;
-    }
-
-    /**
-     * Creates a parse-tree node representing an occurrence of this symbol
-     * at a particular position in the parsed text.
-     */
-    public SqlLiteral symbol(SqlParserPos pos) {
-      return SqlLiteral.createSymbol(this, pos);
     }
   }
 

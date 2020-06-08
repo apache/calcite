@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
@@ -106,7 +105,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
@@ -540,7 +538,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     final SqlNode from = sqlSelect.getFrom();
-    if (from == null || !(from instanceof SqlJoin)) {
+    if (!(from instanceof SqlJoin)) {
       return selectItem;
     }
 
@@ -884,7 +882,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // No suggestions.
       // Not supporting hints for other types such as 'Using' yet.
-      return;
     }
   }
 
@@ -1240,7 +1237,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode node,
       boolean underFrom) {
     if (node == null) {
-      return node;
+      return null;
     }
 
     SqlNode newOperand;
@@ -1713,7 +1710,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param node A SQL parse tree node, never null
    * @param type Its type; must not be null
    */
-  @SuppressWarnings("deprecation")
   public final void setValidatedNodeType(SqlNode node, RelDataType type) {
     Objects.requireNonNull(type);
     Objects.requireNonNull(node);
@@ -1987,7 +1983,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     String uniqueAlias =
         SqlValidatorUtil.uniquify(
             alias, aliases, SqlValidatorUtil.EXPR_SUGGESTER);
-    if (!alias.equals(uniqueAlias)) {
+    if (!Objects.equals(alias, uniqueAlias)) {
       exp = SqlValidatorUtil.addAlias(exp, uniqueAlias);
     }
     fieldList.add(Pair.of(uniqueAlias, deriveType(scope, exp)));
@@ -1998,39 +1994,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode node,
       int ordinal) {
     return SqlValidatorUtil.getAlias(node, ordinal);
-  }
-
-  // implement SqlValidator
-  public void setIdentifierExpansion(boolean expandIdentifiers) {
-    this.config = this.config.withIdentifierExpansion(expandIdentifiers);
-  }
-
-  // implement SqlValidator
-  public void setColumnReferenceExpansion(
-      boolean expandColumnReferences) {
-    this.config = this.config.withColumnReferenceExpansion(expandColumnReferences);
-  }
-
-  // implement SqlValidator
-  public boolean getColumnReferenceExpansion() {
-    return this.config.columnReferenceExpansion();
-  }
-
-  public void setDefaultNullCollation(NullCollation nullCollation) {
-    this.config = this.config.withDefaultNullCollation(Objects.requireNonNull(nullCollation));
-  }
-
-  public NullCollation getDefaultNullCollation() {
-    return this.config.defaultNullCollation();
-  }
-
-  // implement SqlValidator
-  public void setCallRewrite(boolean rewriteCalls) {
-    this.config = this.config.withCallRewrite(rewriteCalls);
-  }
-
-  public boolean shouldExpandIdentifiers() {
-    return this.config.identifierExpansion();
   }
 
   protected boolean shouldAllowIntermediateOrderBy() {
@@ -2257,7 +2220,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(join, joinScope);
       final SqlNode left = join.getLeft();
       final SqlNode right = join.getRight();
-      final boolean rightIsLateral = isLateral(right);
       boolean forceLeftNullable = forceNullable;
       boolean forceRightNullable = forceNullable;
       switch (join.getJoinType()) {
@@ -2460,19 +2422,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     default:
       throw Util.unexpected(kind);
-    }
-  }
-
-  private static boolean isLateral(SqlNode node) {
-    switch (node.getKind()) {
-    case LATERAL:
-    case UNNEST:
-      // Per SQL std, UNNEST is implicitly LATERAL.
-      return true;
-    case AS:
-      return isLateral(((SqlCall) node).operand(0));
-    default:
-      return false;
     }
   }
 
@@ -2978,7 +2927,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return aggFinder.findAgg(select.getSelectList());
   }
 
-  @SuppressWarnings("deprecation")
   public boolean isAggregate(SqlNode selectNode) {
     return aggFinder.findAgg(selectNode) != null;
   }
@@ -3168,21 +3116,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final int minPrecision = qualifier.typeName().getMinPrecision();
     final int minScale = qualifier.typeName().getMinScale();
     final int maxScale = typeSystem.getMaxScale(qualifier.typeName());
-    if (qualifier.isYearMonth()) {
-      if (startPrecision < minPrecision || startPrecision > maxPrecision) {
-        startPrecisionOutOfRange = true;
-      } else {
-        if (fracPrecision < minScale || fracPrecision > maxScale) {
-          fractionalSecondPrecisionOutOfRange = true;
-        }
-      }
+    if (startPrecision < minPrecision || startPrecision > maxPrecision) {
+      startPrecisionOutOfRange = true;
     } else {
-      if (startPrecision < minPrecision || startPrecision > maxPrecision) {
-        startPrecisionOutOfRange = true;
-      } else {
-        if (fracPrecision < minScale || fracPrecision > maxScale) {
-          fractionalSecondPrecisionOutOfRange = true;
-        }
+      if (fracPrecision < minScale || fracPrecision > maxScale) {
+        fractionalSecondPrecisionOutOfRange = true;
       }
     }
 
@@ -3473,7 +3411,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SelectScope fromScope = (SelectScope) getFromScope(select);
     List<String> names = fromScope.getChildNames();
     if (!catalogReader.nameMatcher().isCaseSensitive()) {
-      names = Lists.transform(names, s -> s.toUpperCase(Locale.ROOT));
+      names = names.stream()
+          .map(s -> s.toUpperCase(Locale.ROOT))
+          .collect(Collectors.toList());
     }
     final int duplicateAliasOrdinal = Util.firstDuplicate(names);
     if (duplicateAliasOrdinal >= 0) {
@@ -3944,36 +3884,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return scopes.get(withItem);
   }
 
-  public SqlValidator setLenientOperatorLookup(boolean lenient) {
-    this.config = this.config.withLenientOperatorLookup(lenient);
-    return this;
-  }
-
-  public boolean isLenientOperatorLookup() {
-    return this.config.lenientOperatorLookup();
-  }
-
-  public SqlValidator setEnableTypeCoercion(boolean enabled) {
-    this.config = this.config.withTypeCoercionEnabled(enabled);
-    return this;
-  }
-
-  public boolean isTypeCoercionEnabled() {
-    return this.config.typeCoercionEnabled();
-  }
-
-  public void setTypeCoercion(TypeCoercion typeCoercion) {
-    Objects.requireNonNull(typeCoercion);
-    this.typeCoercion = typeCoercion;
-  }
-
   public TypeCoercion getTypeCoercion() {
     assert config.typeCoercionEnabled();
     return this.typeCoercion;
-  }
-
-  public void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules) {
-    SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
   }
 
   public Config config() {
@@ -5783,7 +5696,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * retrieve pattern variables defined
    */
-  private class PatternVarVisitor implements SqlVisitor<Void> {
+  private static class PatternVarVisitor implements SqlVisitor<Void> {
     private MatchRecognizeScope scope;
     PatternVarVisitor(MatchRecognizeScope scope) {
       this.scope = scope;

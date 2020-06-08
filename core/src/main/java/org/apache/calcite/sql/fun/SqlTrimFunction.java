@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.Symbolizable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -63,7 +64,7 @@ public class SqlTrimFunction extends SqlFunction {
   /**
    * Defines the enumerated values "LEADING", "TRAILING", "BOTH".
    */
-  public enum Flag {
+  public enum Flag implements Symbolizable {
     BOTH(1, 1), LEADING(1, 0), TRAILING(0, 1);
 
     private final int left;
@@ -80,14 +81,6 @@ public class SqlTrimFunction extends SqlFunction {
 
     public int getRight() {
       return right;
-    }
-
-    /**
-     * Creates a parse-tree node representing an occurrence of this flag
-     * at a particular position in the parsed text.
-     */
-    public SqlLiteral symbol(SqlParserPos pos) {
-      return SqlLiteral.createSymbol(this, pos);
     }
   }
 
