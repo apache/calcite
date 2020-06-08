@@ -75,6 +75,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -816,7 +817,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
   protected static class RexReplacer extends RexShuttle {
     private final RexSimplify simplify;
     private final RexUnknownAs unknownAs;
-    private final List<RexNode> reducibleExps;
+    private final Map<RexNode, Integer> reducibleExpsMap;
     private final List<RexNode> reducedValues;
     private final List<Boolean> addCasts;
 
@@ -828,9 +829,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule
         List<Boolean> addCasts) {
       this.simplify = simplify;
       this.unknownAs = unknownAs;
-      this.reducibleExps = reducibleExps;
+      this.reducibleExpsMap = new HashMap<>();
       this.reducedValues = reducedValues;
       this.addCasts = addCasts;
+      for (int i = 0; i < reducibleExps.size(); i++) {
+        reducibleExpsMap.put(reducibleExps.get(i), i);
+      }
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -851,8 +855,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule
     }
 
     private RexNode visit(final RexNode call) {
-      int i = reducibleExps.indexOf(call);
-      if (i == -1) {
+      Integer i = reducibleExpsMap.get(call);
+      if (i == null) {
         return null;
       }
       RexNode replacement = reducedValues.get(i);
