@@ -17,7 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.util.Util;
 
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
@@ -111,9 +110,7 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      // You probably need to override the operator's unparse
-      // method.
-      throw Util.needToImplement(this);
+      SqlUtil.unparseSpecialSyntax(operator, writer, call);
     }
   },
 

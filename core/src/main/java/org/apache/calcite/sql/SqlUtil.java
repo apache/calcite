@@ -262,6 +262,32 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Unparses a call to an operator which has special syntax.
+   *
+   * @param operator The operator
+   * @param writer   Writer
+   * @param call     List of 0 or more operands
+   */
+  public static void unparseSpecialSyntax(SqlOperator operator,
+      SqlWriter writer,
+      SqlCall call) {
+    final List<SqlNode> operands = call.getOperandList();
+    switch (operator.getKind()) {
+    case INSERT:
+      assert operands.size() == 4;
+      final SqlInsert insert = new SqlInsert(call.getParserPosition(),
+          (SqlNodeList) operands.get(0), operands.get(1), operands.get(2),
+          (SqlNodeList) operands.get(3));
+      insert.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+      return;
+    default:
+      // You probably need to override the operator's unparse
+      // method.
+      throw Util.needToImplement(operator);
+    }
+  }
+
+  /**
    * Unparses a call to an operator which has function syntax.
    *
    * @param operator    The operator
