@@ -2610,6 +2610,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  @Test void testReduceConstExpr() {
+    final String sql = "select sum(case when 'y' = 'n' then ename else 1 end) from emp";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
