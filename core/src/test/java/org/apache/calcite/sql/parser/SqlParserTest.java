@@ -5818,6 +5818,34 @@ public class SqlParserTest {
     assertTrue(sqlNodeVisited.getKind() == SqlKind.INSERT);
   }
 
+  @Test void testSqlInsertSqlBasicCallToString() throws Exception {
+    final String sql0 = "insert into emps select * from emps";
+    final SqlNode sqlNode0 = getSqlParser(sql0).parseStmt();
+    final SqlNode sqlNodeVisited0 = sqlNode0.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    final String str0 = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    assertEquals(linux(sqlNodeVisited0.toString()), str0);
+
+    final String sql1 = "insert into emps select empno from emps";
+    final SqlNode sqlNode1 = getSqlParser(sql1).parseStmt();
+    final SqlNode sqlNodeVisited1 = sqlNode1.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    final String str1 = "INSERT INTO `EMPS`\n"
+        + "(SELECT `EMPNO`\n"
+        + "FROM `EMPS`)";
+    assertEquals(linux(sqlNodeVisited1.toString()), str1);
+  }
+
   /**
    * Runs tests for INTERVAL... DAY TO HOUR that should pass parser but fail
    * validator. A substantially identical set of tests exists in
