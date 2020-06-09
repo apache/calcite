@@ -3717,6 +3717,18 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstExpr">
+        <Resource name="sql">
+            <![CDATA[select sum(case when 'y' = 'n' then ename else 1 end) from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[1:DECIMAL(19, 19)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSimplifyNotExistsValuesSubQuery">
         <Resource name="sql">
             <![CDATA[select deptno
@@ -3731,6 +3743,7 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
+
     <TestCase name="testSubQueryAggregateFunctionFollowedBySimpleOperation">
         <Resource name="sql">
             <![CDATA[select deptno
