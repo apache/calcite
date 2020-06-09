@@ -23,9 +23,11 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortJoinCopyRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
@@ -583,6 +585,112 @@ class TopDownOptTest extends RelOptTestBase {
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .check();
+  }
+
+  // test if "order by mgr desc nulls last" can be pushed through the calc ("select mgr").
+  @Test void testSortCalc() {
+    final String sql = "select mgr from sales.emp order by mgr desc nulls last";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .check();
+  }
+
+  // test that Sort cannot push through calc because of non-trival call
+  // (e.g. RexCall(sal * -1)). In this example, the reason is that "sal * -1"
+  // creates opposite ordering if Sort is pushed down.
+  @Test void testSortCalcOnRexCall() {
+    final String sql = "select ename, sal * -1 as sal, mgr from\n"
+        + "sales.emp order by ename desc, sal desc, mgr desc nulls last";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .check();
+  }
+
+  // test that Sort can push through calc when cast is monotonic.
+  @Test void testSortCalcWhenCastLeadingToMonotonic() {
+    final String sql = "select cast(deptno as float) from sales.emp order by deptno desc";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .check();
+  }
+
+  // test that Sort cannot push through calc when cast is not monotonic.
+  @Test void testSortCalcWhenCastLeadingToNonMonotonic() {
+    final String sql = "select deptno from sales.emp order by cast(deptno as varchar) desc";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .check();
+  }
+
+  // test traits push through calc with filter.
+  @Test void testSortCalcWithFilter() {
+    final String sql = "select ename, job, mgr, max_sal from\n"
+        + "(select ename, job, mgr, max(sal) as max_sal from sales.emp group by ename, job, mgr) as t\n"
+        + "where max_sal > 1000\n"
+        + "order by mgr desc, ename";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(FilterToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_FILTER_RULE)
+        .check();
+  }
+
+  // Do not need Sort for calc.
+  @Test void testSortCalcDerive1() {
+    final String sql = "select * from\n"
+        + "(select ename, job, max_sal + 1 from\n"
+        + "(select ename, job, max(sal) as max_sal from sales.emp "
+        + "group by ename, job) t) r\n"
+        + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .check();
+  }
+
+  // Need Sort for calc.
+  @Test void testSortCalcDerive2() {
+    final String sql = "select distinct ename, sal*-2, mgr\n"
+        + "from (select ename, mgr, sal from sales.emp order by ename, mgr, sal limit 100) t";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .check();
+  }
+
+  // Do not need Sort for left join input.
+  @Test void testSortCalcDerive3() {
+    final String sql = "select * from\n"
+        + "(select ename, cast(job as varchar) as job, sal + 1 from\n"
+        + "(select ename, job, sal from sales.emp limit 100) t) r\n"
+        + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
+    Query.create(sql)
+        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .check();
   }
 }
