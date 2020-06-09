@@ -22,6 +22,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.Digest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -48,7 +49,6 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.TransformationRule;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
@@ -102,17 +102,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Canonical map from {@link String digest} to the unique
    * {@link RelNode relational expression} with that digest.
-   *
-   * <p>Row type is part of the key for the rare occasion that similar
-   * expressions have different types, e.g. variants of
-   * {@code Project(child=rel#1, a=null)} where a is a null INTEGER or a
-   * null VARCHAR(10).</p>
-   * <p>Row type is represented as fieldTypes only, so {@code RelNode} that differ
-   * with field names only are treated equal.
-   * For instance, {@code Project(input=rel#1,empid=$0)} and {@code Project(input=rel#1,deptno=$0)}
-   * are equal</p>
    */
-  private final Map<Pair<String, List<RelDataType>>, RelNode> mapDigestToRel =
+  private final Map<Digest, RelNode> mapDigestToRel =
       new HashMap<>();
 
   /**
@@ -898,15 +889,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel Relational expression
    */
   void rename(RelNode rel) {
-    final String oldDigest = rel.getDigest();
+    final Digest oldDigest = rel.getDigest();
     if (fixUpInputs(rel)) {
-      final Pair<String, List<RelDataType>> oldKey = key(oldDigest, rel.getRowType());
-      final RelNode removed = mapDigestToRel.remove(oldKey);
+      final RelNode removed = mapDigestToRel.remove(oldDigest);
       assert removed == rel;
-      final String newDigest = rel.recomputeDigest();
+      final Digest newDigest = rel.recomputeDigest();
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
-      final Pair<String, List<RelDataType>> key = key(rel);
-      final RelNode equivRel = mapDigestToRel.put(key, rel);
+      final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
       if (equivRel != null) {
         assert equivRel != rel;
 
@@ -915,7 +904,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         LOGGER.trace("After renaming rel#{} it is now equivalent to rel#{}",
             rel.getId(), equivRel.getId());
 
-        mapDigestToRel.put(key, equivRel);
+        mapDigestToRel.put(newDigest, equivRel);
         checkPruned(equivRel, rel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
@@ -970,8 +959,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Is there an equivalent relational expression? (This might have
     // just occurred because the relational expression's child was just
     // found to be equivalent to another set.)
-    final Pair<String, List<RelDataType>> key = key(rel);
-    RelNode equivRel = mapDigestToRel.get(key);
+    RelNode equivRel = mapDigestToRel.get(rel.getDigest());
     if (equivRel != null && equivRel != rel) {
       assert equivRel.getClass() == rel.getClass();
       assert equivRel.getTraitSet().equals(rel.getTraitSet());
@@ -1180,8 +1168,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
-    Pair<String, List<RelDataType>> key = key(rel);
-    RelNode equivExp = mapDigestToRel.get(key);
+    Digest digest = rel.getDigest();
+    RelNode equivExp = mapDigestToRel.get(digest);
     if (equivExp == null) {
       // do nothing
     } else if (equivExp == rel) {
@@ -1218,9 +1206,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // check whether we are now equivalent to an existing
         // expression.
         if (fixUpInputs(rel)) {
-          rel.recomputeDigest();
-          key = key(rel);
-          RelNode equivRel = mapDigestToRel.get(key);
+          digest = rel.recomputeDigest();
+          RelNode equivRel = mapDigestToRel.get(digest);
           if ((equivRel != rel) && (equivRel != null)) {
 
             // make sure this bad rel didn't get into the
@@ -1261,7 +1248,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final int subsetBeforeCount = set.subsets.size();
     RelSubset subset = addRelToSet(rel, set);
 
-    final RelNode xx = mapDigestToRel.put(key, rel);
+    final RelNode xx = mapDigestToRel.put(digest, rel);
     assert xx == null || xx == rel : rel.getDigest();
 
     LOGGER.trace("Register {} in {}", rel, subset);

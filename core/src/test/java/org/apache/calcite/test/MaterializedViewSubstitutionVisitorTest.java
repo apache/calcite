@@ -1146,7 +1146,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   private void checkSatisfiable(RexNode e, String s) {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
     final RexNode simple = simplify.simplifyUnknownAsFalse(e);
-    assertEquals(s, simple.toStringRaw());
+    assertEquals(s, simple.toString());
   }
 
   @Test void testSplitFilter() {
@@ -1219,7 +1219,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
-    assertThat(newFilter.toStringRaw(), equalTo("=($0, 1)"));
+    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
 
     // 2b.
     //   condition: x = 1 or y = 2
@@ -1229,7 +1229,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
-    assertThat(newFilter.toStringRaw(), equalTo("OR(=($0, 1), =($1, 2))"));
+    assertThat(newFilter.toString(), equalTo("OR(=($0, 1), =($1, 2))"));
 
     // 2c.
     //   condition: x = 1
@@ -1239,7 +1239,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
-    assertThat(newFilter.toStringRaw(),
+    assertThat(newFilter.toString(),
         equalTo("=($0, 1)"));
 
     // 2d.
@@ -1287,7 +1287,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
         y_eq_2);
-    assertThat(newFilter.toStringRaw(), equalTo("=($0, 1)"));
+    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
 
     // Example 5.
     //   condition: x = 1

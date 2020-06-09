@@ -171,11 +171,11 @@ public class JoinProjectTransposeRule extends RelOptRule implements Transformati
     }
 
     // Skip projects containing over clause
-    if (leftProj != null && RexOver.containsOver(leftProj.getChildExps(), null)) {
+    if (leftProj != null && RexOver.containsOver(leftProj.getProjects(), null)) {
       leftProj = null;
       leftJoinChild = joinRel.getLeft();
     }
-    if (rightProj != null && RexOver.containsOver(rightProj.getChildExps(), null)) {
+    if (rightProj != null && RexOver.containsOver(rightProj.getProjects(), null)) {
       rightProj = null;
       rightJoinChild = joinRel.getRight();
     }

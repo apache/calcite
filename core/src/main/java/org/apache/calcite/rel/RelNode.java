@@ -17,6 +17,7 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.Digest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -308,7 +309,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Digest of this relational expression
    */
-  String recomputeDigest();
+  Digest recomputeDigest();
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must

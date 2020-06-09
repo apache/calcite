@@ -6848,7 +6848,7 @@ class RelOptRulesTest extends RelOptTestBase {
       final LogicalProject logicalProject = call.rel(0);
       final RelNode input = logicalProject.getInput();
       final MyProject myProject = new MyProject(input.getCluster(), input.getTraitSet(), input,
-          logicalProject.getChildExps(), logicalProject.getRowType());
+          logicalProject.getProjects(), logicalProject.getRowType());
       call.transformTo(myProject);
     }
   }

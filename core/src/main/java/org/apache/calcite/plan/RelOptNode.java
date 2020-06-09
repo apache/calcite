@@ -47,7 +47,7 @@ public interface RelOptNode {
    *
    * @return Digest of this {@code RelNode}
    */
-  String getDigest();
+  Digest getDigest();
 
   /**
    * Retrieves this RelNode's traits. Note that although the RelTraitSet

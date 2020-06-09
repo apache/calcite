@@ -821,8 +821,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .withChecker(
             resultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):JavaType(int) NOT NULL], "
-            + "expr#2=[1], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[=($t2, $t3)], "
-            + "EXPR$0=[$t1], $condition=[$t4])\n"
+            + "expr#2=[1], expr#3=[=($t2, $t0)], EXPR$0=[$t1], $condition=[$t3])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }

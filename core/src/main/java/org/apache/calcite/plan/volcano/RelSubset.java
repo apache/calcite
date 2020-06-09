@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.Digest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
@@ -224,13 +225,14 @@ public class RelSubset extends AbstractRelNode {
     pw.done(input);
   }
 
-  @Override protected String computeDigest() {
-    StringBuilder digest = new StringBuilder("Subset#");
+  @Override protected Digest computeDigest() {
+    StringBuilder digest = new StringBuilder(getRelTypeName());
+    digest.append('#');
     digest.append(set.id);
-    for (RelTrait trait : traitSet) {
+    for (RelTrait trait : getTraitSet()) {
       digest.append('.').append(trait);
     }
-    return digest.toString();
+    return Digest.create(this, digest.toString());
   }
 
   @Override protected RelDataType deriveRowType() {

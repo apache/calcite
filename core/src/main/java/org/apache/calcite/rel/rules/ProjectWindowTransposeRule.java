@@ -174,7 +174,7 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
 
     // Modify the top LogicalProject
     final List<RexNode> topProjExps =
-        indexAdjustment.visitList(project.getChildExps());
+        indexAdjustment.visitList(project.getProjects());
 
     final LogicalProject newTopProj = project.copy(
         newLogicalWindow.getTraitSet(),
@@ -205,7 +205,7 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
     };
 
     // Reference in LogicalProject
-    referenceFinder.visitEach(project.getChildExps());
+    referenceFinder.visitEach(project.getProjects());
 
     // Reference in LogicalWindow
     for (Window.Group group : window.groups) {

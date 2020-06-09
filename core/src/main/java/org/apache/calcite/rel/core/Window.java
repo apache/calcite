@@ -394,16 +394,24 @@ public abstract class Window extends SingleRel {
       this.ignoreNulls = ignoreNulls;
     }
 
-    /** {@inheritDoc}
-     *
-     * <p>Override {@link RexCall}, defining equality based on identity.
-     */
-    @Override public boolean equals(Object obj) {
-      return this == obj;
+    @Override public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      if (!super.equals(o)) {
+        return false;
+      }
+      RexWinAggCall that = (RexWinAggCall) o;
+      return ordinal == that.ordinal
+          && distinct == that.distinct
+          && ignoreNulls == that.ignoreNulls;
     }
 
     @Override public int hashCode() {
-      return Objects.hash(digest, ordinal, distinct);
+      return Objects.hash(super.hashCode(), ordinal, distinct, ignoreNulls);
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {

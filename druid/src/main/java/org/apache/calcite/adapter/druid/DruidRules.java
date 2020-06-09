@@ -384,7 +384,7 @@ public class DruidRules {
         return;
       }
       boolean hasRexCalls = false;
-      for (RexNode rexNode : project.getChildExps()) {
+      for (RexNode rexNode : project.getProjects()) {
         if (rexNode instanceof RexCall) {
           hasRexCalls = true;
           break;

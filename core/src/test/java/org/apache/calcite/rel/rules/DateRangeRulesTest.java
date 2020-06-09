@@ -700,9 +700,9 @@ class DateRangeRulesTest {
   private void checkDateRange(Fixture f, RexNode e, String timeZone,
       Matcher<String> matcher, Matcher<String> simplifyMatcher) {
     e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, timeZone);
-    assertThat(e.toStringRaw(), matcher);
+    assertThat(e.toString(), matcher);
     final RexNode e2 = f.simplify.simplify(e);
-    assertThat(e2.toStringRaw(), simplifyMatcher);
+    assertThat(e2.toString(), simplifyMatcher);
   }
 
   /** Common expressions across tests. */

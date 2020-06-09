@@ -182,20 +182,14 @@ public abstract class RelOptUtil {
    * Whether this node contains a limit specification.
    */
   public static boolean isLimit(RelNode rel) {
-    if ((rel instanceof Sort) && ((Sort) rel).fetch != null) {
-      return true;
-    }
-    return false;
+    return (rel instanceof Sort) && ((Sort) rel).fetch != null;
   }
 
   /**
    * Whether this node contains a sort specification.
    */
   public static boolean isOrder(RelNode rel) {
-    if ((rel instanceof Sort) && !((Sort) rel).getCollation().getFieldCollations().isEmpty()) {
-      return true;
-    }
-    return false;
+    return (rel instanceof Sort) && !((Sort) rel).getCollation().getFieldCollations().isEmpty();
   }
 
   /**
@@ -227,8 +221,9 @@ public abstract class RelOptUtil {
    * or its children.
    */
   public static List<String> findAllTableQualifiedNames(RelNode rel) {
-    return Lists.transform(findAllTables(rel),
-        table -> table.getQualifiedName().toString());
+    return findAllTables(rel).stream()
+        .map(table -> table.getQualifiedName().toString())
+        .collect(Collectors.toList());
   }
 
   /**
@@ -3802,7 +3797,7 @@ public abstract class RelOptUtil {
       return true;
     }
     final RexImplicationChecker checker =
-        new RexImplicationChecker(rexBuilder, (RexExecutorImpl) executor,
+        new RexImplicationChecker(rexBuilder, executor,
             rowType);
     final RexNode first =
         RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates);
@@ -4185,7 +4180,6 @@ public abstract class RelOptUtil {
 
   /** Converts types to descriptive strings. */
   public static class TypeDumper {
-    private final String extraIndent = "  ";
     private String indent;
     private final PrintWriter pw;
 
@@ -4203,6 +4197,7 @@ public abstract class RelOptUtil {
         //   J VARCHAR(240))
         pw.println("RECORD (");
         String prevIndent = indent;
+        String extraIndent = "  ";
         this.indent = indent + extraIndent;
         acceptFields(fields);
         this.indent = prevIndent;

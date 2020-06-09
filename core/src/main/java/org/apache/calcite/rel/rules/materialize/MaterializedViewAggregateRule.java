@@ -225,9 +225,9 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
           0, 0, aggregateViewNode.getGroupCount(),
           newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
           aggregateViewNode.getAggCallList().size());
-      for (int i = 0; i < topViewProject.getChildExps().size(); i++) {
+      for (int i = 0; i < topViewProject.getProjects().size(); i++) {
         nodes.add(
-            topViewProject.getChildExps().get(i).accept(
+            topViewProject.getProjects().get(i).accept(
                 new RexPermuteInputsShuttle(shiftMapping, newViewNode)));
         fieldNames.add(topViewProject.getRowType().getFieldNames().get(i));
       }
@@ -414,7 +414,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       // We have a Project on top, gather only what is needed
       final RelOptUtil.InputFinder inputFinder =
           new RelOptUtil.InputFinder(new LinkedHashSet<>());
-      inputFinder.visitEach(topProject.getChildExps());
+      inputFinder.visitEach(topProject.getProjects());
       references = inputFinder.build();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
         indexes.set(queryAggregate.getGroupSet().nth(i));
@@ -561,8 +561,8 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
           final ImmutableBitSet refs = RelOptUtil.InputFinder.bits(targetNode);
           for (int childTargetIdx : refs) {
             added = false;
-            for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
-              RexNode n = topViewProject.getChildExps().get(k);
+            for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
+              RexNode n = topViewProject.getProjects().get(k);
               if (!n.isA(SqlKind.INPUT_REF)) {
                 continue;
               }
@@ -589,8 +589,8 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
           added = true;
         } else {
           // This expression should be referenced directly
-          for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
-            RexNode n = topViewProject.getChildExps().get(k);
+          for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
+            RexNode n = topViewProject.getProjects().get(k);
             if (!n.isA(SqlKind.INPUT_REF)) {
               continue;
             }
@@ -623,8 +623,8 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
         }
         AggregateCall queryAggCall = queryAggregate.getAggCallList().get(i);
         boolean added = false;
-        for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
-          RexNode n = topViewProject.getChildExps().get(k);
+        for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
+          RexNode n = topViewProject.getProjects().get(k);
           if (!n.isA(SqlKind.INPUT_REF)) {
             continue;
           }
@@ -701,7 +701,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
     final RelDataType topRowType;
     final List<RexNode> topExprs = new ArrayList<>();
     if (topProject != null && !unionRewriting) {
-      topExprs.addAll(topProject.getChildExps());
+      topExprs.addAll(topProject.getProjects());
       topRowType = topProject.getRowType();
     } else {
       // Add all
@@ -713,7 +713,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
     // Available in view.
     final Multimap<RexNode, Integer> viewExprs = ArrayListMultimap.create();
     int numberViewExprs = 0;
-    for (RexNode viewExpr : topViewProject.getChildExps()) {
+    for (RexNode viewExpr : topViewProject.getProjects()) {
       viewExprs.put(viewExpr, numberViewExprs++);
     }
     for (RexNode additionalViewExpr : additionalViewExprs) {

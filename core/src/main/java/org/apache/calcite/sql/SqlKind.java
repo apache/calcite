@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import com.google.common.collect.Sets;
+
 import org.apiguardian.api.API;
 
 import java.util.Collection;
@@ -1372,6 +1374,23 @@ public enum SqlKind {
   public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
       EnumSet.of(
           PLUS, TIMES);
+
+  /**
+   * Simple binary operators are those operators which expects operands from the same Domain.
+   *
+   * <p>Example: simple comparisions ({@code =}, {@code <}).
+   *
+   * <p>Note: it does not contain {@code IN} because that is defined on D x D^n.
+   */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
+  public static final Set<SqlKind> SIMPLE_BINARY_OPS;
+
+  static {
+    EnumSet<SqlKind> kinds = EnumSet.of(SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES, SqlKind.DIVIDE);
+    kinds.addAll(SqlKind.COMPARISON);
+    kinds.remove(SqlKind.IN);
+    SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
+  }
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);

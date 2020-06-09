@@ -361,7 +361,7 @@ public class RelMdExpressionLineage
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
-      final RexNode inputExpr = rel.getChildExps().get(idx);
+      final RexNode inputExpr = rel.getProjects().get(idx);
       final Set<RexNode> originalExprs = mq.getExpressionLineage(input, inputExpr);
       if (originalExprs == null) {
         // Bail out

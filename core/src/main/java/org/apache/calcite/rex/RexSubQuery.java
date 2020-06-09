@@ -136,4 +136,14 @@ public class RexSubQuery extends RexCall {
   public RexSubQuery clone(RelNode rel) {
     return new RexSubQuery(type, getOperator(), operands, rel);
   }
+
+  @Override public boolean equals(Object obj) {
+    return obj == this
+        || obj instanceof RexCall
+        && toString().equals(obj.toString());
+  }
+
+  @Override public int hashCode() {
+    return toString().hashCode();
+  }
 }
