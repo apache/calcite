@@ -56,13 +56,13 @@ import java.util.List;
  * for details on the schema.
  *
  * <li>Run the test. It should fail. Inspect the output in
- * {@code target/surefire/.../TopDownOptTest.xml}.
+ * {@code build/resources/test/.../TopDownOptTest_actual.xml}.
  *
  * <li>Verify that the "planBefore" is the correct
  * translation of your SQL, and that it contains the pattern on which your rule
  * is supposed to fire. If all is well, replace
  * {@code src/test/resources/.../TopDownOptTest.xml} and
- * with the new {@code target/surefire/.../TopDownOptTest.xml}.
+ * with the new {@code build/resources/test/.../TopDownOptTest_actual.xml}.
  *
  * <li>Run the test again. It should fail again, but this time it should contain
  * a "planAfter" entry for your rule. Verify that your rule applied its
