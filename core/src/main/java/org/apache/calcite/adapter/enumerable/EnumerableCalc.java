@@ -39,6 +39,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
@@ -49,6 +50,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -263,6 +265,24 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                         NO_PARAMS,
                         Blocks.toFunctionBlock(body))))));
     return implementor.result(physType, builder.toBlock());
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    final List<RexNode> exps = Lists.transform(program.getProjectList(),
+        program::expandLocalRef);
+
+    return EnumTraitsUtils.passThroughTraitsForProject(required, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    final List<RexNode> exps = Lists.transform(program.getProjectList(),
+        program::expandLocalRef);
+
+    return EnumTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
   public RexProgram getProgram() {
