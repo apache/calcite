@@ -2718,11 +2718,16 @@ public class RelBuilder {
    */
   public RelBuilder hints(Iterable<RelHint> hints) {
     Objects.requireNonNull(hints);
+    final List<RelHint> relHintList = hints instanceof List ? (List<RelHint>) hints
+        : Lists.newArrayList(hints);
+    if (relHintList.isEmpty()) {
+      return this;
+    }
     final Frame frame = peek_();
     assert frame != null : "There is no relational expression to attach the hints";
     assert frame.rel instanceof Hintable : "The top relational expression is not a Hintable";
     Hintable hintable = (Hintable) frame.rel;
-    replaceTop(hintable.attachHints(ImmutableList.copyOf(hints)));
+    replaceTop(hintable.attachHints(relHintList));
     return this;
   }
 

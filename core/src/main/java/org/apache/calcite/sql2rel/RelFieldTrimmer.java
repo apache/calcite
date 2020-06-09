@@ -390,7 +390,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Some parts of the system can't handle rows with zero fields, so
     // pretend that one field is used.
     if (fieldsUsed.cardinality() == 0) {
-      return dummyProject(fieldCount, newInput);
+      return dummyProject(fieldCount, newInput, project);
     }
 
     // Build new project expressions, and populate the mapping.
@@ -417,7 +417,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     relBuilder.push(newInput);
     relBuilder.project(newProjects, newRowType.getFieldNames());
-    return result(relBuilder.build(), mapping);
+    final RelNode newProject = RelOptUtil.propagateRelHints(project, relBuilder.build());
+    return result(newProject, mapping);
   }
 
   /** Creates a project with a dummy column, to protect the parts of the system
@@ -425,9 +426,21 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    *
    * @param fieldCount Number of fields in the original relational expression
    * @param input Trimmed input
-   * @return Dummy project, or null if no dummy is required
+   * @return Dummy project
    */
   protected TrimResult dummyProject(int fieldCount, RelNode input) {
+    return dummyProject(fieldCount, input, null);
+  }
+
+  /** Creates a project with a dummy column, to protect the parts of the system
+   * that cannot handle a relational expression with no columns.
+   *
+   * @param fieldCount Number of fields in the original relational expression
+   * @param input Trimmed input
+   * @param originalRelNode Source RelNode for hint propagation (or null if no propagation needed)
+   * @return Dummy project
+   */
+  protected TrimResult dummyProject(int fieldCount, RelNode input, RelNode originalRelNode) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);
@@ -439,8 +452,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RexLiteral expr =
         cluster.getRexBuilder().makeExactLiteral(BigDecimal.ZERO);
     relBuilder.push(input);
-    relBuilder.project(ImmutableList.<RexNode>of(expr), ImmutableList.of("DUMMY"));
-    return result(relBuilder.build(), mapping);
+    relBuilder.project(ImmutableList.of(expr), ImmutableList.of("DUMMY"));
+    RelNode newProject = relBuilder.build();
+    if (originalRelNode != null) {
+      newProject = RelOptUtil.propagateRelHints(originalRelNode, newProject);
+    }
+    return result(newProject, mapping);
   }
 
   /**
@@ -775,7 +792,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     default:
       relBuilder.join(join.getJoinType(), newConditionExpr);
     }
-
+    relBuilder.hints(join.getHints());
     return result(relBuilder.build(), mapping);
   }
 
@@ -973,7 +990,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             (Iterable<ImmutableBitSet>) newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
-    return result(relBuilder.build(), mapping);
+    final RelNode newAggregate = RelOptUtil.propagateRelHints(aggregate, relBuilder.build());
+    return result(newAggregate, mapping);
   }
 
   /**
