@@ -2595,4 +2595,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   }
 
+  /** Returns the binary operator that corresponds to this operator but in the opposite
+   * direction. Or returns this, if its kind is not reversible.
+   *
+   * <p>For example, {@code reverse(GREATER_THAN)} returns {@link #LESS_THAN}.
+   */
+  public static SqlOperator reverse(SqlOperator operator) {
+    switch (operator.getKind()) {
+    case GREATER_THAN:
+      return LESS_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return LESS_THAN_OR_EQUAL;
+    case LESS_THAN:
+      return GREATER_THAN;
+    case LESS_THAN_OR_EQUAL:
+      return GREATER_THAN_OR_EQUAL;
+    default:
+      return operator;
+    }
+  }
+
 }

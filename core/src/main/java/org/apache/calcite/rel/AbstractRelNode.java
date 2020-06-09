@@ -18,13 +18,13 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.Digest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.Metadata;
@@ -70,13 +70,9 @@ public abstract class AbstractRelNode implements RelNode {
   protected RelDataType rowType;
 
   /**
-   * A short description of this relational expression's type, inputs, and
-   * other properties. The string uniquely identifies the node; another node
-   * is equivalent if and only if it has the same value. Computed by
-   * {@link #computeDigest}, assigned by {@link #onRegister}, returned by
-   * {@link #getDigest()}.
+   * The digest that uniquely identifies the node.
    */
-  protected String digest;
+  protected Digest digest;
 
   private final RelOptCluster cluster;
 
@@ -101,7 +97,7 @@ public abstract class AbstractRelNode implements RelNode {
     this.cluster = cluster;
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
-    this.digest = getRelTypeName() + "#" + id;
+    this.digest = Digest.initial(this);
     LOGGER.trace("new {}", digest);
   }
 
@@ -148,13 +144,13 @@ public abstract class AbstractRelNode implements RelNode {
     return null;
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public boolean isDistinct() {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areRowsUnique(this));
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public boolean isKey(ImmutableBitSet columns) {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
@@ -169,7 +165,7 @@ public abstract class AbstractRelNode implements RelNode {
     return inputs.get(i);
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public final RelOptQuery getQuery() {
     return getCluster().getQuery();
   }
@@ -193,7 +189,7 @@ public abstract class AbstractRelNode implements RelNode {
     return litmus.succeed();
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public boolean isValid(boolean fail) {
     return isValid(Litmus.THROW, null);
   }
@@ -226,7 +222,7 @@ public abstract class AbstractRelNode implements RelNode {
     return Collections.emptyList();
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public final double getRows() {
     return estimateRowCount(cluster.getMetadataQuery());
   }
@@ -235,7 +231,7 @@ public abstract class AbstractRelNode implements RelNode {
     return 1.0;
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 1.25
   public final Set<String> getVariablesStopped() {
     return CorrelationId.names(getVariablesSet());
   }
@@ -281,7 +277,6 @@ public abstract class AbstractRelNode implements RelNode {
       RelMetadataQuery mq) {
     // by default, assume cost is proportional to number of rows
     double rowCount = mq.getRowCount(this);
-    double bytesPerRow = 1;
     return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
@@ -323,15 +318,11 @@ public abstract class AbstractRelNode implements RelNode {
     List<RelNode> inputs = new ArrayList<>(oldInputs.size());
     for (final RelNode input : oldInputs) {
       RelNode e = planner.ensureRegistered(input, null);
-      if (e != input) {
-        // TODO: change 'equal' to 'eq', which is stronger.
-        assert RelOptUtil.equal(
-            "rowtype of rel before registration",
-            input.getRowType(),
-            "rowtype of rel after registration",
-            e.getRowType(),
-            Litmus.THROW);
-      }
+      assert e == input || RelOptUtil.equal("rowtype of rel before registration",
+          input.getRowType(),
+          "rowtype of rel after registration",
+          e.getRowType(),
+          Litmus.THROW);
       inputs.add(e);
     }
     RelNode r = this;
@@ -343,7 +334,7 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  public String recomputeDigest() {
+  public Digest recomputeDigest() {
     digest = computeDigest();
     assert digest != null : "computeDigest() should be non-null";
     return digest;
@@ -355,20 +346,20 @@ public abstract class AbstractRelNode implements RelNode {
     throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
-  /* Description, consists of id plus digest */
+  /** Description, consists of id plus digest */
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb = RelOptUtil.appendRelDescription(sb, this);
+    RelOptUtil.appendRelDescription(sb, this);
     return sb.toString();
   }
 
-  /* Description, consists of id plus digest */
+  /** Description, consists of id plus digest */
   @Deprecated // to be removed before 2.0
   public final String getDescription() {
     return this.toString();
   }
 
-  public final String getDigest() {
+  public final Digest getDigest() {
     return digest;
   }
 
@@ -381,7 +372,7 @@ public abstract class AbstractRelNode implements RelNode {
    *
    * @return Digest
    */
-  protected String computeDigest() {
+  protected Digest computeDigest() {
     RelDigestWriter rdw = new RelDigestWriter();
     explain(rdw);
     return rdw.digest;
@@ -421,7 +412,7 @@ public abstract class AbstractRelNode implements RelNode {
 
     private final List<Pair<String, Object>> values = new ArrayList<>();
 
-    String digest = null;
+    Digest digest = null;
 
     @Override public void explain(final RelNode rel, final List<Pair<String, Object>> valueList) {
       throw new IllegalStateException("Should not be called for computing digest");
@@ -437,33 +428,7 @@ public abstract class AbstractRelNode implements RelNode {
     }
 
     @Override public RelWriter done(RelNode node) {
-      StringBuilder sb = new StringBuilder();
-      sb.append(node.getRelTypeName());
-
-      for (RelTrait trait : node.getTraitSet()) {
-        sb.append('.');
-        sb.append(trait.toString());
-      }
-
-      sb.append('(');
-      int j = 0;
-      for (Pair<String, Object> value : values) {
-        if (j++ > 0) {
-          sb.append(',');
-        }
-        sb.append(value.left);
-        sb.append('=');
-        if (value.right instanceof RelNode) {
-          RelNode input = (RelNode) value.right;
-          sb.append(input.getRelTypeName());
-          sb.append('#');
-          sb.append(input.getId());
-        } else {
-          sb.append(value.right);
-        }
-      }
-      sb.append(')');
-      digest = sb.toString();
+      digest = Digest.create(node, values);
       return this;
     }
   }

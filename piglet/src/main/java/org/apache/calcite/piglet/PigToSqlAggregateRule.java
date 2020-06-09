@@ -200,7 +200,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
     relBuilder.push(oldBottomProject.getInput());
     // First project all group keys, just copy from old one
     for (int i = 0; i < oldAgg.getGroupCount(); i++) {
-      newBottomProjects.add(oldBottomProject.getChildExps().get(i));
+      newBottomProjects.add(oldBottomProject.getProjects().get(i));
     }
     // If grouping aggregate is needed, project the whole ROW
     if (needGoupingCol) {
@@ -235,8 +235,8 @@ public class PigToSqlAggregateRule extends RelOptRule {
         } else {
           // Add it to the projection list if we never project it before
           // First get the ROW operator call
-          final RexCall rowCall = (RexCall) oldBottomProject.getChildExps()
-                                                .get(oldAgg.getGroupCount());
+          final RexCall rowCall = (RexCall) oldBottomProject.getProjects()
+              .get(oldAgg.getGroupCount());
           // Get the corresponding column index in parent rel through the call operand list
           final RexInputRef columRef = (RexInputRef) rowCall.getOperands().get(col);
           final int newIndex = newBottomProjects.size();

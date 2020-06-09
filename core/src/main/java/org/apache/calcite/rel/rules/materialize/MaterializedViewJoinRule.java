@@ -245,7 +245,7 @@ public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
       EquivalenceClasses queryEC) {
     List<RexNode> exprs = topProject == null
         ? extractReferences(rexBuilder, node)
-        : topProject.getChildExps();
+        : topProject.getProjects();
     List<RexNode> exprsLineage = new ArrayList<>(exprs.size());
     for (RexNode expr : exprs) {
       Set<RexNode> s = mq.getExpressionLineage(node, expr);
@@ -262,7 +262,7 @@ public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
     }
     List<RexNode> viewExprs = topViewProject == null
         ? extractReferences(rexBuilder, viewNode)
-        : topViewProject.getChildExps();
+        : topViewProject.getProjects();
     List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, input, viewNode, viewExprs,
         queryToViewTableMapping.inverse(), queryEC, true, exprsLineage);
     if (rewrittenExprs == null) {

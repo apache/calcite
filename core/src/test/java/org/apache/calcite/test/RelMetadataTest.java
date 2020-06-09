@@ -2037,7 +2037,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "select empno, comm, deptno from emp where empno=1 and comm=4");
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), OR(AND(=($2, 3), =($1, 2)), =($1, 4))]"));
+        sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"));
 
   }
 
@@ -3066,14 +3066,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
    */
   public static <T> Matcher<Iterable<? extends T>> sortsAs(final String value) {
     return Matchers.compose(equalTo(value), item -> {
-      try (RexNode.Closeable ignored = RexNode.skipNormalize()) {
-        final List<String> strings = new ArrayList<>();
-        for (T t : item) {
-          strings.add(t.toString());
-        }
-        Collections.sort(strings);
-        return strings.toString();
+      final List<String> strings = new ArrayList<>();
+      for (T t : item) {
+        strings.add(t.toString());
       }
+      Collections.sort(strings);
+      return strings.toString();
     });
   }
 

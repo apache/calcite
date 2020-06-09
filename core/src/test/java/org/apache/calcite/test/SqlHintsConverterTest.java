@@ -76,8 +76,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.spi.LoggingEvent;
 
-import com.google.common.collect.ImmutableList;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -510,11 +508,11 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
 
     public void onMatch(RelOptRuleCall call) {
       LogicalJoin join = call.rel(0);
-      assertThat(1, is(join.getHints().size()));
+      assertThat(join.getHints().size(), is(1));
       call.transformTo(
           LogicalJoin.create(join.getLeft(),
               join.getRight(),
-              ImmutableList.of(),
+              join.getHints(),
               join.getCondition(),
               join.getVariablesSet(),
               join.getJoinType()));

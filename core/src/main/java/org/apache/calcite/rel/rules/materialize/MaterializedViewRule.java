@@ -428,7 +428,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
               // in the view output (condition 2).
               List<RexNode> viewExprs = topViewProject == null
                   ? extractReferences(rexBuilder, view)
-                  : topViewProject.getChildExps();
+                  : topViewProject.getProjects();
               // For compensationColumnsEquiPred, we use the view equivalence classes,
               // since we want to enforce the rest
               if (!compensationColumnsEquiPred.isAlwaysTrue()) {

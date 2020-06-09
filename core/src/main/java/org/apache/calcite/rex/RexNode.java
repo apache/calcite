@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apiguardian.api.API;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Row expression.
@@ -40,54 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>All sub-classes of RexNode are immutable.</p>
  */
 public abstract class RexNode {
-  /**
-   * Sometimes RexCall nodes are located deep (e.g. inside Lists),
-   * If the value is non-zero, then a non-normalized representation is printed.
-   * int is used to allow for re-entrancy.
-   */
-  private static final ThreadLocal<AtomicInteger> DESCRIBE_WITHOUT_NORMALIZE =
-      ThreadLocal.withInitial(AtomicInteger::new);
-
-  /** Removes a Hook after use. */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public interface Closeable extends AutoCloseable {
-    // override, removing "throws"
-    @Override void close();
-  }
-
-  private static final Closeable DECREMENT_ON_CLOSE = () -> {
-    DESCRIBE_WITHOUT_NORMALIZE.get().decrementAndGet();
-  };
-
-  private static final Closeable EMPTY = () -> { };
-
-  /**
-   * The digest of {@code RexNode} is normalized by default, however, sometimes a non-normalized
-   * representation is required.
-   * This API enables to skip normalization.
-   * Note: the returned value must be closed, and the API is designed to be used with a
-   * try-with-resources.
-   * @param needNormalize true if normalization should be enabled or false if it should be skipped
-   * @return a handle that should be closed to revert normalization state
-   */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public static Closeable withNormalize(boolean needNormalize) {
-    return needNormalize ? EMPTY : skipNormalize();
-  }
-
-  /**
-   * The digest of {@code RexNode} is normalized by default, however, sometimes a non-normalized
-   * representation is required.
-   * This API enables to skip normalization.
-   * Note: the returned value must be closed, and the API is designed to be used with a
-   * try-with-resources.
-   * @return a handle that should be closed to revert normalization state
-   */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public static Closeable skipNormalize() {
-    DESCRIBE_WITHOUT_NORMALIZE.get().incrementAndGet();
-    return DECREMENT_ON_CLOSE;
-  }
 
   /**
    * The digest of {@code RexNode} is normalized by default, however, sometimes a non-normalized
@@ -97,8 +48,7 @@ public abstract class RexNode {
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   protected static boolean needNormalize() {
-    return DESCRIBE_WITHOUT_NORMALIZE.get().get() == 0
-        && CalciteSystemProperty.ENABLE_REX_DIGEST_NORMALIZE.value();
+    return CalciteSystemProperty.ENABLE_REX_DIGEST_NORMALIZE.value();
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -145,17 +95,6 @@ public abstract class RexNode {
 
   public String toString() {
     return digest;
-  }
-
-  /**
-   * Returns string representation of this node.
-   * @return the same as {@link #toString()}, but without normalizing the output
-   */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public String toStringRaw() {
-    try (Closeable ignored = skipNormalize()) {
-      return toString();
-    }
   }
 
   /** Returns the number of nodes in this expression.

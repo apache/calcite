@@ -741,7 +741,7 @@ class RexProgramTest extends RexProgramTestBase {
     final int nodeCount = cnf.nodeCount();
     assertThat((n + 1) * (int) Math.pow(2, n) + 1, equalTo(nodeCount));
     if (n == 3) {
-      assertThat(cnf.toStringRaw(),
+      assertThat(cnf.toString(),
           equalTo("AND(OR(?0.x0, ?0.x1, ?0.x2), OR(?0.x0, ?0.x1, ?0.y2),"
               + " OR(?0.x0, ?0.y1, ?0.x2), OR(?0.x0, ?0.y1, ?0.y2),"
               + " OR(?0.y0, ?0.x1, ?0.x2), OR(?0.y0, ?0.x1, ?0.y2),"
@@ -1104,7 +1104,7 @@ class RexProgramTest extends RexProgramTestBase {
     // as previous, using simplifyFilterPredicates
     assertThat(simplify
             .simplifyFilterPredicates(args)
-            .toStringRaw(),
+            .toString(),
         equalTo("AND(=(?0.a, 1), =(?0.b, 1))"));
 
     // "a = 1 and a = 10" is always false
@@ -1410,7 +1410,7 @@ class RexProgramTest extends RexProgramTestBase {
     // TODO: "b is not unknown" would be the best simplification.
     final RexNode simplified =
         this.simplify.simplifyUnknownAs(neOrEq, RexUnknownAs.UNKNOWN);
-    assertThat(simplified.toStringRaw(),
+    assertThat(simplified.toString(),
         equalTo("OR(<>(?0.b, 1), =(?0.b, 1))"));
 
     // "a is null or a is not null" ==> "true"
@@ -2171,7 +2171,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   private void assertTypeAndToString(
       RexNode rexNode, String representation, String type) {
-    assertEquals(representation, rexNode.toStringRaw());
+    assertEquals(representation, rexNode.toString());
     assertEquals(type, rexNode.getType().toString()
         + (rexNode.getType().isNullable() ? "" : " NOT NULL"), "type of " + rexNode);
   }

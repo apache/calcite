@@ -240,9 +240,9 @@ class VolcanoPlannerTest {
     assertThat(sort(buf),
         equalTo(
             sort(
-                "NoneSingleRel:Subset#0.NONE.[]",
-                "PhysSingleRel:Subset#0.PHYS.[0]",
-                "PhysSingleRel:Subset#0.PHYS.[]")));
+                "NoneSingleRel:RelSubset#0.NONE.[]",
+                "PhysSingleRel:RelSubset#0.PHYS.[0]",
+                "PhysSingleRel:RelSubset#0.PHYS.[]")));
   }
 
   private static <E extends Comparable> List<E> sort(List<E> list) {
@@ -281,8 +281,8 @@ class VolcanoPlannerTest {
     assertTrue(result instanceof PhysSingleRel);
     assertThat(sort(buf),
         equalTo(
-            sort("PhysSingleRel:Subset#0.PHYS.[]",
-            "PhysSingleRel:Subset#0.PHYS_3.[]")));
+            sort("PhysSingleRel:RelSubset#0.PHYS.[]",
+            "PhysSingleRel:RelSubset#0.PHYS_3.[]")));
   }
 
   /**
