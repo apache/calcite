@@ -1950,7 +1950,7 @@ public class RexSimplify {
         break;
       }
       final List<RexNode> reducedValues = new ArrayList<>();
-      RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
+      final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
       executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
       return Objects.requireNonNull(
           Iterables.getOnlyElement(reducedValues));
