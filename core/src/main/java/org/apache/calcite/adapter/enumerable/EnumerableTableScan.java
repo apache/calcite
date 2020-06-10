@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -71,6 +72,27 @@ public class EnumerableTableScan
     this.elementType = elementType;
     assert canHandle(table)
         : "EnumerableTableScan can't implement " + table + ", see EnumerableTableScan#canHandle";
+  }
+
+  /**
+   * Code snippet to demonstrate how to generate IndexScan on demand
+   * by passing required collation through TableScan.
+   *
+   * @return IndexScan if there is index available on collation keys
+   */
+  @Override public RelNode passThrough(final RelTraitSet required) {
+/*
+    keys = required.getCollation().getKeys();
+    if (table has index on keys) {
+      direction = forward or backward;
+      return new IndexScan(table, indexInfo, direction);
+    }
+*/
+    return null;
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    return DeriveMode.PROHIBITED;
   }
 
   /** Creates an EnumerableTableScan. */

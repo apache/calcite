@@ -1192,4 +1192,41 @@ EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testValuesTraitRequest">
+    <Resource name="sql">
+      <![CDATA[SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))
+as t(a, b) order by b, a]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testValuesTraitRequestNeg">
+    <Resource name="sql">
+      <![CDATA[SELECT * from (values (1, 1), (2, 1), (3, 2), (2, 2))
+as t(a, b) order by b, a]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

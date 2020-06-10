@@ -405,7 +405,7 @@ public class RelMdCollation
     return list;
   }
 
-  private static Ordering<List<RexLiteral>> comparator(
+  public static Ordering<List<RexLiteral>> comparator(
       RelFieldCollation fieldCollation) {
     final int nullComparison = fieldCollation.nullDirection.nullComparison;
     final int x = fieldCollation.getFieldIndex();

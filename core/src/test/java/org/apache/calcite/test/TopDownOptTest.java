@@ -73,6 +73,18 @@ import java.util.List;
  * </ol>
  */
 class TopDownOptTest extends RelOptTestBase {
+  @Test void testValuesTraitRequest() {
+    final String sql = "SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))\n"
+        + "as t(a, b) order by b, a";
+    Query.create(sql).check();
+  }
+
+  @Test void testValuesTraitRequestNeg() {
+    final String sql = "SELECT * from (values (1, 1), (2, 1), (3, 2), (2, 2))\n"
+        + "as t(a, b) order by b, a";
+    Query.create(sql).check();
+  }
+
   @Test void testSortAgg() {
     final String sql = "select mgr, count(*) from sales.emp\n"
         + "group by mgr order by mgr desc nulls last limit 5";
