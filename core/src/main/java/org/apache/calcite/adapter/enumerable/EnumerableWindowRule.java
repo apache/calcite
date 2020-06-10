@@ -35,11 +35,9 @@ class EnumerableWindowRule extends ConverterRule {
   public RelNode convert(RelNode rel) {
     final LogicalWindow winAgg = (LogicalWindow) rel;
     final RelTraitSet traitSet =
-        winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE);
+        rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode child = winAgg.getInput();
-    final RelNode convertedChild =
-        convert(child,
-            child.getTraitSet().replace(EnumerableConvention.INSTANCE));
+    final RelNode convertedChild = convert(child, traitSet);
     return new EnumerableWindow(rel.getCluster(), traitSet, convertedChild,
         winAgg.getConstants(), winAgg.getRowType(), winAgg.groups);
   }

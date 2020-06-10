@@ -716,4 +716,20 @@ from emps order by emps."GENDER";
 
 !ok
 
+# [CALCITE-2648] EnumerableWindowRule generated wrong plan for EnumerableWindow
+select x, COUNT(*) OVER (PARTITION BY x) as y from (values (20), (35)) as t(x) ORDER BY x;
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableWindow(window#0=[window(partition {0} aggs [COUNT()])])
+    EnumerableValues(tuples=[[{ 20 }, { 35 }]])
+!plan
++----+---+
+| X  | Y |
++----+---+
+| 20 | 1 |
+| 35 | 1 |
++----+---+
+(2 rows)
+
+!ok
+
 # End winagg.iq
