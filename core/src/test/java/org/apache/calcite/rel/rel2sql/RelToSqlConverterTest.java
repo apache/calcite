@@ -6093,6 +6093,50 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(bigQueryExpected);
   }
+
+
+  @Test public void testCoalseceWithCast() {
+    final String query = "Select coalesce(cast('2099-12-31 00:00:00.123' as TIMESTAMP),\n"
+            + "cast('2010-12-31 01:00:00.123' as TIMESTAMP))";
+    final String expectedHive = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    final String expectedSpark = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    final String bigQueryExpected = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testCoalseceWithLiteral() {
+    final String query = "Select coalesce('abc','xyz')";
+    final String expectedHive = "SELECT 'abc'";
+    final String expectedSpark = "SELECT 'abc'";
+    final String bigQueryExpected = "SELECT 'abc'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+  @Test public void testCoalseceWithNull() {
+    final String query = "Select coalesce(null, 'abc')";
+    final String expectedHive = "SELECT 'abc'";
+    final String expectedSpark = "SELECT 'abc'";
+    final String bigQueryExpected = "SELECT 'abc'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
