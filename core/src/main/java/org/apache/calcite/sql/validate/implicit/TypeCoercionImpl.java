@@ -449,7 +449,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    */
   public boolean inOperationCoercion(SqlCallBinding binding) {
     SqlOperator operator = binding.getOperator();
-    if (operator.getKind() == SqlKind.IN) {
+    if (operator.getKind() == SqlKind.IN || operator.getKind() == SqlKind.NOT_IN) {
       assert binding.getOperandCount() == 2;
       final RelDataType type1 = binding.getOperandType(0);
       final RelDataType type2 = binding.getOperandType(1);

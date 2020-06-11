@@ -61,6 +61,14 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "from (values (true, true, true))");
   }
 
+  @Test void testNotInOperation() {
+    checkPlanEquals("select\n"
+        + "1 not in ('1', '2', '3') as f0,\n"
+        + "(1, 2) not in (('1', '2')) as f1,\n"
+        + "(1, 2) not in (('1', '2'), ('3', '4')) as f2\n"
+        + "from (values (false, false, false))");
+  }
+
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test void testInDateTimestamp() {
     checkPlanEquals("select (t1_timestamp, t1_date)\n"

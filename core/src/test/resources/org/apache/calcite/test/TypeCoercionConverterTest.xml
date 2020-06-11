@@ -31,7 +31,22 @@ LogicalProject(F0=[true], F1=[true], F2=[true])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testInDateTimestamp">
+  <TestCase name="testNotInOperation">
+    <Resource name="sql">
+      <![CDATA[select
+1 not in ('1', '2', '3') as f0,
+(1, 2) not in (('1', '2')) as f1,
+(1, 2) not in (('1', '2'), ('3', '4')) as f2
+from (values (false, false, false))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(F0=[false], F1=[false], F2=[false])
+  LogicalValues(tuples=[[{ false, false, false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInDateTimestamp">
         <Resource name="sql">
             <![CDATA[select (t1_timestamp, t1_date)
 in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))
