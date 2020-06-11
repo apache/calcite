@@ -804,6 +804,44 @@ public class RelToSqlConverterTest {
       .ok(expectedBigQuery);
   }
 
+  @Test public void testAnalyticalFunctionInGroupByWhereAnalyticalFunctionIsInputOfOtherFunction() {
+    final String query = "select\n"
+        + "\"rnk\""
+        + "  from ("
+        + "    select\n"
+        + "    CASE WHEN \"salary\"=20 THEN MAX(\"salary\") OVER(PARTITION BY \"position_id\") END AS \"rnk\""
+        + "    from \"foodmart\".\"employee\"\n) group by \"rnk\"";
+    final String expectedSql = "SELECT CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) = 20 THEN"
+        + " MAX(\"salary\") OVER (PARTITION BY \"position_id\" RANGE BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING) ELSE NULL END AS \"rnk\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) = 20 THEN MAX"
+        + "(\"salary\") OVER (PARTITION BY \"position_id\" RANGE BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING) ELSE NULL END";
+    final String expectedHive = "SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX"
+        + "(salary) OVER (PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED "
+        + "FOLLOWING) ELSE NULL END rnk\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT rnk\n"
+        + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END AS rnk\n"
+        + "FROM foodmart.employee) AS t\n"
+        + "GROUP BY rnk";
+    sql(query)
+        .ok(expectedSql)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
    * JDBC adapter throws NullPointerException while generating GROUP BY query

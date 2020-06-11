@@ -1351,7 +1351,16 @@ public abstract class SqlImplementor {
     }
 
     boolean isAnalyticalRex(RexNode rexNode) {
-      return rexNode instanceof RexOver;
+      if (rexNode instanceof RexOver) {
+        return true;
+      } else if (rexNode instanceof RexCall) {
+        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+          if (isAnalyticalRex(operand)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     private boolean hasNestedAggregations(Aggregate rel) {
