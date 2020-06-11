@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 /**
  * A rule queue that manage rule matches for cascade planner
  */
-public class CascadeRuleQueue implements RuleQueue {
+public class CascadesRuleQueue implements RuleQueue {
 
   private final VolcanoPlanner planner;
 
@@ -39,7 +39,7 @@ public class CascadeRuleQueue implements RuleQueue {
 
   private final Set<String> names = new HashSet<>();
 
-  public CascadeRuleQueue(VolcanoPlanner planner) {
+  public CascadesRuleQueue(VolcanoPlanner planner) {
     this.planner = planner;
   }
 
@@ -86,9 +86,5 @@ public class CascadeRuleQueue implements RuleQueue {
     matches.clear();
     names.clear();
     return !empty;
-  }
-
-  public VolcanoRuleMatch popLogicalMatch(RelNode rel) {
-    return null;
   }
 }

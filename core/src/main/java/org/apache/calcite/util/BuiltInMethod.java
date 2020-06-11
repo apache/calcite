@@ -51,7 +51,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
@@ -556,7 +556,7 @@ public enum BuiltInMethod {
   IS_PHASE_TRANSITION(Parallelism.class, "isPhaseTransition"),
   SPLIT_COUNT(Parallelism.class, "splitCount"),
   LOWER_BOUND_COST(LowerBoundCost.class, "getLowerBoundCost",
-      RelOptPlanner.class),
+      VolcanoPlanner.class),
   MEMORY(Memory.class, "memory"),
   CUMULATIVE_MEMORY_WITHIN_PHASE(Memory.class, "cumulativeMemoryWithinPhase"),
   CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(Memory.class,

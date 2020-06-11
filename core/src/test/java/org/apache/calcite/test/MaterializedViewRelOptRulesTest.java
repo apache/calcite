@@ -892,7 +892,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             resultContains(
             "EnumerableUnion(all=[true])",
             "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"))
+            "expr#4=[10], expr#5=[>($t0, $t4)], expr#6=[30], expr#7=[>=($t6, $t0)]"))
         .ok();
   }
 

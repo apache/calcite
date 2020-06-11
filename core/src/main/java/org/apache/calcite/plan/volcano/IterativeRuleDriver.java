@@ -29,14 +29,14 @@ import org.slf4j.Logger;
  * <p>In each phase, the planner then iterates over the rule matches presented
  * by the rule queue until the rule queue becomes empty.
  */
-public class MultiPhasedRuleDriver implements RuleDriver {
+class IterativeRuleDriver implements RuleDriver {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   private final VolcanoPlanner planner;
   private final VolcanoRuleQueue ruleQueue;
 
-  public MultiPhasedRuleDriver(VolcanoPlanner planner) {
+  IterativeRuleDriver(VolcanoPlanner planner) {
     this.planner = planner;
     ruleQueue = new VolcanoRuleQueue(planner);
   }

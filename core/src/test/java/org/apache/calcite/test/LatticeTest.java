@@ -673,7 +673,7 @@ class LatticeTest {
             + "group by \"the_year\"")
         .enableMaterializations(true)
         .explainContains("EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], "
-            + "expr#2=[1:BIGINT], expr#3=[0:BIGINT], expr#4=[CASE($t1, $t2, $t3)], C=[$t4])\n"
+            + "expr#2=[1:BIGINT], expr#3=[0:BIGINT], expr#4=[CASE($t1, $t2, $t3)], $f0=[$t4])\n"
             + "  EnumerableAggregate(group=[{0}])\n"
             + "    EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=1");

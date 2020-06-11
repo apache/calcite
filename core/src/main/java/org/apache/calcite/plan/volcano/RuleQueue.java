@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
-public interface RuleQueue {
+interface RuleQueue {
 
   /**
    * Add a RuleMatch into the queue

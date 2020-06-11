@@ -229,7 +229,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (topDownOpt) {
       ruleDriver = new TopDownRuleDriver(this);
     } else {
-      ruleDriver = new MultiPhasedRuleDriver(this);
+      ruleDriver = new IterativeRuleDriver(this);
     }
   }
 

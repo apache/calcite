@@ -129,7 +129,7 @@ public class RelSubset extends AbstractRelNode {
    */
   private boolean enforceDisabled = false;
 
-  /*
+  /**
    * the upper bound of the last OptimizeGroup call
    */
   RelOptCost upperBound;

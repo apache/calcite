@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -851,7 +851,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /**
    * Returns the lower bound cost of a RelNode
    */
-  public RelOptCost getLowerBoundCost(RelNode rel, RelOptPlanner planner) {
+  public RelOptCost getLowerBoundCost(RelNode rel, VolcanoPlanner planner) {
     for (;;) {
       try {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);

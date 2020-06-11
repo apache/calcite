@@ -508,7 +508,7 @@ class VolcanoPlannerTest {
       if (ruleQueue instanceof VolcanoRuleQueue) {
         ruleMatch = ((VolcanoRuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
       } else {
-        ruleMatch = ((CascadeRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
+        ruleMatch = ((CascadesRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
       }
       if (ruleMatch == null) {
         break;

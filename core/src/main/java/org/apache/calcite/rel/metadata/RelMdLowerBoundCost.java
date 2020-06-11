@@ -16,12 +16,10 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.util.BuiltInMethod;
@@ -47,15 +45,10 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
     return BuiltInMetadata.LowerBoundCost.DEF;
   }
 
-  private boolean isLogical(RelNode relNode) {
-    return relNode.getTraitSet().getTrait(ConventionTraitDef.INSTANCE)
-        == Convention.NONE;
-  }
-
   public RelOptCost getLowerBoundCost(RelSubset subset,
-      RelMetadataQuery mq, RelOptPlanner planner) {
+      RelMetadataQuery mq, VolcanoPlanner planner) {
 
-    if (isLogical(subset)) {
+    if (planner.isLogical(subset)) {
       // currently only support physical, will improve in the future
       return null;
     }
@@ -93,8 +86,8 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
   }
 
   public RelOptCost getLowerBoundCost(RelNode node,
-      RelMetadataQuery mq, RelOptPlanner planner) {
-    if (isLogical(node)) {
+      RelMetadataQuery mq, VolcanoPlanner planner) {
+    if (planner.isLogical(node)) {
       // currently only support physical, will improve in the future
       return null;
     }
@@ -113,7 +106,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
   }
 
   public RelOptCost getLowerBoundCost(AbstractConverter ac,
-      RelMetadataQuery mq, RelOptPlanner planner) {
+      RelMetadataQuery mq, VolcanoPlanner planner) {
     return mq.getLowerBoundCost(ac.getInput(), planner);
   }
 }

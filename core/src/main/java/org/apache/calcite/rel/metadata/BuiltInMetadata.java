@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -628,12 +628,12 @@ public abstract class BuiltInMetadata {
         LowerBoundCost.Handler.class, BuiltInMethod.LOWER_BOUND_COST.method);
 
     /** Returns the lower bound cost of a RelNode */
-    RelOptCost getLowerBoundCost(RelOptPlanner planner);
+    RelOptCost getLowerBoundCost(VolcanoPlanner planner);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<LowerBoundCost> {
       RelOptCost getLowerBoundCost(
-          RelNode r, RelMetadataQuery mq, RelOptPlanner planner);
+          RelNode r, RelMetadataQuery mq, VolcanoPlanner planner);
     }
   }
 
