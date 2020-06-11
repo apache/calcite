@@ -273,7 +273,11 @@ public class RelJson {
 
   public Object toJson(AggregateCall node) {
     final Map<String, Object> map = jsonBuilder.map();
-    map.put("agg", toJson(node.getAggregation()));
+    final Map<String, Object> aggMap = toJson(node.getAggregation());
+    if (node.getAggregation().getFunctionType().isUserDefined()) {
+      aggMap.put("class", node.getAggregation().getClass().getName());
+    }
+    map.put("agg", aggMap);
     map.put("type", toJson(node.getType()));
     map.put("distinct", node.isDistinct());
     map.put("operands", node.getArgList());

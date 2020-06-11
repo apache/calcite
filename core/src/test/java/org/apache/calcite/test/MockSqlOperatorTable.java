@@ -125,6 +125,16 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
+  /** "MYAGGFUNC" user-defined aggregate function. This agg function accept one or more arguments
+   * in order to reproduce the throws of CALCITE-3929. */
+  public static class MyAggFunc extends SqlAggFunction {
+    public MyAggFunc() {
+      super("myAggFunc", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
+          OperandTypes.ONE_OR_MORE, SqlFunctionCategory.USER_DEFINED_FUNCTION, false, false,
+          Optionality.FORBIDDEN);
+    }
+  }
+
   /**
    * "SPLIT" user-defined function. This function return array type
    * in order to reproduce the throws of CALCITE-4062.

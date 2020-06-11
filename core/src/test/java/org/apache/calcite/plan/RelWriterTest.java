@@ -797,6 +797,27 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
+  @Test void testUDAF() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("ENAME"), builder.field("DEPTNO"))
+        .aggregate(
+            builder.groupKey("ENAME"),
+            builder.aggregateCall(new MockSqlOperatorTable.MyAggFunc(),
+                builder.field("DEPTNO")))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    final String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalAggregate(group=[{0}], agg#0=[myAggFunc($1)])\n"
+        + "  LogicalProject(ENAME=[$1], DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
+  }
+
   @Test void testArrayType() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
