@@ -149,7 +149,13 @@ public class CassandraSchema extends AbstractSchema {
     this.parentSchema = parentSchema;
     this.name = name;
 
-    this.hook = Hook.TRIMMED.add(node -> {
+    this.hook = prepareHook();
+  }
+
+  @SuppressWarnings("deprecation")
+  private Hook.Closeable prepareHook() {
+    // It adds a global hook, so it should probably be replaced with a thread-local hook
+    return Hook.TRIMMED.add(node -> {
       CassandraSchema.this.addMaterializedViews();
     });
   }

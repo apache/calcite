@@ -2927,7 +2927,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return aggFinder.findAgg(select.getSelectList());
   }
 
-  public boolean isAggregate(SqlNode selectNode) {
+  @Deprecated
+  @Override public boolean isAggregate(SqlNode selectNode) {
     return aggFinder.findAgg(selectNode) != null;
   }
 

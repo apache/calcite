@@ -98,7 +98,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     }
 
     SqlNode window = call.operand(1);
-    SqlWindow w = validator.resolveWindow(window, scope, false);
+    SqlWindow w = validator.resolveWindow(window, scope);
 
     final int groupCount = w.isAlwaysNonEmpty() ? 1 : 0;
     final SqlCall aggCall = (SqlCall) agg;

@@ -535,7 +535,7 @@ public class SqlWindow extends SqlCall {
     SqlLiteral allowPartial = this.allowPartial;
 
     if (refName != null) {
-      SqlWindow win = validator.resolveWindow(this, operandScope, false);
+      SqlWindow win = validator.resolveWindow(this, operandScope);
       partitionList = win.partitionList;
       orderList = win.orderList;
       isRows = win.isRows;

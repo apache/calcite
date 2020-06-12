@@ -35,7 +35,6 @@ import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
-import org.apache.calcite.rel.rules.ProjectSortTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -726,7 +725,7 @@ public class DruidRules {
    */
   @Deprecated // to be removed before 1.25
   public static class DruidProjectSortTransposeRule
-      extends ProjectSortTransposeRule {
+      extends org.apache.calcite.rel.rules.ProjectSortTransposeRule {
 
     /**
      * Creates a DruidProjectSortTransposeRule.

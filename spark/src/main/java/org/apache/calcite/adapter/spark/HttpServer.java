@@ -62,7 +62,6 @@ class HttpServer {
 
       final ServerConnector connector = new ServerConnector(server);
       connector.setIdleTimeout(60 * 1000);
-      connector.setSoLingerTime(-1);
       connector.setPort(0);
       server.setConnectors(new Connector[] { connector });
 
