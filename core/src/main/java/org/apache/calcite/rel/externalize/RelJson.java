@@ -252,7 +252,9 @@ public class RelJson {
               new SqlIntervalQualifier(startUnit, endUnit, SqlParserPos.ZERO));
         }
         final RelDataType type;
-        if (precision == null) {
+        if (sqlTypeName == SqlTypeName.ARRAY) {
+          type = typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
+        } else if (precision == null) {
           type = typeFactory.createSqlType(sqlTypeName);
         } else if (scale == null) {
           type = typeFactory.createSqlType(sqlTypeName, precision);

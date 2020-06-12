@@ -125,6 +125,26 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
+  /**
+   * "SPLIT" user-defined function. This function return array type
+   * in order to reproduce the throws of CALCITE-4062.
+   */
+  public static class SplitFunction extends SqlFunction {
+
+    public SplitFunction() {
+      super("SPLIT", new SqlIdentifier("SPLIT", SqlParserPos.ZERO), SqlKind.OTHER_FUNCTION, null,
+          null, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING), null,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.VARCHAR), -1);
+    }
+
+  }
+
   /** "MYAGG" user-defined aggregate function. This agg function accept two numeric arguments
    * in order to reproduce the throws of CALCITE-2744. */
   public static class MyAvgAggFunction extends SqlAggFunction {
