@@ -234,6 +234,12 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.redis", true);
 
   /**
+   * Whether to run Innodb tests.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_INNODB =
+      booleanProperty("calcite.test.innodb", true);
+
+  /**
    * A list of ids designating the queries
    * (from query.json in new.hydromatic:foodmart-queries:0.4.1)
    * that should be run as part of FoodmartTest.

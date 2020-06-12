@@ -45,6 +45,7 @@ dependencies {
         // runtime means "the dependency is only for runtime, not for compilation"
         // In other words, marking dependency as "runtime" would avoid accidental
         // dependency on it during compilation
+        apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
         apiv("com.datastax.cassandra:cassandra-driver-core")
         apiv("com.esri.geometry:esri-geometry-api")

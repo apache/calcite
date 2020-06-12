@@ -226,6 +226,7 @@ public abstract class Prepare {
             .withTrimUnusedFields(true)
             .withExpand(THREAD_EXPAND.get())
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
+    Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(builder);
     final SqlToRelConverter sqlToRelConverter =
         getSqlToRelConverter(validator, catalogReader, config);
 
