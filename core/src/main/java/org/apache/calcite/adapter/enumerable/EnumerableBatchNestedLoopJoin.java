@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -37,6 +38,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -86,6 +88,27 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         variablesSet,
         requiredColumns,
         joinType);
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, getLeft().getRowType().getFieldCount(), traitSet);
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, traitSet, right.getTraitSet()
+    );
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    if (joinType == JoinRelType.FULL || joinType == JoinRelType.RIGHT) {
+      return DeriveMode.PROHIBITED;
+    }
+
+    return DeriveMode.LEFT_FIRST;
   }
 
   @Override public EnumerableBatchNestedLoopJoin copy(RelTraitSet traitSet,

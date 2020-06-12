@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
@@ -47,9 +48,9 @@ import java.util.Objects;
  * Utilities for traits propagation.
  */
 @API(since = "1.24", status = API.Status.INTERNAL)
-class EnumTraitsUtils {
+class EnumerableTraitsUtils {
 
-  private EnumTraitsUtils() {}
+  private EnumerableTraitsUtils() {}
 
   /**
    * Determine whether there is mapping between project input and output fields.
@@ -147,5 +148,69 @@ class EnumTraitsUtils {
     } else {
       return null;
     }
+  }
+
+  /**
+   * This function can be reused when a Join's traits pass-down shall only
+   * pass through collation to left input.
+   *
+   * @param required required trait set for the join
+   * @param joinType the join type
+   * @param leftInputFieldCount number of field count of left join input
+   * @param joinTraitSet trait set of the join
+   */
+  static Pair<RelTraitSet, List<RelTraitSet>> passThroughTraitsForJoin(
+      RelTraitSet required, JoinRelType joinType,
+      int leftInputFieldCount, RelTraitSet joinTraitSet) {
+    RelCollation collation = required.getCollation();
+    if (collation == null
+        || collation == RelCollations.EMPTY
+        || joinType == JoinRelType.FULL
+        || joinType == JoinRelType.RIGHT) {
+      return null;
+    }
+
+    for (RelFieldCollation fc : collation.getFieldCollations()) {
+      // If field collation belongs to right input: cannot push down collation.
+      if (fc.getFieldIndex() >= leftInputFieldCount) {
+        return null;
+      }
+    }
+
+    RelTraitSet passthroughTraitSet = joinTraitSet.replace(collation);
+    return Pair.of(passthroughTraitSet,
+        ImmutableList.of(
+            passthroughTraitSet,
+            passthroughTraitSet.replace(RelCollations.EMPTY)));
+  }
+
+  /**
+   * This function can be reused when a Join's traits derivation shall only
+   * derive collation from left input.
+   *
+   * @param childTraits trait set of the child
+   * @param childId id of the child (0 is left join input)
+   * @param joinType the join type
+   * @param joinTraitSet trait set of the join
+   * @param rightTraitSet trait set of the right join input
+   */
+  static Pair<RelTraitSet, List<RelTraitSet>> deriveTraitsForJoin(
+      RelTraitSet childTraits, int childId, JoinRelType joinType,
+      RelTraitSet joinTraitSet, RelTraitSet rightTraitSet) {
+    // should only derive traits (limited to collation for now) from left join input.
+    assert childId == 0;
+
+    RelCollation collation = childTraits.getCollation();
+    if (collation == null
+        || collation == RelCollations.EMPTY
+        || joinType == JoinRelType.FULL
+        || joinType == JoinRelType.RIGHT) {
+      return null;
+    }
+
+    RelTraitSet derivedTraits = joinTraitSet.replace(collation);
+    return Pair.of(
+        derivedTraits,
+        ImmutableList.of(derivedTraits, rightTraitSet));
   }
 }

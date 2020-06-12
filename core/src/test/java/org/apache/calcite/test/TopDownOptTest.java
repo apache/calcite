@@ -379,7 +379,6 @@ class TopDownOptTest extends RelOptTestBase {
         + "order by r.job desc nulls last, r.ename nulls first";
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .check();
   }
 
@@ -393,7 +392,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -408,7 +406,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -423,7 +420,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -438,7 +434,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -453,7 +448,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -468,7 +462,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -483,7 +476,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -499,7 +491,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -513,7 +504,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -527,7 +517,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -541,7 +530,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -555,7 +543,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -569,7 +556,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -583,7 +569,6 @@ class TopDownOptTest extends RelOptTestBase {
 
     Query.create(sql)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
-        .removeRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .check();
   }
@@ -691,6 +676,37 @@ class TopDownOptTest extends RelOptTestBase {
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .check();
+  }
+
+  // push sort to left input
+  @Test void testBatchNestedLoopJoinLeftOuterJoinPushDownSort() {
+    final String sql = "select * from\n"
+        + " customer.contact_peek r left outer join\n"
+        + "customer.account s\n"
+        + "on r.contactno>s.acctno and r.email<s.type\n"
+        + "order by r.contactno desc, r.email desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+        .check();
+  }
+
+  // Collation can be derived from left input so that top Sort is removed.
+  @Test void testBatchNestedLoopJoinTraitDerivation() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r\n"
+        + "join sales.bonus s on r.ename>s.ename and r.job<s.job\n"
+        + "order by r.ename desc, r.job desc";
+
+    Query.create(sql)
+        .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
+        .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
+        .addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
         .check();
   }
 }

@@ -91,13 +91,13 @@ public class EnumerableProject extends Project implements EnumerableRel {
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
-    return EnumTraitsUtils.passThroughTraitsForProject(required, exps,
+    return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
-    return EnumTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
+    return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 }

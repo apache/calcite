@@ -272,7 +272,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     final List<RexNode> exps = Lists.transform(program.getProjectList(),
         program::expandLocalRef);
 
-    return EnumTraitsUtils.passThroughTraitsForProject(required, exps,
+    return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
@@ -281,7 +281,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     final List<RexNode> exps = Lists.transform(program.getProjectList(),
         program::expandLocalRef);
 
-    return EnumTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
+    return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
