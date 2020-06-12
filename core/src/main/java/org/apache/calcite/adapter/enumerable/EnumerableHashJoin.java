@@ -24,10 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -108,42 +105,15 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
-    RelCollation collation = required.getCollation();
-    if (collation == null
-        || collation == RelCollations.EMPTY
-        || joinType == JoinRelType.FULL
-        || joinType == JoinRelType.RIGHT) {
-      return null;
-    }
-
-    for (RelFieldCollation fc : collation.getFieldCollations()) {
-      // If field collation belongs to right input: cannot push down collation.
-      if (fc.getFieldIndex() >= getLeft().getRowType().getFieldCount()) {
-        return null;
-      }
-    }
-
-    RelTraitSet passthroughTraitSet = traitSet.replace(collation);
-    return Pair.of(passthroughTraitSet,
-        ImmutableList.of(
-            passthroughTraitSet,
-            passthroughTraitSet.replace(RelCollations.EMPTY)));
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, left.getRowType().getFieldCount(), getTraitSet());
   }
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     // should only derive traits (limited to collation for now) from left join input.
-    assert childId == 0;
-
-    RelCollation collation = childTraits.getCollation();
-    if (collation == null || collation == RelCollations.EMPTY) {
-      return null;
-    }
-
-    RelTraitSet derivedTraits = getTraitSet().replace(collation);
-    return Pair.of(
-        derivedTraits,
-        ImmutableList.of(derivedTraits, right.getTraitSet()));
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, getTraitSet(), right.getTraitSet());
   }
 
   @Override public DeriveMode getDeriveMode() {

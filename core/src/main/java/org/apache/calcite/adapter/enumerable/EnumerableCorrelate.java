@@ -24,10 +24,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -89,41 +86,18 @@ public class EnumerableCorrelate extends Correlate
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
-    final RelCollation collation = required.getCollation();
-    if (collation == null || collation == RelCollations.EMPTY) {
-      return null;
-    }
-
     // EnumerableCorrelate traits passdown shall only pass through collation to left input.
     // This is because for EnumerableCorrelate always uses left input as the outer loop,
     // thus only left input can preserve ordering.
-
-    for (RelFieldCollation relFieldCollation : collation.getFieldCollations()) {
-      // If field collation belongs to right input: bail out.
-      if (relFieldCollation.getFieldIndex() >= getLeft().getRowType().getFieldCount()) {
-        return null;
-      }
-    }
-
-    final RelTraitSet passThroughTraitSet = traitSet.replace(collation);
-    return Pair.of(passThroughTraitSet,
-        ImmutableList.of(
-            passThroughTraitSet,
-            passThroughTraitSet.replace(RelCollations.EMPTY)));
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, left.getRowType().getFieldCount(), getTraitSet());
   }
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     // should only derive traits (limited to collation for now) from left input.
-    assert childId == 0;
-
-    final RelCollation collation = childTraits.getCollation();
-    if (collation == null || collation == RelCollations.EMPTY) {
-      return null;
-    }
-
-    final RelTraitSet traits = traitSet.replace(collation);
-    return Pair.of(traits, ImmutableList.of(traits, right.getTraitSet()));
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, traitSet, right.getTraitSet());
   }
 
   @Override public DeriveMode getDeriveMode() {

@@ -1192,6 +1192,67 @@ EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testBatchNestedLoopJoinLeftOuterJoinPushDownSort">
+    <Resource name="sql">
+      <![CDATA[select * from
+ customer.contact_peek r left outer join
+customer.account s
+on r.contactno>s.acctno and r.email<s.type
+order by r.contactno desc, r.email desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  LogicalSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+      LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], batchSize=[100])
+    EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
+        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableFilter(condition=[OR(AND(>($cor0.CONTACTNO, $0), <($cor0.EMAIL, $1)), AND(>($cor1.CONTACTNO, $0), <($cor1.EMAIL, $1)), AND(>($cor2.CONTACTNO, $0), <($cor2.EMAIL, $1)), AND(>($cor3.CONTACTNO, $0), <($cor3.EMAIL, $1)), AND(>($cor4.CONTACTNO, $0), <($cor4.EMAIL, $1)), AND(>($cor5.CONTACTNO, $0), <($cor5.EMAIL, $1)), AND(>($cor6.CONTACTNO, $0), <($cor6.EMAIL, $1)), AND(>($cor7.CONTACTNO, $0), <($cor7.EMAIL, $1)), AND(>($cor8.CONTACTNO, $0), <($cor8.EMAIL, $1)), AND(>($cor9.CONTACTNO, $0), <($cor9.EMAIL, $1)), AND(>($cor10.CONTACTNO, $0), <($cor10.EMAIL, $1)), AND(>($cor11.CONTACTNO, $0), <($cor11.EMAIL, $1)), AND(>($cor12.CONTACTNO, $0), <($cor12.EMAIL, $1)), AND(>($cor13.CONTACTNO, $0), <($cor13.EMAIL, $1)), AND(>($cor14.CONTACTNO, $0), <($cor14.EMAIL, $1)), AND(>($cor15.CONTACTNO, $0), <($cor15.EMAIL, $1)), AND(>($cor16.CONTACTNO, $0), <($cor16.EMAIL, $1)), AND(>($cor17.CONTACTNO, $0), <($cor17.EMAIL, $1)), AND(>($cor18.CONTACTNO, $0), <($cor18.EMAIL, $1)), AND(>($cor19.CONTACTNO, $0), <($cor19.EMAIL, $1)), AND(>($cor20.CONTACTNO, $0), <($cor20.EMAIL, $1)), AND(>($cor21.CONTACTNO, $0), <($cor21.EMAIL, $1)), AND(>($cor22.CONTACTNO, $0), <($cor22.EMAIL, $1)), AND(>($cor23.CONTACTNO, $0), <($cor23.EMAIL, $1)), AND(>($cor24.CONTACTNO, $0), <($cor24.EMAIL, $1)), AND(>($cor25.CONTACTNO, $0), <($cor25.EMAIL, $1)), AND(>($cor26.CONTACTNO, $0), <($cor26.EMAIL, $1)), AND(>($cor27.CONTACTNO, $0), <($cor27.EMAIL, $1)), AND(>($cor28.CONTACTNO, $0), <($cor28.EMAIL, $1)), AND(>($cor29.CONTACTNO, $0), <($cor29.EMAIL, $1)), AND(>($cor30.CONTACTNO, $0), <($cor30.EMAIL, $1)), AND(>($cor31.CONTACTNO, $0), <($cor31.EMAIL, $1)), AND(>($cor32.CONTACTNO, $0), <($cor32.EMAIL, $1)), AND(>($cor33.CONTACTNO, $0), <($cor33.EMAIL, $1)), AND(>($cor34.CONTACTNO, $0), <($cor34.EMAIL, $1)), AND(>($cor35.CONTACTNO, $0), <($cor35.EMAIL, $1)), AND(>($cor36.CONTACTNO, $0), <($cor36.EMAIL, $1)), AND(>($cor37.CONTACTNO, $0), <($cor37.EMAIL, $1)), AND(>($cor38.CONTACTNO, $0), <($cor38.EMAIL, $1)), AND(>($cor39.CONTACTNO, $0), <($cor39.EMAIL, $1)), AND(>($cor40.CONTACTNO, $0), <($cor40.EMAIL, $1)), AND(>($cor41.CONTACTNO, $0), <($cor41.EMAIL, $1)), AND(>($cor42.CONTACTNO, $0), <($cor42.EMAIL, $1)), AND(>($cor43.CONTACTNO, $0), <($cor43.EMAIL, $1)), AND(>($cor44.CONTACTNO, $0), <($cor44.EMAIL, $1)), AND(>($cor45.CONTACTNO, $0), <($cor45.EMAIL, $1)), AND(>($cor46.CONTACTNO, $0), <($cor46.EMAIL, $1)), AND(>($cor47.CONTACTNO, $0), <($cor47.EMAIL, $1)), AND(>($cor48.CONTACTNO, $0), <($cor48.EMAIL, $1)), AND(>($cor49.CONTACTNO, $0), <($cor49.EMAIL, $1)), AND(>($cor50.CONTACTNO, $0), <($cor50.EMAIL, $1)), AND(>($cor51.CONTACTNO, $0), <($cor51.EMAIL, $1)), AND(>($cor52.CONTACTNO, $0), <($cor52.EMAIL, $1)), AND(>($cor53.CONTACTNO, $0), <($cor53.EMAIL, $1)), AND(>($cor54.CONTACTNO, $0), <($cor54.EMAIL, $1)), AND(>($cor55.CONTACTNO, $0), <($cor55.EMAIL, $1)), AND(>($cor56.CONTACTNO, $0), <($cor56.EMAIL, $1)), AND(>($cor57.CONTACTNO, $0), <($cor57.EMAIL, $1)), AND(>($cor58.CONTACTNO, $0), <($cor58.EMAIL, $1)), AND(>($cor59.CONTACTNO, $0), <($cor59.EMAIL, $1)), AND(>($cor60.CONTACTNO, $0), <($cor60.EMAIL, $1)), AND(>($cor61.CONTACTNO, $0), <($cor61.EMAIL, $1)), AND(>($cor62.CONTACTNO, $0), <($cor62.EMAIL, $1)), AND(>($cor63.CONTACTNO, $0), <($cor63.EMAIL, $1)), AND(>($cor64.CONTACTNO, $0), <($cor64.EMAIL, $1)), AND(>($cor65.CONTACTNO, $0), <($cor65.EMAIL, $1)), AND(>($cor66.CONTACTNO, $0), <($cor66.EMAIL, $1)), AND(>($cor67.CONTACTNO, $0), <($cor67.EMAIL, $1)), AND(>($cor68.CONTACTNO, $0), <($cor68.EMAIL, $1)), AND(>($cor69.CONTACTNO, $0), <($cor69.EMAIL, $1)), AND(>($cor70.CONTACTNO, $0), <($cor70.EMAIL, $1)), AND(>($cor71.CONTACTNO, $0), <($cor71.EMAIL, $1)), AND(>($cor72.CONTACTNO, $0), <($cor72.EMAIL, $1)), AND(>($cor73.CONTACTNO, $0), <($cor73.EMAIL, $1)), AND(>($cor74.CONTACTNO, $0), <($cor74.EMAIL, $1)), AND(>($cor75.CONTACTNO, $0), <($cor75.EMAIL, $1)), AND(>($cor76.CONTACTNO, $0), <($cor76.EMAIL, $1)), AND(>($cor77.CONTACTNO, $0), <($cor77.EMAIL, $1)), AND(>($cor78.CONTACTNO, $0), <($cor78.EMAIL, $1)), AND(>($cor79.CONTACTNO, $0), <($cor79.EMAIL, $1)), AND(>($cor80.CONTACTNO, $0), <($cor80.EMAIL, $1)), AND(>($cor81.CONTACTNO, $0), <($cor81.EMAIL, $1)), AND(>($cor82.CONTACTNO, $0), <($cor82.EMAIL, $1)), AND(>($cor83.CONTACTNO, $0), <($cor83.EMAIL, $1)), AND(>($cor84.CONTACTNO, $0), <($cor84.EMAIL, $1)), AND(>($cor85.CONTACTNO, $0), <($cor85.EMAIL, $1)), AND(>($cor86.CONTACTNO, $0), <($cor86.EMAIL, $1)), AND(>($cor87.CONTACTNO, $0), <($cor87.EMAIL, $1)), AND(>($cor88.CONTACTNO, $0), <($cor88.EMAIL, $1)), AND(>($cor89.CONTACTNO, $0), <($cor89.EMAIL, $1)), AND(>($cor90.CONTACTNO, $0), <($cor90.EMAIL, $1)), AND(>($cor91.CONTACTNO, $0), <($cor91.EMAIL, $1)), AND(>($cor92.CONTACTNO, $0), <($cor92.EMAIL, $1)), AND(>($cor93.CONTACTNO, $0), <($cor93.EMAIL, $1)), AND(>($cor94.CONTACTNO, $0), <($cor94.EMAIL, $1)), AND(>($cor95.CONTACTNO, $0), <($cor95.EMAIL, $1)), AND(>($cor96.CONTACTNO, $0), <($cor96.EMAIL, $1)), AND(>($cor97.CONTACTNO, $0), <($cor97.EMAIL, $1)), AND(>($cor98.CONTACTNO, $0), <($cor98.EMAIL, $1)), AND(>($cor99.CONTACTNO, $0), <($cor99.EMAIL, $1)))])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testBatchNestedLoopJoinTraitDerivation">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
+join sales.bonus s on r.ename>s.ename and r.job<s.job
+order by r.ename desc, r.job desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner], batchSize=[100])
+  EnumerableLimit(fetch=[10])
+    EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+      EnumerableSort(sort0=[$1], sort1=[$2], sort2=[$3], dir0=[DESC], dir1=[DESC], dir2=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableFilter(condition=[OR(AND(>($cor0.ENAME, $0), <($cor0.JOB, $1)), AND(>($cor1.ENAME, $0), <($cor1.JOB, $1)), AND(>($cor2.ENAME, $0), <($cor2.JOB, $1)), AND(>($cor3.ENAME, $0), <($cor3.JOB, $1)), AND(>($cor4.ENAME, $0), <($cor4.JOB, $1)), AND(>($cor5.ENAME, $0), <($cor5.JOB, $1)), AND(>($cor6.ENAME, $0), <($cor6.JOB, $1)), AND(>($cor7.ENAME, $0), <($cor7.JOB, $1)), AND(>($cor8.ENAME, $0), <($cor8.JOB, $1)), AND(>($cor9.ENAME, $0), <($cor9.JOB, $1)), AND(>($cor10.ENAME, $0), <($cor10.JOB, $1)), AND(>($cor11.ENAME, $0), <($cor11.JOB, $1)), AND(>($cor12.ENAME, $0), <($cor12.JOB, $1)), AND(>($cor13.ENAME, $0), <($cor13.JOB, $1)), AND(>($cor14.ENAME, $0), <($cor14.JOB, $1)), AND(>($cor15.ENAME, $0), <($cor15.JOB, $1)), AND(>($cor16.ENAME, $0), <($cor16.JOB, $1)), AND(>($cor17.ENAME, $0), <($cor17.JOB, $1)), AND(>($cor18.ENAME, $0), <($cor18.JOB, $1)), AND(>($cor19.ENAME, $0), <($cor19.JOB, $1)), AND(>($cor20.ENAME, $0), <($cor20.JOB, $1)), AND(>($cor21.ENAME, $0), <($cor21.JOB, $1)), AND(>($cor22.ENAME, $0), <($cor22.JOB, $1)), AND(>($cor23.ENAME, $0), <($cor23.JOB, $1)), AND(>($cor24.ENAME, $0), <($cor24.JOB, $1)), AND(>($cor25.ENAME, $0), <($cor25.JOB, $1)), AND(>($cor26.ENAME, $0), <($cor26.JOB, $1)), AND(>($cor27.ENAME, $0), <($cor27.JOB, $1)), AND(>($cor28.ENAME, $0), <($cor28.JOB, $1)), AND(>($cor29.ENAME, $0), <($cor29.JOB, $1)), AND(>($cor30.ENAME, $0), <($cor30.JOB, $1)), AND(>($cor31.ENAME, $0), <($cor31.JOB, $1)), AND(>($cor32.ENAME, $0), <($cor32.JOB, $1)), AND(>($cor33.ENAME, $0), <($cor33.JOB, $1)), AND(>($cor34.ENAME, $0), <($cor34.JOB, $1)), AND(>($cor35.ENAME, $0), <($cor35.JOB, $1)), AND(>($cor36.ENAME, $0), <($cor36.JOB, $1)), AND(>($cor37.ENAME, $0), <($cor37.JOB, $1)), AND(>($cor38.ENAME, $0), <($cor38.JOB, $1)), AND(>($cor39.ENAME, $0), <($cor39.JOB, $1)), AND(>($cor40.ENAME, $0), <($cor40.JOB, $1)), AND(>($cor41.ENAME, $0), <($cor41.JOB, $1)), AND(>($cor42.ENAME, $0), <($cor42.JOB, $1)), AND(>($cor43.ENAME, $0), <($cor43.JOB, $1)), AND(>($cor44.ENAME, $0), <($cor44.JOB, $1)), AND(>($cor45.ENAME, $0), <($cor45.JOB, $1)), AND(>($cor46.ENAME, $0), <($cor46.JOB, $1)), AND(>($cor47.ENAME, $0), <($cor47.JOB, $1)), AND(>($cor48.ENAME, $0), <($cor48.JOB, $1)), AND(>($cor49.ENAME, $0), <($cor49.JOB, $1)), AND(>($cor50.ENAME, $0), <($cor50.JOB, $1)), AND(>($cor51.ENAME, $0), <($cor51.JOB, $1)), AND(>($cor52.ENAME, $0), <($cor52.JOB, $1)), AND(>($cor53.ENAME, $0), <($cor53.JOB, $1)), AND(>($cor54.ENAME, $0), <($cor54.JOB, $1)), AND(>($cor55.ENAME, $0), <($cor55.JOB, $1)), AND(>($cor56.ENAME, $0), <($cor56.JOB, $1)), AND(>($cor57.ENAME, $0), <($cor57.JOB, $1)), AND(>($cor58.ENAME, $0), <($cor58.JOB, $1)), AND(>($cor59.ENAME, $0), <($cor59.JOB, $1)), AND(>($cor60.ENAME, $0), <($cor60.JOB, $1)), AND(>($cor61.ENAME, $0), <($cor61.JOB, $1)), AND(>($cor62.ENAME, $0), <($cor62.JOB, $1)), AND(>($cor63.ENAME, $0), <($cor63.JOB, $1)), AND(>($cor64.ENAME, $0), <($cor64.JOB, $1)), AND(>($cor65.ENAME, $0), <($cor65.JOB, $1)), AND(>($cor66.ENAME, $0), <($cor66.JOB, $1)), AND(>($cor67.ENAME, $0), <($cor67.JOB, $1)), AND(>($cor68.ENAME, $0), <($cor68.JOB, $1)), AND(>($cor69.ENAME, $0), <($cor69.JOB, $1)), AND(>($cor70.ENAME, $0), <($cor70.JOB, $1)), AND(>($cor71.ENAME, $0), <($cor71.JOB, $1)), AND(>($cor72.ENAME, $0), <($cor72.JOB, $1)), AND(>($cor73.ENAME, $0), <($cor73.JOB, $1)), AND(>($cor74.ENAME, $0), <($cor74.JOB, $1)), AND(>($cor75.ENAME, $0), <($cor75.JOB, $1)), AND(>($cor76.ENAME, $0), <($cor76.JOB, $1)), AND(>($cor77.ENAME, $0), <($cor77.JOB, $1)), AND(>($cor78.ENAME, $0), <($cor78.JOB, $1)), AND(>($cor79.ENAME, $0), <($cor79.JOB, $1)), AND(>($cor80.ENAME, $0), <($cor80.JOB, $1)), AND(>($cor81.ENAME, $0), <($cor81.JOB, $1)), AND(>($cor82.ENAME, $0), <($cor82.JOB, $1)), AND(>($cor83.ENAME, $0), <($cor83.JOB, $1)), AND(>($cor84.ENAME, $0), <($cor84.JOB, $1)), AND(>($cor85.ENAME, $0), <($cor85.JOB, $1)), AND(>($cor86.ENAME, $0), <($cor86.JOB, $1)), AND(>($cor87.ENAME, $0), <($cor87.JOB, $1)), AND(>($cor88.ENAME, $0), <($cor88.JOB, $1)), AND(>($cor89.ENAME, $0), <($cor89.JOB, $1)), AND(>($cor90.ENAME, $0), <($cor90.JOB, $1)), AND(>($cor91.ENAME, $0), <($cor91.JOB, $1)), AND(>($cor92.ENAME, $0), <($cor92.JOB, $1)), AND(>($cor93.ENAME, $0), <($cor93.JOB, $1)), AND(>($cor94.ENAME, $0), <($cor94.JOB, $1)), AND(>($cor95.ENAME, $0), <($cor95.JOB, $1)), AND(>($cor96.ENAME, $0), <($cor96.JOB, $1)), AND(>($cor97.ENAME, $0), <($cor97.JOB, $1)), AND(>($cor98.ENAME, $0), <($cor98.JOB, $1)), AND(>($cor99.ENAME, $0), <($cor99.JOB, $1)))])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testValuesTraitRequest">
     <Resource name="sql">
       <![CDATA[SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))
