@@ -228,6 +228,12 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.cassandra", true);
 
   /**
+   * Whether to run InnoDB tests.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_INNODB =
+      booleanProperty("calcite.test.innodb", true);
+
+  /**
    * Whether to run Redis tests.
    */
   public static final CalciteSystemProperty<Boolean> TEST_REDIS =
