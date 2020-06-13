@@ -1238,6 +1238,7 @@ public enum SqlKind {
    * {@link #ORDER_BY},
    * {@link #COLLECTION_TABLE},
    * {@link #TABLESAMPLE},
+   * {@link #UNNEST}
    * or an aggregate function, DML or DDL.
    */
   public static final Set<SqlKind> EXPRESSION =
@@ -1252,7 +1253,7 @@ public enum SqlKind {
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION),
+                  JSON_VALUE_EXPRESSION, UNNEST),
               AGGREGATE, DML, DDL));
 
   /**
