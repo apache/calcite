@@ -7155,10 +7155,10 @@ public class SqlParserTest {
   @Test void testUnnest() {
     sql("select*from unnest(x)")
         .ok("SELECT *\n"
-            + "FROM (UNNEST(`X`))");
+            + "FROM UNNEST(`X`)");
     sql("select*from unnest(x) AS T")
         .ok("SELECT *\n"
-            + "FROM (UNNEST(`X`)) AS `T`");
+            + "FROM UNNEST(`X`) AS `T`");
 
     // UNNEST cannot be first word in query
     sql("^unnest^(x)")
@@ -7169,24 +7169,41 @@ public class SqlParserTest {
         + "unnest(dept.employees, dept.managers)";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`,\n"
-        + "(UNNEST(`DEPT`.`EMPLOYEES`, `DEPT`.`MANAGERS`))";
+        + "UNNEST(`DEPT`.`EMPLOYEES`, `DEPT`.`MANAGERS`)";
     sql(sql).ok(expected);
 
     // LATERAL UNNEST is not valid
     sql("select * from dept, lateral ^unnest^(dept.employees)")
         .fails("(?s)Encountered \"unnest\" at .*");
+
+    // Does not generate extra parentheses around UNNEST because UNNEST is
+    // a table expression.
+    final String sql1 = ""
+        + "SELECT\n"
+        + "  item.name,\n"
+        + "  relations.*\n"
+        + "FROM dfs.tmp item\n"
+        + "JOIN (\n"
+        + "  SELECT * FROM UNNEST(item.related) i(rels)\n"
+        + ") relations\n"
+        + "ON TRUE";
+    final String expected1 = "SELECT `ITEM`.`NAME`, `RELATIONS`.*\n"
+        + "FROM `DFS`.`TMP` AS `ITEM`\n"
+        + "INNER JOIN (SELECT *\n"
+        + "FROM UNNEST(`ITEM`.`RELATED`) AS `I` (`RELS`)) AS `RELATIONS` ON TRUE";
+    sql(sql1).ok(expected1);
   }
 
   @Test void testUnnestWithOrdinality() {
     sql("select * from unnest(x) with ordinality")
         .ok("SELECT *\n"
-            + "FROM (UNNEST(`X`) WITH ORDINALITY)");
+            + "FROM UNNEST(`X`) WITH ORDINALITY");
     sql("select*from unnest(x) with ordinality AS T")
         .ok("SELECT *\n"
-            + "FROM (UNNEST(`X`) WITH ORDINALITY) AS `T`");
+            + "FROM UNNEST(`X`) WITH ORDINALITY AS `T`");
     sql("select*from unnest(x) with ordinality AS T(c, o)")
         .ok("SELECT *\n"
-            + "FROM (UNNEST(`X`) WITH ORDINALITY) AS `T` (`C`, `O`)");
+            + "FROM UNNEST(`X`) WITH ORDINALITY AS `T` (`C`, `O`)");
     sql("select*from unnest(x) as T ^with^ ordinality")
         .fails("(?s)Encountered \"with\" at .*");
   }
