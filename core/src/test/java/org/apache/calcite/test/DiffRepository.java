@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
@@ -25,6 +26,7 @@ import org.apache.calcite.util.XmlOutput;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.io.Files;
 
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
@@ -762,6 +764,19 @@ public class DiffRepository {
       DiffRepository baseRepository,
       Filter filter) {
     final Key key = new Key(clazz, baseRepository, filter);
+    // Not need to add test cases manually, the expected xml file will be
+    // overwritten by actual output file automatically.
+    if (CalciteSystemProperty.OVERWRITE_XML_TEST.value()) {
+      try {
+        final String logFilePath = key.toRepo().logFile.getAbsolutePath()
+            .replace("build/resources/test", "out/test/resources");
+        final String refFilePath = logFilePath.replace("out", "src").replace("_actual.xml", ".xml");
+        final File logFile = new File(logFilePath);
+        Files.copy(logFile, new File(refFilePath));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
     return REPOSITORY_CACHE.getUnchecked(key);
   }
 

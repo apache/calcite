@@ -141,6 +141,17 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.integrationTest", false);
 
   /**
+   * Whether to overwrite the expected xml file.
+   */
+  public static final CalciteSystemProperty<Boolean> OVERWRITE_XML_TEST =
+      new CalciteSystemProperty<Boolean>("calcite.test.xml.overwrite", v -> {
+        if (System.getProperty("calcite.test.xml.overwrite", "false").equalsIgnoreCase("true")) {
+          return true;
+        }
+        return false;
+      });
+
+  /**
    * Which database to use for tests that require a JDBC data source.
    *
    * <p>The property can take one of the following values:
