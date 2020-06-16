@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
+import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsCollectionSansNullability;
+import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -115,6 +117,28 @@ class SqlTypeUtilTest {
         is(true));
     // Recover the mappings to default.
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
+  }
+
+  @Test void testEqualAsCollectionSansNullability() {
+    // case array
+    assertThat(
+        equalAsCollectionSansNullability(f.typeFactory, f.arrayBigInt, f.arrayBigIntNullable),
+        is(true));
+
+    // case multiset
+    assertThat(
+        equalAsCollectionSansNullability(f.typeFactory, f.multisetBigInt, f.multisetBigIntNullable),
+        is(true));
+
+    // multiset and array are not equal.
+    assertThat(
+        equalAsCollectionSansNullability(f.typeFactory, f.arrayBigInt, f.multisetBigInt),
+        is(false));
+  }
+
+  @Test void testEqualAsMapSansNullability() {
+    assertThat(
+        equalAsMapSansNullability(f.typeFactory, f.mapOfInt, f.mapOfIntNullable), is(true));
   }
 
   private RelDataType struct(RelDataType...relDataTypes) {

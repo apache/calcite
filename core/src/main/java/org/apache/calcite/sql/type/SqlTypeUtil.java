@@ -37,6 +37,7 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -1161,6 +1162,51 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * Returns whether two collection types are equal, ignoring nullability.
+   *
+   * <p>They need not come from the same factory.
+   *
+   * @param factory       Type factory
+   * @param type1         First type
+   * @param type2         Second type
+   * @return Whether types are equal, ignoring nullability
+   */
+  public static boolean equalAsCollectionSansNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    Preconditions.checkArgument(isCollection(type1));
+    Preconditions.checkArgument(isCollection(type2));
+    return (type1 == type2)
+        || (type1.getSqlTypeName() == type2.getSqlTypeName()
+        && equalSansNullability(factory, type1.getComponentType(), type2.getComponentType()));
+  }
+
+  /**
+   * Returns whether two map types are equal, ignoring nullability.
+   *
+   * <p>They need not come from the same factory.
+   *
+   * @param factory       Type factory
+   * @param type1         First type
+   * @param type2         Second type
+   * @return Whether types are equal, ignoring nullability
+   */
+  public static boolean equalAsMapSansNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    Preconditions.checkArgument(isMap(type1));
+    Preconditions.checkArgument(isMap(type2));
+
+    MapSqlType mType1 = (MapSqlType) type1;
+    MapSqlType mType2 = (MapSqlType) type2;
+    return (type1 == type2)
+        || (equalSansNullability(factory, mType1.getKeyType(), mType2.getKeyType())
+        && equalSansNullability(factory, mType1.getValueType(), mType2.getValueType()));
+  }
+
+  /**
    * Returns whether two struct types are equal, ignoring nullability.
    *
    * <p>They do not need to come from the same factory.
@@ -1508,6 +1554,31 @@ public abstract class SqlTypeUtil {
     }
 
     return type.getSqlTypeName() == SqlTypeName.MAP;
+  }
+
+  /**
+   * @return true if type is MULTISET
+   */
+  public static boolean isMultiset(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+
+    return type.getSqlTypeName() == SqlTypeName.MULTISET;
+  }
+
+  /**
+   * @return true if type is ARRAY/MULTISET
+   */
+  public static boolean isCollection(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+
+    return type.getSqlTypeName() == SqlTypeName.ARRAY
+        || type.getSqlTypeName() == SqlTypeName.MULTISET;
   }
 
   /**
