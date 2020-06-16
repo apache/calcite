@@ -337,6 +337,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case OTHER:
+      unparseOther(writer, call, leftPrec, rightPrec);
+      break;
     case SUBSTRING:
       final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
       for (SqlNode operand : call.getOperandList()) {
@@ -632,6 +635,20 @@ public class BigQuerySqlDialect extends SqlDialect {
       return intervalOperand.operand(1);
     }
     return intervalOperand.operand(0);
+  }
+
+  private void unparseOther(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "DAYOFYEAR":
+      final SqlWriter.Frame frame = writer.startFunCall("EXTRACT");
+      writer.sep("DAYOFYEAR FROM");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.endFunCall(frame);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    }
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

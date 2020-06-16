@@ -301,6 +301,9 @@ public class HiveSqlDialect extends SqlDialect {
     case NULLIF:
       unparseNullIf(writer, call, leftPrec, rightPrec);
       break;
+    case OTHER:
+      unparseOther(writer, call, leftPrec, rightPrec);
+      break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
@@ -586,6 +589,20 @@ public class HiveSqlDialect extends SqlDialect {
         SqlLiteral.createNull(SqlParserPos.ZERO), operands[0]};
     SqlCall ifCall = new SqlBasicCall(IF, ifOperands, pos);
     unparseCall(writer, ifCall, leftPrec, rightPrec);
+  }
+
+  private void unparseOther(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "DAYOFYEAR":
+      SqlCall formatDateCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+              SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+      SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, formatDateCall,
+              getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+      unparseCall(writer, castToDateCall, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

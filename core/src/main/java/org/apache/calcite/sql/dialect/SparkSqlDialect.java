@@ -312,6 +312,9 @@ public class SparkSqlDialect extends SqlDialect {
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
+      case OTHER:
+        unparseOther(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -548,6 +551,20 @@ public class SparkSqlDialect extends SqlDialect {
     SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
     SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
     REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
+  }
+
+  private void unparseOther(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "DAYOFYEAR":
+      SqlCall formatDateCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+              SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+      SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, formatDateCall,
+              getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+      unparseCall(writer, castToDateCall, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
