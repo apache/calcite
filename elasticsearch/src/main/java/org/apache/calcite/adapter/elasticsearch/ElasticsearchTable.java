@@ -287,11 +287,11 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       result.add(new LinkedHashMap<>());
     }
 
-    // elastic exposes total number of documents matching a query in "/hits/total" path
-    // this can be used for simple "select count(*) from table"
-    final long total = res.searchHits().total().value();
+    if (groupBy.isEmpty() && aggregations.size() == 1) {
+      // elastic exposes total number of documents matching a query in "/hits/total" path
+      // this can be used for simple "select count(*) from table"
+      final long total = res.searchHits().total().value();
 
-    if (groupBy.isEmpty()) {
       // put totals automatically for count(*) expression(s), unless they contain group by
       for (String expr : countAll) {
         result.forEach(m -> m.put(expr, total));
