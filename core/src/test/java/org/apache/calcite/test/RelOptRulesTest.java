@@ -4182,7 +4182,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select 1 from sales.emp d full outer join sales.emp e\n"
         + "on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9";
     sql(sql).withPre(getTransitiveProgram())
-        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test void testTransitiveInferencePreventProjectPullUp()
