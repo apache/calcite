@@ -77,7 +77,7 @@ public class HepRelVertex extends AbstractRelNode {
   }
 
   @Override protected Digest computeDigest() {
-    return Digest.create(this, getRelTypeName() + '#' + getCurrentRel().getId());
+    return Digest.create(this, "HepRelVertex#" + getCurrentRel().getId());
   }
 
   /**
