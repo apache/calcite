@@ -239,6 +239,26 @@ public abstract class Join extends BiRel implements Hintable {
         getSystemFieldList());
   }
 
+  @Override public boolean digestEquals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (this.getClass() != obj.getClass()) {
+      return false;
+    }
+    Join o = (Join) obj;
+    return getTraitSet() == o.getTraitSet()
+        && getInputs().equals(o.getInputs())
+        && condition.equals(o.condition)
+        && joinType == o.joinType
+        && hints.equals(o.hints)
+        && getRowType().equals(o.getRowType());
+  }
+
+  @Override public int digestHash() {
+    return Objects.hash(traitSet, left, right, condition, joinType, hints);
+  }
+
   /**
    * Returns whether this LogicalJoin has already spawned a
    * {@code SemiJoin} via

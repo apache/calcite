@@ -36,6 +36,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -149,6 +150,23 @@ public abstract class Values extends AbstractRelNode {
       }
     }
     return true;
+  }
+
+  @Override public boolean digestEquals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (this.getClass() != obj.getClass()) {
+      return false;
+    }
+    Values o = (Values) obj;
+    return getTraitSet() == o.getTraitSet()
+        && tuples.equals(o.tuples)
+        && getRowType().equals(o.getRowType());
+  }
+
+  @Override public int digestHash() {
+    return Objects.hash(traitSet, tuples);
   }
 
   @Override protected RelDataType deriveRowType() {
