@@ -136,4 +136,12 @@ public final class LogicalProject extends Project {
     return new LogicalProject(getCluster(), traitSet, hintList,
         input, getProjects(), rowType);
   }
+
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
 }

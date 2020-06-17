@@ -82,6 +82,7 @@ public abstract class SingleRel extends AbstractRelNode {
       RelNode rel) {
     assert ordinalInParent == 0;
     this.input = rel;
+    recomputeDigest();
   }
 
   protected RelDataType deriveRowType() {

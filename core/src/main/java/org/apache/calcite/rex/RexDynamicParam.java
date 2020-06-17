@@ -65,12 +65,14 @@ public class RexDynamicParam extends RexVariable {
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexDynamicParam
-        && digest.equals(((RexDynamicParam) obj).digest)
         && type.equals(((RexDynamicParam) obj).type)
         && index == ((RexDynamicParam) obj).index;
   }
 
   @Override public int hashCode() {
-    return Objects.hash(digest, type, index);
+    if (hash == 0) {
+      hash = Objects.hash(type, index);
+    }
+    return hash;
   }
 }

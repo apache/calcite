@@ -161,4 +161,12 @@ public final class LogicalAggregate extends Aggregate {
     return new LogicalAggregate(getCluster(), traitSet, hintList, input,
         groupSet, groupSets, aggCalls);
   }
+
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
 }

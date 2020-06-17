@@ -153,7 +153,7 @@ class HepPlannerTest extends RelOptTestBase {
     assertIncludesExactlyOnce("best.getDescription()",
         best.toString(), "LogicalUnion");
     assertIncludesExactlyOnce("best.getDigest()",
-        best.getDigest().toString(), "LogicalUnion");
+        best.getDigest(), "LogicalUnion");
   }
 
   private void assertIncludesExactlyOnce(String message, String digest, String substring) {

@@ -166,6 +166,14 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     }
   }
 
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
+
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     switch (joinType) {
     case SEMI:
