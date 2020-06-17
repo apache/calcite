@@ -422,7 +422,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   private List<Pair<String, Object>> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
-    explain(rdw);
+    explainTerms(rdw);
     return rdw.values;
   }
 
