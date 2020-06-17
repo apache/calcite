@@ -2628,6 +2628,46 @@ public class SqlFunctions {
     return resultCollection;
   }
 
+  /**
+   * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
+   * a single item), builds an Enumerable that returns those single items inside the structs.
+   */
+  public static Function1<Object, Enumerable<Comparable>> flatList() {
+    return inputObject -> {
+      final List list = (List) inputObject;
+      final Enumerator<List<Object>> enumerator = Linq4j.enumerator(list);
+      return new AbstractEnumerable<Comparable>() {
+        public Enumerator<Comparable> enumerator() {
+          return new Enumerator<Comparable>() {
+
+            @Override public boolean moveNext() {
+              return enumerator.moveNext();
+            }
+
+            @Override public Comparable current() {
+              final Object element = enumerator.current();
+              final Comparable comparable;
+              if (element.getClass().isArray()) {
+                comparable = (Comparable) ((Object[]) element)[0];
+              } else {
+                comparable = (Comparable) ((List) element).get(0);
+              }
+              return comparable;
+            }
+
+            @Override public void reset() {
+              enumerator.reset();
+            }
+
+            @Override public void close() {
+              enumerator.close();
+            }
+          };
+        }
+      };
+    };
+  }
+
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
       final int[] fieldCounts, final boolean withOrdinality,
       final FlatProductInputType[] inputTypes) {
