@@ -889,10 +889,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel Relational expression
    */
   void rename(RelNode rel) {
-    final Digest oldDigest = rel.getDigest();
+    String oldDigest = null;
+    if (LOGGER.isTraceEnabled()) {
+      oldDigest = rel.getDigest().toString();
+    }
     if (fixUpInputs(rel)) {
-      final RelNode removed = mapDigestToRel.remove(oldDigest);
-      assert removed == rel;
       final Digest newDigest = rel.recomputeDigest();
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
@@ -1022,25 +1023,33 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   private boolean fixUpInputs(RelNode rel) {
     List<RelNode> inputs = rel.getInputs();
-    int i = -1;
+    List<RelNode> newInputs = new ArrayList<>(inputs.size());
     int changeCount = 0;
     for (RelNode input : inputs) {
-      ++i;
-      if (input instanceof RelSubset) {
-        final RelSubset subset = (RelSubset) input;
-        RelSubset newSubset = canonize(subset);
-        if (newSubset != subset) {
-          rel.replaceInput(i, newSubset);
-          if (subset.set != newSubset.set) {
-            subset.set.parents.remove(rel);
-            newSubset.set.parents.add(rel);
-          }
-          changeCount++;
+      assert input instanceof RelSubset;
+      final RelSubset subset = (RelSubset) input;
+      RelSubset newSubset = canonize(subset);
+      newInputs.add(newSubset);
+      if (newSubset != subset) {
+        if (subset.set != newSubset.set) {
+          subset.set.parents.remove(rel);
+          newSubset.set.parents.add(rel);
         }
+        changeCount++;
       }
     }
-    RelMdUtil.clearCache(rel);
-    return changeCount > 0;
+
+    if (changeCount > 0) {
+      RelMdUtil.clearCache(rel);
+      RelNode removed = mapDigestToRel.remove(rel.getDigest());
+      assert removed == rel;
+      for (int i = 0; i < inputs.size(); i++) {
+        rel.replaceInput(i, newInputs.get(i));
+      }
+      rel.recomputeDigest();
+      return true;
+    }
+    return false;
   }
 
   private RelSet merge(RelSet set, RelSet set2) {

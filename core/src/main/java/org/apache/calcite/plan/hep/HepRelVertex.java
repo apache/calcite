@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.hep;
 
-import org.apache.calcite.plan.Digest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
@@ -76,8 +75,18 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel.getRowType();
   }
 
-  @Override protected Digest computeDigest() {
-    return Digest.create(this, getRelTypeName() + '#' + getCurrentRel().getId());
+  @Override public String toString() {
+    return "rel#" + id + ':' + "HepRelVertex(" + currentRel + ')';
+  }
+
+  @Override public boolean digestEquals(Object obj) {
+    return this == obj
+        || (obj instanceof HepRelVertex
+            && this.currentRel == ((HepRelVertex) obj).currentRel);
+  }
+
+  @Override public int digestHash() {
+    return this.currentRel.getId();
   }
 
   /**

@@ -129,9 +129,9 @@ public class RelSubset extends AbstractRelNode {
       RelTraitSet traits) {
     super(cluster, traits);
     this.set = set;
+    this.digest = new RelDigest();
     assert traits.allSimple();
     computeBestCost(cluster.getPlanner());
-    recomputeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -223,16 +223,6 @@ public class RelSubset extends AbstractRelNode {
     }
     input.explainTerms(pw);
     pw.done(input);
-  }
-
-  @Override protected Digest computeDigest() {
-    StringBuilder digest = new StringBuilder(getRelTypeName());
-    digest.append('#');
-    digest.append(set.id);
-    for (RelTrait trait : getTraitSet()) {
-      digest.append('.').append(trait);
-    }
-    return Digest.create(this, digest.toString());
   }
 
   @Override protected RelDataType deriveRowType() {
@@ -544,6 +534,28 @@ public class RelSubset extends AbstractRelNode {
       }
       activeNodes.removeAll(p.getInputs());
       return false;
+    }
+  }
+
+  private class RelDigest implements Digest {
+
+    @Override public RelNode getRel() {
+      return RelSubset.this;
+    }
+
+    @Override public void clear() {
+    }
+
+    @Override public boolean equals(final Object o) {
+      return this == o;
+    }
+
+    @Override public int hashCode() {
+      return id;
+    }
+
+    @Override public String toString() {
+      return "RelSubset#" + set.id + '.' + getTraitSet();
     }
   }
 
