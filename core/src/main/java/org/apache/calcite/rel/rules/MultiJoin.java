@@ -113,6 +113,7 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
     inputs.set(ordinalInParent, p);
+    recomputeDigest();
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -18,7 +18,7 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.Digest;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -43,11 +44,13 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.apiguardian.api.API;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,7 +75,8 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * The digest that uniquely identifies the node.
    */
-  protected Digest digest;
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  protected RelDigest digest;
 
   private final RelOptCluster cluster;
 
@@ -97,8 +101,7 @@ public abstract class AbstractRelNode implements RelNode {
     this.cluster = cluster;
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
-    this.digest = Digest.create(this);
-    LOGGER.trace("new {}", digest);
+    this.digest = new InnerRelDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -334,9 +337,8 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  public Digest recomputeDigest() {
-    digest = computeDigest();
-    assert digest != null : "computeDigest() should be non-null";
+  public RelDigest recomputeDigest() {
+    digest.clear();
     return digest;
   }
 
@@ -348,9 +350,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   /** Description, consists of id plus digest */
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    RelOptUtil.appendRelDescription(sb, this);
-    return sb.toString();
+    return "rel#" + id + ':' + getDigest();
   }
 
   /** Description, consists of id plus digest */
@@ -359,23 +359,16 @@ public abstract class AbstractRelNode implements RelNode {
     return this.toString();
   }
 
-  public final Digest getDigest() {
+  public String getDigest() {
+    return digest.toString();
+  }
+
+  public final RelDigest getRelDigest() {
     return digest;
   }
 
   public RelOptTable getTable() {
     return null;
-  }
-
-  /**
-   * Computes the digest. Does not modify this object.
-   *
-   * @return Digest
-   */
-  protected Digest computeDigest() {
-    RelDigestWriter rdw = new RelDigestWriter();
-    explain(rdw);
-    return rdw.digest;
   }
 
   /**
@@ -401,6 +394,78 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   /**
+   * Equality check for RelNode digest
+   */
+  private boolean digestEquals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (this.getClass() != obj.getClass()) {
+      return false;
+    }
+    AbstractRelNode that = (AbstractRelNode) obj;
+    return this.getTraitSet().equals(that.getTraitSet())
+        && this.getDigestItems().equals(that.getDigestItems())
+        && Pair.right(getRowType().getFieldList()).equals(
+        Pair.right(that.getRowType().getFieldList()));
+  }
+
+  /**
+   * Compute hash code for RelNode digest
+   */
+  private int digestHash() {
+    return Objects.hash(getTraitSet(), getDigestItems());
+  }
+
+  private List<Pair<String, Object>> getDigestItems() {
+    RelDigestWriter rdw = new RelDigestWriter();
+    explainTerms(rdw);
+    if (this instanceof Hintable) {
+      rdw.item("hints", ((Hintable) this).getHints());
+    }
+    return rdw.values;
+  }
+
+  private class InnerRelDigest implements RelDigest {
+    /**
+     * Cache of hash code.
+     */
+    private int hash = 0;
+
+    @Override public RelNode getRel() {
+      return AbstractRelNode.this;
+    }
+
+    @Override public void clear() {
+      hash = 0;
+    }
+
+    @Override public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final InnerRelDigest relDigest = (InnerRelDigest) o;
+      return digestEquals(relDigest.getRel());
+    }
+
+    @Override public int hashCode() {
+      if (hash == 0) {
+        hash = digestHash();
+      }
+      return hash;
+    }
+
+    @Override public String toString() {
+      RelDigestWriter rdw = new RelDigestWriter();
+      explain(rdw);
+      return rdw.digest;
+    }
+  }
+
+  /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
    * <p>The writer is meant to be used only for computing a single digest and then thrown away.
@@ -412,7 +477,7 @@ public abstract class AbstractRelNode implements RelNode {
 
     private final List<Pair<String, Object>> values = new ArrayList<>();
 
-    Digest digest = null;
+    String digest = null;
 
     @Override public void explain(final RelNode rel, final List<Pair<String, Object>> valueList) {
       throw new IllegalStateException("Should not be called for computing digest");
@@ -423,12 +488,39 @@ public abstract class AbstractRelNode implements RelNode {
     }
 
     @Override public RelWriter item(String term, Object value) {
+      if (value != null && value.getClass().isArray()) {
+        // We can't call hashCode and equals on Array, so
+        // convert it to String to keep the same behaviour.
+        value = "" + value;
+      }
       values.add(Pair.of(term, value));
       return this;
     }
 
     @Override public RelWriter done(RelNode node) {
-      digest = Digest.create(node, values);
+      StringBuilder sb = new StringBuilder();
+      sb.append(node.getRelTypeName());
+      sb.append('.');
+      sb.append(node.getTraitSet());
+      sb.append('(');
+      int j = 0;
+      for (Pair<String, Object> value : values) {
+        if (j++ > 0) {
+          sb.append(',');
+        }
+        sb.append(value.left);
+        sb.append('=');
+        if (value.right instanceof RelNode) {
+          RelNode input = (RelNode) value.right;
+          sb.append(input.getRelTypeName());
+          sb.append('#');
+          sb.append(input.getId());
+        } else {
+          sb.append(value.right);
+        }
+      }
+      sb.append(')');
+      digest = sb.toString();
       return this;
     }
   }
