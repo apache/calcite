@@ -21,13 +21,18 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1038,19 +1043,40 @@ public abstract class SqlTypeUtil {
     // interval types, multiset types, etc
     assert typeName != null;
 
-    int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
-    // fix up the precision.
-    if (maxPrecision > 0 && precision > maxPrecision) {
-      precision = maxPrecision;
-    }
-    int scale = typeName.allowsScale() ? type.getScale() : -1;
+    final SqlTypeNameSpec typeNameSpec;
+    if (isAtomic(type)) {
+      int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+      // fix up the precision.
+      if (maxPrecision > 0 && precision > maxPrecision) {
+        precision = maxPrecision;
+      }
+      int scale = typeName.allowsScale() ? type.getScale() : -1;
 
-    final SqlBasicTypeNameSpec typeNameSpec = new SqlBasicTypeNameSpec(
-        typeName,
-        precision,
-        scale,
-        charSetName,
-        SqlParserPos.ZERO);
+      typeNameSpec = new SqlBasicTypeNameSpec(
+          typeName,
+          precision,
+          scale,
+          charSetName,
+          SqlParserPos.ZERO);
+    } else if (isCollection(type)) {
+      typeNameSpec = new SqlCollectionTypeNameSpec(
+          convertTypeToSpec(type.getComponentType()).getTypeNameSpec(),
+          typeName,
+          SqlParserPos.ZERO);
+    } else if (isRow(type)) {
+      RelRecordType recordType = (RelRecordType) type;
+      List<RelDataTypeField> fields = recordType.getFieldList();
+      List<SqlIdentifier> fieldNames = fields.stream()
+          .map(f -> new SqlIdentifier(f.getName(), SqlParserPos.ZERO))
+          .collect(Collectors.toList());
+      List<SqlDataTypeSpec> fieldTypes = fields.stream()
+          .map(f -> convertTypeToSpec(f.getType()))
+          .collect(Collectors.toList());
+      typeNameSpec = new SqlRowTypeNameSpec(SqlParserPos.ZERO, fieldNames, fieldTypes);
+    } else {
+      throw new UnsupportedOperationException(
+          "Unsupported type when convertTypeToSpec: " + typeName);
+    }
 
     // REVIEW jvs 28-Dec-2004:  discriminate between precision/scale
     // zero and unspecified?
@@ -1497,6 +1523,26 @@ public abstract class SqlTypeUtil {
   public static boolean isArray(RelDataType type) {
     return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
+
+  /**
+   * @return true if type is COLLECTION
+   */
+  public static boolean isCollection(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ARRAY
+        || type.getSqlTypeName() == SqlTypeName.MULTISET;
+  }
+
+  /**
+   * @return true if type is ROW
+   */
+  public static boolean isRow(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.ROW;
+  }
+
 
   /**
    * @return true if type is MAP
