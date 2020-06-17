@@ -33,6 +33,8 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 
+import org.apiguardian.api.API;
+
 import java.util.List;
 import java.util.Set;
 
@@ -309,6 +311,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Digest of this relational expression
    */
+  @API(since = "1.24", status = API.Status.INTERNAL)
   Digest recomputeDigest();
 
   /**

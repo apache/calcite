@@ -811,7 +811,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // try to find equivalent rel only if DAG is allowed
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
-      HepRelVertex equivVertex = mapDigestToVertex.get(rel.getDigest());
+      HepRelVertex equivVertex = mapDigestToVertex.get(rel.getRelDigest());
       if (equivVertex != null) {
         // Use existing vertex.
         return equivVertex;
@@ -900,7 +900,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // reachable from here.
       notifyDiscard(vertex.getCurrentRel());
     }
-    Digest oldKey = vertex.getCurrentRel().getDigest();
+    Digest oldKey = vertex.getCurrentRel().getRelDigest();
     if (mapDigestToVertex.get(oldKey) == vertex) {
       mapDigestToVertex.remove(oldKey);
     }
@@ -911,7 +911,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // otherwise the digest will be removed wrongly in the mapDigestToVertex
     //  when collectGC
     // so it must update the digest that map to vertex
-    mapDigestToVertex.put(rel.getDigest(), vertex);
+    mapDigestToVertex.put(rel.getRelDigest(), vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
     }

@@ -891,7 +891,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void rename(RelNode rel) {
     String oldDigest = null;
     if (LOGGER.isTraceEnabled()) {
-      oldDigest = rel.getDigest().toString();
+      oldDigest = rel.getDigest();
     }
     if (fixUpInputs(rel)) {
       final Digest newDigest = rel.recomputeDigest();
@@ -960,7 +960,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Is there an equivalent relational expression? (This might have
     // just occurred because the relational expression's child was just
     // found to be equivalent to another set.)
-    RelNode equivRel = mapDigestToRel.get(rel.getDigest());
+    RelNode equivRel = mapDigestToRel.get(rel.getRelDigest());
     if (equivRel != null && equivRel != rel) {
       assert equivRel.getClass() == rel.getClass();
       assert equivRel.getTraitSet().equals(rel.getTraitSet());
@@ -1041,7 +1041,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     if (changeCount > 0) {
       RelMdUtil.clearCache(rel);
-      RelNode removed = mapDigestToRel.remove(rel.getDigest());
+      RelNode removed = mapDigestToRel.remove(rel.getRelDigest());
       assert removed == rel;
       for (int i = 0; i < inputs.size(); i++) {
         rel.replaceInput(i, newInputs.get(i));
@@ -1177,7 +1177,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
-    Digest digest = rel.getDigest();
+    Digest digest = rel.getRelDigest();
     RelNode equivExp = mapDigestToRel.get(digest);
     if (equivExp == null) {
       // do nothing
@@ -1207,7 +1207,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           && (set.equivalentSet == null)) {
         LOGGER.trace(
             "Register #{} {} (and merge sets, because it is a conversion)",
-            rel.getId(), rel.getDigest());
+            rel.getId(), rel.getRelDigest());
         merge(set, childSet);
 
         // During the mergers, the child set may have changed, and since

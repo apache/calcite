@@ -359,21 +359,16 @@ public abstract class AbstractRelNode implements RelNode {
     return this.toString();
   }
 
-  public final Digest getDigest() {
+  public final String getDigest() {
+    return digest.toString();
+  }
+
+  public final Digest getRelDigest() {
     return digest;
   }
 
   public RelOptTable getTable() {
     return null;
-  }
-
-  /**
-   * Computes the digest. Does not modify this object.
-   *
-   * @return Digest
-   */
-  protected Digest computeDigest() {
-    return digest;
   }
 
   /**
