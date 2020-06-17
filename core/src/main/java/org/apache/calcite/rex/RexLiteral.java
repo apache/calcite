@@ -1083,6 +1083,9 @@ public class RexLiteral extends RexNode {
   }
 
   public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
     return (obj instanceof RexLiteral)
         && equals(((RexLiteral) obj).value, value)
         && equals(((RexLiteral) obj).type, type);

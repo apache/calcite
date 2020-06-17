@@ -58,6 +58,11 @@ public class RexCall extends RexNode {
   public final ImmutableList<RexNode> operands;
   public final RelDataType type;
   public final int nodeCount;
+  /**
+   * Cache of hash code.
+   */
+  protected int hash = 0;
+
 
   //~ Constructors -----------------------------------------------------------
 
@@ -231,17 +236,7 @@ public class RexCall extends RexNode {
   }
 
   @Override public final @Nonnull String toString() {
-    if (!needNormalize()) {
-      // Non-normalize describe is requested
-      return computeDigest(digestWithType());
-    }
-    // This data race is intentional
-    String localDigest = digest;
-    if (localDigest == null) {
-      localDigest = computeDigest(digestWithType());
-      digest = Objects.requireNonNull(localDigest);
-    }
-    return localDigest;
+    return computeDigest(digestWithType());
   }
 
   private boolean digestWithType() {
@@ -336,6 +331,10 @@ public class RexCall extends RexNode {
   }
 
   @Override public int hashCode() {
-    return Objects.hash(op, operands);
+    if (hash == 0) {
+      assert digest == null;
+      hash = Objects.hash(op, operands);
+    }
+    return hash;
   }
 }

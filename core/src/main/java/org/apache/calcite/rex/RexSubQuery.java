@@ -42,7 +42,6 @@ public class RexSubQuery extends RexCall {
       ImmutableList<RexNode> operands, RelNode rel) {
     super(type, op, operands);
     this.rel = rel;
-    this.digest = computeDigest(false);
   }
 
   /** Creates an IN sub-query. */
@@ -139,11 +138,14 @@ public class RexSubQuery extends RexCall {
 
   @Override public boolean equals(Object obj) {
     return obj == this
-        || obj instanceof RexCall
+        || obj instanceof RexSubQuery
         && toString().equals(obj.toString());
   }
 
   @Override public int hashCode() {
-    return toString().hashCode();
+    if (hash == 0) {
+      hash = toString().hashCode();
+    }
+    return hash;
   }
 }
