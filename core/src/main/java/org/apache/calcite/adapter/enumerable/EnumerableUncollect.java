@@ -95,6 +95,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     final List<Integer> fieldCounts = new ArrayList<>();
     final List<FlatProductInputType> inputTypes = new ArrayList<>();
 
+    Expression lambdaForStructWithSingleItem = null;
     for (RelDataTypeField field : child.getRowType().getFieldList()) {
       final RelDataType type = field.getType();
       if (type instanceof MapSqlType) {
@@ -103,8 +104,16 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
       } else {
         final RelDataType elementType = type.getComponentType();
         if (elementType.isStruct()) {
-          fieldCounts.add(elementType.getFieldCount());
-          inputTypes.add(FlatProductInputType.LIST);
+          if (elementType.getFieldCount() == 1 && child.getRowType().getFieldList().size() == 1
+              && !withOrdinality) {
+            // Solves CALCITE-4063: if we are processing a single field, which is a struct with a
+            // single item inside, and no ordinality; the result must be a scalar, hence use a
+            // special lambda that does not return lists, but the (single) items within those lists
+            lambdaForStructWithSingleItem = Expressions.call(BuiltInMethod.FLAT_LIST.method);
+          } else {
+            fieldCounts.add(elementType.getFieldCount());
+            inputTypes.add(FlatProductInputType.LIST);
+          }
         } else {
           fieldCounts.add(-1);
           inputTypes.add(FlatProductInputType.SCALAR);
@@ -112,8 +121,9 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
       }
     }
 
-    final Expression lambda =
-        Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
+    final Expression lambda = lambdaForStructWithSingleItem != null
+        ? lambdaForStructWithSingleItem
+        : Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
             Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(
