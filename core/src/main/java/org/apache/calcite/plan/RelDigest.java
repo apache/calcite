@@ -39,7 +39,7 @@ import org.apiguardian.api.API;
  * @see AbstractRelNode#digestEquals(Object)
  */
 @API(since = "1.24", status = API.Status.INTERNAL)
-public interface Digest {
+public interface RelDigest {
   /**
    * Reset state, possibly cache of hash code.
    */

@@ -60,7 +60,7 @@ public interface RelOptNode {
    * @see #getDigest()
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  Digest getRelDigest();
+  RelDigest getRelDigest();
 
   /**
    * Retrieves this RelNode's traits. Note that although the RelTraitSet

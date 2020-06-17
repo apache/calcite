@@ -22,7 +22,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.Digest;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -103,7 +103,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Canonical map from {@link String digest} to the unique
    * {@link RelNode relational expression} with that digest.
    */
-  private final Map<Digest, RelNode> mapDigestToRel =
+  private final Map<RelDigest, RelNode> mapDigestToRel =
       new HashMap<>();
 
   /**
@@ -894,7 +894,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       oldDigest = rel.getDigest();
     }
     if (fixUpInputs(rel)) {
-      final Digest newDigest = rel.recomputeDigest();
+      final RelDigest newDigest = rel.recomputeDigest();
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
       if (equivRel != null) {
@@ -1177,7 +1177,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
-    Digest digest = rel.getRelDigest();
+    RelDigest digest = rel.getRelDigest();
     RelNode equivExp = mapDigestToRel.get(digest);
     if (equivExp == null) {
       // do nothing

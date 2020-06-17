@@ -17,7 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.plan.Digest;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
@@ -129,7 +129,7 @@ public class RelSubset extends AbstractRelNode {
       RelTraitSet traits) {
     super(cluster, traits);
     this.set = set;
-    this.digest = new RelDigest();
+    this.digest = new RelDigest0();
     assert traits.allSimple();
     computeBestCost(cluster.getPlanner());
   }
@@ -537,7 +537,7 @@ public class RelSubset extends AbstractRelNode {
     }
   }
 
-  private class RelDigest implements Digest {
+  private class RelDigest0 implements RelDigest {
 
     @Override public RelNode getRel() {
       return RelSubset.this;

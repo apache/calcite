@@ -18,7 +18,7 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.Digest;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -76,7 +76,7 @@ public abstract class AbstractRelNode implements RelNode {
    * The digest that uniquely identifies the node.
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected Digest digest;
+  protected RelDigest digest;
 
   private final RelOptCluster cluster;
 
@@ -101,7 +101,7 @@ public abstract class AbstractRelNode implements RelNode {
     this.cluster = cluster;
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
-    this.digest = new RelDigest();
+    this.digest = new RelDigest0();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -337,7 +337,7 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  public Digest recomputeDigest() {
+  public RelDigest recomputeDigest() {
     digest.clear();
     return digest;
   }
@@ -363,7 +363,7 @@ public abstract class AbstractRelNode implements RelNode {
     return digest.toString();
   }
 
-  public final Digest getRelDigest() {
+  public final RelDigest getRelDigest() {
     return digest;
   }
 
@@ -421,7 +421,7 @@ public abstract class AbstractRelNode implements RelNode {
     return rdw.values;
   }
 
-  private class RelDigest implements Digest {
+  private class RelDigest0 implements RelDigest {
     /**
      * Cache of hash code.
      */
@@ -442,7 +442,7 @@ public abstract class AbstractRelNode implements RelNode {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      final RelDigest relDigest = (RelDigest) o;
+      final RelDigest0 relDigest = (RelDigest0) o;
       return digestEquals(relDigest.getRel());
     }
 
