@@ -11035,6 +11035,113 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortRemoveRowCountBased">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(fetch=[10])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], C=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortRemoveRowCountBasedZeroLimit">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(fetch=[0])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(fetch=[0])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortRemoveRowCountBasedLimitWithOffset">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(offset=[1], fetch=[10])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(offset=[1], fetch=[10])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortRemoveRowCountBasedWithOffsetOnly">
+        <Resource name="sql">
+            <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(offset=[1])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(offset=[1])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSortRemovalAllKeysConstant">
         <Resource name="sql">
             <![CDATA[select count(*) as c

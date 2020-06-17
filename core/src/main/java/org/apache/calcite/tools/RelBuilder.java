@@ -62,6 +62,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -2528,6 +2529,11 @@ public class RelBuilder {
    */
   public RelBuilder sortLimit(int offset, int fetch,
       Iterable<? extends RexNode> nodes) {
+    Double maxRowCount = peek().getCluster().getMetadataQuery().getMaxRowCount(peek());
+    if (SortRemoveRule.shouldRemoveSortBasedOnRowCount(maxRowCount, offset, fetch)) {
+      return this;
+    }
+
     final Registrar registrar = new Registrar(fields());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
