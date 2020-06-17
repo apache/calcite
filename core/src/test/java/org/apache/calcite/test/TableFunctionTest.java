@@ -516,4 +516,45 @@ class TableFunctionTest {
       assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
     }
   }
+
+  /**
+   * Test of a table function that produces null.
+   */
+  @Test public void testNullContentTableFunction() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.NULL_PRODUCED_METHOD);
+      schema.add("generate", table);
+
+      final String sql1 = "select *\n"
+          + "from table(\"s\".\"generate\"(1, 2))";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql1);
+      final String expected1 = "S=abcde\n"
+          + "S=xyz\n"
+          + "S=generate(x=1, y=2)\n";
+      assertThat(CalciteAssert.toString(resultSet), equalTo(expected1));
+
+      final String sql2 = "select *\n"
+          + "from table(\"s\".\"generate\"(1, 1))";
+      resultSet = connection.createStatement().executeQuery(sql2);
+      final String expected2 =  "S=abcde\n"
+          + "S=xyz\n"
+          + "S=null\n";
+      assertThat(CalciteAssert.toString(resultSet), equalTo(expected2));
+
+      final String sql3 = "select *\n"
+          + "from table(\"s\".\"generate\"(1, cast(null as integer)))";
+      try {
+        connection.createStatement().executeQuery(sql3);
+      } catch (Exception e) {
+        // org.apache.calcite.runtime.Enumerables.slice0(null)
+        assertThat(e.getCause().toString(),
+            containsString("java.lang.NullPointerException"));
+      }
+    }
+  }
 }

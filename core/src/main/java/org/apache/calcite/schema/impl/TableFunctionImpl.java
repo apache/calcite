@@ -18,7 +18,6 @@ package org.apache.calcite.schema.impl;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.CallImplementor;
-import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -137,7 +136,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
             }
             return expr;
           }
-        }, NullPolicy.ANY, false);
+        }, getNullPolicy(method), false);
   }
 
   private Table apply(List<Object> arguments) {

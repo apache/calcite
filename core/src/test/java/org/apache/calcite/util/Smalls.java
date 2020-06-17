@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
+import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -105,6 +106,9 @@ public class Smalls {
   public static final Method PROCESS_CURSORS_METHOD =
       Types.lookupMethod(Smalls.class, "processCursors",
           int.class, Enumerable.class, Enumerable.class);
+  public static final Method NULL_PRODUCED_METHOD =
+      Types.lookupMethod(NullContentTable.class, "generate",
+          Integer.class, Integer.class);
 
   private Smalls() {}
 
@@ -928,6 +932,41 @@ public class Smalls {
     }
 
     public Enumerable<Object[]> scan(DataContext root) {
+      Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
+      return Linq4j.asEnumerable(rows);
+    }
+  }
+
+  /** This is table that may produce null content. */
+  public static class NullContentTable extends AbstractTable
+      implements ScannableTable {
+
+    private final Integer x;
+    private final Integer y;
+
+    private NullContentTable(Integer x, Integer y) {
+      this.x = x;
+      this.y = y;
+    }
+
+    @Strict public static ScannableTable generate(Integer x, Integer y) {
+      return new NullContentTable(x, y);
+    }
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      RelDataType recordType = typeFactory.builder()
+          .add("S", SqlTypeName.VARCHAR, 12)
+          .nullable(true)
+          .build();
+      return typeFactory.createTypeWithNullability(recordType, true);
+    }
+
+    public Enumerable<Object[]> scan(DataContext root) {
+      String content = null;
+      if (x.intValue() != y.intValue()) {
+        content = String.format(
+            Locale.ROOT, "generate(x=%d, y=%d)", x, y);
+      }
       Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
       return Linq4j.asEnumerable(rows);
     }
