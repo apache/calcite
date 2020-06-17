@@ -2068,7 +2068,7 @@ public abstract class RelOptUtil {
 
   }
 
-  @Deprecated // to be remove before 1.25
+  @Deprecated // to be removed before 1.25
   public static StringBuilder appendRelDescription(
       StringBuilder sb, RelNode rel) {
     sb.append("rel#").append(rel.getId())

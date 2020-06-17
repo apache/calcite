@@ -410,11 +410,9 @@ public abstract class AbstractRelNode implements RelNode {
         && this.getDigestItems().equals(that.getDigestItems())
         && Pair.right(getRowType().getFieldList()).equals(
         Pair.right(that.getRowType().getFieldList()))
-        // TODO: Let them go to the concrete logical and physical operators
-        // They don't belong here.
         && (!(that instanceof Hintable)
-        || ((Hintable) this).getHints().equals(
-        ((Hintable) that).getHints()));
+            || ((Hintable) this).getHints().equals(
+                ((Hintable) that).getHints()));
   }
 
   public int digestHash() {
