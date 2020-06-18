@@ -460,6 +460,23 @@ public interface ExtendedEnumerable<TSource> {
       EqualityComparer<TKey> comparer);
 
   /**
+   * Group keys are sorted already. Key values are compared by using a
+   * specified comparator. Groups the elements of a sequence according to a
+   * specified key selector function and initializing one accumulator at a time.
+   * Go over elements sequentially, adding to accumulator each time an element
+   * with the same key is seen. When key changes, creates a result value from the
+   * accumulator and then re-initializes the accumulator. In the case of NULL values
+   * in group keys, the comparator must be able to support NULL values by giving a
+   * consistent sort ordering.
+   */
+  <TKey, TAccumulate, TResult> Enumerable<TResult> sortedGroupBy(
+      Function1<TSource, TKey> keySelector,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+      Function2<TKey, TAccumulate, TResult> resultSelector,
+      Comparator<TKey> comparator);
+
+  /**
    * Correlates the elements of two sequences based on
    * equality of keys and groups the results. The default equality
    * comparer is used to compare keys.
