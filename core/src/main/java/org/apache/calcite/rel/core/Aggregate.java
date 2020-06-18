@@ -332,7 +332,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return pw;
   }
 
-  @Override public boolean digestEquals(Object obj) {
+  protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -349,7 +349,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         && getRowType().equals(o.getRowType());
   }
 
-  @Override public int digestHash() {
+  protected int digestHash0() {
     return Objects.hash(traitSet, input, groupSet, groupSets, aggCalls, hints);
   }
 

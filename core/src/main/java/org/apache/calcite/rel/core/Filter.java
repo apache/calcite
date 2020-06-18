@@ -100,7 +100,7 @@ public abstract class Filter extends SingleRel {
     return ImmutableList.of(condition);
   }
 
-  @Override public boolean digestEquals(Object obj) {
+  protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -114,7 +114,7 @@ public abstract class Filter extends SingleRel {
         && getRowType().equals(o.getRowType());
   }
 
-  @Override public int digestHash() {
+  protected int digestHash0() {
     return Objects.hash(traitSet, input, condition);
   }
 

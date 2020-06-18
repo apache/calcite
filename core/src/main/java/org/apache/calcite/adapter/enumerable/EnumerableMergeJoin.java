@@ -130,6 +130,14 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         CorrelationId.setOf(variablesStopped), joinType);
   }
 
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
+
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // Required collation keys can be subset or superset of merge join keys.

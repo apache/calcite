@@ -239,7 +239,7 @@ public abstract class Join extends BiRel implements Hintable {
         getSystemFieldList());
   }
 
-  @Override public boolean digestEquals(Object obj) {
+  protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -252,11 +252,13 @@ public abstract class Join extends BiRel implements Hintable {
         && condition.equals(o.condition)
         && joinType == o.joinType
         && hints.equals(o.hints)
+        && variablesSet.equals(o.variablesSet)
         && getRowType().equals(o.getRowType());
   }
 
-  @Override public int digestHash() {
-    return Objects.hash(traitSet, left, right, condition, joinType, hints);
+  protected int digestHash0() {
+    return Objects.hash(traitSet, left, right,
+        condition, joinType, hints, variablesSet);
   }
 
   /**

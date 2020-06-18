@@ -71,6 +71,14 @@ public class EnumerableFilter
     return new EnumerableFilter(getCluster(), traitSet, input, condition);
   }
 
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
+
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalc is always better
     throw new UnsupportedOperationException();

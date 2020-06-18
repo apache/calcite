@@ -121,6 +121,14 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     return cost;
   }
 
+  @Override public boolean digestEquals(Object obj) {
+    return digestEquals0(obj);
+  }
+
+  @Override public int digestHash() {
+    return digestHash0();
+  }
+
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // EnumerableNestedLoopJoin traits passdown shall only pass through collation to
