@@ -777,19 +777,41 @@ public class SqlDialect {
     return true;
   }
 
- /** Returns SqlNode for type in "cast(column as type)", which might be
+  /**
+   * Returns whether this dialect allows a given type with unspecified precision.
+   * Most of the dialects allow type with unspecified precision (cast node as VARCHAR), So
+   * the default result is true. However there are some dialects that do not allowed, these dialects
+   * can override this method.
+   * For example,
+   * Oracle does not allow VARCHAR with unspecified precision.
+   *
+   * @param type The given type
+   * @return whether this dialect allows a given type with unspecified precision. if returns
+   * true, it allows the given type with unspecified precision, otherwise, returns false.
+   */
+  public boolean allowsTypeWithUnspecifiedPrecision(RelDataType type) {
+    return true;
+  }
+
+  /** Returns SqlNode for type in "cast(column as type)", which might be
   * different between databases by type name, precision etc. */
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       int maxPrecision = -1;
       switch (type.getSqlTypeName()) {
       case VARCHAR:
+      case CHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
       }
       String charSet = type.getCharset() != null && supportsCharSet()
           ? type.getCharset().name()
           : null;
+      if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+          && !allowsTypeWithUnspecifiedPrecision(type)) {
+        return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision,
+            getTypeSystem().getDefaultPrecision(type.getSqlTypeName()));
+      }
       return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision);
     }
     return SqlTypeUtil.convertTypeToSpec(type);

@@ -629,6 +629,31 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3468">[CALCITE-3468]
+   * JDBC adapter may generate casts on Oracle for varchar without the precision
+   * and for char with the precision exceeding max length of Oracle.</a>
+   */
+  @Test public void testOracleCastAsVarcharChar() {
+    final String query = "select cast(\"store_id\" as VARCHAR)\n"
+        + "from \"expense_fact\"";
+
+    final String expectedOracle = "SELECT CAST(\"store_id\" AS VARCHAR(4000))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query)
+        .withOracle()
+        .ok(expectedOracle);
+
+    final String query1 = "select cast(\"store_id\" as CHAR(65500))\n"
+        + "from \"expense_fact\"";
+
+    final String expectedOracle1 = "SELECT CAST(\"store_id\" AS CHAR(2000))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query1)
+        .withOracle()
+        .ok(expectedOracle1);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
    * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
   @Test void testSum0BecomesCoalesce() {
