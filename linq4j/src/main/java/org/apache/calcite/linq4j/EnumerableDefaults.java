@@ -817,6 +817,133 @@ public abstract class EnumerableDefaults {
         resultSelector);
   }
 
+  /**
+   * Group keys are sorted already. Key values are compared by using a
+   * specified comparator. Groups the elements of a sequence according to a
+   * specified key selector function and initializing one accumulator at a time.
+   * Go over elements sequentially, adding to accumulator each time an element
+   * with the same key is seen. When key changes, creates a result value from the
+   * accumulator and then re-initializes the accumulator. In the case of NULL values
+   * in group keys, the comparator must be able to support NULL values by giving a
+   * consistent sort ordering.
+   */
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> sortedGroupBy(
+      Enumerable<TSource> enumerable,
+      Function1<TSource, TKey> keySelector,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+      final Function2<TKey, TAccumulate, TResult> resultSelector,
+      final Comparator<TKey> comparator) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new SortedAggregateEnumerator(
+          enumerable, keySelector, accumulatorInitializer,
+          accumulatorAdder, resultSelector, comparator);
+      }
+    };
+  }
+
+  private static class SortedAggregateEnumerator<TSource, TKey, TAccumulate, TResult>
+      implements Enumerator<TResult> {
+    private final Enumerable<TSource> enumerable;
+    private final Function1<TSource, TKey> keySelector;
+    private final Function0<TAccumulate> accumulatorInitializer;
+    private final Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder;
+    private final Function2<TKey, TAccumulate, TResult> resultSelector;
+    private final Comparator<TKey> comparator;
+    private boolean isInitialized;
+    private boolean isLastMoveNextFalse;
+    private TAccumulate curAccumulator;
+    private Enumerator<TSource> enumerator;
+    private TResult curResult;
+
+    SortedAggregateEnumerator(
+        Enumerable<TSource> enumerable,
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        final Function2<TKey, TAccumulate, TResult> resultSelector,
+        final Comparator<TKey> comparator) {
+      this.enumerable = enumerable;
+      this.keySelector = keySelector;
+      this.accumulatorInitializer = accumulatorInitializer;
+      this.accumulatorAdder = accumulatorAdder;
+      this.resultSelector = resultSelector;
+      this.comparator = comparator;
+      isInitialized = false;
+      curAccumulator = null;
+      enumerator = enumerable.enumerator();
+      curResult = null;
+      isLastMoveNextFalse = false;
+    }
+
+    @Override public TResult current() {
+      if (isLastMoveNextFalse) {
+        throw new NoSuchElementException();
+      }
+      return curResult;
+    }
+
+    @Override public boolean moveNext() {
+      if (!isInitialized) {
+        isInitialized = true;
+        // input is empty
+        if (!enumerator.moveNext()) {
+          isLastMoveNextFalse = true;
+          return false;
+        }
+      } else if (curAccumulator == null) {
+        // input has been exhausted.
+        isLastMoveNextFalse = true;
+        return false;
+      }
+
+      if (curAccumulator == null) {
+        curAccumulator = accumulatorInitializer.apply();
+      }
+
+      // reset result because now it can move to next aggregated result.
+      curResult = null;
+      TSource o = enumerator.current();
+      TKey prevKey = keySelector.apply(o);
+      curAccumulator = accumulatorAdder.apply(curAccumulator, o);
+      while (enumerator.moveNext()) {
+        o = enumerator.current();
+        TKey curKey = keySelector.apply(o);
+        if (comparator.compare(prevKey, curKey) != 0) {
+          // current key is different from previous key, get accumulated results and re-create
+          // accumulator for current key.
+          curResult = resultSelector.apply(prevKey, curAccumulator);
+          curAccumulator = accumulatorInitializer.apply();
+          break;
+        }
+        curAccumulator = accumulatorAdder.apply(curAccumulator, o);
+        prevKey = curKey;
+      }
+
+      if (curResult == null) {
+        // current key is the last key.
+        curResult = resultSelector.apply(prevKey, curAccumulator);
+        // no need to keep accumulator for the last key.
+        curAccumulator = null;
+      }
+
+      return true;
+    }
+
+    @Override public void reset() {
+      enumerator.reset();
+      isInitialized = false;
+      curResult = null;
+      curAccumulator = null;
+      isLastMoveNextFalse = false;
+    }
+
+    @Override public void close() {
+      enumerator.close();
+    }
+  }
+
   private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupBy_(
       final Map<TKey, TAccumulate> map, Enumerable<TSource> enumerable,
       Function1<TSource, TKey> keySelector,

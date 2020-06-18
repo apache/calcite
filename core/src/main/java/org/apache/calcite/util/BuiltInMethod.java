@@ -212,6 +212,8 @@ public enum BuiltInMethod {
   WHERE2(ExtendedEnumerable.class, "where", Predicate2.class),
   DISTINCT(ExtendedEnumerable.class, "distinct"),
   DISTINCT2(ExtendedEnumerable.class, "distinct", EqualityComparer.class),
+  SORTED_GROUP_BY(ExtendedEnumerable.class, "sortedGroupBy", Function1.class,
+      Function0.class, Function2.class, Function2.class, Comparator.class),
   GROUP_BY(ExtendedEnumerable.class, "groupBy", Function1.class),
   GROUP_BY2(ExtendedEnumerable.class, "groupBy", Function1.class,
       Function0.class, Function2.class, Function2.class),

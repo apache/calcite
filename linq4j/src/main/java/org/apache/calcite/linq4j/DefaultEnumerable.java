@@ -319,6 +319,17 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         accumulatorInitializer, accumulatorAdder, resultSelector, comparer);
   }
 
+  public <TKey, TAccumulate, TResult> Enumerable<TResult> sortedGroupBy(
+      Function1<T, TKey> keySelector,
+      Function0<TAccumulate> accumulatorInitializer,
+      Function2<TAccumulate, T, TAccumulate> accumulatorAdder,
+      Function2<TKey, TAccumulate, TResult> resultSelector,
+      Comparator<TKey> comparator) {
+    return EnumerableDefaults.sortedGroupBy(
+        getThis(), keySelector, accumulatorInitializer,
+        accumulatorAdder, resultSelector, comparator);
+  }
+
   public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
