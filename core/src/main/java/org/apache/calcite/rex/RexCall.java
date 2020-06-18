@@ -231,7 +231,17 @@ public class RexCall extends RexNode {
   }
 
   @Override public final @Nonnull String toString() {
-    return computeDigest(digestWithType());
+    if (!needNormalize()) {
+      // Non-normalize describe is requested
+      return computeDigest(digestWithType());
+    }
+    // This data race is intentional
+    String localDigest = digest;
+    if (localDigest == null) {
+      localDigest = computeDigest(digestWithType());
+      digest = Objects.requireNonNull(localDigest);
+    }
+    return localDigest;
   }
 
   private boolean digestWithType() {
@@ -326,10 +336,6 @@ public class RexCall extends RexNode {
   }
 
   @Override public int hashCode() {
-    if (hash == 0) {
-      assert digest == null;
-      hash = Objects.hash(op, operands);
-    }
-    return hash;
+    return Objects.hash(op, operands);
   }
 }

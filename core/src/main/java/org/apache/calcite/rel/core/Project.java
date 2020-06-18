@@ -48,7 +48,6 @@ import com.google.common.collect.Lists;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -153,26 +152,6 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public List<RexNode> getChildExps() {
     return exps;
-  }
-
-  protected boolean digestEquals0(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (this.getClass() != obj.getClass()) {
-      return false;
-    }
-    Project o = (Project) obj;
-    return getTraitSet() == o.getTraitSet()
-        && getInput().equals(o.getInput())
-        && exps.equals(o.exps)
-        && hints.equals(o.hints)
-        && Pair.right(getRowType().getFieldList()).equals(
-        Pair.right(o.getRowType().getFieldList()));
-  }
-
-  protected int digestHash0() {
-    return Objects.hash(traitSet, input, exps, hints);
   }
 
   public RelNode accept(RexShuttle shuttle) {

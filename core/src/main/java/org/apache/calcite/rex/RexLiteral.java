@@ -1083,19 +1083,13 @@ public class RexLiteral extends RexNode {
   }
 
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
     return (obj instanceof RexLiteral)
         && equals(((RexLiteral) obj).value, value)
         && equals(((RexLiteral) obj).type, type);
   }
 
   public int hashCode() {
-    if (hash == 0) {
-      hash = Objects.hash(value, type);
-    }
-    return hash;
+    return Objects.hash(value, type);
   }
 
   public static Comparable value(RexNode node) {

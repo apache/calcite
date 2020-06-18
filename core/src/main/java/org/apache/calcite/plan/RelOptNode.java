@@ -18,8 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.type.RelDataType;
 
-import org.apiguardian.api.API;
-
 import java.util.List;
 
 /**
@@ -47,20 +45,9 @@ public interface RelOptNode {
    * <p>If you want a descriptive string which contains the identity, call
    * {@link Object#toString()}, which always returns "rel#{id}:{digest}".
    *
-   * @return Digest string of this {@code RelNode}
-   */
-  default String getDigest() {
-    return getRelDigest().toString();
-  }
-
-  /**
-   * Digest of the {@code RelNode}, for planner internal use only.
-   *
    * @return Digest of this {@code RelNode}
-   * @see #getDigest()
    */
-  @API(since = "1.24", status = API.Status.INTERNAL)
-  RelDigest getRelDigest();
+  Digest getDigest();
 
   /**
    * Retrieves this RelNode's traits. Note that although the RelTraitSet

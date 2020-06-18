@@ -105,14 +105,6 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     }
   }
 
-  @Override public boolean digestEquals(Object obj) {
-    return digestEquals0(obj);
-  }
-
-  @Override public int digestHash() {
-    return digestHash0();
-  }
-
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();

@@ -37,7 +37,6 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression that iterates over its input
@@ -98,24 +97,6 @@ public abstract class Filter extends SingleRel {
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(condition);
-  }
-
-  protected boolean digestEquals0(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (this.getClass() != obj.getClass()) {
-      return false;
-    }
-    Filter o = (Filter) obj;
-    return getTraitSet() == o.getTraitSet()
-        && getInput().equals(o.getInput())
-        && condition.equals(o.condition)
-        && getRowType().equals(o.getRowType());
-  }
-
-  protected int digestHash0() {
-    return Objects.hash(traitSet, input, condition);
   }
 
   public RelNode accept(RexShuttle shuttle) {

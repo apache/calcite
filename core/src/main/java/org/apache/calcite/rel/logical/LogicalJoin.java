@@ -203,17 +203,4 @@ public final class LogicalJoin extends Join {
     return new LogicalJoin(getCluster(), traitSet, hintList,
         left, right, condition, variablesSet, joinType, semiJoinDone, systemFieldList);
   }
-
-  @Override public boolean digestEquals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    return digestEquals0(obj)
-        && semiJoinDone == ((LogicalJoin) obj).semiJoinDone
-        && systemFieldList.equals(((LogicalJoin) obj).systemFieldList);
-  }
-
-  @Override public int digestHash() {
-    return Objects.hash(digestHash0(), semiJoinDone, systemFieldList);
-  }
 }

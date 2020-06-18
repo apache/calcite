@@ -56,14 +56,6 @@ public class EnumerableSortedAggregate extends Aggregate implements EnumerableRe
         groupSet, groupSets, aggCalls);
   }
 
-  @Override public boolean digestEquals(Object obj) {
-    return digestEquals0(obj);
-  }
-
-  @Override public int digestHash() {
-    return digestHash0();
-  }
-
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     if (!isSimple(this)) {

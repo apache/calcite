@@ -56,11 +56,6 @@ public abstract class RexNode {
   // Effectively final. Set in each sub-class constructor, and never re-set.
   protected String digest;
 
-  /**
-   * Cache of hash code.
-   */
-  protected int hash = 0;
-
   //~ Methods ----------------------------------------------------------------
 
   public abstract RelDataType getType();

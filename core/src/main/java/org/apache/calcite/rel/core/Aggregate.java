@@ -332,27 +332,6 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return pw;
   }
 
-  protected boolean digestEquals0(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (this.getClass() != obj.getClass()) {
-      return false;
-    }
-    Aggregate o = (Aggregate) obj;
-    return getTraitSet() == o.getTraitSet()
-        && getInput().equals(o.getInput())
-        && groupSet.equals(o.groupSet)
-        && groupSets.equals(o.groupSets)
-        && aggCalls.equals(o.aggCalls)
-        && hints.equals(o.hints)
-        && getRowType().equals(o.getRowType());
-  }
-
-  protected int digestHash0() {
-    return Objects.hash(traitSet, input, groupSet, groupSets, aggCalls, hints);
-  }
-
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     // Assume that each sort column has 50% of the value count.
     // Therefore one sort column has .5 * rowCount,

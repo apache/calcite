@@ -84,14 +84,6 @@ public class EnumerableProject extends Project implements EnumerableRel {
         projects, rowType);
   }
 
-  @Override public boolean digestEquals(Object obj) {
-    return digestEquals0(obj);
-  }
-
-  @Override public int digestHash() {
-    return digestHash0();
-  }
-
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalcRel is always better
     throw new UnsupportedOperationException();
