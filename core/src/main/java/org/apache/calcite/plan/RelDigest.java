@@ -23,8 +23,8 @@ import org.apache.calcite.rel.RelWriter;
 import org.apiguardian.api.API;
 
 /**
- * The Digest is exactly representation of the corresponding {@code RelNode},
- * at anytime, anywhere. The only difference is that Digest is compared using
+ * The digest is the exact representation of the corresponding {@code RelNode},
+ * at anytime, anywhere. The only difference is that digest is compared using
  * {@code #equals} and {@code #hashCode}, which are prohibited for RelNode,
  * for legacy reasons.
  *
@@ -46,7 +46,7 @@ public interface RelDigest {
   void clear();
 
   /**
-   * Returns the relnode that this Digest is associated with.
+   * Returns the relnode that this digest is associated with.
    */
   RelNode getRel();
 }

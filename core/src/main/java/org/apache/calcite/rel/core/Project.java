@@ -155,7 +155,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return exps;
   }
 
-  @Override public boolean digestEquals(Object obj) {
+  protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -171,7 +171,7 @@ public abstract class Project extends SingleRel implements Hintable {
         Pair.right(o.getRowType().getFieldList()));
   }
 
-  @Override public int digestHash() {
+  protected int digestHash0() {
     return Objects.hash(traitSet, input, exps, hints);
   }
 
