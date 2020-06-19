@@ -97,7 +97,7 @@ public abstract class AbstractRelNode implements RelNode {
     this.cluster = cluster;
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
-    this.digest = Digest.initial(this);
+    this.digest = Digest.create(this);
     LOGGER.trace("new {}", digest);
   }
 
