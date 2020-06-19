@@ -226,7 +226,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   @Override protected Digest computeDigest() {
-    StringBuilder digest = new StringBuilder(getRelTypeName());
+    StringBuilder digest = new StringBuilder("RelSubset");
     digest.append('#');
     digest.append(set.id);
     for (RelTrait trait : getTraitSet()) {

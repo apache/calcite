@@ -96,7 +96,7 @@ class EnumerableCorrelateTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
             + "  EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
@@ -126,7 +126,7 @@ class EnumerableCorrelateTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
             + "  EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"

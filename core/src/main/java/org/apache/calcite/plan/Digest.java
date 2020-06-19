@@ -24,7 +24,6 @@ import org.apache.calcite.util.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import javax.annotation.Nonnull;
 
 /**
@@ -61,20 +60,12 @@ public class Digest implements Comparable<Digest> {
    * Creates a digest with given rel and properties.
    *
    * @param rel   The rel
-   * @param items The properties, e.g. the inputs, the type, the traits and so on
+   * @param items The properties, e.g. the inputs, the operands and so on
    */
   private Digest(RelNode rel, List<Pair<String, Object>> items) {
     this.rel = rel;
     this.items = normalizeContents(items);
     this.hashCode = computeIdentity(rel, this.items);
-  }
-
-  /**
-   * Creates a digest with given rel, the digest is computed as simple,
-   * see {@link #simpleRelDigest(RelNode)}.
-   */
-  private Digest(RelNode rel) {
-    this(rel, simpleRelDigest(rel));
   }
 
   /** Creates a digest with given rel and string format digest. */
@@ -87,7 +78,7 @@ public class Digest implements Comparable<Digest> {
 
   /** Returns the identity of this digest which is used to speedup hashCode and equals. */
   private static int computeIdentity(RelNode rel, List<Pair<String, Object>> contents) {
-    return Objects.hash(collect(rel, contents, false));
+    return collect(rel, contents, false).hashCode();
   }
 
   /**
@@ -104,7 +95,7 @@ public class Digest implements Comparable<Digest> {
    * @param contents The rel properties should be considered in digest
    * @param withType Whether to involve the row type
    */
-  private static Object[] collect(
+  private static List<Object> collect(
       RelNode rel,
       List<Pair<String, Object>> contents,
       boolean withType) {
@@ -130,14 +121,14 @@ public class Digest implements Comparable<Digest> {
     }
     // The rel node contents(e.g. the inputs or exprs).
     hashCodeItems.addAll(contents);
-    return hashCodeItems.toArray();
+    return hashCodeItems;
   }
 
   /** Normalizes the rel node properties, currently, just to replace the
    * {@link RelNode} with a simple string format digest. **/
   private static List<Pair<String, Object>> normalizeContents(
       List<Pair<String, Object>> items) {
-    List<Pair<String, Object>> normalized = new ArrayList<>();
+    List<Pair<String, Object>> normalized = new ArrayList<>(items.size());
     for (Pair<String, Object> item : items) {
       if (item.right instanceof RelNode) {
         RelNode input = (RelNode) item.right;
@@ -208,17 +199,9 @@ public class Digest implements Comparable<Digest> {
    * reduce mem consumption.
    */
   private boolean deepEquals(Digest other) {
-    Object[] thisItems = collect(this.rel, this.items, true);
-    Object[] thatItems = collect(other.rel, other.items, true);
-    if (thisItems.length != thatItems.length) {
-      return false;
-    }
-    for (int i = 0; i < thisItems.length; i++) {
-      if (!Objects.equals(thisItems[i], thatItems[i])) {
-        return false;
-      }
-    }
-    return true;
+    List<Object> thisItems = collect(this.rel, this.items, true);
+    List<Object> thatItems = collect(other.rel, other.items, true);
+    return thisItems.equals(thatItems);
   }
 
   @Override public int hashCode() {
@@ -233,13 +216,6 @@ public class Digest implements Comparable<Digest> {
   }
 
   /**
-   * Creates a digest with given rel.
-   */
-  public static Digest create(RelNode rel) {
-    return new Digest(rel);
-  }
-
-  /**
    * Creates a digest with given rel and string format digest
    */
   public static Digest create(RelNode rel, String digest) {
@@ -250,7 +226,7 @@ public class Digest implements Comparable<Digest> {
    * Instantiates a digest with solid string format digest, this digest should only
    * be used as a initial.
    */
-  public static Digest initial(RelNode rel) {
+  public static Digest create(RelNode rel) {
     return new Digest(rel, simpleRelDigest(rel));
   }
 }
