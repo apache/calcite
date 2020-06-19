@@ -80,6 +80,16 @@ SELECT COMPRESS('sample');
 !ok
 
 
+SELECT UNCOMPRESS(x'06000000789c2b4ecc2dc849050008de0283');
++--------+
+| EXPR$0 |
++--------+
+| sample |
++--------+
+(1 row)
+
+!ok
+
 !use oraclefunc
 
 # COSH

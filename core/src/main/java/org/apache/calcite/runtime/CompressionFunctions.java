@@ -18,14 +18,17 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 /**
  * A collection of functions used in compression and decompression.
@@ -62,4 +65,23 @@ public class CompressionFunctions {
     }
   }
 
+  /**
+   * MySql Decompression is based on zlib.
+   * <a href="https://docs.oracle.com/javase/8/docs/api/java/util/zip/Inflater.html">Inflater</a>
+   * is used to implement decompression.
+   */
+  public static String uncompress(ByteString data) {
+    try {
+      if (data == null) {
+        return null;
+      } else if (data.length() == 0) {
+        return "";
+      }
+      InflaterInputStream inflaterStream = new InflaterInputStream(
+          new ByteArrayInputStream(data.getBytes(), 4, data.length()));
+      return IOUtils.toString(inflaterStream);
+    } catch (IOException e) {
+      return null;
+    }
+  }
 }

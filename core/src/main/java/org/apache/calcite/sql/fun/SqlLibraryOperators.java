@@ -177,6 +177,11 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARBINARY),
           SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction UNCOMPRESS = new SqlFunction("UNCOMPRESS", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+          SqlTypeTransforms.FORCE_NULLABLE), null,
+      OperandTypes.BINARY, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction EXTRACT_VALUE = new SqlFunction(
