@@ -2122,6 +2122,7 @@ public abstract class EnumerableDefaults {
     switch (joinType) {
     case INNER:
     case SEMI:
+    case ANTI:
       return true;
     default:
       return false;
@@ -4005,6 +4006,8 @@ public abstract class EnumerableDefaults {
     private final Comparator<TKey> comparator;
     private boolean done;
     private Enumerator<TResult> results;
+    // only used for ANTI join: if right input is over, all remaining elements from left are results
+    private boolean remainingLeft;
 
     MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
         Enumerable<TInner> rightEnumerable,
@@ -4025,27 +4028,79 @@ public abstract class EnumerableDefaults {
       start();
     }
 
-    private Enumerator<TSource> startLeftEnumerator() {
+    private Enumerator<TSource> getLeftEnumerator() {
       if (leftEnumerator == null) {
         leftEnumerator = leftEnumerable.enumerator();
       }
       return leftEnumerator;
     }
 
-    private Enumerator<TInner> startRightEnumerator() {
+    private Enumerator<TInner> getRightEnumerator() {
       if (rightEnumerator == null) {
         rightEnumerator = rightEnumerable.enumerator();
       }
       return rightEnumerator;
     }
 
+    /**
+     * @return {@code true} if the left enumerator was successfully advanced to the next element,
+     * and it does not have a null key; {@code false} otherwise.
+     */
+    private boolean leftMoveNext() {
+      return getLeftEnumerator().moveNext()
+          && outerKeySelector.apply(getLeftEnumerator().current()) != null;
+    }
+
+    /**
+     * @return {@code true} if the right enumerator was successfully advanced to the next element,
+     * and it does not have a null key; {@code false} otherwise.
+     */
+    private boolean rightMoveNext() {
+      return getRightEnumerator().moveNext()
+          && innerKeySelector.apply(getRightEnumerator().current()) != null;
+    }
+
+    /**
+     * Only for joinType ANTI: if right input is over, all remaining elements from left are results.
+     * @param currentLeft current element from left iterator.
+     */
+    private void computeLeftRemainder(TSource currentLeft) {
+      // before reaching this point, we have always performed a leftEnumerator moveNext,
+      // so we must save the leftEnumerator current item as a result, otherwise it would be lost
+      results = Linq4j.enumerator(
+          Collections.singletonList(resultSelector.apply(currentLeft, null)));
+      remainingLeft = true;
+    }
+
     private void start() {
-      if (!startLeftEnumerator().moveNext()
-          || !startRightEnumerator().moveNext()
-          || !advance()) {
-        done = true;
-        results = Linq4j.emptyEnumerator();
+      if (joinType == JoinType.ANTI) {
+        startAntiJoin();
+      } else {
+        // joinType INNER or SEMI
+        if (!leftMoveNext() || !rightMoveNext() || !advance()) {
+          finish();
+        }
       }
+    }
+
+    private void startAntiJoin() {
+      if (!leftMoveNext()) {
+        finish();
+      } else {
+        if (!rightMoveNext()) {
+          // all remaining items in left are results for anti join
+          computeLeftRemainder(getLeftEnumerator().current());
+        } else {
+          if (!advance()) {
+            finish();
+          }
+        }
+      }
+    }
+
+    private void finish() {
+      done = true;
+      results = Linq4j.emptyEnumerator();
     }
 
     private int compare(TKey key1, TKey key2) {
@@ -4056,102 +4111,169 @@ public abstract class EnumerableDefaults {
      * lefts and rights with the rows. Restarts the cross-join
      * enumerator. */
     private boolean advance() {
-      TSource left = leftEnumerator.current();
-      TKey leftKey = outerKeySelector.apply(left);
-      TInner right = rightEnumerator.current();
-      TKey rightKey = innerKeySelector.apply(right);
       for (;;) {
-        // mergeJoin assumes inputs sorted in ascending order with nulls last,
-        // if we reach a null key, we are done.
-        if (leftKey == null || rightKey == null) {
+        TSource left = leftEnumerator.current();
+        TKey leftKey = outerKeySelector.apply(left);
+        TInner right = rightEnumerator.current();
+        TKey rightKey = innerKeySelector.apply(right);
+        // iterate until finding matching keys (or ANTI join results)
+        for (;;) {
+          // mergeJoin assumes inputs sorted in ascending order with nulls last,
+          // if we reach a null key, we are done.
+          if (leftKey == null || rightKey == null) {
+            if (joinType == JoinType.ANTI && leftKey != null) {
+              // all remaining items in left are results for anti join
+              computeLeftRemainder(left);
+              return true;
+            }
+            done = true;
+            return false;
+          }
+          int c = compare(leftKey, rightKey);
+          if (c == 0) {
+            break;
+          }
+          if (c < 0) {
+            if (joinType == JoinType.ANTI) {
+              // left (and all other items with the same key) are results for anti join
+              if (!advanceLeft(left, leftKey)) {
+                done = true;
+              }
+              results = new CartesianProductJoinEnumerator<>(resultSelector,
+                  Linq4j.enumerator(lefts), Linq4j.enumerator(Collections.singletonList(null)));
+              return true;
+            }
+            if (!getLeftEnumerator().moveNext()) {
+              done = true;
+              return false;
+            }
+            left = getLeftEnumerator().current();
+            leftKey = outerKeySelector.apply(left);
+          } else {
+            if (!getRightEnumerator().moveNext()) {
+              if (joinType == JoinType.ANTI) {
+                // all remaining items in left are results for anti join
+                computeLeftRemainder(left);
+                return true;
+              }
+              done = true;
+              return false;
+            }
+            right = getRightEnumerator().current();
+            rightKey = innerKeySelector.apply(right);
+          }
+        }
+
+        if (!advanceLeft(left, leftKey)) {
           done = true;
-          return false;
         }
-        int c = compare(leftKey, rightKey);
-        if (c == 0) {
-          break;
-        }
-        if (c < 0) {
-          if (!leftEnumerator.moveNext()) {
+
+        if (!advanceRight(right, rightKey)) {
+          if (!done && joinType == JoinType.ANTI) {
+            // all remaining items in left are results for anti join
+            computeLeftRemainder(getLeftEnumerator().current());
+          } else {
             done = true;
-            return false;
           }
-          left = leftEnumerator.current();
-          leftKey = outerKeySelector.apply(left);
+        }
+
+        if (extraPredicate == null) {
+          if (joinType == JoinType.ANTI) {
+            if (done) {
+              return false;
+            }
+            if (remainingLeft) {
+              return true;
+            }
+            continue;
+          }
+
+          // SEMI join must not have duplicates, in that case take just one element from rights
+          results = joinType == JoinType.SEMI
+              ? new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
+              Linq4j.enumerator(Collections.singletonList(rights.get(0))))
+              : new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
+                  Linq4j.enumerator(rights));
         } else {
-          if (!rightEnumerator.moveNext()) {
-            done = true;
-            return false;
-          }
-          right = rightEnumerator.current();
-          rightKey = innerKeySelector.apply(right);
+          // we must verify the non equi-join predicate, use nested loop join for that
+          results = nestedLoopJoin(Linq4j.asEnumerable(lefts), Linq4j.asEnumerable(rights),
+              extraPredicate, resultSelector, joinType).enumerator();
         }
+        return true;
       }
+    }
+
+
+
+    /**
+     * Clears {@code lefts} list, adds {@code left} into it, and advance left enumerator,
+     * adding all items with the same key to {@code lefts} list too, until left enumerator
+     * is over or a different key is found.
+     * @return {@code true} if there are still elements to be processed on the left enumerator,
+     * {@code false} otherwise (left enumerator is over or null key is found).
+     */
+    private boolean advanceLeft(TSource left, TKey leftKey) {
       lefts.clear();
       lefts.add(left);
-      for (;;) {
-        if (!leftEnumerator.moveNext()) {
-          done = true;
-          break;
-        }
-        left = leftEnumerator.current();
+      while (getLeftEnumerator().moveNext()) {
+        left = getLeftEnumerator().current();
         TKey leftKey2 = outerKeySelector.apply(left);
         if (leftKey2 == null) {
-          done = true;
+          // mergeJoin assumes inputs sorted in ascending order with nulls last,
+          // if we reach a null key, we are done
           break;
         }
         int c = compare(leftKey, leftKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
-              "mergeJoin assumes inputs sorted in ascending order, "
-                 + "however " + leftKey + " is greater than " + leftKey2);
+                "mergeJoin assumes inputs sorted in ascending order, " + "however '"
+                    + leftKey + "' is greater than '" + leftKey2 + "'");
           }
-          break;
+          return true;
         }
         lefts.add(left);
       }
+      return false;
+    }
+
+    /**
+     * Clears {@code rights} list, adds {@code right} into it, and advance right enumerator,
+     * adding all items with the same key to {@code rights} list too, until right enumerator
+     * is over or a different key is found.
+     * @return {@code true} if there are still elements to be processed on the right enumerator,
+     * {@code false} otherwise (right enumerator is over or null key is found).
+     */
+    private boolean advanceRight(TInner right, TKey rightKey) {
       rights.clear();
       rights.add(right);
-      for (;;) {
-        if (!rightEnumerator.moveNext()) {
-          done = true;
-          break;
-        }
-        right = rightEnumerator.current();
+      while (getRightEnumerator().moveNext()) {
+        right = getRightEnumerator().current();
         TKey rightKey2 = innerKeySelector.apply(right);
         if (rightKey2 == null) {
-          done = true;
+          // mergeJoin assumes inputs sorted in ascending order with nulls last,
+          // if we reach a null key, we are done
           break;
         }
         int c = compare(rightKey, rightKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
-              "mergeJoin assumes input sorted in ascending order, "
-                 + "however " + rightKey + " is greater than " + rightKey2);
+                "mergeJoin assumes input sorted in ascending order, " + "however '"
+                    + rightKey + "' is greater than '" + rightKey2 + "'");
           }
-          break;
+          return true;
         }
         rights.add(right);
       }
-
-      if (extraPredicate == null) {
-        // SEMI join must not have duplicates, in that case take just one element from rights
-        results = joinType == JoinType.SEMI
-            ? new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
-                Linq4j.enumerator(Collections.singletonList(this.rights.get(0))))
-            : new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
-                Linq4j.enumerator(rights));
-      } else {
-        // we must verify the non equi-join predicate, use nested loop join for that
-        results = nestedLoopJoin(Linq4j.asEnumerable(lefts), Linq4j.asEnumerable(rights),
-            extraPredicate, resultSelector, joinType).enumerator();
-      }
-      return true;
+      return false;
     }
 
     public TResult current() {
+      if (remainingLeft) {
+        final TSource left = getLeftEnumerator().current();
+        return resultSelector.apply(left, null);
+      }
       return results.current();
     }
 
@@ -4159,6 +4281,9 @@ public abstract class EnumerableDefaults {
       for (;;) {
         if (results.moveNext()) {
           return true;
+        }
+        if (remainingLeft) {
+          return leftMoveNext();
         }
         if (done) {
           return false;
@@ -4171,6 +4296,7 @@ public abstract class EnumerableDefaults {
 
     public void reset() {
       done = false;
+      remainingLeft = false;
       leftEnumerator.reset();
       if (rightEnumerator != null) {
         rightEnumerator.reset();
