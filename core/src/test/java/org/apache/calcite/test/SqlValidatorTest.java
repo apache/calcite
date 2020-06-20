@@ -9453,42 +9453,42 @@ class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertFailNullability() {
-    sql("insert into ^empnullables^ (ename) values ('Kevin')")
+    sql("insert into ^emp^ (ename) values ('Kevin')")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    sql("insert into ^empnullables^ (empno) values (10)")
+    sql("insert into ^emp^ (empno) values (10)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    sql("insert into empnullables (empno, ename, deptno) ^values (5, null, 5)^")
+    sql("insert into emp (empno, ename, deptno) ^values (5, null, 5)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
   @Test void testInsertSubsetFailNullability() {
     final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^empnullables^ values (1)")
+    s.sql("insert into ^emp^ values (1)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables ^values (null, 'Liam')^")
+    s.sql("insert into emp ^values (null, 'Liam')^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables ^values (45, null, 5)^")
+    s.sql("insert into emp ^values (45, null, 5)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
   @Test void testInsertViewFailNullability() {
-    sql("insert into ^empnullables_20^ (ename) values ('Jake')")
+    sql("insert into ^emp_20^ (ename) values ('Jake')")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    sql("insert into ^empnullables_20^ (empno) values (9)")
+    sql("insert into ^emp_20^ (empno) values (9)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    sql("insert into empnullables_20 (empno, ename, mgr) ^values (5, null, 5)^")
+    sql("insert into emp_20 (empno, ename, mgr) ^values (5, null, 5)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
   @Test void testInsertSubsetViewFailNullability() {
     final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^empnullables_20^ values (1)")
+    s.sql("insert into ^EMP_20^ values (1)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables_20 ^values (null, 'Liam')^")
+    s.sql("insert into EMP_20 ^values (null, 'Liam')^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables_20 ^values (45, null)^")
+    s.sql("insert into EMP_20 ^values (45, null)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
@@ -9504,11 +9504,11 @@ class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testInsertBindSubsetFailNullability() {
     final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^empnullables^ values (?)")
+    s.sql("insert into ^emp^ values (?)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables ^values (null, ?)^")
+    s.sql("insert into emp ^values (null, ?)^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into empnullables ^values (?, null)^")
+    s.sql("insert into emp ^values (?, null)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
