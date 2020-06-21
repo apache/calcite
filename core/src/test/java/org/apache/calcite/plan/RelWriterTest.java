@@ -74,6 +74,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -373,6 +374,34 @@ class RelWriterTest {
       + "        \"keys\": [\n"
       + "          0\n"
       + "        ]\n"
+      + "      },\n"
+      + "      \"collation\": [\n"
+      + "        {\n"
+      + "          \"field\": 0,\n"
+      + "          \"direction\": \"ASCENDING\",\n"
+      + "          \"nulls\": \"LAST\"\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  public static final String HASH_DIST_WITHOUT_KEYS = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalSortExchange\",\n"
+      + "      \"distribution\": {\n"
+      + "        \"type\": \"HASH_DISTRIBUTED\"\n"
       + "      },\n"
       + "      \"collation\": [\n"
       + "        {\n"
@@ -870,6 +899,20 @@ class RelWriterTest {
                 true, true, false, false, false))
         .build();
     return rel;
+  }
+
+  @Test void testHashDistributionWithoutKeys() {
+    final RelNode root = createSortPlan(RelDistributions.hash(Collections.emptyList()));
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    assertThat(json, is(HASH_DIST_WITHOUT_KEYS));
+
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[hash], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
   }
 
   @Test void testWriteSortExchangeWithHashDistribution() {
