@@ -200,11 +200,7 @@ public class RelJson {
 
     ImmutableIntList list = EMPTY;
     if (map.containsKey("keys")) {
-      List<Object> keysJson = (List<Object>) map.get("keys");
-      ArrayList<Integer> keys = new ArrayList<>(keysJson.size());
-      for (Object o : keysJson) {
-        keys.add((Integer) o);
-      }
+      List<Integer> keys = (List<Integer>) map.get("keys");
       list = ImmutableIntList.copyOf(keys);
     }
     return RelDistributions.of(type, list);
@@ -213,13 +209,8 @@ public class RelJson {
   private Object toJson(RelDistribution relDistribution) {
     final Map<String, Object> map = jsonBuilder.map();
     map.put("type", relDistribution.getType().name());
-
     if (!relDistribution.getKeys().isEmpty()) {
-      List<Object> keys = new ArrayList<>(relDistribution.getKeys().size());
-      for (Integer key : relDistribution.getKeys()) {
-        keys.add(toJson(key));
-      }
-      map.put("keys", keys);
+      map.put("keys", relDistribution.getKeys());
     }
     return map;
   }
