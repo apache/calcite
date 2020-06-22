@@ -22,11 +22,18 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -35,6 +42,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -11489,5 +11497,43 @@ class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ROW_COLUMN_ARRAY[0]['NOT_NULL_FIELD'] from NULLABLEROWS.NR_T1")
         .withExtendedCatalog()
         .type("RecordType(BIGINT EXPR$0) NOT NULL");
+
+    MockSqlOperatorTable mockSqlOperatorTable = new MockSqlOperatorTable(new SqlStdOperatorTable());
+    mockSqlOperatorTable.addOperator(new RowFunction());
+    sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
+        .withOperatorTable(mockSqlOperatorTable)
+        .type("RecordType(BIGINT A, BIGINT B) NOT NULL");
+  }
+
+  private static class RowFunction extends SqlFunction {
+    RowFunction() {
+      super("ROW_FUNC",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      RelDataType bigIntNotNull = typeFactory.createSqlType(SqlTypeName.BIGINT);
+      return new RelRecordType(
+          StructKind.FULLY_QUALIFIED,
+          Arrays.asList(
+              new RelDataTypeFieldImpl(
+                  "NOT_NULL_FIELD",
+                  0,
+                  bigIntNotNull),
+              new RelDataTypeFieldImpl(
+                  "NULLABLE_FIELD",
+                  0,
+                  typeFactory.createTypeWithNullability(bigIntNotNull, true)
+              )
+          ),
+          true
+      );
+    }
   }
 }
