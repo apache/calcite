@@ -19,6 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Default implementation of {@link RelDataTypeField}.
@@ -49,9 +50,7 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   //~ Methods ----------------------------------------------------------------
 
   @Override public int hashCode() {
-    return index
-        ^ name.hashCode()
-        ^ type.hashCode();
+    return Objects.hash(index, name, type);
   }
 
   @Override public boolean equals(Object obj) {

@@ -159,7 +159,7 @@ class RelSet {
 
   public RelSubset getSubset(RelTraitSet traits) {
     for (RelSubset subset : subsets) {
-      if (subset.getTraitSet() == traits) {
+      if (subset.getTraitSet().equals(traits)) {
         return subset;
       }
     }
