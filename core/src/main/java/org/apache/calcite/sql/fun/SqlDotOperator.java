@@ -111,6 +111,9 @@ public class SqlDotOperator extends SqlSpecialOperator {
           Static.RESOURCE.unknownField(fieldName));
     }
     RelDataType type = field.getType();
+    if (nodeType.isNullable()) {
+      type = validator.getTypeFactory().createTypeWithNullability(type, true);
+    }
 
     // Validate and determine coercibility and resulting collation
     // name of binary operator if needed.
