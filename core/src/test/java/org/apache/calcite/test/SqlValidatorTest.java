@@ -11491,4 +11491,19 @@ class SqlValidatorTest extends SqlValidatorTestCase {
     assertThat(resultType.toString(), is("INTEGER"));
   }
 
+  @Test void testAccessingNestedFieldsOfNullableRecord() {
+    sql("select ROW_COLUMN_ARRAY[0].NOT_NULL_FIELD from NULLABLEROWS.NR_T1")
+        .withExtendedCatalog()
+        .type("RecordType(BIGINT EXPR$0) NOT NULL");
+    sql("select ROW_COLUMN_ARRAY[0]['NOT_NULL_FIELD'] from NULLABLEROWS.NR_T1")
+        .withExtendedCatalog()
+        .type("RecordType(BIGINT EXPR$0) NOT NULL");
+
+    final MockSqlOperatorTable operatorTable =
+        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
+    sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
+        .withOperatorTable(operatorTable)
+        .type("RecordType(BIGINT A, BIGINT B) NOT NULL");
+  }
 }

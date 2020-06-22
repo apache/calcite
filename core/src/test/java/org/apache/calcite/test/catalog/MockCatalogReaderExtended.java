@@ -16,9 +16,14 @@
  */
 package org.apache.calcite.test.catalog;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
@@ -162,6 +167,34 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     complexTypeColumnsTable.addColumn("intArrayMultisetType", f.intArrayMultisetType);
     complexTypeColumnsTable.addColumn("rowArrayMultisetType", f.rowArrayMultisetType);
     registerTable(complexTypeColumnsTable);
+
+    MockSchema nullableRowsSchema = new MockSchema("NULLABLEROWS");
+    registerSchema(nullableRowsSchema);
+    final MockTable nullableRowsTable =
+        MockTable.create(this, nullableRowsSchema, "NR_T1", false, 100);
+    RelDataType bigIntNotNull = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    RelDataType nullableRecordType = new RelRecordType(
+        StructKind.FULLY_QUALIFIED,
+        Arrays.asList(
+            new RelDataTypeFieldImpl(
+                "NOT_NULL_FIELD",
+                0,
+                bigIntNotNull),
+            new RelDataTypeFieldImpl(
+                "NULLABLE_FIELD",
+                0,
+                typeFactory.createTypeWithNullability(bigIntNotNull, true)
+            )
+        ),
+        true
+    );
+
+    nullableRowsTable.addColumn("ROW_COLUMN", nullableRecordType, false);
+    nullableRowsTable.addColumn(
+        "ROW_COLUMN_ARRAY",
+        typeFactory.createArrayType(nullableRecordType, -1),
+        true);
+    registerTable(nullableRowsTable);
 
     return this;
   }

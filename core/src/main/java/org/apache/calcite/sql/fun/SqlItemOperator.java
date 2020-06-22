@@ -135,7 +135,11 @@ class SqlItemOperator extends SqlSpecialOperator {
         throw new AssertionError("Cannot infer type of field '"
             + fieldName + "' within ROW type: " + operandType);
       } else {
-        return field.getType();
+        RelDataType fieldType = field.getType();
+        if (operandType.isNullable()) {
+          fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+        }
+        return fieldType;
       }
     case ANY:
     case DYNAMIC_STAR:

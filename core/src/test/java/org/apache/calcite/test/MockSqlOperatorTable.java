@@ -18,6 +18,9 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -36,6 +39,8 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.Arrays;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -63,6 +68,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new DedupFunction());
     opTab.addOperator(new MyFunction());
     opTab.addOperator(new MyAvgAggFunction());
+    opTab.addOperator(new RowFunction());
   }
 
   /** "RAMP" user-defined function. */
@@ -166,6 +172,41 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
     @Override public boolean isDeterministic() {
       return false;
+    }
+  }
+
+  /** "ROW_FUNC" user-defined function whose return type is
+   * nullable row type with non-nullable fields. */
+  public static class RowFunction extends SqlFunction {
+    public RowFunction() {
+      super("ROW_FUNC",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      final RelDataType bigIntNotNull = typeFactory.createSqlType(SqlTypeName.BIGINT);
+      final RelDataType bigIntNullable =
+          typeFactory.createTypeWithNullability(bigIntNotNull, true);
+      return new RelRecordType(
+          StructKind.FULLY_QUALIFIED,
+          Arrays.asList(
+              new RelDataTypeFieldImpl(
+                  "NOT_NULL_FIELD",
+                  0,
+                  bigIntNotNull),
+              new RelDataTypeFieldImpl(
+                  "NULLABLE_FIELD",
+                  0,
+                  bigIntNullable)
+          ),
+          true
+      );
     }
   }
 }
