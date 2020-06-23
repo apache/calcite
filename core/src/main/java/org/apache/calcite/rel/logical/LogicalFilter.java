@@ -135,4 +135,13 @@ public final class LogicalFilter extends Filter {
     return super.explainTerms(pw)
         .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
   }
+
+  @Override protected boolean digestEquals(Object obj) {
+    return digestEquals0(obj)
+        && variablesSet.equals(((LogicalFilter) obj).variablesSet);
+  }
+
+  @Override protected int digestHash() {
+    return Objects.hash(digestHash0(), variablesSet);
+  }
 }

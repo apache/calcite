@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.apiguardian.api.API;
+
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -241,4 +243,33 @@ public interface RelDataType {
    */
   boolean isDynamicStruct();
 
+  /**
+   * @return whether the field types are equal with each other by ignoring
+   * the field names. If it is not a struct, just return the result of
+   * {@code #equals(Object)}.
+   */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  default boolean equalsSansFieldNames(RelDataType that) {
+    if (this == that) {
+      return true;
+    }
+    if (that == null || getClass() != that.getClass()) {
+      return false;
+    }
+    if (isStruct()) {
+      List<RelDataTypeField> l1 = this.getFieldList();
+      List<RelDataTypeField> l2 = that.getFieldList();
+      if (l1.size() != l2.size()) {
+        return false;
+      }
+      for (int i = 0; i < l1.size(); i++) {
+        if (!l1.get(i).getType().equals(l2.get(i).getType())) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return equals(that);
+    }
+  }
 }

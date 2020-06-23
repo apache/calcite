@@ -307,12 +307,30 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode onRegister(RelOptPlanner planner);
 
   /**
-   * Computes the digest, assigns it, and returns it. For planner use only.
+   * @return Digest string of this {@code RelNode}
+   */
+  default String getDigest() {
+    return getRelDigest().toString();
+  }
+
+  /**
+   * Digest of the {@code RelNode}, for planner internal use only.
    *
-   * @return Digest of this relational expression
+   * <p>INTERNAL USE ONLY.</p>
+   *
+   * @return Digest of this {@code RelNode}
+   * @see #getDigest()
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  RelDigest recomputeDigest();
+  RelDigest getRelDigest();
+
+  /**
+   * Recomputes the digest. For planner internal use only.
+   *
+   * @see #getDigest()
+   */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  void recomputeDigest();
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must
