@@ -91,9 +91,14 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel;
   }
 
-  @Override public RelWriter explainTerms(final RelWriter pw) {
-    return super.explainTerms(pw)
-        .item("currentRel", currentRel.getId());
+  @Override protected boolean digestEquals(Object obj) {
+    return this == obj
+        || (obj instanceof HepRelVertex
+            && currentRel == ((HepRelVertex) obj).currentRel);
+  }
+
+  @Override protected int digestHash() {
+    return currentRel.getId();
   }
 
   @Override public String getDigest() {

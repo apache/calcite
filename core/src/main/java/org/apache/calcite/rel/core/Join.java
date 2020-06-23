@@ -233,6 +233,27 @@ public abstract class Join extends BiRel implements Hintable {
             !getSystemFieldList().isEmpty());
   }
 
+  protected boolean digestEquals0(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Join o = (Join) obj;
+    return traitSet.equals(o.traitSet)
+        && getInputs().equals(o.getInputs())
+        && condition.equals(o.condition)
+        && joinType == o.joinType
+        && hints.equals(o.hints)
+        && getRowType().equalsSansFieldNames(o.getRowType());
+  }
+
+  protected int digestHash0() {
+    return Objects.hash(traitSet, left, right,
+        condition, joinType, hints);
+  }
+
   @Override protected RelDataType deriveRowType() {
     return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
         right.getRowType(), joinType, getCluster().getTypeFactory(), null,

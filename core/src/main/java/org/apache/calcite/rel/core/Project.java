@@ -48,6 +48,7 @@ import com.google.common.collect.Lists;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -286,6 +287,25 @@ public abstract class Project extends SingleRel implements Hintable {
     }
 
     return pw;
+  }
+
+  protected boolean digestEquals0(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Project o = (Project) obj;
+    return traitSet.equals(o.traitSet)
+        && input.equals(o.input)
+        && exps.equals(o.exps)
+        && hints.equals(o.hints)
+        && getRowType().equalsSansFieldNames(o.getRowType());
+  }
+
+  protected int digestHash0() {
+    return Objects.hash(traitSet, input, exps, hints);
   }
 
   /**

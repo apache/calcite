@@ -337,9 +337,8 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  public RelDigest recomputeDigest() {
+  public void recomputeDigest() {
     digest.clear();
-    return digest;
   }
 
   public void replaceInput(
@@ -394,9 +393,19 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   /**
-   * Equality check for RelNode digest
+   * Equality check for RelNode digest.
+   *
+   * <p>By default this method collects digest attributes from
+   * {@link #explainTerms(RelWriter)}, then compares each attribute pair.
+   * This should work well for most cases. If this method is a performance
+   * bottleneck for your project, or the default behavior can't handle
+   * your scenario properly, you can choose to override this method and
+   * {@link #digestHash()}. See {@code LogicalJoin} as an example.</p>
+   *
+   * @return Whether the 2 RelNodes are equivalent or have the same digest.
+   * @see #digestHash()
    */
-  private boolean digestEquals(Object obj) {
+  protected boolean digestEquals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -406,14 +415,15 @@ public abstract class AbstractRelNode implements RelNode {
     AbstractRelNode that = (AbstractRelNode) obj;
     return this.getTraitSet().equals(that.getTraitSet())
         && this.getDigestItems().equals(that.getDigestItems())
-        && Pair.right(getRowType().getFieldList()).equals(
-        Pair.right(that.getRowType().getFieldList()));
+        && this.getRowType().equalsSansFieldNames(that.getRowType());
   }
 
   /**
-   * Compute hash code for RelNode digest
+   * Compute hash code for RelNode digest.
+   *
+   * @see #digestEquals(Object)
    */
-  private int digestHash() {
+  protected int digestHash() {
     return Objects.hash(getTraitSet(), getDigestItems());
   }
 

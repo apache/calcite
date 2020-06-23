@@ -37,6 +37,7 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Relational expression that iterates over its input
@@ -151,5 +152,23 @@ public abstract class Filter extends SingleRel {
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("condition", condition);
+  }
+
+  protected boolean digestEquals0(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Filter o = (Filter) obj;
+    return traitSet.equals(o.traitSet)
+        && input.equals(o.input)
+        && condition.equals(o.condition)
+        && getRowType().equalsSansFieldNames(o.getRowType());
+  }
+
+  protected int digestHash0() {
+    return Objects.hash(traitSet, input, condition);
   }
 }
