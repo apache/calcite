@@ -2514,6 +2514,44 @@ class RelToSqlConverterTest {
     sql(query).withDb2().ok(expected);
   }
 
+  @Test void testDb2DialectSubselect() {
+    String query = "select count(foo), \"units_per_case\" "
+        + "from (select \"units_per_case\", \"cases_per_pallet\", \"product_id\", 1 as foo from \"product\") where \"cases_per_pallet\" > 100 "
+        + "group by \"product_id\", \"units_per_case\" "
+        + "order by \"units_per_case\" desc";
+    final String expected = "SELECT COUNT(*), t.units_per_case\n" +
+        "FROM (SELECT product.units_per_case, product.cases_per_pallet, product.product_id, 1 AS " +
+        "FOO\n" +
+        "FROM foodmart.product AS product) AS t\n" +
+        "WHERE t.cases_per_pallet > 100\n" +
+        "GROUP BY t.product_id, t.units_per_case\n" +
+        "ORDER BY t.units_per_case DESC";
+    sql(query).withDb2().ok(expected);
+  }
+
+  @Test void testDb2DialectSubselectFromUnion() {
+    String query = "select count(foo), \"units_per_case\" "
+        + "from (select \"units_per_case\", \"cases_per_pallet\", \"product_id\", 1 as foo from \"product\" where \"cases_per_pallet\" > 100 "
+        + "union all select \"units_per_case\", \"cases_per_pallet\", \"product_id\", 1 as foo from \"product\" where \"cases_per_pallet\" < 100) "
+        + "where \"cases_per_pallet\" > 100\n"
+        + "group by \"product_id\", \"units_per_case\" "
+        + "order by \"units_per_case\" desc";
+    final String expected = "SELECT COUNT(*), t3.units_per_case\n" +
+        "FROM (SELECT product.units_per_case, product.cases_per_pallet, product.product_id, 1 AS " +
+        "FOO\n" +
+        "FROM foodmart.product AS product\n" +
+        "WHERE product.cases_per_pallet > 100\n" +
+        "UNION ALL\n" +
+        "SELECT product0.units_per_case, product0.cases_per_pallet, product0.product_id, 1 AS " +
+        "FOO\n" +
+        "FROM foodmart.product AS product0\n" +
+        "WHERE product0.cases_per_pallet < 100) AS t3\n" +
+        "WHERE t3.cases_per_pallet > 100\n" +
+        "GROUP BY t3.product_id, t3.units_per_case\n" +
+        "ORDER BY t3.units_per_case DESC";
+    sql(query).withDb2().ok(expected);
+  }
+
   @Test void testDb2DialectSelectQueryWithGroup() {
     String query = "select count(*), sum(\"employee_id\") "
         + "from \"reserve_employee\" "
