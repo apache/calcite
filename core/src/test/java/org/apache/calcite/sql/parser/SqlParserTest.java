@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSetOption;
@@ -35,6 +36,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
+import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Pair;
@@ -8796,6 +8798,55 @@ public class SqlParserTest {
         + "/*+ properties(^a^.b.c=123, k2='v2') */"
         + "empno, ename, deptno from emps";
     sql(sql4).fails("(?s).*Encountered \"a .\" at .*");
+  }
+
+  /** Tests {@link Hoist}. */
+  @Test protected void testHoist() {
+    final String sql = "select 1 as x,\n"
+        + "  'ab' || 'c' as y\n"
+        + "from emp /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < 40\n"
+        + "and hiredate > date '2010-05-06'";
+    final Hoist.Hoisted hoisted = Hoist.create(Hoist.config()).hoist(sql);
+
+    // Simple toString converts each variable to '?N'
+    final String expected = "select ?0 as x,\n"
+        + "  ?1 || ?2 as y\n"
+        + "from emp /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < ?3\n"
+        + "and hiredate > ?4";
+    assertThat(hoisted.toString(), is(expected));
+
+    // As above, using the function explicitly.
+    assertThat(hoisted.substitute(Hoist::ordinalString), is(expected));
+
+    // Simple toString converts each variable to '?N'
+    final String expected1 = "select 1 as x,\n"
+        + "  ?1 || ?2 as y\n"
+        + "from emp /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < 40\n"
+        + "and hiredate > date '2010-05-06'";
+    assertThat(hoisted.substitute(Hoist::ordinalStringIfChar), is(expected1));
+
+    // Custom function converts variables to '[N:TYPE:VALUE]'
+    final String expected2 = "select [0:DECIMAL:1] as x,\n"
+        + "  [1:CHAR:ab] || [2:CHAR:c] as y\n"
+        + "from emp /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < [3:DECIMAL:40]\n"
+        + "and hiredate > [4:DATE:2010-05-06]";
+    assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
+  }
+
+  protected static String varToStr(Hoist.Variable v) {
+    if (v.node instanceof SqlLiteral) {
+      SqlLiteral literal = (SqlLiteral) v.node;
+      return "[" + v.ordinal
+          + ":" + literal.getTypeName()
+          + ":" + literal.toValue()
+          + "]";
+    } else {
+      return "[" + v.ordinal + "]";
+    }
   }
 
   //~ Inner Interfaces -------------------------------------------------------

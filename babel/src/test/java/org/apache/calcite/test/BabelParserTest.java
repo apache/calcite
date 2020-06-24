@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
 
@@ -280,5 +284,40 @@ class BabelParserTest extends SqlParserTest {
     final String expected = "CREATE VOLATILE TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
+  }
+
+  /** Similar to {@link #testHoist()} but using custom parser. */
+  @Test void testHoistMySql() {
+    // SQL contains back-ticks, which require MySQL's quoting,
+    // and DATEADD, which requires Babel.
+    final String sql = "select 1 as x,\n"
+        + "  'ab' || 'c' as y\n"
+        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < 40\n"
+        + "and DATEADD(day, 1, hiredate) > date '2010-05-06'";
+    final SqlDialect dialect = MysqlSqlDialect.DEFAULT;
+    final Hoist.Hoisted hoisted =
+        Hoist.create(Hoist.config()
+            .withParserConfig(
+                dialect.configureParser(SqlParser.configBuilder())
+                    .setParserFactory(SqlBabelParserImpl::new)
+                    .build()))
+            .hoist(sql);
+
+    // Simple toString converts each variable to '?N'
+    final String expected = "select ?0 as x,\n"
+        + "  ?1 || ?2 as y\n"
+        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < ?3\n"
+        + "and DATEADD(day, ?4, hiredate) > ?5";
+    assertThat(hoisted.toString(), is(expected));
+
+    // Custom string converts variables to '[N:TYPE:VALUE]'
+    final String expected2 = "select [0:DECIMAL:1] as x,\n"
+        + "  [1:CHAR:ab] || [2:CHAR:c] as y\n"
+        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
+        + "where deptno < [3:DECIMAL:40]\n"
+        + "and DATEADD(day, [4:DECIMAL:1], hiredate) > [5:DATE:2010-05-06]";
+    assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
   }
 }
