@@ -1359,6 +1359,7 @@ public abstract class SqlImplementor {
       }
       clauseList.appendAll(clauses);
       final Context newContext;
+      Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
         newContext = new Context(dialect, selectList.size()) {
@@ -1408,7 +1409,7 @@ public abstract class SqlImplementor {
         if (needNew
             && neededAlias != null
             && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
-          final Map<String, RelDataType> newAliases =
+          newAliases =
               ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
           newContext = aliasContext(newAliases, qualified);
         } else {
@@ -1416,7 +1417,7 @@ public abstract class SqlImplementor {
         }
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
-          needNew ? null : aliases);
+          needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
     }
 
     /** Returns whether a new sub-query is required. */
