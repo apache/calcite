@@ -292,12 +292,16 @@ public class EnumUtils {
   }
 
   private static Type toInternal(RelDataType type) {
+    return toInternal(type, false);
+  }
+
+  static Type toInternal(RelDataType type, boolean forceNotNull) {
     switch (type.getSqlTypeName()) {
     case DATE:
     case TIME:
-      return type.isNullable() ? Integer.class : int.class;
+      return type.isNullable() && !forceNotNull ? Integer.class : int.class;
     case TIMESTAMP:
-      return type.isNullable() ? Long.class : long.class;
+      return type.isNullable() && !forceNotNull ? Long.class : long.class;
     default:
       return null; // we don't care; use the default storage type
     }

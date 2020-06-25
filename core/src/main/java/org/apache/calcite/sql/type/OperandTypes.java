@@ -242,6 +242,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATETIME =
       family(SqlTypeFamily.DATETIME);
 
+  public static final SqlSingleOperandTypeChecker DATE =
+      family(SqlTypeFamily.DATE);
+
+  public static final SqlSingleOperandTypeChecker TIMESTAMP =
+      family(SqlTypeFamily.TIMESTAMP);
+
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
 

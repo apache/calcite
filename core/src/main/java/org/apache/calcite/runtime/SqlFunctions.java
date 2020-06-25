@@ -33,6 +33,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -1774,7 +1775,7 @@ public class SqlFunctions {
 
   @NonDeterministic
   private static Object cannotConvert(Object o, Class toType) {
-    throw RESOURCE.cannotConvert(o.toString(), toType.toString()).ex();
+    throw RESOURCE.cannotConvert(String.valueOf(o), toType.toString()).ex();
   }
 
   /** CAST(VARCHAR AS BOOLEAN). */
@@ -2097,6 +2098,52 @@ public class SqlFunctions {
     return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
         .getLocalTimeString()
         .getMillisOfDay();
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP_SECONDS}. */
+  public static long timestampSeconds(long v) {
+    return v * 1000;
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP_MILLIS}. */
+  public static long timestampMillis(long v) {
+    // translation is trivial, because Calcite represents TIMESTAMP values as
+    // millis since epoch
+    return v;
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP_MICROS}. */
+  public static long timestampMicros(long v) {
+    return v / 1000;
+  }
+
+  /** For {@link SqlLibraryOperators#UNIX_SECONDS}. */
+  public static long unixSeconds(long v) {
+    return v / 1000;
+  }
+
+  /** For {@link SqlLibraryOperators#UNIX_MILLIS}. */
+  public static long unixMillis(long v) {
+    // translation is trivial, because Calcite represents TIMESTAMP values as
+    // millis since epoch
+    return v;
+  }
+
+  /** For {@link SqlLibraryOperators#UNIX_MICROS}. */
+  public static long unixMicros(long v) {
+    return v * 1000;
+  }
+
+  /** For {@link SqlLibraryOperators#DATE_FROM_UNIX_DATE}. */
+  public static int dateFromUnixDate(int v) {
+    // translation is trivial, because Calcite represents dates as Unix integers
+    return v;
+  }
+
+  /** For {@link SqlLibraryOperators#UNIX_DATE}. */
+  public static int unixDate(int v) {
+    // translation is trivial, because Calcite represents dates as Unix integers
+    return v;
   }
 
   public static Long toTimestampWithLocalTimeZone(String v) {

@@ -101,6 +101,16 @@ class BabelQuidemTest extends QuidemTest {
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
               .connect();
+        case "scott-big-query":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .connect();
         default:
           return super.connect(name, reference);
         }

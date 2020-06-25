@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
@@ -202,6 +203,29 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.cascade(ReturnTypes.INTEGER_NULLABLE, SqlTypeTransforms.FORCE_NULLABLE),
       null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
 
+  /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE =
+      new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null, OperandTypes.STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
+   * a given number of seconds after 1970-01-01. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_FROM_UNIX_DATE =
+      new SqlFunction("DATE_FROM_UNIX_DATE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null, OperandTypes.INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "UNIX_DATE(date)" function; returns the number of days since
+   * 1970-01-01. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction UNIX_DATE =
+      new SqlFunction("UNIX_DATE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null, OperandTypes.DATE,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
@@ -348,6 +372,54 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
+   * a given number of seconds after 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_SECONDS =
+      new SqlFunction("TIMESTAMP_SECONDS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
+   * a given number of milliseconds after 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_MILLIS =
+      new SqlFunction("TIMESTAMP_MILLIS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
+   * a given number of micro-seconds after 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_MICROS =
+      new SqlFunction("TIMESTAMP_MICROS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
+   * since 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction UNIX_SECONDS =
+      new SqlFunction("UNIX_SECONDS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "UNIX_MILLIS(bigint)" function; returns the number of milliseconds
+   * since 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction UNIX_MILLIS =
+      new SqlFunction("UNIX_MILLIS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "UNIX_MICROS(bigint)" function; returns the number of microseconds
+   * since 1970-01-01 00:00:00. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction UNIX_MICROS =
+      new SqlFunction("UNIX_MICROS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})

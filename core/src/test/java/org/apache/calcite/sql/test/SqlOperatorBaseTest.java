@@ -324,15 +324,23 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(null);
   }
 
-  protected SqlTester oracleTester() {
+  private SqlTester oracleTester() {
+    return libraryTester(SqlLibrary.ORACLE);
+  }
+
+  private SqlTester bigQueryTester() {
+    return libraryTester(SqlLibrary.BIG_QUERY);
+  }
+
+  protected SqlTester libraryTester(SqlLibrary library) {
     return tester.withOperatorTable(
             SqlLibraryOperatorTableFactory.INSTANCE
-                .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.ORACLE))
+                .getOperatorTable(SqlLibrary.STANDARD, library))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
-                .with(CalciteConnectionProperty.FUN, "oracle"));
+                .with(CalciteConnectionProperty.FUN, library.fun));
   }
 
   protected SqlTester oracleTester(SqlConformance conformance) {
@@ -5597,6 +5605,28 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.RAND_INTEGER);
     tester.checkScalar("rand_integer(1, 11)", 4, "INTEGER NOT NULL");
     tester.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
+  }
+
+  /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
+  @Test void testUnixSecondsFunc() {
+    SqlTester tester = bigQueryTester();
+    tester.setFor(SqlLibraryOperators.UNIX_SECONDS);
+    tester.checkScalar("unix_seconds(timestamp '1970-01-01 00:00:00')", 0,
+        "BIGINT NOT NULL");
+    tester.checkNull("unix_seconds(cast(null as timestamp))");
+    tester.checkNull("unix_millis(cast(null as timestamp))");
+    tester.checkNull("unix_micros(cast(null as timestamp))");
+    tester.checkScalar("timestamp_seconds(0)", "1970-01-01 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkNull("timestamp_seconds(cast(null as bigint))");
+    tester.checkNull("timestamp_millis(cast(null as bigint))");
+    tester.checkNull("timestamp_micros(cast(null as bigint))");
+    tester.checkScalar("date_from_unix_date(0)", "1970-01-01", "DATE NOT NULL");
+
+    // Have to quote the "DATE" function because we're not using the Babel
+    // parser. In the regular parser, DATE is a reserved keyword.
+    tester.checkNull("\"DATE\"(null)");
+    tester.checkScalar("\"DATE\"('1985-12-06')", "1985-12-06", "DATE NOT NULL");
   }
 
   @Test void testAbsFunc() {

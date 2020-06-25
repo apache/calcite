@@ -106,6 +106,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
@@ -132,8 +134,15 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -430,6 +439,14 @@ public class RexImpTable {
         new PeriodNameImplementor("monthName",
             BuiltInMethod.MONTHNAME_WITH_TIMESTAMP,
             BuiltInMethod.MONTHNAME_WITH_DATE));
+    defineMethod(TIMESTAMP_SECONDS, "timestampSeconds", NullPolicy.STRICT);
+    defineMethod(TIMESTAMP_MILLIS, "timestampMillis", NullPolicy.STRICT);
+    defineMethod(TIMESTAMP_MICROS, "timestampMicros", NullPolicy.STRICT);
+    defineMethod(UNIX_SECONDS, "unixSeconds", NullPolicy.STRICT);
+    defineMethod(UNIX_MILLIS, "unixMillis", NullPolicy.STRICT);
+    defineMethod(UNIX_MICROS, "unixMicros", NullPolicy.STRICT);
+    defineMethod(DATE_FROM_UNIX_DATE, "dateFromUnixDate", NullPolicy.STRICT);
+    defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
 
     map.put(IS_NULL, new IsNullImplementor());
     map.put(IS_NOT_NULL, new IsNotNullImplementor());
@@ -498,6 +515,7 @@ public class RexImpTable {
 
     map.put(COALESCE, new CoalesceImplementor());
     map.put(CAST, new CastImplementor());
+    map.put(DATE, new CastImplementor());
 
     map.put(REINTERPRET, new ReinterpretImplementor());
 
