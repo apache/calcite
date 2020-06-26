@@ -6121,6 +6121,15 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4092">[CALCITE-4092]
+   * NPE using WITH clause without a corresponding SELECT FROM</a>. */
+  @Test void testWithNotSelected() {
+    final String sql = "with emp2 as (select max(empno) as empno from emp)\n"
+        + "select * from emp where empno < ^emp2^.empno";
+    sql(sql).fails("Table 'EMP2' not found");
+  }
+
   /**
    * Tests a large scalar expression, which will expose any O(n^2) algorithms
    * lurking in the validation process.
