@@ -90,6 +90,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -504,18 +505,18 @@ public abstract class SqlImplementor {
   /** Creates a result based on a join. (Each join could contain one or more
    * relational expressions.) */
   public Result result(SqlNode join, Result leftResult, Result rightResult) {
-    final ImmutableMap.Builder<String, RelDataType> builder =
-        ImmutableMap.builder();
+    final Map<String, RelDataType> aliases;
     if (join.getKind() == SqlKind.JOIN) {
+      final ImmutableMap.Builder<String, RelDataType> builder =
+          ImmutableMap.builder();
       collectAliases(builder, join,
           Iterables.concat(leftResult.aliases.values(),
               rightResult.aliases.values()).iterator());
-      return result(join, ImmutableList.of(Clause.FROM), null, null,
-          builder.build());
+      aliases = builder.build();
     } else {
-      return new Result(join, ImmutableList.of(Clause.FROM), null, null,
-          leftResult.aliases);
+      aliases = leftResult.aliases;
     }
+    return result(join, ImmutableList.of(Clause.FROM), null, null, aliases);
   }
 
   private void collectAliases(ImmutableMap.Builder<String, RelDataType> builder,
@@ -1378,8 +1379,11 @@ public abstract class SqlImplementor {
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
       this.expectedRel = expectedRel;
-      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : expectedClauses.toArray(new Clause[0]);
-      this.needNew = expectedRel != null && needNewSubQuery(expectedRel, this.clauses, clauses2);
+      final Clause[] clauses2 =
+          ignoreClauses ? new Clause[0]
+              : expectedClauses.toArray(new Clause[0]);
+      this.needNew = expectedRel != null
+          && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
 
     public Builder builderX(RelNode rel) {
@@ -1407,7 +1411,7 @@ public abstract class SqlImplementor {
     public Builder builder(RelNode rel, Clause... clauses) {
       assert expectedClauses.containsAll(Arrays.asList(clauses));
       assert rel.equals(expectedRel);
-      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : expectedClauses.toArray(new Clause[0]); // TODO clauses;
+      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : clauses;
       final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
       SqlSelect select;
@@ -1483,7 +1487,10 @@ public abstract class SqlImplementor {
 
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(RelNode rel, List<Clause> clauses, Clause[] expectedClauses) {
-      final Clause maxClause = maxClause(clauses);
+      if (clauses.isEmpty()) {
+        return false;
+      }
+      final Clause maxClause = Collections.max(clauses);
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
@@ -1554,18 +1561,7 @@ public abstract class SqlImplementor {
     /** Returns the highest clause that is in use. */
     @Deprecated
     public Clause maxClause() {
-      return maxClause(clauses);
-    }
-
-    private Clause maxClause(List<Clause> clauses) {
-      Clause maxClause = null;
-      for (Clause clause : clauses) {
-        if (maxClause == null || clause.ordinal() > maxClause.ordinal()) {
-          maxClause = clause;
-        }
-      }
-      assert maxClause != null;
-      return maxClause;
+      return Collections.max(clauses);
     }
 
     /** Returns a node that can be included in the FROM clause or a JOIN. It has

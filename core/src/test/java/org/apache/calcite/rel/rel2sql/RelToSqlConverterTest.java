@@ -1052,7 +1052,8 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3896">[CALCITE-3896]
    * JDBC adapter, when generating SQL, changes target of ambiguous HAVING
    * clause with a Project on Filter on Aggregate</a>. */
-//  @Disabled // TODO
+  @Disabled
+  // TODO similar, but 'as \"gross_weight\"'; BQ columns are case-insensitive
   @Test void testHavingAlias2() {
     final String query = "select \"product_id\" + 1,\n"
         + "  sum(\"gross_weight\") as gross_weight\n"

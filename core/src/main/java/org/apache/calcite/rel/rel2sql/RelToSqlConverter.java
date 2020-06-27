@@ -135,8 +135,7 @@ public class RelToSqlConverter extends SqlImplementor
       boolean ignoreClauses, Set<Clause> expectedClauses) {
     try {
       final RelNode e = parent.getInput(i);
-      stack.push(new Frame(parent, i, e, anon, ignoreClauses,
-          expectedClauses));
+      stack.push(new Frame(parent, i, e, anon, ignoreClauses, expectedClauses));
       return dispatch(e);
     } finally {
       stack.pop();
@@ -195,7 +194,9 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Join e) {
-    if (e.getJoinType() == JoinRelType.ANTI || e.getJoinType() == JoinRelType.SEMI) {
+    switch (e.getJoinType()) {
+    case ANTI:
+    case SEMI:
       return visitAntiOrSemiJoin(e);
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
@@ -231,10 +232,9 @@ public class RelToSqlConverter extends SqlImplementor
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
-    SqlNode sqlCondition = null;
 
-    SqlSelect sqlSelect = leftResult.asSelect();
-    sqlCondition = convertConditionToSqlNode(e.getCondition(),
+    final SqlSelect sqlSelect = leftResult.asSelect();
+    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
         leftContext,
         rightContext,
         e.getLeft().getRowType().getFieldCount(),
@@ -274,15 +274,9 @@ public class RelToSqlConverter extends SqlImplementor
           sqlCondition);
     }
     sqlSelect.setWhere(sqlCondition);
-    SqlNode resultNode;
-    if (leftResult.neededAlias != null) {
-      resultNode = SqlStdOperatorTable.AS.createCall(
-          new SqlNodeList(
-              ImmutableList.of(sqlSelect,
-                  new SqlIdentifier(leftResult.neededAlias, POS)), POS));
-    } else {
-      resultNode = sqlSelect;
-    }
+    final SqlNode resultNode =
+        leftResult.neededAlias == null ? sqlSelect
+            : as(sqlSelect, leftResult.neededAlias);
     return result(resultNode, leftResult, rightResult);
   }
 
