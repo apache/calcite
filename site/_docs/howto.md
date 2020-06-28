@@ -498,7 +498,7 @@ protocol that you are using (HTTPS vs. SSH).
  * Merge your Apache and GitHub accounts using the [account linking page](https://gitbox.apache.org/setup/)
 (you should see 3 green checks in GitBox).
  * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization. 
- * Accept invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members). 
+ * Accept the invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members). 
 
 ## Merging pull requests (for Calcite committers)
 
