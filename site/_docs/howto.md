@@ -480,24 +480,24 @@ Committers have write access to Calcite's
 [ASF git repositories](https://gitbox.apache.org/repos/asf#calcite) hosting
 the source code of the project as well as the website.
 
-All repositories present on gitbox are available on GitHub with write-access 
+All repositories present on GitBox are available on GitHub with write-access 
 enabled, including rights to open/close/merge pull requests and address issues.
 
-In order to exploit the GitHub services, committers should link their accounts
-(ASF, GitHub) via the [account linking page](https://gitbox.apache.org/setup/).
+In order to exploit the GitHub services, committers should link their ASF and
+GitHub accounts via the [account linking page](https://gitbox.apache.org/setup/).
 
 Here are the steps:
 
- * Set your GitHub ID into your [Apache ID profile](https://id.apache.org/).
+ * Set your GitHub username into your [Apache profile](https://id.apache.org/).
  * Enable [GitHub 2FA](https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/)
 on your GitHub account. 
  * Activating GitHub 2FA changes the authentication process and may affect the way you 
  [access GitHub](https://help.github.com/en/github/authenticating-to-github/accessing-github-using-two-factor-authentication#using-two-factor-authentication-with-the-command-line).
 You may need to establish personal access tokens or upload your public SSH key to GitHub depending on the 
-protocol (HTTPS vs. SSH) that you are using.     
+protocol that you are using (HTTPS vs. SSH).     
  * Merge your Apache and GitHub accounts using the [account linking page](https://gitbox.apache.org/setup/)
 (you should see 3 green checks in GitBox).
- * Wait at least 30  minutes for an email inviting you to Apache GitHub Organization. 
+ * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization. 
  * Accept invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members). 
 
 ## Merging pull requests (for Calcite committers)
