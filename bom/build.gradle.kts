@@ -143,6 +143,7 @@ dependencies {
         apiv("org.scala-lang:scala-library")
         apiv("org.slf4j:slf4j-api", "slf4j")
         apiv("org.slf4j:slf4j-log4j12", "slf4j")
+        apiv("org.sosy-lab:javasmt-solver-z3", "javasmt")
         apiv("redis.clients:jedis")
         apiv("sqlline:sqlline")
         runtimev("org.junit.jupiter:junit-jupiter-engine", "junit5")
