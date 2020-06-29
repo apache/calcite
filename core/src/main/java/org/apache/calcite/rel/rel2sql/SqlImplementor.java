@@ -83,12 +83,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -147,13 +147,19 @@ public abstract class SqlImplementor {
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
   public final Result visitInput(RelNode e, int i) {
-    return visitInput(e, i, isAnon(), false, ImmutableSet.of());
+    return visitInput(e, i, ImmutableSet.of());
+  }
+
+  /** Visits an input of the current relational expression,
+   * with the given expected clauses. */
+  public final Result visitInput(RelNode e, int i, Clause... clauses) {
+    return visitInput(e, i, ImmutableSet.copyOf(clauses));
   }
 
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
-  public final Result visitInput(RelNode e, int i, Clause... clauses) {
-    return visitInput(e, i, isAnon(), false, ImmutableSet.copyOf(clauses));
+  public final Result visitInput(RelNode e, int i, Set<Clause> clauses) {
+    return visitInput(e, i, isAnon(), false, clauses);
   }
 
   /** Visits the {@code i}th input of {@code e}, the current relational
@@ -1379,15 +1385,25 @@ public abstract class SqlImplementor {
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
       this.expectedRel = expectedRel;
-      final Clause[] clauses2 =
-          ignoreClauses ? new Clause[0]
-              : expectedClauses.toArray(new Clause[0]);
+      final Set<Clause> clauses2 =
+          ignoreClauses ? ImmutableSet.of() : expectedClauses;
       this.needNew = expectedRel != null
           && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
 
-    public Builder builderX(RelNode rel) {
-      return builder(rel, expectedClauses.toArray(new Clause[0]));
+    /** Creates a builder for the SQL of the given relational expression,
+     * using the clauses that you declared when you called
+     * {@link #visitInput(RelNode, int, Set)}. */
+    public Builder builder(RelNode rel) {
+      return builder(rel, expectedClauses);
+    }
+
+    /** @deprecated Provide the expected clauses up-front, when you call
+     * {@link #visitInput(RelNode, int, Set)}, then create a builder using
+     * {@link #builder(RelNode)}. */
+    @Deprecated // to be removed before 2.0
+    public Builder builder(RelNode rel, Clause clause, Clause... clauses) {
+      return builder(rel, ImmutableSet.copyOf(Lists.asList(clause, clauses)));
     }
 
     /** Once you have a Result of implementing a child relational expression,
@@ -1408,10 +1424,10 @@ public abstract class SqlImplementor {
      * @param rel Relational expression being implemented
      * @return A builder
      */
-    public Builder builder(RelNode rel, Clause... clauses) {
-      assert expectedClauses.containsAll(Arrays.asList(clauses));
+    private Builder builder(RelNode rel, Set<Clause> clauses) {
+      assert expectedClauses.containsAll(clauses);
       assert rel.equals(expectedRel);
-      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : clauses;
+      final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
       final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
       SqlSelect select;
@@ -1427,12 +1443,23 @@ public abstract class SqlImplementor {
       Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
+        final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
+            && dialect.getConformance().isHavingAlias();
         newContext = new Context(dialect, selectList.size()) {
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:
-              return ((SqlCall) selectItem).operand(0);
+              final SqlCall asCall = (SqlCall) selectItem;
+              if (aliasRef) {
+                // For BigQuery, given the query
+                //   SELECT SUM(x) AS x FROM t HAVING(SUM(t.x) > 0)
+                // we can generate
+                //   SELECT SUM(x) AS x FROM t HAVING(x > 0)
+                // because 'x' in HAVING resolves to the 'AS x' not 't.x'.
+                return asCall.operand(1);
+              }
+              return asCall.operand(0);
             }
             return selectItem;
           }
@@ -1486,7 +1513,8 @@ public abstract class SqlImplementor {
     }
 
     /** Returns whether a new sub-query is required. */
-    private boolean needNewSubQuery(RelNode rel, List<Clause> clauses, Clause[] expectedClauses) {
+    private boolean needNewSubQuery(RelNode rel, List<Clause> clauses,
+        Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
         return false;
       }

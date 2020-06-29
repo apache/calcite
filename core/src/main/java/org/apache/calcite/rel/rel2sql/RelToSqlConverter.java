@@ -317,13 +317,13 @@ public class RelToSqlConverter extends SqlImplementor
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
           ImmutableSet.of(Clause.HAVING));
       parseCorrelTable(e, x);
-      final Builder builder = x.builderX(e);
+      final Builder builder = x.builder(e);
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     } else {
       final Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
-      final Builder builder = x.builderX(e);
+      final Builder builder = x.builder(e);
       builder.setWhere(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     }
@@ -333,7 +333,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Project e) {
     final Result x = visitInput(e, 0, Clause.SELECT);
     parseCorrelTable(e, x);
-    final Builder builder = x.builderX(e);
+    final Builder builder = x.builder(e);
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
@@ -398,7 +398,7 @@ public class RelToSqlConverter extends SqlImplementor
     final boolean ignoreClauses = e.getInput() instanceof Project;
     final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
         ImmutableSet.copyOf(clauses));
-    final Builder builder = x.builderX(e);
+    final Builder builder = x.builder(e);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
@@ -539,13 +539,14 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Calc e) {
-    final Result x = visitInput(e, 0);
-    parseCorrelTable(e, x);
     final RexProgram program = e.getProgram();
-    Builder builder =
+    final ImmutableSet<Clause> expectedClauses =
         program.getCondition() != null
-            ? x.builder(e, Clause.WHERE)
-            : x.builder(e);
+            ? ImmutableSet.of(Clause.WHERE)
+            : ImmutableSet.of();
+    final Result x = visitInput(e, 0, expectedClauses);
+    parseCorrelTable(e, x);
+    final Builder builder = x.builder(e);
     if (!isStar(program)) {
       final List<SqlNode> selectList = new ArrayList<>(program.getProjectList().size());
       for (RexLocalRef ref : program.getProjectList()) {
@@ -726,7 +727,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
     final Result x = visitInput(e, 0, Clause.ORDER_BY, Clause.OFFSET,
         Clause.FETCH);
-    final Builder builder = x.builderX(e);
+    final Builder builder = x.builder(e);
     if (stack.size() != 1 && builder.select.getSelectList() == null) {
       // Generates explicit column names instead of start(*) for
       // non-root order by to avoid ambiguity.

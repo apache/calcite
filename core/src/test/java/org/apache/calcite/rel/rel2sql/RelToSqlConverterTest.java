@@ -58,6 +58,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -76,7 +77,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -1039,44 +1039,79 @@ class RelToSqlConverterTest {
         builder.push(filter)
             .project(builder.alias(builder.field("D"), "emps.deptno"))
             .build();
-    final String sql = toSql(root, DatabaseProduct.MYSQL.getDialect());
-    final String expectedSql = "SELECT `D2` AS `emps.deptno`\n"
+    final String expectedMysql = "SELECT `D2` AS `emps.deptno`\n"
         + "FROM (SELECT `DEPTNO` AS `D2`, COUNT(*) AS `emps.count`\n"
         + "FROM `scott`.`EMP`\n"
         + "GROUP BY `DEPTNO`\n"
-        + "HAVING COUNT(*) < 2) AS `t1`";
-    assertThat(sql, isLinux(expectedSql));
+        + "HAVING `emps.count` < 2) AS `t1`";
+    final String expectedPostgresql = "SELECT \"DEPTNO\" AS \"emps.deptno\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "HAVING COUNT(*) < 2";
+    final String expectedBigQuery = "SELECT D2 AS `emps.deptno`\n"
+        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS `emps.count`\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY DEPTNO\n"
+        + "HAVING `emps.count` < 2) AS t1";
+    relFn(b -> root)
+        .withMysql().ok(expectedMysql)
+        .withPostgresql().ok(expectedPostgresql)
+        .withBigQuery().ok(expectedBigQuery);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3896">[CALCITE-3896]
    * JDBC adapter, when generating SQL, changes target of ambiguous HAVING
-   * clause with a Project on Filter on Aggregate</a>. */
-  @Disabled
-  // TODO similar, but 'as \"gross_weight\"'; BQ columns are case-insensitive
-  @Test void testHavingAlias2() {
+   * clause with a Project on Filter on Aggregate</a>.
+   *
+   * <p>The alias is ambiguous in dialects such as MySQL and BigQuery that
+   * have {@link SqlConformance#isHavingAlias()} = true. When the HAVING clause
+   * tries to reference a column, it sees the alias instead. */
+  @Test void testHavingAliasSameAsColumnIgnoringCase() {
+    checkHavingAliasSameAsColumn(true);
+  }
+
+  @Test void testHavingAliasSameAsColumn() {
+    checkHavingAliasSameAsColumn(false);
+  }
+
+  private void checkHavingAliasSameAsColumn(boolean upperAlias) {
+    final String alias = upperAlias ? "GROSS_WEIGHT" : "gross_weight";
     final String query = "select \"product_id\" + 1,\n"
-        + "  sum(\"gross_weight\") as gross_weight\n"
+        + "  sum(\"gross_weight\") as \"" + alias + "\"\n"
         + "from \"product\"\n"
         + "group by \"product_id\"\n"
         + "having sum(\"product\".\"gross_weight\") < 200";
+    // PostgreSQL has isHavingAlias=false, case-sensitive=true
     final String expectedPostgresql = "SELECT \"product_id\" + 1,"
-        + " SUM(\"gross_weight\") AS \"GROSS_WEIGHT\"\n"
+        + " SUM(\"gross_weight\") AS \"" + alias + "\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
         + "HAVING SUM(\"gross_weight\") < 200";
-    final String expectedBigQuery = "SELECT product_id + 1, GROSS_WEIGHT\n"
-        + "FROM (SELECT product_id, SUM(gross_weight) AS GROSS_WEIGHT\n"
-        + "FROM foodmart.product\n"
-        + "GROUP BY product_id\n"
-        + "HAVING SUM(product.gross_weight) < 200) AS t1";
-        // (or) "HAVING gross_weight < 200) AS t1"
-        // (or) ") AS t1\nWHERE t1.gross_weight < 200) AS t1"
-
-        // INSTEAD, we get "HAVING SUM(gross_weight) < 200) AS t1"
+    // MySQL has isHavingAlias=true, case-sensitive=true
+    final String expectedMysql = "SELECT `product_id` + 1, `" + alias + "`\n"
+        + "FROM (SELECT `product_id`, SUM(`gross_weight`) AS `" + alias + "`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_id`\n"
+        + "HAVING `" + alias + "` < 200) AS `t1`";
+    // BigQuery has isHavingAlias=true, case-sensitive=false
+    final String expectedBigQuery = upperAlias
+        ? "SELECT product_id + 1, GROSS_WEIGHT\n"
+            + "FROM (SELECT product_id, SUM(gross_weight) AS GROSS_WEIGHT\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_id\n"
+            + "HAVING GROSS_WEIGHT < 200) AS t1"
+        // Before [CALCITE-3896] was fixed, we got
+        // "HAVING SUM(gross_weight) < 200) AS t1"
         // which on BigQuery gives you an error about aggregating aggregates
+        : "SELECT product_id + 1, gross_weight\n"
+            + "FROM (SELECT product_id, SUM(gross_weight) AS gross_weight\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_id\n"
+            + "HAVING gross_weight < 200) AS t1";
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
+        .withMysql().ok(expectedMysql)
         .withBigQuery().ok(expectedBigQuery);
   }
 

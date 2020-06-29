@@ -62,7 +62,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
     final Result x =
         visitInput(e, 0, isAnon(), isProjectOutput,
             ImmutableSet.of(Clause.GROUP_BY));
-    final Builder builder = x.builderX(e);
+    final Builder builder = x.builder(e);
 
     final List<SqlNode> groupByList = Expressions.list();
     final List<SqlNode> selectList = new ArrayList<>();
@@ -89,7 +89,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
   /** @see #dispatch */
   public Result visit(Window e) {
     final Result x = visitInput(e, 0, Clause.SELECT);
-    final Builder builder = x.builderX(e);
+    final Builder builder = x.builder(e);
     final List<SqlNode> selectList =
         new ArrayList<>(builder.context.fieldList());
 
