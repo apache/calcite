@@ -64,14 +64,21 @@ class DirectedGraphTest {
     g.addEdge("B", "D");
     assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
     assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
-    assertEquals("[]", shortestPath(g, "D", "D").toString());
+    assertEquals("[D]", shortestPath(g, "D", "D").toString());
     assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
-    assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
+    assertEquals("[[A, B, D], [A, B, C, D]]", paths(g, "A", "D").toString());
   }
 
   private <V> List<V> shortestPath(DirectedGraph<V, DefaultEdge> g,
       V source, V target) {
-    return Graphs.makeImmutable(g).getShortestPath(source, target);
+    List<List<V>> paths = Graphs.makeImmutable(g).getPaths(source, target);
+    return paths.isEmpty() ? null : paths.get(0);
+  }
+
+  private <V> List<V> shortestPath(Graphs.FrozenGraph<V, DefaultEdge> g,
+                                   V source, V target) {
+    List<List<V>> paths = g.getPaths(source, target);
+    return paths.isEmpty() ? null : paths.get(0);
   }
 
   private <V> List<List<V>> paths(DirectedGraph<V, DefaultEdge> g,
@@ -217,15 +224,16 @@ class DirectedGraphTest {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
     final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(graph);
-    assertEquals("[A, B]", frozenGraph.getShortestPath("A", "B").toString());
+    assertEquals("[A, B]", shortestPath(frozenGraph, "A", "B").toString());
     assertEquals("[[A, B]]", frozenGraph.getPaths("A", "B").toString());
-    assertEquals("[A, D, E]", frozenGraph.getShortestPath("A", "E").toString());
-    assertEquals("[[A, B, C, E], [A, D, E]]",
+    assertEquals("[A, D, E]", shortestPath(frozenGraph, "A", "E").toString());
+    assertEquals("[[A, D, E], [A, B, C, E]]",
         frozenGraph.getPaths("A", "E").toString());
-    assertNull(frozenGraph.getShortestPath("B", "A"));
-    assertNull(frozenGraph.getShortestPath("D", "C"));
+    assertNull(shortestPath(frozenGraph, "B", "A"));
+
+    assertNull(shortestPath(frozenGraph, "D", "C"));
     assertEquals("[[D, E]]", frozenGraph.getPaths("D", "E").toString());
-    assertEquals("[D, E]", frozenGraph.getShortestPath("D", "E").toString());
+    assertEquals("[D, E]", shortestPath(frozenGraph, "D", "E").toString());
   }
 
   @Test void testDistances() {
@@ -355,9 +363,9 @@ class DirectedGraphTest {
     g.addEdge("B", "D", 1);
     assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
     assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
-    assertEquals("[]", shortestPath(g, "D", "D").toString());
+    assertEquals("[D]", shortestPath(g, "D", "D").toString());
     assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
-    assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
+    assertEquals("[[A, B, D], [A, B, C, D]]", paths(g, "A", "D").toString());
     assertThat(g.addVertex("B"), is(false));
 
     assertThat(Iterables.size(g.getEdges("A", "B")), is(1));

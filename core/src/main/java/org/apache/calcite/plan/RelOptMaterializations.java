@@ -254,8 +254,8 @@ public abstract class RelOptMaterializations {
       Set<RelOptTable> usedTables,
       Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
     for (RelOptTable queryTable : usedTables) {
-      if (usesGraph.getShortestPath(queryTable.getQualifiedName(), qualifiedName)
-          != null) {
+      if (usesGraph.getShortestDistance(queryTable.getQualifiedName(), qualifiedName)
+          != -1) {
         return true;
       }
     }

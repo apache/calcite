@@ -22,13 +22,12 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.calcite.util.Static.cons;
 
 /**
  * Miscellaneous graph utilities.
@@ -56,42 +55,40 @@ public class Graphs {
   public static <V, E extends DefaultEdge> FrozenGraph<V, E> makeImmutable(
       DirectedGraph<V, E> graph) {
     DefaultDirectedGraph<V, E> graph1 = (DefaultDirectedGraph<V, E>) graph;
-    Map<Pair<V, V>, List<V>> shortestPaths = new HashMap<>();
+    Map<Pair<V, V>, int[]> shortestDistances = new HashMap<>();
     for (DefaultDirectedGraph.VertexInfo<V, E> arc
         : graph1.vertexMap.values()) {
       for (E edge : arc.outEdges) {
         final V source = graph1.source(edge);
         final V target = graph1.target(edge);
-        shortestPaths.put(Pair.of(source, target),
-            ImmutableList.of(source, target));
+        shortestDistances.put(Pair.of(source, target), new int[] {1});
       }
     }
     while (true) {
       // Take a copy of the map's keys to avoid
       // ConcurrentModificationExceptions.
       final List<Pair<V, V>> previous =
-          ImmutableList.copyOf(shortestPaths.keySet());
-      int changeCount = 0;
+          ImmutableList.copyOf(shortestDistances.keySet());
+      boolean changed = false;
       for (E edge : graph.edgeSet()) {
         for (Pair<V, V> edge2 : previous) {
           if (edge.target.equals(edge2.left)) {
             final Pair<V, V> key = Pair.of(graph1.source(edge), edge2.right);
-            List<V> bestPath = shortestPaths.get(key);
-            List<V> arc2Path = shortestPaths.get(edge2);
-            if ((bestPath == null)
-                || (bestPath.size() > (arc2Path.size() + 1))) {
-              shortestPaths.put(key,
-                  cons(graph1.source(edge), arc2Path));
-              changeCount++;
+            int[] bestDistance = shortestDistances.get(key);
+            int[] arc2Distance = shortestDistances.get(edge2);
+            if ((bestDistance == null)
+                || (bestDistance[0] > (arc2Distance[0] + 1))) {
+              shortestDistances.put(key, new int[] {arc2Distance[0] + 1});
+              changed = true;
             }
           }
         }
       }
-      if (changeCount == 0) {
+      if (!changed) {
         break;
       }
     }
-    return new FrozenGraph<>(graph1, shortestPaths);
+    return new FrozenGraph<>(graph1, shortestDistances);
   }
 
   /**
@@ -102,39 +99,29 @@ public class Graphs {
    */
   public static class FrozenGraph<V, E extends DefaultEdge> {
     private final DefaultDirectedGraph<V, E> graph;
-    private final Map<Pair<V, V>, List<V>> shortestPaths;
+    private final Map<Pair<V, V>, int[]> shortestDistances;
 
     /** Creates a frozen graph as a copy of another graph. */
     FrozenGraph(DefaultDirectedGraph<V, E> graph,
-        Map<Pair<V, V>, List<V>> shortestPaths) {
+        Map<Pair<V, V>, int[]> shortestDistances) {
       this.graph = graph;
-      this.shortestPaths = shortestPaths;
+      this.shortestDistances = shortestDistances;
     }
 
     /**
-     * Returns an iterator of all paths between two nodes, shortest first.
+     * Returns an iterator of all paths between two nodes,
+     * in non-decreasing order of path lengths.
      *
      * <p>The current implementation is not optimal.</p>
      */
     public List<List<V>> getPaths(V from, V to) {
       List<List<V>> list = new ArrayList<>();
-      findPaths(from, to, list);
-      return list;
-    }
-
-    /**
-     * Returns the shortest path between two points, null if there is no path.
-     *
-     * @param from From
-     * @param to To
-     *
-     * @return A list of arcs, null if there is no path.
-     */
-    public List<V> getShortestPath(V from, V to) {
       if (from.equals(to)) {
-        return ImmutableList.of();
+        list.add(ImmutableList.of(from));
       }
-      return shortestPaths.get(Pair.of(from, to));
+      findPaths(from, to, list);
+      list.sort(Comparator.comparingInt(List::size));
+      return list;
     }
 
     /**
@@ -147,13 +134,12 @@ public class Graphs {
       if (from.equals(to)) {
         return 0;
       }
-      List<V> path = shortestPaths.get(Pair.of(from, to));
-      return path == null ? -1 : path.size() - 1;
+      int[] distance = shortestDistances.get(Pair.of(from, to));
+      return distance == null ? -1 : distance[0];
     }
 
     private void findPaths(V from, V to, List<List<V>> list) {
-      final List<V> shortestPath = shortestPaths.get(Pair.of(from, to));
-      if (shortestPath == null) {
+      if (getShortestDistance(from, to) == -1) {
         return;
       }
 //      final E edge = graph.getEdge(from, to);

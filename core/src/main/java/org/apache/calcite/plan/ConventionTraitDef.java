@@ -197,7 +197,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       Convention toConvention) {
     ConversionData conversionData = getConversionData(planner);
     return fromConvention.canConvertConvention(toConvention)
-        || conversionData.getShortestPath(fromConvention, toConvention) != null;
+        || conversionData.getShortestDistance(fromConvention, toConvention) != -1;
   }
 
   private ConversionData getConversionData(RelOptPlanner planner) {
@@ -234,10 +234,10 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       return pathMap;
     }
 
-    public List<Convention> getShortestPath(
+    public int getShortestDistance(
         Convention fromConvention,
         Convention toConvention) {
-      return getPathMap().getShortestPath(fromConvention, toConvention);
+      return getPathMap().getShortestDistance(fromConvention, toConvention);
     }
   }
 }
