@@ -763,7 +763,7 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
-    switch (Strong.policy(a.getKind())) {
+    switch (Strong.policy(a)) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
@@ -812,7 +812,7 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
-    switch (Strong.policy(a.getKind())) {
+    switch (Strong.policy(a)) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
@@ -845,7 +845,7 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(rexNode.getKind())) {
       return;
     }
-    switch (Strong.policy(rexNode.getKind())) {
+    switch (Strong.policy(rexNode)) {
     case NOT_NULL:
       assert !rexNode.getType().isNullable();
       break;

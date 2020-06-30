@@ -23,15 +23,19 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.apiguardian.api.API;
+
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /** Utilities for strong predicates.
  *
@@ -84,10 +88,28 @@ public class Strong {
     return of(nullColumns).isNotTrue(node);
   }
 
-  /** Returns how to deduce whether a particular kind of expression is null,
-   * given whether its arguments are null. */
+  /**
+   * Returns how to deduce whether a particular kind of expression is null,
+   * given whether its arguments are null.
+   *
+   * @deprecated Use {@link Strong#policy(RexNode)}
+   */
+  @Deprecated // to be removed before 1.25
   public static Policy policy(SqlKind kind) {
     return MAP.getOrDefault(kind, Policy.AS_IS);
+  }
+
+  /**
+   * Returns how to deduce whether a particular {@link RexNode} expression is null,
+   * given whether its arguments are null.
+   */
+  public static Policy policy(RexNode rexNode) {
+    if (rexNode instanceof RexCall
+        && ((RexCall) rexNode).getOperator() instanceof PolicySupplier) {
+      final PolicySupplier supplier = (PolicySupplier) ((RexCall) rexNode).getOperator();
+      return supplier.get();
+    }
+    return MAP.getOrDefault(rexNode.getKind(), Policy.AS_IS);
   }
 
   /**
@@ -137,7 +159,7 @@ public class Strong {
    * expressions, and you may override methods to test hypotheses such as
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
-    final Policy policy = policy(node.getKind());
+    final Policy policy = policy(node);
     switch (policy) {
     case NOT_NULL:
       return false;
@@ -293,5 +315,16 @@ public class Strong {
 
     /** This kind of expression may be null. There is no way to rewrite. */
     AS_IS,
+  }
+
+  /**
+   * Interface to allow {@link SqlOperator}s to define their own {@link Policy}.
+   * For example, a UDF in a downstream project can implement it and have a specific policy.
+   *
+   * @see Strong
+   */
+  @API(status = API.Status.EXPERIMENTAL, since = "1.24")
+  public interface PolicySupplier extends Supplier<Policy> {
+    Policy get();
   }
 }

@@ -19,13 +19,11 @@ package org.apache.calcite.sql.test;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -9422,31 +9420,32 @@ public abstract class SqlOperatorBaseTest {
               || s.matches("MOD\\(.*, 0\\)")) {
             continue;
           }
-          final Strong.Policy policy = Strong.policy(op.kind);
-          try {
-            if (nullCount > 0 && policy == Strong.Policy.ANY) {
-              tester.checkNull(s);
-            } else {
-              final String query;
-              if (op instanceof SqlAggFunction) {
-                if (op.requiresOrder()) {
-                  query = "SELECT " + s + " OVER () FROM (VALUES (1))";
-                } else {
-                  query = "SELECT " + s + " FROM (VALUES (1))";
-                }
-              } else {
-                query = AbstractSqlTester.buildQuery(s);
-              }
-              tester.check(query, SqlTests.ANY_TYPE_CHECKER,
-                  SqlTests.ANY_PARAMETER_CHECKER, result -> { });
-            }
-          } catch (Throwable e) {
-            // Logging the top-level throwable directly makes the message
-            // difficult to read since it either contains too much information
-            // or very few details.
-            Throwable cause = findMostDescriptiveCause(e);
-            LOGGER.info("Failed: " + s + ": " + cause);
-          }
+          // TODO this part is deactivated because it uses a deprecated method
+//          final Strong.Policy policy = Strong.policy(op.kind);
+//          try {
+//            if (nullCount > 0 && policy == Strong.Policy.ANY) {
+//              tester.checkNull(s);
+//            } else {
+//              final String query;
+//              if (op instanceof SqlAggFunction) {
+//                if (op.requiresOrder()) {
+//                  query = "SELECT " + s + " OVER () FROM (VALUES (1))";
+//                } else {
+//                  query = "SELECT " + s + " FROM (VALUES (1))";
+//                }
+//              } else {
+//                query = AbstractSqlTester.buildQuery(s);
+//              }
+//              tester.check(query, SqlTests.ANY_TYPE_CHECKER,
+//                  SqlTests.ANY_PARAMETER_CHECKER, result -> { });
+//            }
+//          } catch (Throwable e) {
+//            // Logging the top-level throwable directly makes the message
+//            // difficult to read since it either contains too much information
+//            // or very few details.
+//            Throwable cause = findMostDescriptiveCause(e);
+//            LOGGER.info("Failed: " + s + ": " + cause);
+//          }
         }
       }
     }
