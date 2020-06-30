@@ -474,7 +474,7 @@ $ ./src/main/scripts/generate-protobuf.sh
 The following sections are of interest to Calcite committers and in
 particular release managers.
 
-## Managing Calcite repositories through GitHub (for Calcite committers)
+## Managing Calcite repositories through GitHub
 
 Committers have write access to Calcite's 
 [ASF git repositories](https://gitbox.apache.org/repos/asf#calcite) hosting
@@ -500,7 +500,7 @@ protocol that you are using (HTTPS vs. SSH).
  * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization. 
  * Accept the invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members). 
 
-## Merging pull requests (for Calcite committers)
+## Merging pull requests
 
 These are instructions for a Calcite committer who has reviewed a pull request
 from a contributor, found it satisfactory, and is about to merge it to master.
@@ -537,7 +537,7 @@ manager);
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
 
-## Set up PGP signing keys (for Calcite committers)
+## Set up PGP signing keys
 
 Follow instructions [here](https://www.apache.org/dev/release-signing) to
 create a key pair. (On macOS, I did `brew install gpg` and
@@ -550,7 +550,7 @@ file by following instructions in the `KEYS` file.
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
-## Set up Nexus repository credentials (for Calcite committers)
+## Set up Nexus repository credentials
 
 Gradle provides multiple ways to [configure project properties](https://docs.gradle.org/current/userguide/build_environment.html#sec:gradle_configuration_properties).
 For instance, you could update `$HOME/.gradle/gradle.properties`.
@@ -573,7 +573,7 @@ Note: when https://github.com/vlsi/asflike-release-environment is used, the cred
 Note: if you want to uses `gpg-agent`, you need to pass `useGpgCmd` property, and specify the key id
 via `signing.gnupg.keyName`.
 
-## Making a snapshot (for Calcite committers)
+## Making a snapshot
 
 Before you start:
 
@@ -587,7 +587,7 @@ git clean -xn
 ./gradlew clean publish -Pasf
 {% endhighlight %}
 
-## Making a release candidate (for Calcite committers)
+## Making a release candidate
 
 Note: release artifacts (dist.apache.org and repository.apache.org) are managed with
 [stage-vote-release-plugin](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin)
@@ -706,7 +706,7 @@ Verify the staged artifacts in the Nexus repository:
   https://repository.apache.org/content/repositories/orgapachecalcite-1000
   (or a similar URL)
 
-## Cleaning up after a failed release attempt (for Calcite committers)
+## Cleaning up after a failed release attempt
 
 If something is not correct, you can fix it, commit it, and prepare the next candidate.
 The release candidate tags might be kept for a while.
@@ -743,7 +743,7 @@ function checkHash() {
 checkHash apache-calcite-X.Y.Z-rcN
 {% endhighlight %}
 
-## Get approval for a release via Apache voting process (for Calcite committers)
+## Get approval for a release via Apache voting process
 
 Release vote on dev list
 Note: the draft mail is printed as the final step of `prepareVote` task,
@@ -832,7 +832,7 @@ shortened URLs for the vote proposal and result emails. Examples:
 [s.apache.org/calcite-1.2-result](https://s.apache.org/calcite-1.2-result).
 
 
-## Publishing a release (for Calcite committers)
+## Publishing a release
 
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
@@ -900,7 +900,7 @@ You can use
 [the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
-## Publishing the web site (for Calcite committers)
+## Publishing the web site
 {: #publish-the-web-site}
 
 See instructions in
