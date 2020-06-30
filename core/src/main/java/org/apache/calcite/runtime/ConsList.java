@@ -33,7 +33,6 @@ import javax.annotation.Nonnull;
 public class ConsList<E> extends AbstractImmutableList<E> {
   private final E first;
   private final List<E> rest;
-  private final int size;
 
   /** Creates a ConsList.
    * It consists of an element pre-pended to another list.
@@ -52,7 +51,6 @@ public class ConsList<E> extends AbstractImmutableList<E> {
   private ConsList(E first, List<E> rest) {
     this.first = first;
     this.rest = rest;
-    this.size = 1 + rest.size();
   }
 
   public E get(int index) {
@@ -68,7 +66,12 @@ public class ConsList<E> extends AbstractImmutableList<E> {
   }
 
   public int size() {
-    return size;
+    int s = 1;
+    for (ConsList c = this;; c = (ConsList) c.rest, ++s) {
+      if (!(c.rest instanceof ConsList)) {
+        return s + c.rest.size();
+      }
+    }
   }
 
   @Override public int hashCode() {
