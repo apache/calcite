@@ -28,6 +28,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -2666,5 +2669,69 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode call2 = rexBuilder.makeCall(ndc);
     final RexNode expr = eq(call1, call2);
     checkSimplifyUnchanged(expr);
+  }
+
+  private static class SqlSpecialOperatorWithPolicy extends SqlSpecialOperator
+      implements Strong.PolicySupplier {
+    private final Strong.Policy policy;
+    private SqlSpecialOperatorWithPolicy(String name, SqlKind kind, int prec, boolean leftAssoc,
+        SqlReturnTypeInference returnTypeInference, SqlOperandTypeInference operandTypeInference,
+        SqlOperandTypeChecker operandTypeChecker, Strong.Policy policy) {
+      super(name, kind, prec, leftAssoc, returnTypeInference, operandTypeInference,
+          operandTypeChecker);
+      this.policy = policy;
+    }
+    @Override public Strong.Policy get() {
+      return policy;
+    }
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4094">[CALCITE-4094]
+   * Allow SqlUserDefinedFunction to define an optional Strong.Policy</a>. */
+  @Test void testSimplifyFunctionWithStrongPolicy() {
+    final SqlOperator op = new SqlSpecialOperator(
+        "OP1",
+        SqlKind.OTHER_FUNCTION,
+        0,
+        false,
+        ReturnTypes.BOOLEAN,
+        null,
+        null) {
+    };
+    // Operator with no Strong.Policy defined: no simplification can be made
+    checkSimplifyUnchanged(rexBuilder.makeCall(op, vInt()));
+    checkSimplifyUnchanged(rexBuilder.makeCall(op, vIntNotNull()));
+    checkSimplifyUnchanged(rexBuilder.makeCall(op, nullInt));
+
+    final SqlOperator opPolicyAsIs = new SqlSpecialOperatorWithPolicy(
+        "OP2",
+        SqlKind.OTHER_FUNCTION,
+        0,
+        false,
+        ReturnTypes.BOOLEAN,
+        null,
+        null,
+        Strong.Policy.AS_IS) {
+    };
+    // Operator with Strong.Policy.AS_IS: no simplification can be made
+    checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, vInt()));
+    checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, vIntNotNull()));
+    checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, nullInt));
+
+    final SqlOperator opPolicyAny = new SqlSpecialOperatorWithPolicy(
+        "OP3",
+        SqlKind.OTHER_FUNCTION,
+        0,
+        false,
+        ReturnTypes.BOOLEAN,
+        null,
+        null,
+        Strong.Policy.ANY) {
+    };
+    // Operator with Strong.Policy.ANY: simplification possible with null parameter
+    checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAny, vInt()));
+    checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAny, vIntNotNull()));
+    checkSimplify3(rexBuilder.makeCall(opPolicyAny, nullInt), "null:BOOLEAN", "false", "true");
   }
 }
