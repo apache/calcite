@@ -59,15 +59,13 @@ public interface RelOptCost {
      * Converts the result of a signum function to an enum.
      */
     public static ComparisonResult signumToEnum(int signum) {
-      switch (signum) {
-      case -1:
-        return LT;
-      case 0:
-        return EQ;
-      case 1:
+      if (signum > 0) {
         return GT;
-      default:
-        return UD;
+      } else if (signum < 0) {
+        return LT;
+      } else {
+        // signum == 0
+        return EQ;
       }
     }
   }
@@ -107,7 +105,9 @@ public interface RelOptCost {
    * @param cost the other cost to compare.
    * @return the comparison result.
    */
-  ComparisonResult compareCost(RelOptCost cost);
+  default ComparisonResult compareCost(RelOptCost cost) {
+    return ComparisonResult.UD;
+  }
 
   /**
    * Compares this to another cost.

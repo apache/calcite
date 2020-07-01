@@ -114,6 +114,9 @@ class VolcanoCost implements RelOptCost {
 
   @Override public ComparisonResult compareCost(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
+    if (Double.isNaN(this.rowCount) || Double.isNaN(that.rowCount)) {
+      return ComparisonResult.UD;
+    }
     return ComparisonResult.signumToEnum(Double.compare(this.rowCount, that.rowCount));
   }
 

@@ -69,6 +69,9 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   @Override public ComparisonResult compareCost(RelOptCost other) {
+    if (Double.isNaN(this.getRows()) || Double.isNaN(other.getRows())) {
+      return ComparisonResult.UD;
+    }
     return ComparisonResult.signumToEnum(Double.compare(this.getRows(), other.getRows()));
   }
 
