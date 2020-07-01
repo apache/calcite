@@ -199,7 +199,6 @@ abstract class OptimizeTask {
           RelSubset subset = input.set.subsets.get(j);
           if (!subset.isDelivered() || equalsSansConvention(
               subset.getTraitSet(), rel.getCluster().traitSet())) {
-            // TODO: should use matching type to determine
             // Ideally we should stop deriving new relnodes when the
             // subset's traitSet equals with input traitSet, but
             // in case someone manually builds a physical relnode
@@ -227,6 +226,34 @@ abstract class OptimizeTask {
           } else {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
             if (newRel != null && !planner.isRegistered(newRel)) {
+              RelNode newInput = newRel.getInput(childId);
+              assert newInput instanceof RelSubset;
+              if (newInput == subset) {
+                // If the child subset is used to derive new traits for
+                // current relnode, the subset will be marked REQUIRED
+                // when registering the new derived relnode and later
+                // will add enforcers between other delivered subsets.
+                // e.g. a MergeJoin request both inputs hash distributed
+                // by [a,b] sorted by [a,b]. If the left input R1 happens to
+                // be distributed by [a], the MergeJoin can derive new
+                // traits from this input and request both input to be
+                // distributed by [a] sorted by [a,b]. In case there is a
+                // alternative R2 with ANY distribution in the left input's
+                // RelSet, we may end up with requesting hash distribution
+                // [a] on alternative R2, which is unnecessary and waste,
+                // because we request distribution by [a] because of R1 can
+                // deliver the exact same distribution and we don't need to
+                // enforce properties on other subsets that can't satisfy
+                // the specific trait requirement.
+                // Here we add a constraint that {@code newInput == subset},
+                // because if the delivered child subset is HASH[a], but
+                // we require HASH[a].SORT[a,b], we still need to enable
+                // property enforcement on the required subset. Otherwise,
+                // we need to restrict enforcement between HASH[a].SORT[a,b]
+                // and HASH[a] only, which will make things a little bit
+                // complicated. We might optimize it in the future.
+                subset.disableEnforcing();
+              }
               RelSubset relSubset = planner.register(newRel, node);
               assert relSubset.set == planner.getSubset(node).set;
             }

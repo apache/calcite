@@ -120,6 +120,14 @@ public class RelSubset extends AbstractRelNode {
    */
   boolean triggerRule = false;
 
+  /**
+   * When the subset state is REQUIRED, whether enable property enforcing
+   * between this subset and other delivered subsets. When it is true,
+   * no enforcer operators will be added even if the other subset can't
+   * satisfy current subset's required traitSet.
+   */
+  private boolean enforceDisabled = false;
+
   //~ Constructors -----------------------------------------------------------
 
   RelSubset(
@@ -177,6 +185,15 @@ public class RelSubset extends AbstractRelNode {
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public boolean isRequired() {
     return (state & REQUIRED) == REQUIRED;
+  }
+
+  void disableEnforcing() {
+    assert isDelivered();
+    enforceDisabled = true;
+  }
+
+  boolean isEnforceDisabled() {
+    return enforceDisabled;
   }
 
   public RelNode getBest() {
