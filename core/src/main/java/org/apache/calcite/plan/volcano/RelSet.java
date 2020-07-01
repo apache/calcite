@@ -236,9 +236,11 @@ class RelSet {
         to = subset;
       }
 
-      if (from == to || useAbstractConverter
-          && !from.getConvention().useAbstractConvertersForConversion(
-              from.getTraitSet(), to.getTraitSet())) {
+      if (from == to
+          || to.isEnforceDisabled()
+          || useAbstractConverter
+              && !from.getConvention().useAbstractConvertersForConversion(
+                  from.getTraitSet(), to.getTraitSet())) {
         continue;
       }
 
