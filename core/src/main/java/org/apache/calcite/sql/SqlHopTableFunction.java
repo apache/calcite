@@ -24,9 +24,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * SqlHopTableFunction implements an operator for hopping. It allows four parameters:
- * 1. a table.
- * 2. a descriptor to provide a watermarked column name from the input table.
- * 3. an interval parameter to specify the length of window shifting.
+ * 1. a table;
+ * 2. a descriptor to provide a watermarked column name from the input table;
+ * 3. an interval parameter to specify the length of window shifting;
  * 4. an interval parameter to specify the length of window size.
  */
 public class SqlHopTableFunction extends SqlWindowTableFunction {

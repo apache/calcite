@@ -75,6 +75,7 @@ import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -2312,7 +2313,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (newOperand != operand) {
         call.setOperand(0, newOperand);
       }
-      scopes.put(node, parentScope);
+      // If the operator is SqlWindowTableFunction, restricts the scope as
+      // its first operand's (the table) scope.
+      if (operand instanceof SqlBasicCall) {
+        final SqlBasicCall call1 = (SqlBasicCall) operand;
+        final SqlOperator op = call1.getOperator();
+        if (op instanceof SqlWindowTableFunction
+            && call1.operand(0).getKind() == SqlKind.SELECT) {
+          scopes.put(node, getSelectScope(call1.operand(0)));
+          return newNode;
+        }
+      }
+      // Put the usingScope which can be a JoinScope
+      // or a SelectScope, in order to see the left items
+      // of the JOIN tree.
+      scopes.put(node, usingScope);
       return newNode;
 
     case UNNEST:
