@@ -4976,6 +4976,26 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableFunctionTumbleWithInnerJoin">
+        <Resource name="sql">
+            <![CDATA[select *
+from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE)) a
+join table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE)) b
+on a.orderid = b.orderid]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3], ORDERID0=[$4], ROWTIME0=[$5], window_start0=[$6], window_end0=[$7])
+  LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+    LogicalTableFunctionScan(invocation=[TUMBLE(DESCRIPTOR($1), 60000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
+      LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+    LogicalTableFunctionScan(invocation=[TUMBLE(DESCRIPTOR($1), 60000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
+      LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTableFunctionHop">
         <Resource name="sql">
             <![CDATA[select *

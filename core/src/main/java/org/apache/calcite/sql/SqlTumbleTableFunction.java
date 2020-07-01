@@ -23,9 +23,11 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
- * SqlTumbleTableFunction implements an operator for tumbling. It allows three parameters:
- * 1. a table.
- * 2. a descriptor to provide a watermarked column name from the input table.
+ * SqlTumbleTableFunction implements an operator for tumbling.
+ *
+ * <p>It allows three parameters:
+ * 1. a table;
+ * 2. a descriptor to provide a watermarked column name from the input table;
  * 3. an interval parameter to specify the length of window size.
  */
 public class SqlTumbleTableFunction extends SqlWindowTableFunction {

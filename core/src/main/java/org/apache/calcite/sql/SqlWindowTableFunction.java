@@ -70,8 +70,9 @@ public class SqlWindowTableFunction extends SqlFunction {
   }
 
   /**
-   * The first parameter of table-value function windowing is a TABLE parameter,
-   * which is not scalar. So need to override SqlOperator.argumentMustBeScalar.
+   * Overrides SqlOperator.argumentMustBeScalar because the first parameter of
+   * table-value function windowing is an explicit TABLE parameter,
+   * which is not scalar.
    */
   @Override public boolean argumentMustBeScalar(int ordinal) {
     return ordinal != 0;
@@ -83,8 +84,8 @@ public class SqlWindowTableFunction extends SqlFunction {
    * additional fields:
    *
    * <ol>
-   *  <li>window_start. TIMESTAMP type to indicate a window's start.</li>
-   *  <li>window_end. TIMESTAMP type to indicate a window's end.</li>
+   *  <li>window_start: TIMESTAMP type to indicate a window's start.</li>
+   *  <li>window_end: TIMESTAMP type to indicate a window's end.</li>
    * </ol>
    */
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =

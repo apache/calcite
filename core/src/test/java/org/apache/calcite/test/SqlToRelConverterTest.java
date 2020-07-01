@@ -1813,6 +1813,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionTumbleWithInnerJoin() {
+    final String sql = "select *\n"
+        + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE)) a\n"
+        + "join table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE)) b\n"
+        + "on a.orderid = b.orderid";
+    sql(sql).ok();
+  }
+
   @Test public void testTableFunctionHop() {
     final String sql = "select *\n"
         + "from table(hop(table Shipments, descriptor(rowtime), "
