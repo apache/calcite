@@ -46,6 +46,7 @@ import java.util.stream.IntStream;
  * Tests usage of scrolling API like correct results and resource cleanup
  * (delete scroll after scan).
  */
+@Disabled("RestClient often timeout in PR CI")
 @ResourceLock("elasticsearch-scrolls")
 class ScrollingTest {
 
