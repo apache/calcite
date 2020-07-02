@@ -31,6 +31,7 @@ import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -899,6 +900,18 @@ public class ImmutableBitSet
       builder.set(i + offset);
     }
     return builder.build();
+  }
+
+  /**
+   * Checks if all bit sets contain a particular bit.
+   */
+  public static boolean allContain(Collection<ImmutableBitSet> bitSets, int bit) {
+    for (ImmutableBitSet bitSet : bitSets) {
+      if (!bitSet.get(bit)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

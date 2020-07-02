@@ -166,15 +166,6 @@ public class AggregatingSelectScope
     return select;
   }
 
-  private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
-    for (ImmutableBitSet bitSet : bitSets) {
-      if (!bitSet.get(bit)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
     final Resolved r = this.resolved.get();
     for (Ord<SqlNode> groupExpr : Ord.zip(r.groupExprList)) {
@@ -263,7 +254,7 @@ public class AggregatingSelectScope
 
     /** Returns whether a field should be nullable due to grouping sets. */
     public boolean isNullable(int i) {
-      return i < groupExprList.size() && !allContain(groupSets, i);
+      return i < groupExprList.size() && !ImmutableBitSet.allContain(groupSets, i);
     }
 
     /** Returns whether a given expression is equal to one of the grouping
