@@ -22,7 +22,7 @@ package org.apache.calcite.plan;
  * arbitrarily, it returns this scalar for rows processed and zero for both CPU
  * and I/O.
  */
-public class RelOptCostImpl implements RelOptCost {
+public class RelOptCostImpl extends AbstractRelOptCost {
   public static final RelOptCostFactory FACTORY = new Factory();
 
   //~ Instance fields --------------------------------------------------------

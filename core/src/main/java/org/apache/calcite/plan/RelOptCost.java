@@ -27,49 +27,6 @@ package org.apache.calcite.plan;
  * with additional cost metrics such as memory usage.
  */
 public interface RelOptCost {
-
-  /**
-   * This is used to represent the result of comparing two {@link RelOptCost} objects.
-   * Please note that a set of {@link RelOptCost} objects forms a partial order,
-   * so there can be objects that cannot be compared. We use UD to represent
-   * the results of such comparisons.
-   */
-  enum ComparisonResult {
-    /**
-     * Less than.
-     */
-    LT,
-
-    /**
-     * Equal to.
-     */
-    EQ,
-
-    /**
-     * Greater than.
-     */
-    GT,
-
-    /**
-     * Undefined.
-     */
-    UD;
-
-    /**
-     * Converts the result of a signum function to an enum.
-     */
-    public static ComparisonResult signumToEnum(int signum) {
-      if (signum > 0) {
-        return GT;
-      } else if (signum < 0) {
-        return LT;
-      } else {
-        // signum == 0
-        return EQ;
-      }
-    }
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -101,25 +58,12 @@ public interface RelOptCost {
   // to Comparator/equals/hashCode
 
   /**
-   * Compare two {@link RelOptCost} objects.
-   * @param cost the other cost to compare.
-   * @return the comparison result.
-   */
-  default ComparisonResult compareCost(RelOptCost cost) {
-    return ComparisonResult.UD;
-  }
-
-  /**
    * Compares this to another cost.
-   * This is based on the implementation of  method {@link #compareCost(RelOptCost)},
-   * and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
-  default boolean equals(RelOptCost cost) {
-    return compareCost(cost) == ComparisonResult.EQ;
-  }
+  boolean equals(RelOptCost cost);
 
   /**
    * Compares this to another cost, allowing for slight roundoff errors.
@@ -132,28 +76,19 @@ public interface RelOptCost {
 
   /**
    * Compares this to another cost.
-   * This is based on the implementation of method {@link #compareCost(RelOptCost)},
-   *  and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is less than or equal to other cost
    */
-  default boolean isLe(RelOptCost cost) {
-    ComparisonResult result = compareCost(cost);
-    return result == ComparisonResult.LT || result == ComparisonResult.EQ;
-  }
+  boolean isLe(RelOptCost cost);
 
   /**
    * Compares this to another cost.
-   * This is based on the implementation of method {@link #compareCost(RelOptCost)},
-   * and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is strictly less than other cost
    */
-  default boolean isLt(RelOptCost cost) {
-    return compareCost(cost) == ComparisonResult.LT;
-  }
+  boolean isLt(RelOptCost cost);
 
   /**
    * Adds another cost to this.

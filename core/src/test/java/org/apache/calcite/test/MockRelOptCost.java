@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.AbstractRelOptCost;
 import org.apache.calcite.plan.RelOptCost;
 
 /**
  * MockRelOptCost is a mock implementation of the {@link RelOptCost} interface.
  * TODO: constructors for various scenarios
  */
-public class MockRelOptCost implements RelOptCost {
+public class MockRelOptCost extends AbstractRelOptCost {
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean equals(Object obj) {
@@ -51,7 +52,7 @@ public class MockRelOptCost implements RelOptCost {
     return 0;
   }
 
-  @Override public ComparisonResult compareCost(RelOptCost o) {
+  @Override public AbstractRelOptCost.ComparisonResult compareCost(RelOptCost o) {
     return ComparisonResult.EQ;
   }
 

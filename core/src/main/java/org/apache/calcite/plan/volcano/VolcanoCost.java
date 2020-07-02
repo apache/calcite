@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.AbstractRelOptCost;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptUtil;
@@ -28,7 +29,7 @@ import java.util.Objects;
  * <p>This class is immutable: none of the methods modify any member
  * variables.</p>
  */
-class VolcanoCost implements RelOptCost {
+class VolcanoCost extends AbstractRelOptCost {
   //~ Static fields/initializers ---------------------------------------------
 
   static final VolcanoCost INFINITY =
