@@ -31,6 +31,7 @@ import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -54,6 +55,7 @@ import java.util.function.Consumer;
  * Set of tests for ES adapter. Uses real instance via {@link EmbeddedElasticsearchPolicy}. Document
  * source is local {@code zips-mini.json} file (located in test classpath).
  */
+@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class ElasticSearchAdapterTest {
 
