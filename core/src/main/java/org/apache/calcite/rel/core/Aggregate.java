@@ -51,8 +51,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -393,7 +393,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       final RelDataTypeField field = fieldList.get(groupKey);
       containedNames.add(field.getName());
       builder.add(field);
-      if (groupSets != null && !allContain(groupSets, groupKey)) {
+      if (groupSets != null && !ImmutableBitSet.allContain(groupSets, groupKey)) {
         builder.nullable(true);
       }
     }
@@ -414,16 +414,6 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       builder.add(name, aggCall.e.type);
     }
     return builder.build();
-  }
-
-  private static boolean allContain(List<ImmutableBitSet> groupSets,
-      int groupKey) {
-    for (ImmutableBitSet groupSet : groupSets) {
-      if (!groupSet.get(groupKey)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public boolean isValid(Litmus litmus, Context context) {
@@ -529,7 +519,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
           // Each subsequent items must be a subset with one fewer bit than the
           // previous item
           if (!g.contains(bitSet)
-              || g.except(bitSet).cardinality() != 1) {
+              || g.cardinality() - bitSet.cardinality() != 1) {
             return false;
           }
         }
@@ -548,7 +538,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
      *
      * @see #isRollup(ImmutableBitSet, List) */
     public static List<Integer> getRollup(List<ImmutableBitSet> groupSets) {
-      final Set<Integer> set = new LinkedHashSet<>();
+      final List<Integer> rollUpBits = new ArrayList<>(groupSets.size() - 1);
       ImmutableBitSet g = null;
       for (ImmutableBitSet bitSet : groupSets) {
         if (g == null) {
@@ -556,11 +546,14 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         } else {
           // Each subsequent items must be a subset with one fewer bit than the
           // previous item
-          set.addAll(g.except(bitSet).toList());
+          ImmutableBitSet diff = g.except(bitSet);
+          assert diff.cardinality() == 1;
+          rollUpBits.add(diff.nth(0));
         }
         g = bitSet;
       }
-      return ImmutableList.copyOf(set).reverse();
+      Collections.reverse(rollUpBits);
+      return ImmutableList.copyOf(rollUpBits);
     }
   }
 

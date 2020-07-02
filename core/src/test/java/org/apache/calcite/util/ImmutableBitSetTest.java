@@ -18,12 +18,14 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.junit.jupiter.api.Test;
 
 import java.nio.LongBuffer;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -569,5 +571,23 @@ class ImmutableBitSetTest {
     assertThat(emptyBitSet.get(0, 10000), is(ImmutableBitSet.of()));
     assertThat(emptyBitSet.get(7, 10000), is(ImmutableBitSet.of()));
     assertThat(emptyBitSet.get(73, 10000), is(ImmutableBitSet.of()));
+  }
+
+  /**
+   * Test case for {@link ImmutableBitSet#allContain(Collection, int)}.
+   */
+  @Test void testAllContain() {
+    ImmutableBitSet set1 = ImmutableBitSet.of(0, 1, 2, 3);
+    ImmutableBitSet set2 = ImmutableBitSet.of(2, 3, 4, 5);
+    ImmutableBitSet set3 = ImmutableBitSet.of(3, 4, 5, 6);
+
+    Collection<ImmutableBitSet> collection1 = ImmutableList.of(set1, set2, set3);
+    assertTrue(ImmutableBitSet.allContain(collection1, 3));
+    assertFalse(ImmutableBitSet.allContain(collection1, 0));
+
+    Collection<ImmutableBitSet> collection2 = ImmutableList.of(set1, set2);
+    assertTrue(ImmutableBitSet.allContain(collection2, 2));
+    assertTrue(ImmutableBitSet.allContain(collection2, 3));
+    assertFalse(ImmutableBitSet.allContain(collection2, 4));
   }
 }
