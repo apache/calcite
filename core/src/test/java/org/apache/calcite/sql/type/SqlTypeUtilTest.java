@@ -18,12 +18,21 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlRowTypeNameSpec;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
+import static org.apache.calcite.sql.type.SqlTypeUtil.convertTypeToSpec;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsCollectionSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
 
@@ -139,6 +148,36 @@ class SqlTypeUtilTest {
   @Test void testEqualAsMapSansNullability() {
     assertThat(
         equalAsMapSansNullability(f.typeFactory, f.mapOfInt, f.mapOfIntNullable), is(true));
+  }
+
+  @Test void testConvertTypeToSpec() {
+    SqlBasicTypeNameSpec basicSpec =
+        (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlBigInt).getTypeNameSpec();
+    assertThat(basicSpec.getTypeName().getSimple(), is("BIGINT"));
+
+    SqlCollectionTypeNameSpec arraySpec =
+        (SqlCollectionTypeNameSpec) convertTypeToSpec(f.arrayBigInt).getTypeNameSpec();
+    assertThat(arraySpec.getTypeName().getSimple(), is("ARRAY"));
+    assertThat(arraySpec.getElementTypeName().getTypeName().getSimple(), is("BIGINT"));
+
+    SqlCollectionTypeNameSpec multisetSpec =
+        (SqlCollectionTypeNameSpec) convertTypeToSpec(f.multisetBigInt).getTypeNameSpec();
+    assertThat(multisetSpec.getTypeName().getSimple(), is("MULTISET"));
+    assertThat(multisetSpec.getElementTypeName().getTypeName().getSimple(), is("BIGINT"));
+
+    SqlRowTypeNameSpec rowSpec =
+        (SqlRowTypeNameSpec) convertTypeToSpec(f.structOfInt).getTypeNameSpec();
+    List<String> fieldNames = rowSpec.getFieldNames()
+        .stream()
+        .map(SqlIdentifier::getSimple)
+        .collect(Collectors.toList());
+    List<String> fieldTypeNames = rowSpec.getFieldTypes()
+        .stream()
+        .map(f -> f.getTypeName().getSimple())
+        .collect(Collectors.toList());
+    assertThat(rowSpec.getTypeName().getSimple(), is("ROW"));
+    assertThat(fieldNames, is(Arrays.asList("i", "j")));
+    assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
   }
 
   private RelDataType struct(RelDataType...relDataTypes) {
