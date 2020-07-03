@@ -333,7 +333,6 @@ public class RexCall extends RexNode {
 
   @Override public int hashCode() {
     if (hash == 0) {
-      assert digest == null;
       hash = Objects.hash(op, operands);
     }
     return hash;

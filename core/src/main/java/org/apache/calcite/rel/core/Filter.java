@@ -36,6 +36,8 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apiguardian.api.API;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -154,6 +156,7 @@ public abstract class Filter extends SingleRel {
         .item("condition", condition);
   }
 
+  @API(since = "1.24", status = API.Status.INTERNAL)
   protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
@@ -168,6 +171,7 @@ public abstract class Filter extends SingleRel {
         && getRowType().equalsSansFieldNames(o.getRowType());
   }
 
+  @API(since = "1.24", status = API.Status.INTERNAL)
   protected int digestHash0() {
     return Objects.hash(traitSet, input, condition);
   }

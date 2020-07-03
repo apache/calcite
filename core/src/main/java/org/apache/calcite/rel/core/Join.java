@@ -41,6 +41,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.apiguardian.api.API;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -233,6 +235,7 @@ public abstract class Join extends BiRel implements Hintable {
             !getSystemFieldList().isEmpty());
   }
 
+  @API(since = "1.24", status = API.Status.INTERNAL)
   protected boolean digestEquals0(Object obj) {
     if (this == obj) {
       return true;
@@ -249,6 +252,7 @@ public abstract class Join extends BiRel implements Hintable {
         && getRowType().equalsSansFieldNames(o.getRowType());
   }
 
+  @API(since = "1.24", status = API.Status.INTERNAL)
   protected int digestHash0() {
     return Objects.hash(traitSet, left, right,
         condition, joinType, hints);
