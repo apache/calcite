@@ -28,12 +28,14 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -405,6 +407,7 @@ public abstract class AbstractRelNode implements RelNode {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #digestHash()
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean digestEquals(Object obj) {
     if (this == obj) {
       return true;
@@ -423,17 +426,19 @@ public abstract class AbstractRelNode implements RelNode {
    *
    * @see #digestEquals(Object)
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected int digestHash() {
     return Objects.hash(getTraitSet(), getDigestItems());
   }
 
-  private List<Pair<String, Object>> getDigestItems() {
+  private List<List<Object>> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
     explainTerms(rdw);
     if (this instanceof Hintable) {
-      rdw.item("hints", ((Hintable) this).getHints());
+      List<RelHint> hints = ((Hintable) this).getHints();
+      rdw.itemIf("hints", hints, !hints.isEmpty());
     }
-    return rdw.values;
+    return rdw.attrs;
   }
 
   private class InnerRelDigest implements RelDigest {
@@ -485,7 +490,7 @@ public abstract class AbstractRelNode implements RelNode {
    */
   private static final class RelDigestWriter implements RelWriter {
 
-    private final List<Pair<String, Object>> values = new ArrayList<>();
+    private final List<List<Object>> attrs = new ArrayList<>();
 
     String digest = null;
 
@@ -503,7 +508,7 @@ public abstract class AbstractRelNode implements RelNode {
         // convert it to String to keep the same behaviour.
         value = "" + value;
       }
-      values.add(Pair.of(term, value));
+      attrs.add(FlatLists.of(term, value));
       return this;
     }
 
@@ -514,19 +519,21 @@ public abstract class AbstractRelNode implements RelNode {
       sb.append(node.getTraitSet());
       sb.append('(');
       int j = 0;
-      for (Pair<String, Object> value : values) {
+      for (List<Object> attr : attrs) {
+        String key = (String) attr.get(0);
+        Object value = attr.get(1);
         if (j++ > 0) {
           sb.append(',');
         }
-        sb.append(value.left);
+        sb.append(key);
         sb.append('=');
-        if (value.right instanceof RelNode) {
-          RelNode input = (RelNode) value.right;
+        if (value instanceof RelNode) {
+          RelNode input = (RelNode) value;
           sb.append(input.getRelTypeName());
           sb.append('#');
           sb.append(input.getId());
         } else {
-          sb.append(value.right);
+          sb.append(value);
         }
       }
       sb.append(')');

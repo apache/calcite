@@ -240,6 +240,14 @@ public class RelSubset extends AbstractRelNode {
     pw.done(input);
   }
 
+  @Override protected boolean digestEquals(Object obj) {
+    return this == obj;
+  }
+
+  @Override protected int digestHash() {
+    return this.hashCode();
+  }
+
   @Override protected RelDataType deriveRowType() {
     return set.rel.getRowType();
   }
