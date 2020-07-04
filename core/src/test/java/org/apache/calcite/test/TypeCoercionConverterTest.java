@@ -16,9 +16,23 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
@@ -54,6 +68,26 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
   }
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
+  @Test void testInOperationCoercion() throws SqlParseException {
+    assertFalse(isInCoercion("'1' in ('1', '2', '3')"));
+    assertTrue(isInCoercion("1 in ('1', '2', '3')"));
+    assertTrue(isInCoercion("1 not in ('1', '2', '3')"));
+  }
+
+  private boolean isInCoercion(String expr) throws SqlParseException {
+    final SqlCall inExpr = (SqlCall) SqlParser.create(expr).parseExpression();
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType charType = typeFactory.createSqlType(SqlTypeName.CHAR);
+    final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();
+    validator.setValidatedNodeType(inExpr.operand(1), charType);
+
+    final SqlCallBinding binding =
+        new SqlCallBinding(validator, validator.getEmptyScope(), inExpr);
+    final TypeCoercionImpl typeCoercion = new TypeCoercionImpl(typeFactory, validator);
+    return typeCoercion.inOperationCoercion(binding);
+  }
+
   @Test void testInOperation() {
     checkPlanEquals("select\n"
         + "1 in ('1', '2', '3') as f0,\n"

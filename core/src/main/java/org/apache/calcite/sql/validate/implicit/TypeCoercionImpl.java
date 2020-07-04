@@ -529,6 +529,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
               updateInferredType(node2, desired);
             }
           }
+          coerced = coerced || listCoerced;
         } else {
           // Another sub-query.
           SqlValidatorScope scope1 = node2 instanceof SqlSelect
