@@ -983,10 +983,12 @@ public class PlannerTest {
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
         + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
-        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "  EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "      EnumerableTableScan(table=[[hr, dependents]])\n"
         + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
-        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "      EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "        EnumerableTableScan(table=[[hr, emps]])\n"
         + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
         + "        EnumerableTableScan(table=[[hr, depts]])";
     checkHeuristic(sql, expected);

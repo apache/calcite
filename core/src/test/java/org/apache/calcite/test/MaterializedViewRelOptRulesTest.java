@@ -494,7 +494,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             resultContains(
             "EnumerableAggregate(group=[{0}])",
             "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{2}])",
+            "EnumerableAggregate(group=[{1}])",
             "EnumerableTableScan(table=[[hr, MV0]])",
             "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
         .ok();
@@ -710,8 +710,8 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
                 + "empid=[$t0], EXPR$1=[$t3])\n"
                 + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
             "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
-            "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
+            "EnumerableAggregate(group=[{1}], agg#0=[COUNT()])",
+            "EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
             "EnumerableTableScan(table=[[hr, MV0]])",
             "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
         .ok();

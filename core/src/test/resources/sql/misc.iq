@@ -665,12 +665,11 @@ from "sales_fact_1997" as s
   join "product" as p on s."product_id" = p."product_id"
 where c."city" = 'San Francisco';
 EnumerableMergeJoin(condition=[=($0, $38)], joinType=[inner])
-  EnumerableSort(sort0=[$0], dir0=[ASC])
-    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner])
-      EnumerableSort(sort0=[$2], dir0=[ASC])
-        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
-        EnumerableTableScan(table=[[foodmart2, customer]])
+  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
+    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+      EnumerableTableScan(table=[[foodmart2, customer]])
   EnumerableTableScan(table=[[foodmart2, product]])
 !plan
 

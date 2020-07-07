@@ -130,12 +130,13 @@ public class RelSubset extends AbstractRelNode {
   private boolean enforceDisabled = false;
 
   /**
-   * the upper bound of the last OptimizeGroup call
+   * The upper bound of the last OptimizeGroup call
    */
   RelOptCost upperBound;
 
   /**
-   * RelNode ids that is invoked passThrough method before
+   * A cache that recognize which RelNode has invoked the passThrough method
+   * so as to avoid duplicate invocation
    */
   Set<RelNode> passThroughCache;
 

@@ -53,36 +53,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
       return null;
     }
 
-    RelOptCost winner = subset.getWinnerCost();
-    if (winner != null) {
-      // when this subset is fully optimized, just return the winner
-      return winner;
-    }
-
-    // if group is not fully explored. Its properties like cardinality
-    // would get changed after exploration. So it cannot return a valid LB
-    if (!subset.isExplored()) {
-      return null;
-    }
-
-    RelOptCost lowerBound = null;
-    for (RelNode relNode : subset.getRels()) {
-      try {
-        RelOptCost lb = mq.getLowerBoundCost(relNode, planner);
-        if (lb == null) {
-          return null;
-        }
-        if (lowerBound == null || lb.isLt(lowerBound)) {
-          lowerBound = lb;
-        }
-      } catch (CyclicMetadataException e) {
-        if (lowerBound == null) {
-          // a cyclic metadata query means this node has an INF LB
-          lowerBound = planner.getCostFactory().makeInfiniteCost();
-        }
-      }
-    }
-    return lowerBound;
+    return subset.getWinnerCost();
   }
 
   public RelOptCost getLowerBoundCost(RelNode node,
