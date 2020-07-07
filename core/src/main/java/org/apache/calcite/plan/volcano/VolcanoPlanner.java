@@ -519,6 +519,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         try {
           match.onMatch();
         } catch (VolcanoTimeoutException e) {
+          LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
           root = canonize(root);
           ruleQueue.phaseCompleted(phase);
           break PLANNING;
