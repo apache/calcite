@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
@@ -41,9 +40,10 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
+  /** @deprecated Use {@link CoreRules#FILTER_EXPAND_IS_NOT_DISTINCT_FROM}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
-      new FilterRemoveIsNotDistinctFromRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_EXPAND_IS_NOT_DISTINCT_FROM;
 
   //~ Constructors -----------------------------------------------------------
 

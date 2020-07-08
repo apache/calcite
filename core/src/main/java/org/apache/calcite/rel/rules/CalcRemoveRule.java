@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -37,8 +36,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class CalcRemoveRule extends RelOptRule implements SubstitutionRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  /** @deprecated Use {@link CoreRules#CALC_REMOVE}. */
+  @Deprecated // to be removed before 1.25
   public static final CalcRemoveRule INSTANCE =
-      new CalcRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.CALC_REMOVE;
 
   //~ Constructors -----------------------------------------------------------
 

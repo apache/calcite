@@ -51,11 +51,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlMerge;
@@ -349,7 +345,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         .build();
     // planner rule to convert Project to Calc.
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
         .build();
     HepPlanner planner = new HepPlanner(program);
     planner.setRoot(rel);
@@ -395,9 +391,9 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
         new MockEnumerableJoinRule(hint), // Rule to validate the hint.
-        FilterProjectTransposeRule.INSTANCE,
-        FilterMergeRule.INSTANCE,
-        ProjectMergeRule.INSTANCE,
+        CoreRules.FILTER_PROJECT_TRANSPOSE,
+        CoreRules.FILTER_MERGE,
+        CoreRules.PROJECT_MERGE,
         EnumerableRules.ENUMERABLE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -426,7 +422,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     // AggregateReduceFunctionsRule does the transformation:
     // AGG -> PROJECT + AGG
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
         .build();
     HepPlanner planner = new HepPlanner(program);
     planner.setRoot(rel);

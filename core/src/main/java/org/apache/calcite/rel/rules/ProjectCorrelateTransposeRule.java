@@ -25,12 +25,10 @@ import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
@@ -45,10 +43,10 @@ import java.util.Map;
  * Push Project under Correlate to apply on Correlate's left and right child
  */
 public class ProjectCorrelateTransposeRule extends RelOptRule implements TransformationRule {
-
+  /** @deprecated Use {@link CoreRules#PROJECT_CORRELATE_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectCorrelateTransposeRule INSTANCE =
-      new ProjectCorrelateTransposeRule(expr -> !(expr instanceof RexOver),
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_CORRELATE_TRANSPOSE;
 
   //~ Instance fields --------------------------------------------------------
 

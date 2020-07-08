@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
@@ -498,8 +499,10 @@ public abstract class BuiltInMetadata {
     /**
      * Estimates the cost of executing a relational expression, not counting the
      * cost of its inputs. (However, the non-cumulative cost is still usually
-     * dependent on the row counts of the inputs.) The default implementation
-     * for this query asks the rel itself via {@link RelNode#computeSelfCost},
+     * dependent on the row counts of the inputs.)
+     *
+     * <p>The default implementation for this query asks the rel itself via
+     * {@link RelNode#computeSelfCost(RelOptPlanner, RelMetadataQuery)},
      * but metadata providers can override this with their own cost models.
      *
      * @return estimated cost, or null if no reliable estimate can be

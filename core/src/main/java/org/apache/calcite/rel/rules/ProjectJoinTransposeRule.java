@@ -22,13 +22,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -42,18 +38,10 @@ import java.util.List;
  * the join.
  */
 public class ProjectJoinTransposeRule extends RelOptRule implements TransformationRule {
-  /**
-   * A instance for ProjectJoinTransposeRule that pushes a
-   * {@link org.apache.calcite.rel.logical.LogicalProject}
-   * past a {@link org.apache.calcite.rel.logical.LogicalJoin}
-   * by splitting the projection into a projection on top of each child of
-   * the join.
-   */
+  /** @deprecated Use {@link CoreRules#PROJECT_JOIN_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectJoinTransposeRule INSTANCE =
-      new ProjectJoinTransposeRule(
-          LogicalProject.class, LogicalJoin.class,
-          expr -> !(expr instanceof RexOver),
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_JOIN_TRANSPOSE;
 
   //~ Instance fields --------------------------------------------------------
 

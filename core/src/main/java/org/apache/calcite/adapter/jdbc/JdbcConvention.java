@@ -20,8 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlDialect;
 
 /**
@@ -66,7 +65,7 @@ public class JdbcConvention extends Convention.Impl {
     for (RelOptRule rule : JdbcRules.rules(this)) {
       planner.addRule(rule);
     }
-    planner.addRule(FilterSetOpTransposeRule.INSTANCE);
-    planner.addRule(ProjectRemoveRule.INSTANCE);
+    planner.addRule(CoreRules.FILTER_SET_OP_TRANSPOSE);
+    planner.addRule(CoreRules.PROJECT_REMOVE);
   }
 }

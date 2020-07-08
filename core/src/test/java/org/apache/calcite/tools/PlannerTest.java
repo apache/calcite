@@ -46,16 +46,10 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
-import org.apache.calcite.rel.rules.SortJoinTransposeRule;
-import org.apache.calcite.rel.rules.SortProjectTransposeRule;
-import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
-import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -389,7 +383,7 @@ public class PlannerTest {
   @Test void testPlan() throws Exception {
     Program program =
         Programs.ofRules(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
@@ -420,7 +414,7 @@ public class PlannerTest {
   }
 
   @Test void trimEmptyUnion31withUnionMerge() throws Exception {
-    emptyUnions31(UnionMergeRule.INSTANCE);
+    emptyUnions31(CoreRules.UNION_MERGE);
   }
 
   private void emptyUnions31(UnionMergeRule... extraRules)
@@ -451,7 +445,7 @@ public class PlannerTest {
   }
 
   @Test void trimEmptyUnion32withUnionMerge() throws Exception {
-    emptyUnions32(UnionMergeRule.INSTANCE);
+    emptyUnions32(CoreRules.UNION_MERGE);
   }
 
   private void emptyUnions32(UnionMergeRule... extraRules)
@@ -480,7 +474,7 @@ public class PlannerTest {
       throws SqlParseException, ValidationException, RelConversionException {
     ImmutableList.Builder<RelOptRule> rules = ImmutableList.<RelOptRule>builder().add(
         PruneEmptyRules.UNION_INSTANCE,
-        ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+        CoreRules.PROJECT_FILTER_VALUES_MERGE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,
         EnumerableRules.ENUMERABLE_VALUES_RULE,
@@ -523,7 +517,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             PruneEmptyRules.UNION_INSTANCE,
-            ValuesReduceRule.FILTER_INSTANCE,
+            CoreRules.FILTER_VALUES_MERGE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_VALUES_RULE,
@@ -552,7 +546,7 @@ public class PlannerTest {
   @Test void testSortPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE);
@@ -581,9 +575,9 @@ public class PlannerTest {
   @Test void testRedundantSortOnJoinPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
-            SortJoinTransposeRule.INSTANCE,
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
+            CoreRules.SORT_JOIN_TRANSPOSE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
@@ -688,12 +682,12 @@ public class PlannerTest {
   private void runDuplicateSortCheck(String sql, String plan) throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_WINDOW_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
-            ProjectToWindowRule.PROJECT);
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
     Planner planner = getPlanner(null,
         SqlParser.configBuilder().setLex(Lex.JAVA).build(),
         Programs.of(ruleSet));
@@ -758,7 +752,7 @@ public class PlannerTest {
   @Test void testPlanWithExplicitTraitDefs() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
@@ -784,7 +778,7 @@ public class PlannerTest {
   @Test void testPlanTransformTwice() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
@@ -883,7 +877,7 @@ public class PlannerTest {
       throws Exception {
     Program program0 =
         Programs.ofRules(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
@@ -1399,8 +1393,7 @@ public class PlannerTest {
   @Test void testCorrelatedJoinWithIdenticalInputs() throws Exception {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
     final RuleSet ruleSet =
-        RuleSets.ofList(
-            JoinToCorrelateRule.INSTANCE,
+        RuleSets.ofList(CoreRules.JOIN_TO_CORRELATE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,

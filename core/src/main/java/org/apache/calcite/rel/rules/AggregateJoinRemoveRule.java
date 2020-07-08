@@ -24,9 +24,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -59,9 +56,10 @@ import java.util.Set;
  *
  */
 public class AggregateJoinRemoveRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_JOIN_REMOVE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateJoinRemoveRule INSTANCE =
-      new AggregateJoinRemoveRule(LogicalAggregate.class, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_JOIN_REMOVE;
 
   /** Creates an AggregateJoinRemoveRule. */
   public AggregateJoinRemoveRule(

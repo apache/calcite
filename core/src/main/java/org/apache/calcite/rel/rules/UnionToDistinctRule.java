@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -33,8 +32,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * (<code>all</code> = <code>true</code>).
  */
 public class UnionToDistinctRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#UNION_TO_DISTINCT}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionToDistinctRule INSTANCE =
-      new UnionToDistinctRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.UNION_TO_DISTINCT;
 
   //~ Constructors -----------------------------------------------------------
 

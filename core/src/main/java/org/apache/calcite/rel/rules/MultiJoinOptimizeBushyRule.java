@@ -69,8 +69,10 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  * </ol>
  */
 public class MultiJoinOptimizeBushyRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY}. */
+  @Deprecated // to be removed before 1.25
   public static final MultiJoinOptimizeBushyRule INSTANCE =
-      new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY;
 
   private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)

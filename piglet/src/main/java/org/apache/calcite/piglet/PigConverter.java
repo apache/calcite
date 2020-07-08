@@ -17,7 +17,6 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -27,11 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -63,7 +58,7 @@ public class PigConverter extends PigServer {
   // Basic transformation and implementation rules to optimize for Pig-translated logical plans
   private static final List<RelOptRule> PIG_RULES =
       ImmutableList.of(
-          ProjectToWindowRule.PROJECT,
+          CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
           PigToSqlAggregateRule.INSTANCE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
@@ -78,14 +73,13 @@ public class PigConverter extends PigServer {
           EnumerableRules.ENUMERABLE_UNION_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableInterpreterRule.INSTANCE);
+          EnumerableRules.TO_INTERPRETER);
 
   private static final List<RelOptRule> TRANSFORM_RULES =
-      ImmutableList.of(
-          ProjectWindowTransposeRule.INSTANCE,
-          FilterMergeRule.INSTANCE,
-          ProjectMergeRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
+      ImmutableList.of(CoreRules.PROJECT_WINDOW_TRANSPOSE,
+          CoreRules.FILTER_MERGE,
+          CoreRules.PROJECT_MERGE,
+          CoreRules.FILTER_PROJECT_TRANSPOSE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -99,7 +93,7 @@ public class PigConverter extends PigServer {
           EnumerableRules.ENUMERABLE_UNION_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableInterpreterRule.INSTANCE);
+          EnumerableRules.TO_INTERPRETER);
 
   private final PigRelBuilder builder;
 

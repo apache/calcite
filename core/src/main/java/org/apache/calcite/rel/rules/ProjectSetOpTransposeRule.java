@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
@@ -40,9 +39,10 @@ import java.util.List;
  * {@code LogicalProject}.
  */
 public class ProjectSetOpTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#PROJECT_SET_OP_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectSetOpTransposeRule INSTANCE =
-      new ProjectSetOpTransposeRule(expr -> !(expr instanceof RexOver),
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_SET_OP_TRANSPOSE;
 
   //~ Instance fields --------------------------------------------------------
 

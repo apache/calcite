@@ -23,7 +23,6 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -49,9 +48,10 @@ import java.util.List;
 public class JoinAssociateRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
+  /** @deprecated Use {@link CoreRules#JOIN_ASSOCIATE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinAssociateRule INSTANCE =
-      new JoinAssociateRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_ASSOCIATE;
 
   //~ Constructors -----------------------------------------------------------
 

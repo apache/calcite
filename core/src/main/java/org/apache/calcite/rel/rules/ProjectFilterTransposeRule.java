@@ -23,9 +23,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -49,21 +46,22 @@ import java.util.Set;
  */
 public class ProjectFilterTransposeRule extends RelOptRule
     implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectFilterTransposeRule INSTANCE =
-      new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
-          RelFactories.LOGICAL_BUILDER, expr -> false, false, false);
+      CoreRules.PROJECT_FILTER_TRANSPOSE;
 
-  /** Instance that pushes down project and filter expressions whole, not field
-   * references. */
+  /** @deprecated Use
+   * {@link CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectFilterTransposeRule EXPRESSION_INSTANCE =
-      new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
-          RelFactories.LOGICAL_BUILDER, expr -> false, true, true);
+      CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS;
 
-  /** Instance that pushes down project expressions whole, but pushes down
-   * field references for filters. */
+  /** @deprecated Use
+   * {@link CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectFilterTransposeRule PROJECT_EXPRESSION_INSTANCE =
-      new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
-          RelFactories.LOGICAL_BUILDER, expr -> false, true, false);
+      CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS;
 
   //~ Instance fields --------------------------------------------------------
 

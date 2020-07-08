@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.adapter.enumerable.EnumerableBindable;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -53,10 +51,8 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.MultiJoin;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
-import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -1988,7 +1984,7 @@ public abstract class RelOptUtil {
   public static void registerAbstractRelationalRules(RelOptPlanner planner) {
     RelOptRules.ABSTRACT_RELATIONAL_RULES.forEach(planner::addRule);
     if (CalciteSystemProperty.COMMUTE.value()) {
-      planner.addRule(JoinAssociateRule.INSTANCE);
+      planner.addRule(CoreRules.JOIN_ASSOCIATE);
     }
     // todo: rule which makes Project({OrdinalRef}) disappear
   }
@@ -2045,17 +2041,16 @@ public abstract class RelOptUtil {
     // we prefer BindableTableScan instead,
     // see BindableTableScan#computeSelfCost.
     planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
-    planner.addRule(ProjectTableScanRule.INSTANCE);
-    planner.addRule(ProjectTableScanRule.INTERPRETER);
+    planner.addRule(CoreRules.PROJECT_TABLE_SCAN);
+    planner.addRule(CoreRules.PROJECT_INTERPRETER_TABLE_SCAN);
 
     if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
       registerEnumerableRules(planner);
-      planner.addRule(EnumerableInterpreterRule.INSTANCE);
+      planner.addRule(EnumerableRules.TO_INTERPRETER);
     }
 
     if (enableBindable && CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
-      planner.addRule(
-          EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
+      planner.addRule(EnumerableRules.TO_BINDABLE);
     }
 
     if (CalciteSystemProperty.ENABLE_STREAM.value()) {
@@ -2064,7 +2059,7 @@ public abstract class RelOptUtil {
       }
     }
 
-    planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+    planner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
 
   }
 

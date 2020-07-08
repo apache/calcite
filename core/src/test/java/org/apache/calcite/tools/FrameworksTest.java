@@ -41,7 +41,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -382,7 +382,7 @@ public class FrameworksTest {
    * 1) have an aggregate with group by and multi aggregate calls.
    * 2) the aggregate can be removed during optimization.
    * 3) all aggregate calls are simplified to the same reference.
-   * */
+   */
   @Test void testPushProjectToScan() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -403,7 +403,7 @@ public class FrameworksTest {
             // define the rules you want to apply
             .ruleSets(
                     RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
-                            ProjectTableScanRule.INSTANCE))
+                        CoreRules.PROJECT_TABLE_SCAN))
             .programs(Programs.ofRules(Programs.RULE_SET))
             .build();
 

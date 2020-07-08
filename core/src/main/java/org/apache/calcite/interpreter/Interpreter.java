@@ -30,10 +30,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
-import org.apache.calcite.rel.rules.CalcSplitRule;
-import org.apache.calcite.rel.rules.FilterTableScanRule;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
@@ -93,12 +90,12 @@ public class Interpreter extends AbstractEnumerable<Object[]>
 
   private RelNode optimize(RelNode rootRel) {
     final HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(CalcSplitRule.INSTANCE)
-        .addRuleInstance(FilterTableScanRule.INSTANCE)
-        .addRuleInstance(FilterTableScanRule.INTERPRETER)
-        .addRuleInstance(ProjectTableScanRule.INSTANCE)
-        .addRuleInstance(ProjectTableScanRule.INTERPRETER)
-        .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+        .addRuleInstance(CoreRules.CALC_SPLIT)
+        .addRuleInstance(CoreRules.FILTER_SCAN)
+        .addRuleInstance(CoreRules.FILTER_INTERPRETER_SCAN)
+        .addRuleInstance(CoreRules.PROJECT_TABLE_SCAN)
+        .addRuleInstance(CoreRules.PROJECT_INTERPRETER_TABLE_SCAN)
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
         .build();
     final HepPlanner planner = new HepPlanner(hepProgram);
     planner.setRoot(rootRel);

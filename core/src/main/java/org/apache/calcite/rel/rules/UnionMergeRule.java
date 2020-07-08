@@ -24,9 +24,6 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
@@ -40,15 +37,20 @@ import org.apache.calcite.util.Util;
  * but now also applies to {@link Intersect}.
  */
 public class UnionMergeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#UNION_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionMergeRule INSTANCE =
-      new UnionMergeRule(LogicalUnion.class, "UnionMergeRule",
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.UNION_MERGE;
+
+  /** @deprecated Use {@link CoreRules#INTERSECT_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionMergeRule INTERSECT_INSTANCE =
-      new UnionMergeRule(LogicalIntersect.class, "IntersectMergeRule",
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.INTERSECT_MERGE;
+
+  /** @deprecated Use {@link CoreRules#MINUS_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionMergeRule MINUS_INSTANCE =
-      new UnionMergeRule(LogicalMinus.class, "MinusMergeRule",
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.MINUS_MERGE;
 
   //~ Constructors -----------------------------------------------------------
 

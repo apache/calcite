@@ -24,7 +24,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -53,8 +52,10 @@ import java.util.Set;
  * use fewer columns than the project did.
  */
 public class AggregateProjectMergeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_PROJECT_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateProjectMergeRule INSTANCE =
-      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_PROJECT_MERGE;
 
   public AggregateProjectMergeRule(
       Class<? extends Aggregate> aggregateClass,

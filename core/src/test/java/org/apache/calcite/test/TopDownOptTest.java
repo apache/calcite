@@ -23,15 +23,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.JoinToCorrelateRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
-import org.apache.calcite.rel.rules.SortJoinCopyRule;
-import org.apache.calcite.rel.rules.SortJoinTransposeRule;
-import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -156,7 +149,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "join dept d on e.deptno=d.deptno\n"
         + "order by e.ename";
     Query.create(sql)
-        .addRule(JoinToCorrelateRule.INSTANCE)
+        .addRule(CoreRules.JOIN_TO_CORRELATE)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
@@ -169,7 +162,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "join dept d on e.deptno=d.deptno\n"
         + "order by e.ename, d.name";
     Query.create(sql)
-        .addRule(JoinToCorrelateRule.INSTANCE)
+        .addRule(CoreRules.JOIN_TO_CORRELATE)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
@@ -182,7 +175,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "left join dept d on e.deptno=d.deptno\n"
         + "order by e.ename";
     Query.create(sql)
-        .addRule(JoinToCorrelateRule.INSTANCE)
+        .addRule(CoreRules.JOIN_TO_CORRELATE)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
@@ -195,7 +188,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "left join dept d on e.deptno=d.deptno\n"
         + "order by e.ename, d.name";
     Query.create(sql)
-        .addRule(JoinToCorrelateRule.INSTANCE)
+        .addRule(CoreRules.JOIN_TO_CORRELATE)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
@@ -208,8 +201,8 @@ class TopDownOptTest extends RelOptTestBase {
         + "where exists (select 1 from emp e where e.deptno=d.deptno)\n"
         + "order by d.name";
     Query.create(sql)
-        .addRule(JoinToCorrelateRule.INSTANCE)
-        .addRule(SemiJoinRule.JOIN)
+        .addRule(CoreRules.JOIN_TO_CORRELATE)
+        .addRule(CoreRules.JOIN_TO_SEMI_JOIN)
         .removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
@@ -577,7 +570,7 @@ class TopDownOptTest extends RelOptTestBase {
   @Test void testSortCalc() {
     final String sql = "select mgr from sales.emp order by mgr desc nulls last";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -591,7 +584,7 @@ class TopDownOptTest extends RelOptTestBase {
     final String sql = "select ename, sal * -1 as sal, mgr from\n"
         + "sales.emp order by ename desc, sal desc, mgr desc nulls last";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -602,7 +595,7 @@ class TopDownOptTest extends RelOptTestBase {
   @Test void testSortCalcWhenCastLeadingToMonotonic() {
     final String sql = "select cast(deptno as float) from sales.emp order by deptno desc";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -613,7 +606,7 @@ class TopDownOptTest extends RelOptTestBase {
   @Test void testSortCalcWhenCastLeadingToNonMonotonic() {
     final String sql = "select deptno from sales.emp order by cast(deptno as varchar) desc";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -627,8 +620,8 @@ class TopDownOptTest extends RelOptTestBase {
         + "where max_sal > 1000\n"
         + "order by mgr desc, ename";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
-        .addRule(FilterToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
+        .addRule(CoreRules.FILTER_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -644,7 +637,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "group by ename, job) t) r\n"
         + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -657,7 +650,7 @@ class TopDownOptTest extends RelOptTestBase {
     final String sql = "select distinct ename, sal*-2, mgr\n"
         + "from (select ename, mgr, sal from sales.emp order by ename, mgr, sal limit 100) t";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -671,7 +664,7 @@ class TopDownOptTest extends RelOptTestBase {
         + "(select ename, job, sal from sales.emp limit 100) t) r\n"
         + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
     Query.create(sql)
-        .addRule(ProjectToCalcRule.INSTANCE)
+        .addRule(CoreRules.PROJECT_TO_CALC)
         .addRule(EnumerableRules.ENUMERABLE_CALC_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_SORT_RULE)
         .removeRule(EnumerableRules.ENUMERABLE_PROJECT_RULE)
@@ -735,7 +728,7 @@ class Query extends RelOptTestBase {
     RelOptUtil.registerDefaultRules(planner, false, false);
 
     // Remove to Keep deterministic join order.
-    planner.removeRule(JoinCommuteRule.INSTANCE);
+    planner.removeRule(CoreRules.JOIN_COMMUTE);
     planner.removeRule(JoinPushThroughJoinRule.LEFT);
     planner.removeRule(JoinPushThroughJoinRule.RIGHT);
 
@@ -744,11 +737,11 @@ class Query extends RelOptTestBase {
     planner.removeRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
 
     // pushing down sort should be handled by top-down optimization.
-    planner.removeRule(SortProjectTransposeRule.INSTANCE);
+    planner.removeRule(CoreRules.SORT_PROJECT_TRANSPOSE);
 
     // Sort will only be pushed down by traits propagation.
-    planner.removeRule(SortJoinTransposeRule.INSTANCE);
-    planner.removeRule(SortJoinCopyRule.INSTANCE);
+    planner.removeRule(CoreRules.SORT_JOIN_TRANSPOSE);
+    planner.removeRule(CoreRules.SORT_JOIN_COPY);
   }
 
   public static Query create(String sql) {

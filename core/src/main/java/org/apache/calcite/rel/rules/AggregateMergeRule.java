@@ -47,10 +47,12 @@ import java.util.Objects;
  * match, nor would COUNT of COUNT.
  */
 public class AggregateMergeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateMergeRule INSTANCE =
-      new AggregateMergeRule();
+      CoreRules.AGGREGATE_MERGE;
 
-  private AggregateMergeRule() {
+  AggregateMergeRule() {
     this(
         operand(Aggregate.class,
             operandJ(Aggregate.class, null,

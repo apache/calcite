@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -55,36 +54,15 @@ public abstract class FilterTableScanRule extends RelOptRule {
   public static final com.google.common.base.Predicate<TableScan> PREDICATE =
       FilterTableScanRule::test;
 
-  /** Rule that matches Filter on TableScan. */
+  /** @deprecated Use {@link CoreRules#FILTER_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterTableScanRule INSTANCE =
-      new FilterTableScanRule(
-          operand(Filter.class,
-              operandJ(TableScan.class, null, FilterTableScanRule::test,
-                  none())),
-          RelFactories.LOGICAL_BUILDER,
-          "FilterTableScanRule") {
-        public void onMatch(RelOptRuleCall call) {
-          final Filter filter = call.rel(0);
-          final TableScan scan = call.rel(1);
-          apply(call, filter, scan);
-        }
-      };
+      CoreRules.FILTER_SCAN;
 
-  /** Rule that matches Filter on EnumerableInterpreter on TableScan. */
+  /** @deprecated Use {@link CoreRules#FILTER_INTERPRETER_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterTableScanRule INTERPRETER =
-      new FilterTableScanRule(
-          operand(Filter.class,
-              operand(EnumerableInterpreter.class,
-                  operandJ(TableScan.class, null, FilterTableScanRule::test,
-                      none()))),
-          RelFactories.LOGICAL_BUILDER,
-          "FilterTableScanRule:interpreter") {
-        public void onMatch(RelOptRuleCall call) {
-          final Filter filter = call.rel(0);
-          final TableScan scan = call.rel(2);
-          apply(call, filter, scan);
-        }
-      };
+      CoreRules.FILTER_INTERPRETER_SCAN;
 
   //~ Constructors -----------------------------------------------------------
 

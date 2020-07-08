@@ -77,7 +77,7 @@ import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -382,7 +382,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String sql = "select name,deptno from dept where deptno > 10";
     final RelNode relNode = convertSql(sql);
     final HepProgram program = new HepProgramBuilder().
-        addRuleInstance(ProjectToCalcRule.INSTANCE).build();
+        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
     final HepPlanner planner = new HepPlanner(program);
     planner.setRoot(relNode);
     final RelNode calc = planner.findBestExp();

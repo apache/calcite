@@ -27,7 +27,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -66,14 +65,20 @@ import java.util.stream.Collectors;
  * The Correlate can be removed using {@link RelDecorrelator}.
  */
 public abstract class SubQueryRemoveRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#PROJECT_SUB_QUERY_TO_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
   public static final SubQueryRemoveRule PROJECT =
-      new SubQueryProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE;
 
+  /** @deprecated Use {@link CoreRules#FILTER_SUB_QUERY_TO_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
   public static final SubQueryRemoveRule FILTER =
-      new SubQueryFilterRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_SUB_QUERY_TO_CORRELATE;
 
+  /** @deprecated Use {@link CoreRules#JOIN_SUB_QUERY_TO_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
   public static final SubQueryRemoveRule JOIN =
-      new SubQueryJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_SUB_QUERY_TO_CORRELATE;
 
   /**
    * Creates a SubQueryRemoveRule.

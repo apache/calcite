@@ -21,8 +21,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -67,8 +65,10 @@ import java.math.BigDecimal;
  * @see org.apache.calcite.rel.rules.UnionToDistinctRule
  */
 public class IntersectToDistinctRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#INTERSECT_TO_DISTINCT}. */
+  @Deprecated // to be removed before 1.25
   public static final IntersectToDistinctRule INSTANCE =
-          new IntersectToDistinctRule(LogicalIntersect.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.INTERSECT_TO_DISTINCT;
 
   //~ Constructors -----------------------------------------------------------
 

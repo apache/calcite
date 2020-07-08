@@ -46,8 +46,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
@@ -85,12 +84,16 @@ import java.util.Random;
 public abstract class SparkRules {
   private SparkRules() {}
 
+  /** Rule that converts from enumerable to Spark convention. */
+  public static final EnumerableToSparkConverterRule ENUMERABLE_TO_SPARK =
+      new EnumerableToSparkConverterRule();
+
   public static List<RelOptRule> rules() {
     return ImmutableList.of(
         // TODO: add SparkProjectRule, SparkFilterRule, SparkProjectToCalcRule,
         // SparkFilterToCalcRule, and remove the following 2 rules.
-        ProjectToCalcRule.INSTANCE,
-        FilterToCalcRule.INSTANCE,
+        CoreRules.PROJECT_TO_CALC,
+        CoreRules.FILTER_TO_CALC,
         EnumerableToSparkConverterRule.INSTANCE,
         SparkToEnumerableConverterRule.INSTANCE,
         SPARK_VALUES_RULE,

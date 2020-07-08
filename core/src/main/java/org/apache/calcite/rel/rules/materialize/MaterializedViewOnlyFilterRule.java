@@ -19,15 +19,15 @@ package org.apache.calcite.rel.rules.materialize;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Rule that matches Filter. */
 public class MaterializedViewOnlyFilterRule extends MaterializedViewJoinRule {
 
+  /** @deprecated Use {@link MaterializedViewRules#FILTER}. */
+  @Deprecated // to be removed before 1.25
   public static final MaterializedViewOnlyFilterRule INSTANCE =
-      new MaterializedViewOnlyFilterRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+      MaterializedViewRules.FILTER;
 
   public MaterializedViewOnlyFilterRule(RelBuilderFactory relBuilderFactory,
       boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,

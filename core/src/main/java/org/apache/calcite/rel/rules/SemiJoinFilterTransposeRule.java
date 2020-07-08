@@ -41,8 +41,10 @@ import com.google.common.collect.ImmutableSet;
  * @see SemiJoinProjectTransposeRule
  */
 public class SemiJoinFilterTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#SEMI_JOIN_FILTER_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final SemiJoinFilterTransposeRule INSTANCE =
-      new SemiJoinFilterTransposeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.SEMI_JOIN_FILTER_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 

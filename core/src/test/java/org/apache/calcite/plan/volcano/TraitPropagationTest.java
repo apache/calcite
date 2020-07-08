@@ -50,7 +50,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.SortRemoveRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -100,7 +100,7 @@ class TraitPropagationTest {
           PhysProjRule.INSTANCE,
           PhysTableRule.INSTANCE,
           PhysSortRule.INSTANCE,
-          SortRemoveRule.INSTANCE,
+          CoreRules.SORT_REMOVE,
           ExpandConversionRule.INSTANCE);
 
   @Test void testOne() throws Exception {

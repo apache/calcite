@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
@@ -47,10 +46,10 @@ import java.util.List;
  * past a {@link org.apache.calcite.rel.logical.LogicalWindow}.
  */
 public class ProjectWindowTransposeRule extends RelOptRule implements TransformationRule {
-  /** The default instance of
-   * {@link org.apache.calcite.rel.rules.ProjectWindowTransposeRule}. */
+  /** @deprecated Use {@link CoreRules#PROJECT_WINDOW_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectWindowTransposeRule INSTANCE =
-      new ProjectWindowTransposeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_WINDOW_TRANSPOSE;
 
   /**
    * Creates ProjectWindowTransposeRule.

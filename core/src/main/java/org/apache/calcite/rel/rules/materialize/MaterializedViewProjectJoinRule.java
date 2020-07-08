@@ -20,15 +20,15 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Rule that matches Project on Join. */
 public class MaterializedViewProjectJoinRule extends MaterializedViewJoinRule {
 
+  /** @deprecated Use {@link MaterializedViewRules#PROJECT_JOIN}. */
+  @Deprecated // to be removed before 1.25
   public static final MaterializedViewProjectJoinRule INSTANCE =
-      new MaterializedViewProjectJoinRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+      MaterializedViewRules.PROJECT_JOIN;
 
   public MaterializedViewProjectJoinRule(RelBuilderFactory relBuilderFactory,
       boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,

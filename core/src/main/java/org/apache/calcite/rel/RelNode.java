@@ -91,11 +91,12 @@ public interface RelNode extends RelOptNode, Cloneable {
    * implementations will return an immutable list. If there are no
    * child expressions, returns an empty list, not <code>null</code>.
    *
-   * @deprecated use #accept(org.apache.calcite.rex.RexShuttle)
+   * @deprecated use {@link }#accept(org.apache.calcite.rex.RexShuttle)}
+   *
    * @return List of this relational expression's child expressions
    * @see #accept(org.apache.calcite.rex.RexShuttle)
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   List<RexNode> getChildExps();
 
   /**
@@ -123,7 +124,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @deprecated Use {@link RelMetadataQuery#areRowsUnique(RelNode)}
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   boolean isDistinct();
 
   /**
@@ -137,9 +138,11 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns the sub-query this relational expression belongs to.
    *
+   * @deprecated With no replacement
+   *
    * @return Sub-query
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   RelOptQuery getQuery();
 
   /**
@@ -184,7 +187,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * if you wish to override the default row count formula, override the
    * {@link #estimateRowCount(RelMetadataQuery)} method.
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   double getRows();
 
   /**
@@ -205,7 +208,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @deprecated Use {@link #getVariablesSet()}
    * and {@link CorrelationId#names(Set)}
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   Set<String> getVariablesStopped();
 
   /**
@@ -268,7 +271,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * if you wish to override the default cost formula, override the
    * {@link #computeSelfCost(RelOptPlanner, RelMetadataQuery)} method.
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   RelOptCost computeSelfCost(RelOptPlanner planner);
 
   /**
@@ -384,7 +387,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    */
   boolean isValid(Litmus litmus, Context context);
 
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   boolean isValid(boolean fail);
 
   /**
@@ -396,7 +399,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @deprecated Use {@link RelMetadataQuery#distribution(RelNode)}
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   List<RelCollation> getCollationList();
 
   /**
@@ -453,7 +456,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @deprecated Use {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   boolean isKey(ImmutableBitSet columns);
 
   /**

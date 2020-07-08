@@ -57,10 +57,12 @@ import java.util.List;
  */
 public class AggregateFilterTransposeRule extends RelOptRule
     implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_FILTER_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateFilterTransposeRule INSTANCE =
-      new AggregateFilterTransposeRule();
+      CoreRules.AGGREGATE_FILTER_TRANSPOSE;
 
-  private AggregateFilterTransposeRule() {
+  AggregateFilterTransposeRule() {
     this(
         operand(Aggregate.class,
             operand(Filter.class, any())),

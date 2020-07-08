@@ -28,8 +28,8 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.Collections;
@@ -42,12 +42,14 @@ import java.util.List;
  * to a {@link org.apache.calcite.rel.core.Filter} on Materialized View
  */
 public class MaterializedViewFilterScanRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link MaterializedViewRules#FILTER_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final MaterializedViewFilterScanRule INSTANCE =
-      new MaterializedViewFilterScanRule(RelFactories.LOGICAL_BUILDER);
+      MaterializedViewRules.FILTER_SCAN;
 
   private final HepProgram program = new HepProgramBuilder()
-      .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-      .addRuleInstance(ProjectMergeRule.INSTANCE)
+      .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+      .addRuleInstance(CoreRules.PROJECT_MERGE)
       .build();
 
   //~ Constructors -----------------------------------------------------------

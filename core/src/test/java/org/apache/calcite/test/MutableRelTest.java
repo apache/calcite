@@ -26,12 +26,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -88,7 +83,7 @@ class MutableRelTest {
         "Calc",
         "select * from emp where ename = 'DUMMY'",
         false,
-        ImmutableList.of(FilterToCalcRule.INSTANCE));
+        ImmutableList.of(CoreRules.FILTER_TO_CALC));
   }
 
   @Test void testConvertWindow() {
@@ -96,7 +91,7 @@ class MutableRelTest {
         "Window",
         "select sal, avg(sal) over (partition by deptno) from emp",
         false,
-        ImmutableList.of(ProjectToWindowRule.PROJECT));
+        ImmutableList.of(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW));
   }
 
   @Test void testConvertCollect() {
@@ -151,10 +146,10 @@ class MutableRelTest {
         sql,
         true,
         ImmutableList.of(
-            FilterProjectTransposeRule.INSTANCE,
-            FilterJoinRule.FILTER_ON_JOIN,
-            ProjectMergeRule.INSTANCE,
-            SemiJoinRule.PROJECT));
+            CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.FILTER_INTO_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_TO_SEMI_JOIN));
   }
 
   @Test void testConvertCorrelate() {

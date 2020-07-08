@@ -31,11 +31,9 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
@@ -60,40 +58,16 @@ import java.util.List;
  * the star table for an aggregate table at the required level of aggregation.
  */
 public class AggregateStarTableRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_STAR_TABLE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateStarTableRule INSTANCE =
-      new AggregateStarTableRule(
-          operandJ(Aggregate.class, null, Aggregate::isSimple,
-              some(operand(StarTable.StarTableScan.class, none()))),
-          RelFactories.LOGICAL_BUILDER,
-          "AggregateStarTableRule");
+      CoreRules.AGGREGATE_STAR_TABLE;
 
+  /** @deprecated This field is prone to issues during class-loading;
+   * use {@link CoreRules#AGGREGATE_PROJECT_STAR_TABLE} instead. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateStarTableRule INSTANCE2 =
-      new AggregateStarTableRule(
-          operandJ(Aggregate.class, null, Aggregate::isSimple,
-              operand(Project.class,
-                  operand(StarTable.StarTableScan.class, none()))),
-          RelFactories.LOGICAL_BUILDER,
-          "AggregateStarTableRule:project") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          final Aggregate aggregate = call.rel(0);
-          final Project project = call.rel(1);
-          final StarTable.StarTableScan scan = call.rel(2);
-          final RelNode rel =
-              AggregateProjectMergeRule.apply(call, aggregate, project);
-          final Aggregate aggregate2;
-          final Project project2;
-          if (rel instanceof Aggregate) {
-            project2 = null;
-            aggregate2 = (Aggregate) rel;
-          } else if (rel instanceof Project) {
-            project2 = (Project) rel;
-            aggregate2 = (Aggregate) project2.getInput();
-          } else {
-            return;
-          }
-          apply(call, project2, aggregate2, scan);
-        }
-      };
+      CoreRules.AGGREGATE_PROJECT_STAR_TABLE;
 
   /**
    * Creates an AggregateStarTableRule.

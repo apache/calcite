@@ -29,8 +29,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.logical.LogicalFilter}s.
  */
 public class FilterMergeRule extends RelOptRule implements SubstitutionRule {
+  /** @deprecated Use {@link CoreRules#FILTER_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterMergeRule INSTANCE =
-      new FilterMergeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_MERGE;
 
   //~ Constructors -----------------------------------------------------------
 

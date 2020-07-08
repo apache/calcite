@@ -18,9 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -30,8 +28,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class UnionEliminatorRule extends RelOptRule
     implements SubstitutionRule {
+  /** @deprecated Use {@link CoreRules#UNION_REMOVE}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionEliminatorRule INSTANCE =
-      new UnionEliminatorRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.UNION_REMOVE;
 
   //~ Constructors -----------------------------------------------------------
 

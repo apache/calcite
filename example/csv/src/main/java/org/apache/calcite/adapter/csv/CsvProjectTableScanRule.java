@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -32,8 +31,10 @@ import java.util.List;
  * the projection is removed.
  */
 public class CsvProjectTableScanRule extends RelOptRule {
+  /** @deprecated Use {@link CsvRules#PROJECT_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final CsvProjectTableScanRule INSTANCE =
-      new CsvProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
+      CsvRules.PROJECT_SCAN;
 
   /**
    * Creates a CsvProjectTableScanRule.

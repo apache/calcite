@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -54,15 +53,19 @@ import java.util.List;
  * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
 public class SemiJoinProjectTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#SEMI_JOIN_PROJECT_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final SemiJoinProjectTransposeRule INSTANCE =
-      new SemiJoinProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SemiJoinProjectTransposeRule.
    */
-  private SemiJoinProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated // to be removed before 1.25
+  SemiJoinProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operandJ(LogicalJoin.class, null, Join::isSemiJoin,
             some(operand(LogicalProject.class, any()))),

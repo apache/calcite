@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -41,8 +40,10 @@ import java.util.Set;
  */
 public class FilterTableFunctionTransposeRule extends RelOptRule
     implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#FILTER_TABLE_FUNCTION_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterTableFunctionTransposeRule INSTANCE =
-      new FilterTableFunctionTransposeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_TABLE_FUNCTION_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 

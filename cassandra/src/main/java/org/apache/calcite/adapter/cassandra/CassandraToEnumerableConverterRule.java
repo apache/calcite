@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.function.Predicate;
@@ -30,8 +29,10 @@ import java.util.function.Predicate;
  * {@link CassandraRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class CassandraToEnumerableConverterRule extends ConverterRule {
+  /** @deprecated Use {@link CassandraRules#TO_ENUMERABLE}. */
+  @Deprecated // to be removed before 1.25
   public static final ConverterRule INSTANCE =
-      new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
+      CassandraRules.TO_ENUMERABLE;
 
   /**
    * Creates a CassandraToEnumerableConverterRule.

@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -34,8 +33,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * is, they can be safely dropped without affecting the semantics of the query.
  */
 public class SemiJoinRemoveRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#SEMI_JOIN_REMOVE}. */
+  @Deprecated // to be removed before 1.25
   public static final SemiJoinRemoveRule INSTANCE =
-      new SemiJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.SEMI_JOIN_REMOVE;
 
   //~ Constructors -----------------------------------------------------------
 

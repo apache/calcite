@@ -30,7 +30,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -86,8 +85,10 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
    * Rule that converts any enumerable relational expression to bindable.
    */
   public static class EnumerableToBindableConverterRule extends ConverterRule {
+    /** @deprecated Use {@link EnumerableRules#TO_BINDABLE}. */
+    @Deprecated // to be removed before 1.25
     public static final EnumerableToBindableConverterRule INSTANCE =
-        new EnumerableToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+        EnumerableRules.TO_BINDABLE;
 
     /**
      * Creates an EnumerableToBindableConverterRule.

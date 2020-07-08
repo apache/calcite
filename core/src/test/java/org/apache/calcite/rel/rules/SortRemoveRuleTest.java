@@ -65,7 +65,7 @@ public final class SortRemoveRuleTest {
         .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
         .programs(
             Programs.of(prepareRules),
-            Programs.ofRules(SortRemoveRule.INSTANCE))
+            Programs.ofRules(CoreRules.SORT_REMOVE))
         .build();
     Planner planner = Frameworks.getPlanner(config);
     SqlNode parse = planner.parse(sql);
@@ -88,7 +88,7 @@ public final class SortRemoveRuleTest {
   @Test void removeSortOverEnumerableHashJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -119,7 +119,7 @@ public final class SortRemoveRuleTest {
   @Test void removeSortOverEnumerableNestedLoopJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -153,8 +153,8 @@ public final class SortRemoveRuleTest {
   @Test void removeSortOverEnumerableCorrelate() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
-            JoinToCorrelateRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_TO_CORRELATE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -183,10 +183,9 @@ public final class SortRemoveRuleTest {
    */
   @Test void removeSortOverEnumerableSemiJoin() throws Exception {
     RuleSet prepareRules =
-        RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
-            SemiJoinRule.PROJECT,
-            SemiJoinRule.JOIN,
+        RuleSets.ofList(CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.PROJECT_TO_SEMI_JOIN,
+            CoreRules.JOIN_TO_SEMI_JOIN,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,

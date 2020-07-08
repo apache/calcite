@@ -29,11 +29,7 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -103,45 +99,30 @@ public abstract class ReduceExpressionsRule extends RelOptRule
   public static final Pattern EXCLUSION_PATTERN =
       Pattern.compile("Reduce(Expressions|Values)Rule.*");
 
-  /**
-   * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.logical.LogicalFilter}.
-   */
-  public static final ReduceExpressionsRule FILTER_INSTANCE =
-      new FilterReduceExpressionsRule(LogicalFilter.class, false,
-          RelFactories.LOGICAL_BUILDER);
+  /** @deprecated Use {@link CoreRules#FILTER_REDUCE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
+  public static final FilterReduceExpressionsRule FILTER_INSTANCE =
+      CoreRules.FILTER_REDUCE_EXPRESSIONS;
 
-  /**
-   * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.logical.LogicalProject}.
-   */
+  /** @deprecated Use {@link CoreRules#PROJECT_REDUCE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ReduceExpressionsRule PROJECT_INSTANCE =
-      new ProjectReduceExpressionsRule(LogicalProject.class, true,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_REDUCE_EXPRESSIONS;
 
-  /**
-   * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.core.Join}.
-   */
+  /** @deprecated Use {@link CoreRules#JOIN_REDUCE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new JoinReduceExpressionsRule(Join.class, false,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_REDUCE_EXPRESSIONS;
 
-  /**
-   * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
-   */
+  /** @deprecated Use {@link CoreRules#CALC_REDUCE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ReduceExpressionsRule CALC_INSTANCE =
-      new CalcReduceExpressionsRule(LogicalCalc.class, true,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.CALC_REDUCE_EXPRESSIONS;
 
-  /**
-   * Singleton rule that reduces constants inside a
-   * {@link org.apache.calcite.rel.logical.LogicalWindow}.
-   */
+  /** @deprecated Use {@link CoreRules#WINDOW_REDUCE_EXPRESSIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final ReduceExpressionsRule WINDOW_INSTANCE =
-      new WindowReduceExpressionsRule(LogicalWindow.class, true,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.WINDOW_REDUCE_EXPRESSIONS;
 
   protected final boolean matchNullability;
 

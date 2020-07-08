@@ -24,8 +24,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -54,9 +52,10 @@ import java.util.Map;
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
  */
 public class AggregateUnionTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateUnionTransposeRule INSTANCE =
-      new AggregateUnionTransposeRule(LogicalAggregate.class,
-          LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_UNION_TRANSPOSE;
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();

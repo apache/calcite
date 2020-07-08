@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
@@ -39,8 +38,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class FilterCalcMergeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  /** @deprecated Use {@link CoreRules#FILTER_CALC_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterCalcMergeRule INSTANCE =
-      new FilterCalcMergeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_CALC_MERGE;
 
   //~ Constructors -----------------------------------------------------------
 

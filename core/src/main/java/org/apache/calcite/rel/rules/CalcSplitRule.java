@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -39,8 +38,10 @@ import com.google.common.collect.ImmutableList;
  * {@link org.apache.calcite.interpreter.Interpreter}.
  */
 public class CalcSplitRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#CALC_SPLIT}. */
+  @Deprecated // to be removed before 1.25
   public static final CalcSplitRule INSTANCE =
-      new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.CALC_SPLIT;
 
   /**
    * Creates a CalcSplitRule.

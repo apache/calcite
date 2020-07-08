@@ -123,10 +123,15 @@ public class Bindables {
   public static final RelOptRule BINDABLE_MATCH_RULE =
       new BindableMatchRule(RelFactories.LOGICAL_BUILDER);
 
+  /** Rule that converts a relational expression from
+   * {@link org.apache.calcite.plan.Convention#NONE}
+   * to {@link org.apache.calcite.interpreter.BindableConvention}. */
+  public static final ConverterRule FROM_NONE_RULE =
+      new NoneToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+
   /** All rules that convert logical relational expression to bindable. */
   public static final ImmutableList<RelOptRule> RULES =
-      ImmutableList.of(
-          NoneToBindableConverterRule.INSTANCE,
+      ImmutableList.of(FROM_NONE_RULE,
           BINDABLE_TABLE_SCAN_RULE,
           BINDABLE_FILTER_RULE,
           BINDABLE_PROJECT_RULE,

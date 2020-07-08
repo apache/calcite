@@ -23,6 +23,7 @@ import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
  *
  * @deprecated Use equivalent fields in {@link MaterializedViewRules}.
  */
+@Deprecated // to be removed before 1.25
 public abstract class AbstractMaterializedViewRule {
   private AbstractMaterializedViewRule() {
   }

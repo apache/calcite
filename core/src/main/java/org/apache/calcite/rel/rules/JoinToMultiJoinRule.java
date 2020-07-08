@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -103,8 +102,10 @@ import java.util.Map;
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  */
 public class JoinToMultiJoinRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#JOIN_TO_MULTI_JOIN}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinToMultiJoinRule INSTANCE =
-      new JoinToMultiJoinRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_TO_MULTI_JOIN;
 
   //~ Constructors -----------------------------------------------------------
 

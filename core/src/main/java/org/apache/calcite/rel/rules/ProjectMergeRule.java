@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -40,8 +39,10 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
   /** Default amount by which complexity is allowed to increase. */
   public static final int DEFAULT_BLOAT = 100;
 
+  /** @deprecated Use {@link CoreRules#PROJECT_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectMergeRule INSTANCE =
-      new ProjectMergeRule(true, DEFAULT_BLOAT, RelFactories.LOGICAL_BUILDER);
+      CoreRules.PROJECT_MERGE;
 
   //~ Instance fields --------------------------------------------------------
 

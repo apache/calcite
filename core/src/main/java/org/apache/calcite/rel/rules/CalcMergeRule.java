@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
@@ -38,8 +37,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class CalcMergeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  /** @deprecated Use {@link CoreRules#CALC_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final CalcMergeRule INSTANCE =
-      new CalcMergeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.CALC_MERGE;
 
   //~ Constructors -----------------------------------------------------------
 

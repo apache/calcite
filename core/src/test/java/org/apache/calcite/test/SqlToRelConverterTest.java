@@ -39,7 +39,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -2180,7 +2180,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select ename from emp";
     final RelNode rel = tester.convertSqlToRel(sql).rel;
     final HepProgramBuilder programBuilder = HepProgram.builder();
-    programBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
+    programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
     final HepPlanner planner = new HepPlanner(programBuilder.build());
     planner.setRoot(rel);
     final LogicalCalc calc = (LogicalCalc) planner.findBestExp();

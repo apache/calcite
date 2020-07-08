@@ -84,12 +84,12 @@ public class SqlDialect {
   public static final Context EMPTY_CONTEXT = emptyContext();
 
   /** @deprecated Use {@link AnsiSqlDialect#DEFAULT} instead. */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   public static final SqlDialect DUMMY =
       AnsiSqlDialect.DEFAULT;
 
   /** @deprecated Use {@link CalciteSqlDialect#DEFAULT} instead. */
-  @Deprecated // to be removed before 2.0
+  @Deprecated // to be removed before 1.25
   public static final SqlDialect CALCITE =
       CalciteSqlDialect.DEFAULT;
 

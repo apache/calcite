@@ -23,12 +23,7 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyAggregateRule;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyFilterRule;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyJoinRule;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectAggregateRule;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectFilterRule;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectJoinRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -507,12 +502,12 @@ class LatticeTest {
   private void checkTileAlgorithm(String statisticProvider,
       String expectedExplain) {
     final RelOptRule[] rules = {
-        MaterializedViewProjectFilterRule.INSTANCE,
-        MaterializedViewOnlyFilterRule.INSTANCE,
-        MaterializedViewProjectJoinRule.INSTANCE,
-        MaterializedViewOnlyJoinRule.INSTANCE,
-        MaterializedViewProjectAggregateRule.INSTANCE,
-        MaterializedViewOnlyAggregateRule.INSTANCE
+        MaterializedViewRules.PROJECT_FILTER,
+        MaterializedViewRules.FILTER,
+        MaterializedViewRules.PROJECT_JOIN,
+        MaterializedViewRules.JOIN,
+        MaterializedViewRules.PROJECT_AGGREGATE,
+        MaterializedViewRules.AGGREGATE
     };
     MaterializationService.setThreadLocal();
     MaterializationService.instance().clear();

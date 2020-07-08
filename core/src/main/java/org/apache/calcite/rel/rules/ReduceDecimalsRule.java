@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -67,8 +66,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * would like to push down decimal operations to an external database.
  */
 public class ReduceDecimalsRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#CALC_REDUCE_DECIMALS}. */
+  @Deprecated // to be removed before 1.25
   public static final ReduceDecimalsRule INSTANCE =
-      new ReduceDecimalsRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.CALC_REDUCE_DECIMALS;
 
   //~ Constructors -----------------------------------------------------------
 

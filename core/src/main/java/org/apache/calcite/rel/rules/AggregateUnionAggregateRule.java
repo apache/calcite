@@ -23,8 +23,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -40,31 +38,20 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * still have only two inputs.
  */
 public class AggregateUnionAggregateRule extends RelOptRule implements TransformationRule {
-  /** Instance that matches an {@code Aggregate} as the left input of
-   * {@code Union}. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_FIRST}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule AGG_ON_FIRST_INPUT =
-      new AggregateUnionAggregateRule(LogicalAggregate.class, LogicalUnion.class,
-          LogicalAggregate.class, RelNode.class, RelFactories.LOGICAL_BUILDER,
-          "AggregateUnionAggregateRule:first-input-agg");
+      CoreRules.AGGREGATE_UNION_AGGREGATE_FIRST;
 
-  /** Instance that matches an {@code Aggregate} as the right input of
-   * {@code Union}. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_SECOND}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule AGG_ON_SECOND_INPUT =
-      new AggregateUnionAggregateRule(LogicalAggregate.class, LogicalUnion.class,
-          RelNode.class, LogicalAggregate.class, RelFactories.LOGICAL_BUILDER,
-          "AggregateUnionAggregateRule:second-input-agg");
+      CoreRules.AGGREGATE_UNION_AGGREGATE_SECOND;
 
-  /** Instance that matches an {@code Aggregate} as either input of
-   * {@link Union}.
-   *
-   * <p>Because it matches {@link RelNode} for each input of {@code Union}, it
-   * will create O(N ^ 2) matches, which may cost too much during the popMatch
-   * phase in VolcanoPlanner. If efficiency is a concern, we recommend that you
-   * use {@link #AGG_ON_FIRST_INPUT} and {@link #AGG_ON_SECOND_INPUT} instead. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule INSTANCE =
-      new AggregateUnionAggregateRule(LogicalAggregate.class,
-          LogicalUnion.class, RelNode.class, RelNode.class,
-          RelFactories.LOGICAL_BUILDER, "AggregateUnionAggregateRule");
+      CoreRules.AGGREGATE_UNION_AGGREGATE;
 
   //~ Constructors -----------------------------------------------------------
 

@@ -23,8 +23,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -96,10 +94,10 @@ public class AggregateReduceFunctionsRule extends RelOptRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_REDUCE_FUNCTIONS}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateReduceFunctionsRule INSTANCE =
-      new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_REDUCE_FUNCTIONS;
 
   private final EnumSet<SqlKind> functionsToReduce;
 

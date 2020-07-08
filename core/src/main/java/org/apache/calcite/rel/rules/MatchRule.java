@@ -29,11 +29,13 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 public class MatchRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MatchRule INSTANCE = new MatchRule();
+  /** @deprecated Use {@link CoreRules#MATCH}. */
+  @Deprecated // to be removed before 1.25
+  public static final MatchRule INSTANCE = CoreRules.MATCH;
 
   //~ Constructors -----------------------------------------------------------
 
-  private MatchRule() {
+  MatchRule() {
     super(operand(LogicalMatch.class, any()));
   }
 

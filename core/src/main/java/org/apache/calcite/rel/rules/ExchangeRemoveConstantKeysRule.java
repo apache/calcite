@@ -28,8 +28,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SortExchange;
-import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexInputRef;
 
@@ -51,23 +49,19 @@ import java.util.stream.Collectors;
  */
 public class ExchangeRemoveConstantKeysRule extends RelOptRule
     implements SubstitutionRule {
-  /**
-   * Singleton rule that removes constants inside a
-   * {@link LogicalExchange}.
-   */
+  /** @deprecated Use {@link CoreRules#EXCHANGE_REMOVE_CONSTANT_KEYS}. */
+  @Deprecated // to be removed before 1.25
   public static final ExchangeRemoveConstantKeysRule EXCHANGE_INSTANCE =
-      new ExchangeRemoveConstantKeysRule(LogicalExchange.class,
-          "ExchangeRemoveConstantKeysRule");
+      CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS;
 
-  /**
-   * Singleton rule that removes constants inside a
-   * {@link LogicalSortExchange}.
-   */
+  /** @deprecated Use {@link CoreRules#SORT_EXCHANGE_REMOVE_CONSTANT_KEYS}. */
+  @Deprecated // to be removed before 1.25
   public static final ExchangeRemoveConstantKeysRule SORT_EXCHANGE_INSTANCE =
-      new SortExchangeRemoveConstantKeysRule(LogicalSortExchange.class,
-          "SortExchangeRemoveConstantKeysRule");
+      CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS;
 
-  private ExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated // to be removed before 1.25
+  ExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
       String description) {
     super(operand(clazz, any()), RelFactories.LOGICAL_BUILDER, description);
   }
@@ -126,8 +120,10 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule
   public static class SortExchangeRemoveConstantKeysRule
       extends ExchangeRemoveConstantKeysRule {
 
-    private SortExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
-            String description) {
+    @SuppressWarnings("DeprecatedIsStillUsed")
+    @Deprecated // to be removed before 1.25
+    SortExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
+        String description) {
       super(clazz, description);
     }
 

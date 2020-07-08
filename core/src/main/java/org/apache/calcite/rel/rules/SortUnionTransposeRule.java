@@ -36,16 +36,16 @@ import java.util.List;
  */
 public class SortUnionTransposeRule extends RelOptRule implements TransformationRule {
 
-  /** Rule instance for Union implementation that does not preserve the
-   * ordering of its inputs. Thus, it makes no sense to match this rule
-   * if the Sort does not have a limit, i.e., {@link Sort#fetch} is null. */
-  public static final SortUnionTransposeRule INSTANCE = new SortUnionTransposeRule(false);
+  /** @deprecated Use {@link CoreRules#SORT_UNION_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
+  public static final SortUnionTransposeRule INSTANCE =
+      CoreRules.SORT_UNION_TRANSPOSE;
 
-  /** Rule instance for Union implementation that preserves the ordering
-   * of its inputs. It is still worth applying this rule even if the Sort
-   * does not have a limit, for the merge of already sorted inputs that
-   * the Union can do is usually cheap. */
-  public static final SortUnionTransposeRule MATCH_NULL_FETCH = new SortUnionTransposeRule(true);
+  /** @deprecated Use
+   * {@link CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH}. */
+  @Deprecated // to be removed before 1.25
+  public static final SortUnionTransposeRule MATCH_NULL_FETCH =
+      CoreRules.SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH;
 
   /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
    * this only makes sense if the Union preserves order (and merges). */
@@ -53,7 +53,9 @@ public class SortUnionTransposeRule extends RelOptRule implements Transformation
 
   // ~ Constructors -----------------------------------------------------------
 
-  private SortUnionTransposeRule(boolean matchNullFetch) {
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated // to be removed before 1.25
+  SortUnionTransposeRule(boolean matchNullFetch) {
     this(Sort.class, Union.class, matchNullFetch, RelFactories.LOGICAL_BUILDER,
         "SortUnionTransposeRule:default");
   }

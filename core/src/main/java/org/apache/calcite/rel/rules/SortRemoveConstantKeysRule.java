@@ -40,10 +40,14 @@ import java.util.stream.Collectors;
  */
 public class SortRemoveConstantKeysRule extends RelOptRule
     implements SubstitutionRule {
+  /** @deprecated Use {@link CoreRules#SORT_REMOVE_CONSTANT_KEYS}. */
+  @Deprecated // to be removed before 1.25
   public static final SortRemoveConstantKeysRule INSTANCE =
-      new SortRemoveConstantKeysRule();
+      CoreRules.SORT_REMOVE_CONSTANT_KEYS;
 
-  private SortRemoveConstantKeysRule() {
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated // to be removed before 1.25
+  SortRemoveConstantKeysRule() {
     super(
         operand(Sort.class, any()),
         RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");

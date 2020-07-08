@@ -21,15 +21,15 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Rule that matches Aggregate. */
 public class MaterializedViewOnlyAggregateRule extends MaterializedViewAggregateRule {
 
+  /** @deprecated Use {@link MaterializedViewRules#AGGREGATE}. */
+  @Deprecated // to be removed before 1.25
   public static final MaterializedViewOnlyAggregateRule INSTANCE =
-      new MaterializedViewOnlyAggregateRule(RelFactories.LOGICAL_BUILDER,
-          true, null);
+      MaterializedViewRules.AGGREGATE;
 
   public MaterializedViewOnlyAggregateRule(RelBuilderFactory relBuilderFactory,
       boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {

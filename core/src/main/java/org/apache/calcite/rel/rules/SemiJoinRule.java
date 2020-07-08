@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -50,13 +49,17 @@ public abstract class SemiJoinRule extends RelOptRule implements TransformationR
   private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
       aggregate -> aggregate.getRowType().getFieldCount() == 0;
 
+  /** @deprecated Use {@link CoreRules#PROJECT_TO_SEMI_JOIN}. */
+  @SuppressWarnings("StaticInitializerReferencesSubClass")
+  @Deprecated // to be removed before 1.25
   public static final SemiJoinRule PROJECT =
-      new ProjectToSemiJoinRule(Project.class, Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:project");
+      CoreRules.PROJECT_TO_SEMI_JOIN;
 
+  /** @deprecated Use {@link CoreRules#JOIN_TO_SEMI_JOIN}. */
+  @SuppressWarnings("StaticInitializerReferencesSubClass")
+  @Deprecated // to be removed before 1.25
   public static final SemiJoinRule JOIN =
-      new JoinToSemiJoinRule(Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:join");
+      CoreRules.JOIN_TO_SEMI_JOIN;
 
   protected SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
       Class<Aggregate> aggregateClass, RelBuilderFactory relBuilderFactory,

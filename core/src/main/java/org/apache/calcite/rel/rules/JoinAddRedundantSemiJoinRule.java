@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -40,9 +39,10 @@ import com.google.common.collect.ImmutableSet;
  */
 public class JoinAddRedundantSemiJoinRule extends RelOptRule
     implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#JOIN_ADD_REDUNDANT_SEMI_JOIN}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinAddRedundantSemiJoinRule INSTANCE =
-      new JoinAddRedundantSemiJoinRule(LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN;
 
   //~ Constructors -----------------------------------------------------------
 

@@ -31,7 +31,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -77,8 +77,8 @@ public class LatticeSuggester {
 
   private static final HepProgram PROGRAM =
       new HepProgramBuilder()
-          .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
-          .addRuleInstance(FilterJoinRule.JOIN)
+          .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+          .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
           .build();
 
   /** Lattices, indexed by digest. Uses LinkedHashMap for determinacy. */

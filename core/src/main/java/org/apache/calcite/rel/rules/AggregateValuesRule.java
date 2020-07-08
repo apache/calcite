@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
@@ -51,10 +50,14 @@ import java.util.List;
  * <p>This rule only applies to "grand totals", that is, {@code GROUP BY ()}.
  * Any non-empty {@code GROUP BY} clause will return one row per group key
  * value, and each group will consist of at least one row.
+ *
+ * @see CoreRules#AGGREGATE_VALUES
  */
 public class AggregateValuesRule extends RelOptRule implements SubstitutionRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_VALUES}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateValuesRule INSTANCE =
-      new AggregateValuesRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_VALUES;
 
   /**
    * Creates an AggregateValuesRule.

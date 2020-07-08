@@ -22,8 +22,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -61,17 +59,15 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The singleton. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_PROJECT_PULL_UP_CONSTANTS}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateProjectPullUpConstantsRule INSTANCE =
-      new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
-          LogicalProject.class, RelFactories.LOGICAL_BUILDER,
-          "AggregateProjectPullUpConstantsRule");
+      CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS;
 
-  /** More general instance that matches any relational expression. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_ANY_PULL_UP_CONSTANTS}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateProjectPullUpConstantsRule INSTANCE2 =
-      new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
-          RelNode.class, RelFactories.LOGICAL_BUILDER,
-          "AggregatePullUpConstantsRule");
+      CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS;
 
   //~ Constructors -----------------------------------------------------------
 

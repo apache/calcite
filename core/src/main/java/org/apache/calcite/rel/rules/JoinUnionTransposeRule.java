@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -35,21 +34,15 @@ import java.util.List;
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
  */
 public class JoinUnionTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#JOIN_LEFT_UNION_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinUnionTransposeRule LEFT_UNION =
-      new JoinUnionTransposeRule(
-          operand(Join.class,
-              operand(Union.class, any()),
-              operand(RelNode.class, any())),
-          RelFactories.LOGICAL_BUILDER,
-          "JoinUnionTransposeRule(Union-Other)");
+      CoreRules.JOIN_LEFT_UNION_TRANSPOSE;
 
+  /** @deprecated Use {@link CoreRules#JOIN_RIGHT_UNION_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinUnionTransposeRule RIGHT_UNION =
-      new JoinUnionTransposeRule(
-          operand(Join.class,
-              operand(RelNode.class, any()),
-              operand(Union.class, any())),
-          RelFactories.LOGICAL_BUILDER,
-          "JoinUnionTransposeRule(Other-Union)");
+      CoreRules.JOIN_RIGHT_UNION_TRANSPOSE;
 
   /**
    * Creates a JoinUnionTransposeRule.

@@ -42,17 +42,10 @@ import java.util.function.Predicate;
  * past a {@link org.apache.calcite.rel.core.Project}.
  */
 public class FilterProjectTransposeRule extends RelOptRule implements TransformationRule {
-  /** The default instance of
-   * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
-   *
-   * <p>It does not allow a Filter to be pushed past the Project if
-   * {@link RexUtil#containsCorrelation there is a correlation condition})
-   * anywhere in the Filter, since in some cases it can prevent a
-   * {@link org.apache.calcite.rel.core.Correlate} from being de-correlated.
-   */
+  /** @deprecated Use {@link CoreRules#FILTER_PROJECT_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterProjectTransposeRule INSTANCE =
-      new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_PROJECT_TRANSPOSE;
 
   private final boolean copyFilter;
   private final boolean copyProject;

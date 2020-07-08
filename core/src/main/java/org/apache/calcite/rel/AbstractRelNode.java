@@ -148,13 +148,13 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 1.25
-  public boolean isDistinct() {
+  @Override public boolean isDistinct() {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areRowsUnique(this));
   }
 
   @Deprecated // to be removed before 1.25
-  public boolean isKey(ImmutableBitSet columns) {
+  @Override public boolean isKey(ImmutableBitSet columns) {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
   }
@@ -169,7 +169,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 1.25
-  public final RelOptQuery getQuery() {
+  @Override public final RelOptQuery getQuery() {
     return getCluster().getQuery();
   }
 
@@ -193,7 +193,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 1.25
-  public boolean isValid(boolean fail) {
+  @Override public boolean isValid(boolean fail) {
     return isValid(Litmus.THROW, null);
   }
 
@@ -226,7 +226,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 1.25
-  public final double getRows() {
+  @Override public final double getRows() {
     return estimateRowCount(cluster.getMetadataQuery());
   }
 
@@ -235,7 +235,7 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   @Deprecated // to be removed before 1.25
-  public final Set<String> getVariablesStopped() {
+  @Override public final Set<String> getVariablesStopped() {
     return CorrelationId.names(getVariablesSet());
   }
 
@@ -271,8 +271,8 @@ public abstract class AbstractRelNode implements RelNode {
     return this;
   }
 
-  @SuppressWarnings("deprecation")
-  public final RelOptCost computeSelfCost(RelOptPlanner planner) {
+  @Deprecated // to be removed before 1.25
+  @Override public final RelOptCost computeSelfCost(RelOptPlanner planner) {
     return computeSelfCost(planner, cluster.getMetadataQuery());
   }
 

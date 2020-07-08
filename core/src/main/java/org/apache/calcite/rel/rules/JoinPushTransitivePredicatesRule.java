@@ -40,10 +40,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * and applies them appropriately.
  */
 public class JoinPushTransitivePredicatesRule extends RelOptRule implements TransformationRule {
-  /** The singleton. */
+  /** @deprecated Use {@link CoreRules#JOIN_PUSH_TRANSITIVE_PREDICATES}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinPushTransitivePredicatesRule INSTANCE =
-      new JoinPushTransitivePredicatesRule(Join.class,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES;
 
   /** Creates a JoinPushTransitivePredicatesRule. */
   public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,

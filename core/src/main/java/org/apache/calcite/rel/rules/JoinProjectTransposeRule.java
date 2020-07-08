@@ -28,8 +28,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -60,50 +58,38 @@ import java.util.List;
 public class JoinProjectTransposeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
+  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_BOTH_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule BOTH_PROJECT =
-      new JoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              operand(LogicalProject.class, any()),
-              operand(LogicalProject.class, any())),
-          "JoinProjectTransposeRule(Project-Project)");
+      CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE;
 
+  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_LEFT_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule LEFT_PROJECT =
-      new JoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              some(operand(LogicalProject.class, any()))),
-          "JoinProjectTransposeRule(Project-Other)");
+      CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE;
 
+  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_RIGHT_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule RIGHT_PROJECT =
-      new JoinProjectTransposeRule(
-          operand(
-              LogicalJoin.class,
-              operand(RelNode.class, any()),
-              operand(LogicalProject.class, any())),
-          "JoinProjectTransposeRule(Other-Project)");
+      CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE;
 
+  /** @deprecated Use
+   * {@link CoreRules#JOIN_PROJECT_BOTH_TRANSPOSE_INCLUDE_OUTER}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule BOTH_PROJECT_INCLUDE_OUTER =
-      new JoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              operand(LogicalProject.class, any()),
-              operand(LogicalProject.class, any())),
-          "Join(IncludingOuter)ProjectTransposeRule(Project-Project)",
-          true, RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE_INCLUDE_OUTER;
 
+  /** @deprecated Use
+   * {@link CoreRules#JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule LEFT_PROJECT_INCLUDE_OUTER =
-      new JoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              some(operand(LogicalProject.class, any()))),
-          "Join(IncludingOuter)ProjectTransposeRule(Project-Other)",
-          true, RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER;
 
+  /** @deprecated Use
+   * {@link CoreRules#JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinProjectTransposeRule RIGHT_PROJECT_INCLUDE_OUTER =
-      new JoinProjectTransposeRule(
-          operand(
-              LogicalJoin.class,
-              operand(RelNode.class, any()),
-              operand(LogicalProject.class, any())),
-          "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",
-          true, RelFactories.LOGICAL_BUILDER);
+      CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER;
 
   private final boolean includeOuter;
 

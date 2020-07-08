@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.function.Predicate;
@@ -30,8 +29,10 @@ import java.util.function.Predicate;
  * an {@link org.apache.calcite.adapter.enumerable.EnumerableInterpreter}.
  */
 public class EnumerableInterpreterRule extends ConverterRule {
+  /** @deprecated Use {@link EnumerableRules#TO_INTERPRETER}. */
+  @Deprecated // to be removed before 1.25
   public static final EnumerableInterpreterRule INSTANCE =
-      new EnumerableInterpreterRule(RelFactories.LOGICAL_BUILDER);
+      EnumerableRules.TO_INTERPRETER;
 
   /**
    * Creates an EnumerableInterpreterRule.

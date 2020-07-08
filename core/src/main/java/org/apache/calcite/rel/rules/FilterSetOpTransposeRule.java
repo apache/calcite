@@ -38,8 +38,10 @@ import java.util.List;
  * past a {@link org.apache.calcite.rel.core.SetOp}.
  */
 public class FilterSetOpTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#FILTER_SET_OP_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterSetOpTransposeRule INSTANCE =
-      new FilterSetOpTransposeRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_SET_OP_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 

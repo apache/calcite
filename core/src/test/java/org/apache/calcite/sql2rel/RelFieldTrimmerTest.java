@@ -31,9 +31,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.rules.CalcMergeRule;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -324,7 +322,7 @@ class RelFieldTrimmerTest {
             .build();
 
     final HepProgram hepProgram = new HepProgramBuilder().
-        addRuleInstance(ProjectToCalcRule.INSTANCE).build();
+        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
 
     final HepPlanner hepPlanner = new HepPlanner(hepProgram);
     hepPlanner.setRoot(root);
@@ -353,8 +351,8 @@ class RelFieldTrimmerTest {
             .build();
 
     final HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
-        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
         .build();
 
     final HepPlanner hepPlanner = new HepPlanner(hepProgram);
@@ -386,9 +384,9 @@ class RelFieldTrimmerTest {
             .build();
 
     final HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
-        .addRuleInstance(FilterToCalcRule.INSTANCE)
-        .addRuleInstance(CalcMergeRule.INSTANCE).build();
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .addRuleInstance(CoreRules.CALC_MERGE).build();
 
     final HepPlanner hepPlanner = new HepPlanner(hepProgram);
     hepPlanner.setRoot(root);
@@ -423,7 +421,7 @@ class RelFieldTrimmerTest {
             .build();
 
     final HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
         .build();
     final HepPlanner hepPlanner = new HepPlanner(hepProgram);
     hepPlanner.setRoot(original);

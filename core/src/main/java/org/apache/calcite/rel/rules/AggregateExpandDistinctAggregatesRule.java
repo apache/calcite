@@ -81,16 +81,16 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** The default instance of the rule; operates only on logical expressions. */
+  /** @deprecated Use {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateExpandDistinctAggregatesRule INSTANCE =
-      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, true,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES;
 
-  /** Instance of the rule that operates only on logical expressions and
-   * generates a join. */
+  /** @deprecated Use
+   * {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateExpandDistinctAggregatesRule JOIN =
-      new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, false,
-          RelFactories.LOGICAL_BUILDER);
+      CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN;
 
   public final boolean useGroupingSets;
 

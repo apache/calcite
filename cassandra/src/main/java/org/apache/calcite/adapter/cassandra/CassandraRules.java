@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
@@ -54,6 +55,11 @@ import java.util.function.Predicate;
  */
 public class CassandraRules {
   private CassandraRules() {}
+
+  /** Rule to convert a relational expression from
+   * {@link CassandraRel#CONVENTION} to {@link EnumerableConvention}. */
+  public static final ConverterRule TO_ENUMERABLE =
+      new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule[] RULES = {
       CassandraFilterRule.INSTANCE,

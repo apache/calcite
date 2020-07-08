@@ -116,6 +116,17 @@ public class EnumerableRules {
   public static final EnumerableSortedAggregateRule ENUMERABLE_SORTED_AGGREGATE_RULE =
       new EnumerableSortedAggregateRule();
 
+  /** Rule that converts any enumerable relational expression to bindable. */
+  public static final EnumerableBindable.EnumerableToBindableConverterRule TO_BINDABLE =
+      new EnumerableBindable.EnumerableToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Rule that converts {@link org.apache.calcite.interpreter.BindableRel}
+   * to {@link org.apache.calcite.adapter.enumerable.EnumerableRel} by creating
+   * an {@link org.apache.calcite.adapter.enumerable.EnumerableInterpreter}. */
+  public static final EnumerableInterpreterRule TO_INTERPRETER =
+      new EnumerableInterpreterRule(RelFactories.LOGICAL_BUILDER);
+
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
       EnumerableRules.ENUMERABLE_JOIN_RULE,
       EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,

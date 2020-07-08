@@ -66,8 +66,10 @@ import java.util.TreeSet;
  * ({@link MultiJoin}).
  */
 public class LoptOptimizeJoinRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#MULTI_JOIN_OPTIMIZE}. */
+  @Deprecated // to be removed before 1.25
   public static final LoptOptimizeJoinRule INSTANCE =
-      new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.MULTI_JOIN_OPTIMIZE;
 
   /** Creates a LoptOptimizeJoinRule. */
   public LoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory) {

@@ -52,21 +52,23 @@ public abstract class FilterJoinRule extends RelOptRule implements Transformatio
    * will be pushed into the ON clause. */
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 
-  /** Rule that pushes predicates from a Filter into the Join below them. */
+  /** @deprecated Use {@link CoreRules#FILTER_INTO_JOIN}. */
+  @SuppressWarnings("StaticInitializerReferencesSubClass")
+  @Deprecated // to be removed before 1.25
   public static final FilterJoinRule FILTER_ON_JOIN =
-      new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,
-          TRUE_PREDICATE);
+      CoreRules.FILTER_INTO_JOIN;
 
-  /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
-   * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
-   * smart. */
+  /** @deprecated Use {@link CoreRules#FILTER_INTO_JOIN_DUMB}. */
+  @SuppressWarnings("StaticInitializerReferencesSubClass")
+  @Deprecated // to be removed before 1.25
   public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
-      new FilterIntoJoinRule(false, RelFactories.LOGICAL_BUILDER,
-          TRUE_PREDICATE);
+      CoreRules.FILTER_INTO_JOIN_DUMB;
 
-  /** Rule that pushes predicates in a Join into the inputs to the join. */
+  /** @deprecated Use {@link CoreRules#JOIN_CONDITION_PUSH}. */
+  @SuppressWarnings("StaticInitializerReferencesSubClass")
+  @Deprecated // to be removed before 1.25
   public static final FilterJoinRule JOIN =
-      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, TRUE_PREDICATE);
+      CoreRules.JOIN_CONDITION_PUSH;
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;

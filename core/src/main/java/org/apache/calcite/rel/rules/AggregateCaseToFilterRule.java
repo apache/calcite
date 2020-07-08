@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -64,8 +63,10 @@ import javax.annotation.Nullable;
  */
 public class AggregateCaseToFilterRule extends RelOptRule
     implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#AGGREGATE_CASE_TO_FILTER}. */
+  @Deprecated // to be removed before 1.25
   public static final AggregateCaseToFilterRule INSTANCE =
-      new AggregateCaseToFilterRule(RelFactories.LOGICAL_BUILDER, null);
+      CoreRules.AGGREGATE_CASE_TO_FILTER;
 
   /** Creates an AggregateCaseToFilterRule. */
   protected AggregateCaseToFilterRule(RelBuilderFactory relBuilderFactory,

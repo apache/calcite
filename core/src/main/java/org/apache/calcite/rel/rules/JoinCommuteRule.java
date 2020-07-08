@@ -51,11 +51,13 @@ import java.util.function.Predicate;
 public class JoinCommuteRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** Instance of the rule that only swaps inner joins. */
-  public static final JoinCommuteRule INSTANCE = new JoinCommuteRule(false);
+  /** @deprecated Use {@link CoreRules#JOIN_COMMUTE}. */
+  @Deprecated // to be removed before 1.25
+  public static final JoinCommuteRule INSTANCE = CoreRules.JOIN_COMMUTE;
 
-  /** Instance of the rule that swaps outer joins as well as inner joins. */
-  public static final JoinCommuteRule SWAP_OUTER = new JoinCommuteRule(true);
+  /** @deprecated Use {@link CoreRules#JOIN_COMMUTE_OUTER}. */
+  @Deprecated // to be removed before 1.25
+  public static final JoinCommuteRule SWAP_OUTER = CoreRules.JOIN_COMMUTE_OUTER;
 
   private final boolean swapOuter;
 
@@ -76,7 +78,7 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
     this.swapOuter = swapOuter;
   }
 
-  private JoinCommuteRule(boolean swapOuter) {
+  JoinCommuteRule(boolean swapOuter) {
     this(LogicalJoin.class, RelFactories.LOGICAL_BUILDER, swapOuter);
   }
 

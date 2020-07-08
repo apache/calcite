@@ -46,13 +46,10 @@ import java.util.List;
  */
 public class FilterAggregateTransposeRule extends RelOptRule implements TransformationRule {
 
-  /** The default instance of
-   * {@link FilterAggregateTransposeRule}.
-   *
-   * <p>It matches any kind of agg. or filter */
+  /** @deprecated Use {@link CoreRules#FILTER_AGGREGATE_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterAggregateTransposeRule INSTANCE =
-      new FilterAggregateTransposeRule(Filter.class,
-          RelFactories.LOGICAL_BUILDER, Aggregate.class);
+      CoreRules.FILTER_AGGREGATE_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 

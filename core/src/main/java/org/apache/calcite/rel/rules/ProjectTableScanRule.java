@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -57,36 +55,15 @@ public abstract class ProjectTableScanRule extends RelOptRule {
   public static final com.google.common.base.Predicate<TableScan> PREDICATE =
       ProjectTableScanRule::test;
 
-  /** Rule that matches Project on TableScan. */
+  /** @deprecated Use {@link CoreRules#PROJECT_TABLE_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectTableScanRule INSTANCE =
-      new ProjectTableScanRule(
-          operand(Project.class,
-              operandJ(TableScan.class, null, ProjectTableScanRule::test,
-                  none())),
-          RelFactories.LOGICAL_BUILDER,
-          "ProjectScanRule") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          final Project project = call.rel(0);
-          final TableScan scan = call.rel(1);
-          apply(call, project, scan);
-        }
-      };
+      CoreRules.PROJECT_TABLE_SCAN;
 
-  /** Rule that matches Project on EnumerableInterpreter on TableScan. */
+  /** @deprecated Use {@link CoreRules#PROJECT_INTERPRETER_TABLE_SCAN}. */
+  @Deprecated // to be removed before 1.25
   public static final ProjectTableScanRule INTERPRETER =
-      new ProjectTableScanRule(
-          operand(Project.class,
-              operand(EnumerableInterpreter.class,
-                  operandJ(TableScan.class, null, ProjectTableScanRule::test,
-                      none()))),
-          RelFactories.LOGICAL_BUILDER,
-          "ProjectScanRule:interpreter") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          final Project project = call.rel(0);
-          final TableScan scan = call.rel(2);
-          apply(call, project, scan);
-        }
-      };
+      CoreRules.PROJECT_INTERPRETER_TABLE_SCAN;
 
   //~ Constructors -----------------------------------------------------------
 

@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -32,8 +31,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>Requires {@link RelCollationTraitDef}.
  */
 public class SortRemoveRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#SORT_REMOVE}. */
+  @Deprecated // to be removed before 1.25
   public static final SortRemoveRule INSTANCE =
-      new SortRemoveRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.SORT_REMOVE;
 
   /**
    * Creates a SortRemoveRule.

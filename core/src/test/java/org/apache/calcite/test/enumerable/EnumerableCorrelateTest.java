@@ -22,8 +22,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.rel.rules.FilterCorrelateRule;
-import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
@@ -48,7 +47,7 @@ class EnumerableCorrelateTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the left outer join to run via EnumerableCorrelate
           // instead of EnumerableHashJoin
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
@@ -91,7 +90,7 @@ class EnumerableCorrelateTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the semijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(SEMI)
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
@@ -120,8 +119,8 @@ class EnumerableCorrelateTest {
           // force the semijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(SEMI),
           // and push the 'empid > 100' filter into the Correlate
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
-          planner.addRule(FilterCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
+          planner.addRule(CoreRules.FILTER_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
@@ -176,7 +175,7 @@ class EnumerableCorrelateTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(ANTI)
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .withRel(
@@ -205,7 +204,7 @@ class EnumerableCorrelateTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableNestedLoopJoin
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .withRel(
@@ -245,7 +244,7 @@ class EnumerableCorrelateTest {
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(ANTI)
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .withRel(

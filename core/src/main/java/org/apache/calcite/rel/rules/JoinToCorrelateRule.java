@@ -60,17 +60,10 @@ public class JoinToCorrelateRule extends RelOptRule implements TransformationRul
 
   //~ Static fields/initializers ---------------------------------------------
 
-  /**
-   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
-   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
-   */
-  public static final JoinToCorrelateRule INSTANCE =
-      new JoinToCorrelateRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER,
-          "JoinToCorrelateRule");
-
-  /** Synonym for {@link #INSTANCE};
-   * {@code JOIN} is not deprecated, but {@code INSTANCE} is preferred. */
-  public static final JoinToCorrelateRule JOIN = INSTANCE;
+  /** @deprecated Use {@link CoreRules#JOIN_TO_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
+  public static final JoinToCorrelateRule JOIN =
+      CoreRules.JOIN_TO_CORRELATE;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -96,7 +89,7 @@ public class JoinToCorrelateRule extends RelOptRule implements TransformationRul
    * @param relBuilderFactory Builder for relational expressions
    * @param description Description, or null to guess description
    */
-  private JoinToCorrelateRule(Class<? extends Join> clazz,
+  JoinToCorrelateRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory,
       String description) {
     super(operand(clazz, any()), relBuilderFactory, description);

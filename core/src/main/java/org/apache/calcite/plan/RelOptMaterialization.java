@@ -24,13 +24,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
-import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.Table;
@@ -201,9 +195,9 @@ public class RelOptMaterialization {
       return null;
     }
     final Program program = Programs.hep(
-        ImmutableList.of(ProjectFilterTransposeRule.INSTANCE,
-            AggregateProjectMergeRule.INSTANCE,
-            AggregateFilterTransposeRule.INSTANCE),
+        ImmutableList.of(CoreRules.PROJECT_FILTER_TRANSPOSE,
+            CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_FILTER_TRANSPOSE),
         false,
         DefaultRelMetadataProvider.INSTANCE);
     return program.run(null, rel2, null,
@@ -270,12 +264,11 @@ public class RelOptMaterialization {
    */
   public static RelNode toLeafJoinForm(RelNode rel) {
     final Program program = Programs.hep(
-        ImmutableList.of(
-            JoinProjectTransposeRule.RIGHT_PROJECT,
-            JoinProjectTransposeRule.LEFT_PROJECT,
-            FilterJoinRule.FilterIntoJoinRule.FILTER_ON_JOIN,
-            ProjectRemoveRule.INSTANCE,
-            ProjectMergeRule.INSTANCE),
+        ImmutableList.of(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE,
+            CoreRules.FILTER_INTO_JOIN,
+            CoreRules.PROJECT_REMOVE,
+            CoreRules.PROJECT_MERGE),
         false,
         DefaultRelMetadataProvider.INSTANCE);
     if (CalciteSystemProperty.DEBUG.value()) {

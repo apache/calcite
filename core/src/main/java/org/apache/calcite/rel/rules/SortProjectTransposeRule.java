@@ -29,7 +29,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexNode;
@@ -54,9 +53,10 @@ import java.util.Objects;
  * @see org.apache.calcite.rel.rules.ProjectSortTransposeRule
  */
 public class SortProjectTransposeRule extends RelOptRule implements TransformationRule {
+  /** @deprecated Use {@link CoreRules#SORT_PROJECT_TRANSPOSE}. */
+  @Deprecated // to be removed before 1.25
   public static final SortProjectTransposeRule INSTANCE =
-      new SortProjectTransposeRule(Sort.class, LogicalProject.class,
-          RelFactories.LOGICAL_BUILDER, null);
+      CoreRules.SORT_PROJECT_TRANSPOSE;
 
   //~ Constructors -----------------------------------------------------------
 

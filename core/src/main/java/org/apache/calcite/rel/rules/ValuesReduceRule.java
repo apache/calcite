@@ -21,8 +21,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -62,65 +60,30 @@ import java.util.List;
  *
  * <p>Ignores an empty {@code Values}; this is better dealt with by
  * {@link PruneEmptyRules}.
+ *
+ * @see CoreRules#FILTER_VALUES_MERGE
+ * @see CoreRules#PROJECT_VALUES_MERGE
+ * @see CoreRules#PROJECT_FILTER_VALUES_MERGE
  */
 public abstract class ValuesReduceRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  /**
-   * Instance of this rule that applies to the pattern
-   * Filter(Values).
-   */
+  /** @deprecated Use {@link CoreRules#FILTER_VALUES_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final ValuesReduceRule FILTER_INSTANCE =
-      new ValuesReduceRule(
-          operand(LogicalFilter.class,
-              operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
-          RelFactories.LOGICAL_BUILDER,
-          "ValuesReduceRule(Filter)") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalFilter filter = call.rel(0);
-          LogicalValues values = call.rel(1);
-          apply(call, null, filter, values);
-        }
-      };
+      CoreRules.FILTER_VALUES_MERGE;
 
-  /**
-   * Instance of this rule that applies to the pattern
-   * Project(Values).
-   */
+  /** @deprecated Use {@link CoreRules#PROJECT_VALUES_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final ValuesReduceRule PROJECT_INSTANCE =
-      new ValuesReduceRule(
-          operand(LogicalProject.class,
-              operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
-          RelFactories.LOGICAL_BUILDER,
-          "ValuesReduceRule(Project)") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalProject project = call.rel(0);
-          LogicalValues values = call.rel(1);
-          apply(call, project, null, values);
-        }
-      };
+      CoreRules.PROJECT_VALUES_MERGE;
 
-  /**
-   * Singleton instance of this rule that applies to the pattern
-   * Project(Filter(Values)).
-   */
+  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_VALUES_MERGE}. */
+  @Deprecated // to be removed before 1.25
   public static final ValuesReduceRule PROJECT_FILTER_INSTANCE =
-      new ValuesReduceRule(
-          operand(LogicalProject.class,
-              operand(LogicalFilter.class,
-                  operandJ(LogicalValues.class, null, Values::isNotEmpty,
-                      none()))),
-          RelFactories.LOGICAL_BUILDER,
-          "ValuesReduceRule(Project-Filter)") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalProject project = call.rel(0);
-          LogicalFilter filter = call.rel(1);
-          LogicalValues values = call.rel(2);
-          apply(call, project, filter, values);
-        }
-      };
+      CoreRules.PROJECT_FILTER_VALUES_MERGE;
 
   //~ Constructors -----------------------------------------------------------
 

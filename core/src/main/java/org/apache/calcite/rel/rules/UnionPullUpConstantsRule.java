@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -45,8 +44,10 @@ import java.util.Map;
  */
 public class UnionPullUpConstantsRule extends RelOptRule implements TransformationRule {
 
+  /** @deprecated Use {@link CoreRules#UNION_PULL_UP_CONSTANTS}. */
+  @Deprecated // to be removed before 1.25
   public static final UnionPullUpConstantsRule INSTANCE =
-      new UnionPullUpConstantsRule(Union.class, RelFactories.LOGICAL_BUILDER);
+      CoreRules.UNION_PULL_UP_CONSTANTS;
 
   /** Creates a UnionPullUpConstantsRule. */
   public UnionPullUpConstantsRule(Class<? extends Union> unionClass,

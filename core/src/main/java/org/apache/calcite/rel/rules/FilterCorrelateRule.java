@@ -40,8 +40,10 @@ import java.util.List;
  */
 public class FilterCorrelateRule extends RelOptRule implements TransformationRule {
 
+  /** @deprecated Use {@link CoreRules#FILTER_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
   public static final FilterCorrelateRule INSTANCE =
-      new FilterCorrelateRule(RelFactories.LOGICAL_BUILDER);
+      CoreRules.FILTER_CORRELATE;
 
   //~ Constructors -----------------------------------------------------------
 

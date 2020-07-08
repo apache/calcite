@@ -25,7 +25,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -409,7 +409,7 @@ class InterpreterTest {
     SqlNode validate = planner.validate(planner.parse(sql));
     RelNode convert = planner.rel(validate).rel;
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SemiJoinRule.PROJECT)
+        .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
         .build();
     final HepPlanner hepPlanner = new HepPlanner(program);
     hepPlanner.setRoot(convert);
