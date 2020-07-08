@@ -748,6 +748,10 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportAggInGroupByClause() {
+    return true;
+  }
+
   /** Returns whether this dialect supports window functions (OVER clause). */
   public boolean supportsWindowFunctions() {
     return true;

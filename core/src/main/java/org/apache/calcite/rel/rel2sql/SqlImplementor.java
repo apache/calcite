@@ -74,6 +74,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
@@ -1177,6 +1178,12 @@ public abstract class SqlImplementor {
           needNew = true;
         }
       }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+          && !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
+        needNew = true;
+      }
+
       if (rel instanceof Aggregate
           && !dialect.supportsNestedAggregations()
           && hasNestedAggregations((Aggregate) rel)) {
@@ -1343,6 +1350,71 @@ public abstract class SqlImplementor {
               if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
                 return true;
               }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAggFunctionUsedInGroupBy(Project project) {
+      if (!(node instanceof SqlSelect)) {
+        return false;
+      }
+      List<RexNode> expressions = project.getChildExps();
+      List<Pair<Integer, List<RexInputRef>>> identifiersPerSelectListItem = new ArrayList<>();
+      int index = 0;
+      for (RexNode expr : expressions) {
+        identifiersPerSelectListItem.add(new Pair<>(index, getIdentifiers(expr)));
+        index++;
+      }
+      List<String> columnNames = new ArrayList<>();
+      List<SqlNode> selectList = ((SqlSelect) node).getSelectList().getList();
+      for (Pair<Integer, List<RexInputRef>> identifiersWithIndex : identifiersPerSelectListItem) {
+        boolean hasAggFunction = false;
+        for (RexInputRef identifier: identifiersWithIndex.right) {
+          SqlNode sqlNode = selectList.get(identifier.getIndex());
+          if (sqlNode instanceof SqlBasicCall) {
+            if (hasAggFunction((SqlBasicCall) sqlNode)) {
+              hasAggFunction = true;
+            }
+          }
+        }
+        if (hasAggFunction) {
+          columnNames.
+              add(project.getRowType().getFieldList().get(identifiersWithIndex.left).getName());
+        }
+      }
+      List<SqlNode> groupByList = ((SqlSelect) node).getGroup().getList();
+      for (SqlNode groupByItem : groupByList) {
+        if (groupByItem instanceof SqlIdentifier
+            && columnNames.contains(SqlIdentifier.getString(((SqlIdentifier) groupByItem).names))) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    List<RexInputRef> getIdentifiers(RexNode rexNode) {
+      List<RexInputRef> identifiers = new ArrayList<>();
+      if (rexNode instanceof RexInputRef) {
+        identifiers.add((RexInputRef) rexNode);
+      } else if (rexNode instanceof RexCall) {
+        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+          identifiers.addAll(getIdentifiers(operand));
+        }
+      }
+      return identifiers;
+    }
+
+    private boolean hasAggFunction(SqlBasicCall call) {
+      if (call.getOperator() instanceof SqlAggFunction) {
+        return true;
+      } else {
+        for (SqlNode sqlNode : call.getOperandList()) {
+          if (sqlNode instanceof  SqlBasicCall) {
+            if (hasAggFunction((SqlBasicCall) sqlNode)) {
+              return true;
             }
           }
         }
