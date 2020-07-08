@@ -133,12 +133,12 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     this(dataSource, sql, rowBuilderFactory, null);
   }
 
-  /** Creates an ResultSetEnumerable. */
+  /** Creates a ResultSetEnumerable. */
   public static ResultSetEnumerable<Object> of(DataSource dataSource, String sql) {
     return of(dataSource, sql, AUTO_ROW_BUILDER_FACTORY);
   }
 
-  /** Creates an ResultSetEnumerable that retrieves columns as specific
+  /** Creates a ResultSetEnumerable that retrieves columns as specific
    * Java types. */
   public static ResultSetEnumerable<Object> of(DataSource dataSource, String sql,
       Primitive[] primitives) {

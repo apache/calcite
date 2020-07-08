@@ -33,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -197,6 +198,11 @@ public abstract class Project extends SingleRel implements Hintable {
   @Deprecated // to be removed before 2.0
   public int getFlags() {
     return 1;
+  }
+
+  /** Returns whether this Project contains any windowed-aggregate functions. */
+  public final boolean containsOver() {
+    return RexOver.containsOver(getProjects(), null);
   }
 
   public boolean isValid(Litmus litmus, Context context) {

@@ -20,27 +20,31 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 
-import java.util.function.Predicate;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
  * {@link EnumerableCalc}.
+ *
+ * @see EnumerableRules#ENUMERABLE_CALC_RULE
  */
 class EnumerableCalcRule extends ConverterRule {
-  EnumerableCalcRule() {
-    // The predicate ensures that if there's a multiset, FarragoMultisetSplitter
-    // will work on it first.
-    super(LogicalCalc.class,
-        (Predicate<Calc>) RelOptUtil::notContainsWindowedAgg,
-        Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableCalcRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.EMPTY
+      .as(Config.class)
+      // The predicate ensures that if there's a multiset,
+      // FarragoMultisetSplitter will work on it first.
+      .withConversion(LogicalCalc.class, RelOptUtil::notContainsWindowedAgg,
+          Convention.NONE, EnumerableConvention.INSTANCE,
+          "EnumerableCalcRule")
+      .withRuleFactory(EnumerableCalcRule::new);
+
+  protected EnumerableCalcRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final LogicalCalc calc = (LogicalCalc) rel;
     final RelNode input = calc.getInput();
     return EnumerableCalc.create(

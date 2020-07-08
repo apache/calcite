@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Optionality;
@@ -76,32 +77,39 @@ import java.util.stream.Stream;
  * (e.g. {@code COUNT(DISTINCT x), COUNT(DISTINCT y)})
  * the rule creates separate {@code Aggregate}s and combines using a
  * {@link org.apache.calcite.rel.core.Join}.
+ *
+ * @see CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES
+ * @see CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN
  */
-public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
+public final class AggregateExpandDistinctAggregatesRule
+    extends RelRule<AggregateExpandDistinctAggregatesRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
   /** @deprecated Use {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES}. */
   @Deprecated // to be removed before 1.25
   public static final AggregateExpandDistinctAggregatesRule INSTANCE =
-      CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES;
+      Config.DEFAULT.toRule();
 
   /** @deprecated Use
    * {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN}. */
   @Deprecated // to be removed before 1.25
   public static final AggregateExpandDistinctAggregatesRule JOIN =
-      CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN;
+      Config.JOIN.toRule();
 
-  public final boolean useGroupingSets;
+  /** Creates an AggregateExpandDistinctAggregatesRule. */
+  protected AggregateExpandDistinctAggregatesRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
+  @Deprecated // to be removed before 2.0
   public AggregateExpandDistinctAggregatesRule(
       Class<? extends Aggregate> clazz,
       boolean useGroupingSets,
       RelBuilderFactory relBuilderFactory) {
-    super(operand(clazz, any()), relBuilderFactory, null);
-    this.useGroupingSets = useGroupingSets;
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withOperandSupplier(b ->
+            b.operand(clazz).anyInputs())
+        .as(Config.class)
+        .withUsingGroupingSets(useGroupingSets));
   }
 
   @Deprecated // to be removed before 2.0
@@ -121,7 +129,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     if (!aggregate.containsDistinctCall()) {
       return;
@@ -193,7 +201,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
       return;
     }
 
-    if (useGroupingSets) {
+    if (((Config) config).isUsingGroupingSets()) {
       rewriteUsingGroupingSets(call, aggregate);
       return;
     }
@@ -898,5 +906,27 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
             ImmutableBitSet.range(projects.size()), null, ImmutableList.of()));
     return relBuilder;
+  }
+
+       /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(LogicalAggregate.class).anyInputs())
+        .as(Config.class);
+
+    Config JOIN = DEFAULT.withUsingGroupingSets(false);
+
+    @Override default AggregateExpandDistinctAggregatesRule toRule() {
+      return new AggregateExpandDistinctAggregatesRule(this);
+    }
+
+    /** Whether to use GROUPING SETS, default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean isUsingGroupingSets();
+
+    /** Sets {@link #isUsingGroupingSets()}. */
+    Config withUsingGroupingSets(boolean usingGroupingSets);
   }
 }

@@ -84,9 +84,24 @@ import java.util.Random;
 public abstract class SparkRules {
   private SparkRules() {}
 
+  /** Rule that converts from Spark to enumerable convention. */
+  public static final SparkToEnumerableConverterRule SPARK_TO_ENUMERABLE =
+      SparkToEnumerableConverterRule.DEFAULT_CONFIG
+          .toRule(SparkToEnumerableConverterRule.class);
+
   /** Rule that converts from enumerable to Spark convention. */
   public static final EnumerableToSparkConverterRule ENUMERABLE_TO_SPARK =
-      new EnumerableToSparkConverterRule();
+      EnumerableToSparkConverterRule.DEFAULT_CONFIG
+          .toRule(EnumerableToSparkConverterRule.class);
+
+  /** Rule that converts a {@link org.apache.calcite.rel.logical.LogicalCalc}
+   * to a {@link org.apache.calcite.adapter.spark.SparkRules.SparkCalc}. */
+  public static final SparkCalcRule SPARK_CALC_RULE =
+      SparkCalcRule.DEFAULT_CONFIG.toRule(SparkCalcRule.class);
+
+  /** Rule that implements VALUES operator in Spark convention. */
+  public static final SparkValuesRule SPARK_VALUES_RULE =
+      SparkValuesRule.DEFAULT_CONFIG.toRule(SparkValuesRule.class);
 
   public static List<RelOptRule> rules() {
     return ImmutableList.of(
@@ -94,21 +109,24 @@ public abstract class SparkRules {
         // SparkFilterToCalcRule, and remove the following 2 rules.
         CoreRules.PROJECT_TO_CALC,
         CoreRules.FILTER_TO_CALC,
-        EnumerableToSparkConverterRule.INSTANCE,
-        SparkToEnumerableConverterRule.INSTANCE,
+        ENUMERABLE_TO_SPARK,
+        SPARK_TO_ENUMERABLE,
         SPARK_VALUES_RULE,
         SPARK_CALC_RULE);
   }
 
-  /** Planner rule that converts from enumerable to Spark convention. */
+  /** Planner rule that converts from enumerable to Spark convention.
+   *
+   * @see #ENUMERABLE_TO_SPARK */
   static class EnumerableToSparkConverterRule extends ConverterRule {
-    public static final EnumerableToSparkConverterRule INSTANCE =
-        new EnumerableToSparkConverterRule();
+    /** Default configuration. */
+    static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(RelNode.class, EnumerableConvention.INSTANCE,
+            SparkRel.CONVENTION, "EnumerableToSparkConverterRule")
+        .withRuleFactory(EnumerableToSparkConverterRule::new);
 
-    private EnumerableToSparkConverterRule() {
-      super(
-          RelNode.class, EnumerableConvention.INSTANCE, SparkRel.CONVENTION,
-          "EnumerableToSparkConverterRule");
+    EnumerableToSparkConverterRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -117,15 +135,17 @@ public abstract class SparkRules {
     }
   }
 
-  /** Planner rule that converts from Spark to enumerable convention. */
+  /** Planner rule that converts from Spark to enumerable convention.
+   *
+   * @see #SPARK_TO_ENUMERABLE */
   static class SparkToEnumerableConverterRule extends ConverterRule {
-    public static final SparkToEnumerableConverterRule INSTANCE =
-        new SparkToEnumerableConverterRule();
+    static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(RelNode.class, SparkRel.CONVENTION,
+            EnumerableConvention.INSTANCE, "SparkToEnumerableConverterRule")
+        .withRuleFactory(SparkToEnumerableConverterRule::new);
 
-    private SparkToEnumerableConverterRule() {
-      super(
-          RelNode.class, SparkRel.CONVENTION, EnumerableConvention.INSTANCE,
-          "SparkToEnumerableConverterRule");
+    SparkToEnumerableConverterRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -134,14 +154,18 @@ public abstract class SparkRules {
     }
   }
 
-  public static final SparkValuesRule SPARK_VALUES_RULE =
-      new SparkValuesRule();
-
-  /** Planner rule that implements VALUES operator in Spark convention. */
+  /** Planner rule that implements VALUES operator in Spark convention.
+   *
+   * @see #SPARK_VALUES_RULE */
   public static class SparkValuesRule extends ConverterRule {
-    private SparkValuesRule() {
-      super(LogicalValues.class, Convention.NONE, SparkRel.CONVENTION,
-          "SparkValuesRule");
+    /** Default configuration. */
+    static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(LogicalValues.class, Convention.NONE,
+            SparkRel.CONVENTION, "SparkValuesRule")
+        .withRuleFactory(SparkValuesRule::new);
+
+    SparkValuesRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -214,24 +238,24 @@ public abstract class SparkRules {
     }
   }
 
-  public static final SparkCalcRule SPARK_CALC_RULE =
-      new SparkCalcRule();
-
   /**
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
    * {@link org.apache.calcite.adapter.spark.SparkRules.SparkCalc}.
+   *
+   * @see #SPARK_CALC_RULE
    */
-  private static class SparkCalcRule
-      extends ConverterRule {
-    private SparkCalcRule() {
-      super(
-          LogicalCalc.class,
-          Convention.NONE,
-          SparkRel.CONVENTION,
-          "SparkCalcRule");
+  private static class SparkCalcRule extends ConverterRule {
+    /** Default configuration. */
+    static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(LogicalCalc.class, Convention.NONE, SparkRel.CONVENTION,
+            "SparkCalcRule")
+        .withRuleFactory(SparkCalcRule::new);
+
+    SparkCalcRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalCalc calc = (LogicalCalc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it

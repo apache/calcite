@@ -17,27 +17,30 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
-
-import java.util.function.Predicate;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to an
  * {@link EnumerableFilter}.
+ *
+ * @see EnumerableRules#ENUMERABLE_FILTER_RULE
  */
 class EnumerableFilterRule extends ConverterRule {
-  EnumerableFilterRule() {
-    super(LogicalFilter.class,
-        (Predicate<LogicalFilter>) RelOptUtil::notContainsWindowedAgg,
-        Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableFilterRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.EMPTY
+      .as(Config.class)
+      .withConversion(LogicalFilter.class, f -> !f.containsOver(),
+          Convention.NONE, EnumerableConvention.INSTANCE,
+          "EnumerableFilterRule")
+      .withRuleFactory(EnumerableFilterRule::new);
+
+  protected EnumerableFilterRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final LogicalFilter filter = (LogicalFilter) rel;
     return new EnumerableFilter(rel.getCluster(),
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE),

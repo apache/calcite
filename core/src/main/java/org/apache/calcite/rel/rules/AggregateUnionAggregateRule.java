@@ -16,13 +16,15 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -36,40 +38,49 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>This rule only handles cases where the
  * {@link org.apache.calcite.rel.core.Union}s
  * still have only two inputs.
+ *
+ * @see CoreRules#AGGREGATE_UNION_AGGREGATE
+ * @see CoreRules#AGGREGATE_UNION_AGGREGATE_FIRST
+ * @see CoreRules#AGGREGATE_UNION_AGGREGATE_SECOND
  */
-public class AggregateUnionAggregateRule extends RelOptRule implements TransformationRule {
+public class AggregateUnionAggregateRule
+    extends RelRule<AggregateUnionAggregateRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_FIRST}. */
   @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule AGG_ON_FIRST_INPUT =
-      CoreRules.AGGREGATE_UNION_AGGREGATE_FIRST;
+      Config.AGG_FIRST.toRule();
 
   /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_SECOND}. */
   @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule AGG_ON_SECOND_INPUT =
-      CoreRules.AGGREGATE_UNION_AGGREGATE_SECOND;
+      Config.AGG_SECOND.toRule();
 
   /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE}. */
   @Deprecated // to be removed before 1.25
   public static final AggregateUnionAggregateRule INSTANCE =
-      CoreRules.AGGREGATE_UNION_AGGREGATE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a AggregateUnionAggregateRule.
-   */
+  /** Creates an AggregateUnionAggregateRule. */
+  protected AggregateUnionAggregateRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateUnionAggregateRule(Class<? extends Aggregate> aggregateClass,
       Class<? extends Union> unionClass,
       Class<? extends RelNode> firstUnionInputClass,
       Class<? extends RelNode> secondUnionInputClass,
       RelBuilderFactory relBuilderFactory,
       String desc) {
-    super(
-        operandJ(aggregateClass, null, Aggregate::isSimple,
-            operand(unionClass,
-                operand(firstUnionInputClass, any()),
-                operand(secondUnionInputClass, any()))),
-        relBuilderFactory, desc);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .withDescription(desc)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, unionClass, firstUnionInputClass,
+            secondUnionInputClass));
   }
 
   @Deprecated // to be removed before 2.0
@@ -101,7 +112,7 @@ public class AggregateUnionAggregateRule extends RelOptRule implements Transform
     }
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate topAggRel = call.rel(0);
     final Union union = call.rel(1);
 
@@ -137,5 +148,45 @@ public class AggregateUnionAggregateRule extends RelOptRule implements Transform
     relBuilder.aggregate(relBuilder.groupKey(topAggRel.getGroupSet()),
         topAggRel.getAggCallList());
     call.transformTo(relBuilder.build());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withDescription("AggregateUnionAggregateRule")
+        .as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalUnion.class,
+            RelNode.class, RelNode.class);
+
+    Config AGG_FIRST = DEFAULT
+        .withDescription("AggregateUnionAggregateRule:first-input-agg")
+        .as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalUnion.class,
+            LogicalAggregate.class, RelNode.class);
+
+    Config AGG_SECOND = DEFAULT
+        .withDescription("AggregateUnionAggregateRule:second-input-agg")
+        .as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalUnion.class,
+            RelNode.class, LogicalAggregate.class);
+
+    @Override default AggregateUnionAggregateRule toRule() {
+      return new AggregateUnionAggregateRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends Union> unionClass,
+        Class<? extends RelNode> firstUnionInputClass,
+        Class<? extends RelNode> secondUnionInputClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass)
+              .predicate(Aggregate::isSimple)
+              .oneInput(b1 ->
+                  b1.operand(unionClass).inputs(
+                      b2 -> b2.operand(firstUnionInputClass).anyInputs(),
+                      b3 -> b3.operand(secondUnionInputClass).anyInputs())))
+          .as(Config.class);
+    }
   }
 }

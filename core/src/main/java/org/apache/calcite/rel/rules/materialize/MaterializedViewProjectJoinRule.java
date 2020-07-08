@@ -20,30 +20,57 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Rule that matches Project on Join. */
-public class MaterializedViewProjectJoinRule extends MaterializedViewJoinRule {
+public class MaterializedViewProjectJoinRule
+    extends MaterializedViewJoinRule<MaterializedViewProjectJoinRule.Config> {
 
   /** @deprecated Use {@link MaterializedViewRules#PROJECT_JOIN}. */
   @Deprecated // to be removed before 1.25
   public static final MaterializedViewProjectJoinRule INSTANCE =
-      MaterializedViewRules.PROJECT_JOIN;
+      Config.DEFAULT.toRule();
 
+  private MaterializedViewProjectJoinRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public MaterializedViewProjectJoinRule(RelBuilderFactory relBuilderFactory,
       boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
       boolean fastBailOut) {
-    super(
-        operand(Project.class,
-            operand(Join.class, any())),
-        relBuilderFactory,
-        "MaterializedViewJoinRule(Project-Join)",
-        generateUnionRewriting, unionRewritingPullProgram, fastBailOut);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withGenerateUnionRewriting(generateUnionRewriting)
+        .withUnionRewritingPullProgram(unionRewritingPullProgram)
+        .withFastBailOut(fastBailOut)
+        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Project project = call.rel(0);
     final Join join = call.rel(1);
     perform(call, project, join);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends MaterializedViewJoinRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
+        .withOperandSupplier(b0 ->
+            b0.operand(Project.class).oneInput(b1 ->
+                b1.operand(Join.class).anyInputs()))
+        .withDescription("MaterializedViewJoinRule(Project-Join)")
+        .as(MaterializedViewProjectFilterRule.Config.class)
+        .withGenerateUnionRewriting(true)
+        .withUnionRewritingPullProgram(null)
+        .withFastBailOut(true)
+        .as(Config.class);
+
+    default MaterializedViewProjectJoinRule toRule() {
+      return new MaterializedViewProjectJoinRule(this);
+    }
   }
 }

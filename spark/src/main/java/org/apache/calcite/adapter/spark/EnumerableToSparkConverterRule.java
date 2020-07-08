@@ -20,10 +20,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
@@ -34,21 +30,19 @@ import java.util.function.Predicate;
  */
 @Deprecated // to be removed before 1.25
 public class EnumerableToSparkConverterRule extends ConverterRule {
-  public static final EnumerableToSparkConverterRule INSTANCE =
-      new EnumerableToSparkConverterRule(RelFactories.LOGICAL_BUILDER);
+  /** Singleton instance of EnumerableToSparkConverterRule. */
+  public static final EnumerableToSparkConverterRule INSTANCE = Config.INSTANCE
+      .withConversion(RelNode.class, EnumerableConvention.INSTANCE,
+          SparkRel.CONVENTION, "EnumerableToSparkConverterRule")
+      .withRuleFactory(EnumerableToSparkConverterRule::new)
+      .toRule(EnumerableToSparkConverterRule.class);
 
-  /**
-   * Creates an EnumerableToSparkConverterRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public EnumerableToSparkConverterRule(RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, (Predicate<RelNode>) r -> true,
-        EnumerableConvention.INSTANCE, SparkRel.CONVENTION, relBuilderFactory,
-        "EnumerableToSparkConverterRule");
+  /** Called from the Config. */
+  protected EnumerableToSparkConverterRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
     return new EnumerableToSparkConverter(
         rel.getCluster(), newTraitSet, rel);

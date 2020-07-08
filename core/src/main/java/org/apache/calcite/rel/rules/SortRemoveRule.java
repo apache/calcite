@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -29,20 +29,26 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * a {@link org.apache.calcite.rel.core.Sort} if its input is already sorted.
  *
  * <p>Requires {@link RelCollationTraitDef}.
+ *
+ * @see CoreRules#SORT_REMOVE
  */
-public class SortRemoveRule extends RelOptRule implements TransformationRule {
+public class SortRemoveRule
+    extends RelRule<SortRemoveRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#SORT_REMOVE}. */
   @Deprecated // to be removed before 1.25
   public static final SortRemoveRule INSTANCE =
-      CoreRules.SORT_REMOVE;
+      Config.DEFAULT.toRule();
 
-  /**
-   * Creates a SortRemoveRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  /** Creates a SortRemoveRule. */
+  protected SortRemoveRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public SortRemoveRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(Sort.class, any()), relBuilderFactory, "SortRemoveRule");
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -65,5 +71,17 @@ public class SortRemoveRule extends RelOptRule implements TransformationRule {
     final RelTraitSet traits = sort.getInput().getTraitSet()
         .replace(collation).replace(sort.getConvention());
     call.transformTo(convert(sort.getInput(), traits));
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(Sort.class).anyInputs())
+        .as(Config.class);
+
+    @Override default SortRemoveRule toRule() {
+      return new SortRemoveRule(this);
+    }
   }
 }

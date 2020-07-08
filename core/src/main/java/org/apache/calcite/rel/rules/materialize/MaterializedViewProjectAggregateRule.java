@@ -21,47 +21,75 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-/** Rule that matches Project on Aggregate. */
-public class MaterializedViewProjectAggregateRule extends MaterializedViewAggregateRule {
+/** Rule that matches Project on Aggregate.
+ *
+ * @see MaterializedViewRules#PROJECT_AGGREGATE */
+public class MaterializedViewProjectAggregateRule
+    extends MaterializedViewAggregateRule<MaterializedViewProjectAggregateRule.Config> {
 
   /** @deprecated Use {@link MaterializedViewRules#PROJECT_AGGREGATE}. */
   @Deprecated // to be removed before 1.25
   public static final MaterializedViewProjectAggregateRule INSTANCE =
-      MaterializedViewRules.PROJECT_AGGREGATE;
+      Config.DEFAULT.toRule();
 
-  public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,
-      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
-    super(
-        operand(Project.class,
-            operand(Aggregate.class, any())),
-        relBuilderFactory,
-        "MaterializedViewAggregateRule(Project-Aggregate)",
-        generateUnionRewriting, unionRewritingPullProgram);
+  private MaterializedViewProjectAggregateRule(Config config) {
+    super(config);
   }
 
+  @Deprecated // to be removed before 2.0
+  public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,
+      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
+    this(Config.create(relBuilderFactory)
+        .withGenerateUnionRewriting(generateUnionRewriting)
+        .withUnionRewritingPullProgram(unionRewritingPullProgram)
+        .as(Config.class));
+  }
+
+  @Deprecated // to be removed before 2.0
   public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,
       boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
       RelOptRule filterProjectTransposeRule,
       RelOptRule filterAggregateTransposeRule,
       RelOptRule aggregateProjectPullUpConstantsRule,
       RelOptRule projectMergeRule) {
-    super(
-        operand(Project.class,
-            operand(Aggregate.class, any())),
-        relBuilderFactory,
-        "MaterializedViewAggregateRule(Project-Aggregate)",
-        generateUnionRewriting, unionRewritingPullProgram,
-        filterProjectTransposeRule,
-        filterAggregateTransposeRule,
-        aggregateProjectPullUpConstantsRule,
-        projectMergeRule);
+    this(Config.create(relBuilderFactory)
+        .withGenerateUnionRewriting(generateUnionRewriting)
+        .withUnionRewritingPullProgram(unionRewritingPullProgram)
+        .as(Config.class)
+        .withFilterProjectTransposeRule(filterProjectTransposeRule)
+        .withFilterAggregateTransposeRule(filterAggregateTransposeRule)
+        .withAggregateProjectPullUpConstantsRule(
+            aggregateProjectPullUpConstantsRule)
+        .withProjectMergeRule(projectMergeRule)
+        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Project project = call.rel(0);
     final Aggregate aggregate = call.rel(1);
     perform(call, project, aggregate);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends MaterializedViewAggregateRule.Config {
+    Config DEFAULT = create(RelFactories.LOGICAL_BUILDER);
+
+    static Config create(RelBuilderFactory relBuilderFactory) {
+      return MaterializedViewAggregateRule.Config.create(relBuilderFactory)
+          .withGenerateUnionRewriting(true)
+          .withUnionRewritingPullProgram(null)
+          .withOperandSupplier(b0 ->
+              b0.operand(Project.class).oneInput(b1 ->
+                  b1.operand(Aggregate.class).anyInputs()))
+          .withDescription("MaterializedViewAggregateRule(Project-Aggregate)")
+          .as(Config.class);
+    }
+
+    @Override default MaterializedViewProjectAggregateRule toRule() {
+      return new MaterializedViewProjectAggregateRule(this);
+    }
   }
 }

@@ -127,7 +127,7 @@ public class SqlDdlNodes {
     return new SqlColumnDeclaration(pos, name, dataType, expression, strategy);
   }
 
-  /** Creates a attribute definition. */
+  /** Creates an attribute definition. */
   public static SqlNode attribute(SqlParserPos pos, SqlIdentifier name,
       SqlDataTypeSpec dataType, SqlNode expression, SqlCollation collation) {
     return new SqlAttributeDefinition(pos, name, dataType, expression, collation);

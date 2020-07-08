@@ -21,8 +21,8 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
@@ -67,8 +67,8 @@ class CollationConversionTest {
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(COLLATION_TRAIT_DEF);
 
-    planner.addRule(new SingleNodeRule());
-    planner.addRule(new LeafTraitRule());
+    planner.addRule(SingleNodeRule.INSTANCE);
+    planner.addRule(LeafTraitRule.INSTANCE);
     planner.addRule(ExpandConversionRule.INSTANCE);
     planner.setTopDownOpt(false);
 
@@ -96,16 +96,22 @@ class CollationConversionTest {
   }
 
   /** Converts a NoneSingleRel to RootSingleRel. */
-  private class SingleNodeRule extends RelOptRule {
-    SingleNodeRule() {
-      super(operand(NoneSingleRel.class, any()));
+  public static class SingleNodeRule
+      extends RelRule<SingleNodeRule.Config> {
+    static final SingleNodeRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b -> b.operand(NoneSingleRel.class).anyInputs())
+        .as(Config.class)
+        .toRule();
+
+    protected SingleNodeRule(Config config) {
+      super(config);
     }
 
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
@@ -118,10 +124,17 @@ class CollationConversionTest {
               single.getCluster(),
               physInput));
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default SingleNodeRule toRule() {
+        return new SingleNodeRule(this);
+      }
+    }
   }
 
   /** Root node with physical convention and ROOT_COLLATION trait. */
-  private class RootSingleRel extends TestSingleRel {
+  private static class RootSingleRel extends TestSingleRel {
     RootSingleRel(RelOptCluster cluster, RelNode input) {
       super(cluster,
           cluster.traitSetOf(PHYS_CALLING_CONVENTION).plus(ROOT_COLLATION),
@@ -140,23 +153,36 @@ class CollationConversionTest {
 
   /** Converts a {@link NoneLeafRel} (with none convention) to {@link LeafRel}
    * (with physical convention). */
-  private class LeafTraitRule extends RelOptRule {
-    LeafTraitRule() {
-      super(operand(NoneLeafRel.class, any()));
+  public static class LeafTraitRule
+      extends RelRule<LeafTraitRule.Config> {
+    static final LeafTraitRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
+        .as(Config.class)
+        .toRule();
+
+    LeafTraitRule(Config config) {
+      super(config);
     }
 
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneLeafRel leafRel = call.rel(0);
       call.transformTo(new LeafRel(leafRel.getCluster(), leafRel.label));
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default LeafTraitRule toRule() {
+        return new LeafTraitRule(this);
+      }
     }
   }
 
   /** Leaf node with physical convention and LEAF_COLLATION trait. */
-  private class LeafRel extends TestLeafRel {
+  private static class LeafRel extends TestLeafRel {
     LeafRel(RelOptCluster cluster, String label) {
       super(cluster,
           cluster.traitSetOf(PHYS_CALLING_CONVENTION).plus(LEAF_COLLATION),
@@ -175,7 +201,7 @@ class CollationConversionTest {
   }
 
   /** Leaf node with none convention and LEAF_COLLATION trait. */
-  private class NoneLeafRel extends TestLeafRel {
+  private static class NoneLeafRel extends TestLeafRel {
     NoneLeafRel(RelOptCluster cluster, String label) {
       super(cluster, cluster.traitSetOf(Convention.NONE).plus(LEAF_COLLATION),
           label);

@@ -18,11 +18,10 @@ package org.apache.calcite.adapter.splunk;
 
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -54,7 +53,7 @@ import java.util.Set;
  * Planner rule to push filters and projections to Splunk.
  */
 public class SplunkPushDownRule
-    extends RelOptRule {
+    extends RelRule<SplunkPushDownRule.Config> {
   private static final Logger LOGGER =
       StringUtils.getClassTracer(SplunkPushDownRule.class);
 
@@ -73,46 +72,68 @@ public class SplunkPushDownRule
           SqlKind.NOT);
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
-      new SplunkPushDownRule(
-          operand(LogicalProject.class,
-              operand(LogicalFilter.class,
-                  operand(LogicalProject.class,
-                      operand(SplunkTableScan.class, none())))),
-          RelFactories.LOGICAL_BUILDER, "proj on filter on proj");
+      Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalProject.class).oneInput(b1 ->
+                  b1.operand(LogicalFilter.class).oneInput(b2 ->
+                      b2.operand(LogicalProject.class).oneInput(b3 ->
+                          b3.operand(SplunkTableScan.class).noInputs()))))
+          .as(Config.class)
+          .withId("proj on filter on proj")
+          .toRule();
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
-      new SplunkPushDownRule(
-          operand(LogicalFilter.class,
-              operand(LogicalProject.class,
-                  operand(SplunkTableScan.class, none()))),
-          RelFactories.LOGICAL_BUILDER, "filter on proj");
+      Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalFilter.class).oneInput(b1 ->
+                  b1.operand(LogicalProject.class).oneInput(b2 ->
+                      b2.operand(SplunkTableScan.class).noInputs())))
+          .as(Config.class)
+          .withId("filter on proj")
+          .toRule();
 
   public static final SplunkPushDownRule FILTER =
-      new SplunkPushDownRule(
-          operand(LogicalFilter.class,
-              operand(SplunkTableScan.class, none())),
-          RelFactories.LOGICAL_BUILDER, "filter");
+      Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalFilter.class).oneInput(b1 ->
+                  b1.operand(SplunkTableScan.class).noInputs()))
+          .as(Config.class)
+          .withId("filter")
+          .toRule();
 
   public static final SplunkPushDownRule PROJECT =
-      new SplunkPushDownRule(
-          operand(LogicalProject.class,
-              operand(SplunkTableScan.class, none())),
-          RelFactories.LOGICAL_BUILDER, "proj");
-
-  @Deprecated // to be removed before 2.0
-  protected SplunkPushDownRule(RelOptRuleOperand rule, String id) {
-    this(rule, RelFactories.LOGICAL_BUILDER, id);
-  }
+      Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalProject.class).oneInput(b1 ->
+                  b1.operand(SplunkTableScan.class).noInputs()))
+          .as(Config.class)
+          .withId("proj")
+          .toRule();
 
   /** Creates a SplunkPushDownRule. */
-  protected SplunkPushDownRule(RelOptRuleOperand rule,
+  protected SplunkPushDownRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected SplunkPushDownRule(RelOptRuleOperand operand, String id) {
+    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class)
+        .withId(id));
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected SplunkPushDownRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String id) {
-    super(rule, relBuilderFactory, "SplunkPushDownRule: " + id);
+    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withId(id));
   }
 
   // ~ Methods --------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     LOGGER.debug(description);
 
     int relLength = call.rels.length;
@@ -297,7 +318,7 @@ public class SplunkPushDownRule
     switch (op.getKind()) {
     case NOT:
       // NOT op pre-pended
-      s = s.append(" NOT ");
+      s.append(" NOT ");
       break;
     case CAST:
       return asd(false, operands, s, fieldNames, 0);
@@ -439,5 +460,22 @@ public class SplunkPushDownRule
 
   public static String getFieldsString(RelDataType row) {
     return row.getFieldNames().toString();
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    @Override default SplunkPushDownRule toRule() {
+      return new SplunkPushDownRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends RelNode> relClass) {
+      return withOperandSupplier(b -> b.operand(relClass).anyInputs())
+          .as(Config.class);
+    }
+
+    default Config withId(String id) {
+      return withDescription("SplunkPushDownRule: " + id).as(Config.class);
+    }
   }
 }

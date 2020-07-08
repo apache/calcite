@@ -17,13 +17,12 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -32,6 +31,7 @@ import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -44,7 +44,7 @@ import java.util.List;
  *
  * <p>Thus, {@code (A join B) join C} becomes {@code (A join C) join B}. The
  * advantage of applying this rule is that it may be possible to apply
- * conditions earlier. For instance,</p>
+ * conditions earlier. For instance,
  *
  * <blockquote>
  * <pre>(sales as s join product_class as pc on true)
@@ -62,44 +62,44 @@ import java.util.List;
  * <p>Before the rule, one join has two conditions and the other has none
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
-public class JoinPushThroughJoinRule extends RelOptRule implements TransformationRule {
+public class JoinPushThroughJoinRule
+    extends RelRule<JoinPushThroughJoinRule.Config>
+    implements TransformationRule {
   /** Instance of the rule that works on logical joins only, and pushes to the
    * right. */
-  public static final RelOptRule RIGHT =
-      new JoinPushThroughJoinRule(
-          "JoinPushThroughJoinRule:right", true, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+  public static final JoinPushThroughJoinRule RIGHT = Config.RIGHT.toRule();
 
   /** Instance of the rule that works on logical joins only, and pushes to the
    * left. */
-  public static final RelOptRule LEFT =
-      new JoinPushThroughJoinRule(
-          "JoinPushThroughJoinRule:left", false, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+  public static final JoinPushThroughJoinRule LEFT = Config.LEFT.toRule();
 
-  private final boolean right;
-
-  /**
-   * Creates a JoinPushThroughJoinRule.
-   */
-  public JoinPushThroughJoinRule(String description, boolean right,
-      Class<? extends Join> clazz, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(clazz,
-            operand(clazz, any()),
-            operandJ(RelNode.class, null, n -> !n.isEnforcer(), any())),
-        relBuilderFactory, description);
-    this.right = right;
+  /** Creates a JoinPushThroughJoinRule. */
+  protected JoinPushThroughJoinRule(Config config) {
+    super(config);
   }
 
   @Deprecated // to be removed before 2.0
   public JoinPushThroughJoinRule(String description, boolean right,
-      Class<? extends Join> clazz, ProjectFactory projectFactory) {
-    this(description, right, clazz, RelBuilder.proto(projectFactory));
+      Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
+    this(Config.LEFT.withDescription(description)
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(joinClass)
+        .withRight(right));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public JoinPushThroughJoinRule(String description, boolean right,
+      Class<? extends Join> joinClass, ProjectFactory projectFactory) {
+    this(Config.LEFT.withDescription(description)
+        .withRelBuilderFactory(RelBuilder.proto(projectFactory))
+        .as(Config.class)
+        .withOperandFor(joinClass)
+        .withRight(right));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    if (right) {
+    if (config.isRight()) {
       onMatchRight(call);
     } else {
       onMatchLeft(call);
@@ -324,6 +324,41 @@ public class JoinPushThroughJoinRule extends RelOptRule implements Transformatio
       } else {
         nonIntersecting.add(node);
       }
+    }
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config RIGHT = EMPTY.withDescription("JoinPushThroughJoinRule:right")
+        .as(Config.class)
+        .withOperandFor(LogicalJoin.class)
+        .withRight(true);
+
+    Config LEFT = EMPTY.withDescription("JoinPushThroughJoinRule:left")
+        .as(Config.class)
+        .withOperandFor(LogicalJoin.class)
+        .withRight(false);
+
+    @Override default JoinPushThroughJoinRule toRule() {
+      return new JoinPushThroughJoinRule(this);
+    }
+
+    /** Whether to push on the right. If false, push to the left. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean isRight();
+
+    /** Sets {@link #isRight()}. */
+    Config withRight(boolean right);
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b0 ->
+              b0.operand(joinClass).inputs(
+                  b1 -> b1.operand(joinClass).anyInputs(),
+                  b2 -> b2.operand(RelNode.class)
+                      .predicate(n -> !n.isEnforcer()).anyInputs()))
+          .as(Config.class);
     }
   }
 }

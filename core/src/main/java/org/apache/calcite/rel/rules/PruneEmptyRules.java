@@ -18,8 +18,8 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
@@ -30,7 +30,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -45,13 +44,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-
-import static org.apache.calcite.plan.RelOptRule.any;
-import static org.apache.calcite.plan.RelOptRule.none;
-import static org.apache.calcite.plan.RelOptRule.operand;
-import static org.apache.calcite.plan.RelOptRule.operandJ;
-import static org.apache.calcite.plan.RelOptRule.some;
-import static org.apache.calcite.plan.RelOptRule.unordered;
 
 /**
  * Collection of rules which remove sections of a query plan known never to
@@ -68,21 +60,20 @@ public abstract class PruneEmptyRules {
   /**
    * Abstract prune empty rule that implements SubstitutionRule interface.
    */
-  protected abstract static class PruneEmptyRule extends RelOptRule
+  protected abstract static class PruneEmptyRule
+      extends RelRule<PruneEmptyRule.Config>
       implements SubstitutionRule {
-
-    public PruneEmptyRule(final RelOptRuleOperand operand,
-        final String description) {
-      super(operand, description);
-    }
-
-    public PruneEmptyRule(final RelOptRuleOperand operand,
-        final RelBuilderFactory relBuilderFactory, final String description) {
-      super(operand, relBuilderFactory, description);
+    protected PruneEmptyRule(Config config) {
+      super(config);
     }
 
     @Override public boolean autoPruneOld() {
       return true;
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override PruneEmptyRule toRule();
     }
   }
 
@@ -99,33 +90,15 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule UNION_INSTANCE =
-      new PruneEmptyRule(
-          operand(LogicalUnion.class,
-              unordered(operandJ(Values.class, null, Values::isEmpty, none()))),
-          "Union") {
-        public void onMatch(RelOptRuleCall call) {
-          final LogicalUnion union = call.rel(0);
-          final List<RelNode> inputs = union.getInputs();
-          assert inputs != null;
-          final RelBuilder builder = call.builder();
-          int nonEmptyInputs = 0;
-          for (RelNode input : inputs) {
-            if (!isEmpty(input)) {
-              builder.push(input);
-              nonEmptyInputs++;
-            }
-          }
-          assert nonEmptyInputs < inputs.size()
-              : "planner promised us at least one Empty child: " + RelOptUtil.toString(union);
-          if (nonEmptyInputs == 0) {
-            builder.push(union).empty();
-          } else {
-            builder.union(union.all, nonEmptyInputs);
-            builder.convert(union.getRowType(), true);
-          }
-          call.transformTo(builder.build());
-        }
-      };
+      UnionEmptyPruneRuleConfig.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalUnion.class).unorderedInputs(b1 ->
+                  b1.operand(Values.class)
+                      .predicate(Values::isEmpty).noInputs()))
+          .withDescription("Union")
+          .as(UnionEmptyPruneRuleConfig.class)
+          .toRule();
+
 
   /**
    * Rule that removes empty children of a
@@ -139,38 +112,14 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule MINUS_INSTANCE =
-      new PruneEmptyRule(
-          operand(LogicalMinus.class,
-              unordered(
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
-          "Minus") {
-        public void onMatch(RelOptRuleCall call) {
-          final LogicalMinus minus = call.rel(0);
-          final List<RelNode> inputs = minus.getInputs();
-          assert inputs != null;
-          int nonEmptyInputs = 0;
-          final RelBuilder builder = call.builder();
-          for (RelNode input : inputs) {
-            if (!isEmpty(input)) {
-              builder.push(input);
-              nonEmptyInputs++;
-            } else if (nonEmptyInputs == 0) {
-              // If the first input of Minus is empty, the whole thing is
-              // empty.
-              break;
-            }
-          }
-          assert nonEmptyInputs < inputs.size()
-              : "planner promised us at least one Empty child: " + RelOptUtil.toString(minus);
-          if (nonEmptyInputs == 0) {
-            builder.push(minus).empty();
-          } else {
-            builder.minus(minus.all, nonEmptyInputs);
-            builder.convert(minus.getRowType(), true);
-          }
-          call.transformTo(builder.build());
-        }
-      };
+      MinusEmptyPruneRuleConfig.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalMinus.class).unorderedInputs(b1 ->
+                  b1.operand(Values.class).predicate(Values::isEmpty)
+                      .noInputs()))
+          .withDescription("Minus")
+          .as(MinusEmptyPruneRuleConfig.class)
+          .toRule();
 
   /**
    * Rule that converts a
@@ -185,18 +134,14 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule INTERSECT_INSTANCE =
-      new PruneEmptyRule(
-          operand(LogicalIntersect.class,
-              unordered(
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
-          "Intersect") {
-        public void onMatch(RelOptRuleCall call) {
-          LogicalIntersect intersect = call.rel(0);
-          final RelBuilder builder = call.builder();
-          builder.push(intersect).empty();
-          call.transformTo(builder.build());
-        }
-      };
+      IntersectEmptyPruneRuleConfig.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalIntersect.class).unorderedInputs(b1 ->
+                  b1.operand(Values.class).predicate(Values::isEmpty)
+                      .noInputs()))
+          .withDescription("Intersect")
+          .as(IntersectEmptyPruneRuleConfig.class)
+          .toRule();
 
   private static boolean isEmpty(RelNode node) {
     if (node instanceof Values) {
@@ -230,9 +175,11 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      new RemoveEmptySingleRule(Project.class,
-          (Predicate<Project>) project -> true, RelFactories.LOGICAL_BUILDER,
-          "PruneEmptyProject");
+      RemoveEmptySingleRule.Config.EMPTY
+          .withDescription("PruneEmptyProject")
+          .as(RemoveEmptySingleRule.Config.class)
+          .withOperandFor(Project.class, project -> true)
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
@@ -245,7 +192,11 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule FILTER_INSTANCE =
-      new RemoveEmptySingleRule(Filter.class, "PruneEmptyFilter");
+      RemoveEmptySingleRule.Config.EMPTY
+          .withDescription("PruneEmptyFilter")
+          .as(RemoveEmptySingleRule.Config.class)
+          .withOperandFor(Filter.class, singleRel -> true)
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
@@ -258,7 +209,11 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_INSTANCE =
-      new RemoveEmptySingleRule(Sort.class, "PruneEmptySort");
+      RemoveEmptySingleRule.Config.EMPTY
+          .withDescription("PruneEmptySort")
+          .as(RemoveEmptySingleRule.Config.class)
+          .withOperandFor(Sort.class, singleRel -> true)
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
@@ -271,24 +226,12 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
-      new PruneEmptyRule(
-          operand(Sort.class, any()), "PruneSortLimit0") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          Sort sort = call.rel(0);
-          if (sort.fetch != null
-              && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.intValue(sort.fetch) == 0) {
-            RelNode emptyValues = call.builder().push(sort).empty().build();
-            RelTraitSet traits = sort.getTraitSet();
-            // propagate all traits (except convention) from the original sort into the empty values
-            if (emptyValues.getConvention() != null) {
-              traits = traits.replace(emptyValues.getConvention());
-            }
-            emptyValues = emptyValues.copy(traits, Collections.emptyList());
-            call.transformTo(emptyValues);
-          }
-        }
-      };
+      SortFetchZeroRuleConfig.EMPTY
+          .withOperandSupplier(b ->
+              b.operand(Sort.class).anyInputs())
+          .withDescription("PruneSortLimit0")
+          .as(SortFetchZeroRuleConfig.class)
+          .toRule();
 
   /**
    * Rule that converts an {@link org.apache.calcite.rel.core.Aggregate}
@@ -306,9 +249,11 @@ public abstract class PruneEmptyRules {
    * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      new RemoveEmptySingleRule(Aggregate.class,
-          (Predicate<Aggregate>) Aggregate::isNotGrandTotal,
-          RelFactories.LOGICAL_BUILDER, "PruneEmptyAggregate");
+      RemoveEmptySingleRule.Config.EMPTY
+          .withDescription("PruneEmptyAggregate")
+          .as(RemoveEmptySingleRule.Config.class)
+          .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal)
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Join}
@@ -324,22 +269,15 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule JOIN_LEFT_INSTANCE =
-      new PruneEmptyRule(
-          operand(Join.class,
-              some(
-                  operandJ(Values.class, null, Values::isEmpty, none()),
-                  operand(RelNode.class, any()))),
-              "PruneEmptyJoin(left)") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          Join join = call.rel(0);
-          if (join.getJoinType().generatesNullsOnLeft()) {
-            // "select * from emp right join dept" is not necessarily empty if
-            // emp is empty
-            return;
-          }
-          call.transformTo(call.builder().push(join).empty().build());
-        }
-      };
+      JoinLeftEmptyRuleConfig.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(Join.class).inputs(
+                  b1 -> b1.operand(Values.class)
+                      .predicate(Values::isEmpty).noInputs(),
+                  b2 -> b2.operand(RelNode.class).anyInputs()))
+          .withDescription("PruneEmptyJoin(left)")
+          .as(JoinLeftEmptyRuleConfig.class)
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Join}
@@ -355,12 +293,211 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
-      new PruneEmptyRule(
-          operand(Join.class,
-              some(
-                  operand(RelNode.class, any()),
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
-              "PruneEmptyJoin(right)") {
+      JoinRightEmptyRuleConfig.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(Join.class).inputs(
+                  b1 -> b1.operand(RelNode.class).anyInputs(),
+                  b2 -> b2.operand(Values.class).predicate(Values::isEmpty)
+                      .noInputs()))
+          .withDescription("PruneEmptyJoin(right)")
+          .as(JoinRightEmptyRuleConfig.class)
+          .toRule();
+
+  /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
+   * filter) on top of the empty relational expression into empty. */
+  public static class RemoveEmptySingleRule extends PruneEmptyRule {
+    /** Creates a RemoveEmptySingleRule. */
+    RemoveEmptySingleRule(Config config) {
+      super(config);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
+        String description) {
+      this(Config.EMPTY.withDescription(description)
+          .as(Config.class)
+          .withOperandFor(clazz, singleRel -> true));
+    }
+
+    @Deprecated // to be removed before 2.0
+    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
+        Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
+        String description) {
+      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+          .withDescription(description)
+          .as(Config.class)
+          .withOperandFor(clazz, predicate));
+    }
+
+    @SuppressWarnings("Guava")
+    @Deprecated // to be removed before 2.0
+    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
+        com.google.common.base.Predicate<R> predicate,
+        RelBuilderFactory relBuilderFactory, String description) {
+      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+          .withDescription(description)
+          .as(Config.class)
+          .withOperandFor(clazz, predicate::apply));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      SingleRel singleRel = call.rel(0);
+      RelNode emptyValues = call.builder().push(singleRel).empty().build();
+      RelTraitSet traits = singleRel.getTraitSet();
+      // propagate all traits (except convention) from the original singleRel into the empty values
+      if (emptyValues.getConvention() != null) {
+        traits = traits.replace(emptyValues.getConvention());
+      }
+      emptyValues = emptyValues.copy(traits, Collections.emptyList());
+      call.transformTo(emptyValues);
+    }
+
+    /** Rule configuration. */
+    public interface Config extends PruneEmptyRule.Config {
+      @Override default RemoveEmptySingleRule toRule() {
+        return new RemoveEmptySingleRule(this);
+      }
+
+      /** Defines an operand tree for the given classes. */
+      default <R extends RelNode> Config withOperandFor(Class<R> relClass,
+          Predicate<R> predicate) {
+        return withOperandSupplier(b0 ->
+            b0.operand(relClass).predicate(predicate).oneInput(b1 ->
+                b1.operand(Values.class).predicate(Values::isEmpty).noInputs()))
+            .as(Config.class);
+      }
+    }
+  }
+
+  /** Configuration for a rule that prunes empty inputs from a Minus. */
+  public interface UnionEmptyPruneRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          final LogicalUnion union = call.rel(0);
+          final List<RelNode> inputs = union.getInputs();
+          assert inputs != null;
+          final RelBuilder builder = call.builder();
+          int nonEmptyInputs = 0;
+          for (RelNode input : inputs) {
+            if (!isEmpty(input)) {
+              builder.push(input);
+              nonEmptyInputs++;
+            }
+          }
+          assert nonEmptyInputs < inputs.size()
+              : "planner promised us at least one Empty child: "
+              + RelOptUtil.toString(union);
+          if (nonEmptyInputs == 0) {
+            builder.push(union).empty();
+          } else {
+            builder.union(union.all, nonEmptyInputs);
+            builder.convert(union.getRowType(), true);
+          }
+          call.transformTo(builder.build());
+        }
+      };
+    }
+  }
+
+  /** Configuration for a rule that prunes empty inputs from a Minus. */
+  public interface MinusEmptyPruneRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          final LogicalMinus minus = call.rel(0);
+          final List<RelNode> inputs = minus.getInputs();
+          assert inputs != null;
+          int nonEmptyInputs = 0;
+          final RelBuilder builder = call.builder();
+          for (RelNode input : inputs) {
+            if (!isEmpty(input)) {
+              builder.push(input);
+              nonEmptyInputs++;
+            } else if (nonEmptyInputs == 0) {
+              // If the first input of Minus is empty, the whole thing is
+              // empty.
+              break;
+            }
+          }
+          assert nonEmptyInputs < inputs.size()
+              : "planner promised us at least one Empty child: "
+              + RelOptUtil.toString(minus);
+          if (nonEmptyInputs == 0) {
+            builder.push(minus).empty();
+          } else {
+            builder.minus(minus.all, nonEmptyInputs);
+            builder.convert(minus.getRowType(), true);
+          }
+          call.transformTo(builder.build());
+        }
+      };
+    }
+  }
+
+
+  /** Configuration for a rule that prunes an Intersect if any of its inputs
+   * is empty. */
+  public interface IntersectEmptyPruneRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          LogicalIntersect intersect = call.rel(0);
+          final RelBuilder builder = call.builder();
+          builder.push(intersect).empty();
+          call.transformTo(builder.build());
+        }
+      };
+    }
+  }
+
+  /** Configuration for a rule that prunes a Sort if it has limit 0. */
+  public interface SortFetchZeroRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          Sort sort = call.rel(0);
+          if (sort.fetch != null
+              && !(sort.fetch instanceof RexDynamicParam)
+              && RexLiteral.intValue(sort.fetch) == 0) {
+            RelNode emptyValues = call.builder().push(sort).empty().build();
+            RelTraitSet traits = sort.getTraitSet();
+            // propagate all traits (except convention) from the original sort into the empty values
+            if (emptyValues.getConvention() != null) {
+              traits = traits.replace(emptyValues.getConvention());
+            }
+            emptyValues = emptyValues.copy(traits, Collections.emptyList());
+            call.transformTo(emptyValues);
+          }
+        }
+
+      };
+    }
+  }
+
+  /** Configuration for rule that prunes a join it its left input is
+   * empty. */
+  public interface JoinLeftEmptyRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          Join join = call.rel(0);
+          if (join.getJoinType().generatesNullsOnLeft()) {
+            // "select * from emp right join dept" is not necessarily empty if
+            // emp is empty
+            return;
+          }
+          call.transformTo(call.builder().push(join).empty().build());
+        }
+      };
+    }
+  }
+
+  /** Configuration for rule that prunes a join it its right input is
+   * empty. */
+  public interface JoinRightEmptyRuleConfig extends PruneEmptyRule.Config {
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           Join join = call.rel(0);
           if (join.getJoinType().generatesNullsOnRight()) {
@@ -376,46 +513,6 @@ public abstract class PruneEmptyRules {
           call.transformTo(call.builder().push(join).empty().build());
         }
       };
-
-  /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
-   * filter) on top of the empty relational expression into empty. */
-  public static class RemoveEmptySingleRule extends PruneEmptyRule {
-    /** Creates a simple RemoveEmptySingleRule. */
-    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
-        String description) {
-      this(clazz, (Predicate<R>) singleRel -> true, RelFactories.LOGICAL_BUILDER,
-          description);
-    }
-
-    /** Creates a RemoveEmptySingleRule. */
-    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
-        Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
-        String description) {
-      super(
-          operandJ(clazz, null, predicate,
-              operandJ(Values.class, null, Values::isEmpty, none())),
-          relBuilderFactory, description);
-    }
-
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
-    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
-        com.google.common.base.Predicate<R> predicate,
-        RelBuilderFactory relBuilderFactory, String description) {
-      this(clazz, (Predicate<R>) predicate::apply, relBuilderFactory,
-          description);
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      SingleRel singleRel = call.rel(0);
-      RelNode emptyValues = call.builder().push(singleRel).empty().build();
-      RelTraitSet traits = singleRel.getTraitSet();
-      // propagate all traits (except convention) from the original singleRel into the empty values
-      if (emptyValues.getConvention() != null) {
-        traits = traits.replace(emptyValues.getConvention());
-      }
-      emptyValues = emptyValues.copy(traits, Collections.emptyList());
-      call.transformTo(emptyValues);
     }
   }
 }

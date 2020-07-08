@@ -29,6 +29,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
@@ -112,6 +113,11 @@ public abstract class Filter extends SingleRel {
 
   public RexNode getCondition() {
     return condition;
+  }
+
+  /** Returns whether this Filter contains any windowed-aggregate functions. */
+  public final boolean containsOver() {
+    return RexOver.containsOver(condition);
   }
 
   @Override public boolean isValid(Litmus litmus, Context context) {

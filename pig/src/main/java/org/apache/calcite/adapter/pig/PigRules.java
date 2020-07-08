@@ -51,13 +51,17 @@ public class PigRules {
    * {@link PigFilter}.
    */
   private static class PigFilterRule extends ConverterRule {
-    private static final PigFilterRule INSTANCE = new PigFilterRule();
+    private static final PigFilterRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalFilter.class, Convention.NONE,
+            PigRel.CONVENTION, "PigFilterRule")
+        .withRuleFactory(PigFilterRule::new)
+        .toRule(PigFilterRule.class);
 
-    private PigFilterRule() {
-      super(LogicalFilter.class, Convention.NONE, PigRel.CONVENTION, "PigFilterRule");
+    protected PigFilterRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalFilter filter = (LogicalFilter) rel;
       final RelTraitSet traitSet = filter.getTraitSet().replace(PigRel.CONVENTION);
       return new PigFilter(rel.getCluster(), traitSet,
@@ -70,15 +74,21 @@ public class PigRules {
    * to a {@link PigTableScan}.
    */
   private static class PigTableScanRule extends ConverterRule {
-    private static final PigTableScanRule INSTANCE = new PigTableScanRule();
+    private static final PigTableScanRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalTableScan.class, Convention.NONE,
+            PigRel.CONVENTION, "PigTableScanRule")
+        .withRuleFactory(PigTableScanRule::new)
+        .as(Config.class)
+        .toRule(PigTableScanRule.class);
 
-    private PigTableScanRule() {
-      super(LogicalTableScan.class, Convention.NONE, PigRel.CONVENTION, "PigTableScanRule");
+    protected PigTableScanRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalTableScan scan = (LogicalTableScan) rel;
-      final RelTraitSet traitSet = scan.getTraitSet().replace(PigRel.CONVENTION);
+      final RelTraitSet traitSet =
+          scan.getTraitSet().replace(PigRel.CONVENTION);
       return new PigTableScan(rel.getCluster(), traitSet, scan.getTable());
     }
   }
@@ -88,13 +98,17 @@ public class PigRules {
    * a {@link PigProject}.
    */
   private static class PigProjectRule extends ConverterRule {
-    private static final PigProjectRule INSTANCE = new PigProjectRule();
+    private static final PigProjectRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalProject.class, Convention.NONE,
+            PigRel.CONVENTION, "PigProjectRule")
+        .withRuleFactory(PigProjectRule::new)
+        .toRule(PigProjectRule.class);
 
-    private PigProjectRule() {
-      super(LogicalProject.class, Convention.NONE, PigRel.CONVENTION, "PigProjectRule");
+    protected PigProjectRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
       final RelTraitSet traitSet = project.getTraitSet().replace(PigRel.CONVENTION);
       return new PigProject(project.getCluster(), traitSet, project.getInput(),
@@ -107,13 +121,17 @@ public class PigRules {
    * {@link PigAggregate}.
    */
   private static class PigAggregateRule extends ConverterRule {
-    private static final PigAggregateRule INSTANCE = new PigAggregateRule();
+    private static final PigAggregateRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalAggregate.class, Convention.NONE,
+            PigRel.CONVENTION, "PigAggregateRule")
+        .withRuleFactory(PigAggregateRule::new)
+        .toRule(PigAggregateRule.class);
 
-    private PigAggregateRule() {
-      super(LogicalAggregate.class, Convention.NONE, PigRel.CONVENTION, "PigAggregateRule");
+    protected PigAggregateRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet = agg.getTraitSet().replace(PigRel.CONVENTION);
       return new PigAggregate(agg.getCluster(), traitSet, agg.getInput(),
@@ -126,13 +144,17 @@ public class PigRules {
    * a {@link PigJoin}.
    */
   private static class PigJoinRule extends ConverterRule {
-    private static final PigJoinRule INSTANCE = new PigJoinRule();
+    private static final PigJoinRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalJoin.class, Convention.NONE,
+            PigRel.CONVENTION, "PigJoinRule")
+        .withRuleFactory(PigJoinRule::new)
+        .toRule(PigJoinRule.class);
 
-    private PigJoinRule() {
-      super(LogicalJoin.class, Convention.NONE, PigRel.CONVENTION, "PigJoinRule");
+    protected PigJoinRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalJoin join = (LogicalJoin) rel;
       final RelTraitSet traitSet = join.getTraitSet().replace(PigRel.CONVENTION);
       return new PigJoin(join.getCluster(), traitSet, join.getLeft(), join.getRight(),

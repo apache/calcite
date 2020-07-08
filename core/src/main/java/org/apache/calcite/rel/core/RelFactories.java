@@ -205,7 +205,7 @@ public class RelFactories {
    * of the appropriate type for a rule's calling convention.
    */
   public interface ExchangeFactory {
-    /** Creates a Exchange. */
+    /** Creates an Exchange. */
     RelNode createExchange(RelNode input, RelDistribution distribution);
   }
 

@@ -203,7 +203,8 @@ public class Programs {
         // JoinPushThroughJoinRule, because they cause exhaustive search.
         final List<RelOptRule> list = Lists.newArrayList(rules);
         list.removeAll(
-            ImmutableList.of(CoreRules.JOIN_COMMUTE,
+            ImmutableList.of(
+                CoreRules.JOIN_COMMUTE,
                 CoreRules.JOIN_ASSOCIATE,
                 JoinPushThroughJoinRule.LEFT,
                 JoinPushThroughJoinRule.RIGHT));

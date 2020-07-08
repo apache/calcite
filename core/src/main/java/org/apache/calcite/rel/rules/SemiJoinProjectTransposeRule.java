@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -32,7 +33,6 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -42,7 +42,7 @@ import java.util.List;
 
 /**
  * Planner rule that pushes
- * a {@code SemiJoin} down in a tree past
+ * a {@link Join#isSemiJoin semi-join} down in a tree past
  * a {@link org.apache.calcite.rel.core.Project}.
  *
  * <p>The intention is to trigger other rules that will convert
@@ -52,31 +52,26 @@ import java.util.List;
  *
  * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
-public class SemiJoinProjectTransposeRule extends RelOptRule implements TransformationRule {
+public class SemiJoinProjectTransposeRule
+    extends RelRule<SemiJoinProjectTransposeRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#SEMI_JOIN_PROJECT_TRANSPOSE}. */
   @Deprecated // to be removed before 1.25
   public static final SemiJoinProjectTransposeRule INSTANCE =
-      CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a SemiJoinProjectTransposeRule.
-   */
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated // to be removed before 1.25
-  SemiJoinProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operandJ(LogicalJoin.class, null, Join::isSemiJoin,
-            some(operand(LogicalProject.class, any()))),
-        relBuilderFactory, null);
+  /** Creates a SemiJoinProjectTransposeRule. */
+  protected SemiJoinProjectTransposeRule(Config config) {
+    super(config);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
-    LogicalJoin semiJoin = call.rel(0);
-    LogicalProject project = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Join semiJoin = call.rel(0);
+    final Project project = call.rel(1);
 
     // Convert the LHS semi-join keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,
@@ -114,14 +109,14 @@ public class SemiJoinProjectTransposeRule extends RelOptRule implements Transfor
    * @param semiJoin the semijoin
    * @return the modified semijoin condition
    */
-  private RexNode adjustCondition(LogicalProject project, LogicalJoin semiJoin) {
+  private RexNode adjustCondition(Project project, Join semiJoin) {
     // create two RexPrograms -- the bottom one representing a
     // concatenation of the project and the RHS of the semijoin and the
     // top one representing the semijoin condition
 
-    RexBuilder rexBuilder = project.getCluster().getRexBuilder();
-    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    RelNode rightChild = semiJoin.getRight();
+    final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final RelNode rightChild = semiJoin.getRight();
 
     // for the bottom RexProgram, the input is a concatenation of the
     // child of the project and the RHS of the semijoin
@@ -183,5 +178,24 @@ public class SemiJoinProjectTransposeRule extends RelOptRule implements Transfor
 
     return mergedProgram.expandLocalRef(
         mergedProgram.getCondition());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class, LogicalProject.class);
+
+    @Override default SemiJoinProjectTransposeRule toRule() {
+      return new SemiJoinProjectTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass,
+        Class<? extends Project> projectClass) {
+      return withOperandSupplier(b ->
+          b.operand(joinClass).predicate(Join::isSemiJoin).inputs(b2 ->
+              b2.operand(projectClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

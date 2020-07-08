@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -40,29 +40,35 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.logical.LogicalCalc}. This
  * {@link org.apache.calcite.rel.logical.LogicalFilter} will eventually be
  * converted by {@link FilterCalcMergeRule}.
+ *
+ * @see CoreRules#FILTER_TO_CALC
  */
-public class FilterToCalcRule extends RelOptRule implements TransformationRule {
+public class FilterToCalcRule
+    extends RelRule<FilterToCalcRule.Config>
+    implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** @deprecated Use {@link CoreRules#FILTER_TO_CALC}. */
   @Deprecated // to be removed before 1.25
   public static final FilterToCalcRule INSTANCE =
-      CoreRules.FILTER_TO_CALC;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a FilterToCalcRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  /** Creates a FilterToCalcRule. */
+  protected FilterToCalcRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public FilterToCalcRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
     final RelNode rel = filter.getInput();
 
@@ -77,5 +83,17 @@ public class FilterToCalcRule extends RelOptRule implements TransformationRule {
 
     final LogicalCalc calc = LogicalCalc.create(rel, program);
     call.transformTo(calc);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(LogicalFilter.class).anyInputs())
+        .as(Config.class);
+
+    @Override default FilterToCalcRule toRule() {
+      return new FilterToCalcRule(this);
+    }
   }
 }

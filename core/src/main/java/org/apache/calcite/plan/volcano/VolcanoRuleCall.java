@@ -91,8 +91,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRuleCall
-  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+  @Override public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
     if (rel instanceof PhysicalNode
         && rule instanceof TransformationRule) {

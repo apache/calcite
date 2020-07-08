@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
- * Planner rule that removes a {@code SemiJoin}s from a join tree.
+ * Planner rule that removes a {@link Join#isSemiJoin semi-join} from a join
+ * tree.
  *
  * <p>It is invoked after attempts have been made to convert a SemiJoin to an
  * indexed scan on a join factor have failed. Namely, if the join factor does
@@ -31,24 +32,50 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>It should only be enabled if all SemiJoins in the plan are advisory; that
  * is, they can be safely dropped without affecting the semantics of the query.
+ *
+ * @see CoreRules#SEMI_JOIN_REMOVE
  */
-public class SemiJoinRemoveRule extends RelOptRule implements TransformationRule {
+public class SemiJoinRemoveRule
+    extends RelRule<SemiJoinRemoveRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#SEMI_JOIN_REMOVE}. */
   @Deprecated // to be removed before 1.25
   public static final SemiJoinRemoveRule INSTANCE =
-      CoreRules.SEMI_JOIN_REMOVE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinRemoveRule. */
+  protected SemiJoinRemoveRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public SemiJoinRemoveRule(RelBuilderFactory relBuilderFactory) {
-    super(operandJ(LogicalJoin.class, null, Join::isSemiJoin, any()),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     call.transformTo(call.rel(0).getInput(0));
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class);
+
+    @Override default SemiJoinRemoveRule toRule() {
+      return new SemiJoinRemoveRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b ->
+          b.operand(joinClass).predicate(Join::isSemiJoin).anyInputs())
+          .as(Config.class);
+    }
   }
 }

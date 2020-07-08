@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.SetOp;
@@ -32,31 +32,38 @@ import java.util.List;
  * Planner rule that pushes a
  * {@link org.apache.calcite.rel.core.Join}
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
+ *
+ * @see CoreRules#JOIN_LEFT_UNION_TRANSPOSE
+ * @see CoreRules#JOIN_RIGHT_UNION_TRANSPOSE
  */
-public class JoinUnionTransposeRule extends RelOptRule implements TransformationRule {
+public class JoinUnionTransposeRule
+    extends RelRule<JoinUnionTransposeRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#JOIN_LEFT_UNION_TRANSPOSE}. */
   @Deprecated // to be removed before 1.25
   public static final JoinUnionTransposeRule LEFT_UNION =
-      CoreRules.JOIN_LEFT_UNION_TRANSPOSE;
+      Config.LEFT.toRule();
 
   /** @deprecated Use {@link CoreRules#JOIN_RIGHT_UNION_TRANSPOSE}. */
   @Deprecated // to be removed before 1.25
   public static final JoinUnionTransposeRule RIGHT_UNION =
-      CoreRules.JOIN_RIGHT_UNION_TRANSPOSE;
+      Config.RIGHT.toRule();
 
-  /**
-   * Creates a JoinUnionTransposeRule.
-   *
-   * @param operand           root operand, must not be null
-   * @param description       Description, or null to guess description
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public JoinUnionTransposeRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
-    super(operand, relBuilderFactory, description);
+  /** Creates a JoinUnionTransposeRule. */
+  protected JoinUnionTransposeRule(Config config) {
+    super(config);
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Deprecated // to be removed before 2.0
+  public JoinUnionTransposeRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    this(Config.LEFT.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
     final Union unionRel;
     RelNode otherInput;
@@ -113,5 +120,34 @@ public class JoinUnionTransposeRule extends RelOptRule implements Transformation
     final SetOp newUnionRel =
         unionRel.copy(unionRel.getTraitSet(), newUnionInputs, true);
     call.transformTo(newUnionRel);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config LEFT = EMPTY.withDescription("JoinUnionTransposeRule(Union-Other)")
+        .as(Config.class)
+        .withOperandFor(Join.class, Union.class, true);
+
+    Config RIGHT = EMPTY.withDescription("JoinUnionTransposeRule(Other-Union)")
+        .as(Config.class)
+        .withOperandFor(Join.class, Union.class, false);
+
+    @Override default JoinUnionTransposeRule toRule() {
+      return new JoinUnionTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass,
+        Class<? extends Union> unionClass, boolean left) {
+      final Class<? extends RelNode> leftClass =
+          left ? unionClass : RelNode.class;
+      final Class<? extends RelNode> rightClass =
+          left ? RelNode.class : unionClass;
+      return withOperandSupplier(b0 ->
+          b0.operand(joinClass).inputs(
+              b1 -> b1.operand(leftClass).anyInputs(),
+              b2 -> b2.operand(rightClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

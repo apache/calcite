@@ -31,14 +31,19 @@ import java.util.List;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * @see EnumerableRules#ENUMERABLE_JOIN_RULE */
 class EnumerableJoinRule extends ConverterRule {
-  EnumerableJoinRule() {
-    super(
-        LogicalJoin.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableJoinRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalJoin.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableJoinRule")
+      .withRuleFactory(EnumerableJoinRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableJoinRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

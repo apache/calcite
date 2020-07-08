@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
@@ -39,33 +40,36 @@ import com.google.common.collect.ImmutableSet;
  * <p>SemiJoin(LogicalFilter(X), Y) &rarr; LogicalFilter(SemiJoin(X, Y))
  *
  * @see SemiJoinProjectTransposeRule
+ * @see CoreRules#SEMI_JOIN_FILTER_TRANSPOSE
  */
-public class SemiJoinFilterTransposeRule extends RelOptRule implements TransformationRule {
+public class SemiJoinFilterTransposeRule
+    extends RelRule<SemiJoinFilterTransposeRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#SEMI_JOIN_FILTER_TRANSPOSE}. */
   @Deprecated // to be removed before 1.25
   public static final SemiJoinFilterTransposeRule INSTANCE =
-      CoreRules.SEMI_JOIN_FILTER_TRANSPOSE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a SemiJoinFilterTransposeRule.
-   */
+  /** Creates a SemiJoinFilterTransposeRule. */
+  protected SemiJoinFilterTransposeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public SemiJoinFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operandJ(LogicalJoin.class, null, Join::isSemiJoin,
-            some(operand(LogicalFilter.class, any()))),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
-  public void onMatch(RelOptRuleCall call) {
-    LogicalJoin semiJoin = call.rel(0);
-    LogicalFilter filter = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Join semiJoin = call.rel(0);
+    final Filter filter = call.rel(1);
 
-    RelNode newSemiJoin =
+    final RelNode newSemiJoin =
         LogicalJoin.create(filter.getInput(),
             semiJoin.getRight(),
             // No need to copy the hints, the framework would try to do that.
@@ -81,5 +85,24 @@ public class SemiJoinFilterTransposeRule extends RelOptRule implements Transform
             ImmutableSet.of());
 
     call.transformTo(newFilter);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class, LogicalFilter.class);
+
+    @Override default SemiJoinFilterTransposeRule toRule() {
+      return new SemiJoinFilterTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass,
+        Class<? extends Filter> filterClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(joinClass).predicate(Join::isSemiJoin).inputs(b1 ->
+              b1.operand(filterClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

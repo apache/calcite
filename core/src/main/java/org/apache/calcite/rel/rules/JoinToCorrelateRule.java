@@ -18,8 +18,8 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
@@ -54,55 +54,56 @@ import org.apache.calcite.util.ImmutableBitSet;
  * dept.deptno</code></blockquote>
  *
  * <p>would require emitting a NULL emp row if a certain department contained no
- * employees, and Correlator cannot do that.</p>
+ * employees, and Correlator cannot do that.
+ *
+ * @see CoreRules#JOIN_TO_CORRELATE
  */
-public class JoinToCorrelateRule extends RelOptRule implements TransformationRule {
+public class JoinToCorrelateRule
+    extends RelRule<JoinToCorrelateRule.Config>
+    implements TransformationRule {
 
   //~ Static fields/initializers ---------------------------------------------
 
   /** @deprecated Use {@link CoreRules#JOIN_TO_CORRELATE}. */
   @Deprecated // to be removed before 1.25
+  public static final JoinToCorrelateRule INSTANCE =
+      Config.DEFAULT.toRule();
+
+  /** @deprecated Use {@link CoreRules#JOIN_TO_CORRELATE}. */
+  @Deprecated // to be removed before 1.25
   public static final JoinToCorrelateRule JOIN =
-      CoreRules.JOIN_TO_CORRELATE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
-   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
-   */
+  /** Creates a JoinToCorrelateRule. */
+  protected JoinToCorrelateRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public JoinToCorrelateRule(RelBuilderFactory relBuilderFactory) {
-    this(LogicalJoin.class, relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(LogicalJoin.class));
   }
 
   @Deprecated // to be removed before 2.0
   protected JoinToCorrelateRule(RelFactories.FilterFactory filterFactory) {
-    this(RelBuilder.proto(Contexts.of(filterFactory)));
-  }
-
-  /**
-   * Creates a JoinToCorrelateRule for a certain sub-class of
-   * {@link org.apache.calcite.rel.core.Join} to be transformed into a
-   * {@link org.apache.calcite.rel.logical.LogicalCorrelate}.
-   *
-   * @param clazz Class of relational expression to match (must not be null)
-   * @param relBuilderFactory Builder for relational expressions
-   * @param description Description, or null to guess description
-   */
-  JoinToCorrelateRule(Class<? extends Join> clazz,
-      RelBuilderFactory relBuilderFactory,
-      String description) {
-    super(operand(clazz, any()), relBuilderFactory, description);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(RelBuilder.proto(Contexts.of(filterFactory)))
+        .as(Config.class)
+        .withOperandFor(LogicalJoin.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean matches(RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
     return !join.getJoinType().generatesNullsOnLeft();
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     assert matches(call);
     final Join join = call.rel(0);
     RelNode right = join.getRight();
@@ -138,5 +139,21 @@ public class JoinToCorrelateRule extends RelOptRule implements TransformationRul
             requiredColumns.build(),
             join.getJoinType());
     call.transformTo(newRel);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class);
+
+    @Override default JoinToCorrelateRule toRule() {
+      return new JoinToCorrelateRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b -> b.operand(joinClass).anyInputs())
+          .as(Config.class);
+    }
   }
 }

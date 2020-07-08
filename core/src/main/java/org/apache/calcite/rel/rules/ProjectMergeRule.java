@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Permutation;
 
 import java.util.List;
@@ -34,50 +35,50 @@ import java.util.List;
  * ProjectMergeRule merges a {@link org.apache.calcite.rel.core.Project} into
  * another {@link org.apache.calcite.rel.core.Project},
  * provided the projects aren't projecting identical sets of input references.
+ *
+ * @see CoreRules#PROJECT_MERGE
  */
-public class ProjectMergeRule extends RelOptRule implements TransformationRule {
-  /** Default amount by which complexity is allowed to increase. */
+public class ProjectMergeRule
+    extends RelRule<ProjectMergeRule.Config>
+    implements TransformationRule {
+  /** Default amount by which complexity is allowed to increase.
+   *
+   * @see Config#bloat() */
   public static final int DEFAULT_BLOAT = 100;
 
   /** @deprecated Use {@link CoreRules#PROJECT_MERGE}. */
   @Deprecated // to be removed before 1.25
   public static final ProjectMergeRule INSTANCE =
-      CoreRules.PROJECT_MERGE;
-
-  //~ Instance fields --------------------------------------------------------
-
-  /** Whether to always merge projects. */
-  private final boolean force;
-
-  /** Limit how much complexity can increase during merging. */
-  private final int bloat;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a ProjectMergeRule, specifying whether to always merge projects.
-   *
-   * @param force Whether to always merge projects
-   */
+  /** Creates a ProjectMergeRule. */
+  protected ProjectMergeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public ProjectMergeRule(boolean force, int bloat,
       RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(Project.class,
-            operand(Project.class, any())),
-        relBuilderFactory,
-        "ProjectMergeRule" + (force ? ":force_mode" : ""));
-    this.force = force;
-    this.bloat = bloat;
+    this(CoreRules.PROJECT_MERGE.config.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withForce(force)
+        .withBloat(bloat));
   }
 
   @Deprecated // to be removed before 2.0
   public ProjectMergeRule(boolean force, RelBuilderFactory relBuilderFactory) {
-    this(force, DEFAULT_BLOAT, relBuilderFactory);
+    this(CoreRules.PROJECT_MERGE.config.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withForce(force));
   }
 
   @Deprecated // to be removed before 2.0
   public ProjectMergeRule(boolean force, ProjectFactory projectFactory) {
-    this(force, RelBuilder.proto(projectFactory));
+    this(CoreRules.PROJECT_MERGE.config.withRelBuilderFactory(RelBuilder.proto(projectFactory))
+        .as(Config.class)
+        .withForce(force));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -88,7 +89,7 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
     return topProject.getConvention() == bottomProject.getConvention();
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Project topProject = call.rel(0);
     final Project bottomProject = call.rel(1);
     final RelBuilder relBuilder = call.builder();
@@ -118,7 +119,7 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
 
     // If we're not in force mode and the two projects reference identical
     // inputs, then return and let ProjectRemoveRule replace the projects.
-    if (!force) {
+    if (!config.force()) {
       if (RexUtil.isIdentity(topProject.getProjects(),
           topProject.getInput().getRowType())) {
         return;
@@ -127,14 +128,14 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
 
     final List<RexNode> newProjects =
         RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(),
-            bottomProject, bloat);
+            bottomProject, config.bloat());
     if (newProjects == null) {
       // Merged projects are significantly more complex. Do not merge.
       return;
     }
     final RelNode input = bottomProject.getInput();
     if (RexUtil.isIdentity(newProjects, input.getRowType())) {
-      if (force
+      if (config.force()
           || input.getRowType().getFieldNames()
               .equals(topProject.getRowType().getFieldNames())) {
         call.transformTo(input);
@@ -146,5 +147,40 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
     relBuilder.push(bottomProject.getInput());
     relBuilder.project(newProjects, topProject.getRowType().getFieldNames());
     call.transformTo(relBuilder.build());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Project.class);
+
+    @Override default ProjectMergeRule toRule() {
+      return new ProjectMergeRule(this);
+    }
+
+    /** Limit how much complexity can increase during merging.
+     * Default is {@link #DEFAULT_BLOAT} (100). */
+    @ImmutableBeans.Property
+    @ImmutableBeans.IntDefault(ProjectMergeRule.DEFAULT_BLOAT)
+    int bloat();
+
+    /** Sets {@link #bloat()}. */
+    Config withBloat(int bloat);
+
+    /** Whether to always merge projects, default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean force();
+
+    /** Sets {@link #force()}. */
+    Config withForce(boolean force);
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(projectClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

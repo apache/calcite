@@ -195,8 +195,8 @@ public class RelOptMaterialization {
       return null;
     }
     final Program program = Programs.hep(
-        ImmutableList.of(CoreRules.PROJECT_FILTER_TRANSPOSE,
-            CoreRules.AGGREGATE_PROJECT_MERGE,
+        ImmutableList.of(
+            CoreRules.PROJECT_FILTER_TRANSPOSE, CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.AGGREGATE_FILTER_TRANSPOSE),
         false,
         DefaultRelMetadataProvider.INSTANCE);

@@ -18,10 +18,8 @@ package org.apache.calcite.rel.rules.materialize;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -32,6 +30,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -53,6 +52,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mapping;
@@ -75,59 +75,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Materialized view rewriting for aggregate */
-public abstract class MaterializedViewAggregateRule extends MaterializedViewRule {
+/** Materialized view rewriting for aggregate.
+ *
+ * @param <C> Configuration type
+ */
+public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAggregateRule.Config>
+    extends MaterializedViewRule<C> {
 
   protected static final ImmutableList<TimeUnitRange> SUPPORTED_DATE_TIME_ROLLUP_UNITS =
       ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.QUARTER, TimeUnitRange.MONTH,
           TimeUnitRange.DAY, TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
           TimeUnitRange.SECOND, TimeUnitRange.MILLISECOND, TimeUnitRange.MICROSECOND);
 
-  //~ Instance fields --------------------------------------------------------
-
-  /** Instance of rule to push filter through project. */
-  protected final RelOptRule filterProjectTransposeRule;
-
-  /** Instance of rule to push filter through aggregate. */
-  protected final RelOptRule filterAggregateTransposeRule;
-
-  /** Instance of rule to pull up constants into aggregate. */
-  protected final RelOptRule aggregateProjectPullUpConstantsRule;
-
-  /** Instance of rule to merge project operators. */
-  protected final RelOptRule projectMergeRule;
-
-
   /** Creates a MaterializedViewAggregateRule. */
-  protected MaterializedViewAggregateRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
-    this(operand, relBuilderFactory, description, generateUnionRewriting,
-        unionRewritingPullProgram,
-        new FilterProjectTransposeRule(
-            Filter.class, Project.class, true, true, relBuilderFactory),
-        new FilterAggregateTransposeRule(
-            Filter.class, relBuilderFactory, Aggregate.class),
-        new AggregateProjectPullUpConstantsRule(
-            Aggregate.class, Filter.class, relBuilderFactory, "AggFilterPullUpConstants"),
-        new ProjectMergeRule(true, ProjectMergeRule.DEFAULT_BLOAT,
-            relBuilderFactory));
-  }
-
-  /** Creates a MaterializedViewAggregateRule. */
-  protected MaterializedViewAggregateRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
-      RelOptRule filterProjectTransposeRule,
-      RelOptRule filterAggregateTransposeRule,
-      RelOptRule aggregateProjectPullUpConstantsRule,
-      RelOptRule projectMergeRule) {
-    super(operand, relBuilderFactory, description, generateUnionRewriting,
-        unionRewritingPullProgram, false);
-    this.filterProjectTransposeRule = filterProjectTransposeRule;
-    this.filterAggregateTransposeRule = filterAggregateTransposeRule;
-    this.aggregateProjectPullUpConstantsRule = aggregateProjectPullUpConstantsRule;
-    this.projectMergeRule = projectMergeRule;
+  MaterializedViewAggregateRule(C config) {
+    super(config);
   }
 
   @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -280,8 +242,9 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
     // depending on the planner strategy.
     RelNode newAggregateInput = aggregate.getInput(0);
     RelNode target = aggregate.getInput(0);
-    if (unionRewritingPullProgram != null) {
-      final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+    if (config.unionRewritingPullProgram() != null) {
+      final HepPlanner tmpPlanner =
+          new HepPlanner(config.unionRewritingPullProgram());
       tmpPlanner.setRoot(newAggregateInput);
       newAggregateInput = tmpPlanner.findBestExp();
       target = newAggregateInput.getInput(0);
@@ -319,7 +282,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
         .push(target)
         .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
         .build();
-    if (unionRewritingPullProgram != null) {
+    if (config.unionRewritingPullProgram() != null) {
       return aggregate.copy(aggregate.getTraitSet(),
           ImmutableList.of(
               newAggregateInput.copy(newAggregateInput.getTraitSet(),
@@ -903,12 +866,12 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
     // filter is added.
     HepProgramBuilder pushFiltersProgram = new HepProgramBuilder();
     if (topViewProject != null) {
-      pushFiltersProgram.addRuleInstance(filterProjectTransposeRule);
+      pushFiltersProgram.addRuleInstance(config.filterProjectTransposeRule());
     }
     pushFiltersProgram
-        .addRuleInstance(this.filterAggregateTransposeRule)
-        .addRuleInstance(this.aggregateProjectPullUpConstantsRule)
-        .addRuleInstance(this.projectMergeRule);
+        .addRuleInstance(config.filterAggregateTransposeRule())
+        .addRuleInstance(config.aggregateProjectPullUpConstantsRule())
+        .addRuleInstance(config.projectMergeRule());
     final HepPlanner tmpPlanner = new HepPlanner(pushFiltersProgram.build());
     // Now that the planner is created, push the node
     RelNode topNode = builder
@@ -935,5 +898,70 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       }
     }
     return Pair.of(resultTopViewProject, resultViewNode);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends MaterializedViewRule.Config {
+    static Config create(RelBuilderFactory relBuilderFactory) {
+      return EMPTY.as(Config.class)
+          .withFilterProjectTransposeRule(
+              CoreRules.FILTER_PROJECT_TRANSPOSE.config
+                  .withRelBuilderFactory(relBuilderFactory)
+                  .as(FilterProjectTransposeRule.Config.class)
+                  .withOperandFor(Filter.class, filter ->
+                          !RexUtil.containsCorrelation(filter.getCondition()),
+                      Project.class, project -> true)
+                  .withCopyFilter(true)
+                  .withCopyProject(true)
+                  .toRule())
+          .withFilterAggregateTransposeRule(
+              CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
+                  .withRelBuilderFactory(relBuilderFactory)
+                  .as(FilterAggregateTransposeRule.Config.class)
+                  .withOperandFor(Filter.class, Aggregate.class)
+                  .toRule())
+          .withAggregateProjectPullUpConstantsRule(
+              AggregateProjectPullUpConstantsRule.Config.DEFAULT
+                  .withRelBuilderFactory(relBuilderFactory)
+                  .withDescription("AggFilterPullUpConstants")
+                  .as(AggregateProjectPullUpConstantsRule.Config.class)
+                  .withOperandFor(Aggregate.class, Filter.class)
+                  .toRule())
+          .withProjectMergeRule(
+              CoreRules.PROJECT_MERGE.config
+                  .withRelBuilderFactory(relBuilderFactory)
+                  .as(ProjectMergeRule.Config.class)
+                  .toRule())
+          .withRelBuilderFactory(relBuilderFactory)
+          .as(Config.class);
+    }
+
+    /** Instance of rule to push filter through project. */
+    @ImmutableBeans.Property
+    RelOptRule filterProjectTransposeRule();
+
+    /** Sets {@link #filterProjectTransposeRule()}. */
+    Config withFilterProjectTransposeRule(RelOptRule rule);
+
+    /** Instance of rule to push filter through aggregate. */
+    @ImmutableBeans.Property
+    RelOptRule filterAggregateTransposeRule();
+
+    /** Sets {@link #filterAggregateTransposeRule()}. */
+    Config withFilterAggregateTransposeRule(RelOptRule rule);
+
+    /** Instance of rule to pull up constants into aggregate. */
+    @ImmutableBeans.Property
+    RelOptRule aggregateProjectPullUpConstantsRule();
+
+    /** Sets {@link #aggregateProjectPullUpConstantsRule()}. */
+    Config withAggregateProjectPullUpConstantsRule(RelOptRule rule);
+
+    /** Instance of rule to merge project operators. */
+    @ImmutableBeans.Property
+    RelOptRule projectMergeRule();
+
+    /** Sets {@link #projectMergeRule()}. */
+    Config withProjectMergeRule(RelOptRule rule);
   }
 }

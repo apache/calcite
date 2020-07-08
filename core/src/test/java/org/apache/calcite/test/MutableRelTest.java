@@ -146,9 +146,7 @@ class MutableRelTest {
         sql,
         true,
         ImmutableList.of(
-            CoreRules.FILTER_PROJECT_TRANSPOSE,
-            CoreRules.FILTER_INTO_JOIN,
-            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE, CoreRules.FILTER_INTO_JOIN, CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_TO_SEMI_JOIN));
   }
 

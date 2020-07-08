@@ -144,8 +144,7 @@ public abstract class RelOptUtil {
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<Filter>
-      FILTER_PREDICATE =
-      RelOptUtil::notContainsWindowedAgg;
+      FILTER_PREDICATE = f -> !f.containsOver();
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -2060,7 +2059,6 @@ public abstract class RelOptUtil {
     }
 
     planner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-
   }
 
   @Deprecated // to be removed before 1.25
@@ -2979,7 +2977,7 @@ public abstract class RelOptUtil {
       return null;
     }
     if (RexOver.containsOver(nodes, null)
-        && RexOver.containsOver(project.getProjects(), null)) {
+        && project.containsOver()) {
       // Is it valid relational algebra to apply windowed function to a windowed
       // function? Possibly. But it's invalid SQL, so don't go there.
       return null;
@@ -3427,17 +3425,17 @@ public abstract class RelOptUtil {
 
   /** Predicate for if a {@link Calc} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Calc calc) {
-    return !calc.getProgram().containsAggs();
+    return !calc.containsOver();
   }
 
   /** Predicate for if a {@link Filter} does not windowed aggregates. */
   public static boolean notContainsWindowedAgg(Filter filter) {
-    return !RexOver.containsOver(filter.getCondition());
+    return !filter.containsOver();
   }
 
   /** Predicate for if a {@link Project} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Project project) {
-    return !RexOver.containsOver(project.getProjects(), null);
+    return !project.containsOver();
   }
 
   /** Policies for handling two- and three-valued boolean logic. */

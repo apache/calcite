@@ -33,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
@@ -128,6 +129,11 @@ public abstract class Calc extends SingleRel implements Hintable {
       List<RelCollation> collationList) {
     Util.discard(collationList);
     return copy(traitSet, child, program);
+  }
+
+  /** Returns whether this Calc contains any windowed-aggregate functions. */
+  public final boolean containsOver() {
+    return RexOver.containsOver(program);
   }
 
   public boolean isValid(Litmus litmus, Context context) {

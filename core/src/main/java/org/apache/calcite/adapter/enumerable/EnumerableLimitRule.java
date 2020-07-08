@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 
@@ -26,12 +26,19 @@ import org.apache.calcite.rel.core.Sort;
  * {@code offset} or {@code fetch} set to an
  * {@link EnumerableLimit}
  * on top of a "pure" {@code Sort} that has no offset or fetch.
+ *
+ * @see EnumerableRules#ENUMERABLE_LIMIT_RULE
  */
-class EnumerableLimitRule extends RelOptRule {
+public class EnumerableLimitRule
+    extends RelRule<EnumerableLimitRule.Config> {
+  /** Creates an EnumerableLimitRule. */
+  protected EnumerableLimitRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   EnumerableLimitRule() {
-    super(
-        operand(Sort.class, any()),
-        "EnumerableLimitRule");
+    this(Config.DEFAULT);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -54,5 +61,16 @@ class EnumerableLimitRule extends RelOptRule {
             convert(input, input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
             sort.offset,
             sort.fetch));
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
+        .as(Config.class);
+
+    @Override default EnumerableLimitRule toRule() {
+      return new EnumerableLimitRule(this);
+    }
   }
 }

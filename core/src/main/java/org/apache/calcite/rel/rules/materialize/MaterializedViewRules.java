@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.MaterializedViewFilterScanRule;
 
@@ -33,37 +33,31 @@ public abstract class MaterializedViewRules {
   private MaterializedViewRules() {}
 
   /** Rule that matches {@link Project} on {@link Aggregate}. */
-  public static final MaterializedViewProjectAggregateRule PROJECT_AGGREGATE =
-      new MaterializedViewProjectAggregateRule(RelFactories.LOGICAL_BUILDER,
-          true, null);
+  public static final RelOptRule PROJECT_AGGREGATE =
+      MaterializedViewProjectAggregateRule.Config.DEFAULT.toRule();
 
   /** Rule that matches {@link Aggregate}. */
-  public static final MaterializedViewOnlyAggregateRule AGGREGATE =
-      new MaterializedViewOnlyAggregateRule(RelFactories.LOGICAL_BUILDER,
-          true, null);
+  public static final RelOptRule AGGREGATE =
+      MaterializedViewOnlyAggregateRule.Config.DEFAULT.toRule();
 
   /** Rule that matches {@link Filter}. */
-  public static final MaterializedViewOnlyFilterRule FILTER =
-      new MaterializedViewOnlyFilterRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+  public static final RelOptRule FILTER =
+      MaterializedViewOnlyFilterRule.Config.DEFAULT.toRule();
 
   /** Rule that matches {@link Join}. */
-  public static final MaterializedViewOnlyJoinRule JOIN =
-      new MaterializedViewOnlyJoinRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+  public static final RelOptRule JOIN =
+      MaterializedViewOnlyJoinRule.Config.DEFAULT.toRule();
 
   /** Rule that matches {@link Project} on {@link Filter}. */
-  public static final MaterializedViewProjectFilterRule PROJECT_FILTER =
-      new MaterializedViewProjectFilterRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+  public static final RelOptRule PROJECT_FILTER =
+      MaterializedViewProjectFilterRule.Config.DEFAULT.toRule();
 
   /** Rule that matches {@link Project} on {@link Join}. */
-  public static final MaterializedViewProjectJoinRule PROJECT_JOIN =
-      new MaterializedViewProjectJoinRule(RelFactories.LOGICAL_BUILDER,
-          true, null, true);
+  public static final RelOptRule PROJECT_JOIN =
+      MaterializedViewProjectJoinRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a {@link Filter} on a {@link TableScan}
    * to a {@link Filter} on a Materialized View. */
   public static final MaterializedViewFilterScanRule FILTER_SCAN =
-      new MaterializedViewFilterScanRule(RelFactories.LOGICAL_BUILDER);
+      MaterializedViewFilterScanRule.Config.DEFAULT.toRule();
 }

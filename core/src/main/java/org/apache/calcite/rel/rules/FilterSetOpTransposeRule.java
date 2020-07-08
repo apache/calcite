@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
@@ -36,34 +36,40 @@ import java.util.List;
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Filter}
  * past a {@link org.apache.calcite.rel.core.SetOp}.
+ *
+ * @see CoreRules#FILTER_SET_OP_TRANSPOSE
  */
-public class FilterSetOpTransposeRule extends RelOptRule implements TransformationRule {
+public class FilterSetOpTransposeRule
+    extends RelRule<FilterSetOpTransposeRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#FILTER_SET_OP_TRANSPOSE}. */
   @Deprecated // to be removed before 1.25
   public static final FilterSetOpTransposeRule INSTANCE =
-      CoreRules.FILTER_SET_OP_TRANSPOSE;
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a FilterSetOpTransposeRule.
-   */
+  /** Creates a FilterSetOpTransposeRule. */
+  protected FilterSetOpTransposeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public FilterSetOpTransposeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(Filter.class,
-            operand(SetOp.class, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   @Deprecated // to  be removed before 2.0
   public FilterSetOpTransposeRule(RelFactories.FilterFactory filterFactory) {
-    this(RelBuilder.proto(Contexts.of(filterFactory)));
+    this(Config.DEFAULT
+        .withRelBuilderFactory(RelBuilder.proto(Contexts.of(filterFactory)))
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Filter filterRel = call.rel(0);
     SetOp setOp = call.rel(1);
 
@@ -93,5 +99,18 @@ public class FilterSetOpTransposeRule extends RelOptRule implements Transformati
         setOp.copy(setOp.getTraitSet(), newSetOpInputs);
 
     call.transformTo(newSetOp);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(Filter.class).oneInput(b1 ->
+                b1.operand(SetOp.class).anyInputs()))
+        .as(Config.class);
+
+    @Override default FilterSetOpTransposeRule toRule() {
+      return new FilterSetOpTransposeRule(this);
+    }
   }
 }

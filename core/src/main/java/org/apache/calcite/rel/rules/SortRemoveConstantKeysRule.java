@@ -17,13 +17,12 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
@@ -38,19 +37,17 @@ import java.util.stream.Collectors;
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
-public class SortRemoveConstantKeysRule extends RelOptRule
+public class SortRemoveConstantKeysRule
+    extends RelRule<SortRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
   /** @deprecated Use {@link CoreRules#SORT_REMOVE_CONSTANT_KEYS}. */
   @Deprecated // to be removed before 1.25
   public static final SortRemoveConstantKeysRule INSTANCE =
-      CoreRules.SORT_REMOVE_CONSTANT_KEYS;
+      Config.DEFAULT.toRule();
 
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated // to be removed before 1.25
-  SortRemoveConstantKeysRule() {
-    super(
-        operand(Sort.class, any()),
-        RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");
+  /** Creates a SortRemoveConstantKeysRule. */
+  protected SortRemoveConstantKeysRule(Config config) {
+    super(config);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -85,5 +82,16 @@ public class SortRemoveConstantKeysRule extends RelOptRule
         sort.copy(sort.getTraitSet(), input, RelCollations.of(collationsList));
     call.transformTo(result);
     call.getPlanner().prune(sort);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
+        .as(Config.class);
+
+    @Override default SortRemoveConstantKeysRule toRule() {
+      return new SortRemoveConstantKeysRule(this);
+    }
   }
 }

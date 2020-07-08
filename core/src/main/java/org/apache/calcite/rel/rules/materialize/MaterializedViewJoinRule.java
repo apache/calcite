@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -31,7 +29,6 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.BiMap;
@@ -43,16 +40,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Materialized view rewriting for join */
-public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
+/** Materialized view rewriting for join.
+ *
+ * @param <C> Configuration type
+ */
+public abstract class MaterializedViewJoinRule<C extends MaterializedViewJoinRule.Config>
+    extends MaterializedViewRule<C> {
 
   /** Creates a MaterializedViewJoinRule. */
-  protected MaterializedViewJoinRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
-      boolean fastBailOut) {
-    super(operand, relBuilderFactory, description, generateUnionRewriting,
-        unionRewritingPullProgram, fastBailOut);
+  MaterializedViewJoinRule(C config) {
+    super(config);
   }
 
   @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -81,7 +78,7 @@ public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
     // ((A JOIN B) JOIN D) JOIN C
     // But not at:
     // (((A JOIN B) JOIN D) JOIN C) JOIN E
-    if (fastBailOut) {
+    if (config.fastBailOut()) {
       for (RelNode joinInput : node.getInputs()) {
         if (mq.getTableReferences(joinInput).containsAll(viewTableRefs)) {
           return null;
@@ -158,8 +155,9 @@ public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
     // the planner strategy.
     RelNode newNode = node;
     RelNode target = node;
-    if (unionRewritingPullProgram != null) {
-      final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+    if (config.unionRewritingPullProgram() != null) {
+      final HepPlanner tmpPlanner =
+          new HepPlanner(config.unionRewritingPullProgram());
       tmpPlanner.setRoot(newNode);
       newNode = tmpPlanner.findBestExp();
       target = newNode.getInput(0);
@@ -198,7 +196,7 @@ public abstract class MaterializedViewJoinRule extends MaterializedViewRule {
         .push(target)
         .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
         .build();
-    if (unionRewritingPullProgram != null) {
+    if (config.unionRewritingPullProgram() != null) {
       rewrittenPlan = newNode.copy(
           newNode.getTraitSet(), ImmutableList.of(rewrittenPlan));
     }

@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
@@ -56,7 +56,8 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  * {@link org.apache.calcite.rel.logical.LogicalProject} ({@link MultiJoin}).
  *
  * <p>It is similar to
- * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule}.
+ * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule}
+ * ({@link CoreRules#MULTI_JOIN_OPTIMIZE}).
  * {@code LoptOptimizeJoinRule} is only capable of producing left-deep joins;
  * this rule is capable of producing bushy joins.
  *
@@ -67,20 +68,30 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  *   <li>More than 1 join conditions that touch the same pair of factors,
  *       e.g. {@code t0.c1 = t1.c1 and t1.c2 = t0.c3}
  * </ol>
+ *
+ * @see CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY
  */
-public class MultiJoinOptimizeBushyRule extends RelOptRule implements TransformationRule {
+public class MultiJoinOptimizeBushyRule
+    extends RelRule<MultiJoinOptimizeBushyRule.Config>
+    implements TransformationRule {
   /** @deprecated Use {@link CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY}. */
   @Deprecated // to be removed before 1.25
   public static final MultiJoinOptimizeBushyRule INSTANCE =
-      CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY;
+      Config.DEFAULT.toRule();
 
   private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)
       : null;
 
-  /** Creates an MultiJoinOptimizeBushyRule. */
+  /** Creates a MultiJoinOptimizeBushyRule. */
+  protected MultiJoinOptimizeBushyRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public MultiJoinOptimizeBushyRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(MultiJoin.class, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   @Deprecated // to be removed before 2.0
@@ -386,6 +397,17 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule implements Transforma
           + ", leftFactor: " + leftFactor
           + ", rightFactor: " + rightFactor
           + ")";
+    }
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
+        .as(Config.class);
+
+    @Override default MultiJoinOptimizeBushyRule toRule() {
+      return new MultiJoinOptimizeBushyRule(this);
     }
   }
 }

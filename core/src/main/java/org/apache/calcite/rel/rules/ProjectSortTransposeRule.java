@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -35,36 +34,37 @@ import com.google.common.collect.ImmutableList;
  * @see org.apache.calcite.rel.rules.SortProjectTransposeRule
  */
 @Deprecated // to be removed before 1.25
-public class ProjectSortTransposeRule extends RelOptRule implements TransformationRule {
+public class ProjectSortTransposeRule
+    extends RelRule<ProjectSortTransposeRule.Config>
+    implements TransformationRule {
   public static final ProjectSortTransposeRule INSTANCE =
-      new ProjectSortTransposeRule(Project.class, Sort.class,
-          RelFactories.LOGICAL_BUILDER);
+      Config.DEFAULT.toRule();
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectSortTransposeRule. */
-  private ProjectSortTransposeRule(Class<Project> projectClass,
-      Class<Sort> sortClass, RelBuilderFactory relBuilderFactory) {
-    this(
-        operand(projectClass,
-            operand(sortClass, any())),
-        relBuilderFactory, null);
+  protected ProjectSortTransposeRule(Config config) {
+    super(config);
   }
 
   @Deprecated // to be removed before 2.0
   protected ProjectSortTransposeRule(RelOptRuleOperand operand) {
-    this(operand, RelFactories.LOGICAL_BUILDER, null);
+    this(Config.DEFAULT.withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
   }
 
-  /** Creates a ProjectSortTransposeRule with an operand. */
+  @Deprecated // to be removed before 2.0
   protected ProjectSortTransposeRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
-    super(operand, relBuilderFactory, description);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .withDescription(description)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Project project = call.rel(0);
     final Sort sort = call.rel(1);
     if (sort.getClass() != Sort.class) {
@@ -81,5 +81,34 @@ public class ProjectSortTransposeRule extends RelOptRule implements Transformati
             sort.offset,
             sort.fetch);
     call.transformTo(newSort);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Project.class, Sort.class);
+
+    @Override default ProjectSortTransposeRule toRule() {
+      return new ProjectSortTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given 2 classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<? extends Sort> sortClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(sortClass).anyInputs()))
+          .as(Config.class);
+    }
+
+    /** Defines an operand tree for the given 3 classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<? extends Sort> sortClass, Class<? extends RelNode> relClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(sortClass).oneInput(b2 ->
+                  b2.operand(relClass).anyInputs())))
+          .as(Config.class);
+    }
   }
 }
