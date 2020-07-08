@@ -469,6 +469,79 @@ $ cd avatica/core
 $ ./src/main/scripts/generate-protobuf.sh
 {% endhighlight %}
 
+## Create a planner rule
+
+Create a class that extends `RelRule` (or occasionally a sub-class).
+
+{% highlight java %}
+/** Planner rule that matches a {@link Filter} and futzes with it.
+ *
+ * @see CoreRules#FILTER_FUTZ
+ */
+class FilterFutzRule extends RelRule<FilterFutzRule.Config> {
+  /** Creates a FilterFutzRule. */
+  protected FilterFutzRule(Config config) {
+    super(config);
+  }
+
+  @Override onMatch(RelOptRuleCall call) {
+    final Filter filter = call.rels(0);
+    final RelNode newRel = ...;
+    call.transformTo(newRel);
+  }
+
+  /** Rule configuration. */
+  interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalFilter.class).anyInputs())
+        .as(Config.class);
+
+    @Override default FilterFutzRule toRule() {
+      return new FilterFutzRule(this);
+    }
+  }
+}
+{% endhighlight %}
+
+The *class name* should indicate the basic RelNode types that are matched,
+sometimes followed by what the rule does, then the word `Rule`.
+Examples: `ProjectFilterTransposeRule`, `FilterMergeRule`.
+
+The rule must have a constructor that takes a `Config` as argument.
+It should be `protected`, and will only be called from `Config.toRule()`.
+
+The class must contain an interface called `Config` that extends
+`RelRule.Config` (or the config of a the rule's super-class).
+
+`Config` must implement the `toRule` method and create a rule.
+
+`Config` must have a member called `DEFAULT` that creates a typical
+configuration. At a minimum, it must call `withOperandSupplier` to create
+a typical tree of operands.
+
+The rule *should not* have a static `INSTANCE` field.
+There *should* be an instance of the rule in a holder class such as `CoreRules`
+or `EnumerableRules`:
+
+{% highlight java %}
+public class CoreRules {
+  ...
+
+  /** Rule that matches a {@link Filter} and futzes with it. */
+  public static final FILTER_FUTZ = FilterFutzRule.Config.DEFAULT.toRule();
+}
+{% endhighlight %}
+
+The holder class *may* contain other instances of the rule with
+different parameters, if they are commonly used.
+
+If the rule is instantiated with several patterns of operands
+(for instance, with different sub-classes of the same base RelNode classes,
+or with different predicates) the config *may* contain a method `withOperandFor`
+to make it easier to build common operand patterns.
+(See `FilterAggregateTransposeRule` for an example.)
+
 # Advanced topics for committers
 
 The following sections are of interest to Calcite committers and in

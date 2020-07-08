@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.interpreter.Bindables;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
@@ -44,33 +45,32 @@ import java.util.stream.Collectors;
  * of a {@link org.apache.calcite.schema.ProjectableFilterableTable}
  * to a {@link org.apache.calcite.interpreter.Bindables.BindableTableScan}.
  *
- * <p>The {@link #INTERPRETER} variant allows an intervening
+ * <p>The {@link CoreRules#PROJECT_INTERPRETER_TABLE_SCAN} variant allows an
+ * intervening
  * {@link org.apache.calcite.adapter.enumerable.EnumerableInterpreter}.
  *
  * @see FilterTableScanRule
  */
-public abstract class ProjectTableScanRule extends RelOptRule {
+public class ProjectTableScanRule
+    extends RelRule<ProjectTableScanRule.Config> {
+
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<TableScan> PREDICATE =
       ProjectTableScanRule::test;
 
-  /** @deprecated Use {@link CoreRules#PROJECT_TABLE_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectTableScanRule INSTANCE =
-      CoreRules.PROJECT_TABLE_SCAN;
-
-  /** @deprecated Use {@link CoreRules#PROJECT_INTERPRETER_TABLE_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectTableScanRule INTERPRETER =
-      CoreRules.PROJECT_INTERPRETER_TABLE_SCAN;
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a ProjectTableScanRule. */
+  protected ProjectTableScanRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public ProjectTableScanRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
-    super(operand, relBuilderFactory, description);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -79,6 +79,22 @@ public abstract class ProjectTableScanRule extends RelOptRule {
     // We can only push projects into a ProjectableFilterableTable.
     final RelOptTable table = scan.getTable();
     return table.unwrap(ProjectableFilterableTable.class) != null;
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
+    if (call.rels.length == 2) {
+      // the ordinary variant
+      final Project project = call.rel(0);
+      final TableScan scan = call.rel(1);
+      apply(call, project, scan);
+    } else if (call.rels.length == 3) {
+      // the variant with intervening EnumerableInterpreter
+      final Project project = call.rel(0);
+      final TableScan scan = call.rel(2);
+      apply(call, project, scan);
+    } else {
+      throw new AssertionError();
+    }
   }
 
   protected void apply(RelOptRuleCall call, Project project, TableScan scan) {
@@ -103,7 +119,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
           (Bindables.BindableTableScan) scan;
       filtersPushDown = bindableScan.filters;
       projectsPushDown = selectedColumns.stream()
-          .map(col -> bindableScan.projects.get(col))
+          .map(bindableScan.projects::get)
           .collect(Collectors.toList());
     } else {
       filtersPushDown = ImmutableList.of();
@@ -124,6 +140,33 @@ public abstract class ProjectTableScanRule extends RelOptRule {
               .push(newScan)
               .project(newProjectRexNodes)
               .build());
+    }
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    /** Config that matches Project on TableScan. */
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(Project.class).oneInput(b1 ->
+                b1.operand(TableScan.class)
+                    .predicate(ProjectTableScanRule::test)
+                    .noInputs()))
+        .as(Config.class);
+
+    /** Config that matches Project on EnumerableInterpreter on TableScan. */
+    Config INTERPRETER = DEFAULT
+        .withOperandSupplier(b0 ->
+            b0.operand(Project.class).oneInput(b1 ->
+                b1.operand(EnumerableInterpreter.class).oneInput(b2 ->
+                    b2.operand(TableScan.class)
+                        .predicate(ProjectTableScanRule::test)
+                        .noInputs())))
+        .withDescription("ProjectTableScanRule:interpreter")
+        .as(Config.class);
+
+    @Override default ProjectTableScanRule toRule() {
+      return new ProjectTableScanRule(this);
     }
   }
 }

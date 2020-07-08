@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -100,41 +100,38 @@ import java.util.Map;
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
+ * @see CoreRules#JOIN_TO_MULTI_JOIN
  */
-public class JoinToMultiJoinRule extends RelOptRule implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_TO_MULTI_JOIN}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinToMultiJoinRule INSTANCE =
-      CoreRules.JOIN_TO_MULTI_JOIN;
+public class JoinToMultiJoinRule
+    extends RelRule<JoinToMultiJoinRule.Config>
+    implements TransformationRule {
 
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a JoinToMultiJoinRule. */
+  protected JoinToMultiJoinRule(Config config) {
+    super(config);
+  }
 
   @Deprecated // to be removed before 2.0
   public JoinToMultiJoinRule(Class<? extends Join> clazz) {
-    this(clazz, RelFactories.LOGICAL_BUILDER);
+    this(Config.DEFAULT.withOperandFor(clazz));
   }
 
-  /**
-   * Creates a JoinToMultiJoinRule.
-   */
-  public JoinToMultiJoinRule(Class<? extends Join> clazz,
+  @Deprecated // to be removed before 2.0
+  public JoinToMultiJoinRule(Class<? extends Join> joinClass,
       RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(clazz,
-            operand(RelNode.class, any()),
-            operand(RelNode.class, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(joinClass));
   }
 
   //~ Methods ----------------------------------------------------------------
-
 
   @Override public boolean matches(RelOptRuleCall call) {
     final Join origJoin = call.rel(0);
     return origJoin.getJoinType().projectsRight();
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Join origJoin = call.rel(0);
     final RelNode left = call.rel(1);
     final RelNode right = call.rel(2);
@@ -570,6 +567,25 @@ public class JoinToMultiJoinRule extends RelOptRule implements TransformationRul
     public Void visitInputRef(RexInputRef inputRef) {
       refCounts[inputRef.getIndex()]++;
       return null;
+    }
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class);
+
+    @Override default JoinToMultiJoinRule toRule() {
+      return new JoinToMultiJoinRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(joinClass).inputs(
+              b1 -> b1.operand(RelNode.class).anyInputs(),
+              b2 -> b2.operand(RelNode.class).anyInputs()))
+          .as(Config.class);
     }
   }
 }

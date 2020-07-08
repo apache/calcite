@@ -22,24 +22,22 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.schema.ModifiableTable;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableModify}
- * relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.rel.logical.LogicalTableModify} to
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * @see EnumerableRules#ENUMERABLE_TABLE_MODIFICATION_RULE */
 public class EnumerableTableModifyRule extends ConverterRule {
-  /**
-   * Creates an EnumerableTableModifyRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public EnumerableTableModifyRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableModify.class, (Predicate<RelNode>) r -> true,
-        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
-        "EnumerableTableModificationRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalTableModify.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableTableModificationRule")
+      .withRuleFactory(EnumerableTableModifyRule::new);
+
+  /** Creates an EnumerableTableModifyRule. */
+  protected EnumerableTableModifyRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

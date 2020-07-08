@@ -233,8 +233,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
           Collections.emptyMap());
     }
 
-    // implement RelOptRuleCall
-    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+    @Override public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
         RelHintsPropagator handler) {
       transformationResult = rel;
     }

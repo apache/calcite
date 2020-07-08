@@ -20,8 +20,8 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
@@ -217,33 +217,54 @@ class PlannerTests {
   }
 
   /** Planner rule that converts {@link NoneLeafRel} to PHYS convention. */
-  static class PhysLeafRule extends RelOptRule {
-    PhysLeafRule() {
-      super(operand(NoneLeafRel.class, any()));
+  public static class PhysLeafRule extends RelRule<PhysLeafRule.Config> {
+    static final PhysLeafRule INSTANCE =
+        Config.EMPTY
+            .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
+            .as(Config.class)
+            .toRule();
+
+    protected PhysLeafRule(Config config) {
+      super(config);
     }
 
     @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneLeafRel leafRel = call.rel(0);
       call.transformTo(
           new PhysLeafRel(leafRel.getCluster(), leafRel.label));
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default PhysLeafRule toRule() {
+        return new PhysLeafRule(this);
+      }
+    }
   }
 
   /** Planner rule that matches a {@link NoneSingleRel} and succeeds. */
-  static class GoodSingleRule extends RelOptRule {
-    GoodSingleRule() {
-      super(operand(NoneSingleRel.class, any()));
+  public static class GoodSingleRule
+      extends RelRule<GoodSingleRule.Config> {
+    static final GoodSingleRule INSTANCE =
+        Config.EMPTY
+            .withOperandSupplier(b ->
+                b.operand(NoneSingleRel.class).anyInputs())
+            .as(Config.class)
+            .toRule();
+
+    protected GoodSingleRule(Config config) {
+      super(config);
     }
 
     @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
@@ -252,25 +273,45 @@ class PlannerTests {
       call.transformTo(
           new PhysSingleRel(single.getCluster(), physInput));
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default GoodSingleRule toRule() {
+        return new GoodSingleRule(this);
+      }
+    }
   }
 
   /**
    * Planner rule that matches a parent with two children and asserts that they
    * are not the same.
    */
-  static class AssertOperandsDifferentRule extends RelOptRule {
-    AssertOperandsDifferentRule() {
-      super(
-          operand(PhysBiRel.class,
-              operand(PhysLeafRel.class, any()),
-              operand(PhysLeafRel.class, any())));
+  public static class AssertOperandsDifferentRule
+      extends RelRule<AssertOperandsDifferentRule.Config> {
+    public static final AssertOperandsDifferentRule INSTANCE =
+        Config.EMPTY.withOperandSupplier(b0 ->
+                b0.operand(PhysBiRel.class).inputs(
+                    b1 -> b1.operand(PhysLeafRel.class).anyInputs(),
+                    b2 -> b2.operand(PhysLeafRel.class).anyInputs()))
+            .as(Config.class)
+            .toRule();
+
+    protected AssertOperandsDifferentRule(Config config) {
+      super(config);
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       PhysLeafRel left = call.rel(1);
       PhysLeafRel right = call.rel(2);
 
       assert left != right : left + " should be different from " + right;
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default AssertOperandsDifferentRule toRule() {
+        return new AssertOperandsDifferentRule(this);
+      }
     }
   }
 }

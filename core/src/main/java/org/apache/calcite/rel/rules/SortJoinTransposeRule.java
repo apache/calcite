@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -26,8 +26,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -39,30 +40,32 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>At the moment, we only consider left/right outer joins.
  * However, an extension for full outer joins for this rule could be envisioned.
  * Special attention should be paid to null values for correctness issues.
+ *
+ * @see CoreRules#SORT_JOIN_TRANSPOSE
  */
-public class SortJoinTransposeRule extends RelOptRule implements TransformationRule {
+public class SortJoinTransposeRule
+    extends RelRule<SortJoinTransposeRule.Config>
+    implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#SORT_JOIN_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortJoinTransposeRule INSTANCE =
-      CoreRules.SORT_JOIN_TRANSPOSE;
-
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a SortJoinTransposeRule. */
+  protected SortJoinTransposeRule(Config config) {
+    super(config);
+  }
 
   /** Creates a SortJoinTransposeRule. */
   @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass) {
-    this(sortClass, joinClass, RelFactories.LOGICAL_BUILDER);
+    this(Config.DEFAULT.withOperandFor(sortClass, joinClass)
+        .as(Config.class));
   }
 
-  /** Creates a SortJoinTransposeRule. */
+  @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(sortClass,
-            operand(joinClass, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withOperandFor(sortClass, joinClass)
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -160,4 +163,22 @@ public class SortJoinTransposeRule extends RelOptRule implements TransformationR
     call.transformTo(sortCopy);
   }
 
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalSort.class, LogicalJoin.class);
+
+    @Override default SortJoinTransposeRule toRule() {
+      return new SortJoinTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Sort> sortClass,
+        Class<? extends Join> joinClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(sortClass).oneInput(b1 ->
+              b1.operand(joinClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
 }

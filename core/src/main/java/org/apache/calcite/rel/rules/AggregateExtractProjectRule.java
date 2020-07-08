@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -48,32 +49,38 @@ import java.util.List;
  * <p>To prevent cycles, this rule will not extract a {@code Project} if the
  * {@code Aggregate}s input is already a {@code Project}.
  */
-public class AggregateExtractProjectRule extends RelOptRule
+public class AggregateExtractProjectRule
+    extends RelRule<AggregateExtractProjectRule.Config>
     implements TransformationRule {
+  public static final AggregateExtractProjectRule SCAN =
+      Config.DEFAULT.toRule();
 
-  /**
-   * Creates an AggregateExtractProjectRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  /** Creates an AggregateExtractProjectRule. */
+  protected AggregateExtractProjectRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateExtractProjectRule(
       Class<? extends Aggregate> aggregateClass,
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory) {
-    // Predicate prevents matching against an Aggregate whose input
-    // is already a Project. Prevents this rule firing repeatedly.
-    this(
-        operand(aggregateClass,
-            operandJ(inputClass, null, r -> !(r instanceof Project), any())),
-        relBuilderFactory);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, inputClass));
   }
 
+  @Deprecated // to be removed before 2.0
   public AggregateExtractProjectRule(RelOptRuleOperand operand,
       RelBuilderFactory builderFactory) {
-    super(operand, builderFactory, null);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(builderFactory)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
     // Compute which input fields are used.
@@ -129,5 +136,29 @@ public class AggregateExtractProjectRule extends RelOptRule
         relBuilder.groupKey(newGroupSet, newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
     call.transformTo(relBuilder.build());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .as(Config.class)
+        .withOperandFor(Aggregate.class, LogicalTableScan.class);
+
+    @Override default AggregateExtractProjectRule toRule() {
+      return new AggregateExtractProjectRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends RelNode> inputClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass).oneInput(b1 ->
+              b1.operand(inputClass)
+                  // Predicate prevents matching against an Aggregate whose
+                  // input is already a Project. Prevents this rule firing
+                  // repeatedly.
+                  .predicate(r -> !(r instanceof Project)).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

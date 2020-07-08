@@ -21,8 +21,8 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -63,7 +63,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 
 /**
@@ -90,21 +89,13 @@ public abstract class DateRangeRules {
 
   private DateRangeRules() {}
 
-  private static final Predicate<Filter> FILTER_PREDICATE =
-      filter -> {
-        try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-          assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
-              : "previous user did not clean up";
-          filter.getCondition().accept(finder);
-          // bail out if there is no EXTRACT of YEAR, or call to FLOOR or CEIL
-          return finder.timeUnits.contains(TimeUnitRange.YEAR)
-              || finder.opKinds.contains(SqlKind.FLOOR)
-              || finder.opKinds.contains(SqlKind.CEIL);
-        }
-      };
-
+  /** Rule that matches a {@link Filter} and converts calls to {@code EXTRACT},
+   * {@code FLOOR} and {@code CEIL} functions to date ranges (typically using
+   * the {@code BETWEEN} operator). */
   public static final RelOptRule FILTER_INSTANCE =
-      new FilterDateRangeRule(RelFactories.LOGICAL_BUILDER);
+      FilterDateRangeRule.Config.DEFAULT
+          .as(FilterDateRangeRule.Config.class)
+          .toRule();
 
   private static final Map<TimeUnitRange, Integer> TIME_UNIT_CODES =
       ImmutableMap.<TimeUnitRange, Integer>builder()
@@ -167,12 +158,35 @@ public abstract class DateRangeRules {
   }
 
   /** Rule that converts EXTRACT, FLOOR and CEIL in a {@link Filter} into a date
-   * range. */
+   * range.
+   *
+   * @see DateRangeRules#FILTER_INSTANCE */
   @SuppressWarnings("WeakerAccess")
-  public static class FilterDateRangeRule extends RelOptRule implements TransformationRule {
+  public static class FilterDateRangeRule
+      extends RelRule<FilterDateRangeRule.Config>
+      implements TransformationRule {
+    /** Creates a FilterDateRangeRule. */
+    protected FilterDateRangeRule(Config config) {
+      super(config);
+    }
+
+    @Deprecated // to be removed before 2.0
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
-      super(operandJ(Filter.class, null, FILTER_PREDICATE, any()),
-          relBuilderFactory, "FilterDateRangeRule");
+      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(Config.class));
+    }
+
+    /** Whether this an EXTRACT of YEAR, or a call to FLOOR or CEIL.
+     * If none of these, we cannot apply the rule. */
+    private static boolean containsRoundingExpression(Filter filter) {
+      try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
+        assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
+            : "previous user did not clean up";
+        filter.getCondition().accept(finder);
+        return finder.timeUnits.contains(TimeUnitRange.YEAR)
+            || finder.opKinds.contains(SqlKind.FLOOR)
+            || finder.opKinds.contains(SqlKind.CEIL);
+      }
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -190,6 +204,20 @@ public abstract class DateRangeRules {
       relBuilder.push(filter.getInput())
           .filter(condition);
       call.transformTo(relBuilder.build());
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      Config DEFAULT = EMPTY
+          .withOperandSupplier(b ->
+              b.operand(Filter.class)
+                  .predicate(FilterDateRangeRule::containsRoundingExpression)
+                  .anyInputs())
+          .as(Config.class);
+
+      @Override default FilterDateRangeRule toRule() {
+        return new FilterDateRangeRule(this);
+      }
     }
   }
 

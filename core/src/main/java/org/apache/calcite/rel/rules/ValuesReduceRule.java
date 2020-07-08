@@ -20,7 +20,9 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -32,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -65,42 +68,53 @@ import java.util.List;
  * @see CoreRules#PROJECT_VALUES_MERGE
  * @see CoreRules#PROJECT_FILTER_VALUES_MERGE
  */
-public abstract class ValuesReduceRule extends RelOptRule implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
+public class ValuesReduceRule
+    extends RelRule<ValuesReduceRule.Config>
+    implements TransformationRule {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  /** @deprecated Use {@link CoreRules#FILTER_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule FILTER_INSTANCE =
-      CoreRules.FILTER_VALUES_MERGE;
-
-  /** @deprecated Use {@link CoreRules#PROJECT_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule PROJECT_INSTANCE =
-      CoreRules.PROJECT_VALUES_MERGE;
-
-  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule PROJECT_FILTER_INSTANCE =
-      CoreRules.PROJECT_FILTER_VALUES_MERGE;
-
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a ValuesReduceRule.
-   *
-   * @param operand           Class of rels to which this rule should apply
-   * @param relBuilderFactory Builder for relational expressions
-   * @param desc              Description, or null to guess description
-   */
-  public ValuesReduceRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String desc) {
-    super(operand, relBuilderFactory, desc);
+  /** Creates a ValuesReduceRule. */
+  protected ValuesReduceRule(Config config) {
+    super(config);
     Util.discard(LOGGER);
   }
 
+  @Deprecated // to be removed before 2.0
+  public ValuesReduceRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String desc) {
+    this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(desc)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
+    throw new IllegalArgumentException("cannot guess matchHandler");
+  }
+
+  private static void matchProjectFilter(ValuesReduceRule rule,
+      RelOptRuleCall call) {
+    LogicalProject project = call.rel(0);
+    LogicalFilter filter = call.rel(1);
+    LogicalValues values = call.rel(2);
+    rule.apply(call, project, filter, values);
+  }
+
+  private static void matchProject(ValuesReduceRule rule, RelOptRuleCall call) {
+    LogicalProject project = call.rel(0);
+    LogicalValues values = call.rel(1);
+    rule.apply(call, project, null, values);
+  }
+
+  private static void matchFilter(ValuesReduceRule rule, RelOptRuleCall call) {
+    LogicalFilter filter = call.rel(0);
+    LogicalValues values = call.rel(1);
+    rule.apply(call, null, filter, values);
+  }
+
   //~ Methods ----------------------------------------------------------------
+
+  @Override public void onMatch(RelOptRuleCall call) {
+    config.matchHandler().accept(this, call);
+  }
 
   /**
    * Does the work.
@@ -227,4 +241,51 @@ public abstract class ValuesReduceRule extends RelOptRule implements Transformat
       return literalList.get(inputRef.getIndex());
     }
   }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config FILTER = EMPTY.withDescription("ValuesReduceRule(Filter)")
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalFilter.class).oneInput(b1 ->
+                b1.operand(LogicalValues.class)
+                    .predicate(Values::isNotEmpty).noInputs()))
+        .as(Config.class)
+        .withMatchHandler(ValuesReduceRule::matchFilter);
+
+    Config PROJECT = EMPTY.withDescription("ValuesReduceRule(Project)")
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalProject.class).oneInput(b1 ->
+                b1.operand(LogicalValues.class)
+                    .predicate(Values::isNotEmpty).noInputs()))
+        .as(Config.class)
+        .withMatchHandler(ValuesReduceRule::matchProject);
+
+    Config PROJECT_FILTER = EMPTY
+        .withDescription("ValuesReduceRule(Project-Filter)")
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalProject.class).oneInput(b1 ->
+                b1.operand(LogicalFilter.class).oneInput(b2 ->
+                    b2.operand(LogicalValues.class)
+                        .predicate(Values::isNotEmpty).noInputs())))
+        .as(Config.class)
+        .withMatchHandler(ValuesReduceRule::matchProjectFilter);
+
+    @Override default ValuesReduceRule toRule() {
+      return new ValuesReduceRule(this);
+    }
+
+    /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
+    @ImmutableBeans.Property
+    <R extends RelOptRule> MatchHandler<R> matchHandler();
+
+    /** Sets {@link #matchHandler()}. */
+    <R extends RelOptRule> Config withMatchHandler(MatchHandler<R> matchHandler);
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends RelNode> relClass) {
+      return withOperandSupplier(b -> b.operand(relClass).anyInputs())
+          .as(Config.class);
+    }
+  }
+
 }

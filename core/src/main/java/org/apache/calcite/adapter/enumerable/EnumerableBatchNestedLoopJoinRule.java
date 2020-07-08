@@ -17,8 +17,8 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
@@ -40,29 +41,38 @@ import java.util.Set;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalJoin} into an
- * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}. */
-public class EnumerableBatchNestedLoopJoinRule extends RelOptRule {
-
-  private final int batchSize;
-  private static final int DEFAULT_BATCH_SIZE = 100;
-
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
+ *
+ * @see EnumerableRules#ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE
+ */
+public class EnumerableBatchNestedLoopJoinRule
+    extends RelRule<EnumerableBatchNestedLoopJoinRule.Config> {
   /** Creates an EnumerableBatchNestedLoopJoinRule. */
+  protected EnumerableBatchNestedLoopJoinRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected EnumerableBatchNestedLoopJoinRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory, int batchSize) {
-    super(operand(clazz, any()),
-        relBuilderFactory, "EnumerableBatchNestedLoopJoinRule");
-    this.batchSize = batchSize;
-  }
-  /** Creates an EnumerableBatchNestedLoopJoinRule with default batch size of 100. */
-  public EnumerableBatchNestedLoopJoinRule(RelBuilderFactory relBuilderFactory) {
-    this(LogicalJoin.class, relBuilderFactory, DEFAULT_BATCH_SIZE);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withOperandSupplier(b -> b.operand(clazz).anyInputs())
+        .as(Config.class)
+        .withBatchSize(batchSize));
   }
 
-  /** Creates an EnumerableBatchNestedLoopJoinRule with given batch size.
-   * Warning: if the batch size is around or bigger than 1000 there
-   * can be an error because the generated code exceeds the size limit */
-  public EnumerableBatchNestedLoopJoinRule(RelBuilderFactory relBuilderFactory, int batchSize) {
-    this(LogicalJoin.class, relBuilderFactory, batchSize);
+  @Deprecated // to be removed before 2.0
+  public EnumerableBatchNestedLoopJoinRule(RelBuilderFactory relBuilderFactory) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public EnumerableBatchNestedLoopJoinRule(RelBuilderFactory relBuilderFactory,
+      int batchSize) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withBatchSize(batchSize));
   }
 
   @Override public boolean matches(RelOptRuleCall call) {
@@ -84,6 +94,7 @@ public class EnumerableBatchNestedLoopJoinRule extends RelOptRule {
     final Set<CorrelationId> correlationIds = new HashSet<>();
     final ArrayList<RexNode> corrVar = new ArrayList<>();
 
+    final int batchSize = config.batchSize();
     for (int i = 0; i < batchSize; i++) {
       CorrelationId correlationId = cluster.createCorrel();
       correlationIds.add(correlationId);
@@ -136,5 +147,28 @@ public class EnumerableBatchNestedLoopJoinRule extends RelOptRule {
             requiredColumns.build(),
             correlationIds,
             joinType));
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(LogicalJoin.class).anyInputs())
+        .withDescription("EnumerableBatchNestedLoopJoinRule")
+        .as(Config.class);
+
+    @Override default EnumerableBatchNestedLoopJoinRule toRule() {
+      return new EnumerableBatchNestedLoopJoinRule(this);
+    }
+
+    /** Batch size.
+     *
+     * <p>Warning: if the batch size is around or bigger than 1000 there
+     * can be an error because the generated code exceeds the size limit. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.IntDefault(100)
+    int batchSize();
+
+    /** Sets {@link #batchSize()}. */
+    Config withBatchSize(int batchSize);
   }
 }

@@ -17,11 +17,12 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -55,43 +56,30 @@ import java.util.TreeMap;
  * reduced aggregate. If those constants are not used, another rule will remove
  * them from the project.
  */
-public class AggregateProjectPullUpConstantsRule extends RelOptRule
+public class AggregateProjectPullUpConstantsRule
+    extends RelRule<AggregateProjectPullUpConstantsRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
 
-  /** @deprecated Use {@link CoreRules#AGGREGATE_PROJECT_PULL_UP_CONSTANTS}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectPullUpConstantsRule INSTANCE =
-      CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS;
+  /** Creates an AggregateProjectPullUpConstantsRule. */
+  protected AggregateProjectPullUpConstantsRule(Config config) {
+    super(config);
+  }
 
-  /** @deprecated Use {@link CoreRules#AGGREGATE_ANY_PULL_UP_CONSTANTS}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectPullUpConstantsRule INSTANCE2 =
-      CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS;
-
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates an AggregateProjectPullUpConstantsRule.
-   *
-   * @param aggregateClass Aggregate class
-   * @param inputClass Input class, such as {@link LogicalProject}
-   * @param relBuilderFactory Builder for relational expressions
-   * @param description Description, or null to guess description
-   */
+  @Deprecated // to be removed before 2.0
   public AggregateProjectPullUpConstantsRule(
       Class<? extends Aggregate> aggregateClass,
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory, String description) {
-    super(
-        operandJ(aggregateClass, null, Aggregate::isSimple,
-            operand(inputClass, any())),
-        relBuilderFactory, description);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, inputClass));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
 
@@ -185,4 +173,29 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule
     call.transformTo(relBuilder.build());
   }
 
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalProject.class);
+
+    @Override default AggregateProjectPullUpConstantsRule toRule() {
+      return new AggregateProjectPullUpConstantsRule(this);
+    }
+
+    /** Defines an operand tree for the given classes.
+     *
+     * @param aggregateClass Aggregate class
+     * @param inputClass Input class, such as {@link LogicalProject}
+     */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends RelNode> inputClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass)
+              .predicate(Aggregate::isSimple)
+              .oneInput(b1 ->
+                  b1.operand(inputClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
 }

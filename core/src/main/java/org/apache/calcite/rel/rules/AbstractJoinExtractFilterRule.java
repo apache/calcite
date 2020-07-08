@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -38,15 +38,25 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}.</p>
  */
-public abstract class AbstractJoinExtractFilterRule extends RelOptRule
+public abstract class AbstractJoinExtractFilterRule
+    extends RelRule<AbstractJoinExtractFilterRule.Config>
     implements TransformationRule {
   /** Creates an AbstractJoinExtractFilterRule. */
-  protected AbstractJoinExtractFilterRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
-    super(operand, relBuilderFactory, description);
+  protected AbstractJoinExtractFilterRule(Config config) {
+    super(config);
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Deprecated // to be removed before 2.0
+  protected AbstractJoinExtractFilterRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    this(Config.EMPTY
+        .withOperandSupplier(b -> b.exactly(operand))
+        .withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .as(Config.class));
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
 
     if (join.getJoinType() != JoinRelType.INNER) {
@@ -80,5 +90,9 @@ public abstract class AbstractJoinExtractFilterRule extends RelOptRule
         .filter(join.getCondition());
 
     call.transformTo(builder.build());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
   }
 }

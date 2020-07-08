@@ -56,7 +56,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
@@ -391,9 +391,7 @@ class LatticeTest {
     // Run the same query again and see whether it uses the same
     // materialization.
     that.withHook(Hook.CREATE_MATERIALIZATION,
-        materializationName -> {
-          counter.incrementAndGet();
-        })
+        materializationName -> counter.incrementAndGet())
         .returnsCount(69203);
 
     // Ideally the counter would stay at 2. It increments to 3 because
@@ -683,7 +681,7 @@ class LatticeTest {
    *
    * <p>Disabled for normal runs, because it is slow. */
   @Disabled
-  @Test void testAllFoodmartQueries() throws IOException {
+  @Test void testAllFoodmartQueries() {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
     final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
         85, 98, 101, 107, 128, 129, 130, 131);
@@ -889,7 +887,7 @@ class LatticeTest {
     final String lattice =
         INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",
             "rowCountEstimate: 4074070,");
-    assertFalse(lattice.equals(INVENTORY_LATTICE));
+    assertNotEquals(lattice, INVENTORY_LATTICE);
     modelWithLattices(lattice)
         .query("values 1\n")
         .returns("EXPR$0=1\n");

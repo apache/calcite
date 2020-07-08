@@ -19,10 +19,9 @@ package org.apache.calcite.rel.rules.materialize;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
@@ -48,7 +47,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -82,34 +81,17 @@ import java.util.Set;
  * followed by {@link org.apache.calcite.rel.core.Aggregate} or an
  * {@link org.apache.calcite.rel.core.Aggregate} to a scan (and possibly
  * other operations) over a materialized view.
+ *
+ * @param <C> Configuration type
  */
-public abstract class MaterializedViewRule extends RelOptRule {
-
-  //~ Instance fields --------------------------------------------------------
-
-  /** Whether to generate rewritings containing union if the query results
-   * are contained within the view results. */
-  protected final boolean generateUnionRewriting;
-
-  /** If we generate union rewriting, we might want to pull up projections
-   * from the query itself to maximize rewriting opportunities. */
-  protected final HepProgram unionRewritingPullProgram;
-
-  /** Whether we should create the rewriting in the minimal subtree of plan
-   * operators. */
-  protected final boolean fastBailOut;
+public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config>
+    extends RelRule<C> {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a AbstractMaterializedViewRule. */
-  protected MaterializedViewRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
-      boolean fastBailOut) {
-    super(operand, relBuilderFactory, description);
-    this.generateUnionRewriting = generateUnionRewriting;
-    this.unionRewritingPullProgram = unionRewritingPullProgram;
-    this.fastBailOut = fastBailOut;
+  /** Creates a MaterializedViewRule. */
+  MaterializedViewRule(C config) {
+    super(config);
   }
 
   @Override public boolean matches(RelOptRuleCall call) {
@@ -371,7 +353,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
               computeCompensationPredicates(rexBuilder, simplify,
                   currQEC, queryPreds, queryBasedVEC, viewPreds,
                   queryToViewTableMapping);
-          if (compensationPreds == null && generateUnionRewriting) {
+          if (compensationPreds == null && config.generateUnionRewriting()) {
             // Attempt partial rewriting using union operator. This rewriting
             // will read some data from the view and the rest of the data from
             // the query computation. The resulting predicates are expressed
@@ -1386,4 +1368,30 @@ public abstract class MaterializedViewRule extends RelOptRule {
     QUERY_PARTIAL
   }
 
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    /** Whether to generate rewritings containing union if the query results
+     * are contained within the view results. */
+    @ImmutableBeans.Property
+    boolean generateUnionRewriting();
+
+    /** Sets {@link #generateUnionRewriting()}. */
+    Config withGenerateUnionRewriting(boolean b);
+
+    /** If we generate union rewriting, we might want to pull up projections
+     * from the query itself to maximize rewriting opportunities. */
+    @ImmutableBeans.Property
+    HepProgram unionRewritingPullProgram();
+
+    /** Sets {@link #unionRewritingPullProgram()}. */
+    Config withUnionRewritingPullProgram(HepProgram program);
+
+    /** Whether we should create the rewriting in the minimal subtree of plan
+     * operators. */
+    @ImmutableBeans.Property
+    boolean fastBailOut();
+
+    /** Sets {@link #fastBailOut()}. */
+    Config withFastBailOut(boolean b);
+  }
 }

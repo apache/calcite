@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
@@ -25,23 +25,20 @@ import org.apache.calcite.rel.logical.LogicalMatch;
  * Planner rule that converts a
  * {@link LogicalMatch} to the result
  * of calling {@link LogicalMatch#copy}.
+ *
+ * @see CoreRules#MATCH
  */
-public class MatchRule extends RelOptRule implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
+public class MatchRule extends RelRule<MatchRule.Config>
+    implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#MATCH}. */
-  @Deprecated // to be removed before 1.25
-  public static final MatchRule INSTANCE = CoreRules.MATCH;
-
-  //~ Constructors -----------------------------------------------------------
-
-  MatchRule() {
-    super(operand(LogicalMatch.class, any()));
+  /** Creates a MatchRule. */
+  protected MatchRule(Config config) {
+    super(config);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
     final RelNode match = LogicalMatch.create(oldRel.getCluster(),
         oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(),
@@ -51,5 +48,16 @@ public class MatchRule extends RelOptRule implements TransformationRule {
         oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
         oldRel.getInterval());
     call.transformTo(match);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(LogicalMatch.class).anyInputs())
+        .as(Config.class);
+
+    @Override default MatchRule toRule() {
+      return new MatchRule(this);
+    }
   }
 }

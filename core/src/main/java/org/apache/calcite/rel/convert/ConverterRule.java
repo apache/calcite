@@ -19,27 +19,46 @@ package org.apache.calcite.rel.convert;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
  */
-public abstract class ConverterRule extends RelOptRule {
+public abstract class ConverterRule
+    extends RelRule<ConverterRule.Config> {
   //~ Instance fields --------------------------------------------------------
 
   private final RelTrait inTrait;
   private final RelTrait outTrait;
+  protected final Convention out;
 
   //~ Constructors -----------------------------------------------------------
+
+  /** Creates a <code>ConverterRule</code>. */
+  protected ConverterRule(Config config) {
+    super(config);
+    this.inTrait = Objects.requireNonNull(config.inTrait());
+    this.outTrait = Objects.requireNonNull(config.outTrait());
+
+    // Source and target traits must have same type
+    assert inTrait.getTraitDef() == outTrait.getTraitDef();
+
+    // Most sub-classes are concerned with converting one convention to
+    // another, and for them, the "out" field is a convenient short-cut.
+    this.out = outTrait instanceof Convention ? (Convention) outTrait
+        : null;
+  }
 
   /**
    * Creates a <code>ConverterRule</code>.
@@ -48,11 +67,14 @@ public abstract class ConverterRule extends RelOptRule {
    * @param in          Trait of relational expression to consider converting
    * @param out         Trait which is converted to
    * @param descriptionPrefix Description prefix of rule
+   *
+   * @deprecated Use {@link #ConverterRule(Config)}
    */
+  @Deprecated // to be removed before 2.0
   public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String descriptionPrefix) {
-    this(clazz, (Predicate<RelNode>) r -> true, in, out,
-        RelFactories.LOGICAL_BUILDER, descriptionPrefix);
+    this(Config.INSTANCE
+        .withConversion(clazz, in, out, descriptionPrefix));
   }
 
   @SuppressWarnings("Guava")
@@ -60,7 +82,9 @@ public abstract class ConverterRule extends RelOptRule {
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       com.google.common.base.Predicate<? super R> predicate,
       RelTrait in, RelTrait out, String descriptionPrefix) {
-    this(clazz, predicate, in, out, RelFactories.LOGICAL_BUILDER, descriptionPrefix);
+    this(Config.INSTANCE
+        .withConversion(clazz, (Predicate<? super R>) predicate::apply,
+            in, out, descriptionPrefix));
   }
 
   /**
@@ -72,18 +96,17 @@ public abstract class ConverterRule extends RelOptRule {
    * @param out         Trait which is converted to
    * @param relBuilderFactory Builder for relational expressions
    * @param descriptionPrefix Description prefix of rule
+   *
+   * @deprecated Use {@link #ConverterRule(Config)}
    */
+  @Deprecated // to be removed before 2.0
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       RelBuilderFactory relBuilderFactory, String descriptionPrefix) {
-    super(convertOperand(clazz, predicate, in),
-        relBuilderFactory,
-        createDescription(descriptionPrefix, in, out));
-    this.inTrait = Objects.requireNonNull(in);
-    this.outTrait = Objects.requireNonNull(out);
-
-    // Source and target traits must have same type
-    assert in.getTraitDef() == out.getTraitDef();
+    this(Config.EMPTY
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withConversion(clazz, predicate, in, out, descriptionPrefix));
   }
 
   @SuppressWarnings("Guava")
@@ -97,7 +120,7 @@ public abstract class ConverterRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Convention getOutConvention() {
+  @Override public Convention getOutConvention() {
     return (Convention) outTrait;
   }
 
@@ -138,7 +161,7 @@ public abstract class ConverterRule extends RelOptRule {
     return false;
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     RelNode rel = call.rel(0);
     if (rel.getTraitSet().contains(inTrait)) {
       final RelNode converted = convert(rel);
@@ -149,5 +172,52 @@ public abstract class ConverterRule extends RelOptRule {
   }
 
   //~ Inner Classes ----------------------------------------------------------
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config INSTANCE = EMPTY.as(Config.class);
+
+    @ImmutableBeans.Property
+    RelTrait inTrait();
+
+    /** Sets {@link #inTrait}. */
+    Config withInTrait(RelTrait trait);
+
+    @ImmutableBeans.Property
+    RelTrait outTrait();
+
+    /** Sets {@link #outTrait}. */
+    Config withOutTrait(RelTrait trait);
+
+    @ImmutableBeans.Property
+    Function<Config, ConverterRule> ruleFactory();
+
+    /** Sets {@link #outTrait}. */
+    Config withRuleFactory(Function<Config, ConverterRule> factory);
+
+    default <R extends RelNode> Config withConversion(Class<R> clazz,
+        Predicate<? super R> predicate, RelTrait in, RelTrait out,
+        String descriptionPrefix) {
+      return withInTrait(in)
+          .withOutTrait(out)
+          .withOperandSupplier(b ->
+              b.operand(clazz).predicate(predicate).convert(in))
+          .withDescription(createDescription(descriptionPrefix, in, out))
+          .as(Config.class);
+    }
+
+    default Config withConversion(Class<? extends RelNode> clazz, RelTrait in,
+        RelTrait out, String descriptionPrefix) {
+      return withConversion(clazz, r -> true, in, out, descriptionPrefix);
+    }
+
+    @Override default RelOptRule toRule() {
+      return toRule(ConverterRule.class);
+    }
+
+    default <R extends ConverterRule> R toRule(Class<R> ruleClass) {
+      return ruleClass.cast(ruleFactory().apply(this));
+    }
+  }
 
 }

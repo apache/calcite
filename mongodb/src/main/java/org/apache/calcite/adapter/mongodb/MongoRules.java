@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
@@ -238,12 +237,8 @@ public class MongoRules {
   /** Base class for planner rules that convert a relational expression to
    * MongoDB calling convention. */
   abstract static class MongoConverterRule extends ConverterRule {
-    protected final Convention out;
-
-    MongoConverterRule(Class<? extends RelNode> clazz, RelTrait in,
-        Convention out, String description) {
-      super(clazz, in, out, description);
-      this.out = out;
+    protected MongoConverterRule(Config config) {
+      super(config);
     }
   }
 
@@ -252,14 +247,17 @@ public class MongoRules {
    * {@link MongoSort}.
    */
   private static class MongoSortRule extends MongoConverterRule {
-    public static final MongoSortRule INSTANCE = new MongoSortRule();
+    static final MongoSortRule INSTANCE = Config.INSTANCE
+        .withConversion(Sort.class, Convention.NONE, MongoRel.CONVENTION,
+            "MongoSortRule")
+        .withRuleFactory(MongoSortRule::new)
+        .toRule(MongoSortRule.class);
 
-    private MongoSortRule() {
-      super(Sort.class, Convention.NONE, MongoRel.CONVENTION,
-          "MongoSortRule");
+    MongoSortRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final Sort sort = (Sort) rel;
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(out)
@@ -275,14 +273,17 @@ public class MongoRules {
    * {@link MongoFilter}.
    */
   private static class MongoFilterRule extends MongoConverterRule {
-    private static final MongoFilterRule INSTANCE = new MongoFilterRule();
+    static final MongoFilterRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalFilter.class, Convention.NONE,
+            MongoRel.CONVENTION, "MongoFilterRule")
+        .withRuleFactory(MongoFilterRule::new)
+        .toRule(MongoFilterRule.class);
 
-    private MongoFilterRule() {
-      super(LogicalFilter.class, Convention.NONE, MongoRel.CONVENTION,
-          "MongoFilterRule");
+    MongoFilterRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalFilter filter = (LogicalFilter) rel;
       final RelTraitSet traitSet = filter.getTraitSet().replace(out);
       return new MongoFilter(
@@ -298,14 +299,17 @@ public class MongoRules {
    * to a {@link MongoProject}.
    */
   private static class MongoProjectRule extends MongoConverterRule {
-    private static final MongoProjectRule INSTANCE = new MongoProjectRule();
+    static final MongoProjectRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalProject.class, Convention.NONE,
+            MongoRel.CONVENTION, "MongoProjectRule")
+        .withRuleFactory(MongoProjectRule::new)
+        .toRule(MongoProjectRule.class);
 
-    private MongoProjectRule() {
-      super(LogicalProject.class, Convention.NONE, MongoRel.CONVENTION,
-          "MongoProjectRule");
+    MongoProjectRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new MongoProject(project.getCluster(), traitSet,
@@ -488,14 +492,17 @@ public class MongoRules {
    * to an {@link MongoAggregate}.
    */
   private static class MongoAggregateRule extends MongoConverterRule {
-    public static final RelOptRule INSTANCE = new MongoAggregateRule();
+    static final MongoAggregateRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalAggregate.class, Convention.NONE,
+            MongoRel.CONVENTION, "MongoAggregateRule")
+        .withRuleFactory(MongoAggregateRule::new)
+        .toRule(MongoAggregateRule.class);
 
-    private MongoAggregateRule() {
-      super(LogicalAggregate.class, Convention.NONE, MongoRel.CONVENTION,
-          "MongoAggregateRule");
+    MongoAggregateRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet =
           agg.getTraitSet().replace(out);

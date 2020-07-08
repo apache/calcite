@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,47 +33,30 @@ import java.util.List;
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
  * {@link org.apache.calcite.rel.core.Union}.
  *
+ * @see CoreRules#SORT_UNION_TRANSPOSE
+ * @see CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH
  */
-public class SortUnionTransposeRule extends RelOptRule implements TransformationRule {
+public class SortUnionTransposeRule
+    extends RelRule<SortUnionTransposeRule.Config>
+    implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#SORT_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortUnionTransposeRule INSTANCE =
-      CoreRules.SORT_UNION_TRANSPOSE;
-
-  /** @deprecated Use
-   * {@link CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortUnionTransposeRule MATCH_NULL_FETCH =
-      CoreRules.SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH;
-
-  /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
-   * this only makes sense if the Union preserves order (and merges). */
-  private final boolean matchNullFetch;
-
-  // ~ Constructors -----------------------------------------------------------
-
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated // to be removed before 1.25
-  SortUnionTransposeRule(boolean matchNullFetch) {
-    this(Sort.class, Union.class, matchNullFetch, RelFactories.LOGICAL_BUILDER,
-        "SortUnionTransposeRule:default");
+  /** Creates a SortUnionTransposeRule. */
+  protected SortUnionTransposeRule(Config config) {
+    super(config);
   }
 
-  /**
-   * Creates a SortUnionTransposeRule.
-   */
+  @Deprecated // to be removed before 2.0
   public SortUnionTransposeRule(
       Class<? extends Sort> sortClass,
       Class<? extends Union> unionClass,
       boolean matchNullFetch,
       RelBuilderFactory relBuilderFactory,
       String description) {
-    super(
-        operand(sortClass,
-            operand(unionClass, any())),
-        relBuilderFactory, description);
-    this.matchNullFetch = matchNullFetch;
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .as(Config.class)
+        .withOperandFor(sortClass, unionClass)
+        .withMatchNullFetch(matchNullFetch));
   }
 
   // ~ Methods ----------------------------------------------------------------
@@ -86,10 +69,10 @@ public class SortUnionTransposeRule extends RelOptRule implements Transformation
     // Sort.fetch is null.
     return union.all
         && sort.offset == null
-        && (matchNullFetch || sort.fetch != null);
+        && (config.matchNullFetch() || sort.fetch != null);
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
     List<RelNode> inputs = new ArrayList<>();
@@ -118,5 +101,34 @@ public class SortUnionTransposeRule extends RelOptRule implements Transformation
     Sort result = sort.copy(sort.getTraitSet(), unionCopy, sort.getCollation(),
         sort.offset, sort.fetch);
     call.transformTo(result);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Sort.class, Union.class)
+        .withMatchNullFetch(false);
+
+    @Override default SortUnionTransposeRule toRule() {
+      return new SortUnionTransposeRule(this);
+    }
+
+    /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
+     * this only makes sense if the Union preserves order (and merges). */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean matchNullFetch();
+
+    /** Sets {@link #matchNullFetch()}. */
+    Config withMatchNullFetch(boolean matchNullFetch);
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Sort> sortClass,
+        Class<? extends Union> unionClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(sortClass).oneInput(b1 ->
+              b1.operand(unionClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

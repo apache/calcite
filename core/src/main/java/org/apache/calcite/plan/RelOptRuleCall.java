@@ -177,7 +177,7 @@ public abstract class RelOptRuleCall {
 
   /** Assigns the input relational expressions of a given relational expression,
    * as seen by this particular call. Is only called when the operand is
-   * {@link RelOptRule#any()}. */
+   * {@link RelRule.OperandDetailBuilder#anyInputs() any}. */
   protected void setChildRels(RelNode rel, List<RelNode> inputs) {
     if (nodeInputs.isEmpty()) {
       nodeInputs = new HashMap<>();

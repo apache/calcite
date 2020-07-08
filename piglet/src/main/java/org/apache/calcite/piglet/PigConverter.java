@@ -76,7 +76,8 @@ public class PigConverter extends PigServer {
           EnumerableRules.TO_INTERPRETER);
 
   private static final List<RelOptRule> TRANSFORM_RULES =
-      ImmutableList.of(CoreRules.PROJECT_WINDOW_TRANSPOSE,
+      ImmutableList.of(
+          CoreRules.PROJECT_WINDOW_TRANSPOSE,
           CoreRules.FILTER_MERGE,
           CoreRules.PROJECT_MERGE,
           CoreRules.FILTER_PROJECT_TRANSPOSE,

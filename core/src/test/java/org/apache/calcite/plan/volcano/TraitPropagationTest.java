@@ -27,9 +27,9 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
@@ -69,6 +69,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -186,15 +187,20 @@ class TraitPropagationTest {
 
   // RULES
 
-  /** Rule for PhysAgg */
-  private static class PhysAggRule extends RelOptRule {
-    static final PhysAggRule INSTANCE = new PhysAggRule();
+  /** Rule for PhysAgg. */
+  public static class PhysAggRule extends RelRule<PhysAggRule.Config> {
+    static final PhysAggRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b ->
+            b.operand(LogicalAggregate.class).anyInputs())
+        .withDescription("PhysAgg")
+        .as(Config.class)
+        .toRule();
 
-    private PhysAggRule() {
-      super(anyChild(LogicalAggregate.class), "PhysAgg");
+    PhysAggRule(Config config) {
+      super(config);
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       RelTraitSet empty = call.getPlanner().emptyTraitSet();
       LogicalAggregate rel = call.rel(0);
       assert rel.getGroupSet().cardinality() == 1;
@@ -210,28 +216,37 @@ class TraitPropagationTest {
               convertedInput, rel.getGroupSet(),
               rel.getGroupSets(), rel.getAggCallList()));
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default PhysAggRule toRule() {
+        return new PhysAggRule(this);
+      }
+    }
   }
 
-  /** Rule for PhysProj */
-  private static class PhysProjRule extends RelOptRule {
-    static final PhysProjRule INSTANCE = new PhysProjRule(false);
+  /** Rule for PhysProj. */
+  public static class PhysProjRule extends RelRule<PhysProjRule.Config> {
+    static final PhysProjRule INSTANCE =
+        Config.EMPTY
+            .withOperandSupplier(b0 ->
+                b0.operand(LogicalProject.class).oneInput(b1 ->
+                    b1.operand(RelNode.class).anyInputs()))
+            .withDescription("PhysProj")
+            .as(Config.class)
+            .withSubsetHack(false)
+            .toRule();
 
-    final boolean subsetHack;
-
-    private PhysProjRule(boolean subsetHack) {
-      super(
-          RelOptRule.operand(LogicalProject.class,
-              anyChild(RelNode.class)),
-          "PhysProj");
-      this.subsetHack = subsetHack;
+    protected PhysProjRule(Config config) {
+      super(config);
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       LogicalProject rel = call.rel(0);
       RelNode rawInput = call.rel(1);
       RelNode input = convert(rawInput, PHYSICAL);
 
-      if (subsetHack && input instanceof RelSubset) {
+      if (config.subsetHack() && input instanceof RelSubset) {
         RelSubset subset = (RelSubset) input;
         for (RelNode child : subset.getRels()) {
           // skip logical nodes
@@ -249,19 +264,36 @@ class TraitPropagationTest {
         call.transformTo(
             PhysProj.create(input, rel.getProjects(), rel.getRowType()));
       }
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default PhysProjRule toRule() {
+        return new PhysProjRule(this);
+      }
+
+      @ImmutableBeans.Property
+      @ImmutableBeans.BooleanDefault(false)
+      boolean subsetHack();
+
+      /** Sets {@link #subsetHack()}. */
+      Config withSubsetHack(boolean subsetHack);
 
     }
   }
 
   /** Rule for PhysSort */
   private static class PhysSortRule extends ConverterRule {
-    static final PhysSortRule INSTANCE = new PhysSortRule();
+    static final PhysSortRule INSTANCE = Config.INSTANCE
+        .withConversion(Sort.class, Convention.NONE, PHYSICAL, "PhysSortRule")
+        .withRuleFactory(PhysSortRule::new)
+        .toRule(PhysSortRule.class);
 
-    PhysSortRule() {
-      super(Sort.class, Convention.NONE, PHYSICAL, "PhysSortRule");
+    PhysSortRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final Sort sort = (Sort) rel;
       final RelNode input = convert(sort.getInput(),
           rel.getCluster().traitSetOf(PHYSICAL));
@@ -275,17 +307,30 @@ class TraitPropagationTest {
     }
   }
 
-  /** Rule for PhysTable */
-  private static class PhysTableRule extends RelOptRule {
-    static final PhysTableRule INSTANCE = new PhysTableRule();
+  /** Rule for PhysTable. */
+  public static class PhysTableRule
+      extends RelRule<PhysTableRule.Config> {
+    static final PhysTableRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b ->
+            b.operand(LogicalTableScan.class).noInputs())
+        .withDescription("PhysScan")
+        .as(Config.class)
+        .toRule();
 
-    private PhysTableRule() {
-      super(anyChild(LogicalTableScan.class), "PhysScan");
+    PhysTableRule(Config config) {
+      super(config);
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       LogicalTableScan rel = call.rel(0);
       call.transformTo(new PhysTable(rel.getCluster()));
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default PhysTableRule toRule() {
+        return new PhysTableRule(this);
+      }
     }
   }
 
@@ -381,11 +426,6 @@ class TraitPropagationTest {
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(1, 1, 1);
     }
-  }
-
-  /* UTILS */
-  public static RelOptRuleOperand anyChild(Class<? extends RelNode> first) {
-    return RelOptRule.operand(first, RelOptRule.any());
   }
 
   // Created so that we can control when the TraitDefs are defined (e.g.

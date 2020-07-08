@@ -300,7 +300,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
         if (!instruction.guaranteed) {
           // Add a TraitMatchingRule to work bottom-up
           instruction.ruleSet.add(
-              new TraitMatchingRule(converter, RelFactories.LOGICAL_BUILDER));
+              TraitMatchingRule.config(converter, RelFactories.LOGICAL_BUILDER)
+                  .toRule());
         }
       }
     }

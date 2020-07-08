@@ -16,20 +16,22 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -43,83 +45,48 @@ import java.util.Set;
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.Filter}.
+ *
+ * @see CoreRules#PROJECT_FILTER_TRANSPOSE
+ * @see CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS
+ * @see CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS
  */
-public class ProjectFilterTransposeRule extends RelOptRule
+public class ProjectFilterTransposeRule
+    extends RelRule<ProjectFilterTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectFilterTransposeRule INSTANCE =
-      CoreRules.PROJECT_FILTER_TRANSPOSE;
 
-  /** @deprecated Use
-   * {@link CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectFilterTransposeRule EXPRESSION_INSTANCE =
-      CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS;
-
-  /** @deprecated Use
-   * {@link CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectFilterTransposeRule PROJECT_EXPRESSION_INSTANCE =
-      CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS;
-
-  //~ Instance fields --------------------------------------------------------
-
-  /**
-   * Expressions that should be preserved in the projection
-   */
-  private final PushProjector.ExprCondition preserveExprCondition;
-  private final boolean wholeProject;
-  private final boolean wholeFilter;
-
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a ProjectFilterTransposeRule.
-   *
-   * @param preserveExprCondition Condition for expressions that should be
-   *                              preserved in the projection
-   * @param wholeProject Whether to push whole expressions from the project;
-   *                   if false, only pushes references
-   * @param wholeFilter Whether to push whole expressions;
-   *                   if false, only pushes references
-   */
-  public ProjectFilterTransposeRule(
-      Class<? extends Project> projectClass,
-      Class<? extends Filter> filterClass,
-      RelBuilderFactory relBuilderFactory,
-      PushProjector.ExprCondition preserveExprCondition,
-      boolean wholeProject, boolean wholeFilter) {
-    this(
-        operand(
-            projectClass,
-            operand(filterClass, any())),
-        preserveExprCondition, wholeProject, wholeFilter, relBuilderFactory);
+  /** Creates a ProjectFilterTransposeRule. */
+  protected ProjectFilterTransposeRule(Config config) {
+    super(config);
   }
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public ProjectFilterTransposeRule(
       Class<? extends Project> projectClass,
       Class<? extends Filter> filterClass,
       RelBuilderFactory relBuilderFactory,
       PushProjector.ExprCondition preserveExprCondition) {
-    this(projectClass, filterClass, relBuilderFactory, preserveExprCondition,
-        false, false);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(projectClass, filterClass)
+        .withPreserveExprCondition(preserveExprCondition));
   }
 
+  @Deprecated // to be removed before 2.0
   protected ProjectFilterTransposeRule(RelOptRuleOperand operand,
       PushProjector.ExprCondition preserveExprCondition, boolean wholeProject,
       boolean wholeFilter, RelBuilderFactory relBuilderFactory) {
-    super(operand, relBuilderFactory, null);
-    this.preserveExprCondition = preserveExprCondition;
-    this.wholeProject = wholeProject;
-    this.wholeFilter = wholeFilter;
+    this(Config.DEFAULT
+        .withOperandSupplier(b -> b.exactly(operand))
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withPreserveExprCondition(preserveExprCondition)
+        .withWholeProject(wholeProject)
+        .withWholeFilter(wholeFilter));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Project origProject;
     final Filter filter;
     if (call.rels.length >= 2) {
@@ -132,8 +99,7 @@ public class ProjectFilterTransposeRule extends RelOptRule
     final RelNode input = filter.getInput();
     final RexNode origFilter = filter.getCondition();
 
-    if ((origProject != null)
-        && RexOver.containsOver(origProject.getProjects(), null)) {
+    if (origProject != null && origProject.containsOver()) {
       // Cannot push project through filter if project contains a windowed
       // aggregate -- it will affect row counts. Abort this rule
       // invocation; pushdown will be considered after the windowed
@@ -167,18 +133,19 @@ public class ProjectFilterTransposeRule extends RelOptRule
 
     final RelBuilder builder = call.builder();
     final RelNode topProject;
-    if (origProject != null && (wholeProject || wholeFilter)) {
+    if (origProject != null
+        && (config.isWholeProject() || config.isWholeFilter())) {
       builder.push(input);
 
       final Set<RexNode> set = new LinkedHashSet<>();
       final RelOptUtil.InputFinder refCollector = new RelOptUtil.InputFinder();
 
-      if (wholeFilter) {
+      if (config.isWholeFilter()) {
         set.add(filter.getCondition());
       } else {
         filter.getCondition().accept(refCollector);
       }
-      if (wholeProject) {
+      if (config.isWholeProject()) {
         set.addAll(origProject.getProjects());
       } else {
         refCollector.visitEach(origProject.getProjects());
@@ -205,7 +172,7 @@ public class ProjectFilterTransposeRule extends RelOptRule
       // references. The effect is similar to RelFieldTrimmer.
       final PushProjector pushProjector =
           new PushProjector(origProject, origFilter, input,
-              preserveExprCondition, builder);
+              config.preserveExprCondition(), builder);
       topProject = pushProjector.convertProject(null);
     }
 
@@ -256,6 +223,68 @@ public class ProjectFilterTransposeRule extends RelOptRule
         clonedOperands.add(clonedOperand);
       }
       return clonedOperands.build();
+    }
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalProject.class, LogicalFilter.class)
+        .withPreserveExprCondition(expr -> false)
+        .withWholeProject(false)
+        .withWholeFilter(false);
+
+    Config PROJECT = DEFAULT.withWholeProject(true);
+
+    Config PROJECT_FILTER = PROJECT.withWholeFilter(true);
+
+    @Override default ProjectFilterTransposeRule toRule() {
+      return new ProjectFilterTransposeRule(this);
+    }
+
+    /** Expressions that should be preserved in the projection. */
+    @ImmutableBeans.Property
+    PushProjector.ExprCondition preserveExprCondition();
+
+    /** Sets {@link #preserveExprCondition()}. */
+    Config withPreserveExprCondition(PushProjector.ExprCondition condition);
+
+    /** Whether to push whole expressions from the project;
+     * if false (the default), only pushes references. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean isWholeProject();
+
+    /** Sets {@link #isWholeProject()}. */
+    Config withWholeProject(boolean wholeProject);
+
+    /** Whether to push whole expressions from the filter;
+     * if false (the default), only pushes references. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean isWholeFilter();
+
+    /** Sets {@link #isWholeFilter()}. */
+    Config withWholeFilter(boolean wholeFilter);
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<? extends Filter> filterClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(filterClass).anyInputs()))
+          .as(Config.class);
+    }
+
+    /** Defines an operand tree for the given 3 classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<? extends Filter> filterClass,
+        Class<? extends RelNode> inputClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(filterClass).oneInput(b2 ->
+                  b2.operand(inputClass).anyInputs())))
+          .as(Config.class);
     }
   }
 }

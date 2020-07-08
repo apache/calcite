@@ -20,24 +20,23 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalValues;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalValues}
  * relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * @see EnumerableRules#ENUMERABLE_VALUES_RULE */
 public class EnumerableValuesRule extends ConverterRule {
-  /**
-   * Creates an EnumerableValuesRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public EnumerableValuesRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalValues.class, (Predicate<RelNode>) r -> true,
-        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
-        "EnumerableValuesRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalValues.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableValuesRule")
+      .withRuleFactory(EnumerableValuesRule::new);
+
+  /** Creates an EnumerableValuesRule. */
+  protected EnumerableValuesRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

@@ -24,11 +24,19 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 /**
  * Rule to convert a {@link LogicalMatch} to an
  * {@link EnumerableMatch}.
+ *
+ * @see EnumerableRules#ENUMERABLE_MATCH_RULE
  */
 public class EnumerableMatchRule extends ConverterRule {
-  EnumerableMatchRule() {
-    super(LogicalMatch.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableMatchRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalMatch.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableMatchRule")
+      .withRuleFactory(EnumerableMatchRule::new);
+
+  /** Creates an EnumerableMatchRule. */
+  protected EnumerableMatchRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

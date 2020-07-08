@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
@@ -188,12 +187,8 @@ class ElasticsearchRules {
    * Elasticsearch calling convention.
    */
   abstract static class ElasticsearchConverterRule extends ConverterRule {
-    final Convention out;
-
-    ElasticsearchConverterRule(Class<? extends RelNode> clazz, RelTrait in, Convention out,
-        String description) {
-      super(clazz, in, out, description);
-      this.out = out;
+    protected ElasticsearchConverterRule(Config config) {
+      super(config);
     }
   }
 
@@ -202,12 +197,14 @@ class ElasticsearchRules {
    * {@link ElasticsearchSort}.
    */
   private static class ElasticsearchSortRule extends ElasticsearchConverterRule {
-    private static final ElasticsearchSortRule INSTANCE =
-        new ElasticsearchSortRule();
+    private static final ElasticsearchSortRule INSTANCE = Config.INSTANCE
+        .withConversion(Sort.class, Convention.NONE,
+            ElasticsearchRel.CONVENTION, "ElasticsearchSortRule")
+        .withRuleFactory(ElasticsearchSortRule::new)
+        .toRule(ElasticsearchSortRule.class);
 
-    private ElasticsearchSortRule() {
-      super(Sort.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-          "ElasticsearchSortRule");
+    protected ElasticsearchSortRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode relNode) {
@@ -224,11 +221,14 @@ class ElasticsearchRules {
    * {@link ElasticsearchFilter}.
    */
   private static class ElasticsearchFilterRule extends ElasticsearchConverterRule {
-    private static final ElasticsearchFilterRule INSTANCE = new ElasticsearchFilterRule();
+    private static final ElasticsearchFilterRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalFilter.class, Convention.NONE,
+            ElasticsearchRel.CONVENTION, "ElasticsearchFilterRule")
+        .withRuleFactory(ElasticsearchFilterRule::new)
+        .toRule(ElasticsearchFilterRule.class);
 
-    private ElasticsearchFilterRule() {
-      super(LogicalFilter.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-          "ElasticsearchFilterRule");
+    protected ElasticsearchFilterRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode relNode) {
@@ -245,14 +245,17 @@ class ElasticsearchRules {
    * to an {@link ElasticsearchAggregate}.
    */
   private static class ElasticsearchAggregateRule extends ElasticsearchConverterRule {
-    static final RelOptRule INSTANCE = new ElasticsearchAggregateRule();
+    private static final RelOptRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalAggregate.class, Convention.NONE,
+            ElasticsearchRel.CONVENTION, "ElasticsearchAggregateRule")
+        .withRuleFactory(ElasticsearchAggregateRule::new)
+        .toRule(ElasticsearchAggregateRule.class);
 
-    private ElasticsearchAggregateRule() {
-      super(LogicalAggregate.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-          "ElasticsearchAggregateRule");
+    protected ElasticsearchAggregateRule(Config config) {
+      super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet = agg.getTraitSet().replace(out);
       try {
@@ -275,11 +278,14 @@ class ElasticsearchRules {
    * to an {@link ElasticsearchProject}.
    */
   private static class ElasticsearchProjectRule extends ElasticsearchConverterRule {
-    private static final ElasticsearchProjectRule INSTANCE = new ElasticsearchProjectRule();
+    private static final ElasticsearchProjectRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalProject.class, Convention.NONE,
+            ElasticsearchRel.CONVENTION, "ElasticsearchProjectRule")
+        .withRuleFactory(ElasticsearchProjectRule::new)
+        .toRule(ElasticsearchProjectRule.class);
 
-    private ElasticsearchProjectRule() {
-      super(LogicalProject.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-          "ElasticsearchProjectRule");
+    protected ElasticsearchProjectRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode relNode) {

@@ -52,8 +52,7 @@ public class HepRuleCall extends RelOptRuleCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRuleCall
-  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+  @Override public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
     final RelNode rel0 = rels[0];
     RelOptUtil.verifyTypeEquivalence(rel0, rel, rel0);

@@ -24,10 +24,10 @@ import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
@@ -56,29 +56,28 @@ import java.util.List;
  *
  * <p>This pattern indicates that an aggregate table may exist. The rule asks
  * the star table for an aggregate table at the required level of aggregation.
+ *
+ * @see AggregateProjectStarTableRule
+ * @see CoreRules#AGGREGATE_STAR_TABLE
+ * @see CoreRules#AGGREGATE_PROJECT_STAR_TABLE
  */
-public class AggregateStarTableRule extends RelOptRule implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_STAR_TABLE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateStarTableRule INSTANCE =
-      CoreRules.AGGREGATE_STAR_TABLE;
+public class AggregateStarTableRule
+    extends RelRule<AggregateStarTableRule.Config>
+    implements TransformationRule {
 
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#AGGREGATE_PROJECT_STAR_TABLE} instead. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateStarTableRule INSTANCE2 =
-      CoreRules.AGGREGATE_PROJECT_STAR_TABLE;
+  /** Creates an AggregateStarTableRule. */
+  protected AggregateStarTableRule(Config config) {
+    super(config);
+  }
 
-  /**
-   * Creates an AggregateStarTableRule.
-   *
-   * @param operand           root operand, must not be null
-   * @param description       Description, or null to guess description
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public AggregateStarTableRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
-    super(operand, relBuilderFactory, description);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -244,5 +243,26 @@ public class AggregateStarTableRule extends RelOptRule implements Transformation
       }
     }
     return -1;
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Aggregate.class, StarTable.StarTableScan.class);
+
+    @Override default AggregateStarTableRule toRule() {
+      return new AggregateStarTableRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<StarTable.StarTableScan> scanClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass)
+              .predicate(Aggregate::isSimple)
+              .oneInput(b1 ->
+                  b1.operand(scanClass).noInputs()))
+          .as(Config.class);
+    }
   }
 }

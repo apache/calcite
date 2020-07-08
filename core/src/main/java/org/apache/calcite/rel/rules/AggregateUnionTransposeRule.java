@@ -17,13 +17,15 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -50,12 +52,12 @@ import java.util.Map;
  * Planner rule that pushes an
  * {@link org.apache.calcite.rel.core.Aggregate}
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
+ *
+ * @see CoreRules#AGGREGATE_UNION_TRANSPOSE
  */
-public class AggregateUnionTransposeRule extends RelOptRule implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateUnionTransposeRule INSTANCE =
-      CoreRules.AGGREGATE_UNION_TRANSPOSE;
+public class AggregateUnionTransposeRule
+    extends RelRule<AggregateUnionTransposeRule.Config>
+    implements TransformationRule {
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();
@@ -70,12 +72,17 @@ public class AggregateUnionTransposeRule extends RelOptRule implements Transform
   }
 
   /** Creates an AggregateUnionTransposeRule. */
+  protected AggregateUnionTransposeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateUnionTransposeRule(Class<? extends Aggregate> aggregateClass,
       Class<? extends Union> unionClass, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(aggregateClass,
-            operand(unionClass, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, unionClass));
   }
 
   @Deprecated // to be removed before 2.0
@@ -87,7 +94,7 @@ public class AggregateUnionTransposeRule extends RelOptRule implements Transform
         RelBuilder.proto(aggregateFactory, setOpFactory));
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Aggregate aggRel = call.rel(0);
     Union union = call.rel(1);
 
@@ -181,5 +188,24 @@ public class AggregateUnionTransposeRule extends RelOptRule implements Transform
       newCalls.add(newCall);
     }
     return newCalls;
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalUnion.class);
+
+    @Override default AggregateUnionTransposeRule toRule() {
+      return new AggregateUnionTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends Union> unionClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass).oneInput(b1 ->
+              b1.operand(unionClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

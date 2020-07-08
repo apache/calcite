@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.rel.core.RelFactories;
-
 /** Planner rules relating to the CSV adapter. */
 public abstract class CsvRules {
   private CsvRules() {}
@@ -25,5 +23,5 @@ public abstract class CsvRules {
   /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
    * a {@link CsvTableScan} and pushes down projects if possible. */
   public static final CsvProjectTableScanRule PROJECT_SCAN =
-      new CsvProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
+      CsvProjectTableScanRule.Config.DEFAULT.toRule();
 }

@@ -518,20 +518,15 @@ but we have created a distinctive sub-type that will cause rules to fire.
 Here is the rule in its entirety:
 
 {% highlight java %}
-public class CsvProjectTableScanRule extends RelOptRule {
-  public static final CsvProjectTableScanRule INSTANCE =
-      new CsvProjectTableScanRule();
-
-  private CsvProjectTableScanRule() {
-    super(
-        operand(Project.class,
-            operand(CsvTableScan.class, none())),
-        "CsvProjectTableScanRule");
+public class CsvProjectTableScanRule
+    extends RelRule<CsvProjectTableScanRule.Config> {
+  /** Creates a CsvProjectTableScanRule. */
+  protected CsvProjectTableScanRule(Config config) {
+    super(config);
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
-    final Project project = call.rel(0);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final LogicalProject project = call.rel(0);
     final CsvTableScan scan = call.rel(1);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
@@ -558,11 +553,38 @@ public class CsvProjectTableScanRule extends RelOptRule {
     }
     return fields;
   }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalProject.class).oneInput(b1 ->
+                b1.operand(CsvTableScan.class).noInputs()))
+        .as(Config.class);
+ 
+    @Override default CsvProjectTableScanRule toRule() {
+      return new CsvProjectTableScanRule(this);
+    }
 }
 {% endhighlight %}
 
-The constructor declares the pattern of relational expressions that will cause
-the rule to fire.
+The default instance of the rule resides in the `CsvRules` holder class:
+
+{% highlight %}
+public abstract class CsvRules {
+  public static final CsvProjectTableScanRule PROJECT_SCAN =
+      CsvProjectTableScanRule.Config.DEFAULT.toRule();
+}
+{% endhighlight %}
+
+The call to the `withOperandSupplier` method in the default configuration
+(the `DEFAULT` field in `interface Config`) declares the pattern of relational
+expressions that will cause the rule to fire. The planner will invoke the rule
+if it sees a `LogicalProject` whose sole input is a `CsvTableScan` with no
+inputs.
+
+Variants of the rule are possible. For example, a different rule instance
+might instead match a `EnumerableProject` on a `CsvTableScan`.
 
 The <code>onMatch</code> method generates a new relational expression and calls
 <code><a href="{{ site.apiRoot }}/org/apache/calcite/plan/RelOptRuleCall.html#transformTo(org.apache.calcite.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>

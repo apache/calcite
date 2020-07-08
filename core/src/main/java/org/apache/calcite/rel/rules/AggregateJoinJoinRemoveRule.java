@@ -16,14 +16,16 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -44,43 +46,43 @@ import java.util.Set;
  * on a {@link org.apache.calcite.rel.core.Join} and removes the left input
  * of the join provided that the left input is also a left join if possible.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
- * <pre>select distinct s.product_id, pc.product_id from
- * sales as s
+ * <pre>select distinct s.product_id, pc.product_id
+ * from sales as s
  * left join product as p
- * on s.product_id = p.product_id
+ *   on s.product_id = p.product_id
  * left join product_class pc
- * on s.product_id = pc.product_id</pre></blockquote>
+ *   on s.product_id = pc.product_id</pre></blockquote>
  *
  * <p>becomes
  *
  * <blockquote>
- * <pre>select distinct s.product_id, pc.product_id from
- * sales as s
+ * <pre>select distinct s.product_id, pc.product_id
+ * from sales as s
  * left join product_class pc
- * on s.product_id = pc.product_id</pre></blockquote>
+ *   on s.product_id = pc.product_id</pre></blockquote>
  *
+ * @see CoreRules#AGGREGATE_JOIN_JOIN_REMOVE
  */
-public class AggregateJoinJoinRemoveRule extends RelOptRule
+public class AggregateJoinJoinRemoveRule
+    extends RelRule<AggregateJoinJoinRemoveRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_JOIN_JOIN_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateJoinJoinRemoveRule INSTANCE =
-      CoreRules.AGGREGATE_JOIN_JOIN_REMOVE;
 
   /** Creates an AggregateJoinJoinRemoveRule. */
+  protected AggregateJoinJoinRemoveRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateJoinJoinRemoveRule(
       Class<? extends Aggregate> aggregateClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(aggregateClass,
-            operandJ(joinClass, null,
-                join -> join.getJoinType() == JoinRelType.LEFT,
-                operandJ(joinClass, null,
-                    join -> join.getJoinType() == JoinRelType.LEFT, any()))),
-        relBuilderFactory, null);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, joinClass));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -151,5 +153,27 @@ public class AggregateJoinJoinRemoveRule extends RelOptRule
         .build();
 
     call.transformTo(newAggregate);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalJoin.class);
+
+    @Override default AggregateJoinJoinRemoveRule toRule() {
+      return new AggregateJoinJoinRemoveRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends Join> joinClass) {
+      return withOperandSupplier(b0 -> b0.operand(aggregateClass)
+          .oneInput(b1 -> b1.operand(joinClass)
+              .predicate(join -> join.getJoinType() == JoinRelType.LEFT)
+              .inputs(b2 -> b2.operand(joinClass)
+                  .predicate(join -> join.getJoinType() == JoinRelType.LEFT)
+                  .anyInputs()))).as(Config.class);
+    }
   }
 }
