@@ -53,22 +53,11 @@ import java.util.stream.Collectors;
  */
 public class ProjectTableScanRule
     extends RelRule<ProjectTableScanRule.Config> {
+
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<TableScan> PREDICATE =
       ProjectTableScanRule::test;
-
-  /** @deprecated Use {@link CoreRules#PROJECT_TABLE_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectTableScanRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#PROJECT_INTERPRETER_TABLE_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectTableScanRule INTERPRETER =
-      Config.INTERPRETER.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectTableScanRule. */
   protected ProjectTableScanRule(Config config) {

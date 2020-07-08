@@ -56,15 +56,6 @@ import java.util.stream.Collectors;
 public class ExchangeRemoveConstantKeysRule
     extends RelRule<ExchangeRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#EXCHANGE_REMOVE_CONSTANT_KEYS}. */
-  @Deprecated // to be removed before 1.25
-  public static final ExchangeRemoveConstantKeysRule EXCHANGE_INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#SORT_EXCHANGE_REMOVE_CONSTANT_KEYS}. */
-  @Deprecated // to be removed before 1.25
-  public static final ExchangeRemoveConstantKeysRule SORT_EXCHANGE_INSTANCE =
-      Config.SORT.toRule();
 
   /** Creates an ExchangeRemoveConstantKeysRule. */
   protected ExchangeRemoveConstantKeysRule(Config config) {

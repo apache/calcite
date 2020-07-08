@@ -53,12 +53,6 @@ import java.util.List;
 public class SemiJoinJoinTransposeRule
     extends RelRule<SemiJoinJoinTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SEMI_JOIN_JOIN_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SemiJoinJoinTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinJoinTransposeRule. */
   protected SemiJoinJoinTransposeRule(Config config) {

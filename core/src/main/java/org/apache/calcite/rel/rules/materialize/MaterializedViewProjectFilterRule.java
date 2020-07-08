@@ -27,11 +27,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewProjectFilterRule
     extends MaterializedViewJoinRule<MaterializedViewProjectFilterRule.Config> {
 
-  /** @deprecated Use {@link MaterializedViewRules#PROJECT_FILTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final MaterializedViewProjectFilterRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   private MaterializedViewProjectFilterRule(Config config) {
     super(config);
   }

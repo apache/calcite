@@ -69,10 +69,6 @@ import java.util.Set;
 public class AggregateJoinJoinRemoveRule
     extends RelRule<AggregateJoinJoinRemoveRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_JOIN_JOIN_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateJoinJoinRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an AggregateJoinJoinRemoveRule. */
   protected AggregateJoinJoinRemoveRule(Config config) {

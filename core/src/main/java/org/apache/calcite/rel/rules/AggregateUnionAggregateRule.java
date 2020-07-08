@@ -46,22 +46,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class AggregateUnionAggregateRule
     extends RelRule<AggregateUnionAggregateRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_FIRST}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateUnionAggregateRule AGG_ON_FIRST_INPUT =
-      Config.AGG_FIRST.toRule();
-
-  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE_SECOND}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateUnionAggregateRule AGG_ON_SECOND_INPUT =
-      Config.AGG_SECOND.toRule();
-
-  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_AGGREGATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateUnionAggregateRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates an AggregateUnionAggregateRule. */
   protected AggregateUnionAggregateRule(Config config) {

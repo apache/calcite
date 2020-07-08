@@ -54,18 +54,6 @@ import java.util.List;
 public class JoinCommuteRule
     extends RelRule<JoinCommuteRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#JOIN_COMMUTE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinCommuteRule INSTANCE = Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_COMMUTE_OUTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinCommuteRule SWAP_OUTER =
-      Config.DEFAULT.withSwapOuter(true).toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinCommuteRule. */
   protected JoinCommuteRule(Config config) {

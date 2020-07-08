@@ -62,20 +62,6 @@ public class JoinToCorrelateRule
     extends RelRule<JoinToCorrelateRule.Config>
     implements TransformationRule {
 
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#JOIN_TO_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinToCorrelateRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_TO_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinToCorrelateRule JOIN =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a JoinToCorrelateRule. */
   protected JoinToCorrelateRule(Config config) {
     super(config);

@@ -32,12 +32,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class UnionEliminatorRule
     extends RelRule<UnionEliminatorRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#UNION_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final UnionEliminatorRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a UnionEliminatorRule. */
   protected UnionEliminatorRule(Config config) {

@@ -56,10 +56,6 @@ import java.util.Set;
 public class AggregateProjectMergeRule
     extends RelRule<AggregateProjectMergeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_PROJECT_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an AggregateProjectMergeRule. */
   protected AggregateProjectMergeRule(Config config) {

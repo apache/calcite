@@ -53,12 +53,6 @@ import java.util.Set;
 public class ProjectFilterTransposeRule
     extends RelRule<ProjectFilterTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectFilterTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectFilterTransposeRule. */
   protected ProjectFilterTransposeRule(Config config) {

@@ -42,12 +42,6 @@ import java.util.List;
 public class FilterSetOpTransposeRule
     extends RelRule<FilterSetOpTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#FILTER_SET_OP_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterSetOpTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterSetOpTransposeRule. */
   protected FilterSetOpTransposeRule(Config config) {

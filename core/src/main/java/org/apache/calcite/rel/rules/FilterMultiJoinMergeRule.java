@@ -39,13 +39,6 @@ public class FilterMultiJoinMergeRule
     extends RelRule<FilterMultiJoinMergeRule.Config>
     implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#FILTER_MULTI_JOIN_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterMultiJoinMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a FilterMultiJoinMergeRule. */
   protected FilterMultiJoinMergeRule(Config config) {
     super(config);

@@ -42,12 +42,6 @@ import com.google.common.collect.ImmutableSet;
 public class JoinAddRedundantSemiJoinRule
     extends RelRule<JoinAddRedundantSemiJoinRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_ADD_REDUNDANT_SEMI_JOIN}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinAddRedundantSemiJoinRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinAddRedundantSemiJoinRule. */
   protected JoinAddRedundantSemiJoinRule(Config config) {

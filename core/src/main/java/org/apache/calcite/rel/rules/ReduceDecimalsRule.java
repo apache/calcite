@@ -70,12 +70,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class ReduceDecimalsRule
     extends RelRule<ReduceDecimalsRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#CALC_REDUCE_DECIMALS}. */
-  @Deprecated // to be removed before 1.25
-  public static final ReduceDecimalsRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ReduceDecimalsRule. */
   protected ReduceDecimalsRule(Config config) {

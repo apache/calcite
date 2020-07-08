@@ -44,12 +44,6 @@ import java.util.List;
 public class ProjectSetOpTransposeRule
     extends RelRule<ProjectSetOpTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_SET_OP_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectSetOpTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectSetOpTransposeRule. */
   protected ProjectSetOpTransposeRule(Config config) {

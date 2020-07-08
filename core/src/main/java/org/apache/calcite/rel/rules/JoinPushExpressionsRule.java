@@ -40,10 +40,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class JoinPushExpressionsRule
     extends RelRule<JoinPushExpressionsRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_PUSH_EXPRESSIONS}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinPushExpressionsRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a JoinPushExpressionsRule. */
   protected JoinPushExpressionsRule(Config config) {

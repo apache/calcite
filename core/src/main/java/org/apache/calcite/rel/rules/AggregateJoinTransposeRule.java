@@ -68,15 +68,6 @@ import java.util.TreeMap;
 public class AggregateJoinTransposeRule
     extends RelRule<AggregateJoinTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_JOIN_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateJoinTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#AGGREGATE_JOIN_TRANSPOSE_EXTENDED}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateJoinTransposeRule EXTENDED =
-      Config.EXTENDED.toRule();
 
   /** Creates an AggregateJoinTransposeRule. */
   protected AggregateJoinTransposeRule(Config config) {

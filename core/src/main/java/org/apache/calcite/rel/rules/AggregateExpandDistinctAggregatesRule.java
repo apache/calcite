@@ -84,16 +84,6 @@ import java.util.stream.Stream;
 public final class AggregateExpandDistinctAggregatesRule
     extends RelRule<AggregateExpandDistinctAggregatesRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateExpandDistinctAggregatesRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use
-   * {@link CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateExpandDistinctAggregatesRule JOIN =
-      Config.JOIN.toRule();
 
   /** Creates an AggregateExpandDistinctAggregatesRule. */
   protected AggregateExpandDistinctAggregatesRule(Config config) {

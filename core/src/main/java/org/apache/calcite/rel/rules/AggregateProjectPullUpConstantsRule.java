@@ -59,18 +59,6 @@ import java.util.TreeMap;
 public class AggregateProjectPullUpConstantsRule
     extends RelRule<AggregateProjectPullUpConstantsRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_PROJECT_PULL_UP_CONSTANTS}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectPullUpConstantsRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#AGGREGATE_ANY_PULL_UP_CONSTANTS}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectPullUpConstantsRule INSTANCE2 =
-      Config.DEFAULT.withOperandFor(LogicalAggregate.class, RelNode.class)
-          .toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates an AggregateProjectPullUpConstantsRule. */
   protected AggregateProjectPullUpConstantsRule(Config config) {

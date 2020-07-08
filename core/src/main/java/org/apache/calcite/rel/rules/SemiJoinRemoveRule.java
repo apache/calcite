@@ -38,12 +38,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class SemiJoinRemoveRule
     extends RelRule<SemiJoinRemoveRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SEMI_JOIN_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SemiJoinRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinRemoveRule. */
   protected SemiJoinRemoveRule(Config config) {

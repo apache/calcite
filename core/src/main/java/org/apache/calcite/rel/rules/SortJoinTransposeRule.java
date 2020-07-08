@@ -46,12 +46,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class SortJoinTransposeRule
     extends RelRule<SortJoinTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SORT_JOIN_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortJoinTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortJoinTransposeRule. */
   protected SortJoinTransposeRule(Config config) {

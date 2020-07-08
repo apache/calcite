@@ -27,11 +27,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewProjectJoinRule
     extends MaterializedViewJoinRule<MaterializedViewProjectJoinRule.Config> {
 
-  /** @deprecated Use {@link MaterializedViewRules#PROJECT_JOIN}. */
-  @Deprecated // to be removed before 1.25
-  public static final MaterializedViewProjectJoinRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   private MaterializedViewProjectJoinRule(Config config) {
     super(config);
   }

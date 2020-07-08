@@ -58,18 +58,6 @@ public class FilterTableScanRule
   public static final com.google.common.base.Predicate<TableScan> PREDICATE =
       FilterTableScanRule::test;
 
-  /** @deprecated Use {@link CoreRules#FILTER_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterTableScanRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#FILTER_INTERPRETER_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterTableScanRule INTERPRETER =
-      Config.INTERPRETER.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a FilterTableScanRule. */
   protected FilterTableScanRule(Config config) {
     super(config);

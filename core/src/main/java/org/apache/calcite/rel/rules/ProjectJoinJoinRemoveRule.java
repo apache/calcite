@@ -64,10 +64,6 @@ import java.util.stream.Collectors;
 public class ProjectJoinJoinRemoveRule
     extends RelRule<ProjectJoinJoinRemoveRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_JOIN_JOIN_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectJoinJoinRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a ProjectJoinJoinRemoveRule. */
   protected ProjectJoinJoinRemoveRule(Config config) {

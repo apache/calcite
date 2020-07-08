@@ -71,17 +71,6 @@ import java.util.stream.Collectors;
 public class SubQueryRemoveRule
     extends RelRule<SubQueryRemoveRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_SUB_QUERY_TO_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SubQueryRemoveRule PROJECT = Config.PROJECT.toRule();
-
-  /** @deprecated Use {@link CoreRules#FILTER_SUB_QUERY_TO_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SubQueryRemoveRule FILTER = Config.FILTER.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_SUB_QUERY_TO_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SubQueryRemoveRule JOIN = Config.JOIN.toRule();
 
   /** Creates a SubQueryRemoveRule. */
   protected SubQueryRemoveRule(Config config) {

@@ -33,10 +33,6 @@ import java.util.List;
  */
 public class CsvProjectTableScanRule
     extends RelRule<CsvProjectTableScanRule.Config> {
-  /** @deprecated Use {@link CsvRules#PROJECT_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final CsvProjectTableScanRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a CsvProjectTableScanRule. */
   protected CsvProjectTableScanRule(Config config) {

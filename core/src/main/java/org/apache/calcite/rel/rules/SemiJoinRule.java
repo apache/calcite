@@ -51,20 +51,6 @@ public abstract class SemiJoinRule
   private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
       aggregate -> aggregate.getRowType().getFieldCount() == 0;
 
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#PROJECT_TO_SEMI_JOIN} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final ProjectToSemiJoinRule PROJECT =
-      ProjectToSemiJoinRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#JOIN_TO_SEMI_JOIN} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final JoinToSemiJoinRule JOIN =
-      JoinToSemiJoinRule.Config.DEFAULT.toRule();
-
   /** Creates a SemiJoinRule. */
   protected SemiJoinRule(Config config) {
     super(config);

@@ -44,13 +44,6 @@ public class FilterCorrelateRule
     extends RelRule<FilterCorrelateRule.Config>
     implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#FILTER_CORRELATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterCorrelateRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a FilterCorrelateRule. */
   protected FilterCorrelateRule(Config config) {
     super(config);

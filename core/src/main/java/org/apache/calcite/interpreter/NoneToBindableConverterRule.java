@@ -36,11 +36,6 @@ public class NoneToBindableConverterRule extends ConverterRule {
           BindableConvention.INSTANCE, "NoneToBindableConverterRule")
       .withRuleFactory(NoneToBindableConverterRule::new);
 
-  /** @deprecated Use {@link Bindables#FROM_NONE_RULE}. */
-  @Deprecated // to be removed before 1.25
-  public static final NoneToBindableConverterRule INSTANCE = DEFAULT_CONFIG
-      .toRule(NoneToBindableConverterRule.class);
-
   /** Called from the Config. */
   protected NoneToBindableConverterRule(Config config) {
     super(config);

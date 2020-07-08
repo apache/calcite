@@ -52,12 +52,6 @@ import java.util.List;
 public class SortJoinCopyRule
     extends RelRule<SortJoinCopyRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SORT_JOIN_COPY}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortJoinCopyRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortJoinCopyRule. */
   protected SortJoinCopyRule(Config config) {

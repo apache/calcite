@@ -51,10 +51,6 @@ import java.util.List;
 public class ProjectWindowTransposeRule
     extends RelRule<ProjectWindowTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_WINDOW_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectWindowTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a ProjectWindowTransposeRule. */
   protected ProjectWindowTransposeRule(Config config) {

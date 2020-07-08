@@ -48,11 +48,6 @@ public class UnionPullUpConstantsRule
     extends RelRule<UnionPullUpConstantsRule.Config>
     implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#UNION_PULL_UP_CONSTANTS}. */
-  @Deprecated // to be removed before 1.25
-  public static final UnionPullUpConstantsRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   /** Creates a UnionPullUpConstantsRule. */
   protected UnionPullUpConstantsRule(Config config) {
     super(config);

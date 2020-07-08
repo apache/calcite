@@ -64,16 +64,6 @@ import java.util.List;
 public class AggregateStarTableRule
     extends RelRule<AggregateStarTableRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_STAR_TABLE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateStarTableRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#AGGREGATE_PROJECT_STAR_TABLE} instead. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateProjectStarTableRule INSTANCE2 =
-      AggregateProjectStarTableRule.Config.DEFAULT.toRule();
 
   /** Creates an AggregateStarTableRule. */
   protected AggregateStarTableRule(Config config) {

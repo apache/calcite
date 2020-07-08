@@ -58,10 +58,6 @@ import java.util.Map;
 public class AggregateUnionTransposeRule
     extends RelRule<AggregateUnionTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateUnionTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();

@@ -50,12 +50,6 @@ import java.util.Objects;
 public class AggregateRemoveRule
     extends RelRule<AggregateRemoveRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates an AggregateRemoveRule. */
   protected AggregateRemoveRule(Config config) {

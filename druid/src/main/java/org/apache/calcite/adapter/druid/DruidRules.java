@@ -120,15 +120,6 @@ public class DruidRules {
           .withOperandFor(Sort.class, Project.class, DruidQuery.class)
           .toRule();
 
-  /** Rule to push back {@link org.apache.calcite.rel.core.Project} through a
-   * {@link org.apache.calcite.rel.core.Sort}. Useful if after pushing Sort,
-   * we could not push it inside DruidQuery. */
-  @Deprecated // to be removed before 1.25
-  public static final RelOptRule PROJECT_SORT_TRANSPOSE =
-      org.apache.calcite.rel.rules.ProjectSortTransposeRule.Config.DEFAULT
-          .withOperandFor(Project.class, Sort.class, DruidQuery.class)
-          .toRule();
-
   /** Rule to push a {@link org.apache.calcite.rel.core.Project}
    * past a {@link org.apache.calcite.rel.core.Filter}
    * when {@code Filter} is on top of a {@link DruidQuery}. */

@@ -38,14 +38,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class CalcMergeRule extends RelRule<CalcMergeRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#CALC_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final CalcMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a CalcMergeRule. */
   protected CalcMergeRule(Config config) {

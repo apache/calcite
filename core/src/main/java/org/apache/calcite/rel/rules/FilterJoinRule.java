@@ -55,27 +55,6 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    * will be pushed into the ON clause. */
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#FILTER_INTO_JOIN} instead. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterIntoJoinRule FILTER_ON_JOIN =
-      CoreRules.FILTER_INTO_JOIN;
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#FILTER_INTO_JOIN_DUMB} instead. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterIntoJoinRule DUMB_FILTER_ON_JOIN =
-      CoreRules.FILTER_INTO_JOIN_DUMB;
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#JOIN_CONDITION_PUSH} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final JoinConditionPushRule JOIN =
-      CoreRules.JOIN_CONDITION_PUSH;
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a FilterJoinRule. */
   protected FilterJoinRule(C config) {
     super(config);

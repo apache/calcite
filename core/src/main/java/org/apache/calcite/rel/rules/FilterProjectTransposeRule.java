@@ -47,13 +47,6 @@ public class FilterProjectTransposeRule
     extends RelRule<FilterProjectTransposeRule.Config>
     implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#FILTER_PROJECT_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterProjectTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a FilterProjectTransposeRule. */
   protected FilterProjectTransposeRule(Config config) {
     super(config);

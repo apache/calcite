@@ -48,12 +48,6 @@ import java.util.List;
 public class FilterAggregateTransposeRule
     extends RelRule<FilterAggregateTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#FILTER_AGGREGATE_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterAggregateTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterAggregateTransposeRule. */
   protected FilterAggregateTransposeRule(Config config) {

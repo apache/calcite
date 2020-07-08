@@ -42,22 +42,6 @@ import org.apache.calcite.util.Util;
 public class UnionMergeRule
     extends RelRule<UnionMergeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#UNION_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final UnionMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#INTERSECT_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final UnionMergeRule INTERSECT_INSTANCE =
-      Config.INTERSECT.toRule();
-
-  /** @deprecated Use {@link CoreRules#MINUS_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final UnionMergeRule MINUS_INSTANCE =
-      Config.MINUS.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a UnionMergeRule. */
   protected UnionMergeRule(Config config) {

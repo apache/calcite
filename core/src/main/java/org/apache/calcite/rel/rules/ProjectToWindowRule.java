@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -73,37 +72,11 @@ import java.util.Set;
 public abstract class ProjectToWindowRule
     extends RelRule<ProjectToWindowRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#CALC_TO_WINDOW} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final ProjectToWindowRule INSTANCE =
-      CalcToWindowRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final ProjectToWindowRule PROJECT =
-      ProjectToLogicalProjectAndWindowRule.Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectToWindowRule. */
   protected ProjectToWindowRule(Config config) {
     super(config);
   }
-
-  @Deprecated // to be removed before 1.25
-  public ProjectToWindowRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
-    super(Config.EMPTY.as(Config.class));
-    throw new UnsupportedOperationException();
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
 
   /**
    * Instance of the rule that applies to a

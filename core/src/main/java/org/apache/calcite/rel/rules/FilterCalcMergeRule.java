@@ -41,14 +41,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class FilterCalcMergeRule
     extends RelRule<FilterCalcMergeRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#FILTER_CALC_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterCalcMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterCalcMergeRule. */
   protected FilterCalcMergeRule(Config config) {

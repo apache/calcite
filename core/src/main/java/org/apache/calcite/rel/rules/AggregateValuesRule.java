@@ -56,10 +56,6 @@ import java.util.List;
 public class AggregateValuesRule
     extends RelRule<AggregateValuesRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_VALUES}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateValuesRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an AggregateValuesRule. */
   protected AggregateValuesRule(Config config) {

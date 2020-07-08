@@ -105,12 +105,6 @@ import java.util.Map;
 public class JoinToMultiJoinRule
     extends RelRule<JoinToMultiJoinRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_TO_MULTI_JOIN}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinToMultiJoinRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinToMultiJoinRule. */
   protected JoinToMultiJoinRule(Config config) {

@@ -59,42 +59,6 @@ import java.util.List;
 public class JoinProjectTransposeRule
     extends RelRule<JoinProjectTransposeRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_BOTH_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule BOTH_PROJECT =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_LEFT_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule LEFT_PROJECT =
-      Config.LEFT.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_PROJECT_RIGHT_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule RIGHT_PROJECT =
-      Config.RIGHT.toRule();
-
-  /** @deprecated Use
-   * {@link CoreRules#JOIN_PROJECT_BOTH_TRANSPOSE_INCLUDE_OUTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule BOTH_PROJECT_INCLUDE_OUTER =
-      Config.OUTER.toRule();
-
-  /** @deprecated Use
-   * {@link CoreRules#JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule LEFT_PROJECT_INCLUDE_OUTER =
-      Config.LEFT_OUTER.toRule();
-
-  /** @deprecated Use
-   * {@link CoreRules#JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinProjectTransposeRule RIGHT_PROJECT_INCLUDE_OUTER =
-      Config.RIGHT_OUTER.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinProjectTransposeRule. */
   protected JoinProjectTransposeRule(Config config) {

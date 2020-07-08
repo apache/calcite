@@ -40,10 +40,6 @@ import java.util.stream.Collectors;
 public class SortRemoveConstantKeysRule
     extends RelRule<SortRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
-  /** @deprecated Use {@link CoreRules#SORT_REMOVE_CONSTANT_KEYS}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortRemoveConstantKeysRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a SortRemoveConstantKeysRule. */
   protected SortRemoveConstantKeysRule(Config config) {

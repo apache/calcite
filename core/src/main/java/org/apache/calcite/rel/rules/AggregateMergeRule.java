@@ -50,10 +50,6 @@ import java.util.Objects;
 public class AggregateMergeRule
     extends RelRule<AggregateMergeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an AggregateMergeRule. */
   protected AggregateMergeRule(Config config) {

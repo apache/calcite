@@ -40,14 +40,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public final class FilterRemoveIsNotDistinctFromRule
     extends RelRule<FilterRemoveIsNotDistinctFromRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#FILTER_EXPAND_IS_NOT_DISTINCT_FROM}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterRemoveIsNotDistinctFromRule. */
   protected FilterRemoveIsNotDistinctFromRule(Config config) {

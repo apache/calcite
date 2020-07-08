@@ -43,10 +43,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class JoinPushTransitivePredicatesRule
     extends RelRule<JoinPushTransitivePredicatesRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_PUSH_TRANSITIVE_PREDICATES}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinPushTransitivePredicatesRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a JoinPushTransitivePredicatesRule. */
   protected JoinPushTransitivePredicatesRule(Config config) {

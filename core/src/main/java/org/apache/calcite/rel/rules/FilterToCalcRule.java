@@ -46,14 +46,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class FilterToCalcRule
     extends RelRule<FilterToCalcRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#FILTER_TO_CALC}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterToCalcRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterToCalcRule. */
   protected FilterToCalcRule(Config config) {

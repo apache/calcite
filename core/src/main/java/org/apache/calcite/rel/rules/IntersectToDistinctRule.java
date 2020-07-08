@@ -69,12 +69,6 @@ import java.math.BigDecimal;
 public class IntersectToDistinctRule
     extends RelRule<IntersectToDistinctRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#INTERSECT_TO_DISTINCT}. */
-  @Deprecated // to be removed before 1.25
-  public static final IntersectToDistinctRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates an IntersectToDistinctRule. */
   protected IntersectToDistinctRule(Config config) {

@@ -35,14 +35,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class CalcRemoveRule extends RelRule<CalcRemoveRule.Config>
     implements SubstitutionRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#CALC_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final CalcRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a CalcRemoveRule. */
   protected CalcRemoveRule(Config config) {

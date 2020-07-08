@@ -46,12 +46,6 @@ import java.util.List;
 public class ProjectJoinTransposeRule
     extends RelRule<ProjectJoinTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_JOIN_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectJoinTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectJoinTransposeRule. */
   protected ProjectJoinTransposeRule(Config config) {

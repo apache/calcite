@@ -37,14 +37,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * @see CoreRules#JOIN_EXTRACT_FILTER
  */
 public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#JOIN_EXTRACT_FILTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinExtractFilterRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinExtractFilterRule. */
   protected JoinExtractFilterRule(Config config) {

@@ -26,11 +26,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewOnlyFilterRule
     extends MaterializedViewJoinRule<MaterializedViewOnlyFilterRule.Config> {
 
-  /** @deprecated Use {@link MaterializedViewRules#FILTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final MaterializedViewOnlyFilterRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   private MaterializedViewOnlyFilterRule(Config config) {
     super(config);
   }

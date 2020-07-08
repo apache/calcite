@@ -102,11 +102,6 @@ public class AggregateReduceFunctionsRule
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** @deprecated Use {@link CoreRules#AGGREGATE_REDUCE_FUNCTIONS}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateReduceFunctionsRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   private static void validateFunction(SqlKind function) {
     if (!isValid(function)) {
       throw new IllegalArgumentException("AggregateReduceFunctionsRule doesn't "

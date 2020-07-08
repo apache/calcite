@@ -66,10 +66,6 @@ import javax.annotation.Nullable;
 public class AggregateCaseToFilterRule
     extends RelRule<AggregateCaseToFilterRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#AGGREGATE_CASE_TO_FILTER}. */
-  @Deprecated // to be removed before 1.25
-  public static final AggregateCaseToFilterRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an AggregateCaseToFilterRule. */
   protected AggregateCaseToFilterRule(Config config) {

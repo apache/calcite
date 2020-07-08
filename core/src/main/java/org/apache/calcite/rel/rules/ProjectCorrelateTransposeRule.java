@@ -50,12 +50,6 @@ import java.util.Map;
 public class ProjectCorrelateTransposeRule
     extends RelRule<ProjectCorrelateTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_CORRELATE_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectCorrelateTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectCorrelateTransposeRule. */
   protected ProjectCorrelateTransposeRule(Config config) {

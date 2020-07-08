@@ -39,15 +39,6 @@ import java.util.List;
 public class JoinUnionTransposeRule
     extends RelRule<JoinUnionTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#JOIN_LEFT_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinUnionTransposeRule LEFT_UNION =
-      Config.LEFT.toRule();
-
-  /** @deprecated Use {@link CoreRules#JOIN_RIGHT_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinUnionTransposeRule RIGHT_UNION =
-      Config.RIGHT.toRule();
 
   /** Creates a JoinUnionTransposeRule. */
   protected JoinUnionTransposeRule(Config config) {

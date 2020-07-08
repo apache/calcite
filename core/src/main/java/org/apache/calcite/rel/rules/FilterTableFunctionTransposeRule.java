@@ -43,12 +43,6 @@ import java.util.Set;
 public class FilterTableFunctionTransposeRule
     extends RelRule<FilterTableFunctionTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#FILTER_TABLE_FUNCTION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final FilterTableFunctionTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterTableFunctionTransposeRule. */
   protected FilterTableFunctionTransposeRule(Config config) {

@@ -45,12 +45,6 @@ import com.google.common.collect.ImmutableSet;
 public class SemiJoinFilterTransposeRule
     extends RelRule<SemiJoinFilterTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SEMI_JOIN_FILTER_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SemiJoinFilterTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinFilterTransposeRule. */
   protected SemiJoinFilterTransposeRule(Config config) {

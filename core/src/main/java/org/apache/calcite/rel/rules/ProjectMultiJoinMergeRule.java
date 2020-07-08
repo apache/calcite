@@ -36,12 +36,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class ProjectMultiJoinMergeRule
     extends RelRule<ProjectMultiJoinMergeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#PROJECT_MULTI_JOIN_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectMultiJoinMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectMultiJoinMergeRule. */
   protected ProjectMultiJoinMergeRule(Config config) {

@@ -29,7 +29,6 @@ import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.base.Suppliers;
@@ -49,10 +48,6 @@ import java.util.function.Supplier;
 public class MaterializedViewFilterScanRule
     extends RelRule<MaterializedViewFilterScanRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link MaterializedViewRules#FILTER_SCAN}. */
-  @Deprecated // to be removed before 1.25
-  public static final MaterializedViewFilterScanRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   private static final Supplier<HepProgram> PROGRAM = Suppliers.memoize(() ->
       new HepProgramBuilder()

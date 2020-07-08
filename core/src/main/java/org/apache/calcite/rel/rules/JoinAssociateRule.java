@@ -49,14 +49,6 @@ import java.util.List;
 public class JoinAssociateRule
     extends RelRule<JoinAssociateRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#JOIN_ASSOCIATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final JoinAssociateRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a JoinAssociateRule. */
   protected JoinAssociateRule(Config config) {

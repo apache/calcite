@@ -30,13 +30,6 @@ import org.apache.calcite.rel.logical.LogicalMatch;
  */
 public class MatchRule extends RelRule<MatchRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#MATCH}. */
-  @Deprecated // to be removed before 1.25
-  public static final MatchRule INSTANCE = Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a MatchRule. */
   protected MatchRule(Config config) {

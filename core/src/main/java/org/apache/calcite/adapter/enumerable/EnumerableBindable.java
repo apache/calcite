@@ -92,11 +92,6 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
             "EnumerableToBindableConverterRule")
         .withRuleFactory(EnumerableToBindableConverterRule::new);
 
-    /** @deprecated Use {@link EnumerableRules#TO_BINDABLE}. */
-    @Deprecated // to be removed before 1.25
-    public static final EnumerableToBindableConverterRule INSTANCE =
-        DEFAULT_CONFIG.toRule(EnumerableToBindableConverterRule.class);
-
     protected EnumerableToBindableConverterRule(Config config) {
       super(config);
     }

@@ -72,26 +72,7 @@ public class ValuesReduceRule
     extends RelRule<ValuesReduceRule.Config>
     implements TransformationRule {
 
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-
-  /** @deprecated Use {@link CoreRules#FILTER_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule FILTER_INSTANCE =
-      Config.FILTER.toRule();
-
-  /** @deprecated Use {@link CoreRules#PROJECT_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule PROJECT_INSTANCE =
-      Config.PROJECT.toRule();
-
-  /** @deprecated Use {@link CoreRules#PROJECT_FILTER_VALUES_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ValuesReduceRule PROJECT_FILTER_INSTANCE =
-      Config.PROJECT_FILTER.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ValuesReduceRule. */
   protected ValuesReduceRule(Config config) {

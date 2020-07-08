@@ -35,10 +35,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class SortRemoveRule
     extends RelRule<SortRemoveRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SORT_REMOVE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortRemoveRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates a SortRemoveRule. */
   protected SortRemoveRule(Config config) {

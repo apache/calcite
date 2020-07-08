@@ -47,14 +47,6 @@ import org.apache.calcite.util.Pair;
 public class ProjectCalcMergeRule
     extends RelRule<ProjectCalcMergeRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#PROJECT_CALC_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectCalcMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectCalcMergeRule. */
   protected ProjectCalcMergeRule(Config config) {

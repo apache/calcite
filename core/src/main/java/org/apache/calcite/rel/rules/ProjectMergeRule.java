@@ -46,13 +46,6 @@ public class ProjectMergeRule
    * @see Config#bloat() */
   public static final int DEFAULT_BLOAT = 100;
 
-  /** @deprecated Use {@link CoreRules#PROJECT_MERGE}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectMergeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
-
   /** Creates a ProjectMergeRule. */
   protected ProjectMergeRule(Config config) {
     super(config);

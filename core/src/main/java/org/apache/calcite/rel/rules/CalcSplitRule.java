@@ -39,12 +39,8 @@ import com.google.common.collect.ImmutableList;
  *
  * @see CoreRules#CALC_SPLIT
  */
-public class CalcSplitRule
-    extends RelRule<CalcSplitRule.Config> implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#CALC_SPLIT}. */
-  @Deprecated // to be removed before 1.25
-  public static final CalcSplitRule INSTANCE =
-      Config.DEFAULT.toRule();
+public class CalcSplitRule extends RelRule<CalcSplitRule.Config>
+    implements TransformationRule {
 
   /** Creates a CalcSplitRule. */
   protected CalcSplitRule(Config config) {

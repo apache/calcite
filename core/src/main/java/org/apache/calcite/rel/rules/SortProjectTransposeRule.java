@@ -49,18 +49,11 @@ import java.util.Objects;
  * a {@link org.apache.calcite.rel.core.Sort}
  * past a {@link org.apache.calcite.rel.core.Project}.
  *
- * @see org.apache.calcite.rel.rules.ProjectSortTransposeRule
  * @see CoreRules#SORT_PROJECT_TRANSPOSE
  */
 public class SortProjectTransposeRule
     extends RelRule<SortProjectTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SORT_PROJECT_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortProjectTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortProjectTransposeRule. */
   protected SortProjectTransposeRule(Config config) {

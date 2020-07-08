@@ -40,19 +40,6 @@ public class SortUnionTransposeRule
     extends RelRule<SortUnionTransposeRule.Config>
     implements TransformationRule {
 
-  /** @deprecated Use {@link CoreRules#SORT_UNION_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortUnionTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  /** @deprecated Use
-   * {@link CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH}. */
-  @Deprecated // to be removed before 1.25
-  public static final SortUnionTransposeRule MATCH_NULL_FETCH =
-      Config.DEFAULT.withMatchNullFetch(true).toRule();
-
-  // ~ Constructors -----------------------------------------------------------
-
   /** Creates a SortUnionTransposeRule. */
   protected SortUnionTransposeRule(Config config) {
     super(config);

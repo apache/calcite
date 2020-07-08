@@ -106,41 +106,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
   public static final Pattern EXCLUSION_PATTERN =
       Pattern.compile("Reduce(Expressions|Values)Rule.*");
 
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#FILTER_REDUCE_EXPRESSIONS} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final FilterReduceExpressionsRule FILTER_INSTANCE =
-      FilterReduceExpressionsRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#PROJECT_REDUCE_EXPRESSIONS} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final ProjectReduceExpressionsRule PROJECT_INSTANCE =
-      ProjectReduceExpressionsRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#JOIN_REDUCE_EXPRESSIONS} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final JoinReduceExpressionsRule JOIN_INSTANCE =
-      JoinReduceExpressionsRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#CALC_REDUCE_EXPRESSIONS} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final CalcReduceExpressionsRule CALC_INSTANCE =
-      CalcReduceExpressionsRule.Config.DEFAULT.toRule();
-
-  /** @deprecated This field is prone to issues during class-loading;
-   * use {@link CoreRules#WINDOW_REDUCE_EXPRESSIONS} instead. */
-  @SuppressWarnings("StaticInitializerReferencesSubClass")
-  @Deprecated // to be removed before 1.25
-  public static final WindowReduceExpressionsRule WINDOW_INSTANCE =
-      WindowReduceExpressionsRule.Config.DEFAULT.toRule();
-
   /**
    * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Filter}.
    * If the condition is a constant, the filter is removed (if TRUE) or replaced with

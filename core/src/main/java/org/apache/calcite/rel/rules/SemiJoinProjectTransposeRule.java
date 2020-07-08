@@ -55,12 +55,6 @@ import java.util.List;
 public class SemiJoinProjectTransposeRule
     extends RelRule<SemiJoinProjectTransposeRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#SEMI_JOIN_PROJECT_TRANSPOSE}. */
-  @Deprecated // to be removed before 1.25
-  public static final SemiJoinProjectTransposeRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinProjectTransposeRule. */
   protected SemiJoinProjectTransposeRule(Config config) {

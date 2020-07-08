@@ -28,11 +28,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewOnlyAggregateRule
     extends MaterializedViewAggregateRule<MaterializedViewOnlyAggregateRule.Config> {
 
-  /** @deprecated Use {@link MaterializedViewRules#AGGREGATE}. */
-  @Deprecated // to be removed before 1.25
-  public static final MaterializedViewOnlyAggregateRule INSTANCE =
-      Config.DEFAULT.toRule();
-
   private MaterializedViewOnlyAggregateRule(Config config) {
     super(config);
   }

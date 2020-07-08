@@ -70,10 +70,6 @@ import java.util.TreeSet;
 public class LoptOptimizeJoinRule
     extends RelRule<LoptOptimizeJoinRule.Config>
     implements TransformationRule {
-  /** @deprecated Use {@link CoreRules#MULTI_JOIN_OPTIMIZE}. */
-  @Deprecated // to be removed before 1.25
-  public static final LoptOptimizeJoinRule INSTANCE =
-      Config.DEFAULT.toRule();
 
   /** Creates an LoptOptimizeJoinRule. */
   protected LoptOptimizeJoinRule(Config config) {

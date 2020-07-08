@@ -41,14 +41,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
     implements TransformationRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** @deprecated Use {@link CoreRules#PROJECT_TO_CALC}. */
-  @Deprecated // to be removed before 1.25
-  public static final ProjectToCalcRule INSTANCE =
-      Config.DEFAULT.toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectToCalcRule. */
   protected ProjectToCalcRule(Config config) {
