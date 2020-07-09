@@ -31,8 +31,9 @@ import com.google.common.collect.ImmutableList;
  * Usually we deduce query sql node data type(i.e. the {@code SqlSelect})
  * during the validation phrase. DDL nodes don't have validation,
  * they can be executed directly through
- * {@link org.apache.calcite.sql.SqlExecutableStatement#execute(CalcitePrepare.Context)}.
- * During the execution, {@link org.apache.calcite.sql.SqlDataTypeSpec} uses
+ * {@link org.apache.calcite.server.DdlExecutor}.
+ *
+ * <p>During the execution, {@link org.apache.calcite.sql.SqlDataTypeSpec} uses
  * this validator to derive its type.
  */
 public class ContextSqlValidator extends SqlValidatorImpl {

@@ -35,7 +35,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -139,10 +138,6 @@ public abstract class Sort extends SingleRel {
     return planner.getCostFactory().makeCost(rowCount, cpu, 0);
   }
 
-  @Override public List<RexNode> getChildExps() {
-    return fieldExps;
-  }
-
   public RelNode accept(RexShuttle shuttle) {
     RexNode offset = shuttle.apply(this.offset);
     RexNode fetch = shuttle.apply(this.fetch);
@@ -176,11 +171,6 @@ public abstract class Sort extends SingleRel {
    */
   public RelCollation getCollation() {
     return collation;
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override public List<RelCollation> getCollationList() {
-    return Collections.singletonList(getCollation());
   }
 
   public RelWriter explainTerms(RelWriter pw) {

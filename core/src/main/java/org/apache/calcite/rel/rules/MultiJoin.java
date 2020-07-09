@@ -180,10 +180,6 @@ public final class MultiJoin extends AbstractRelNode {
     return inputs;
   }
 
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(joinFilter);
-  }
-
   public RelNode accept(RexShuttle shuttle) {
     RexNode joinFilter = shuttle.apply(this.joinFilter);
     List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);

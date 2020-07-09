@@ -28,8 +28,6 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -75,10 +73,6 @@ public abstract class Snapshot extends SingleRel  {
   }
 
   public abstract Snapshot copy(RelTraitSet traitSet, RelNode input, RexNode period);
-
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(period);
-  }
 
   public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.period);

@@ -73,21 +73,8 @@ public abstract class Join extends BiRel implements Hintable {
 
   //~ Constructors -----------------------------------------------------------
 
-  // Next time we need to change the constructor of Join, let's change the
-  // "Set<String> variablesStopped" parameter to
-  // "Set<CorrelationId> variablesSet". At that point we would deprecate
-  // RelNode.getVariablesStopped().
-
   /**
    * Creates a Join.
-   *
-   * <p>Note: We plan to change the {@code variablesStopped} parameter to
-   * {@code Set&lt;CorrelationId&gt; variablesSet}
-   * {@link org.apache.calcite.util.Bug#upgrade(String) before version 2.0},
-   * because {@link #getVariablesSet()}
-   * is preferred over {@link #getVariablesStopped()}.
-   * This constructor is not deprecated, for now, because maintaining overloaded
-   * constructors in multiple sub-classes would be onerous.
    *
    * @param cluster          Cluster
    * @param traitSet         Trait set
@@ -96,7 +83,7 @@ public abstract class Join extends BiRel implements Hintable {
    * @param right            Right input
    * @param condition        Join condition
    * @param joinType         Join type
-   * @param variablesSet     Set variables that are set by the
+   * @param variablesSet     variables that are set by the
    *                         LHS and used by the RHS and are not available to
    *                         nodes above this Join in the tree
    */
@@ -140,10 +127,6 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(condition);
-  }
 
   @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);
