@@ -80,8 +80,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
   }
 
   public RexToLixTranslator rowTranslator(Expression rowIndex) {
-    return getFrame().rowTranslator(rowIndex)
-        .setNullable(currentNullables());
+    return getFrame().rowTranslator(rowIndex);
   }
 
   public Expression compareRows(Expression a, Expression b) {
