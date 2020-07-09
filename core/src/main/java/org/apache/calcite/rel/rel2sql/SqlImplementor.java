@@ -1358,7 +1358,7 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAggFunctionUsedInGroupBy(Project project) {
-      if (!(node instanceof SqlSelect)) {
+      if (!(node instanceof SqlSelect && ((SqlSelect) node).getGroup() != null)) {
         return false;
       }
       List<RexNode> expressions = project.getChildExps();
