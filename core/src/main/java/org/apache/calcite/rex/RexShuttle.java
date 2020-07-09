@@ -17,7 +17,6 @@
 package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -259,13 +258,6 @@ public class RexShuttle implements RexVisitor<RexNode> {
     } else {
       return exprList;
     }
-  }
-
-  /** @deprecated Use {@link RexVisitor#visitList(Iterable)} if possible. */
-  @Deprecated // to be removed before 1.25
-  public final Iterable<RexNode> apply(Iterable<? extends RexNode> iterable) {
-    return Iterables.transform(iterable,
-        t -> t == null ? null : t.accept(RexShuttle.this));
   }
 
   /**

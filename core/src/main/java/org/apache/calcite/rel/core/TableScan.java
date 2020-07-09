@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -94,11 +93,6 @@ public abstract class TableScan
 
   @Override public RelOptTable getTable() {
     return table;
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override public List<RelCollation> getCollationList() {
-    return table.getCollationList();
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

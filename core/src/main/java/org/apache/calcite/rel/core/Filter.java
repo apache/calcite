@@ -35,8 +35,6 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apiguardian.api.API;
 
 import java.util.List;
@@ -98,10 +96,6 @@ public abstract class Filter extends SingleRel {
 
   public abstract Filter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition);
-
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(condition);
-  }
 
   public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);
