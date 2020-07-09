@@ -28,9 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The base implementation of strict aggregate function.
@@ -148,13 +146,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
       return;
     }
 
-    final Map<RexNode, Boolean> nullables = new HashMap<>();
-    for (RexNode arg : args) {
-      if (translator.isNullable(arg)) {
-        nullables.put(arg, false);
-      }
-    }
-    add.nestBlock(thenBlock, nullables);
+    add.nestBlock(thenBlock);
     implementNotNullAdd(info, add);
     add.exitBlock();
     add.currentBlock().add(Expressions.ifThen(condition, thenBlock.toBlock()));

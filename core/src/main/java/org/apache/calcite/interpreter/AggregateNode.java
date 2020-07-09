@@ -242,8 +242,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
                           Pair.of((Expression) inParameter, inputPhysType))),
-                  conformance)
-                  .setNullable(currentNullables());
+                  conformance);
             }
           };
 

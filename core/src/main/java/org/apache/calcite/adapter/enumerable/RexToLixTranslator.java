@@ -856,11 +856,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return e.getType().isNullable();
   }
 
-  public RexToLixTranslator setNullable(
-      Map<? extends RexNode, Boolean> nullable) {
-    return this;
-  }
-
   public RexToLixTranslator setBlock(BlockBuilder block) {
     if (block == list) {
       return this;

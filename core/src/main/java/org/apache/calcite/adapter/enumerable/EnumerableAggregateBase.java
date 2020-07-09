@@ -276,8 +276,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
                           Pair.of(inParameter, inputPhysType))),
-                  implementor.getConformance())
-                  .setNullable(currentNullables());
+                  implementor.getConformance());
             }
           };
 
