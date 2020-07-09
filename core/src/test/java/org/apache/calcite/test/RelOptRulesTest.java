@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -121,7 +121,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.function.Predicate;
 
 import static org.apache.calcite.plan.RelOptRule.none;
@@ -6408,7 +6407,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp_b as e\n"
         + "where extract(year from birthdate) = 2014";
     final Context context =
-        Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
+        Contexts.of(CalciteConnectionConfig.DEFAULT);
     sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
         .withContext(context)
         .check();
@@ -6420,7 +6419,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where extract(year from birthdate) = 2014"
         + "and extract(month from birthdate) = 4";
     final Context context =
-        Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
+        Contexts.of(CalciteConnectionConfig.DEFAULT);
     sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
         .withContext(context)
         .check();

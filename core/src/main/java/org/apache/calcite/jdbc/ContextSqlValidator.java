@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Properties;
 
 /**
  * A SqlValidator with schema and type factory of the given
@@ -55,6 +53,6 @@ public class ContextSqlValidator extends SqlValidatorImpl {
         mutable ? context.getMutableRootSchema() : context.getRootSchema(),
         ImmutableList.of(),
         context.getTypeFactory(),
-        new CalciteConnectionConfigImpl(new Properties()));
+        CalciteConnectionConfig.DEFAULT);
   }
 }

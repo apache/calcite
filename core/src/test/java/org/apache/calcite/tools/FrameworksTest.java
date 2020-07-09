@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -291,8 +292,7 @@ public class FrameworksTest {
     assertThat("retrieves default because not set", c2.schema(), nullValue());
 
     // Create a config similar to c2 but starting from an empty Properties.
-    final CalciteConnectionConfigImpl c3 =
-        new CalciteConnectionConfigImpl(new Properties());
+    final CalciteConnectionConfigImpl c3 = CalciteConnectionConfig.DEFAULT;
     final CalciteConnectionConfigImpl c4 = c3
         .set(lenientOperatorLookup, Boolean.toString(true))
         .set(caseSensitive, Boolean.toString(true));
