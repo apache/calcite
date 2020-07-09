@@ -505,11 +505,9 @@ class TopDownRuleDriver implements RuleDriver {
       }
       RelOptCost lb = planner.getLowerBound(match);
       if (upperBound.isLe(lb)) {
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug(
-              "Skip because of lower bound. LB = {}, UP = {}",
-              lb, upperBound);
-        }
+        LOGGER.debug(
+            "Skip because of lower bound. LB = {}, UP = {}",
+            lb, upperBound);
         return false;
       }
       return true;
@@ -528,9 +526,7 @@ class TopDownRuleDriver implements RuleDriver {
     if (!rel.getTraitSet().satisfies(group.getTraitSet())) {
       RelNode passThroughRel = convert(rel, group);
       if (passThroughRel == null) {
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Skip optimizing because of traits: {}", rel);
-        }
+        LOGGER.debug("Skip optimizing because of traits: {}", rel);
         return null;
       }
       final RelNode finalPassThroughRel = passThroughRel;
@@ -595,11 +591,9 @@ class TopDownRuleDriver implements RuleDriver {
       RelOptCost upperBound = group.upperBound;
       RelOptCost upperForInput = planner.upperBoundForInputs(mExpr, upperBound);
       if (upperForInput.isLe(planner.zeroCost)) {
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug(
-              "Skip O_INPUT because of lower bound. UB4Inputs = {}, UB = {}",
-              upperForInput, upperBound);
-        }
+        LOGGER.debug(
+            "Skip O_INPUT because of lower bound. UB4Inputs = {}, UB = {}",
+            upperForInput, upperBound);
         return;
       }
 
@@ -661,11 +655,9 @@ class TopDownRuleDriver implements RuleDriver {
           }
         }
         if (upperForInput.isLt(lowerBoundSum)) {
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                "Skip O_INPUT because of lower bound. LB = {}, UP = {}",
-                lowerBoundSum, upperForInput);
-          }
+          LOGGER.debug(
+              "Skip O_INPUT because of lower bound. LB = {}, UP = {}",
+              lowerBoundSum, upperForInput);
           return; // group pruned
         }
       }

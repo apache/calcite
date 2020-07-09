@@ -38,7 +38,7 @@ import java.util.Set;
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
  */
-class VolcanoRuleQueue implements RuleQueue {
+class VolcanoRuleQueue extends RuleQueue {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
@@ -58,8 +58,6 @@ class VolcanoRuleQueue implements RuleQueue {
   final Map<VolcanoPlannerPhase, PhaseMatchList> matchListMap =
       new EnumMap<>(VolcanoPlannerPhase.class);
 
-  private final VolcanoPlanner planner;
-
   /**
    * Maps a {@link VolcanoPlannerPhase} to a set of rule descriptions. Named rules
    * may be invoked in their corresponding phase.
@@ -72,7 +70,7 @@ class VolcanoRuleQueue implements RuleQueue {
   //~ Constructors -----------------------------------------------------------
 
   VolcanoRuleQueue(VolcanoPlanner planner) {
-    this.planner = planner;
+    super(planner);
 
     phaseRuleMapping = new EnumMap<>(VolcanoPlannerPhase.class);
 
@@ -182,7 +180,7 @@ class VolcanoRuleQueue implements RuleQueue {
 
       match = phaseMatchList.poll();
 
-      if (planner.skipMatch(match)) {
+      if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
       } else {
         break;

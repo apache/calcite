@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
@@ -63,7 +62,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
       return null;
     }
 
-    RelOptCost selfCost = node.computeSelfCost(planner, mq);
+    RelOptCost selfCost = mq.getNonCumulativeCost(node);
     if (selfCost.isInfinite()) {
       selfCost = null;
     }
@@ -74,10 +73,5 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
       }
     }
     return selfCost;
-  }
-
-  public RelOptCost getLowerBoundCost(AbstractConverter ac,
-      RelMetadataQuery mq, VolcanoPlanner planner) {
-    return mq.getLowerBoundCost(ac.getInput(), planner);
   }
 }

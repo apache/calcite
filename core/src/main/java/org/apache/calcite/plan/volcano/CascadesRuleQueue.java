@@ -31,22 +31,20 @@ import java.util.function.Predicate;
 /**
  * A rule queue that manage rule matches for cascade planner
  */
-public class CascadesRuleQueue implements RuleQueue {
+public class CascadesRuleQueue extends RuleQueue {
 
-  private final VolcanoPlanner planner;
-
-  private final Map<Integer, List<VolcanoRuleMatch>> matches = new HashMap<>();
+  private final Map<RelNode, List<VolcanoRuleMatch>> matches = new HashMap<>();
 
   private final Set<String> names = new HashSet<>();
 
   public CascadesRuleQueue(VolcanoPlanner planner) {
-    this.planner = planner;
+    super(planner);
   }
 
   public void addMatch(VolcanoRuleMatch match) {
     RelNode rel = match.rel(0);
     List<VolcanoRuleMatch> queue = matches.
-        computeIfAbsent(rel.getId(), id -> new LinkedList<>());
+        computeIfAbsent(rel, id -> new LinkedList<>());
     addMatch(match, queue);
   }
 
@@ -63,7 +61,7 @@ public class CascadesRuleQueue implements RuleQueue {
   }
 
   public VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
-    List<VolcanoRuleMatch> queue = matches.get(category.left.getId());
+    List<VolcanoRuleMatch> queue = matches.get(category.left);
     if (queue == null) {
       return null;
     }
@@ -74,7 +72,7 @@ public class CascadesRuleQueue implements RuleQueue {
         continue;
       }
       iterator.remove();
-      if (!planner.skipMatch(next)) {
+      if (!skipMatch(next)) {
         return next;
       }
     }
