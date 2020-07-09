@@ -54,17 +54,7 @@ public class SqlParser {
     parser.setUnquotedCasing(config.unquotedCasing());
     parser.setIdentifierMaxLength(config.identifierMaxLength());
     parser.setConformance(config.conformance());
-    switch (config.quoting()) {
-    case DOUBLE_QUOTE:
-      parser.switchTo("DQID");
-      break;
-    case BACK_TICK:
-      parser.switchTo("BTID");
-      break;
-    case BRACKET:
-      parser.switchTo("DEFAULT");
-      break;
-    }
+    parser.switchTo(SqlParserUtil.quotingToParserState(config.quoting()));
   }
 
   //~ Methods ----------------------------------------------------------------

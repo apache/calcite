@@ -1566,7 +1566,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
       expr("\"TRIM\"('b')").ok();
     } else {
       expr("^\"TRIM\"('b' FROM 'a')^")
-          .fails("(?s).*Encountered \"FROM\" at .*");
+          .fails("(?s).*Incorrect syntax near the keyword 'FROM' at .*");
 
       // Without the "FROM" noise word, TRIM is parsed as a regular
       // function without quoting and built-in function with quoting.

@@ -1788,7 +1788,7 @@ public class SqlParserTest {
 
   @Test void testDefault() {
     sql("select ^DEFAULT^ from emp")
-        .fails("(?s)Encountered \"DEFAULT\" at .*");
+        .fails("(?s)Incorrect syntax near the keyword 'DEFAULT' at .*");
     sql("select cast(empno ^+^ DEFAULT as double) from emp")
         .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
     sql("select empno ^+^ DEFAULT + deptno from emp")
@@ -1796,11 +1796,11 @@ public class SqlParserTest {
     sql("select power(0, DEFAULT ^+^ empno) from emp")
         .fails("(?s)Encountered \"\\+\" at .*");
     sql("select * from emp join dept on ^DEFAULT^")
-        .fails("(?s)Encountered \"DEFAULT\" at .*");
+        .fails("(?s)Incorrect syntax near the keyword 'DEFAULT' at .*");
     sql("select * from emp where empno ^>^ DEFAULT or deptno < 10")
         .fails("(?s)Encountered \"> DEFAULT\" at .*");
     sql("select * from emp order by ^DEFAULT^ desc")
-        .fails("(?s)Encountered \"DEFAULT\" at .*");
+        .fails("(?s)Incorrect syntax near the keyword 'DEFAULT' at .*");
     final String expected = "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
         + "VALUES (ROW('a', DEFAULT))";
     sql("insert into dept (name, deptno) values ('a', DEFAULT)")
@@ -1808,7 +1808,7 @@ public class SqlParserTest {
     sql("insert into dept (name, deptno) values ('a', 1 ^+^ DEFAULT)")
         .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
     sql("insert into dept (name, deptno) select 'a', ^DEFAULT^ from (values 0)")
-        .fails("(?s)Encountered \"DEFAULT\" at .*");
+        .fails("(?s)Incorrect syntax near the keyword 'DEFAULT' at .*");
   }
 
   @Test void testAggregateFilter() {
@@ -4309,7 +4309,7 @@ public class SqlParserTest {
     expr("CAST(12 AS DATE)")
         .ok("CAST(12 AS DATE)");
     sql("CAST('2000-12-21' AS DATE ^NOT^ NULL)")
-        .fails("(?s).*Encountered \"NOT\" at line 1, column 27.*");
+        .fails("(?s).*Incorrect syntax near the keyword 'NOT' at line 1, column 27.*");
     sql("CAST('foo' as ^1^)")
         .fails("(?s).*Encountered \"1\" at line 1, column 15.*");
     expr("Cast(DATE '2004-12-21' AS VARCHAR(10))")
@@ -4395,9 +4395,9 @@ public class SqlParserTest {
     expr("{fn convert(1, VARCHAR^(^5))}")
         .fails("(?s)Encountered \"\\(\" at.*");
     expr("{fn convert(1, ^INTERVAL^ YEAR TO MONTH)}")
-        .fails("(?s)Encountered \"INTERVAL\" at.*");
+        .fails("(?s)Incorrect syntax near the keyword 'INTERVAL' at.*");
     expr("{fn convert(1, ^INTERVAL^ YEAR)}")
-        .fails("(?s)Encountered \"INTERVAL\" at.*");
+        .fails("(?s)Incorrect syntax near the keyword 'INTERVAL' at.*");
   }
 
   @Test void testWindowReference() {

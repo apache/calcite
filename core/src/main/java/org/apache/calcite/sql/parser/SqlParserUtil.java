@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
@@ -730,6 +731,20 @@ public final class SqlParserUtil {
       throw RESOURCE.unicodeEscapeCharIllegal(s).ex();
     }
     return c;
+  }
+
+  /** Returns the corresponding parser state with the give quoting. */
+  public static String quotingToParserState(Quoting quoting) {
+    switch (quoting) {
+    case DOUBLE_QUOTE:
+      return "DQID";
+    case BACK_TICK:
+      return "BTID";
+    case BRACKET:
+      return "DEFAULT";
+    default:
+      throw new AssertionError(quoting);
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

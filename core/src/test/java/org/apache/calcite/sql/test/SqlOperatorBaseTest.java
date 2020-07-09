@@ -8350,7 +8350,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("timestampdiff(CENTURY, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2614-02-24 12:42:25')",
-        "(?s)Encountered \"CENTURY\" at .*", false);
+        "(?s)Incorrect syntax near the keyword 'CENTURY' at .*", false);
     tester.checkScalar("timestampdiff(QUARTER, "
         + "timestamp '2014-02-24 12:42:25', "
         + "cast(null as timestamp))",
