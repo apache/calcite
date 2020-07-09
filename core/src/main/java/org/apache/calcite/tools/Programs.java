@@ -58,6 +58,7 @@ import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -362,9 +363,10 @@ public class Programs {
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
-      final CalciteConnectionConfig config =
-          planner.getContext().unwrap(CalciteConnectionConfig.class);
-      if (config != null && config.forceDecorrelate()) {
+      final CalciteConnectionConfig config = Util.first(
+          planner.getContext().unwrap(CalciteConnectionConfig.class),
+          CalciteConnectionConfig.DEFAULT);
+      if (config.forceDecorrelate()) {
         final RelBuilder relBuilder =
             RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
         return RelDecorrelator.decorrelateQuery(rel, relBuilder);

@@ -22,7 +22,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
@@ -1840,7 +1840,7 @@ public class CalciteAssert {
     private FrameworkConfig forceDecorrelate(FrameworkConfig config) {
       return Frameworks.newConfigBuilder(config)
           .context(
-              Contexts.of(new CalciteConnectionConfigImpl(new Properties())
+              Contexts.of(CalciteConnectionConfig.DEFAULT
                   .set(CalciteConnectionProperty.FORCE_DECORRELATE,
                       Boolean.toString(false))))
           .build();

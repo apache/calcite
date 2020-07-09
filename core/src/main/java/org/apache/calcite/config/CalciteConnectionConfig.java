@@ -22,10 +22,14 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
+import java.util.Properties;
+
 /** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
+  /** Default configuration. */
+  CalciteConnectionConfigImpl DEFAULT = new CalciteConnectionConfigImpl(new Properties());
   /** @see CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT */
   boolean approximateDistinctCount();
   /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */

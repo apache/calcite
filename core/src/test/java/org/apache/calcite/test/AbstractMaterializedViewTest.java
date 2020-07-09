@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
@@ -56,7 +56,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.function.Function;
 
 /**
@@ -179,7 +178,8 @@ public abstract class AbstractMaterializedViewTest {
     final CalciteCatalogReader catalogReader = new CalciteCatalogReader(
         CalciteSchema.from(rootSchema),
         CalciteSchema.from(defaultSchema).path(null),
-        new JavaTypeFactoryImpl(), new CalciteConnectionConfigImpl(new Properties()));
+        new JavaTypeFactoryImpl(),
+        CalciteConnectionConfig.DEFAULT);
 
     final SqlValidator validator = new ValidatorForTest(SqlStdOperatorTable.instance(),
         catalogReader, new JavaTypeFactoryImpl(), SqlConformanceEnum.DEFAULT);

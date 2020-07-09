@@ -17,7 +17,7 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Contexts;
@@ -41,7 +41,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -161,7 +160,7 @@ class TpcdsLatticeSuggesterTest {
           .parserConfig(SqlParser.Config.DEFAULT)
           .context(
               Contexts.of(
-                  new CalciteConnectionConfigImpl(new Properties())
+                  CalciteConnectionConfig.DEFAULT
                       .set(CalciteConnectionProperty.CONFORMANCE,
                           SqlConformanceEnum.LENIENT.name())))
           .defaultSchema(schema)
