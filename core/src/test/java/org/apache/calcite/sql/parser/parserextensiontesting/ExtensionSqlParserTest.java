@@ -55,6 +55,6 @@ class ExtensionSqlParserTest extends SqlParserTest {
     sql("DESCRIBE SPACE POWER")
         .node(new IsNull<SqlNode>());
     sql("DESCRIBE SEA ^POWER^")
-        .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
+        .fails("(?s)Incorrect syntax near the keyword 'POWER' at line 1, column 14.*");
   }
 }

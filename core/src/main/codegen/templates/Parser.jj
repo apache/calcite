@@ -437,6 +437,22 @@ JAVACODE SqlParseException convertException(Throwable ex)
         tokenImage = pex.tokenImage;
         if (pex.currentToken != null) {
             final Token token = pex.currentToken.next;
+            // Checks token.image.equals("1") to avoid recursive call.
+            // The SqlAbstractParserImpl#MetadataImpl constructor uses constant "1" to
+            // throw intentionally to collect the expected tokens.
+            if (!token.image.equals("1") && getMetadata().isKeyword(token.image)) {
+                // If the next token is a keyword, reformat the error message as:
+
+                // Incorrect syntax near the keyword '{keyword}' at line {line_number},
+                // column {column_number}.
+                final String errorMsg = String.format("Incorrect syntax near the keyword '%s' "
+                        + "at line %d, column %d.",
+                    token.image,
+                    token.beginLine,
+                    token.beginColumn);
+                // Replace the ParseException with explicit error message.
+                ex = new ParseException(errorMsg);
+            }
             pos = new SqlParserPos(
                 token.beginLine,
                 token.beginColumn,
