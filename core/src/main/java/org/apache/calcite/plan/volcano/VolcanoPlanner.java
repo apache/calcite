@@ -839,6 +839,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     prunedNodes.add(rel);
   }
 
+  @Override public boolean isPruned(RelNode rel) {
+    return prunedNodes.contains(rel);
+  }
+
   /**
    * Dumps the internal state of this VolcanoPlanner to a writer.
    *

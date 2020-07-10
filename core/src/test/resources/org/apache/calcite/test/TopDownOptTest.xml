@@ -1080,11 +1080,11 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
-  EnumerableSort(sort0=[$1], dir0=[ASC])
+EnumerableSort(sort0=[$1], dir0=[ASC])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
-    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+    EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -1130,11 +1130,11 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
-  EnumerableSort(sort0=[$1], dir0=[ASC])
+EnumerableSort(sort0=[$1], dir0=[ASC])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
-    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+    EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -1183,12 +1183,12 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
-  EnumerableSort(sort0=[$1], dir0=[ASC])
+EnumerableSort(sort0=[$1], dir0=[ASC])
+  EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
     EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
-  EnumerableFilter(condition=[=($cor2.DEPTNO, $0)])
-    EnumerableProject(DEPTNO=[$7], $f0=[true])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableFilter(condition=[=($cor2.DEPTNO, $0)])
+      EnumerableProject(DEPTNO=[$7], $f0=[true])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

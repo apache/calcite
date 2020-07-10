@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -41,7 +42,7 @@ import org.apache.calcite.util.Litmus;
  *
  * @see org.apache.calcite.rel.core.CorrelationId
  */
-public final class LogicalCorrelate extends Correlate {
+public final class LogicalCorrelate extends Correlate implements LogicalNode {
   //~ Instance fields --------------------------------------------------------
 
   //~ Constructors -----------------------------------------------------------

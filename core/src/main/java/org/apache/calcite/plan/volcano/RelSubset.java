@@ -201,7 +201,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelNode getOriginal() {
-    return set.rel;
+    return set.originalRel;
   }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -223,7 +223,7 @@ public class RelSubset extends AbstractRelNode {
     if (best != null) {
       return mq.getRowCount(best);
     } else {
-      return mq.getRowCount(set.rel);
+      return mq.getRowCount(set.originalRel);
     }
   }
 
@@ -241,7 +241,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    return set.rel.getRowType();
+    return set.originalRel.getRowType();
   }
 
   /**
@@ -325,7 +325,7 @@ public class RelSubset extends AbstractRelNode {
 
     // If this isn't the first rel in the set, it must have compatible
     // row type.
-    if (set.rel != null) {
+    if (set.originalRel != null) {
       RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
           "rowtype of set", getRowType(), Litmus.THROW);
     }

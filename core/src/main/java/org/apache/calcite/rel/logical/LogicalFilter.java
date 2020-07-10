@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
@@ -42,7 +43,8 @@ import java.util.Set;
  * Sub-class of {@link org.apache.calcite.rel.core.Filter}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalFilter extends Filter {
+public final class LogicalFilter extends Filter implements LogicalNode {
+
   private final ImmutableSet<CorrelationId> variablesSet;
 
   //~ Constructors -----------------------------------------------------------

@@ -53,7 +53,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
@@ -488,18 +487,7 @@ public class RelMdPredicates
   /** @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
   public RelOptPredicateList getPredicates(RelSubset r,
       RelMetadataQuery mq) {
-    if (!Bug.CALCITE_1048_FIXED) {
-      return RelOptPredicateList.EMPTY;
-    }
-    final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
-    RelOptPredicateList list = null;
-    for (RelNode r2 : r.getRels()) {
-      RelOptPredicateList list2 = mq.getPulledUpPredicates(r2);
-      if (list2 != null) {
-        list = list == null ? list2 : list.union(rexBuilder, list2);
-      }
-    }
-    return Util.first(list, RelOptPredicateList.EMPTY);
+    return getPredicates(r.getOriginal(), mq);
   }
 
   /**

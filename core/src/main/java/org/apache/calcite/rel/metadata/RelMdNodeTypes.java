@@ -37,7 +37,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -76,7 +75,7 @@ public class RelMdNodeTypes
 
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelSubset rel,
       RelMetadataQuery mq) {
-    return mq.getNodeTypes(Util.first(rel.getBest(), rel.getOriginal()));
+    return mq.getNodeTypes(rel.getOriginal());
   }
 
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Union rel,

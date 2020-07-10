@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
@@ -73,7 +74,14 @@ class RelSet {
    * set.
    */
   RelSet equivalentSet;
-  RelNode rel;
+
+  /**
+   * The first RelNode added to the set or the RelNode with highest confidence
+   * level of estimated statistics.
+   * The logical properties of the RelSet, including row count, uniqueness, etc,
+   * are determined by this RelNode.
+   */
+  RelNode originalRel;
 
   /**
    * The position indicator of rel node that is to be processed.
@@ -211,6 +219,7 @@ class RelSet {
     final RelSubset subset = getOrCreateSubset(
         rel.getCluster(), traitSet, rel.isEnforcer());
     subset.add(rel);
+    checkAndUpdateOriginalRel(rel);
     return subset;
   }
 
@@ -352,15 +361,16 @@ class RelSet {
         postEquivalenceEvent(planner, rel);
       }
     }
-    if (this.rel == null) {
-      this.rel = rel;
+    if (this.originalRel == null) {
+      this.originalRel = rel;
     } else {
       // Row types must be the same, except for field names.
       RelOptUtil.verifyTypeEquivalence(
-          this.rel,
+          this.originalRel,
           rel,
           this);
     }
+    checkAndUpdateOriginalRel(rel);
   }
 
   /**
@@ -385,7 +395,7 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
-    RelOptCluster cluster = rel.getCluster();
+    RelOptCluster cluster = originalRel.getCluster();
     RelMetadataQuery mq = cluster.getMetadataQuery();
 
     // remove from table
@@ -487,5 +497,51 @@ class RelSet {
     for (RelSubset subset : subsets) {
       planner.fireRules(subset);
     }
+  }
+
+  private void checkAndUpdateOriginalRel(RelNode newRel) {
+    if (newRel instanceof LogicalNode && this.originalRel instanceof LogicalNode
+        && ((LogicalNode) newRel).getStatsEstimateConfidence().compareTo(
+            ((LogicalNode) this.originalRel).getStatsEstimateConfidence()) > 0) {
+      this.originalRel = newRel;
+
+      // Invalidate parent sets original rel meta cache since child set properties might
+      // have been changed.
+      HashSet<RelSet> newParentSets = getParentSets();
+      HashSet<RelSet> allParentSets = new HashSet<>();
+      while (!newParentSets.isEmpty()) {
+        allParentSets.addAll(newParentSets);
+        HashSet<RelSet> validParents = new HashSet<>();
+        for (RelSet set : newParentSets) {
+          HashSet<RelSet> parents = set.getParentSets();
+          for (RelSet s : parents) {
+            // To handle cycle references between sets
+            if (!allParentSets.contains(s)) {
+              validParents.add(s);
+            }
+          }
+        }
+        newParentSets = validParents;
+      }
+      for (RelSet set : allParentSets) {
+        final RelMetadataQuery mq = set.originalRel.getCluster().getMetadataQuery();
+        mq.clearCache(set.originalRel);
+      }
+    }
+  }
+
+  private HashSet<RelSet> getParentSets() {
+    HashSet<RelSet> results = new HashSet<>();
+    VolcanoPlanner planner = (VolcanoPlanner) this.originalRel.getCluster().getPlanner();
+    assert planner != null;
+
+    for (RelNode rel : getParentRels()) {
+      RelSet set = planner.getSet(rel);
+      if (set.id != this.id && !planner.isPruned(rel)) {
+        results.add(set);
+      }
+    }
+
+    return results;
   }
 }

@@ -33,7 +33,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -85,7 +84,7 @@ public class RelMdTableReferences
   }
 
   public Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(Util.first(rel.getBest(), rel.getOriginal()));
+    return mq.getTableReferences(rel.getOriginal());
   }
 
   /**

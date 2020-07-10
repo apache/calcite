@@ -21,6 +21,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -36,7 +37,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
  * notice.
  */
 @Experimental
-public class LogicalTableSpool extends TableSpool {
+public class LogicalTableSpool extends TableSpool implements LogicalNode {
 
   //~ Constructors -----------------------------------------------------------
   public LogicalTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,

@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -30,7 +31,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Minus}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalMinus extends Minus {
+public final class LogicalMinus extends Minus implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**

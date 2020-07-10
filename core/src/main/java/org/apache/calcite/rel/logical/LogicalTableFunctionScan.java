@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableFunctionScan;
@@ -37,7 +38,7 @@ import java.util.Set;
  * Sub-class of {@link org.apache.calcite.rel.core.TableFunctionScan}
  * not targeted at any particular engine or calling convention.
  */
-public class LogicalTableFunctionScan extends TableFunctionScan {
+public class LogicalTableFunctionScan extends TableFunctionScan implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**

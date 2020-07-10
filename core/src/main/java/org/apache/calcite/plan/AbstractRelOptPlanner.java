@@ -224,6 +224,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   @Override public void prune(RelNode rel) {
   }
 
+  @Override public boolean isPruned(RelNode rel) {
+    return false;
+  }
+
   public void registerClass(RelNode node) {
     final Class<? extends RelNode> clazz = node.getClass();
     if (classes.add(clazz)) {

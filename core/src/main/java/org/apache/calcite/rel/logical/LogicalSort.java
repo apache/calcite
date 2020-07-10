@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
@@ -31,7 +32,7 @@ import org.apache.calcite.rex.RexNode;
  * Sub-class of {@link org.apache.calcite.rel.core.Sort} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalSort extends Sort {
+public final class LogicalSort extends Sort implements LogicalNode {
   private LogicalSort(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);

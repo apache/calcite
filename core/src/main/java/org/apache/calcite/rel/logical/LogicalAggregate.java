@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -43,7 +44,7 @@ import java.util.List;
  * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public final class LogicalAggregate extends Aggregate {
+public final class LogicalAggregate extends Aggregate implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**

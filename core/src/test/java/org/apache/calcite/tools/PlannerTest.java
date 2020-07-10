@@ -988,13 +988,13 @@ public class PlannerTest {
         + "left join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
-        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[ROW($8, $9)], empid0=[$10], name1=[$11])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $10)], joinType=[inner])\n"
         + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
         + "      EnumerableTableScan(table=[[hr, emps]])\n"
         + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "        EnumerableTableScan(table=[[hr, depts]])";
+        + "        EnumerableTableScan(table=[[hr, depts]])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])";
     checkHeuristic(sql, expected);
   }
 
@@ -1009,14 +1009,14 @@ public class PlannerTest {
         + "right join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
-        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[ROW($8, $9)], empid0=[$10], name1=[$11])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $10)], joinType=[inner])\n"
         + "    EnumerableProject(empid=[$5], deptno=[$6], name=[$7], salary=[$8], commission=[$9], deptno0=[$0], name0=[$1], employees=[$2], x=[$3], y=[$4])\n"
         + "      EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])\n"
         + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
         + "          EnumerableTableScan(table=[[hr, depts]])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])";
+        + "        EnumerableTableScan(table=[[hr, emps]])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])";
     checkHeuristic(sql, expected);
   }
 
@@ -1027,13 +1027,13 @@ public class PlannerTest {
         + "join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "right join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
-        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[left])\n"
-        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[ROW($8, $9)], empid0=[$10], name1=[$11])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $10)], joinType=[right])\n"
         + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[inner])\n"
         + "      EnumerableTableScan(table=[[hr, emps]])\n"
         + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "        EnumerableTableScan(table=[[hr, depts]])";
+        + "        EnumerableTableScan(table=[[hr, depts]])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])";
     checkHeuristic(sql, expected);
   }
 

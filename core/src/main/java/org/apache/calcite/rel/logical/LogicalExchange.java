@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
@@ -30,7 +31,7 @@ import org.apache.calcite.rel.core.Exchange;
  * Sub-class of {@link Exchange} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalExchange extends Exchange {
+public final class LogicalExchange extends Exchange implements LogicalNode {
   private LogicalExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution) {
     super(cluster, traitSet, input, distribution);
