@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -2671,8 +2672,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(expr);
   }
 
-  private static class SqlSpecialOperatorWithPolicy extends SqlSpecialOperator
-      implements Strong.PolicySupplier {
+  private static class SqlSpecialOperatorWithPolicy extends SqlSpecialOperator {
     private final Strong.Policy policy;
     private SqlSpecialOperatorWithPolicy(String name, SqlKind kind, int prec, boolean leftAssoc,
         SqlReturnTypeInference returnTypeInference, SqlOperandTypeInference operandTypeInference,
@@ -2681,8 +2681,8 @@ class RexProgramTest extends RexProgramTestBase {
           operandTypeChecker);
       this.policy = policy;
     }
-    @Override public Strong.Policy get() {
-      return policy;
+    @Override public Supplier<Strong.Policy> getStrongPolicyInference() {
+      return () -> policy;
     }
   }
 
