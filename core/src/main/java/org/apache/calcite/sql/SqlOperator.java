@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -40,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -889,6 +891,16 @@ public abstract class SqlOperator {
    */
   public SqlReturnTypeInference getReturnTypeInference() {
     return returnTypeInference;
+  }
+
+  /**
+   * Returns the {@link Strong.Policy} strategy for this operator, or null if there is no particular
+   * strategy, in which case this policy will be deducted from the operator's {@link SqlKind}.
+   *
+   * @see Strong
+   */
+  public Supplier<Strong.Policy> getStrongPolicyInference() {
+    return null;
   }
 
   /**
