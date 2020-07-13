@@ -308,9 +308,19 @@ public class Resources {
         switch (validation) {
         case BUNDLE_HAS_RESOURCE:
           if (!bundle.containsKey(key)) {
+            String suggested = null;
+            final BaseMessage annotation =
+                method.getAnnotation(BaseMessage.class);
+            if (annotation != null) {
+              final String message = annotation.value();
+              suggested = "; add the following line to "
+                  + bundle.getBaseBundleName() + ".properties:\n"
+                  + key + '=' + message + "\n";
+            }
             throw new AssertionError("key '" + key
                 + "' not found for resource '" + method.getName()
-                + "' in bundle '" + bundle + "'");
+                + "' in bundle '" + bundle + "'"
+                + (suggested == null ? "" : suggested));
           }
           break;
         case MESSAGE_SPECIFIED:
