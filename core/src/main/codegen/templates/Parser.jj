@@ -445,11 +445,14 @@ JAVACODE SqlParseException convertException(Throwable ex)
 
                 // Incorrect syntax near the keyword '{keyword}' at line {line_number},
                 // column {column_number}.
+                final String expecting = ex.getMessage()
+                    .substring(ex.getMessage().indexOf("Was expecting"));
                 final String errorMsg = String.format("Incorrect syntax near the keyword '%s' "
-                        + "at line %d, column %d.",
+                        + "at line %d, column %d.\n%s",
                     token.image,
                     token.beginLine,
-                    token.beginColumn);
+                    token.beginColumn,
+                    expecting);
                 // Replace the ParseException with explicit error message.
                 ex = new ParseException(errorMsg);
             }
