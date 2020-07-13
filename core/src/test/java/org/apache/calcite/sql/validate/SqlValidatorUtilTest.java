@@ -148,10 +148,16 @@ class SqlValidatorUtilTest {
         SqlNameMatchers.withCaseSensitive(false);
     assertThat(insensitiveMatcher.frequency(beatles, "ringo"), is(2));
     assertThat(insensitiveMatcher.frequency(beatles, "rinGo"), is(2));
+    assertThat(insensitiveMatcher.indexOf(beatles, "rinGo"), is(2));
+    assertThat(insensitiveMatcher.indexOf(beatles, "stuart"), is(-1));
     final SqlNameMatcher sensitiveMatcher =
         SqlNameMatchers.withCaseSensitive(true);
     assertThat(sensitiveMatcher.frequency(beatles, "ringo"), is(1));
     assertThat(sensitiveMatcher.frequency(beatles, "rinGo"), is(1));
     assertThat(sensitiveMatcher.frequency(beatles, "Ringo"), is(0));
+    assertThat(sensitiveMatcher.indexOf(beatles, "ringo"), is(2));
+    assertThat(sensitiveMatcher.indexOf(beatles, "rinGo"), is(3));
+    assertThat(sensitiveMatcher.indexOf(beatles, "Ringo"), is(-1));
+
   }
 }

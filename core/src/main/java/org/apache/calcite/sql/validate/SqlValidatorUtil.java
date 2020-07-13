@@ -1296,19 +1296,8 @@ public class SqlValidatorUtil {
     /** Extra expressions, computed from the input as extra GROUP BY
      * expressions. For example, calls to the {@code TUMBLE} functions. */
     final List<SqlNode> extraExprs = new ArrayList<>();
-    final List<SqlNode> groupExprs;
+    final List<SqlNode> groupExprs = new ArrayList<>();
     final Map<Integer, Integer> groupExprProjection = new HashMap<>();
-    int groupCount;
-
-    GroupAnalyzer(List<SqlNode> groupExprs) {
-      this.groupExprs = groupExprs;
-    }
-
-    SqlNode createGroupExpr() {
-      // TODO: create an expression that could have no other source
-      return SqlLiteral.createCharString("xyz" + groupCount++,
-          SqlParserPos.ZERO);
-    }
   }
 
   /**

@@ -3768,7 +3768,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for:
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
    * Approximate and exact aggregate calls are recognized as the same
-   * during sql-to-rel conversion.</a>.
+   * during sql-to-rel conversion</a>.
    */
   @Test void testProjectApproximateAndExactAggregates() {
     final String sql = "SELECT empno, count(distinct ename),\n"

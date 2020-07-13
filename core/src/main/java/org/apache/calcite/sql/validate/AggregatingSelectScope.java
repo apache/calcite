@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -54,19 +53,11 @@ public class AggregatingSelectScope
   private final SqlSelect select;
   private final boolean distinct;
 
-  /** Use while under construction. */
-  private List<SqlNode> temporaryGroupExprList;
+  /** Use while resolving. */
+  private SqlValidatorUtil.GroupAnalyzer groupAnalyzer;
 
   public final Supplier<Resolved> resolved =
-      Suppliers.memoize(() -> {
-        assert temporaryGroupExprList == null;
-        temporaryGroupExprList = new ArrayList<>();
-        try {
-          return resolve();
-        } finally {
-          temporaryGroupExprList = null;
-        }
-      })::get;
+      Suppliers.memoize(this::resolve)::get;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -92,36 +83,37 @@ public class AggregatingSelectScope
   //~ Methods ----------------------------------------------------------------
 
   private Resolved resolve() {
-    final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
-        ImmutableList.builder();
-    List<SqlNode> extraExprs = ImmutableList.of();
-    Map<Integer, Integer> groupExprProjection = ImmutableMap.of();
-    if (select.getGroup() != null) {
-      final SqlNodeList groupList = select.getGroup();
-      final SqlValidatorUtil.GroupAnalyzer groupAnalyzer =
-          new SqlValidatorUtil.GroupAnalyzer(temporaryGroupExprList);
-      for (SqlNode groupExpr : groupList) {
-        SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
-            groupExpr);
+    assert groupAnalyzer == null : "resolve already in progress";
+    groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    try {
+      final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
+          ImmutableList.builder();
+      if (select.getGroup() != null) {
+        final SqlNodeList groupList = select.getGroup();
+        for (SqlNode groupExpr : groupList) {
+          SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
+              groupExpr);
+        }
       }
-      extraExprs = groupAnalyzer.extraExprs;
-      groupExprProjection = groupAnalyzer.groupExprProjection;
-    }
 
-    final SortedMap<ImmutableBitSet, Integer> flatGroupSetCount =
-        Maps.newTreeMap(ImmutableBitSet.COMPARATOR);
-    for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
-      final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
-      flatGroupSetCount.put(set, flatGroupSetCount.getOrDefault(set, 0) + 1);
-    }
+      final SortedMap<ImmutableBitSet, Integer> flatGroupSetCount =
+          Maps.newTreeMap(ImmutableBitSet.COMPARATOR);
+      for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
+        final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
+        flatGroupSetCount.put(set, flatGroupSetCount.getOrDefault(set, 0) + 1);
+      }
 
-    // For GROUP BY (), we need a singleton grouping set.
-    if (flatGroupSetCount.isEmpty()) {
-      flatGroupSetCount.put(ImmutableBitSet.of(), 1);
-    }
+      // For GROUP BY (), we need a singleton grouping set.
+      if (flatGroupSetCount.isEmpty()) {
+        flatGroupSetCount.put(ImmutableBitSet.of(), 1);
+      }
 
-    return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSetCount.keySet(),
-        flatGroupSetCount, groupExprProjection);
+      return new Resolved(groupAnalyzer.extraExprs, groupAnalyzer.groupExprs,
+          flatGroupSetCount.keySet(), flatGroupSetCount,
+          groupAnalyzer.groupExprProjection);
+    } finally {
+      groupAnalyzer = null;
+    }
   }
 
   /**
@@ -149,10 +141,10 @@ public class AggregatingSelectScope
       }
       return Pair.of(ImmutableList.of(), groupExprs.build());
     } else if (select.getGroup() != null) {
-      if (temporaryGroupExprList != null) {
+      if (groupAnalyzer != null) {
         // we are in the middle of resolving
         return Pair.of(ImmutableList.of(),
-            ImmutableList.copyOf(temporaryGroupExprList));
+            ImmutableList.copyOf(groupAnalyzer.groupExprs));
       } else {
         final Resolved resolved = this.resolved.get();
         return Pair.of(resolved.extraExprList, resolved.groupExprList);
@@ -232,7 +224,7 @@ public class AggregatingSelectScope
   /** Information about an aggregating scope that can only be determined
    * after validation has occurred. Therefore it cannot be populated when
    * the scope is created. */
-  public class Resolved {
+  public static class Resolved {
     public final ImmutableList<SqlNode> extraExprList;
     public final ImmutableList<SqlNode> groupExprList;
     public final ImmutableBitSet groupSet;

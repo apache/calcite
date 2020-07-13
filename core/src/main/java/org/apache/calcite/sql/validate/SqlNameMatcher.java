@@ -19,6 +19,8 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import com.google.common.collect.Iterables;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,6 +65,11 @@ public interface SqlNameMatcher {
    *
    * <p>Similar to {@link java.util.Collections#frequency}. */
   int frequency(Iterable<String> names, String name);
+
+  /** Returns the index of the first element of a collection that matches. */
+  default int indexOf(Iterable<String> names, String name) {
+    return Iterables.indexOf(names, n -> matches(n, name));
+  }
 
   /** Creates a set that has the same case-sensitivity as this matcher. */
   Set<String> createSet();

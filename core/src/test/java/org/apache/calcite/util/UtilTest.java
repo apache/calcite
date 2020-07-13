@@ -31,6 +31,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.util.IdPair;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.test.DiffTestCase;
@@ -39,6 +40,7 @@ import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
@@ -105,6 +107,8 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1114,6 +1118,47 @@ class UtilTest {
     assertThat(list2.appendAll(list), sameInstance(list2));
     //noinspection CollectionAddedToSelf
     assertThat(list2.appendAll(list2), is(Arrays.asList(1, 3, 5, 1, 3, 5)));
+  }
+
+  /** Unit test for {@link IdPair}. */
+  @Test void testIdPair() {
+    final IdPair<Integer, Integer> p0OneTwo = IdPair.of(1, 2);
+    final IdPair<Integer, Integer> p1OneTwo = IdPair.of(1, 2);
+    final IdPair<Integer, Integer> p1TwoOne = IdPair.of(2, 1);
+    assertEquals(p0OneTwo, p0OneTwo);
+    assertEquals(p0OneTwo, p1OneTwo);
+    assertEquals(p0OneTwo.hashCode(), p1OneTwo.hashCode());
+    assertNotEquals(p0OneTwo, p1TwoOne);
+
+    final String s0 = "xy";
+
+    // p0s0One and p1s0One are different objects but are equal because their
+    // contents are the same objects
+    final IdPair<String, Integer> p0s0One = IdPair.of(s0, 1);
+    final IdPair<String, Integer> p1s0One = IdPair.of(s0, 1);
+    assertNotSame(p0s0One, p1s0One); // different objects, but are equal
+    assertEquals(p0s0One, p0s0One);
+    assertEquals(p0s0One, p1s0One);
+    assertEquals(p1s0One, p0s0One);
+    assertEquals(p0s0One.hashCode(), p1s0One.hashCode());
+
+    // A copy of "s0" that is equal but not the same object
+    final String s1 = s0.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT);
+    assertEquals(s0, s1);
+    assertNotSame(s0, s1);
+
+    // p0s1One is not equal to p0s0One because s1 is not the same object as s0
+    final IdPair<String, Integer> p0s1One = IdPair.of(s1, 1);
+    assertNotEquals(p0s0One, p0s1One);
+    assertEquals(p0s1One.hashCode(), p0s1One.hashCode());
+
+    final Set<IdPair<?, ?>> set =
+        ImmutableSet.of(p0OneTwo, p1OneTwo, p1TwoOne,
+            p0s0One, p1s0One, p0s1One);
+    assertThat(set.size(), is(4));
+    final String[] expected = {"1=2", "2=1", "xy=1", "xy=1"};
+    assertThat(set.stream().map(IdPair::toString).sorted().toArray(),
+        is(expected));
   }
 
   /**

@@ -88,6 +88,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.IdPair;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -182,37 +183,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
 
   /**
-   * Maps a {@link SqlSelect} node to the scope used by its WHERE and HAVING
-   * clauses.
+   * Maps a {@link SqlSelect} and a clause to the scope used by that clause.
    */
-  private final Map<SqlSelect, SqlValidatorScope> whereScopes =
-      new IdentityHashMap<>();
-
-  /**
-   * Maps a {@link SqlSelect} node to the scope used by its GROUP BY clause.
-   */
-  private final Map<SqlSelect, SqlValidatorScope> groupByScopes =
-      new IdentityHashMap<>();
-
-  /**
-   * Maps a {@link SqlSelect} node to the scope used by its SELECT and HAVING
-   * clauses.
-   */
-  private final Map<SqlSelect, SqlValidatorScope> selectScopes =
-      new IdentityHashMap<>();
-
-  /**
-   * Maps a {@link SqlSelect} node to the scope used by its ORDER BY clause.
-   */
-  private final Map<SqlSelect, SqlValidatorScope> orderScopes =
-      new IdentityHashMap<>();
-
-  /**
-   * Maps a {@link SqlSelect} node that is the argument to a CURSOR
-   * constructor to the scope of the result of that select node.
-   */
-  private final Map<SqlSelect, SqlValidatorScope> cursorScopes =
-      new IdentityHashMap<>();
+  private final Map<IdPair<SqlSelect, Clause>, SqlValidatorScope>
+      clauseScopes = new HashMap<>();
 
   /**
    * The name-resolution scope of a LATERAL TABLE clause.
@@ -377,7 +351,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // that is the argument to the cursor constructor; register it
     // with a scope corresponding to the cursor
     SelectScope cursorScope = new SelectScope(parentScope, null, select);
-    cursorScopes.put(select, cursorScope);
+    clauseScopes.put(IdPair.of(select, Clause.CURSOR), cursorScope);
     final SelectNamespace selectNs = createSelectNamespace(select, select);
     String alias = deriveAlias(select, nextGeneratedId++);
     registerNamespace(cursorScope, alias, selectNs, false);
@@ -1099,15 +1073,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlValidatorScope getCursorScope(SqlSelect select) {
-    return cursorScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.CURSOR));
   }
 
   public SqlValidatorScope getWhereScope(SqlSelect select) {
-    return whereScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.WHERE));
   }
 
   public SqlValidatorScope getSelectScope(SqlSelect select) {
-    return selectScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.SELECT));
   }
 
   public SelectScope getRawSelectScope(SqlSelect select) {
@@ -1120,12 +1094,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public SqlValidatorScope getHavingScope(SqlSelect select) {
     // Yes, it's the same as getSelectScope
-    return selectScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.SELECT));
   }
 
   public SqlValidatorScope getGroupScope(SqlSelect select) {
     // Yes, it's the same as getWhereScope
-    return groupByScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.GROUP_BY));
   }
 
   public SqlValidatorScope getFromScope(SqlSelect select) {
@@ -1133,7 +1107,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlValidatorScope getOrderScope(SqlSelect select) {
-    return orderScopes.get(select);
+    return clauseScopes.get(IdPair.of(select, Clause.ORDER));
   }
 
   public SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node) {
@@ -2541,7 +2515,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(select, selectScope);
 
       // Start by registering the WHERE clause
-      whereScopes.put(select, selectScope);
+      clauseScopes.put(IdPair.of(select, Clause.WHERE), selectScope);
       registerOperandSubQueries(
           selectScope,
           select,
@@ -2575,14 +2549,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (isAggregate(select)) {
         aggScope =
             new AggregatingSelectScope(selectScope, select, false);
-        selectScopes.put(select, aggScope);
+        clauseScopes.put(IdPair.of(select, Clause.SELECT), aggScope);
       } else {
-        selectScopes.put(select, selectScope);
+        clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope);
       }
       if (select.getGroup() != null) {
         GroupByScope groupByScope =
             new GroupByScope(selectScope, select.getGroup(), select);
-        groupByScopes.put(select, groupByScope);
+        clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
         registerSubQueries(groupByScope, select.getGroup());
       }
       registerOperandSubQueries(
@@ -2600,7 +2574,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         OrderByScope orderScope =
             new OrderByScope(aggScope, orderList, select);
-        orderScopes.put(select, orderScope);
+        clauseScopes.put(IdPair.of(select, Clause.ORDER), orderScope);
         registerSubQueries(orderScope, orderList);
 
         if (!isAggregate(select)) {
@@ -2758,7 +2732,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // validation check
       if (mergeCall.getUpdateCall() != null) {
         registerQuery(
-            whereScopes.get(mergeCall.getSourceSelect()),
+            clauseScopes.get(IdPair.of(mergeCall.getSourceSelect(), Clause.WHERE)),
             null,
             mergeCall.getUpdateCall(),
             enclosingNode,
@@ -6643,4 +6617,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     VALID
   }
 
+  /** Allows {@link #clauseScopes} to have multiple values per SELECT. */
+  private enum Clause {
+    WHERE,
+    GROUP_BY,
+    SELECT,
+    ORDER,
+    CURSOR
+  }
 }
