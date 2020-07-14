@@ -468,7 +468,7 @@ class RelSet {
   /**
    * An enum representing exploring state of current RelSet
    */
-  public enum ExploringState {
+  enum ExploringState {
     /**
      * The RelSet is exploring.
      * It means all possible rule matches are scheduled, but not fully applied.

@@ -31,13 +31,13 @@ import java.util.function.Predicate;
 /**
  * A rule queue that manage rule matches for cascade planner
  */
-public class CascadesRuleQueue extends RuleQueue {
+class CascadesRuleQueue extends RuleQueue {
 
   private final Map<RelNode, List<VolcanoRuleMatch>> matches = new HashMap<>();
 
   private final Set<String> names = new HashSet<>();
 
-  public CascadesRuleQueue(VolcanoPlanner planner) {
+  CascadesRuleQueue(VolcanoPlanner planner) {
     super(planner);
   }
 

@@ -503,6 +503,10 @@ public class RelSubset extends AbstractRelNode {
       .filter(s -> traitSet.satisfies(s.getTraitSet()));
   }
 
+  /**
+   * @return the best cost or null if the subset is not fully optimized
+   */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public RelOptCost getWinnerCost() {
     if (taskState == OptimizeState.COMPLETED && bestCost.isLe(upperBound)) {
       return bestCost;
@@ -511,7 +515,7 @@ public class RelSubset extends AbstractRelNode {
     return null;
   }
 
-  public void startOptimize(RelOptCost ub) {
+  void startOptimize(RelOptCost ub) {
     assert getWinnerCost() == null : this + " is already optimized";
     if (upperBound.isLt(ub)) {
       upperBound = ub;
@@ -522,18 +526,18 @@ public class RelSubset extends AbstractRelNode {
     taskState = OptimizeState.OPTIMIZING;
   }
 
-  public void optimized() {
+  void optimized() {
     taskState = OptimizeState.COMPLETED;
   }
 
-  public boolean resetOptimizing() {
+  boolean resetOptimizing() {
     boolean optimized = taskState != null;
     taskState = null;
     upperBound = bestCost;
     return optimized;
   }
 
-  public RelNode passThrough(RelNode rel) {
+  RelNode passThrough(RelNode rel) {
     if (!(rel instanceof PhysicalNode)) {
       return null;
     }
@@ -546,11 +550,11 @@ public class RelSubset extends AbstractRelNode {
     return ((PhysicalNode) rel).passThrough(this.getTraitSet());
   }
 
-  public boolean isExplored() {
+  boolean isExplored() {
     return set.exploringState == RelSet.ExploringState.EXPLORED;
   }
 
-  public boolean explore() {
+  boolean explore() {
     if (set.exploringState != null) {
       return false;
     }
@@ -558,7 +562,7 @@ public class RelSubset extends AbstractRelNode {
     return true;
   }
 
-  public void setExplored() {
+  void setExplored() {
     set.exploringState = RelSet.ExploringState.EXPLORED;
   }
 

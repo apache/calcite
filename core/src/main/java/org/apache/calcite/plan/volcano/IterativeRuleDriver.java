@@ -61,6 +61,7 @@ class IterativeRuleDriver implements RuleDriver {
         try {
           match.onMatch();
         } catch (VolcanoTimeoutException e) {
+          LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
           planner.canonize();
           ruleQueue.phaseCompleted(phase);
           break PLANNING;

@@ -21,7 +21,7 @@ import org.apache.calcite.rel.RelNode;
 /**
  * A rule driver applies rules with designed algorithms
  */
-public interface RuleDriver {
+interface RuleDriver {
 
   /**
    * gets the rule queue

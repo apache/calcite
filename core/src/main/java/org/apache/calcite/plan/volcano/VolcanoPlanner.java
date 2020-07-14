@@ -60,6 +60,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.apiguardian.api.API;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
@@ -1381,6 +1383,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel the specific rel node
    * @return true if the relnode is a logical node
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public boolean isLogical(RelNode rel) {
     return !(rel instanceof PhysicalNode)
         && rel.getConvention() != rootConvention;
@@ -1391,6 +1394,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param match the rule match to check
    * @return true if the rule match is a substitute rule match
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isSubstituteRule(VolcanoRuleCall match) {
     return match.getRule() instanceof SubstitutionRule;
   }
@@ -1400,6 +1404,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param match the rule match to check
    * @return true if the rule match is a transformation rule match
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isTransformationRule(VolcanoRuleCall match) {
     if (match.getRule() instanceof SubstitutionRule) {
       return true;
@@ -1418,6 +1423,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel the rel node
    * @return the lower bound cost of the given rel. The value is ensured NOT NULL.
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected RelOptCost getLowerBound(RelNode rel) {
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptCost lowerBound = mq.getLowerBoundCost(rel, this);
@@ -1432,6 +1438,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * A match match with inputs whose Sum(LB) is higher than upper bound
    * needs not to be applied
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected RelOptCost getLowerBound(RelOptRuleCall match) {
     return getLowerBoundInternal(match, match.getOperand0());
   }
@@ -1461,6 +1468,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Allow users to overwrite this method as some implementations may have
    * different cost model on some RelNodes, like Spool.
    */
+  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected RelOptCost upperBoundForInputs(
       RelNode mExpr, RelOptCost upperBound) {
     if (!upperBound.isInfinite()) {
