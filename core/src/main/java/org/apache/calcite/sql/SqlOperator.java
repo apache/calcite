@@ -930,6 +930,17 @@ public abstract class SqlOperator {
   }
 
   /**
+   * Returns whether a call to this operator is not sensitive to the operands input order.
+   * An operator is symmetrical if the call returns the same result when
+   * the operands are shuffled.
+   *
+   * <p>By default, returns true for {@link SqlKind#SYMMETRICAL}.
+   */
+  public boolean isSymmetrical() {
+    return SqlKind.SYMMETRICAL.contains(kind);
+  }
+
+  /**
    * Returns whether it is unsafe to cache query plans referencing this
    * operator; false is assumed by default
    */

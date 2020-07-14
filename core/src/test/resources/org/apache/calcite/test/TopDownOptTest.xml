@@ -579,7 +579,7 @@ on r.job=s.job and r.ename=s.ename]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], EXPR$2=[$6])
-  LogicalJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
     LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
       LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
@@ -606,7 +606,7 @@ on r.job=s.job and r.ename=s.ename]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], MGR=[$6], EXPR$3=[$7])
-  LogicalJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
     LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[MAX($3)])
       LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])

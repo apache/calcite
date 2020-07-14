@@ -16,11 +16,8 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import org.apiguardian.api.API;
 
 import java.util.Collection;
 
@@ -39,17 +36,6 @@ import java.util.Collection;
  * <p>All sub-classes of RexNode are immutable.</p>
  */
 public abstract class RexNode {
-
-  /**
-   * The digest of {@code RexNode} is normalized by default, however, sometimes a non-normalized
-   * representation is required.
-   * This method enables subclasses to identify if normalization is required.
-   * @return true if the digest needs to be normalized
-   */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  protected static boolean needNormalize() {
-    return CalciteSystemProperty.ENABLE_REX_DIGEST_NORMALIZE.value();
-  }
 
   //~ Instance fields --------------------------------------------------------
 

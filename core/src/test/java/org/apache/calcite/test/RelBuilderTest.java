@@ -1978,7 +1978,7 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     final String expectedWithoutSimplify = ""
         + "LogicalJoin(condition=[OR(null:NULL, "
-        + "AND(=($7, 1), =($7, 2), =($7, $8)))], joinType=[inner])\n"
+        + "AND(=($7, 1), =($7, 2), =($8, $7)))], joinType=[inner])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
@@ -2151,7 +2151,7 @@ public class RelBuilderTest {
                     builder.field("e", "MGR")))
             .build();
     final String expected = ""
-        + "LogicalFilter(condition=[AND(=($7, $16), =($3, $8))])\n"
+        + "LogicalFilter(condition=[AND(=($7, $16), =($8, $3))])\n"
         + "  LogicalJoin(condition=[true], joinType=[inner])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalJoin(condition=[true], joinType=[inner])\n"
