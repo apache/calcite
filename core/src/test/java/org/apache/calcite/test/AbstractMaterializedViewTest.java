@@ -109,7 +109,7 @@ public abstract class AbstractMaterializedViewTest {
       for (RelNode sub: substitutes) {
         substituteMessages.append(RelOptUtil.toString(sub)).append("\n");
       }
-      throw new AssertionError("Materialized view failed to be matched by optmized results:\n"
+      throw new AssertionError("Materialized view failed to be matched by optimized results:\n"
           + substituteMessages.toString());
     }
   }
@@ -125,7 +125,7 @@ public abstract class AbstractMaterializedViewTest {
       return;
     }
     final StringBuilder errMsgBuilder = new StringBuilder();
-    errMsgBuilder.append("Optmization succeeds out of expectation: ");
+    errMsgBuilder.append("Optimization succeeds out of expectation: ");
     for (RelNode res: results) {
       errMsgBuilder.append(RelOptUtil.toString(res)).append("\n");
     }
