@@ -96,10 +96,10 @@ class EnumerableCorrelateTest {
         })
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
-            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+            + "  EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t6, $t1)], proj#0..2=[{exprs}], $condition=[$t7])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.deptno], expr#7=[=($t6, $t1)], proj#0..2=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[s, emps]])")
         .returnsUnordered(
             "empid=100; name=Bill",
@@ -126,10 +126,10 @@ class EnumerableCorrelateTest {
         })
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
-            + "  EnumerableCorrelate(correlation=[$cor2], joinType=[inner], requiredColumns=[{0}])\n"
+            + "  EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[100], expr#6=[>($t0, $t5)], expr#7=[$cor2], expr#8=[$t7.deptno], expr#9=[=($t8, $t1)], expr#10=[AND($t6, $t9)], proj#0..2=[{exprs}], $condition=[$t10])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.deptno], expr#7=[=($t6, $t1)], expr#8=[100], expr#9=[>($t0, $t8)], expr#10=[AND($t7, $t9)], proj#0..2=[{exprs}], $condition=[$t10])\n"
             + "      EnumerableTableScan(table=[[s, emps]])")
         .returnsUnordered(
             "empid=110; name=Theodore",

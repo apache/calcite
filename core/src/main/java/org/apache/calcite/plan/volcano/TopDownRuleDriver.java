@@ -755,9 +755,6 @@ class TopDownRuleDriver implements RuleDriver {
           return;
         }
       }
-      // in case there would be some implementations using rules to
-      // e traits
-      tasks.push(new ApplyRules(mExpr, group, false));
       if (!passThroughCache.contains(mExpr)) {
         applyGenerator(this, this::derive);
       }

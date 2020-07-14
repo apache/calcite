@@ -100,8 +100,8 @@ class CassandraAdapterTest {
         .returns("tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12\n"
                + "tweet_id=f3dbb03a-d05b-11e5-b58b-90e2ba530b12\n")
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
-                + "  CassandraProject(tweet_id=[$2])\n"
-                + "    CassandraLimit(fetch=[2])\n"
+                + "  CassandraLimit(fetch=[2])\n"
+                + "    CassandraProject(tweet_id=[$2])\n"
                 + "      CassandraFilter(condition=[=($0, '!PUBLIC!')])\n");
   }
 

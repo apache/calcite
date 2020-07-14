@@ -494,7 +494,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             resultContains(
             "EnumerableAggregate(group=[{0}])",
             "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{1}])",
+            "EnumerableAggregate(group=[{2}])",
             "EnumerableTableScan(table=[[hr, MV0]])",
             "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
         .ok();
@@ -710,8 +710,8 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
                 + "empid=[$t0], EXPR$1=[$t3])\n"
                 + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
             "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{1}], agg#0=[COUNT()])",
-            "EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
+            "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
+            "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
             "EnumerableTableScan(table=[[hr, MV0]])",
             "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
         .ok();
@@ -794,7 +794,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "join \"depts\" using (\"deptno\") where \"empid\" = 1")
         .withChecker(
             resultContains(""
-            + "EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[CAST($t0):INTEGER NOT NULL], "
+            + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], expr#2=[1], "
             + "expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
@@ -892,7 +892,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             resultContains(
             "EnumerableUnion(all=[true])",
             "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#4=[10], expr#5=[>($t0, $t4)], expr#6=[30], expr#7=[>=($t6, $t0)]"))
+            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"))
         .ok();
   }
 
