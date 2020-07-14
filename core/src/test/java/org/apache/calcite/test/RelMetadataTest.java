@@ -2044,7 +2044,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "select empno, comm, deptno from emp where empno=1 and comm=4");
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"));
+        // Because the hashCode for
+        // OR(AND(=($1, 2), =($2, 3)) and
+        // OR(AND(=($2, 3), =($1, 2)) are the same, the result is flipped and not stable,
+        // but they both are correct.
+        CoreMatchers.anyOf(
+            sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"),
+            sortsAs("[=($0, 1), OR(AND(=($2, 3), =($1, 2)), =($1, 4))]")));
 
   }
 

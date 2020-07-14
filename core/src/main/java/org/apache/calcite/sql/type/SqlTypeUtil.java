@@ -1188,6 +1188,34 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * This is a poorman's
+   * {@link #equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}.
+   *
+   * <p>We assume that "not null" is represented in the type's digest
+   * as a trailing "NOT NULL" (case sensitive).
+   *
+   * <p>If you got a type factory, {@link #equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}
+   * is preferred.
+   *
+   * @param type1 First type
+   * @param type2 Second type
+   * @return true if the types are equal or the only difference is nullability
+   */
+  public static boolean equalSansNullability(RelDataType type1, RelDataType type2) {
+    String x = type1.getFullTypeString();
+    String y = type2.getFullTypeString();
+    if (x.length() < y.length()) {
+      String c = x;
+      x = y;
+      y = c;
+    }
+
+    return (x.length() == y.length()
+        || x.length() == y.length() + 9 && x.endsWith(" NOT NULL"))
+        && x.startsWith(y);
+  }
+
+  /**
    * Returns whether two collection types are equal, ignoring nullability.
    *
    * <p>They need not come from the same factory.

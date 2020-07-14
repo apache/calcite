@@ -234,9 +234,9 @@ class LatticeTest {
           final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
               adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
           final Lattice lattice = entry.getValue().getLattice();
-          assertThat(lattice.firstColumn("S"), is(0));
-          assertThat(lattice.firstColumn("P"), is(8));
-          assertThat(lattice.firstColumn("T"), is(23));
+          assertThat(lattice.firstColumn("S"), is(10));
+          assertThat(lattice.firstColumn("P"), is(18));
+          assertThat(lattice.firstColumn("T"), is(0));
           assertThat(lattice.firstColumn("PC"), is(-1));
           assertThat(lattice.defaultMeasures.size(), is(1));
           assertThat(lattice.rootNode.descendants.size(), is(3));

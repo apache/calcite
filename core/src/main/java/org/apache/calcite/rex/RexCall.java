@@ -18,12 +18,11 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
@@ -58,11 +57,16 @@ public class RexCall extends RexNode {
   public final ImmutableList<RexNode> operands;
   public final RelDataType type;
   public final int nodeCount;
+
   /**
    * Cache of hash code.
    */
   protected int hash = 0;
 
+  /**
+   * Cache of normalized variables used for #equals and #hashCode.
+   */
+  private Pair<SqlOperator, List<RexNode>> normalized;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,11 +75,8 @@ public class RexCall extends RexNode {
       SqlOperator op,
       List<? extends RexNode> operands) {
     this.type = Objects.requireNonNull(type, "type");
-    Objects.requireNonNull(op, "operator");
-    final Pair<SqlOperator, ImmutableList<RexNode>> normalized =
-        normalize(op, operands);
-    this.op = normalized.left;
-    this.operands = normalized.right;
+    this.op = Objects.requireNonNull(op, "operator");
+    this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
     assert op.getKind() != null : op;
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
@@ -119,7 +120,7 @@ public class RexCall extends RexNode {
         RexNode otherArg = operands.get(1 - i);
         if ((!(otherArg instanceof RexLiteral)
             || ((RexLiteral) otherArg).digestIncludesType() == RexDigestIncludeType.NO_TYPE)
-            && equalSansNullability(operand.getType(), otherArg.getType())) {
+            && SqlTypeUtil.equalSansNullability(operand.getType(), otherArg.getType())) {
           includeType = RexDigestIncludeType.NO_TYPE;
         }
       }
@@ -137,81 +138,6 @@ public class RexCall extends RexNode {
       }
       sb.append(op);
     }
-  }
-
-  private Pair<SqlOperator, ImmutableList<RexNode>> normalize(
-      SqlOperator operator,
-      List<? extends RexNode> operands) {
-    final ImmutableList<RexNode> oldOperands = ImmutableList.copyOf(operands);
-    final Pair<SqlOperator, ImmutableList<RexNode>> original = Pair.of(operator, oldOperands);
-    if (!needNormalize()) {
-      return original;
-    }
-    if (operands.size() != 2
-        || !operands.stream().allMatch(operand -> operand.getClass() == RexInputRef.class)) {
-      return original;
-    }
-    final RexInputRef operand0 = (RexInputRef) operands.get(0);
-    final RexInputRef operand1 = (RexInputRef) operands.get(1);
-    final SqlKind kind = operator.getKind();
-    if (operand0.getIndex() < operand1.getIndex()) {
-      return original;
-    }
-    // If arguments are the same, then we normalize < vs >
-    // '<' == 60, '>' == 62, so we prefer <.
-    if (operand0.getIndex() == operand1.getIndex()) {
-      if (kind.reverse().compareTo(kind) < 0) {
-        return Pair.of(SqlStdOperatorTable.reverse(operator), oldOperands);
-      } else {
-        return original;
-      }
-    }
-
-    if (SqlKind.SYMMETRICAL_SAME_ARG_TYPE.contains(kind)) {
-      final RelDataType firstType = operands.get(0).getType();
-      for (int i = 1; i < operands.size(); i++) {
-        if (!equalSansNullability(firstType, operands.get(i).getType())) {
-          // Arguments have different type, thus they must not be sorted
-          return original;
-        }
-      }
-      // fall through: order arguments below
-    } else if (!SqlKind.SYMMETRICAL.contains(kind)
-        && kind == kind.reverse()) {
-      // The operations have to be either symmetrical or reversible
-      // Nothing matched => we skip argument sorting
-      return original;
-    }
-    // $0=$1 is the same as $1=$0, so we make sure the digest is the same for them.
-
-    // When $1 > $0 is normalized, the operation needs to be flipped
-    // So we sort arguments first, then flip the sign.
-    final SqlOperator newOp = SqlStdOperatorTable.reverse(operator);
-    final ImmutableList<RexNode> newOperands = ImmutableList.of(operand1, operand0);
-    return Pair.of(newOp, newOperands);
-  }
-
-  /**
-   * This is a poorman's
-   * {@link org.apache.calcite.sql.type.SqlTypeUtil#equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}
-   * <p>{@code SqlTypeUtil} requires {@link RelDataTypeFactory} which we haven't, so we assume that
-   * "not null" is represented in the type's digest as a trailing "NOT NULL" (case sensitive)
-   * @param a first type
-   * @param b second type
-   * @return true if the types are equal or the only difference is nullability
-   */
-  private static boolean equalSansNullability(RelDataType a, RelDataType b) {
-    String x = a.getFullTypeString();
-    String y = b.getFullTypeString();
-    if (x.length() < y.length()) {
-      String c = x;
-      x = y;
-      y = c;
-    }
-
-    return (x.length() == y.length()
-        || x.length() == y.length() + 9 && x.endsWith(" NOT NULL"))
-        && x.startsWith(y);
   }
 
   protected @Nonnull String computeDigest(boolean withType) {
@@ -318,6 +244,13 @@ public class RexCall extends RexNode {
     return new RexCall(type, op, operands);
   }
 
+  private Pair<SqlOperator, List<RexNode>> getNormalized() {
+    if (this.normalized == null) {
+      this.normalized = RexNormalize.normalize(this.op, this.operands);
+    }
+    return this.normalized;
+  }
+
   @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -325,15 +258,17 @@ public class RexCall extends RexNode {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+    Pair<SqlOperator, List<RexNode>> x = getNormalized();
     RexCall rexCall = (RexCall) o;
-    return op.equals(rexCall.op)
-        && operands.equals(rexCall.operands)
+    Pair<SqlOperator, List<RexNode>> y = rexCall.getNormalized();
+    return x.left.equals(y.left)
+        && x.right.equals(y.right)
         && type.equals(rexCall.type);
   }
 
   @Override public int hashCode() {
     if (hash == 0) {
-      hash = Objects.hash(op, operands);
+      hash = RexNormalize.hashCode(this.op, this.operands);
     }
     return hash;
   }

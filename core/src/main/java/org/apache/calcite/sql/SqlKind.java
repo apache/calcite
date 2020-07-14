@@ -1387,9 +1387,9 @@ public enum SqlKind {
   public static final Set<SqlKind> SIMPLE_BINARY_OPS;
 
   static {
-    EnumSet<SqlKind> kinds = EnumSet.of(SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES, SqlKind.DIVIDE);
-    kinds.addAll(SqlKind.COMPARISON);
-    kinds.remove(SqlKind.IN);
+    EnumSet<SqlKind> kinds = EnumSet.copyOf(SqlKind.BINARY_ARITHMETIC);
+    kinds.remove(SqlKind.MOD);
+    kinds.addAll(SqlKind.BINARY_COMPARISON);
     SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
   }
 
