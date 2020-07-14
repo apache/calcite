@@ -482,35 +482,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
 
     @Override public void perform() {
-      if (!exploring && !planner.isLogical(match.rel(0)) && !checkLowerBound()) {
-        // for implementation and enforcing rules,
-        // we can skip rule match by checking the lower bound
-        // however, we cannot decide LB for logical nodes,
-        // so we only check enforcing rules now
-        if (!group.getTraitSet().satisfies(match.rels[0].getTraitSet())) {
-          // the match cannot be discarded directly
-          // because of another subset's upper bound
-          ruleQueue.addMatch(match);
-        }
-        return;
-      }
-
       applyGenerator(this, match::onMatch);
-    }
-
-    private boolean checkLowerBound() {
-      RelOptCost upperBound = group.upperBound;
-      if (upperBound.isInfinite()) {
-        return true;
-      }
-      RelOptCost lb = planner.getLowerBound(match);
-      if (upperBound.isLe(lb)) {
-        LOGGER.debug(
-            "Skip because of lower bound. LB = {}, UP = {}",
-            lb, upperBound);
-        return false;
-      }
-      return true;
     }
 
     @Override public RelSubset group() {
@@ -553,10 +525,15 @@ class TopDownRuleDriver implements RuleDriver {
 
   private RelNode convert(RelNode rel, RelSubset group) {
     if (!passThroughCache.contains(rel)) {
-      RelNode passThrough = group.passThrough(rel);
-      if (passThrough != null) {
-        passThroughCache.add(passThrough);
-        return passThrough;
+      if (checkLowerBound(rel, group)) {
+        RelNode passThrough = group.passThrough(rel);
+        if (passThrough != null) {
+          passThroughCache.add(passThrough);
+          return passThrough;
+        }
+      } else {
+        LOGGER.debug("Skip pass though because of lower bound. LB = {}, UP = {}",
+            rel, group.upperBound);
       }
     }
     VolcanoRuleMatch match = ruleQueue.popMatch(
@@ -567,6 +544,15 @@ class TopDownRuleDriver implements RuleDriver {
       tasks.add(new ApplyRule(match, group, false));
     }
     return null;
+  }
+
+  private boolean checkLowerBound(RelNode rel, RelSubset group) {
+    RelOptCost upperBound = group.upperBound;
+    if (upperBound.isInfinite()) {
+      return true;
+    }
+    RelOptCost lb = planner.getLowerBound(rel);
+    return !upperBound.isLe(lb);
   }
 
   /**

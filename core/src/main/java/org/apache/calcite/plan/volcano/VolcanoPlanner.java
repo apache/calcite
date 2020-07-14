@@ -1434,36 +1434,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Gets the lower bound cost of a RelOptRuleCall.
-   * A match match with inputs whose Sum(LB) is higher than upper bound
-   * needs not to be applied
-   */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected RelOptCost getLowerBound(RelOptRuleCall match) {
-    return getLowerBoundInternal(match, match.getOperand0());
-  }
-
-  private RelOptCost getLowerBoundInternal(
-      RelOptRuleCall match, RelOptRuleOperand op) {
-    List<RelOptRuleOperand> children = op.getChildOperands();
-    if (children == null || children.isEmpty()) {
-      RelNode rel = match.rel(op.ordinalInRule);
-      RelOptCost sum = zeroCost;
-      for (RelNode input : rel.getInputs()) {
-        RelOptCost lb = getLowerBound(input);
-        sum = sum == zeroCost ? lb : sum.plus(lb);
-      }
-      return sum;
-    }
-    RelOptCost sum = null;
-    for (RelOptRuleOperand child : children) {
-      RelOptCost lb = getLowerBoundInternal(match, child);
-      sum = sum == null ? lb : sum.plus(lb);
-    }
-    return sum;
-  }
-
-  /**
    * Gets the upper bound of its inputs.
    * Allow users to overwrite this method as some implementations may have
    * different cost model on some RelNodes, like Spool.
