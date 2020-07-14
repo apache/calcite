@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * A rule queue that manage rule matches for cascade planner
+ * A rule queue that manage rule matches for cascade planner.
  */
 class CascadesRuleQueue extends RuleQueue {
 

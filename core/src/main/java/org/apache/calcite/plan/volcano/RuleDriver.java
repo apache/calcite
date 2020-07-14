@@ -19,35 +19,35 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.rel.RelNode;
 
 /**
- * A rule driver applies rules with designed algorithms
+ * A rule driver applies rules with designed algorithms.
  */
 interface RuleDriver {
 
   /**
-   * gets the rule queue
+   * Gets the rule queue.
    */
   RuleQueue getRuleQueue();
 
   /**
-   * apply rules
+   * Apply rules.
    */
   void drive();
 
   /**
-   * callback when new RelNodes are added into RelSet
+   * Callback when new RelNodes are added into RelSet.
    * @param rel the new RelNode
    * @param subset subset to add
    */
   void onProduce(RelNode rel, RelSubset subset);
 
   /**
-   * callback when RelSets are merged
+   * Callback when RelSets are merged.
    * @param set the merged result set
    */
   void onSetMerged(RelSet set);
 
   /**
-   * clear this RuleDriver
+   * Clear this RuleDriver.
    */
   void clear();
 }

@@ -130,13 +130,13 @@ public class RelSubset extends AbstractRelNode {
   private boolean enforceDisabled = false;
 
   /**
-   * The upper bound of the last OptimizeGroup call
+   * The upper bound of the last OptimizeGroup call.
    */
   RelOptCost upperBound;
 
   /**
    * A cache that recognize which RelNode has invoked the passThrough method
-   * so as to avoid duplicate invocation
+   * so as to avoid duplicate invocation.
    */
   Set<RelNode> passThroughCache;
 
@@ -504,7 +504,8 @@ public class RelSubset extends AbstractRelNode {
   }
 
   /**
-   * @return the best cost or null if the subset is not fully optimized
+   * Returns the best cost if this subset is fully optimized
+   * or null if the subset is not fully optimized.
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public RelOptCost getWinnerCost() {

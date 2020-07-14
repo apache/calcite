@@ -622,12 +622,12 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata to get the lower bound cost of a RelNode */
+  /** Metadata to get the lower bound cost of a RelNode. */
   public interface LowerBoundCost extends Metadata {
     MetadataDef<LowerBoundCost> DEF = MetadataDef.of(LowerBoundCost.class,
         LowerBoundCost.Handler.class, BuiltInMethod.LOWER_BOUND_COST.method);
 
-    /** Returns the lower bound cost of a RelNode */
+    /** Returns the lower bound cost of a RelNode. */
     RelOptCost getLowerBoundCost(VolcanoPlanner planner);
 
     /** Handler API. */

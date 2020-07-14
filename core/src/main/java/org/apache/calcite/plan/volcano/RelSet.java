@@ -75,7 +75,7 @@ class RelSet {
   RelNode rel;
 
   /**
-   * Exploring state of current RelSet
+   * Exploring state of current RelSet.
    */
   ExploringState exploringState;
 
@@ -466,7 +466,7 @@ class RelSet {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * An enum representing exploring state of current RelSet
+   * An enum representing exploring state of current RelSet.
    */
   enum ExploringState {
     /**

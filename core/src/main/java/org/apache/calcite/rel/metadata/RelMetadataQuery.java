@@ -849,7 +849,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
-   * Returns the lower bound cost of a RelNode
+   * Returns the lower bound cost of a RelNode.
    */
   public RelOptCost getLowerBoundCost(RelNode rel, VolcanoPlanner planner) {
     for (;;) {

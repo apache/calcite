@@ -136,7 +136,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final Set<RelOptSchema> registeredSchemas = new HashSet<>();
 
   /**
-   * Holds rule calls waiting to be fired.
+   * A driver to manage rule and rule matches.
    */
   RuleDriver ruleDriver;
 
@@ -188,7 +188,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
 
   /**
-   * extra roots for explorations
+   * Extra roots for explorations.
    */
   Set<RelSubset> explorationRoots = new HashSet<>();
 
@@ -1379,9 +1379,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * decide whether a rule is logical or not
-   * @param rel the specific rel node
-   * @return true if the relnode is a logical node
+   * Decide whether a rule is logical or not.
+   * @param rel The specific rel node
+   * @return True if the relnode is a logical node
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public boolean isLogical(RelNode rel) {
@@ -1390,9 +1390,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * check whether a rule match is a substitute rule match
-   * @param match the rule match to check
-   * @return true if the rule match is a substitute rule match
+   * Check whether a rule match is a substitute rule match.
+   * @param match The rule match to check
+   * @return True if the rule match is a substitute rule match
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isSubstituteRule(VolcanoRuleCall match) {
@@ -1400,9 +1400,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * check whether a rule match is a transformation rule match
-   * @param match the rule match to check
-   * @return true if the rule match is a transformation rule match
+   * Check whether a rule match is a transformation rule match.
+   * @param match The rule match to check
+   * @return True if the rule match is a transformation rule match
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isTransformationRule(VolcanoRuleCall match) {
@@ -1419,9 +1419,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
 
   /**
-   * gets the lower bound cost of a relational operator
-   * @param rel the rel node
-   * @return the lower bound cost of the given rel. The value is ensured NOT NULL.
+   * Gets the lower bound cost of a relational operator.
+   * @param rel The rel node
+   * @return The lower bound cost of the given rel. The value is ensured NOT NULL.
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected RelOptCost getLowerBound(RelNode rel) {

@@ -37,14 +37,14 @@ public abstract class RuleQueue {
   }
 
   /**
-   * Add a RuleMatch into the queue
+   * Add a RuleMatch into the queue.
    * @param match rule match to add
    */
   public abstract void addMatch(VolcanoRuleMatch match);
 
   /**
    * clear this rule queue.
-   * The return value indicates whether the rule queue was empty before clear
+   * The return value indicates whether the rule queue was empty before clear.
    * @return true if the rule queue was not empty
    */
   public abstract boolean clear();
