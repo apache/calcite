@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexUtil;
 
 /**
  * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
@@ -33,7 +34,8 @@ class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
   static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
-      .withConversion(LogicalProject.class, p -> !p.containsOver(),
+      .withConversion(LogicalProject.class,
+          p -> !p.containsOver() && !RexUtil.M2V_FINDER.inProject(p),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableProjectRule")
       .withRuleFactory(EnumerableProjectRule::new);

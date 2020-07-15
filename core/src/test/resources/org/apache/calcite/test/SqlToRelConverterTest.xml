@@ -4561,6 +4561,69 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasure1">
+    <Resource name="sql">
+      <![CDATA[select * from (
+  select deptno,
+    empno + 1 as measure e1,
+    e1 + deptno as measure e2
+  from emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], E1=[+($0, 1)], E2=[+(+($0, 1), $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasure2">
+    <Resource name="sql">
+      <![CDATA[select * from (
+  select deptno,
+    empno + 1 as e1,
+    e1 + deptno as measure e2
+  from emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], E1=[+($0, 1)], E2=[+(+($0, 1), $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasure3">
+    <Resource name="sql">
+      <![CDATA[select deptno, count_plus_10, min(job) as min_job
+from (
+  select deptno,
+    job,
+    count(*) + 10 as measure count_plus_10,
+    count_plus_10 + deptno as measure e2
+  from emp)
+group by deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], COUNT_PLUS_10=[$1], MIN_JOB=[$2])
+  LogicalAggregate(group=[{0}], agg#0=[AGG_M2V($1)], MIN_JOB=[MIN($3)])
+    LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[V2M(+(COUNT(), 10))], E2=[V2M(+(+(COUNT(), 10), $7))], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasure4">
+    <Resource name="sql">
+      <![CDATA[select deptno, count(*) as measure c,
+  t.uno as measure uno, 2 as measure two
+from (select deptno, job, 1 as measure uno from emp) as t]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], C=[COUNT() OVER ()], UNO=[1], TWO=[2])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMeasureRef">
     <Resource name="sql">
       <![CDATA[select deptno, aggregate(count_plus_100) as c
@@ -4569,7 +4632,7 @@ group by deptno]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalAggregate(group=[{0}], C=[AGGREGATE($1)])
+LogicalAggregate(group=[{0}], C=[AGG_M2V($1)])
   LogicalProject(DEPTNO=[$7], COUNT_PLUS_100=[$9])
     LogicalTableScan(table=[[CATALOG, SALES, EMPM]])
 ]]>

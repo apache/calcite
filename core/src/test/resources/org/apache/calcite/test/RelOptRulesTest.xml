@@ -6665,6 +6665,56 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MAX($
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasureAggregate">
+    <Resource name="sql">
+      <![CDATA[select deptno, c1
+from (select deptno, job, count(*) + 1 as measure c1
+  from emp)
+group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], C1=[$1])
+  LogicalAggregate(group=[{0}], agg#0=[AGG_M2V($1)])
+    LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], C1=[$1])
+  LogicalProject(DEPTNO=[$0], $f1=[+($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasureSort">
+    <Resource name="sql">
+      <![CDATA[select deptno, c1
+from (select deptno, job, count(*) + 1 as measure c1
+  from emp)
+order by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], C1=[M2V($1)])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], C1=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(DEPTNO=[$0], C1=[$1], $f2=[M2V($1)])
+      LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMergeFilter">
     <Resource name="sql">
       <![CDATA[select name from (

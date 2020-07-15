@@ -42,6 +42,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -245,6 +246,19 @@ public class SqlValidatorFixture {
    */
   public SqlValidatorFixture columnType(String expectedType) {
     tester.checkColumnType(factory, toSql(false).sql, expectedType);
+    return this;
+  }
+
+  /**
+   * Checks that column {@code column} is or is not a measure.
+   */
+  public SqlValidatorFixture assertMeasure(int column,
+      Matcher<Boolean> matcher) {
+    tester.validateAndThen(factory, sap, (sql1, validator, n) -> {
+      final SqlNode selectItem = ((SqlSelect) n).getSelectList().get(column);
+      boolean isMeasure = SqlValidatorUtil.isMeasure(selectItem);
+      assertThat(isMeasure, matcher);
+    });
     return this;
   }
 

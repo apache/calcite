@@ -632,9 +632,16 @@ public class RelBuilder {
     throw new IllegalArgumentException(b.toString());
   }
 
-  /** Returns a reference to a given field of a record-valued expression. */
+  /** Returns a reference to a given field (by name, case-insensitive)
+   * of a record-valued expression. */
   public RexNode field(RexNode e, String name) {
     return getRexBuilder().makeFieldAccess(e, name, false);
+  }
+
+  /** Returns a reference to a given field (by ordinal)
+   * of a record-valued expression. */
+  public RexNode field(RexNode e, int ordinal) {
+    return getRexBuilder().makeFieldAccess(e, ordinal);
   }
 
   /** Returns references to the fields of the top input. */

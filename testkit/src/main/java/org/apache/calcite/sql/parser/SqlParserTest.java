@@ -8757,6 +8757,17 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testMeasure() {
+    final String sql = "select deptno,\n"
+        + "  job as myJob,\n"
+        + "  sum(comm) / sum(sal) as measure commRatio\n"
+        + "from emp";
+    final String expected = "SELECT `DEPTNO`, `JOB` AS `MYJOB`,"
+        + " (SUM(`COMM`) / SUM(`SAL`)) AS MEASURE `COMMRATIO`\n"
+        + "FROM `EMP`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     expr("foo format json")
         .ok("`FOO` FORMAT JSON");

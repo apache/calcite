@@ -1040,7 +1040,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
 
-  public static final SqlOperandTypeChecker MEASURE =
+  public static final SqlSingleOperandTypeChecker MEASURE =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ANY),
           i -> false) {
         @Override public boolean checkSingleOperandType(
@@ -1062,6 +1062,9 @@ public abstract class OperandTypes {
           return true;
         }
       };
+
+  public static final SqlOperandTypeChecker MEASURE_BOOLEAN =
+      sequence("'<MEASURE>, <BOOLEAN>'", MEASURE, BOOLEAN);
 
   /**
    * Parameter type-checking strategy where type must a nullable time interval,

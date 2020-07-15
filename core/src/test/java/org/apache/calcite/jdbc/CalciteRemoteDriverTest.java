@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -614,6 +615,7 @@ class CalciteRemoteDriverTest {
     assertThat(count, is(101));
   }
 
+  @Disabled("Cannot yet execute query with virtual measures")
   @Test void testLocalStatementResultSetMeasureMetadata() throws Exception {
     Connection conn = makeConnectionWithMeasures();
     String sql = "select * from \"foo\".\"bar\"";
