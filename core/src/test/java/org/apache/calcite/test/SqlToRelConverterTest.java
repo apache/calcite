@@ -4764,6 +4764,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  @Test void testMeasure1() {
+    final String sql = "select * from (\n"
+        + "  select deptno,\n"
+        + "    empno + 1 as measure e1,\n"
+        + "    e1 + deptno as measure e2\n"
+        + "  from emp)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testMeasure1()} but references a non-measure. */
+  @Test void testMeasure2() {
+    final String sql = "select * from (\n"
+        + "  select deptno,\n"
+        + "    empno + 1 as e1,\n"
+        + "    e1 + deptno as measure e2\n"
+        + "  from emp)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testMeasure1()} but uses an aggregate measure. */
+  @Test void testMeasure3() {
+    final String sql = "select deptno, count_plus_10, min(job) as min_job\n"
+        + "from (\n"
+        + "  select deptno,\n"
+        + "    job,\n"
+        + "    count(*) + 10 as measure count_plus_10,\n"
+        + "    count_plus_10 + deptno as measure e2\n"
+        + "  from emp)\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  /** Measures defined in the outermost query are converted to values. */
+  @Test void testMeasure4() {
+    final String sql = "select deptno, count(*) as measure c,\n"
+        + "  t.uno as measure uno, 2 as measure two\n"
+        + "from (select deptno, job, 1 as measure uno from emp) as t";
+    sql(sql).ok();
+  }
+
   /** Test case for:
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6013">[CALCITE-6013]
    * Unnecessary measures added as projects during rel construction</a>.

@@ -32,7 +32,12 @@ import static java.util.Objects.requireNonNull;
  * @param <E> Element type
  */
 public class MonotonicSupplier<E> implements Consumer<E>, Supplier<E> {
-  private @Nullable E e;
+  private @Nullable E e = null;
+
+  /** Creates a MonotonicSupplier. */
+  public static <E> MonotonicSupplier<E> empty() {
+    return new MonotonicSupplier<>();
+  }
 
   /**
    * {@inheritDoc}

@@ -53,6 +53,7 @@ public class SelectNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
+  // implement SqlValidatorNamespace, overriding return type
   @Override public SqlSelect getNode() {
     return select;
   }

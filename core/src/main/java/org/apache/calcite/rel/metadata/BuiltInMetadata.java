@@ -23,10 +23,13 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -837,7 +840,64 @@ public abstract class BuiltInMetadata {
       @Override default MetadataDef<Memory> getDef() {
         return DEF;
       }
+    }
+  }
 
+  /** Metadata about whether a column is a measure and, if so, what is the
+   * expression to evaluate that measure in the current context. */
+  public interface Measure extends Metadata {
+    MetadataDef<Measure> DEF =
+        MetadataDef.of(Measure.class, Measure.Handler.class,
+            BuiltInMethod.MEASURE_EXPAND.method,
+            BuiltInMethod.IS_MEASURE.method);
+
+    /** Returns whether a given column is a measure.
+     *
+     * @param column Column ordinal (0-based) */
+    Boolean isMeasure(int column);
+
+    /** Expands a measure to an expression.
+     *
+     * @param column Column ordinal (0-based)
+     * @param context Evaluation context */
+    RexNode expand(int column, Context context);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<Measure> {
+      Boolean isMeasure(RelNode r, RelMetadataQuery mq, int column);
+
+      RexNode expand(RelNode r, RelMetadataQuery mq, int column,
+          Context context);
+
+      @Override default MetadataDef<Measure> getDef() {
+        return DEF;
+      }
+    }
+
+    /** Context for a use of a measure at a call site. */
+    interface Context {
+      RelBuilder getRelBuilder();
+
+      default RexBuilder getRexBuilder() {
+        return getRelBuilder().getRexBuilder();
+      }
+
+      default RelDataTypeFactory getTypeFactory() {
+        return getRelBuilder().getTypeFactory();
+      }
+
+      /** Returns a (conjunctive) list of filters.
+       *
+       * <p>The filters represent the "filter context"
+       * and will become the {@code WHERE} clause of the subquery.
+       *
+       * <p>If the relation defining the measure has {@code N} dimensions then
+       * the dimensions can be referenced using
+       * {@link org.apache.calcite.rex.RexInputRef} 0 through N-1. */
+      List<RexNode> getFilters(RelBuilder b);
+
+      /** Returns the number of dimension columns. */
+      int getDimensionCount();
     }
   }
 

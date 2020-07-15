@@ -95,6 +95,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.MaxRowCount.Handler maxRowCountHandler;
   private BuiltInMetadata.MinRowCount.Handler minRowCountHandler;
   private BuiltInMetadata.Memory.Handler memoryHandler;
+  private BuiltInMetadata.Measure.Handler measureHandler;
   private BuiltInMetadata.NonCumulativeCost.Handler nonCumulativeCostHandler;
   private BuiltInMetadata.Parallelism.Handler parallelismHandler;
   private BuiltInMetadata.PercentageOriginalRows.Handler percentageOriginalRowsHandler;
@@ -137,6 +138,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = provider.handler(BuiltInMetadata.MaxRowCount.Handler.class);
     this.minRowCountHandler = provider.handler(BuiltInMetadata.MinRowCount.Handler.class);
     this.memoryHandler = provider.handler(BuiltInMetadata.Memory.Handler.class);
+    this.measureHandler =
+        provider.handler(BuiltInMetadata.Measure.Handler.class);
     this.nonCumulativeCostHandler =
         provider.handler(BuiltInMetadata.NonCumulativeCost.Handler.class);
     this.parallelismHandler = provider.handler(BuiltInMetadata.Parallelism.Handler.class);
@@ -170,6 +173,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = initialHandler(BuiltInMetadata.MaxRowCount.Handler.class);
     this.minRowCountHandler = initialHandler(BuiltInMetadata.MinRowCount.Handler.class);
     this.memoryHandler = initialHandler(BuiltInMetadata.Memory.Handler.class);
+    this.measureHandler = initialHandler(BuiltInMetadata.Measure.Handler.class);
     this.nonCumulativeCostHandler = initialHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
     this.parallelismHandler = initialHandler(BuiltInMetadata.Parallelism.Handler.class);
     this.percentageOriginalRowsHandler =
@@ -201,6 +205,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = prototype.maxRowCountHandler;
     this.minRowCountHandler = prototype.minRowCountHandler;
     this.memoryHandler = prototype.memoryHandler;
+    this.measureHandler = prototype.measureHandler;
     this.nonCumulativeCostHandler = prototype.nonCumulativeCostHandler;
     this.parallelismHandler = prototype.parallelismHandler;
     this.percentageOriginalRowsHandler = prototype.percentageOriginalRowsHandler;
@@ -797,6 +802,46 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return memoryHandler.cumulativeMemoryWithinPhaseSplit(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
         memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.Measure#isMeasure(int)}
+   * statistic.
+   *
+   * @param rel      The relational expression
+   * @param column   Output column of the relational expression
+   * @return whether column is a measure
+   */
+  public @Nullable Boolean isMeasure(RelNode rel, int column) {
+    for (;;) {
+      try {
+        return measureHandler.isMeasure(rel, this, column);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        measureHandler = revise(BuiltInMetadata.Measure.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.Measure#expand(int, BuiltInMetadata.Measure.Context)}
+   * statistic.
+   *
+   * @param rel      The relational expression
+   * @param column   Output column of the relational expression
+   * @param context  Context of the use of the measure
+   * @return expression for measure in the context
+   */
+  public RexNode expand(RelNode rel, int column,
+      BuiltInMetadata.Measure.Context context) {
+    for (;;) {
+      try {
+        return measureHandler.expand(rel, this, column, context);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        measureHandler = revise(BuiltInMetadata.Measure.Handler.class);
       }
     }
   }

@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -77,7 +78,9 @@ public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableProjectToCalcRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(LogicalProject.class).anyInputs());
+            b.operand(LogicalProject.class)
+                .predicate(RexUtil.M2V_FINDER::notInProject)
+                .anyInputs());
 
     @Override default ProjectToCalcRule toRule() {
       return new ProjectToCalcRule(this);
