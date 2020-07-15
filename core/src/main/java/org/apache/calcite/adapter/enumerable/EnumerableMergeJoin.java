@@ -61,7 +61,7 @@ import java.util.Set;
  * {@link EnumerableConvention enumerable calling convention} using
  * a merge algorithm. */
 public class EnumerableMergeJoin extends Join implements EnumerableRel {
-  EnumerableMergeJoin(
+  protected EnumerableMergeJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode left,
