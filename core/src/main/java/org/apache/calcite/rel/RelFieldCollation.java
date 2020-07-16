@@ -150,6 +150,36 @@ public class RelFieldCollation {
         return false;
       }
     }
+
+    /**
+     * Returns the reverse of this direction.
+     *
+     * @return reverse of the input direction
+     */
+    @Nonnull public Direction reverse() {
+      switch (this) {
+      case ASCENDING:
+      case STRICTLY_ASCENDING:
+        return DESCENDING;
+      case DESCENDING:
+      case STRICTLY_DESCENDING:
+        return ASCENDING;
+      default:
+        return this;
+      }
+    }
+
+    /** Removes strictness. */
+    @Nonnull public Direction lax() {
+      switch (this) {
+      case STRICTLY_ASCENDING:
+        return ASCENDING;
+      case STRICTLY_DESCENDING:
+        return DESCENDING;
+      default:
+        return this;
+      }
+    }
   }
 
   /**
