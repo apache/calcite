@@ -326,7 +326,7 @@ public class CassandraRules {
       }
 
       // Check if we need to reverse the order of the implicit collation
-      boolean reversed = reverseDirection(sortFieldCollations.get(0).getDirection())
+      boolean reversed = sortFieldCollations.get(0).getDirection().reverse().lax()
           == implicitFieldCollations.get(0).getDirection();
 
       for (int i = 0; i < sortFieldCollations.size(); i++) {
@@ -344,29 +344,12 @@ public class CassandraRules {
         RelFieldCollation.Direction sortDirection = sorted.getDirection();
         RelFieldCollation.Direction implicitDirection = implied.getDirection();
         if ((!reversed && sortDirection != implicitDirection)
-            || (reversed && reverseDirection(sortDirection) != implicitDirection)) {
+            || (reversed && sortDirection.reverse().lax() != implicitDirection)) {
           return false;
         }
       }
 
       return true;
-    }
-
-    /** Find the reverse of a given collation direction.
-     *
-     * @return Reverse of the input direction
-     */
-    private RelFieldCollation.Direction reverseDirection(RelFieldCollation.Direction direction) {
-      switch (direction) {
-      case ASCENDING:
-      case STRICTLY_ASCENDING:
-        return RelFieldCollation.Direction.DESCENDING;
-      case DESCENDING:
-      case STRICTLY_DESCENDING:
-        return RelFieldCollation.Direction.ASCENDING;
-      default:
-        return null;
-      }
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
