@@ -612,6 +612,22 @@ public class CoreRules {
   public static final MultiJoinOptimizeBushyRule MULTI_JOIN_OPTIMIZE_BUSHY =
       MultiJoinOptimizeBushyRule.Config.DEFAULT.toRule();
 
+  /** Rule that matches a {@link LogicalJoin} whose inputs are both a
+   * {@link MultiJoin} with intervening {@link LogicalProject}s,
+   * and pulls the Projects up above the Join. */
+  public static final MultiJoinProjectTransposeRule MULTI_JOIN_BOTH_PROJECT =
+      MultiJoinProjectTransposeRule.Config.BOTH_PROJECT.toRule();
+
+  /** As {@link #MULTI_JOIN_BOTH_PROJECT} but only the left input has
+   * an intervening Project. */
+  public static final MultiJoinProjectTransposeRule MULTI_JOIN_LEFT_PROJECT =
+      MultiJoinProjectTransposeRule.Config.LEFT_PROJECT.toRule();
+
+  /** As {@link #MULTI_JOIN_BOTH_PROJECT} but only the right input has
+   * an intervening Project. */
+  public static final MultiJoinProjectTransposeRule MULTI_JOIN_RIGHT_PROJECT =
+      MultiJoinProjectTransposeRule.Config.RIGHT_PROJECT.toRule();
+
   /** Rule that pushes a {@link Join#isSemiJoin semi-join} down in a tree past
    * a {@link Filter}.
    *

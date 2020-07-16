@@ -55,47 +55,12 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>See the superclass for details on restrictions regarding which
  * {@link org.apache.calcite.rel.logical.LogicalProject}s cannot be pulled.
+ *
+ * @see CoreRules#MULTI_JOIN_BOTH_PROJECT
+ * @see CoreRules#MULTI_JOIN_LEFT_PROJECT
+ * @see CoreRules#MULTI_JOIN_RIGHT_PROJECT
  */
 public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
-  //~ Static fields/initializers ---------------------------------------------
-
-  public static final MultiJoinProjectTransposeRule MULTI_BOTH_PROJECT =
-      Config.EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(LogicalJoin.class).inputs(
-                  b1 -> b1.operand(LogicalProject.class)
-                      .oneInput(b2 -> b2.operand(MultiJoin.class).anyInputs()),
-                  b3 -> b3.operand(LogicalProject.class)
-                      .oneInput(b4 -> b4.operand(MultiJoin.class).anyInputs())))
-          .withDescription(
-              "MultiJoinProjectTransposeRule: with two LogicalProject children")
-          .as(Config.class)
-          .toRule();
-
-  public static final MultiJoinProjectTransposeRule MULTI_LEFT_PROJECT =
-      Config.EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(LogicalJoin.class).inputs(
-                  b1 -> b1.operand(LogicalProject.class)
-                      .oneInput(b2 -> b2.operand(MultiJoin.class).anyInputs())))
-          .withDescription(
-              "MultiJoinProjectTransposeRule: with LogicalProject on left")
-          .as(Config.class)
-          .toRule();
-
-  public static final MultiJoinProjectTransposeRule MULTI_RIGHT_PROJECT =
-      Config.EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(LogicalJoin.class).inputs(
-                  b1 -> b1.operand(RelNode.class).anyInputs(),
-                  b2 -> b2.operand(LogicalProject.class)
-                      .oneInput(b3 -> b3.operand(MultiJoin.class).anyInputs())))
-          .withDescription(
-              "MultiJoinProjectTransposeRule: with LogicalProject on right")
-          .as(Config.class)
-          .toRule();
-
-  //~ Constructors -----------------------------------------------------------
 
   /** Creates a MultiJoinProjectTransposeRule. */
   protected MultiJoinProjectTransposeRule(Config config) {
@@ -162,6 +127,36 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
 
   /** Rule configuration. */
   public interface Config extends JoinProjectTransposeRule.Config {
+    Config BOTH_PROJECT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(
+                b1 -> b1.operand(LogicalProject.class).oneInput(b2 ->
+                    b2.operand(MultiJoin.class).anyInputs()),
+                b3 -> b3.operand(LogicalProject.class).oneInput(b4 ->
+                    b4.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with two LogicalProject children")
+        .as(Config.class);
+
+    Config LEFT_PROJECT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(b1 ->
+                b1.operand(LogicalProject.class).oneInput(b2 ->
+                    b2.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with LogicalProject on left")
+        .as(Config.class);
+
+    Config RIGHT_PROJECT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(
+                b1 -> b1.operand(RelNode.class).anyInputs(),
+                b2 -> b2.operand(LogicalProject.class).oneInput(b3 ->
+                    b3.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with LogicalProject on right")
+        .as(Config.class);
+
     @Override default MultiJoinProjectTransposeRule toRule() {
       return new MultiJoinProjectTransposeRule(this);
     }

@@ -52,7 +52,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
-import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
@@ -265,7 +264,7 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
             .withDescription("FilterJoinRule:filter")
             .as(FilterIntoJoinRule.Config.class)
             .withSmart(true)
-            .withPredicate(TRUE_PREDICATE)
+            .withPredicate((join, joinType, exp) -> true)
             .as(FilterIntoJoinRule.Config.class)
             .toRule());
     planner.setRoot(root);

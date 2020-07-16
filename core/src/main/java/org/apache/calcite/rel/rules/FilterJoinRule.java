@@ -53,6 +53,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     implements TransformationRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
+  @Deprecated // to be removed before 2.0
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 
   /** Creates a FilterJoinRule. */
@@ -317,7 +318,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
               b.operand(Join.class).anyInputs())
           .as(JoinConditionPushRule.Config.class)
           .withSmart(true)
-          .withPredicate(TRUE_PREDICATE)
+          .withPredicate((join, joinType, exp) -> true)
           .as(JoinConditionPushRule.Config.class);
 
       @Override default JoinConditionPushRule toRule() {
@@ -384,7 +385,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
                   b1.operand(Join.class).anyInputs()))
           .as(FilterIntoJoinRule.Config.class)
           .withSmart(true)
-          .withPredicate(TRUE_PREDICATE)
+          .withPredicate((join, joinType, exp) -> true)
           .as(FilterIntoJoinRule.Config.class);
 
       @Override default FilterIntoJoinRule toRule() {

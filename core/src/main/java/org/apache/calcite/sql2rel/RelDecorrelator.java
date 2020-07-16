@@ -244,7 +244,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .addRuleInstance(
             AdjustProjectForCountAggregateRule.config(true, this, f).toRule())
         .addRuleInstance(
-            FilterJoinRule.FilterIntoJoinRule.Config.EMPTY
+            FilterJoinRule.FilterIntoJoinRule.Config.DEFAULT
                 .withRelBuilderFactory(f)
                 .withOperandSupplier(b0 ->
                     b0.operand(Filter.class).oneInput(b1 ->
@@ -252,7 +252,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 .withDescription("FilterJoinRule:filter")
                 .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
                 .withSmart(true)
-                .withPredicate(FilterJoinRule.TRUE_PREDICATE)
+                .withPredicate((join, joinType, exp) -> true)
                 .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
                 .toRule())
         .addRuleInstance(
