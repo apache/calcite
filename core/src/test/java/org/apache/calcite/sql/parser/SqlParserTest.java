@@ -7507,12 +7507,10 @@ public class SqlParserTest {
       if (metadata.isKeyword(s) && metadata.isReservedWord(s)) {
         reservedKeywords.add(s);
       }
-      if (false) {
-        // Cannot enable this test yet, because the parser's list of SQL:92
-        // reserved words is not consistent with keywords("92").
-        assertThat(s, metadata.isSql92ReservedWord(s),
-            is(keywords92.contains(s)));
-      }
+      // Check that the parser's list of SQL:92
+      // reserved words is consistent with keywords("92").
+      assertThat(s, metadata.isSql92ReservedWord(s),
+          is(keywords92.contains(s)));
     }
 
     final String reason = "The parser has at least one new reserved keyword. "
