@@ -179,7 +179,8 @@ public abstract class AbstractRelNode implements RelNode {
     Util.discard(planner);
   }
 
-  public final String getRelTypeName() {
+  // It is not recommended to override this method, but sub-classes can do it at their own risk.
+  public String getRelTypeName() {
     String cn = getClass().getName();
     int i = cn.length();
     while (--i >= 0) {
