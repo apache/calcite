@@ -752,6 +752,15 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports nested analytical functions in over() clause,
+   * for instance <br>
+   * {@code SELECT LAG(emp_id) OVER( ORDER BY ROW_NUMBER() OVER() ) FROM employee }.
+   */
+  public boolean supportNestedAnalyticalFunctions() {
+    return true;
+  }
+
   /** Returns whether this dialect supports window functions (OVER clause). */
   public boolean supportsWindowFunctions() {
     return true;

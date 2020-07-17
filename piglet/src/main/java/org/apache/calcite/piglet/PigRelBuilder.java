@@ -108,7 +108,7 @@ public class PigRelBuilder extends RelBuilder {
     return new CorrelationId(nextCorrelId++);
   }
 
-  @Override protected boolean shouldMergeProject() {
+  @Override protected boolean shouldMergeProject(List<RexNode> nodeList) {
     return false;
   }
 

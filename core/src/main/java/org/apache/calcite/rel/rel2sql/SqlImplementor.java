@@ -1184,6 +1184,12 @@ public abstract class SqlImplementor {
         needNew = true;
       }
 
+      if (rel instanceof Project && rel.getInput(0) instanceof Project
+          && !dialect.supportNestedAnalyticalFunctions()
+          && hasNestedAnalyticalFunctions((Project) rel)) {
+        needNew = true;
+      }
+
       if (rel instanceof Aggregate
           && !dialect.supportsNestedAggregations()
           && hasNestedAggregations((Aggregate) rel)) {
@@ -1374,8 +1380,8 @@ public abstract class SqlImplementor {
         boolean hasAggFunction = false;
         for (RexInputRef identifier: identifiersWithIndex.right) {
           SqlNode sqlNode = selectList.get(identifier.getIndex());
-          if (sqlNode instanceof SqlBasicCall) {
-            if (hasAggFunction((SqlBasicCall) sqlNode)) {
+          if (sqlNode instanceof SqlCall) {
+            if (hasSpecifiedFunction((SqlCall) sqlNode, SqlAggFunction.class)) {
               hasAggFunction = true;
             }
           }
@@ -1407,19 +1413,32 @@ public abstract class SqlImplementor {
       return identifiers;
     }
 
-    private boolean hasAggFunction(SqlBasicCall call) {
-      if (call.getOperator() instanceof SqlAggFunction) {
+    private boolean hasSpecifiedFunction(SqlCall call, Class sqlOperator) {
+      List<SqlNode> operands;
+      if (sqlOperator.isInstance(call.getOperator())) {
         return true;
+      } else if (call instanceof SqlCase) {
+        operands = getListOfCaseOperands((SqlCase) call);
       } else {
-        for (SqlNode sqlNode : call.getOperandList()) {
-          if (sqlNode instanceof  SqlBasicCall) {
-            if (hasAggFunction((SqlBasicCall) sqlNode)) {
-              return true;
-            }
+        operands = call.getOperandList();
+      }
+      for (SqlNode sqlNode : operands) {
+        if (sqlNode instanceof SqlCall) {
+          if (hasSpecifiedFunction((SqlCall) sqlNode, sqlOperator)) {
+            return true;
           }
         }
       }
       return false;
+    }
+
+    List<SqlNode> getListOfCaseOperands(SqlCase sqlCase) {
+      List<SqlNode> operandList = new ArrayList<>();
+      operandList.add(sqlCase.getValueOperand());
+      operandList.addAll(sqlCase.getWhenOperands().getList());
+      operandList.addAll(sqlCase.getThenOperands().getList());
+      operandList.add(sqlCase.getElseOperand());
+      return operandList;
     }
 
     boolean isAnalyticalRex(RexNode rexNode) {
@@ -1491,6 +1510,36 @@ public abstract class SqlImplementor {
       List<String> projFieldList = rel.getRowType().getFieldNames();
       for (String finalProj : projFieldList) {
         if (grpCall.equals(finalProj)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean hasNestedAnalyticalFunctions(Project rel) {
+      if (!(node instanceof SqlSelect)) {
+        return false;
+      }
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      if (selectList == null) {
+        return false;
+      }
+      List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
+      for (RexNode rexNode : rel.getChildExps()) {
+        if (isAnalyticalRex(rexNode)) {
+          rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
+        }
+      }
+      if (rexInputRefsInAnalytical.isEmpty()) {
+        return false;
+      }
+      for (RexInputRef rexInputRef : rexInputRefsInAnalytical) {
+        SqlNode sqlNode = selectList.get(rexInputRef.getIndex());
+        boolean hasAnalyticalFunction = false;
+        if (sqlNode instanceof SqlCall) {
+          hasAnalyticalFunction = hasSpecifiedFunction((SqlCall) sqlNode, SqlOverOperator.class);
+        }
+        if (hasAnalyticalFunction) {
           return true;
         }
       }

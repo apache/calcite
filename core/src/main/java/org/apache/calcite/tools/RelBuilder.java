@@ -68,6 +68,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
@@ -1314,7 +1315,7 @@ public class RelBuilder {
     }
 
     if (frame.rel instanceof Project
-        && shouldMergeProject()) {
+        && shouldMergeProject(nodeList)) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.
@@ -1428,8 +1429,54 @@ public class RelBuilder {
    * <p>The default implementation returns {@code true};
    * sub-classes may disable merge by overriding to return {@code false}. */
   @Experimental
-  protected boolean shouldMergeProject() {
-    return true;
+  protected boolean shouldMergeProject(List<RexNode> nodeList) {
+    return !hasNestedAnalyticalFunctions(nodeList);
+  }
+
+  private Boolean hasNestedAnalyticalFunctions(List<RexNode> nodeList) {
+    List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
+    for (RexNode rexNode : nodeList) {
+      if (isAnalyticalRex(rexNode)) {
+        rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
+      }
+    }
+    if (rexInputRefsInAnalytical.isEmpty()) {
+      return false;
+    }
+    Project projectRel = (Project) stack.peek().rel;
+    List<RexNode> previousRelNodeList = projectRel.getChildExps();
+    for (RexInputRef rexInputRef : rexInputRefsInAnalytical) {
+      RexNode rexNode = previousRelNodeList.get(rexInputRef.getIndex());
+      if (isAnalyticalRex(rexNode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isAnalyticalRex(RexNode rexNode) {
+    if (rexNode instanceof RexOver) {
+      return true;
+    } else if (rexNode instanceof RexCall) {
+      for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+        if (isAnalyticalRex(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private static List<RexInputRef> getIdentifiers(RexNode rexNode) {
+    List<RexInputRef> identifiers = new ArrayList<>();
+    if (rexNode instanceof RexInputRef) {
+      identifiers.add((RexInputRef) rexNode);
+    } else if (rexNode instanceof RexCall) {
+      for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+        identifiers.addAll(getIdentifiers(operand));
+      }
+    }
+    return identifiers;
   }
 
   /** Creates a {@link Project} of the given
