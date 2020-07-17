@@ -37,6 +37,15 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Predicate;
 
+/**
+ * A rule driver that apply rules in a Top-Down manner.
+ * By ensuring rule applying orders, there could be ways for
+ * space pruning and rule mutual exclusivity check.
+ *
+ * <p>This implementation use tasks to manage rule matches.
+ * A Task is a piece of work to be executed, it may apply some rules
+ * or schedule other tasks</p>
+ */
 class TopDownRuleDriver implements RuleDriver {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTaskTracer();
@@ -77,12 +86,24 @@ class TopDownRuleDriver implements RuleDriver {
 
   @Override public void drive() {
     TaskDescriptor description = new TaskDescriptor();
+
+    // Starting from the root's OptimizeGroup task.
     tasks.push(new OptimizeGroup(planner.root, planner.infCost));
+
+    // ensure materialized view roots get explored.
+    // Note that implementation rules or enforcement rules are not applied
+    // unless the mv is matched
     exploreMaterializationRoots();
-    while (!tasks.isEmpty()) {
-      Task task = tasks.pop();
-      description.log(task);
-      task.perform();
+
+    try {
+      // Iterates until the root is fully optimized
+      while (!tasks.isEmpty()) {
+        Task task = tasks.pop();
+        description.log(task);
+        task.perform();
+      }
+    } catch (VolcanoTimeoutException ex) {
+      LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
     }
   }
 
@@ -126,6 +147,9 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   public void onSetMerged(RelSet set) {
+    // When RelSets get merged, an optimized group may get extra opportunities.
+    // Clear the OPTIMISED state for the RelSubsets and all theirs ancestors
+    // so that they will be optimized again
     applyGenerator(null, () -> clearProcessed(set));
   }
 
@@ -146,17 +170,28 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
+  // a callback invoked when a RelNode is going to be added into a RelSubset,
+  // either by Register or Reregister. The task driver should need to schedule
+  // tasks for the new nodes.
   public void onProduce(RelNode node, RelSubset subset) {
+
+    // if the RelNode is added to another RelSubset, just ignore it.
+    // It should be schedule in the later OptimizeGroup task
     if (applying == null || subset.set
         != VolcanoPlanner.equivRoot(applying.group().set)) {
       return;
     }
 
+    // extra callback from each task
     if (!applying.onProduce(node)) {
       return;
     }
 
     if (!planner.isLogical(node)) {
+      // For a physical node, schedule tasks to optimize its inputs.
+      // The upper bound depends on all optimizing RelSubsets that this Rel belongs to.
+      // If there are optimizing subsets that comes from the same RelSet,
+      // invoke the passThrough method to generate a candidate for that Subset.
       RelSubset optimizingGroup = null;
       boolean canPassThrough = node instanceof PhysicalNode
           && !passThroughCache.contains(node);
@@ -256,7 +291,8 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * O_GROUP.
+   * Optimize a RelSubset.
+   * It schedule optimization tasks for RelNodes in the RelSet.
    */
   private class OptimizeGroup implements Task {
     private final RelSubset group;
@@ -274,7 +310,7 @@ class TopDownRuleDriver implements RuleDriver {
       }
 
       if (group.taskState != null && upperBound.isLe(group.upperBound)) {
-        // this group failed to optimize before or it is a ring
+        // either this group failed to optimize before or it is a ring
         return;
       }
 
@@ -313,7 +349,9 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * Mark the group optimized.
+   * Mark the RelSubset optimized.
+   * When GroupOptimized returns, the group is either fully
+   * optimized and has a winner or failed to optimized
    */
   private static class GroupOptimized implements Task {
     private final RelSubset group;
@@ -332,11 +370,13 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * O_EXPR.
+   * Optimize a logical node, including exploring its input and applying rules for it.
    */
   private class OptimizeMExpr implements Task {
     private final RelNode mExpr;
     private final RelSubset group;
+
+    // when true, only apply transformation rules for mExpr
     private final boolean explore;
 
     OptimizeMExpr(RelNode mExpr,
@@ -364,8 +404,8 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * Ensure ExploreInput are working on the correct input group since calcite
-   * may merge sets.
+   * Ensure that ExploreInputs are working on the correct input group.
+   * Currently, a RelNode's input may change since calcite may merge RelSets.
    */
   private class EnsureGroupExplored implements Task {
 
@@ -397,7 +437,7 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * E_GROUP.
+   * Explore an input for a RelNode
    */
   private class ExploreInput implements Task {
     private final RelSubset group;
@@ -458,7 +498,7 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * APPLY_RULE.
+   * Apply a rule match
    */
   private class ApplyRule implements GeneratorTask {
     private final VolcanoRuleMatch match;
@@ -488,7 +528,10 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
+  // Decide how to optimize a physical node.
   private Task getOptimizeInputTask(RelNode rel, RelSubset group) {
+    // If the physical does not in current optimizing RelSubset, it firstly tries to
+    // convert the physical node either by converter rule or traits pass though.
     if (!rel.getTraitSet().satisfies(group.getTraitSet())) {
       RelNode passThroughRel = convert(rel, group);
       if (passThroughRel == null) {
@@ -508,15 +551,20 @@ class TopDownRuleDriver implements RuleDriver {
         break;
       }
     }
+    // If the inputs are all processed, only DeriveTrait is required.
     if (!unProcess) {
       return new DeriveTrait(rel, group);
     }
+    // If part of the inputs are not optimized, schedule for the node an OptimizeInput task,
+    // which tried to optimize the inputs first and derive traits for further execution.
     if (rel.getInputs().size() == 1) {
       return new OptimizeInput1(rel, group);
     }
     return new OptimizeInputs(rel, group);
   }
 
+  // Try converting the physical node to another trait sets
+  // either by converter rule or traits pass though.
   private RelNode convert(RelNode rel, RelSubset group) {
     if (!passThroughCache.contains(rel)) {
       if (checkLowerBound(rel, group)) {
@@ -540,6 +588,7 @@ class TopDownRuleDriver implements RuleDriver {
     return null;
   }
 
+  // check whether a node's lower bound is less than a RelSubset's upper bound
   private boolean checkLowerBound(RelNode rel, RelSubset group) {
     RelOptCost upperBound = group.upperBound;
     if (upperBound.isInfinite()) {
@@ -550,7 +599,8 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * O_INPUT when there is only one input.
+   * A task that optimize input for physical nodes who has only one input.
+   * This task can be replaced by OptimizeInputs but simplify lots of logic.
    */
   private class OptimizeInput1 implements Task {
 
@@ -561,7 +611,6 @@ class TopDownRuleDriver implements RuleDriver {
       this.mExpr = mExpr;
       this.group = group;
     }
-
 
     @Override public void describe(TaskDescriptor desc) {
       desc.item("mExpr", mExpr).item("upperBound", group.upperBound);
@@ -588,7 +637,10 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * O_INPUT.
+   * Optimize a physical node's inputs.
+   * This task calculates a proper upper bound for the input and invoke
+   * the OptimizeGroup task. Group pruning mainly happens here when
+   * the upper bound for an input is less than the input's lower bound
    */
   private class OptimizeInputs implements Task {
 
@@ -618,6 +670,7 @@ class TopDownRuleDriver implements RuleDriver {
     @Override public void perform() {
       RelOptCost bestCost = group.bestCost;
       if (!bestCost.isInfinite()) {
+        // calculate the upper bound for inputs
         if (bestCost.isLt(upperBound)) {
           upperBound = bestCost;
           upperForInput = planner.upperBoundForInputs(mExpr, upperBound);
@@ -648,7 +701,7 @@ class TopDownRuleDriver implements RuleDriver {
       }
 
       if (processingChild == 0) {
-        // Apply enforcing rules
+        // derive traits after all inputs are optimized successfully
         tasks.push(new DeriveTrait(mExpr, group));
       }
 
@@ -664,10 +717,15 @@ class TopDownRuleDriver implements RuleDriver {
 
         RelOptCost upper = upperForInput;
         if (!upper.isInfinite()) {
+          // UB(one input)
+          //  = UB(current subset) - Parent's NonCumulativeCost - LB(other inputs)
+          //  = UB(current subset) - Parent's NonCumulativeCost - LB(all inputs) + LB(current input)
           upper = upperForInput.minus(lowerBoundSum)
               .plus(lowerBounds.get(processingChild));
         }
         if (input.taskState != null && upper.isLe(input.upperBound)) {
+          LOGGER.debug("Failed to optimize because of upper bound. LB = {}, UP = {}",
+              lowerBoundSum, upperForInput);
           return;
         }
 
@@ -708,20 +766,28 @@ class TopDownRuleDriver implements RuleDriver {
 
     @Override public void perform() {
       if (input != parent.getInput(i)) {
+        // The input has chnaged. So reschedule the optimize task.
         input = (RelSubset) parent.getInput(i);
         tasks.push(this);
         tasks.push(new OptimizeGroup(input, upper));
         return;
       }
+
+      // Optimize input completed. Update the context for other inputs
       if (context == null) {
+        // If there is no other input, just return (no need to optimize other inputs)
         return;
       }
+
       RelOptCost winner = input.getWinnerCost();
       if (winner == null) {
-        // the input fail to optimize due to group pruning
+        // The input fail to optimize due to group pruning
+        // Then there's no need to optimize other inputs.
         context.lowerBoundSum = planner.infCost;
         return;
       }
+
+      // Update the context.
       if (context.lowerBoundSum != null && context.lowerBoundSum != planner.infCost) {
         context.lowerBoundSum = context.
             lowerBoundSum.minus(context.lowerBounds.get(i));
@@ -731,6 +797,9 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
+  /**
+   * Derive traits for already optimized physical nodes.
+   */
   private class DeriveTrait implements GeneratorTask {
 
     private final RelNode mExpr;
@@ -749,7 +818,12 @@ class TopDownRuleDriver implements RuleDriver {
           return;
         }
       }
+
+      // In case some implementations use rules to convert between different physical conventions.
+      // Note that this is deprecated and will be removed in the future.
       tasks.push(new ApplyRules(mExpr, group, false));
+
+      // Derive traits from inputs
       if (!passThroughCache.contains(mExpr)) {
         applyGenerator(this, this::derive);
       }
