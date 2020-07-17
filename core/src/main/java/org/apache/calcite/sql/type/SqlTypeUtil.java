@@ -1202,6 +1202,9 @@ public abstract class SqlTypeUtil {
    * @return true if the types are equal or the only difference is nullability
    */
   public static boolean equalSansNullability(RelDataType type1, RelDataType type2) {
+    if (type1 == type2) {
+      return true;
+    }
     String x = type1.getFullTypeString();
     String y = type2.getFullTypeString();
     if (x.length() < y.length()) {
