@@ -114,6 +114,7 @@ import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -610,7 +611,8 @@ public enum BuiltInMethod {
   HOPPING(EnumUtils.class, "hopping", Enumerator.class, int.class, long.class,
       long.class, long.class),
   SESSIONIZATION(EnumUtils.class, "sessionize", Enumerator.class, int.class, int.class,
-      long.class);
+      long.class),
+  BIG_DECIMAL_NEGATE(BigDecimal.class, "negate");
 
   public final Method method;
   public final Constructor constructor;

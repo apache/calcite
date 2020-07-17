@@ -1070,4 +1070,14 @@ public class ReflectiveSchemaTest {
             + "from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("EXPR$0=false\nEXPR$0=false\nEXPR$0=true");
   }
+
+  @Test void testDecimalNegate() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select - \"bigDecimal\" from \"s\".\"everyTypes\"")
+        .planContains("negate()")
+        .returnsUnordered(
+            "EXPR$0=0",
+            "EXPR$0=null");
+  }
 }
