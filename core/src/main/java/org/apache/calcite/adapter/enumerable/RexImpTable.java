@@ -32,7 +32,6 @@ import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -384,8 +383,9 @@ public class RexImpTable {
     defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
     defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
     defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
-    defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
-    defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT);
+    defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT,
+        BuiltInMethod.BIG_DECIMAL_NEGATE.getMethodName());
+    defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT, null);
 
     defineMethod(MOD, "mod", NullPolicy.STRICT);
     defineMethod(EXP, "exp", NullPolicy.STRICT);
@@ -710,8 +710,8 @@ public class RexImpTable {
   }
 
   private void defineUnary(SqlOperator operator, ExpressionType expressionType,
-      NullPolicy nullPolicy) {
-    map.put(operator, new UnaryImplementor(expressionType, nullPolicy));
+      NullPolicy nullPolicy, String backupMethodName) {
+    map.put(operator, new UnaryImplementor(expressionType, nullPolicy, backupMethodName));
   }
 
   private void defineBinary(SqlOperator operator, ExpressionType expressionType,
@@ -2181,10 +2181,13 @@ public class RexImpTable {
   /** Implementor for unary operators. */
   private static class UnaryImplementor extends AbstractRexCallImplementor {
     private final ExpressionType expressionType;
+    private final String backupMethodName;
 
-    UnaryImplementor(ExpressionType expressionType, NullPolicy nullPolicy) {
+    UnaryImplementor(ExpressionType expressionType, NullPolicy nullPolicy,
+        String backupMethodName) {
       super(nullPolicy, false);
       this.expressionType = expressionType;
+      this.backupMethodName = backupMethodName;
     }
 
     @Override String getVariableName() {
@@ -2194,7 +2197,18 @@ public class RexImpTable {
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
       final Expression argValue = argValueList.get(0);
-      final UnaryExpression e = Expressions.makeUnary(expressionType, argValue);
+
+      final Expression e;
+      //Special case for implementing unary minus with BigDecimal type
+      //for other data type(except BigDecimal) '-' operator is OK, but for
+      //BigDecimal, we should call negate method of BigDecimal
+      if (expressionType == ExpressionType.Negate && argValue.type == BigDecimal.class
+          && null != backupMethodName) {
+        e = Expressions.call(argValue, backupMethodName);
+      } else {
+        e = Expressions.makeUnary(expressionType, argValue);
+      }
+
       if (e.type.equals(argValue.type)) {
         return e;
       }
