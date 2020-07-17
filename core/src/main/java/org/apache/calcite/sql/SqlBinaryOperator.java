@@ -99,31 +99,35 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlValidator validator,
       final SqlCall call,
       RelDataType type) {
-    RelDataType operandType1 =
+    return convertType(validator, call, type);
+  }
+
+  private RelDataType convertType(SqlValidator validator, SqlCall call, RelDataType type) {
+    RelDataType operandType0 =
         validator.getValidatedNodeType(call.operand(0));
-    RelDataType operandType2 =
+    RelDataType operandType1 =
         validator.getValidatedNodeType(call.operand(1));
-    if (SqlTypeUtil.inCharFamily(operandType1)
-        && SqlTypeUtil.inCharFamily(operandType2)) {
+    if (SqlTypeUtil.inCharFamily(operandType0)
+        && SqlTypeUtil.inCharFamily(operandType1)) {
+      Charset cs0 = operandType0.getCharset();
       Charset cs1 = operandType1.getCharset();
-      Charset cs2 = operandType2.getCharset();
-      assert (null != cs1) && (null != cs2)
+      assert (null != cs0) && (null != cs1)
           : "An implicit or explicit charset should have been set";
-      if (!cs1.equals(cs2)) {
+      if (!cs0.equals(cs1)) {
         throw validator.newValidationError(call,
-            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
+            RESOURCE.incompatibleCharset(getName(), cs0.name(), cs1.name()));
       }
 
-      SqlCollation col1 = operandType1.getCollation();
-      SqlCollation col2 = operandType2.getCollation();
-      assert (null != col1) && (null != col2)
+      SqlCollation collation0 = operandType0.getCollation();
+      SqlCollation collation1 = operandType1.getCollation();
+      assert (null != collation0) && (null != collation1)
           : "An implicit or explicit collation should have been set";
 
-      // validation will occur inside getCoercibilityDyadicOperator...
+      // Validation will occur inside getCoercibilityDyadicOperator...
       SqlCollation resultCol =
           SqlCollation.getCoercibilityDyadicOperator(
-              col1,
-              col2);
+              collation0,
+              collation1);
 
       if (SqlTypeUtil.inCharFamily(type)) {
         type =
@@ -142,43 +146,7 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlValidatorScope scope,
       SqlCall call) {
     RelDataType type = super.deriveType(validator, scope, call);
-
-    RelDataType operandType1 =
-        validator.getValidatedNodeType(call.operand(0));
-    RelDataType operandType2 =
-        validator.getValidatedNodeType(call.operand(1));
-    if (SqlTypeUtil.inCharFamily(operandType1)
-        && SqlTypeUtil.inCharFamily(operandType2)) {
-      Charset cs1 = operandType1.getCharset();
-      Charset cs2 = operandType2.getCharset();
-      assert (null != cs1) && (null != cs2)
-          : "An implicit or explicit charset should have been set";
-      if (!cs1.equals(cs2)) {
-        throw validator.newValidationError(call,
-            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
-      }
-
-      SqlCollation col1 = operandType1.getCollation();
-      SqlCollation col2 = operandType2.getCollation();
-      assert (null != col1) && (null != col2)
-          : "An implicit or explicit collation should have been set";
-
-      // validation will occur inside getCoercibilityDyadicOperator...
-      SqlCollation resultCol =
-          SqlCollation.getCoercibilityDyadicOperator(
-              col1,
-              col2);
-
-      if (SqlTypeUtil.inCharFamily(type)) {
-        type =
-            validator.getTypeFactory()
-                .createTypeWithCharsetAndCollation(
-                    type,
-                    type.getCharset(),
-                    resultCol);
-      }
-    }
-    return type;
+    return convertType(validator, call, type);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
