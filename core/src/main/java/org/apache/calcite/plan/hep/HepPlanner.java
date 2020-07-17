@@ -883,7 +883,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         new LinkedList<>(graph.getInwardEdges(vertex));
     while (!queue.isEmpty()) {
       TypedEdge<HepRelVertex> edge = queue.remove();
-      HepRelVertex source = (HepRelVertex) edge.source;
+      HepRelVertex source = edge.source;
       RelMdUtil.clearCache(source.getCurrentRel());
       if (RelMdUtil.clearCache(source)) {
         queue.addAll(graph.getInwardEdges(source));

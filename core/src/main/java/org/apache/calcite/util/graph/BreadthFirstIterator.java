@@ -53,7 +53,7 @@ public class BreadthFirstIterator<V, E extends TypedEdge<V>>
     while (!deque.isEmpty()) {
       V v = deque.removeFirst();
       for (E e : graph.getOutwardEdges(v)) {
-        @SuppressWarnings("unchecked") V target = (V) e.target;
+        @SuppressWarnings("unchecked") V target = e.target;
         if (set.add(target)) {
           deque.addLast(target);
         }
@@ -68,7 +68,7 @@ public class BreadthFirstIterator<V, E extends TypedEdge<V>>
   public V next() {
     V v = deque.removeFirst();
     for (E e : graph.getOutwardEdges(v)) {
-      @SuppressWarnings("unchecked") V target = (V) e.target;
+      @SuppressWarnings("unchecked") V target = e.target;
       if (set.add(target)) {
         deque.addLast(target);
       }

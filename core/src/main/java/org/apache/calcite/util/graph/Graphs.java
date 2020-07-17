@@ -42,7 +42,7 @@ public class Graphs {
     return new AbstractList<V>() {
       public V get(int index) {
         //noinspection unchecked
-        return (V) edges.get(index).source;
+        return edges.get(index).source;
       }
 
       public int size() {

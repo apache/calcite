@@ -70,7 +70,7 @@ public class DepthFirstIterator<V, E extends TypedEdge<V>>
     List<E> edges = graph.getOutwardEdges(start);
     for (E edge : edges) {
       //noinspection unchecked
-      buildListRecurse(list, activeVertices, graph, (V) edge.target);
+      buildListRecurse(list, activeVertices, graph, edge.target);
     }
     activeVertices.remove(start);
   }

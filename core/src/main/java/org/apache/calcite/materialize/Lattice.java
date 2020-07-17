@@ -832,10 +832,10 @@ public class Lattice {
                 "child node must have precisely one parent: " + vertex);
           }
           final Edge edge = edges.get(0);
-          final MutableNode parent = map.get(edge.getSource().table);
+          final MutableNode parent = map.get(edge.source.table);
           final Step step =
-              Step.create(edge.getSource().table,
-                  edge.getTarget().table, edge.pairs, space);
+              Step.create(edge.source.table,
+                  edge.target.table, edge.pairs, space);
           node = new MutableNode(vertex.table, parent, step);
           node.alias = vertex.alias;
         }

@@ -42,14 +42,6 @@ public class TypedEdge<V> {
         && ((TypedEdge<V>) obj).target.equals(target);
   }
 
-  public V getTarget() {
-    return target;
-  }
-
-  public V getSource() {
-    return source;
-  }
-
   public static <V> DirectedGraph.EdgeFactory<V, TypedEdge<V>> factory() {
     return TypedEdge::new;
   }

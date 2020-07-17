@@ -73,7 +73,7 @@ public class TopologicalOrderIterator<V, E extends TypedEdge<V>>
     V v = empties.remove(0);
     for (E o : graph.vertexMap.get(v).outEdges) {
       //noinspection unchecked
-      final V target = (V) o.target;
+      final V target = o.target;
       if (--countMap.get(target)[0] == 0) {
         countMap.remove(target);
         empties.add(target);
