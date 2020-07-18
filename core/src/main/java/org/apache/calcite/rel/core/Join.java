@@ -236,7 +236,7 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected boolean digestEquals0(Object obj) {
+  protected boolean deepEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -245,7 +245,8 @@ public abstract class Join extends BiRel implements Hintable {
     }
     Join o = (Join) obj;
     return traitSet.equals(o.traitSet)
-        && getInputs().equals(o.getInputs())
+        && left.deepEquals(o.left)
+        && right.deepEquals(o.right)
         && condition.equals(o.condition)
         && joinType == o.joinType
         && hints.equals(o.hints)
@@ -253,8 +254,9 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected int digestHash0() {
-    return Objects.hash(traitSet, left, right,
+  protected int deepHashCode0() {
+    return Objects.hash(traitSet,
+        left.deepHashCode(), right.deepHashCode(),
         condition, joinType, hints);
   }
 

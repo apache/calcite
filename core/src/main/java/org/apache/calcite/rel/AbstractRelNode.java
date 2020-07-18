@@ -35,7 +35,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -52,7 +51,6 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -403,13 +401,12 @@ public abstract class AbstractRelNode implements RelNode {
    * This should work well for most cases. If this method is a performance
    * bottleneck for your project, or the default behavior can't handle
    * your scenario properly, you can choose to override this method and
-   * {@link #digestHash()}. See {@code LogicalJoin} as an example.</p>
+   * {@link #deepHashCode()}. See {@code LogicalJoin} as an example.</p>
    *
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
-   * @see #digestHash()
+   * @see #deepHashCode()
    */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected boolean digestEquals(Object obj) {
+  public boolean deepEquals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -417,22 +414,52 @@ public abstract class AbstractRelNode implements RelNode {
       return false;
     }
     AbstractRelNode that = (AbstractRelNode) obj;
-    return this.getTraitSet().equals(that.getTraitSet())
-        && this.getDigestItems().equals(that.getDigestItems())
+    boolean result = this.getTraitSet().equals(that.getTraitSet())
         && this.getRowType().equalsSansFieldNames(that.getRowType());
+    if (!result) {
+      return false;
+    }
+    List<Pair<String, Object>> items1 = this.getDigestItems();
+    List<Pair<String, Object>> items2 = that.getDigestItems();
+    if (items1.size() != items2.size()) {
+      return false;
+    }
+    for (int i = 0; result && i < items1.size(); i++) {
+      Pair<String, Object> attr1 = items1.get(i);
+      Pair<String, Object> attr2 = items2.get(i);
+      if (attr1.right instanceof RelNode) {
+        result = ((RelNode) attr1.right).deepEquals(attr2.right);
+      } else {
+        result = attr1.equals(attr2);
+      }
+    }
+    return result;
   }
 
   /**
    * Compute hash code for RelNode digest.
    *
-   * @see #digestEquals(Object)
+   * @see #deepEquals(Object)
    */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected int digestHash() {
-    return Objects.hash(getTraitSet(), getDigestItems());
+  public int deepHashCode() {
+    int result = 31 + getTraitSet().hashCode();
+    List<Pair<String, Object>> items = this.getDigestItems();
+    for (Pair<String, Object> item : items) {
+      Object value = item.right;
+      final int h;
+      if (value == null) {
+        h = 0;
+      } else if (value instanceof RelNode) {
+        h = ((RelNode) value).deepHashCode();
+      } else {
+        h = value.hashCode();
+      }
+      result = result * 31 + h;
+    }
+    return result;
   }
 
-  private List<List<Object>> getDigestItems() {
+  private List<Pair<String, Object>> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
     explainTerms(rdw);
     if (this instanceof Hintable) {
@@ -464,12 +491,12 @@ public abstract class AbstractRelNode implements RelNode {
         return false;
       }
       final InnerRelDigest relDigest = (InnerRelDigest) o;
-      return digestEquals(relDigest.getRel());
+      return deepEquals(relDigest.getRel());
     }
 
     @Override public int hashCode() {
       if (hash == 0) {
-        hash = digestHash();
+        hash = deepHashCode();
       }
       return hash;
     }
@@ -491,7 +518,7 @@ public abstract class AbstractRelNode implements RelNode {
    */
   private static final class RelDigestWriter implements RelWriter {
 
-    private final List<List<Object>> attrs = new ArrayList<>();
+    private final List<Pair<String, Object>> attrs = new ArrayList<>();
 
     String digest = null;
 
@@ -509,7 +536,7 @@ public abstract class AbstractRelNode implements RelNode {
         // convert it to String to keep the same behaviour.
         value = "" + value;
       }
-      attrs.add(FlatLists.of(term, value));
+      attrs.add(Pair.of(term, value));
       return this;
     }
 
@@ -520,21 +547,19 @@ public abstract class AbstractRelNode implements RelNode {
       sb.append(node.getTraitSet());
       sb.append('(');
       int j = 0;
-      for (List<Object> attr : attrs) {
-        String key = (String) attr.get(0);
-        Object value = attr.get(1);
+      for (Pair<String, Object> attr : attrs) {
         if (j++ > 0) {
           sb.append(',');
         }
-        sb.append(key);
+        sb.append(attr.left);
         sb.append('=');
-        if (value instanceof RelNode) {
-          RelNode input = (RelNode) value;
+        if (attr.right instanceof RelNode) {
+          RelNode input = (RelNode) attr.right;
           sb.append(input.getRelTypeName());
           sb.append('#');
           sb.append(input.getId());
         } else {
-          sb.append(value);
+          sb.append(attr.right);
         }
       }
       sb.append(')');
