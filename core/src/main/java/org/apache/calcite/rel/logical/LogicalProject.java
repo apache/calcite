@@ -137,11 +137,11 @@ public final class LogicalProject extends Project {
         input, getProjects(), rowType);
   }
 
-  @Override protected boolean digestEquals(Object obj) {
+  @Override public boolean digestEquals(Object obj) {
     return digestEquals0(obj);
   }
 
-  @Override protected int digestHash() {
+  @Override public int digestHash() {
     return digestHash0();
   }
 }

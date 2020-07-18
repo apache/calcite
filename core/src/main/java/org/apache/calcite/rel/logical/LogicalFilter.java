@@ -136,12 +136,12 @@ public final class LogicalFilter extends Filter {
         .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
   }
 
-  @Override protected boolean digestEquals(Object obj) {
+  @Override public boolean digestEquals(Object obj) {
     return digestEquals0(obj)
         && variablesSet.equals(((LogicalFilter) obj).variablesSet);
   }
 
-  @Override protected int digestHash() {
+  @Override public int digestHash() {
     return Objects.hash(digestHash0(), variablesSet);
   }
 }

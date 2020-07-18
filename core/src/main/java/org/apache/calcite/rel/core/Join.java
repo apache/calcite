@@ -245,7 +245,8 @@ public abstract class Join extends BiRel implements Hintable {
     }
     Join o = (Join) obj;
     return traitSet.equals(o.traitSet)
-        && getInputs().equals(o.getInputs())
+        && left.digestEquals(o.left)
+        && right.digestEquals(o.right)
         && condition.equals(o.condition)
         && joinType == o.joinType
         && hints.equals(o.hints)
@@ -254,7 +255,8 @@ public abstract class Join extends BiRel implements Hintable {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   protected int digestHash0() {
-    return Objects.hash(traitSet, left, right,
+    return Objects.hash(traitSet,
+        left.digestHash(), right.digestHash(),
         condition, joinType, hints);
   }
 

@@ -255,11 +255,11 @@ public class RelSubset extends AbstractRelNode {
     pw.done(input);
   }
 
-  @Override protected boolean digestEquals(Object obj) {
+  @Override public boolean digestEquals(Object obj) {
     return this == obj;
   }
 
-  @Override protected int digestHash() {
+  @Override public int digestHash() {
     return this.hashCode();
   }
 

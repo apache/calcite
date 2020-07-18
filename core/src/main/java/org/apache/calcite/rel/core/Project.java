@@ -301,7 +301,7 @@ public abstract class Project extends SingleRel implements Hintable {
     }
     Project o = (Project) obj;
     return traitSet.equals(o.traitSet)
-        && input.equals(o.input)
+        && input.digestEquals(o.input)
         && exps.equals(o.exps)
         && hints.equals(o.hints)
         && getRowType().equalsSansFieldNames(o.getRowType());
@@ -309,7 +309,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   protected int digestHash0() {
-    return Objects.hash(traitSet, input, exps, hints);
+    return Objects.hash(traitSet, input.digestHash(), exps, hints);
   }
 
   /**

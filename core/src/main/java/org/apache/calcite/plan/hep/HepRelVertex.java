@@ -91,13 +91,13 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel;
   }
 
-  @Override protected boolean digestEquals(Object obj) {
+  @Override public boolean digestEquals(Object obj) {
     return this == obj
         || (obj instanceof HepRelVertex
             && currentRel == ((HepRelVertex) obj).currentRel);
   }
 
-  @Override protected int digestHash() {
+  @Override public int digestHash() {
     return currentRel.getId();
   }
 

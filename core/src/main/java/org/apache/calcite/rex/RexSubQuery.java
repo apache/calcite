@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 
 /**
@@ -137,14 +138,21 @@ public class RexSubQuery extends RexCall {
   }
 
   @Override public boolean equals(Object obj) {
-    return obj == this
-        || obj instanceof RexSubQuery
-        && toString().equals(obj.toString());
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof RexSubQuery)) {
+      return false;
+    }
+    RexSubQuery sq = (RexSubQuery) obj;
+    return op.equals(sq.op)
+        && operands.equals(sq.operands)
+        && rel.digestEquals(sq.rel);
   }
 
   @Override public int hashCode() {
     if (hash == 0) {
-      hash = toString().hashCode();
+      hash = Objects.hash(op, operands, rel.digestHash());
     }
     return hash;
   }

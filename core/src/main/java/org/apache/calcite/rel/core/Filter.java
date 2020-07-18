@@ -166,13 +166,13 @@ public abstract class Filter extends SingleRel {
     }
     Filter o = (Filter) obj;
     return traitSet.equals(o.traitSet)
-        && input.equals(o.input)
+        && input.digestEquals(o.input)
         && condition.equals(o.condition)
         && getRowType().equalsSansFieldNames(o.getRowType());
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   protected int digestHash0() {
-    return Objects.hash(traitSet, input, condition);
+    return Objects.hash(traitSet, input.digestHash(), condition);
   }
 }

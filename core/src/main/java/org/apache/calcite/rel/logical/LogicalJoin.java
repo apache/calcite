@@ -191,7 +191,7 @@ public final class LogicalJoin extends Join {
         .itemIf("semiJoinDone", semiJoinDone, semiJoinDone);
   }
 
-  @Override protected boolean digestEquals(Object obj) {
+  @Override public boolean digestEquals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -200,7 +200,7 @@ public final class LogicalJoin extends Join {
         && systemFieldList.equals(((LogicalJoin) obj).systemFieldList);
   }
 
-  @Override protected int digestHash() {
+  @Override public int digestHash() {
     return Objects.hash(digestHash0(), semiJoinDone, systemFieldList);
   }
 

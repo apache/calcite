@@ -336,6 +336,26 @@ public interface RelNode extends RelOptNode, Cloneable {
   void recomputeDigest();
 
   /**
+   * Equality check for RelNode digest.
+   *
+   * <p>By default this method collects digest attributes from
+   * explain terms, then compares each attribute pair.</p>
+   *
+   * @return Whether the 2 RelNodes are equivalent or have the same digest.
+   * @see #digestHash()
+   */
+  @API(since = "1.25", status = API.Status.EXPERIMENTAL)
+  boolean digestEquals(Object obj);
+
+  /**
+   * Compute hash code for RelNode digest.
+   *
+   * @see #digestEquals(Object)
+   */
+  @API(since = "1.25", status = API.Status.EXPERIMENTAL)
+  int digestHash();
+
+  /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must
    * override this method if you override {@link #getInputs}.
    *

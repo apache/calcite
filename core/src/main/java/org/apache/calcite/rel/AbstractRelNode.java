@@ -35,7 +35,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -52,7 +51,6 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -409,7 +407,7 @@ public abstract class AbstractRelNode implements RelNode {
    * @see #digestHash()
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected boolean digestEquals(Object obj) {
+  public boolean digestEquals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -417,9 +415,26 @@ public abstract class AbstractRelNode implements RelNode {
       return false;
     }
     AbstractRelNode that = (AbstractRelNode) obj;
-    return this.getTraitSet().equals(that.getTraitSet())
-        && this.getDigestItems().equals(that.getDigestItems())
+    boolean result = this.getTraitSet().equals(that.getTraitSet())
         && this.getRowType().equalsSansFieldNames(that.getRowType());
+    if (!result) {
+      return false;
+    }
+    List<Pair<String, Object>> items1 = this.getDigestItems();
+    List<Pair<String, Object>> items2 = that.getDigestItems();
+    if (items1.size() != items2.size()) {
+      return false;
+    }
+    for (int i = 0; result && i < items1.size(); i++) {
+      Pair<String, Object> attr1 = items1.get(i);
+      Pair<String, Object> attr2 = items2.get(i);
+      if (attr1.right instanceof RelNode) {
+        result = ((RelNode) attr1.right).digestEquals(attr2.right);
+      } else {
+        result = attr1.equals(attr2);
+      }
+    }
+    return result;
   }
 
   /**
@@ -428,11 +443,25 @@ public abstract class AbstractRelNode implements RelNode {
    * @see #digestEquals(Object)
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected int digestHash() {
-    return Objects.hash(getTraitSet(), getDigestItems());
+  public int digestHash() {
+    int result = 31 + getTraitSet().hashCode();
+    List<Pair<String, Object>> items = this.getDigestItems();
+    for (Pair<String, Object> item : items) {
+      Object value = item.right;
+      final int h;
+      if (value == null) {
+        h = 0;
+      } else if (value instanceof RelNode) {
+        h = ((RelNode) value).digestHash();
+      } else {
+        h = value.hashCode();
+      }
+      result = result * 31 + h;
+    }
+    return result;
   }
 
-  private List<List<Object>> getDigestItems() {
+  private List<Pair<String, Object>> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
     explainTerms(rdw);
     if (this instanceof Hintable) {
@@ -491,7 +520,7 @@ public abstract class AbstractRelNode implements RelNode {
    */
   private static final class RelDigestWriter implements RelWriter {
 
-    private final List<List<Object>> attrs = new ArrayList<>();
+    private final List<Pair<String, Object>> attrs = new ArrayList<>();
 
     String digest = null;
 
@@ -509,7 +538,7 @@ public abstract class AbstractRelNode implements RelNode {
         // convert it to String to keep the same behaviour.
         value = "" + value;
       }
-      attrs.add(FlatLists.of(term, value));
+      attrs.add(Pair.of(term, value));
       return this;
     }
 
@@ -520,21 +549,19 @@ public abstract class AbstractRelNode implements RelNode {
       sb.append(node.getTraitSet());
       sb.append('(');
       int j = 0;
-      for (List<Object> attr : attrs) {
-        String key = (String) attr.get(0);
-        Object value = attr.get(1);
+      for (Pair<String, Object> attr : attrs) {
         if (j++ > 0) {
           sb.append(',');
         }
-        sb.append(key);
+        sb.append(attr.left);
         sb.append('=');
-        if (value instanceof RelNode) {
-          RelNode input = (RelNode) value;
+        if (attr.right instanceof RelNode) {
+          RelNode input = (RelNode) attr.right;
           sb.append(input.getRelTypeName());
           sb.append('#');
           sb.append(input.getId());
         } else {
-          sb.append(value);
+          sb.append(attr.right);
         }
       }
       sb.append(')');
