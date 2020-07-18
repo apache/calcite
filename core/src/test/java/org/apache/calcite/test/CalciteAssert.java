@@ -1830,20 +1830,15 @@ public class CalciteAssert {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
           pair -> {
-            final FrameworkConfig config = forceDecorrelate(pair.left);
+            final FrameworkConfig config = Frameworks.newConfigBuilder(pair.left)
+                .context(
+                    Contexts.of(CalciteConnectionConfig.DEFAULT
+                        .set(CalciteConnectionProperty.FORCE_DECORRELATE,
+                            Boolean.toString(false))))
+                .build();
             final RelBuilder b = RelBuilder.create(config);
             pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
           });
-    }
-
-    /** Creates a {@link FrameworkConfig} that does not decorrelate. */
-    private FrameworkConfig forceDecorrelate(FrameworkConfig config) {
-      return Frameworks.newConfigBuilder(config)
-          .context(
-              Contexts.of(CalciteConnectionConfig.DEFAULT
-                  .set(CalciteConnectionProperty.FORCE_DECORRELATE,
-                      Boolean.toString(false))))
-          .build();
     }
   }
 
