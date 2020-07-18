@@ -36,6 +36,10 @@ Downloads are available on the
   Mark `CalcMergeRule` as `TransformationRule`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4003">CALCITE-4003</a>]
   Disallow cross convention matching and `PhysicalNode` generation in `TransformationRule`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3786">CALCITE-3786</a>]
+  Change `RelNode#recomputeDigest()` return type from `String` to `void`. To get
+  digest string, use `RelNode#getDigest()` instead, it will create new digest
+  string on each call, so don't forget to cache the result if necessary
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / 2020-05-23
 {: #v1-23-0}
