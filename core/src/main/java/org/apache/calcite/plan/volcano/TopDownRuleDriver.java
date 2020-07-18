@@ -16,10 +16,8 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
@@ -854,8 +852,8 @@ class TopDownRuleDriver implements RuleDriver {
         final int numSubset = input.set.subsets.size();
         for (int j = 0; j < numSubset; j++) {
           RelSubset subset = input.set.subsets.get(j);
-          if (!subset.isDelivered() || equalsSansConvention(
-              subset.getTraitSet(), rel.getCluster().traitSet())) {
+          if (!subset.isDelivered() || subset.getTraitSet()
+              .equalsSansConvention(rel.getCluster().traitSet())) {
             // Ideally we should stop deriving new relnodes when the
             // subset's traitSet equals with input traitSet, but
             // in case someone manually builds a physical relnode
@@ -931,25 +929,6 @@ class TopDownRuleDriver implements RuleDriver {
           }
         }
       }
-    }
-
-
-    /**
-     * Returns whether the 2 traitSets are equal without Convention.
-     * It assumes they have the same traitDefs order.
-     */
-    private boolean equalsSansConvention(RelTraitSet ts1, RelTraitSet ts2) {
-      assert ts1.size() == ts2.size();
-      for (int i = 0; i < ts1.size(); i++) {
-        RelTrait trait = ts1.getTrait(i);
-        if (trait.getTraitDef() == ConventionTraitDef.INSTANCE) {
-          continue;
-        }
-        if (!trait.equals(ts2.getTrait(i))) {
-          return false;
-        }
-      }
-      return true;
     }
 
     @Override public void describe(TaskDescriptor desc) {

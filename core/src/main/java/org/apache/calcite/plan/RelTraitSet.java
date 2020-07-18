@@ -304,6 +304,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (this == other) {
       return true;
     }
+    if (this.size() != other.size()) {
+      return false;
+    }
     for (int i = 0; i < traits.length; i++) {
       if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
         continue;
