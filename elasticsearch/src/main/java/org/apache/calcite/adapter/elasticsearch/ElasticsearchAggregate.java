@@ -34,6 +34,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -51,6 +52,16 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
   private static final Set<SqlKind> SUPPORTED_AGGREGATIONS =
       EnumSet.of(SqlKind.COUNT, SqlKind.MAX, SqlKind.MIN, SqlKind.AVG,
           SqlKind.SUM, SqlKind.ANY_VALUE);
+
+  public static final Set<String> ES_AGG_NAME = Sets.newHashSet(
+      "sum",
+      "cardinality",
+      "value_count",
+      "min",
+      "max",
+      "avg",
+      "terms"
+  );
 
   /** Creates an ElasticsearchAggregate. */
   ElasticsearchAggregate(RelOptCluster cluster,

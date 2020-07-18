@@ -363,4 +363,25 @@ class AggregationTest {
         .returnsUnordered("v1=7; v2=5");
 
   }
+
+  @Test void aggregationInOrderBy() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, count(cat2) from view group by cat2 order by count(cat2)")
+        .returnsUnordered("cat2=g; EXPR$1=2",
+            "cat2=h; EXPR$1=1");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, count(cat2) c from view group by cat2 order by count(cat2)")
+        .returnsUnordered("cat2=g; c=2",
+            "cat2=h; c=1");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, count(cat2) c from view group by cat2 order by c")
+        .returnsUnordered("cat2=g; c=2",
+            "cat2=h; c=1");
+
+  }
 }
