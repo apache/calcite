@@ -506,7 +506,7 @@ class VolcanoPlannerTest {
     while (true) {
       VolcanoRuleMatch ruleMatch;
       if (ruleQueue instanceof IterativeRuleQueue) {
-        ruleMatch = ((IterativeRuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
+        ruleMatch = ((IterativeRuleQueue) ruleQueue).popMatch();
       } else {
         ruleMatch = ((TopDownRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
       }

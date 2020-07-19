@@ -237,16 +237,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected VolcanoPlannerPhaseRuleMappingInitializer
-      getPhaseRuleMappingInitializer() {
-    return phaseRuleMap -> {
-      // Disable all phases except OPTIMIZE by adding one useless rule name.
-      phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS_MDR).add("xxx");
-      phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
-      phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
-    };
-  }
-
   /**
    * Enable or disable top-down optimization.
    *
