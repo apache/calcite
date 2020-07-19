@@ -20,17 +20,14 @@ import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -43,56 +40,20 @@ class IterativeRuleQueue extends RuleQueue {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  private static final Set<String> ALL_RULES = ImmutableSet.of("<ALL RULES>");
-
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Map of {@link VolcanoPlannerPhase} to a list of rule-matches. Initially,
-   * there is an empty {@link PhaseMatchList} for each planner phase. As the
-   * planner invokes {@link #addMatch(VolcanoRuleMatch)} the rule-match is
-   * added to the appropriate PhaseMatchList(s). As the planner completes
-   * phases, the matching entry is removed from this list to avoid unused
-   * work.
+   * The list of rule-matches. Initially, there is an empty {@link MatchList}.
+   * As the planner invokes {@link #addMatch(VolcanoRuleMatch)} the rule-match
+   * is added to the appropriate MatchList(s). As the planner completes the
+   * match, the matching entry is removed from this list to avoid unused work.
    */
-  final Map<VolcanoPlannerPhase, PhaseMatchList> matchListMap =
-      new EnumMap<>(VolcanoPlannerPhase.class);
-
-  /**
-   * Maps a {@link VolcanoPlannerPhase} to a set of rule descriptions. Named rules
-   * may be invoked in their corresponding phase.
-   *
-   * <p>See {@link VolcanoPlannerPhaseRuleMappingInitializer} for more
-   * information regarding the contents of this Map and how it is initialized.
-   */
-  private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
+  final MatchList matchList = new MatchList();
 
   //~ Constructors -----------------------------------------------------------
 
   IterativeRuleQueue(VolcanoPlanner planner) {
     super(planner);
-
-    phaseRuleMapping = new EnumMap<>(VolcanoPlannerPhase.class);
-
-    // init empty sets for all phases
-    for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
-      phaseRuleMapping.put(phase, new HashSet<>());
-    }
-
-    // configure phases
-    planner.getPhaseRuleMappingInitializer().initialize(phaseRuleMapping);
-
-    for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
-      // empty phases get converted to "all rules"
-      if (phaseRuleMapping.get(phase).isEmpty()) {
-        phaseRuleMapping.put(phase, ALL_RULES);
-      }
-
-      // create a match list data structure for each phase
-      PhaseMatchList matchList = new PhaseMatchList(phase);
-
-      matchListMap.put(phase, matchList);
-    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -101,51 +62,30 @@ class IterativeRuleQueue extends RuleQueue {
    */
   @Override public boolean clear() {
     boolean empty = true;
-    for (PhaseMatchList matchList : matchListMap.values()) {
-      if (!matchList.queue.isEmpty() || !matchList.preQueue.isEmpty()) {
-        empty = false;
-      }
-      matchList.clear();
+    if (!matchList.queue.isEmpty() || !matchList.preQueue.isEmpty()) {
+      empty = false;
     }
+    matchList.clear();
     return !empty;
   }
 
   /**
-   * Removes the {@link PhaseMatchList rule-match list} for the given planner
-   * phase.
-   */
-  public void phaseCompleted(VolcanoPlannerPhase phase) {
-    matchListMap.get(phase).clear();
-  }
-
-  /**
-   * Adds a rule match. The rule-matches are automatically added to all
-   * existing {@link PhaseMatchList per-phase rule-match lists} which allow
-   * the rule referenced by the match.
+   * Add a rule match.
    */
   public void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
-    for (PhaseMatchList matchList : matchListMap.values()) {
-      Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
-      if (phaseRuleSet != ALL_RULES) {
-        String ruleDescription = match.getRule().toString();
-        if (!phaseRuleSet.contains(ruleDescription)) {
-          continue;
-        }
-      }
 
-      if (!matchList.names.add(matchName)) {
-        // Identical match has already been added.
-        continue;
-      }
-
-      LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
-
-      matchList.offer(match);
-
-      matchList.matchMap.put(
-          planner.getSubset(match.rels[0]), match);
+    if (!matchList.names.add(matchName)) {
+      // Identical match has already been added.
+      return;
     }
+
+    LOGGER.trace("Rule-match queued: {}", matchName);
+
+    matchList.offer(match);
+
+    matchList.matchMap.put(
+        planner.getSubset(match.rels[0]), match);
   }
 
   /**
@@ -155,30 +95,21 @@ class IterativeRuleQueue extends RuleQueue {
    *
    * <p>Note that the VolcanoPlanner may still decide to reject rule matches
    * which have become invalid, say if one of their operands belongs to an
-   * obsolete set or has importance=0.
+   * obsolete set or has been pruned.
    *
-   * @throws java.lang.AssertionError if this method is called with a phase
-   *                              previously marked as completed via
-   *                              {@link #phaseCompleted(VolcanoPlannerPhase)}.
    */
-  public VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
+  public VolcanoRuleMatch popMatch() {
     dumpPlannerState();
-
-    PhaseMatchList phaseMatchList = matchListMap.get(phase);
-    if (phaseMatchList == null) {
-      throw new AssertionError("Used match list for phase " + phase
-          + " after phase complete");
-    }
 
     VolcanoRuleMatch match;
     for (;;) {
-      if (phaseMatchList.size() == 0) {
+      if (matchList.size() == 0) {
         return null;
       }
 
-      dumpRuleQueue(phaseMatchList);
+      dumpRuleQueue(matchList);
 
-      match = phaseMatchList.poll();
+      match = matchList.poll();
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -191,7 +122,7 @@ class IterativeRuleQueue extends RuleQueue {
     // may not be removed from the matchMap because the subset may have
     // changed, it is OK to leave it since the matchMap will be cleared
     // at the end.
-    phaseMatchList.matchMap.remove(
+    matchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
     LOGGER.debug("Pop match: {}", match);
@@ -201,15 +132,15 @@ class IterativeRuleQueue extends RuleQueue {
   /**
    * Dumps rules queue to the logger when debug level is set to {@code TRACE}.
    */
-  private void dumpRuleQueue(PhaseMatchList phaseMatchList) {
+  private void dumpRuleQueue(MatchList matchList) {
     if (LOGGER.isTraceEnabled()) {
       StringBuilder b = new StringBuilder();
       b.append("Rule queue:");
-      for (VolcanoRuleMatch rule : phaseMatchList.preQueue) {
+      for (VolcanoRuleMatch rule : matchList.preQueue) {
         b.append("\n");
         b.append(rule);
       }
-      for (VolcanoRuleMatch rule : phaseMatchList.queue) {
+      for (VolcanoRuleMatch rule : matchList.queue) {
         b.append("\n");
         b.append(rule);
       }
@@ -234,15 +165,9 @@ class IterativeRuleQueue extends RuleQueue {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * PhaseMatchList represents a set of {@link VolcanoRuleMatch rule-matches}
-   * for a particular
-   * {@link VolcanoPlannerPhase phase of the planner's execution}.
+   * MatchList represents a set of {@link VolcanoRuleMatch rule-matches}.
    */
-  private static class PhaseMatchList {
-    /**
-     * The VolcanoPlannerPhase that this PhaseMatchList is used in.
-     */
-    final VolcanoPlannerPhase phase;
+  private static class MatchList {
 
     /**
      * Rule match queue for SubstitutionRule
@@ -267,10 +192,6 @@ class IterativeRuleQueue extends RuleQueue {
      */
     final Multimap<RelSubset, VolcanoRuleMatch> matchMap =
         HashMultimap.create();
-
-    PhaseMatchList(VolcanoPlannerPhase phase) {
-      this.phase = phase;
-    }
 
     int size() {
       return preQueue.size() + queue.size();

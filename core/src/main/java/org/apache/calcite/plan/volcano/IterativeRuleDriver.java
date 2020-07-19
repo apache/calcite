@@ -22,11 +22,10 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.slf4j.Logger;
 
 /***
- * <p>The algorithm executes repeatedly in a series of phases. In each phase
- * the exact rules that may be fired varies. The mapping of phases to rule
- * sets is maintained in the {@link #ruleQueue}.
+ * <p>The algorithm executes repeatedly. The exact rules
+ * that may be fired varies.
  *
- * <p>In each phase, the planner then iterates over the rule matches presented
+ * <p>The planner iterates over the rule matches presented
  * by the rule queue until the rule queue becomes empty.
  */
 class IterativeRuleDriver implements RuleDriver {
@@ -46,34 +45,28 @@ class IterativeRuleDriver implements RuleDriver {
   }
 
   @Override public void drive() {
-    PLANNING:
-    for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
-      while (true) {
-        LOGGER.debug("PLANNER = {}; PHASE = {}; COST = {}",
-            this, phase.toString(), planner.root.bestCost);
+    while (true) {
+      LOGGER.debug("PLANNER = {}; COST = {}", this, planner.root.bestCost);
 
-        VolcanoRuleMatch match = ruleQueue.popMatch(phase);
-        if (match == null) {
-          break;
-        }
-
-        assert match.getRule().matches(match);
-        try {
-          match.onMatch();
-        } catch (VolcanoTimeoutException e) {
-          LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
-          planner.canonize();
-          ruleQueue.phaseCompleted(phase);
-          break PLANNING;
-        }
-
-        // The root may have been merged with another
-        // subset. Find the new root subset.
-        planner.canonize();
+      VolcanoRuleMatch match = ruleQueue.popMatch();
+      if (match == null) {
+        break;
       }
 
-      ruleQueue.phaseCompleted(phase);
+      assert match.getRule().matches(match);
+      try {
+        match.onMatch();
+      } catch (VolcanoTimeoutException e) {
+        LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
+        planner.canonize();
+        break;
+      }
+
+      // The root may have been merged with another
+      // subset. Find the new root subset.
+      planner.canonize();
     }
+
   }
 
   @Override public void onProduce(RelNode rel, RelSubset subset) {
