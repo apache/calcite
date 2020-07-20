@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.file.CsvEnumerator;
-import org.apache.calcite.adapter.file.CsvFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -30,6 +28,9 @@ import java.util.List;
 
 /**
  * Base class for table that reads CSV files.
+ *
+ * <p>Copied from {@code CsvFilterableTable} in demo CSV adapter,
+ * with more advanced features.
  */
 public abstract class CsvTable extends AbstractTable {
   protected final Source source;

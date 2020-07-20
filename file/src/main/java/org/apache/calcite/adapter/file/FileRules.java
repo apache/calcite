@@ -14,17 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
+package org.apache.calcite.adapter.file;
 
-    implementation("com.google.guava:guava")
-    implementation("com.joestelmach:natty")
-    implementation("net.sf.opencsv:opencsv")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("commons-io:commons-io")
-    implementation("org.apache.commons:commons-lang3")
-    implementation("org.jsoup:jsoup")
+/** Planner rules relating to the File adapter. */
+public abstract class FileRules {
+  private FileRules() {}
 
-    testImplementation(project(":core", "testClasses"))
+  /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
+   * a {@link CsvTableScan} and pushes down projects if possible. */
+  public static final CsvProjectTableScanRule PROJECT_SCAN =
+      CsvProjectTableScanRule.Config.DEFAULT.toRule();
 }

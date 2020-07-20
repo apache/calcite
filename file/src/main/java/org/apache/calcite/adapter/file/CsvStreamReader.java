@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Source;
 

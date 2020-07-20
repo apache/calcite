@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.CsvEnumerator;
+import org.apache.calcite.adapter.file.CsvFieldType;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -27,6 +29,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
 import java.util.List;
@@ -53,12 +56,12 @@ public class CsvFilterableTable extends CsvTable
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
-    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
-            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }
     };
   }

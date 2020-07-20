@@ -13,18 +13,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * A JSON model of a simple Calcite schema.
  */
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
-
-    implementation("com.google.guava:guava")
-    implementation("com.joestelmach:natty")
-    implementation("net.sf.opencsv:opencsv")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("commons-io:commons-io")
-    implementation("org.apache.commons:commons-lang3")
-    implementation("org.jsoup:jsoup")
-
-    testImplementation(project(":core", "testClasses"))
+{
+  "version": "1.0",
+  "defaultSchema": "SALES",
+  "schemas": [
+    {
+      "name": "SALES",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "sales"
+      }
+    }
+  ]
 }

@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.adapter.file.JsonTable;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -49,7 +48,7 @@ import java.util.List;
  */
 public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;
-  final int[] fields;
+  private final int[] fields;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
       CsvTranslatableTable csvTable, int[] fields) {
@@ -81,7 +80,7 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
   }
 
   @Override public void register(RelOptPlanner planner) {
-    planner.addRule(CsvRules.PROJECT_SCAN);
+    planner.addRule(FileRules.PROJECT_SCAN);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

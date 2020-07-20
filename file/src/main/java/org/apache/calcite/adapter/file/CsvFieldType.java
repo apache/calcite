@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -30,7 +30,7 @@ import java.util.Map;
  * of type {@link #STRING}. But specifying the field type in the header row
  * makes it easier to write SQL.</p>
  */
-enum CsvFieldType {
+public enum CsvFieldType {
   STRING(String.class, "string"),
   BOOLEAN(Primitive.BOOLEAN),
   BYTE(Primitive.BYTE),

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
-
-    implementation("com.google.guava:guava")
-    implementation("com.joestelmach:natty")
-    implementation("net.sf.opencsv:opencsv")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("commons-io:commons-io")
-    implementation("org.apache.commons:commons-lang3")
-    implementation("org.jsoup:jsoup")
-
-    testImplementation(project(":core", "testClasses"))
+{
+  "version": "1.0",
+  "defaultSchema": "BUG",
+  "schemas": [
+    {
+      "name": "BUG",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "bug"
+      }
+    }
+  ]
 }

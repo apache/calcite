@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 
@@ -41,9 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @param <E> Row type
  */
-class CsvEnumerator<E> implements Enumerator<E> {
+public class CsvEnumerator<E> implements Enumerator<E> {
   private final CSVReader reader;
-  private final String[] filterValues;
+  private final List<String> filterValues;
   private final AtomicBoolean cancelFlag;
   private final RowConverter<E> rowConverter;
   private E current;
@@ -60,23 +62,19 @@ class CsvEnumerator<E> implements Enumerator<E> {
         FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
-  CsvEnumerator(Source source, AtomicBoolean cancelFlag,
-      List<CsvFieldType> fieldTypes) {
-    this(source, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
-  }
-
-  CsvEnumerator(Source source, AtomicBoolean cancelFlag,
-      List<CsvFieldType> fieldTypes, int[] fields) {
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
+      List<CsvFieldType> fieldTypes, List<Integer> fields) {
     //noinspection unchecked
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
 
-  CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       String[] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
-    this.filterValues = filterValues;
+    this.filterValues = filterValues == null ? null
+        : ImmutableNullableList.copyOf(filterValues);
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source);
@@ -90,13 +88,18 @@ class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   private static RowConverter<?> converter(List<CsvFieldType> fieldTypes,
-      int[] fields) {
-    if (fields.length == 1) {
-      final int field = fields[0];
+      List<Integer> fields) {
+    if (fields.size() == 1) {
+      final int field = fields.get(0);
       return new SingleColumnRowConverter(fieldTypes.get(field), field);
     } else {
-      return new ArrayRowConverter(fieldTypes, fields);
+      return arrayConverter(fieldTypes, fields, false);
     }
+  }
+
+  public static RowConverter<Object[]> arrayConverter(
+      List<CsvFieldType> fieldTypes, List<Integer> fields, boolean stream) {
+    return new ArrayRowConverter(fieldTypes, fields, stream);
   }
 
   /** Deduces the names and types of a table's columns by reading the first line
@@ -108,12 +111,12 @@ class CsvEnumerator<E> implements Enumerator<E> {
 
   /** Deduces the names and types of a table's columns by reading the first line
   * of a CSV file. */
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-      List<CsvFieldType> fieldTypes, Boolean stream) {
+  public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
+      Source source, List<CsvFieldType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
-      names.add(CsvSchemaFactory.ROWTIME_COLUMN_NAME);
+      names.add(FileSchemaFactory.ROWTIME_COLUMN_NAME);
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
     try (CSVReader reader = openCsv(source)) {
@@ -161,7 +164,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public static CSVReader openCsv(Source source) throws IOException {
+  static CSVReader openCsv(Source source) throws IOException {
     Objects.requireNonNull(source, "source");
     return new CSVReader(source.reader());
   }
@@ -193,7 +196,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         if (filterValues != null) {
           for (int i = 0; i < strings.length; i++) {
-            String filterValue = filterValues[i];
+            String filterValue = filterValues.get(i);
             if (filterValue != null) {
               if (!filterValue.equals(strings[i])) {
                 continue outer;
@@ -222,7 +225,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */
-  static int[] identityList(int n) {
+  public static int[] identityList(int n) {
     int[] integers = new int[n];
     for (int i = 0; i < n; i++) {
       integers[i] = i;
@@ -315,20 +318,16 @@ class CsvEnumerator<E> implements Enumerator<E> {
 
   /** Array row converter. */
   static class ArrayRowConverter extends RowConverter<Object[]> {
-    private final CsvFieldType[] fieldTypes;
-    private final int[] fields;
-    // whether the row to convert is from a stream
+    /** Field types. List must not be null, but any element may be null. */
+    private final List<CsvFieldType> fieldTypes;
+    private final ImmutableIntList fields;
+    /** Whether the row to convert is from a stream. */
     private final boolean stream;
 
-    ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[0]);
-      this.fields = fields;
-      this.stream = false;
-    }
-
-    ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields, boolean stream) {
-      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[0]);
-      this.fields = fields;
+    ArrayRowConverter(List<CsvFieldType> fieldTypes, List<Integer> fields,
+        boolean stream) {
+      this.fieldTypes = ImmutableNullableList.copyOf(fieldTypes);
+      this.fields = ImmutableIntList.copyOf(fields);
       this.stream = stream;
     }
 
@@ -341,27 +340,27 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
 
     public Object[] convertNormalRow(String[] strings) {
-      final Object[] objects = new Object[fields.length];
-      for (int i = 0; i < fields.length; i++) {
-        int field = fields[i];
-        objects[i] = convert(fieldTypes[field], strings[field]);
+      final Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        int field = fields.get(i);
+        objects[i] = convert(fieldTypes.get(field), strings[field]);
       }
       return objects;
     }
 
     public Object[] convertStreamRow(String[] strings) {
-      final Object[] objects = new Object[fields.length + 1];
+      final Object[] objects = new Object[fields.size() + 1];
       objects[0] = System.currentTimeMillis();
-      for (int i = 0; i < fields.length; i++) {
-        int field = fields[i];
-        objects[i + 1] = convert(fieldTypes[field], strings[field]);
+      for (int i = 0; i < fields.size(); i++) {
+        int field = fields.get(i);
+        objects[i + 1] = convert(fieldTypes.get(field), strings[field]);
       }
       return objects;
     }
   }
 
   /** Single column row converter. */
-  private static class SingleColumnRowConverter extends RowConverter {
+  private static class SingleColumnRowConverter extends RowConverter<Object> {
     private final CsvFieldType fieldType;
     private final int fieldIndex;
 

@@ -14,17 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
-
-    implementation("com.google.guava:guava")
-    implementation("com.joestelmach:natty")
-    implementation("net.sf.opencsv:opencsv")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("commons-io:commons-io")
-    implementation("org.apache.commons:commons-lang3")
-    implementation("org.jsoup:jsoup")
-
-    testImplementation(project(":core", "testClasses"))
+[
+{
+  "id": "19990101",
+  "dow": "Friday",
+  "longDate": "New Years Day",
+  "title": "Tractor trouble.",
+  "characters": [ "Alice", "Bob", "Xavier" ],
+  "script": "Julian Hyde",
+  "summary": "",
+  "lines": [
+    "Bob's tractor got stuck in a field.",
+    "Alice and Xavier hatch a plan to surprise Charlie."
+  ]
+},
+{
+  "id": "19990103",
+  "dow": "Sunday",
+  "longDate": "Sunday 3rd January",
+  "title": "Charlie's surprise.",
+  "characters": [ "Alice", "Zebedee", "Charlie", "Xavier" ],
+  "script": "William Shakespeare",
+  "summary": "",
+  "lines": [
+    "Charlie is very surprised by Alice and Xavier's surprise plan."
+  ]
 }
+]

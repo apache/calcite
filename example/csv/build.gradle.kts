@@ -21,6 +21,7 @@ val sqllineClasspath by configurations.creating {
 
 dependencies {
     api(project(":core"))
+    api(project(":file"))
     api(project(":linq4j"))
 
     implementation("com.fasterxml.jackson.core:jackson-core")

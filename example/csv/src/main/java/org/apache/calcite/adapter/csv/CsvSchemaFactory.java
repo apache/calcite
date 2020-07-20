@@ -33,10 +33,6 @@ import java.util.Map;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvSchemaFactory implements SchemaFactory {
-  /** Name of the column that is implicitly created in a CSV stream table
-   * to hold the data arrival time. */
-  static final String ROWTIME_COLUMN_NAME = "ROWTIME";
-
   /** Public singleton, per factory contract. */
   public static final CsvSchemaFactory INSTANCE = new CsvSchemaFactory();
 

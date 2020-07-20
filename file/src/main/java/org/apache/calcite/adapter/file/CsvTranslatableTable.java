@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.file.CsvEnumerator;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -39,6 +38,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file.
+ *
+ * <p>Copied from {@code CsvTranslatableTable} in demo CSV adapter,
+ * with more advanced features.
  */
 public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
@@ -58,11 +60,8 @@ public class CsvTranslatableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new CsvEnumerator<>(
-            source,
-            cancelFlag,
-            getFieldTypes(root.getTypeFactory()),
-            ImmutableIntList.of(fields));
+        return new CsvEnumerator<>(source, cancelFlag,
+            getFieldTypes(root.getTypeFactory()), ImmutableIntList.of(fields));
       }
     };
   }
