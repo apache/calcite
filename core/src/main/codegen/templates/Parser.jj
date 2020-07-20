@@ -440,7 +440,9 @@ JAVACODE SqlParseException convertException(Throwable ex)
             // Checks token.image.equals("1") to avoid recursive call.
             // The SqlAbstractParserImpl#MetadataImpl constructor uses constant "1" to
             // throw intentionally to collect the expected tokens.
-            if (!token.image.equals("1") && getMetadata().isKeyword(token.image)) {
+            if (!token.image.equals("1")
+                && getMetadata().isKeyword(token.image)
+                && SqlParserUtil.allowsIdentifier(tokenImage, expectedTokenSequences)) {
                 // If the next token is a keyword, reformat the error message as:
 
                 // Incorrect syntax near the keyword '{keyword}' at line {line_number},
