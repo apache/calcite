@@ -289,9 +289,12 @@ public class RelMdUtil {
    * between 1 and 100, you'll most likely end up with fewer than 100 distinct
    * values, because you'll pick some values more than once.
    *
-   * @param domainSize  number of distinct values in the domain
-   * @param numSelected number selected from the domain
-   * @return number of distinct values for subset selected
+   * The implementation is an unbiased estimation of the number of distinct values
+   * by performing a number of selections (with replacement) from a universe set.
+   *
+   * @param domainSize size of the universe set.
+   * @param numSelected the number of selections.
+   * @return the expected number of distinct values.
    */
   public static Double numDistinctVals(
       Double domainSize,
@@ -305,24 +308,34 @@ public class RelMdUtil {
     double dSize = capInfinity(domainSize);
     double numSel = capInfinity(numSelected);
 
-    // The formula for this is:
-    // 1. Assume we pick 80 random values between 1 and 100.
-    // 2. The chance we skip any given value is .99 ^ 80
-    // 3. Thus on average we will skip .99 ^ 80 percent of the values
-    //    in the domain
-    // 4. Generalized, we skip ( (n-1)/n ) ^ k values where n is the
-    //    number of possible values and k is the number we are selecting
-    // 5. This can be rewritten via approximation (if you want to
-    //    know why approximation is called for here, ask Bill Keese):
-    //  ((n-1)/n) ^ k
-    //  = e ^ ln( ((n-1)/n) ^ k )
-    //  = e ^ (k * ln ((n-1)/n))
-    //  = e ^ (k * ln (1-1/n))
-    // ~= e ^ (k * (-1/n))  because ln(1+x) ~= x for small x
-    //  = e ^ (-k/n)
-    // 6. Flipping it from number skipped to number visited, we get:
-    double res =
-        (dSize > 0) ? ((1.0 - Math.exp(-1 * numSel / dSize)) * dSize) : 0;
+    // The formula is derived as follows:
+    //
+    // Suppose we have N distinct values, and we select n from them (with replacement).
+    // For any value i, we use C(i) = k to express the event that the value is selected exactly
+    // k times in the n selections.
+    //
+    // It can be seen that, for any one selection, the probability of the value being selected
+    // is 1/N. So the probability of being selected exactly k times is
+    //
+    // Pr{C(i) = k} = C(n, k) * (1 / N)^k * (1 - 1 / N)^(n - k),
+    // where C(n, k) = n! / [k! * (n - k)!]
+    //
+    // The probability that the value is never selected is
+    // Pr{C(i) = 0} = C(n, 0) * (1/N)^0 * (1 - 1 / N)^n = (1 - 1 / N)^n
+    //
+    // We define indicator random variable I(i), so that I(i) = 1 iff
+    // value i is selected in at least one of the selections. We have
+    // E[I(i)] = 1 * Pr{I(i) = 1} + 0 * Pr{I(i) = 0) = Pr{I(i) = 1}
+    // = Pr{C(i) > 0} = 1 - Pr{C(i) = 0} = 1 - (1 - 1 / N)^n
+    //
+    // The expected number of distinct values in the overall n selections is:
+    // E(I(1)] + E(I(2)] + ... + E(I(N)] = N * [1 - (1 - 1 / N)^n]
+
+    double res = 0;
+    if (dSize > 0) {
+      double expo = numSel * Math.log(1.0 - 1.0 / dSize);
+      res = (1.0 - Math.exp(expo)) * dSize;
+    }
 
     // fix the boundary cases
     if (res > dSize) {
