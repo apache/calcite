@@ -27,8 +27,30 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.24.0">1.24.0</a> / under development
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.24.0">1.24.0</a> / 2020-07-20
 {: #v1-24-0}
+
+This release comes about two months after 1.23.0. It includes more than 80 resolved
+issues, comprising a lot of new features as well as performance improvements
+and bug-fixes. Among others, it is worth highlighting the following.
+
+* Support top-down rule applying and upper bound space pruning
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-3916">CALCITE-3916</a>)
+* Support `OFFSET` parameter in `TUMBLE/HOP` table functions
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-4000">CALCITE-4000</a>)
+* Presto dialect implementation
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-3224">CALCITE-3224</a>)
+* New implementation of RexNode-to-Expression code generation
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-4056">CALCITE-4056</a>)
+* Remove Digest from `RelNode` and `RexCall`
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-4056">CALCITE-4056</a>)
+* Allow `RelBuilder` to create `RelNode` with convention
+  (<a href="https://issues.apache.org/jira/browse/CALCITE-3972">CALCITE-3972</a>)
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11, 12, 13, 14 and OpenJDK 8, 9, 10, 11, 12, 13, 14;
+Guava versions 19.0 to 28.2-jre; other software versions as specified in
+gradle.properties.
 
 #### Breaking Changes
 
@@ -40,6 +62,180 @@ Downloads are available on the
   Change `RelNode#recomputeDigest()` return type from `String` to `void`. To get
   digest string, use `RelNode#getDigest()` instead, it will create new digest
   string on each call, so don't forget to cache the result if necessary
+
+#### New features
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4073">CALCITE-4073</a>]
+Add a new component `RexNormalize` for more effect rex nodes normalization
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4000">CALCITE-4000</a>]
+Support `OFFSET` parameter in `TUMBLE/HOP` table functions (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3916">CALCITE-3916</a>]
+Support top-down rule applying and upper bound space pruning
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3941">CALCITE-3941</a>]
+Add the default strict mode to the path in the Json functions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3224">CALCITE-3224</a>]
+New implementation of RexNode-to-Expression code generation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4056">CALCITE-4056</a>]
+Remove Digest from `RelNode` and `RexCall`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4008">CALCITE-4008</a>]
+Implement Code generation for `EnumerableSortedAggregate` (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3724">CALCITE-3724</a>]
+Presto dialect implementation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4060">CALCITE-4060</a>]
+Supports implicit type coercion for `NOT IN`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3972">CALCITE-3972</a>]
+Allow `RelBuilder` to create `RelNode` with convention (Xiening Dai)
+
+#### Bug fixes, API changes and minor enhancements
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4127">CALCITE-4127</a>]
+Remove final from `AbstractRelNode#getRelTypeName`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4124">CALCITE-4124</a>]
+Stop invalidating metadata cache in `VolcanoRuleCall`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4123">CALCITE-4123</a>]
+Make `EnumerableMergeJoin` constructor protected
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4085">CALCITE-4085</a>]
+Improve return type nullability for `SqlDotOperator` & `SqlItemOperator` (Dawid Wysakowicz)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4094">CALCITE-4094</a>]
+Allow `SqlOperator` of `SqlKind#OTHER_FUNCTION` to define a `Strong.Policy` Follow-up after review comments
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3936">CALCITE-3936</a>]
+JDBC adapter, when generating SQL, changes target of ambiguous HAVING clause with a `Project` on `Filter` on `Aggregate`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4112">CALCITE-4112</a>]
+Refine the usage of `CalciteConnectionConfig` in `DecorrelateProgram` & some minor code refactoring (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4116">CALCITE-4116</a>]
+Remove unused code for tracking RexNode's nullable state in codegen
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4105">CALCITE-4105</a>]
+Replace `Pair` with `Flat2List` in `RelDigestWriter`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4092">CALCITE-4092</a>]
+NPE using `WITH` clause without a corresponding `SELECT FROM` (James Kim)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4115">CALCITE-4115</a>]
+Improve the prompt of using SQL keywords for sql parser
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4094">CALCITE-4094</a>]
+Allow `SqlOperator` of `SqlKind#OTHER_FUNCTION` to define a `Strong.Policy`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3834">CALCITE-3834</a>]
+Support `AntiJoin` in `EnumerableMergeJoin`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4098">CALCITE-4098</a>]
+Remove redundant code in `RelJson.toJson(RelDistribution)` (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4066">CALCITE-4066</a>]
+`SqlTypeUtil#convertTypeToSpec` cover Array/Multiset/Row types (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4059">CALCITE-4059</a>]
+`SqlTypeUtil#equalSansNullability` consider Array/Map type (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4026">CALCITE-4026</a>]
+`CassandraFilter` has generated wrong condition expression for filter with non string literal (Wenhui Tang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4077">CALCITE-4077</a>]
+Exception when joined with built-in table functions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4097">CALCITE-4097</a>]
+Avoid requesting unnecessary trait request when deriving traits
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4033">CALCITE-4033</a>]
+Does not produce parenthesized table expressions for `UNNEST` (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4049">CALCITE-4049</a>]
+Improve the implementation of the shortest-path algorithm
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3929">CALCITE-3929</a>]
+When deserialize UDAF aggregate call from json string, throws NPE (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4062">CALCITE-4062</a>]
+Support deserialize UDF array type from json string (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4090">CALCITE-4090</a>]
+When generating SQL for DB2, a complex `SELECT` above a sub-query generates a bad table alias (Steven Talbot)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4089">CALCITE-4089</a>]
+In Babel, allow 'CAST(integer AS DATE)' even though it is illegal in Calcite SQL
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4087">CALCITE-4087</a>]
+Hoist, a utility to replace literals in a SQL string with placeholders
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4083">CALCITE-4083</a>]
+`RelTraitSet` failed to canonize traits
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4075">CALCITE-4075</a>]
+Mock table 'EMPNULLABLES' should allow nulls in all non-pk columns
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4019">CALCITE-4019</a>]
+Visit `SqlInsert` with `SqlShuttle` cause `NullPointerException` (Xu ZhaoHui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4063">CALCITE-4063</a>]
+Unnest an array of single-item structs causes `ClassCastException`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3907">CALCITE-3907</a>]
+Use username and password parameters on delegation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3951">CALCITE-3951</a>]
+Support different string comparison based on `SqlCollation`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4020">CALCITE-4020</a>]
+Support `Calc` operator in `RelFieldTrimmer` (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4057">CALCITE-4057</a>]
+Support trait propagation for `EnumerableBatchNestedLoopJoin` (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4016">CALCITE-4016</a>]
+Support trait propagation for `EnumerableCalc`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4055">CALCITE-4055</a>]
+`RelFieldTrimmer` loses hints
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3975">CALCITE-3975</a>]
+Add options to `ProjectFilterTransposeRule` to push down project and filter expressions whole, not just field references
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4038">CALCITE-4038</a>]
+Refactor `RexVisitor`, `RexBiVisitor`, `RelOptUtil.InputFinder`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4053">CALCITE-4053</a>]
+`RexSimplify` should not pass exprs containing non-const subExprs to `RexExecutor` (Shuo Cheng)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4018">CALCITE-4018</a>]
+Support trait propagation for `EnumerableValues`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4049">CALCITE-4049</a>]
+Reduce the time complexity of getting shortest distances
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4041">CALCITE-4041</a>]
+Support trait propagation for `EnumerableCorrelate`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4007">CALCITE-4007</a>]
+`MergeJoin` collation check should not be limited to join key's order
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4012">CALCITE-4012</a>]
+Support trait propagation for `EnumerableHashJoin` and `EnumerableNestedLoopJoin` (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4040">CALCITE-4040</a>]
+An aggregate function that does not support roll up throws an exception when it is rolled up (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4030">CALCITE-4030</a>]
+Reinstate assertion check for trait derivation in `OptimizeTask`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4042">CALCITE-4042</a>]
+`JoinCommuteRule` must not match `SEMI` / `ANTI` join
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4043">CALCITE-4043</a>]
+Improve IllegalArgumentException message in `RelBuilder#field`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3991">CALCITE-3991</a>]
+The required should always be provided in `RelSet.getOrCreateSubset()` (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3981">CALCITE-3981</a>]
+`Volcano.register` should not return stale subset (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2997">CALCITE-2997</a>]
+In `SqlToRelConverter` and `RelBuilder`, add option to avoid pushing down join condition
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3946">CALCITE-3946</a>]
+Add parser support for `MULTISET/SET` and `VOLATILE` modifiers in `CREATE TABLE` statements (Drew Schmitt)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4023">CALCITE-4023</a>]
+Deprecate `ProjectSortTransposeRule`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4031">CALCITE-4031</a>]
+Remove code to be removed before 1.24
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3993">CALCITE-3993</a>]
+Add utility methods to `RelTrait`, `RelTraitSet` and `RelCollation`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4011">CALCITE-4011</a>]
+Support trait propagation for `EnumerableProject` and `EnumerableFilter` (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4019">CALCITE-4019</a>]
+Visit `SqlInsert` with `SqlShuttle` cause `NullPointerException` (Xu ZhaoHui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4004">CALCITE-4004</a>]
+Show `RelOptRuleOperand` description in debugger to facilitate debugging
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4009">CALCITE-4009</a>]
+Remove traitset remapping in `ProjectJoinTransposeRule`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3999">CALCITE-3999</a>]
+Simplify `DialectPool` implementation using Guava cache
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3910">CALCITE-3910</a>]
+Enhance `ProjectJoinTransposeRule` to support `SemiJoin` and `AntiJoin` (Liya Fan)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3988">CALCITE-3988</a>]
+Intersect in `RelMdRowCount` doesn't take into account 'intersect all' (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3985">CALCITE-3985</a>]
+Simplify grouped window function in parser (Rui Wang)
+
+#### Build and test suite
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4101">CALCITE-4101</a>]
+Calcite PR CI often failed due to `elasticsearch:test`, disable the related tests first (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4061">CALCITE-4061</a>]
+Build should fail if Calcite code uses deprecated APIs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4104">CALCITE-4104</a>]
+Add automatically link to GitHub PR and 'pull-request-available' label to issues
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3478">CALCITE-3478</a>]
+Restructure tests for materialized views (Jin Xing)
+
+#### Web site and documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4086">CALCITE-4086</a>]
+Upgrade Avatica version to 1.17.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3950">CALCITE-3950</a>]
+Doc of `SqlGroupingFunction` contradicts its behavior
+* Site: Remove '(for Calcite committers)' suffix from headers in section dedicated to committers
+* Site: Add instructions for managing Calcite repos through GitHub
+* Site: Add Tencent and TBDS logo in powered-by image
+
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / 2020-05-23
 {: #v1-23-0}
