@@ -23,7 +23,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlTimeLiteral;
@@ -95,10 +94,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeNullLiteral(type);
     }
 
-    BitString bitString;
-    SqlIntervalLiteral.IntervalValue intervalValue;
-    long l;
-
+    final BitString bitString;
     switch (literal.getTypeName()) {
     case DECIMAL:
       // exact number
@@ -152,8 +148,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       SqlIntervalQualifier sqlIntervalQualifier =
-          literal.getValueAs(SqlIntervalLiteral.IntervalValue.class)
-              .getIntervalQualifier();
+          literal.getValueAs(SqlIntervalQualifier.class);
       return rexBuilder.makeIntervalLiteral(
           literal.getValueAs(BigDecimal.class),
           sqlIntervalQualifier);

@@ -211,6 +211,17 @@ public abstract class SqlNode implements Cloneable {
       int leftPrec,
       int rightPrec);
 
+  public void unparseWithParentheses(SqlWriter writer, int leftPrec,
+      int rightPrec, boolean parentheses) {
+    if (parentheses) {
+      final SqlWriter.Frame frame = writer.startList("(", ")");
+      unparse(writer, 0, 0);
+      writer.endList(frame);
+    } else {
+      unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
   public SqlParserPos getParserPosition() {
     return pos;
   }

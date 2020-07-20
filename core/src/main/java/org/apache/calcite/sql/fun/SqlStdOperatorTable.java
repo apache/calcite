@@ -548,6 +548,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatetimePlusOperator();
 
   /**
+   * Interval expression, '<code>INTERVAL n timeUnit</code>'.
+   */
+  public static final SqlSpecialOperator INTERVAL =
+      new SqlIntervalOperator();
+
+  /**
    * Multiset {@code MEMBER OF}, which returns whether a element belongs to a
    * multiset.
    *

@@ -252,6 +252,20 @@ public class SqlLiteral extends SqlNode {
     return value;
   }
 
+  /**
+   * Returns the value of this literal as a particular type.
+   *
+   * <p>The type might be the internal type, or other convenient types.
+   * For example, numeric literals' values are stored internally as
+   * {@link BigDecimal}, but other numeric types such as {@link Long} and
+   * {@link Double} are also allowed.
+   *
+   * @param clazz Desired value type
+   * @param <T> Value type
+   * @return Value of the literal
+   *
+   * @throws AssertionError if the value type is not supported
+   */
   public <T> T getValueAs(Class<T> clazz) {
     if (clazz.isInstance(value)) {
       return clazz.cast(value);
@@ -320,6 +334,8 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
+      } else if (clazz == SqlIntervalQualifier.class) {
+        return clazz.cast(valMonth.getIntervalQualifier());
       }
       break;
     case INTERVAL_DAY:
@@ -341,6 +357,8 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
+      } else if (clazz == SqlIntervalQualifier.class) {
+        return clazz.cast(valTime.getIntervalQualifier());
       }
       break;
     }

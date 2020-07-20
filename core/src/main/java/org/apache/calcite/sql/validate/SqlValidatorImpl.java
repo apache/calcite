@@ -3088,8 +3088,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case INTERVAL_SECOND:
       if (literal instanceof SqlIntervalLiteral) {
         SqlIntervalLiteral.IntervalValue interval =
-            (SqlIntervalLiteral.IntervalValue)
-                literal.getValue();
+            literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
         SqlIntervalQualifier intervalQualifier =
             interval.getIntervalQualifier();
 

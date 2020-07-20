@@ -164,10 +164,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   /** BigQuery interval syntax: INTERVAL int64 time_unit. */
-  @Override public void unparseSqlIntervalLiteral(
-          SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+  @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
+      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
-            (SqlIntervalLiteral.IntervalValue) literal.getValue();
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     writer.keyword("INTERVAL");
     if (interval.getSign() == -1) {
       writer.print("-");

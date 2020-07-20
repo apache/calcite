@@ -259,6 +259,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
         new TimestampDiffConvertlet());
 
+    registerOp(SqlStdOperatorTable.INTERVAL,
+        StandardConvertletTable::convertInterval);
+
     // Convert "element(<expr>)" to "$element_slice(<expr>)", if the
     // expression is a multiset of scalars.
     if (false) {
@@ -292,6 +295,21 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             return cx.getRexBuilder().makeFieldAccess(expr, 0);
           });
     }
+  }
+
+  /** Converts an interval expression to a numeric multiplied by an interval
+   * literal. */
+  private static RexNode convertInterval(SqlRexContext cx, SqlCall call) {
+    // "INTERVAL n HOUR" becomes "n * INTERVAL '1' HOUR"
+    final SqlNode n = call.operand(0);
+    final SqlIntervalQualifier intervalQualifier = call.operand(1);
+    final SqlIntervalLiteral literal =
+        SqlLiteral.createInterval(1, "1", intervalQualifier,
+            call.getParserPosition());
+    final SqlCall multiply =
+        SqlStdOperatorTable.MULTIPLY.createCall(call.getParserPosition(), n,
+            literal);
+    return cx.convertExpression(multiply);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -546,7 +564,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         && call.operand(0) instanceof SqlIntervalLiteral) {
       final SqlIntervalLiteral literal = call.operand(0);
       SqlIntervalLiteral.IntervalValue interval =
-          (SqlIntervalLiteral.IntervalValue) literal.getValue();
+          literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
       BigDecimal val =
           interval.getIntervalQualifier().getStartUnit().multiplier;
       RexNode rexInterval = cx.convertExpression(literal);

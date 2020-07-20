@@ -28,7 +28,9 @@ import org.apache.calcite.sql.SqlOperatorBinding;
  * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
  * This makes
  * sense because many operators have similar, straightforward strategies, such
- * as to take the type of the first operand.</p>
+ * as to take the type of the first operand.
+ *
+ * @see ReturnTypes
  */
 @FunctionalInterface
 public interface SqlReturnTypeInference {

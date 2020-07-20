@@ -119,6 +119,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testIntervalExpression() {
+    sql("select interval mgr hour as h from emp").ok();
+  }
+
   @Test void testAliasList() {
     final String sql = "select a + b from (\n"
         + "  select deptno, 1 as uno, name from dept\n"

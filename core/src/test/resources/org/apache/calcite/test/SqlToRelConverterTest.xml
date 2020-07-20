@@ -2339,6 +2339,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testIntervalExpression">
+        <Resource name="sql">
+            <![CDATA[select interval mgr hour as h from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(H=[*($3, 3600000:INTERVAL HOUR)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testLateralDecorrelate">
         <Resource name="sql">
             <![CDATA[select * from emp,
@@ -3743,7 +3754,6 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
-
     <TestCase name="testSubQueryAggregateFunctionFollowedBySimpleOperation">
         <Resource name="sql">
             <![CDATA[select deptno

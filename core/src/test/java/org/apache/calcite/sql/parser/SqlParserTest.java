@@ -7096,6 +7096,26 @@ public class SqlParserTest {
         .ok("INTERVAL '1:x:2' HOUR TO SECOND");
   }
 
+  @Test void testIntervalExpression() {
+    expr("interval 0 day").ok("INTERVAL 0 DAY");
+    expr("interval 0 days").ok("INTERVAL 0 DAY");
+    expr("interval -10 days").ok("INTERVAL (- 10) DAY");
+    expr("interval -10 days").ok("INTERVAL (- 10) DAY");
+    // parser requires parentheses for expressions other than numeric
+    // literal or identifier
+    expr("interval 1 ^+^ x.y days")
+        .fails("(?s)Encountered \"\\+\" at .*");
+    expr("interval (1 + x.y) days")
+        .ok("INTERVAL (1 + `X`.`Y`) DAY");
+    expr("interval -x second(3)")
+        .ok("INTERVAL (- `X`) SECOND(3)");
+    expr("interval -x.y second(3)")
+        .ok("INTERVAL (- `X`.`Y`) SECOND(3)");
+    expr("interval 1 day ^to^ hour")
+        .fails("(?s)Encountered \"to\" at .*");
+    expr("interval '1 1' day to hour").ok("INTERVAL '1 1' DAY TO HOUR");
+  }
+
   @Test void testIntervalOperators() {
     expr("-interval '1' day")
         .ok("(- INTERVAL '1' DAY)");

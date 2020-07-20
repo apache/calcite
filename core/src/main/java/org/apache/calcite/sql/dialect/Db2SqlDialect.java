@@ -84,7 +84,7 @@ public class Db2SqlDialect extends SqlDialect {
     // If one operand is a timestamp, the other operand can be any of teh duration.
 
     SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     if (interval.getSign() == -1) {
       writer.print("-");
     }

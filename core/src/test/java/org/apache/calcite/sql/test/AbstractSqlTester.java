@@ -234,7 +234,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertNotNull(node);
     SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) node;
     SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+        intervalLiteral.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     long l =
         interval.getIntervalQualifier().isYearMonth()
             ? SqlParserUtil.intervalToMonths(interval)

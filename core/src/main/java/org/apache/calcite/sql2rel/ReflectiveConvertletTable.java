@@ -134,7 +134,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     final SqlOperator op = call.getOperator();
 
     // Is there a convertlet for this operator
-    // (e.g. SqlStdOperatorTable.plusOperator)?
+    // (e.g. SqlStdOperatorTable.PLUS)?
     convertlet = (SqlRexConvertlet) map.get(op);
     if (convertlet != null) {
       return convertlet;

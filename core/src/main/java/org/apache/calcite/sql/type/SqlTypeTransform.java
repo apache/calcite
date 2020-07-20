@@ -27,6 +27,8 @@ import org.apache.calcite.sql.SqlOperatorBinding;
  *
  * <p>This class is an example of the
  * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
+ *
+ * @see SqlTypeTransforms
  */
 public interface SqlTypeTransform {
   //~ Methods ----------------------------------------------------------------

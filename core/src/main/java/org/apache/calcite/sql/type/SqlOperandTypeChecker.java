@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlOperator;
  *
  * <p>This interface is an example of the
  * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
+ *
+ * @see OperandTypes
  */
 public interface SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------

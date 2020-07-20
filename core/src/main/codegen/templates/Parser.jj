@@ -3770,7 +3770,7 @@ SqlNode AtomicRowExpression() :
 }
 {
     (
-        e = Literal()
+        e = LiteralOrIntervalExpression()
     |
         e = DynamicParam()
     |
@@ -4007,10 +4007,28 @@ SqlDrop SqlDrop() :
  * Usually returns an SqlLiteral, but a continued string literal
  * is an SqlCall expression, which concatenates 2 or more string
  * literals; the validator reduces this.
+ *
+ * <p>If the context allows both literals and expressions,
+ * use {@link #LiteralOrIntervalExpression}, which requires less
+ * lookahead.
  */
 SqlNode Literal() :
 {
     SqlNode e;
+}
+{
+    (
+        e = NonIntervalLiteral()
+    |
+        e = IntervalLiteral()
+    )
+    { return e; }
+}
+
+/** Parses a literal that is not an interval literal. */
+SqlNode NonIntervalLiteral() :
+{
+    final SqlNode e;
 }
 {
     (
@@ -4021,8 +4039,6 @@ SqlNode Literal() :
         e = SpecialLiteral()
     |
         e = DateTimeLiteral()
-    |
-        e = IntervalLiteral()
 <#-- additional literal parser methods are included here -->
 <#list parser.literalParserMethods as method>
     |
@@ -4032,8 +4048,25 @@ SqlNode Literal() :
     {
         return e;
     }
+}
 
-
+/** Parses a literal or an interval expression.
+ *
+ * <p>We include them in the same production because it is difficult to
+ * distinguish interval literals from interval expression (both of which
+ * start with the {@code INTERVAL} keyword); this way, we can use less
+ * LOOKAHEAD. */
+SqlNode LiteralOrIntervalExpression() :
+{
+    final SqlNode e;
+}
+{
+    (
+        e = IntervalLiteralOrExpression()
+    |
+        e = NonIntervalLiteral()
+    )
+    { return e; }
 }
 
 /** Parses a unsigned numeric literal */
@@ -4416,6 +4449,53 @@ SqlLiteral IntervalLiteral() :
     }
 }
 
+/** Parses an interval literal (e.g. {@code INTERVAL '2:3' HOUR TO MINUTE})
+ * or an interval expression (e.g. {@code INTERVAL emp.empno MINUTE}
+ * or {@code INTERVAL 3 MONTHS}). */
+SqlNode IntervalLiteralOrExpression() :
+{
+    final String p;
+    final SqlIntervalQualifier intervalQualifier;
+    int sign = 1;
+    final Span s;
+    SqlNode e;
+}
+{
+    <INTERVAL> { s = span(); }
+    [
+        <MINUS> { sign = -1; }
+    |
+        <PLUS> { sign = 1; }
+    ]
+    (
+        // literal (with quoted string)
+        <QUOTED_STRING> { p = token.image; }
+        intervalQualifier = IntervalQualifier() {
+            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                sign, p, intervalQualifier);
+        }
+    |
+        // To keep parsing simple, any expressions besides numeric literal and
+        // identifiers must be enclosed in parentheses.
+        (
+            <LPAREN>
+            e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+            <RPAREN>
+        |
+            e = UnsignedNumericLiteral()
+        |
+            e = CompoundIdentifier()
+        )
+        intervalQualifier = IntervalQualifierStart() {
+            if (sign == -1) {
+                e = SqlStdOperatorTable.UNARY_MINUS.createCall(e.getParserPosition(), e);
+            }
+            return SqlStdOperatorTable.INTERVAL.createCall(s.end(this), e,
+                intervalQualifier);
+        }
+    )
+}
+
 TimeUnit Year() :
 {
 }
@@ -4472,6 +4552,7 @@ TimeUnit Second() :
 
 SqlIntervalQualifier IntervalQualifier() :
 {
+    final Span s;
     final TimeUnit start;
     TimeUnit end = null;
     int startPrec = RelDataType.PRECISION_NOT_SPECIFIED;
@@ -4479,27 +4560,28 @@ SqlIntervalQualifier IntervalQualifier() :
 }
 {
     (
-        start = Year() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Year() { s = span(); } startPrec = PrecisionOpt()
         [
             LOOKAHEAD(2) <TO> end = Month()
         ]
     |
-        start = Month() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Month() { s = span(); } startPrec = PrecisionOpt()
     |
-        start = Day() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
-        [ LOOKAHEAD(2) <TO>
+        start = Day() { s = span(); } startPrec = PrecisionOpt()
+        [
+            LOOKAHEAD(2) <TO>
             (
                 end = Hour()
             |
                 end = Minute()
             |
-                end = Second()
-                [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
+                end = Second() secondFracPrec = PrecisionOpt()
             )
         ]
     |
-        start = Hour() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
-        [ LOOKAHEAD(2) <TO>
+        start = Hour() { s = span(); } startPrec = PrecisionOpt()
+        [
+            LOOKAHEAD(2) <TO>
             (
                 end = Minute()
             |
@@ -4508,26 +4590,54 @@ SqlIntervalQualifier IntervalQualifier() :
             )
         ]
     |
-        start = Minute() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
-        [ LOOKAHEAD(2) <TO>
-            (
-                end = Second()
-                [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
-            )
+        start = Minute() { s = span(); } startPrec = PrecisionOpt()
+        [
+            LOOKAHEAD(2) <TO> end = Second()
+            [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
         ]
     |
-        start = Second()
+        start = Second() { s = span(); }
+        [
+            <LPAREN> startPrec = UnsignedIntLiteral()
+            [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
+            <RPAREN>
+        ]
+    )
+    {
+        return new SqlIntervalQualifier(start, startPrec, end, secondFracPrec,
+            s.end(this));
+    }
+}
+
+/** Interval qualifier without 'TO unit'. */
+SqlIntervalQualifier IntervalQualifierStart() :
+{
+    final Span s;
+    final TimeUnit start;
+    int startPrec = RelDataType.PRECISION_NOT_SPECIFIED;
+    int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
+}
+{
+    (
+        (
+            start = Year()
+        |   start = Month()
+        |   start = Day()
+        |   start = Hour()
+        |   start = Minute()
+        )
+        { s = span(); }
+        startPrec = PrecisionOpt()
+    |
+        start = Second() { s = span(); }
         [   <LPAREN> startPrec = UnsignedIntLiteral()
             [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
             <RPAREN>
         ]
     )
     {
-        return new SqlIntervalQualifier(start,
-            startPrec,
-            end,
-            secondFracPrec,
-            getPos());
+        return new SqlIntervalQualifier(start, startPrec, null, secondFracPrec,
+            s.end(this));
     }
 }
 
@@ -5260,7 +5370,6 @@ int PrecisionOpt() :
     int precision = -1;
 }
 {
-    LOOKAHEAD(2)
     <LPAREN>
     precision = UnsignedIntLiteral()
     <RPAREN>
