@@ -32,10 +32,11 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 public class SqlJsonExistsFunction extends SqlFunction {
   public SqlJsonExistsFunction() {
     super("JSON_EXISTS", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.BOOLEAN, SqlTypeTransforms.FORCE_NULLABLE), null,
+        ReturnTypes.BOOLEAN.andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
         OperandTypes.or(
             OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
-            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY)),
+            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
+                SqlTypeFamily.ANY)),
         SqlFunctionCategory.SYSTEM);
   }
 

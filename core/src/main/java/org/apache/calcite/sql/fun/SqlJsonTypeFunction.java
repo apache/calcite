@@ -37,14 +37,10 @@ import org.apache.calcite.sql.validate.SqlValidator;
  */
 public class SqlJsonTypeFunction extends SqlFunction {
   public SqlJsonTypeFunction() {
-    super("JSON_TYPE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(
-            ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
-            SqlTypeTransforms.FORCE_NULLABLE),
-        null,
-        OperandTypes.ANY,
-        SqlFunctionCategory.SYSTEM);
+    super("JSON_TYPE", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.explicit(SqlTypeName.VARCHAR, 20)
+            .andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {

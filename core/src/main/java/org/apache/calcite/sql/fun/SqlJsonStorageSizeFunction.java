@@ -29,12 +29,8 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 public class SqlJsonStorageSizeFunction extends SqlFunction {
 
   public SqlJsonStorageSizeFunction() {
-    super("JSON_STORAGE_SIZE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.INTEGER,
-            SqlTypeTransforms.FORCE_NULLABLE),
-        null,
-        OperandTypes.ANY,
-        SqlFunctionCategory.SYSTEM);
+    super("JSON_STORAGE_SIZE", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
   }
 }

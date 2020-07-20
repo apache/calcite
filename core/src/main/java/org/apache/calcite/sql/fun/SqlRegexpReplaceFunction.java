@@ -39,20 +39,18 @@ import java.util.List;
 public class SqlRegexpReplaceFunction extends SqlFunction {
 
   public SqlRegexpReplaceFunction() {
-    super("REGEXP_REPLACE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-            SqlTypeTransforms.TO_NULLABLE),
-        null,
-        null,
-        SqlFunctionCategory.STRING);
+    super("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.explicit(SqlTypeName.VARCHAR)
+            .andThen(SqlTypeTransforms.TO_NULLABLE),
+        null, null, SqlFunctionCategory.STRING);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(3, 6);
   }
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
     final int operandCount = callBinding.getOperandCount();
     assert operandCount >= 3;
     if (operandCount == 3) {

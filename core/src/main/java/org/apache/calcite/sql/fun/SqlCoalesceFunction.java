@@ -45,8 +45,7 @@ public class SqlCoalesceFunction extends SqlFunction {
     // strategies are used.
     super("COALESCE",
         SqlKind.COALESCE,
-        ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-            SqlTypeTransforms.LEAST_NULLABLE),
+        ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.LEAST_NULLABLE),
         null,
         OperandTypes.SAME_VARIADIC,
         SqlFunctionCategory.SYSTEM);

@@ -43,13 +43,19 @@ public abstract class ReturnTypes {
   private ReturnTypes() {
   }
 
+  /** Creates a return-type inference that applies a rule then a sequence of
+   * rules, returning the first non-null result.
+   *
+   * @see SqlReturnTypeInference#orElse(SqlReturnTypeInference) */
   public static SqlReturnTypeInferenceChain chain(
       SqlReturnTypeInference... rules) {
     return new SqlReturnTypeInferenceChain(rules);
   }
 
   /** Creates a return-type inference that applies a rule then a sequence of
-   * transforms. */
+   * transforms.
+   *
+   * @see SqlReturnTypeInference#andThen(SqlTypeTransform) */
   public static SqlTypeTransformCascade cascade(SqlReturnTypeInference rule,
       SqlTypeTransform... transforms) {
     return new SqlTypeTransformCascade(rule, transforms);
@@ -90,6 +96,7 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0 =
       new OrdinalReturnTypeInference(0);
+
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the
    * type of the first argument. The length returned is the same as length of
@@ -97,8 +104,8 @@ public abstract class ReturnTypes {
    * returned type will also be nullable. First Arg must be of string type.
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE_VARYING =
-      cascade(ARG0, SqlTypeTransforms.TO_NULLABLE,
-          SqlTypeTransforms.TO_VARYING);
+      ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
+          .andThen(SqlTypeTransforms.TO_VARYING);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -106,21 +113,21 @@ public abstract class ReturnTypes {
    * returned type will also be nullable.
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE =
-      cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
+      ARG0.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based), with nulls always allowed.
    */
   public static final SqlReturnTypeInference ARG0_FORCE_NULLABLE =
-      cascade(ARG0, SqlTypeTransforms.FORCE_NULLABLE);
+      ARG0.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   public static final SqlReturnTypeInference ARG0_INTERVAL =
       new MatchReturnTypeInference(0,
           SqlTypeFamily.DATETIME_INTERVAL.getTypeNames());
 
   public static final SqlReturnTypeInference ARG0_INTERVAL_NULLABLE =
-      cascade(ARG0_INTERVAL, SqlTypeTransforms.TO_NULLABLE);
+      ARG0_INTERVAL.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -148,26 +155,30 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG1 =
       new OrdinalReturnTypeInference(1);
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #1 (0-based). If any of the other operands are nullable the
    * returned type will also be nullable.
    */
   public static final SqlReturnTypeInference ARG1_NULLABLE =
-      cascade(ARG1, SqlTypeTransforms.TO_NULLABLE);
+      ARG1.andThen(SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * operand #2 (0-based).
    */
   public static final SqlReturnTypeInference ARG2 =
       new OrdinalReturnTypeInference(2);
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * operand #2 (0-based). If any of the other operands are nullable the
    * returned type will also be nullable.
    */
   public static final SqlReturnTypeInference ARG2_NULLABLE =
-      cascade(ARG2, SqlTypeTransforms.TO_NULLABLE);
+      ARG2.andThen(SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is Boolean.
    */
@@ -178,7 +189,7 @@ public abstract class ReturnTypes {
    * with nulls allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference BOOLEAN_NULLABLE =
-      cascade(BOOLEAN, SqlTypeTransforms.TO_NULLABLE);
+      BOOLEAN.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy with similar effect to {@link #BOOLEAN_NULLABLE},
@@ -207,14 +218,14 @@ public abstract class ReturnTypes {
    * Boolean.
    */
   public static final SqlReturnTypeInference BOOLEAN_FORCE_NULLABLE =
-      cascade(BOOLEAN, SqlTypeTransforms.FORCE_NULLABLE);
+      BOOLEAN.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is BOOLEAN
    * NOT NULL.
    */
   public static final SqlReturnTypeInference BOOLEAN_NOT_NULL =
-      cascade(BOOLEAN, SqlTypeTransforms.TO_NOT_NULLABLE);
+      BOOLEAN.andThen(SqlTypeTransforms.TO_NOT_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is DATE.
@@ -227,7 +238,7 @@ public abstract class ReturnTypes {
    * DATE.
    */
   public static final SqlReturnTypeInference DATE_NULLABLE =
-      cascade(DATE, SqlTypeTransforms.TO_NULLABLE);
+      DATE.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is TIME(0).
@@ -240,7 +251,7 @@ public abstract class ReturnTypes {
    * TIME(0).
    */
   public static final SqlReturnTypeInference TIME_NULLABLE =
-      cascade(TIME, SqlTypeTransforms.TO_NULLABLE);
+      TIME.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is TIMESTAMP.
@@ -253,19 +264,20 @@ public abstract class ReturnTypes {
    * TIMESTAMP.
    */
   public static final SqlReturnTypeInference TIMESTAMP_NULLABLE =
-      cascade(TIMESTAMP, SqlTypeTransforms.TO_NULLABLE);
+      TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Double.
    */
   public static final SqlReturnTypeInference DOUBLE =
       explicit(SqlTypeName.DOUBLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is Double with
    * nulls allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference DOUBLE_NULLABLE =
-      cascade(DOUBLE, SqlTypeTransforms.TO_NULLABLE);
+      DOUBLE.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is a Char.
@@ -284,7 +296,7 @@ public abstract class ReturnTypes {
    * with nulls allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference INTEGER_NULLABLE =
-      cascade(INTEGER, SqlTypeTransforms.TO_NULLABLE);
+      INTEGER.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is a BIGINT.
@@ -297,13 +309,14 @@ public abstract class ReturnTypes {
    * BIGINT.
    */
   public static final SqlReturnTypeInference BIGINT_FORCE_NULLABLE =
-      cascade(BIGINT, SqlTypeTransforms.FORCE_NULLABLE);
+      BIGINT.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
   /**
-   * Type-inference strategy whereby the result type of a call is an Bigint
+   * Type-inference strategy whereby the result type of a call is a BIGINT
    * with nulls allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference BIGINT_NULLABLE =
-      cascade(BIGINT, SqlTypeTransforms.TO_NULLABLE);
+      BIGINT.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy that always returns "VARCHAR(4)".
@@ -316,7 +329,7 @@ public abstract class ReturnTypes {
    * allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference VARCHAR_4_NULLABLE =
-      cascade(VARCHAR_4, SqlTypeTransforms.TO_NULLABLE);
+      VARCHAR_4.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy that always returns "VARCHAR(2000)".
@@ -329,7 +342,7 @@ public abstract class ReturnTypes {
    * allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference VARCHAR_2000_NULLABLE =
-      cascade(VARCHAR_2000, SqlTypeTransforms.TO_NULLABLE);
+      VARCHAR_2000.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy for Histogram agg support.
@@ -348,6 +361,7 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference COLUMN_LIST =
       explicit(SqlTypeName.COLUMN_LIST);
+
   /**
    * Type-inference strategy whereby the result type of a call is using its
    * operands biggest type, using the SQL:1999 rules described in "Data types
@@ -359,6 +373,7 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
       opBinding -> opBinding.getTypeFactory().leastRestrictive(
           opBinding.collectOperandTypes());
+
   /**
    * Returns the same type as the multiset carries. The multiset type returned
    * is the least restrictive of the call's multiset operands
@@ -395,20 +410,20 @@ public abstract class ReturnTypes {
    * <code>INTEGER MULTISET</code>.
    */
   public static final SqlReturnTypeInference TO_MULTISET =
-      cascade(ARG0, SqlTypeTransforms.TO_MULTISET);
+      ARG0.andThen(SqlTypeTransforms.TO_MULTISET);
 
   /**
    * Returns the element type of a MULTISET.
    */
   public static final SqlReturnTypeInference MULTISET_ELEMENT_NULLABLE =
-      cascade(MULTISET, SqlTypeTransforms.TO_MULTISET_ELEMENT_TYPE);
+      MULTISET.andThen(SqlTypeTransforms.TO_MULTISET_ELEMENT_TYPE);
 
   /**
    * Same as {@link #MULTISET} but returns with nullability if any of the
    * operands is nullable.
    */
   public static final SqlReturnTypeInference MULTISET_NULLABLE =
-      cascade(MULTISET, SqlTypeTransforms.TO_NULLABLE);
+      MULTISET.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Returns the type of the only column of a multiset.
@@ -417,7 +432,7 @@ public abstract class ReturnTypes {
    * <code>INTEGER MULTISET</code>.
    */
   public static final SqlReturnTypeInference MULTISET_PROJECT_ONLY =
-      cascade(MULTISET, SqlTypeTransforms.ONLY_COLUMN);
+      MULTISET.andThen(SqlTypeTransforms.ONLY_COLUMN);
 
   /**
    * Type-inference strategy whereby the result type of a call is
@@ -425,7 +440,7 @@ public abstract class ReturnTypes {
    * are used for integer division.
    */
   public static final SqlReturnTypeInference INTEGER_QUOTIENT_NULLABLE =
-      chain(ARG0_INTERVAL_NULLABLE, LEAST_RESTRICTIVE);
+      ARG0_INTERVAL_NULLABLE.orElse(LEAST_RESTRICTIVE);
 
   /**
    * Type-inference strategy for a call where the first argument is a decimal.
@@ -462,7 +477,7 @@ public abstract class ReturnTypes {
    * is used for floor, ceiling.
    */
   public static final SqlReturnTypeInference ARG0_OR_EXACT_NO_SCALE =
-      chain(DECIMAL_SCALE0, ARG0);
+      DECIMAL_SCALE0.orElse(ARG0);
 
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
@@ -482,7 +497,7 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_PRODUCT_NULLABLE =
-      cascade(DECIMAL_PRODUCT, SqlTypeTransforms.TO_NULLABLE);
+      DECIMAL_PRODUCT.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is
@@ -492,8 +507,8 @@ public abstract class ReturnTypes {
    * These rules are used for multiplication.
    */
   public static final SqlReturnTypeInference PRODUCT_NULLABLE =
-      chain(DECIMAL_PRODUCT_NULLABLE, ARG0_INTERVAL_NULLABLE,
-          LEAST_RESTRICTIVE);
+      DECIMAL_PRODUCT_NULLABLE.orElse(ARG0_INTERVAL_NULLABLE)
+          .orElse(LEAST_RESTRICTIVE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
@@ -513,7 +528,7 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_QUOTIENT_NULLABLE =
-      cascade(DECIMAL_QUOTIENT, SqlTypeTransforms.TO_NULLABLE);
+      DECIMAL_QUOTIENT.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is
@@ -522,8 +537,8 @@ public abstract class ReturnTypes {
    * are used for division.
    */
   public static final SqlReturnTypeInference QUOTIENT_NULLABLE =
-      chain(DECIMAL_QUOTIENT_NULLABLE, ARG0_INTERVAL_NULLABLE,
-          LEAST_RESTRICTIVE);
+      DECIMAL_QUOTIENT_NULLABLE.orElse(ARG0_INTERVAL_NULLABLE)
+          .orElse(LEAST_RESTRICTIVE);
 
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
@@ -543,7 +558,7 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_SUM_NULLABLE =
-      cascade(DECIMAL_SUM, SqlTypeTransforms.TO_NULLABLE);
+      DECIMAL_SUM.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is
@@ -566,14 +581,15 @@ public abstract class ReturnTypes {
    * decimal.
    */
   public static final SqlReturnTypeInference DECIMAL_MOD_NULLABLE =
-          cascade(DECIMAL_MOD, SqlTypeTransforms.TO_NULLABLE);
+      DECIMAL_MOD.andThen(SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_MOD_NULLABLE} with a fallback to {@link #ARG1_NULLABLE}
    * These rules are used for modulus.
    */
   public static final SqlReturnTypeInference NULLABLE_MOD =
-          chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
+      DECIMAL_MOD_NULLABLE.orElse(ARG1_NULLABLE);
 
   /**
    * Type-inference strategy for concatenating two string arguments. The result
@@ -674,7 +690,6 @@ public abstract class ReturnTypes {
         return ret;
       };
 
-
   /**
    * Type-inference strategy for String concatenation.
    * Result is varying if either input is; otherwise fixed.
@@ -725,7 +740,7 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION_NULLABLE =
-      cascade(MULTIVALENT_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE);
+      MULTIVALENT_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
@@ -733,15 +748,15 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_VARYING}.
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE_VARYING =
-      cascade(DYADIC_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE,
-          SqlTypeTransforms.TO_VARYING);
+      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE)
+          .andThen(SqlTypeTransforms.TO_VARYING);
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE =
-      cascade(DYADIC_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE);
+      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy where the expression is assumed to be registered
@@ -775,6 +790,7 @@ public abstract class ReturnTypes {
         firstColType,
         -1);
   };
+
   /**
    * Returns a multiset of the first column of a multiset. For example, given
    * <code>INTEGER MULTISET</code>, returns <code>RECORD(x INTEGER)
@@ -791,6 +807,7 @@ public abstract class ReturnTypes {
         .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
     return typeFactory.createMultisetType(type, -1);
   };
+
   /**
    * Returns the field type of a structured type which has only one field. For
    * example, given {@code RECORD(x INTEGER)} returns {@code INTEGER}.

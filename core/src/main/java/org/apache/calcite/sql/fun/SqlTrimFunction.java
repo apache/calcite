@@ -29,9 +29,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeTransformCascade;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -46,8 +46,8 @@ import java.util.List;
 public class SqlTrimFunction extends SqlFunction {
   protected static final SqlTrimFunction INSTANCE =
       new SqlTrimFunction("TRIM", SqlKind.TRIM,
-          ReturnTypes.cascade(ReturnTypes.ARG2, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING),
+          ReturnTypes.ARG2.andThen(SqlTypeTransforms.TO_NULLABLE)
+              .andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.and(
               OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING),
@@ -87,7 +87,7 @@ public class SqlTrimFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlTrimFunction(String name, SqlKind kind,
-      SqlTypeTransformCascade returnTypeInference,
+      SqlReturnTypeInference returnTypeInference,
       SqlSingleOperandTypeChecker operandTypeChecker) {
     super(name, kind, returnTypeInference, null, operandTypeChecker,
         SqlFunctionCategory.STRING);

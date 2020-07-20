@@ -91,24 +91,24 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction NVL =
       new SqlFunction("NVL", SqlKind.NVL,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE_ALL),
+          ReturnTypes.LEAST_RESTRICTIVE
+              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LTRIM =
       new SqlFunction("LTRIM", SqlKind.LTRIM,
-          ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING), null,
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
+              .andThen(SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   /** The "RTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction RTRIM =
       new SqlFunction("RTRIM", SqlKind.RTRIM,
-          ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING), null,
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
+              .andThen(SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
@@ -125,17 +125,15 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction GREATEST =
       new SqlFunction("GREATEST", SqlKind.GREATEST,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "LEAST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LEAST =
       new SqlFunction("LEAST", SqlKind.LEAST,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
@@ -174,34 +172,38 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction COMPRESS = new SqlFunction("COMPRESS", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARBINARY),
-          SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.STRING, SqlFunctionCategory.STRING);
+  public static final SqlFunction COMPRESS =
+      new SqlFunction("COMPRESS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARBINARY)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.STRING, SqlFunctionCategory.STRING);
 
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction EXTRACT_VALUE = new SqlFunction(
-      "EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
-      null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction EXTRACT_VALUE =
+      new SqlFunction("EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction XML_TRANSFORM = new SqlFunction(
-      "XMLTRANSFORM", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
-      null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction XML_TRANSFORM =
+      new SqlFunction("XMLTRANSFORM", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction EXTRACT_XML = new SqlFunction(
-      "EXTRACT", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
-      null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction EXTRACT_XML =
+      new SqlFunction("EXTRACT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          null, OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction EXISTS_NODE = new SqlFunction(
-      "EXISTSNODE", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.INTEGER_NULLABLE, SqlTypeTransforms.FORCE_NULLABLE),
-      null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction EXISTS_NODE =
+      new SqlFunction("EXISTSNODE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE
+              .andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -334,22 +336,17 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction FROM_BASE64 =
-      new SqlFunction("FROM_BASE64",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARBINARY),
-              SqlTypeTransforms.TO_NULLABLE),
-          null,
-          OperandTypes.STRING,
-          SqlFunctionCategory.STRING);
+      new SqlFunction("FROM_BASE64", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARBINARY)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction TO_BASE64 =
-      new SqlFunction("TO_BASE64",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-              SqlTypeTransforms.TO_NULLABLE),
-          null,
-          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+      new SqlFunction("TO_BASE64", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
@@ -460,22 +457,18 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
-      new SqlFunction("MD5",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-              SqlTypeTransforms.TO_NULLABLE),
-          null,
-          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+      new SqlFunction("MD5", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
-      new SqlFunction("SHA1",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-              SqlTypeTransforms.TO_NULLABLE),
-          null,
-          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+      new SqlFunction("SHA1", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** Infix "::" cast operator used by PostgreSQL, for example

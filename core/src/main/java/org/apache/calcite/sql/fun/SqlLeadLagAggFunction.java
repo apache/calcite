@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -56,19 +57,7 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
               }));
 
   private static final SqlReturnTypeInference RETURN_TYPE =
-      ReturnTypes.cascade(ReturnTypes.ARG0, (binding, type) -> {
-        // Result is NOT NULL if NOT NULL default value is provided
-        SqlTypeTransform transform;
-        if (binding.getOperandCount() < 3) {
-          transform = SqlTypeTransforms.FORCE_NULLABLE;
-        } else {
-          RelDataType defValueType = binding.getOperandType(2);
-          transform = defValueType.isNullable()
-              ? SqlTypeTransforms.FORCE_NULLABLE
-              : SqlTypeTransforms.TO_NOT_NULLABLE;
-        }
-        return transform.transformType(binding, type);
-      });
+      ReturnTypes.ARG0.andThen(SqlLeadLagAggFunction::transformType);
 
   public SqlLeadLagAggFunction(SqlKind kind) {
     super(kind.name(),
@@ -88,6 +77,16 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
   @Deprecated // to be removed before 2.0
   public SqlLeadLagAggFunction(boolean isLead) {
     this(isLead ? SqlKind.LEAD : SqlKind.LAG);
+  }
+
+  // Result is NOT NULL if NOT NULL default value is provided
+  private static RelDataType transformType(SqlOperatorBinding binding,
+      RelDataType type) {
+    SqlTypeTransform transform =
+        binding.getOperandCount() < 3 || binding.getOperandType(2).isNullable()
+            ? SqlTypeTransforms.FORCE_NULLABLE
+            : SqlTypeTransforms.TO_NOT_NULLABLE;
+    return transform.transformType(binding, type);
   }
 
   @Override public boolean allowsFraming() {
