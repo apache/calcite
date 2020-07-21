@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.SemiStrict;
@@ -178,6 +180,22 @@ public class GeoFunctions {
   }
 
   // Geometry creation functions ==============================================
+
+  /** Calculates a regular grid of polygons based on {@code geom}. */
+  private static void ST_MakeGrid(final Geom geom,
+      final BigDecimal deltaX, final BigDecimal deltaY) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlGeoFunctions.
+  }
+
+  /** Calculates a regular grid of points based on {@code geom}. */
+  private static void ST_MakeGridPoints(final Geom geom,
+      final BigDecimal deltaX, final BigDecimal deltaY) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlGeoFunctions.
+  }
 
   /**  Creates a line-string from the given POINTs (or MULTIPOINTs). */
   public static Geom ST_MakeLine(Geom geom1, Geom geom2) {
@@ -655,4 +673,82 @@ public class GeoFunctions {
       this.code = code;
     }
   }
+
+  /** Used at run time by the {@link #ST_MakeGrid} and
+   * {@link #ST_MakeGridPoints} functions. */
+  public static class GridEnumerable extends AbstractEnumerable<Object[]> {
+    private final Envelope envelope;
+    private final boolean point;
+    private final double deltaX;
+    private final double deltaY;
+    private final double minX;
+    private final double minY;
+    private final int baseX;
+    private final int baseY;
+    private final int spanX;
+    private final int spanY;
+    private final int area;
+
+    public GridEnumerable(Envelope envelope, BigDecimal deltaX,
+        BigDecimal deltaY, boolean point) {
+      this.envelope = envelope;
+      this.deltaX = deltaX.doubleValue();
+      this.deltaY = deltaY.doubleValue();
+      this.point = point;
+      this.spanX = (int) Math.floor((envelope.getXMax() - envelope.getXMin())
+          / this.deltaX) + 1;
+      this.baseX = (int) Math.floor(envelope.getXMin() / this.deltaX);
+      this.minX = this.deltaX * baseX;
+      this.spanY = (int) Math.floor((envelope.getYMax() - envelope.getYMin())
+          / this.deltaY) + 1;
+      this.baseY = (int) Math.floor(envelope.getYMin() / this.deltaY);
+      this.minY = this.deltaY * baseY;
+      this.area = this.spanX * this.spanY;
+    }
+
+    @Override public Enumerator<Object[]> enumerator() {
+      return new Enumerator<Object[]>() {
+        int id = -1;
+
+        @Override public Object[] current() {
+          final Geom geom;
+          final int x = id % spanX;
+          final int y = id / spanX;
+          if (point) {
+            final double xCurrent = minX + (x + 0.5D) * deltaX;
+            final double yCurrent = minY + (y + 0.5D) * deltaY;
+            geom = ST_MakePoint(BigDecimal.valueOf(xCurrent),
+                BigDecimal.valueOf(yCurrent));
+          } else {
+            final Polygon polygon = new Polygon();
+            final double left = minX + x * deltaX;
+            final double right = left + deltaX;
+            final double bottom = minY + y * deltaY;
+            final double top = bottom + deltaY;
+
+            final Polyline polyline = new Polyline();
+            polyline.addSegment(new Line(left, bottom, right, bottom), true);
+            polyline.addSegment(new Line(right, bottom, right, top), false);
+            polyline.addSegment(new Line(right, top, left, top), false);
+            polyline.addSegment(new Line(left, top, left, bottom), false);
+            polygon.add(polyline, false);
+            geom = new SimpleGeom(polygon);
+          }
+          return new Object[] {geom, id, x + 1, y + 1, baseX + x, baseY + y};
+        }
+
+        public boolean moveNext() {
+          return ++id < area;
+        }
+
+        public void reset() {
+          id = -1;
+        }
+
+        public void close() {
+        }
+      };
+    }
+  }
+
 }

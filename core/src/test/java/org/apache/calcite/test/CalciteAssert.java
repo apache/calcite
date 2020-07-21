@@ -53,6 +53,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlGeoFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -750,6 +751,7 @@ public class CalciteAssert {
     final SchemaPlus scott;
     final ConnectionSpec cs;
     final DataSource dataSource;
+    final ImmutableList<String> emptyPath = ImmutableList.of();
     switch (schema) {
     case REFLECTIVE_FOODMART:
       return rootSchema.add(schema.schemaName,
@@ -793,16 +795,37 @@ public class CalciteAssert {
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
     case GEO:
-      ModelHandler.addFunctions(rootSchema, null, ImmutableList.of(),
+      ModelHandler.addFunctions(rootSchema, null, emptyPath,
           GeoFunctions.class.getName(), "*", true);
+      ModelHandler.addFunctions(rootSchema, null, emptyPath,
+          SqlGeoFunctions.class.getName(), "*", true);
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
-      ModelHandler.addFunctions(s, "countries", ImmutableList.of(),
+      ModelHandler.addFunctions(s, "countries", emptyPath,
           CountriesTableFunction.class.getName(), null, false);
       final String sql = "select * from table(\"countries\"(true))";
       final ViewTableMacro viewMacro = ViewTable.viewMacro(rootSchema, sql,
-          ImmutableList.of("GEO"), ImmutableList.of(), false);
+          ImmutableList.of("GEO"), emptyPath, false);
       s.add("countries", viewMacro);
+
+      ModelHandler.addFunctions(s, "states", emptyPath,
+          StatesTableFunction.class.getName(), "states", false);
+      final String sql2 = "select \"name\",\n"
+          + " ST_PolyFromText(\"geom\") as \"geom\"\n"
+          + "from table(\"states\"(true))";
+      final ViewTableMacro viewMacro2 = ViewTable.viewMacro(rootSchema, sql2,
+          ImmutableList.of("GEO"), emptyPath, false);
+      s.add("states", viewMacro2);
+
+      ModelHandler.addFunctions(s, "parks", emptyPath,
+          StatesTableFunction.class.getName(), "parks", false);
+      final String sql3 = "select \"name\",\n"
+          + " ST_PolyFromText(\"geom\") as \"geom\"\n"
+          + "from table(\"parks\"(true))";
+      final ViewTableMacro viewMacro3 = ViewTable.viewMacro(rootSchema, sql3,
+          ImmutableList.of("GEO"), emptyPath, false);
+      s.add("parks", viewMacro3);
+
       return s;
     case HR:
       return rootSchema.add(schema.schemaName,
@@ -835,7 +858,7 @@ public class CalciteAssert {
                   + "    ('Grace', 60, 'F'),\n"
                   + "    ('Wilma', cast(null as integer), 'F'))\n"
                   + "  as t(ename, deptno, gender)",
-              ImmutableList.of(), ImmutableList.of("POST", "EMP"),
+              emptyPath, ImmutableList.of("POST", "EMP"),
               null));
       post.add("DEPT",
           ViewTable.viewMacro(post,
@@ -844,7 +867,7 @@ public class CalciteAssert {
                   + "    (20, 'Marketing'),\n"
                   + "    (30, 'Engineering'),\n"
                   + "    (40, 'Empty')) as t(deptno, dname)",
-              ImmutableList.of(), ImmutableList.of("POST", "DEPT"),
+              emptyPath, ImmutableList.of("POST", "DEPT"),
               null));
       post.add("DEPT30",
           ViewTable.viewMacro(post,
@@ -860,7 +883,7 @@ public class CalciteAssert {
                   + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
                   + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
                   + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
-              ImmutableList.of(), ImmutableList.of("POST", "EMPS"),
+              emptyPath, ImmutableList.of("POST", "EMPS"),
               null));
       post.add("TICKER",
           ViewTable.viewMacro(post,

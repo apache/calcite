@@ -86,8 +86,8 @@ public class SqlLibraryOperatorTableFactory {
         break;
       case SPATIAL:
         list.addAll(
-            CalciteCatalogReader.operatorTable(GeoFunctions.class.getName())
-                .getOperatorList());
+            CalciteCatalogReader.operatorTable(GeoFunctions.class.getName(),
+                SqlGeoFunctions.class.getName()).getOperatorList());
         break;
       default:
         custom = true;

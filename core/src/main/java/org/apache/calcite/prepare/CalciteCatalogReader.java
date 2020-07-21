@@ -272,15 +272,18 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         .forEachOrdered(operatorList::add);
   }
 
-  /** Creates an operator table that contains functions in the given class.
+  /** Creates an operator table that contains functions in the given class
+   * or classes.
    *
    * @see ModelHandler#addFunctions */
-  public static SqlOperatorTable operatorTable(String className) {
+  public static SqlOperatorTable operatorTable(String... classNames) {
     // Dummy schema to collect the functions
     final CalciteSchema schema =
         CalciteSchema.createRootSchema(false, false);
-    ModelHandler.addFunctions(schema.plus(), null, ImmutableList.of(),
-        className, "*", true);
+    for (String className : classNames) {
+      ModelHandler.addFunctions(schema.plus(), null, ImmutableList.of(),
+          className, "*", true);
+    }
 
     // The following is technical debt; see [CALCITE-2082] Remove
     // RelDataTypeFactory argument from SqlUserDefinedAggFunction constructor

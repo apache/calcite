@@ -24,6 +24,16 @@ C
 245
 !ok
 
+select count(*) as c from GEO."states";
+C
+11
+!ok
+
+select count(*) as c from GEO."parks";
+C
+3
+!ok
+
 #### Geometry conversion functions (2D)
 
 # ST_AsBinary(geom) Geometry to Well Known Binary
@@ -258,10 +268,28 @@ EXPR$0
 # Not implemented
 
 # ST_MakeGrid(geom, deltaX, deltaY) Calculates a regular grid of polygons based on *geom*
-# Not implemented
+SELECT * FROM TABLE(ST_MakeGrid(ST_Point(13.0,22.0), 10.0, 5.0));
+THE_GEOM, ID, ID_COL, ID_ROW, ABS_COL, ABS_ROW
+{"rings":[[[10,20],[20,20],[20,25],[10,25],[10,20]]]}, 0, 1, 1, 1, 4
+!ok
 
 # ST_MakeGridPoints(geom, deltaX, deltaY) Calculates a regular grid of points based on *geom*
-# Not implemented
+SELECT * FROM TABLE(ST_MakeGridPoints(ST_Point(13.0,22.0), 10.0, 5.0));
+THE_GEOM, ID, ID_COL, ID_ROW, ABS_COL, ABS_ROW
+{"x":15,"y":22.5}, 0, 1, 1, 1, 4
+!ok
+
+# Call ST_MakeGridPoints for each geometry in a set
+select "name", "latitude", "longitude", p.*
+from GEO."countries" AS c,
+  lateral table(
+    ST_MakeGridPoints(ST_MakePoint("latitude", "longitude"), 10.0, 10.0)) as p
+ORDER BY "latitude" DESC LIMIT 3;
+name, latitude, longitude, THE_GEOM, ID, ID_COL, ID_ROW, ABS_COL, ABS_ROW
+Svalbard and Jan Mayen, 77.553604, 23.670272, {"x":75,"y":25}, 0, 1, 1, 7, 2
+Greenland, 71.706936, -42.604303, {"x":75,"y":-45}, 0, 1, 1, 7, -5
+Iceland, 64.963051, -19.020835, {"x":65,"y":-15}, 0, 1, 1, 6, -2
+!ok
 
 # ST_MakeLine(point1 [, point ]*) Creates a line-string from the given points (or multi-points)
 
@@ -1141,6 +1169,70 @@ MULTILINESTRING Z ((5 5 5, 10 10 10))
 MULTIPOLYGON Z (((-7 4.2 2, -7.1 4.3 2, -7.1 4.2 3, -7 4.2 2)))
 POINT Z (-2 3 1)
 POINT Z (5 5 5)
+!ok
+
+# Polygon-to-polygon joins
+select *
+from GEO."states" as s
+order by "name";
+name, geom
+AZ, {"rings":[[[-114,37],[-109.05,37],[-109.05,31.33],[-111.07,31.33],[-114.75,32.5],[-114.75,35.1],[-114,37]]]}
+CA, {"rings":[[[-124.25,42],[-120,42],[-120,39],[-114.75,35.1],[-114.75,32.5],[-117.15,32.5],[-118.3,33.75],[-120.5,34.5],[-122.4,37.2],[-124.25,42]]]}
+CO, {"rings":[[[-109.05,41],[-102,41],[-102,37],[-109.05,37],[-109.05,41]]]}
+ID, {"rings":[[[-117,49],[-116.05,49],[-116.05,48],[-114.4,46.6],[-112.9,44.45],[-111.05,44.45],[-111.05,42],[-117.03,42],[-117.03,44.2],[-116.5,45.5],[-117,46],[-117,49]]]}
+MT, {"rings":[[[-116.05,49],[-104.05,49],[-104.05,45],[-111.05,45],[-111.05,44.45],[-112.9,44.45],[-114.4,46.6],[-116.05,48],[-116.05,49]]]}
+NM, {"rings":[[[-109.05,37],[-103,37],[-103,32],[-106.65,32],[-106.5,31.8],[-108.2,31.8],[-108.2,31.33],[-109.05,31.33],[-109.05,37]]]}
+NV, {"rings":[[[-120,42],[-114,42],[-114,37],[-114.75,35.1],[-120,39],[-120,42]]]}
+OR, {"rings":[[[-123.9,46.2],[-122.7,45.7],[-119,46],[-117,46],[-116.5,45.5],[-117.03,44.2],[-117.03,42],[-124.25,42],[-124.6,42.8],[-123.9,46.2]]]}
+UT, {"rings":[[[-114,42],[-111.05,42],[-111.05,41],[-109.05,41],[-109.05,37],[-114,37],[-114,42]]]}
+WA, {"rings":[[[-124.8,48.4],[-123.2,48.2],[-123.2,49],[-117,49],[-117,46],[-119,46],[-122.7,45.7],[-123.9,46.2],[-124.8,48.4]]]}
+WY, {"rings":[[[-111.05,45],[-104.05,45],[-104.05,41],[-111.05,41],[-111.05,45]]]}
+!ok
+
+select *
+from GEO."parks" as p
+order by "name";
+name, geom
+Death Valley NP, {"rings":[[[-118.2,37.3],[-117,37],[-116.3,35.7],[-117,35.7],[-117.2,36.2],[-117.8,36.4],[-118.2,37.3]]]}
+Yellowstone NP, {"rings":[[[-111.2,45.1],[-109.3,45.1],[-109.3,44.1],[-109,43.8],[-110,43],[-111.2,43.4],[-111.2,45.1]]]}
+Yosemite NP, {"rings":[[[-120.2,38],[-119.3,38.2],[-119,37.7],[-119.9,37.6],[-120.2,38]]]}
+!ok
+
+# Parks that may intersect states
+select s."name", p."name"
+from GEO."states" as s
+cross apply table(ST_MakeGrid(s."geom", 5.0, 5.0)) as sg,
+    GEO."parks" as p
+cross apply table(ST_MakeGrid(p."geom", 5.0, 5.0)) as pg
+where (sg.abs_col, sg.abs_row) = (pg.abs_col, pg.abs_row)
+order by 2, 1;
+name, name
+CA, Death Valley NP
+NV, Death Valley NP
+ID, Yellowstone NP
+MT, Yellowstone NP
+NV, Yellowstone NP
+UT, Yellowstone NP
+WY, Yellowstone NP
+CA, Yosemite NP
+!ok
+
+# Parks that intersect states
+select s."name", p."name"
+from GEO."states" as s
+cross apply table(ST_MakeGrid(s."geom", 5.0, 5.0)) as sg,
+    GEO."parks" as p
+cross apply table(ST_MakeGrid(p."geom", 5.0, 5.0)) as pg
+where (sg.abs_col, sg.abs_row) = (pg.abs_col, pg.abs_row)
+and ST_Intersects(s."geom", p."geom")
+order by 2, 1;
+name, name
+CA, Death Valley NP
+NV, Death Valley NP
+ID, Yellowstone NP
+MT, Yellowstone NP
+WY, Yellowstone NP
+CA, Yosemite NP
 !ok
 
 # End spatial.iq
