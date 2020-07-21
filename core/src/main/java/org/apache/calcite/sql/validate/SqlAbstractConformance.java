@@ -27,6 +27,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isLiberal();
   }
 
+  public boolean allowCharLiteralAlias() {
+    return SqlConformanceEnum.DEFAULT.allowCharLiteralAlias();
+  }
+
   public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }

@@ -1828,7 +1828,15 @@ SqlNode SelectItem() :
     e = SelectExpression()
     [
         [ <AS> ]
-        id = SimpleIdentifier() {
+        (
+            id = SimpleIdentifier()
+        |
+            // Mute the warning about ambiguity between alias and continued
+            // string literal.
+            LOOKAHEAD(1)
+            id = SimpleIdentifierFromStringLiteral()
+        )
+        {
             e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
         }
     ]
@@ -4117,6 +4125,12 @@ SqlNode StringLiteral() :
         }
     }
     (
+        // The grammar is ambiguous when a continued literals and a character
+        // string alias are both possible. For example, in
+        //   SELECT x'01'\n'ab'
+        // we prefer that 'ab' continues the literal, and is not an alias.
+        // The following LOOKAHEAD mutes the warning about ambiguity.
+        LOOKAHEAD(1)
         <QUOTED_STRING>
         {
             try {
@@ -4166,6 +4180,12 @@ SqlNode StringLiteral() :
         nfrags++;
     }
     (
+        // The grammar is ambiguous when a continued literals and a character
+        // string alias are both possible. For example, in
+        //   SELECT 'taxi'\n'cab'
+        // we prefer that 'cab' continues the literal, and is not an alias.
+        // The following LOOKAHEAD mutes the warning about ambiguity.
+        LOOKAHEAD(1)
         <QUOTED_STRING>
         {
             p = SqlParserUtil.parseString(token.image);
@@ -4675,6 +4695,23 @@ SqlIdentifier SimpleIdentifier() :
 {
     IdentifierSegment(names, positions) {
         return new SqlIdentifier(names.get(0), positions.get(0));
+    }
+}
+
+/**
+ * Parses a character literal as an SqlIdentifier.
+ * Only valid for column aliases in certain dialects.
+ */
+SqlIdentifier SimpleIdentifierFromStringLiteral() :
+{
+}
+{
+    <QUOTED_STRING> {
+        if (!this.conformance.allowCharLiteralAlias()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.charLiteralAliasNotValid());
+        }
+        final String s = SqlParserUtil.parseString(token.image);
+        return new SqlIdentifier(s, getPos());
     }
 }
 

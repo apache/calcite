@@ -88,6 +88,20 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean allowCharLiteralAlias() {
+    switch (this) {
+    case BABEL:
+    case BIG_QUERY:
+    case LENIENT:
+    case MYSQL_5:
+    case SQL_SERVER_2008:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+
   public boolean isGroupByAlias() {
     switch (this) {
     case BABEL:
