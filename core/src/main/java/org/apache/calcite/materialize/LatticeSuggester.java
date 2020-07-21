@@ -44,8 +44,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.graph.CycleDetector;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
@@ -159,9 +159,9 @@ public class LatticeSuggester {
       final TableRef target = e.getKey().right;
       final StepRef stepRef =
           q.stepRef(source, target, ImmutableList.copyOf(e.getValue()));
-      g.addVertex(stepRef.source());
-      g.addVertex(stepRef.target());
-      g.addEdge(stepRef.source(), stepRef.target(), stepRef.step,
+      g.addVertex(stepRef.source);
+      g.addVertex(stepRef.target);
+      g.addEdge(stepRef.source, stepRef.target, stepRef.step,
           stepRef.ordinalInQuery);
     }
 
@@ -185,7 +185,7 @@ public class LatticeSuggester {
         break;
       case 1:
         final StepRef edge = edges.get(0);
-        final MutableNode parent = nodes.get(edge.source());
+        final MutableNode parent = nodes.get(edge.source);
         final List key =
             ImmutableList.of(parent, tableRef.table, edge.step.keys);
         final MutableNode existingNode = nodesByParent.get(key);
@@ -198,7 +198,7 @@ public class LatticeSuggester {
         break;
       default:
         for (StepRef edge2 : edges) {
-          final MutableNode parent2 = nodes.get(edge2.source());
+          final MutableNode parent2 = nodes.get(edge2.source);
           final MutableNode node2 =
               new MutableNode(tableRef.table, parent2, edge2.step);
           parent2.children.add(node2);
@@ -570,10 +570,10 @@ public class LatticeSuggester {
       final Step h = Step.create(source.table, target.table, keys, space);
       if (h.isBackwards(space.statisticProvider)) {
         final List<IntPair> keys1 = LatticeSpace.swap(h.keys);
-        final Step h2 = space.addEdge(h.target(), h.source(), keys1);
+        final Step h2 = space.addEdge(h.target, h.source, keys1);
         return new StepRef(target, source, h2, stepRefCount++);
       } else {
-        final Step h2 = space.addEdge(h.source(), h.target(), h.keys);
+        final Step h2 = space.addEdge(h.source, h.target, h.keys);
         return new StepRef(source, target, h2, stepRefCount++);
       }
     }
@@ -644,7 +644,7 @@ public class LatticeSuggester {
   }
 
   /** Use of a step within a query. A step can be used more than once. */
-  private static class StepRef extends DefaultEdge {
+  private static class StepRef extends TypedEdge<TableRef> {
     final Step step;
     private final int ordinalInQuery;
 
@@ -667,14 +667,6 @@ public class LatticeSuggester {
     @Override public String toString() {
       return "StepRef(" + source + ", " + target + "," + step.keyString + "):"
           + ordinalInQuery;
-    }
-
-    TableRef source() {
-      return (TableRef) source;
-    }
-
-    TableRef target() {
-      return (TableRef) target;
     }
 
     /** Creates {@link StepRef} instances. */

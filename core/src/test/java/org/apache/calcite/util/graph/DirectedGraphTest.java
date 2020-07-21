@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class DirectedGraphTest {
   @Test void testOne() {
-    DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
+    DirectedGraph<String, TypedEdge<String>> g = DefaultDirectedGraph.create();
     g.addVertex("A");
     g.addVertex("B");
     g.addVertex("C");
@@ -69,25 +69,25 @@ class DirectedGraphTest {
     assertEquals("[[A, B, D], [A, B, C, D]]", paths(g, "A", "D").toString());
   }
 
-  private <V> List<V> shortestPath(DirectedGraph<V, DefaultEdge> g,
+  private <V> List<V> shortestPath(DirectedGraph<V, TypedEdge<V>> g,
       V source, V target) {
     List<List<V>> paths = Graphs.makeImmutable(g).getPaths(source, target);
     return paths.isEmpty() ? null : paths.get(0);
   }
 
-  private <V> List<V> shortestPath(Graphs.FrozenGraph<V, DefaultEdge> g,
+  private <V> List<V> shortestPath(Graphs.FrozenGraph<V, TypedEdge<V>> g,
                                    V source, V target) {
     List<List<V>> paths = g.getPaths(source, target);
     return paths.isEmpty() ? null : paths.get(0);
   }
 
-  private <V> List<List<V>> paths(DirectedGraph<V, DefaultEdge> g,
+  private <V> List<List<V>> paths(DirectedGraph<V, TypedEdge<V>> g,
       V source, V target) {
     return Graphs.makeImmutable(g).getPaths(source, target);
   }
 
   @Test void testVertexMustExist() {
-    DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
+    DirectedGraph<String, TypedEdge<String>> g = DefaultDirectedGraph.create();
 
     final boolean b = g.addVertex("A");
     assertTrue(b);
@@ -96,42 +96,42 @@ class DirectedGraphTest {
     assertFalse(b2);
 
     try {
-      DefaultEdge x = g.addEdge("A", "B");
+      TypedEdge<String> x = g.addEdge("A", "B");
       fail("expected exception, got " + x);
     } catch (IllegalArgumentException e) {
       // ok
     }
     g.addVertex("B");
-    DefaultEdge x = g.addEdge("A", "B");
+    TypedEdge<String> x = g.addEdge("A", "B");
     assertNotNull(x);
-    DefaultEdge x2 = g.addEdge("A", "B");
+    TypedEdge<String> x2 = g.addEdge("A", "B");
     assertNull(x2);
     try {
-      DefaultEdge x3 = g.addEdge("Z", "A");
+      TypedEdge<String> x3 = g.addEdge("Z", "A");
       fail("expected exception, got " + x3);
     } catch (IllegalArgumentException e) {
       // ok
     }
     g.addVertex("Z");
-    DefaultEdge x3 = g.addEdge("Z", "A");
+    TypedEdge<String> x3 = g.addEdge("Z", "A");
     assertNotNull(x3);
-    DefaultEdge x4 = g.addEdge("Z", "A");
+    TypedEdge<String> x4 = g.addEdge("Z", "A");
     assertNull(x4);
 
     // Attempting to add a vertex already present does not change the graph.
-    final List<DefaultEdge> in1 = g.getInwardEdges("A");
-    final List<DefaultEdge> out1 = g.getOutwardEdges("A");
+    final List<TypedEdge<String>> in1 = g.getInwardEdges("A");
+    final List<TypedEdge<String>> out1 = g.getOutwardEdges("A");
     final boolean b3 = g.addVertex("A");
     assertFalse(b3);
-    final List<DefaultEdge> in2 = g.getInwardEdges("A");
-    final List<DefaultEdge> out2 = g.getOutwardEdges("A");
+    final List<TypedEdge<String>> in2 = g.getInwardEdges("A");
+    final List<TypedEdge<String>> out2 = g.getOutwardEdges("A");
     assertEquals(in1, in2);
     assertEquals(out1, out2);
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
   @Test void testDepthFirst() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
     final List<String> list = new ArrayList<String>();
     for (String s : DepthFirstIterator.of(graph, "A")) {
       list.add(s);
@@ -144,7 +144,7 @@ class DirectedGraphTest {
 
   /** Unit test for {@link DepthFirstIterator}. */
   @Test void testPredecessorList() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
     final List<String> list = Graphs.predecessorListOf(graph, "C");
     assertEquals("[B, E]", list.toString());
   }
@@ -152,14 +152,14 @@ class DirectedGraphTest {
   /** Unit test for
    * {@link DefaultDirectedGraph#removeAllVertices(java.util.Collection)}. */
   @Test void testRemoveAllVertices() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
     graph.removeAllVertices(Arrays.asList("B", "E"));
     assertEquals("[A, C, D, F]", graph.vertexSet().toString());
   }
 
   /** Unit test for {@link TopologicalOrderIterator}. */
   @Test void testTopologicalOrderIterator() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
     final List<String> list = new ArrayList<String>();
     for (String s : TopologicalOrderIterator.of(graph)) {
       list.add(s);
@@ -167,7 +167,7 @@ class DirectedGraphTest {
     assertEquals("[A, B, E, C, F, D]", list.toString());
   }
 
-  private DefaultDirectedGraph<String, DefaultEdge> createDag() {
+  private DefaultDirectedGraph<String, TypedEdge<String>> createDag() {
     //    D         F
     //    ^         ^
     //    |         |
@@ -176,7 +176,7 @@ class DirectedGraphTest {
     //    |         |
     //    |         |
     //    B <- A -> E
-    final DefaultDirectedGraph<String, DefaultEdge> graph =
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph =
         DefaultDirectedGraph.create();
     graph.addVertex("A");
     graph.addVertex("B");
@@ -193,7 +193,7 @@ class DirectedGraphTest {
     return graph;
   }
 
-  private DefaultDirectedGraph<String, DefaultEdge> createDag1() {
+  private DefaultDirectedGraph<String, TypedEdge<String>> createDag1() {
     //    +--> E <--+
     //    |         |
     //    C         |
@@ -202,7 +202,7 @@ class DirectedGraphTest {
     //    |         |
     //    |         |
     //    B <-- A --+
-    final DefaultDirectedGraph<String, DefaultEdge> graph =
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph =
         DefaultDirectedGraph.create();
     graph.addVertex("A");
     graph.addVertex("B");
@@ -221,8 +221,8 @@ class DirectedGraphTest {
   /** Unit test for
    * {@link org.apache.calcite.util.graph.Graphs.FrozenGraph}. */
   @Test void testPaths() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
-    final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag1();
+    final Graphs.FrozenGraph<String, TypedEdge<String>> frozenGraph =
         Graphs.makeImmutable(graph);
     assertEquals("[A, B]", shortestPath(frozenGraph, "A", "B").toString());
     assertEquals("[[A, B]]", frozenGraph.getPaths("A", "B").toString());
@@ -237,8 +237,8 @@ class DirectedGraphTest {
   }
 
   @Test void testDistances() {
-    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
-    final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
+    final DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag1();
+    final Graphs.FrozenGraph<String, TypedEdge<String>> frozenGraph =
         Graphs.makeImmutable(graph);
     assertEquals(1, frozenGraph.getShortestDistance("A", "B"));
     assertEquals(2, frozenGraph.getShortestDistance("A", "E"));
@@ -253,8 +253,8 @@ class DirectedGraphTest {
     // A - B - C - D
     //  \     /
     //   +- E - F
-    DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(ImmutableSet.of()));
 
     // Add cycle C-D-E-C
@@ -265,7 +265,7 @@ class DirectedGraphTest {
     //      ^      /
     //      \_____/
     graph.addEdge("D", "E");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(
             ImmutableSet.of("C", "D", "E", "F")));
 
@@ -278,7 +278,7 @@ class DirectedGraphTest {
     //      ^      /
     //      \_____/
     graph.addEdge("D", "C");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(
             ImmutableSet.of("C", "D", "E", "F")));
 
@@ -295,7 +295,7 @@ class DirectedGraphTest {
     //
     // Detected cycle contains "D", which is downstream from the cycle but not
     // in the cycle. Not sure whether that is correct.
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(
             ImmutableSet.of("B", "C", "D")));
 
@@ -308,27 +308,27 @@ class DirectedGraphTest {
     //   +- E - F
     graph.removeEdge("C", "B");
     graph.addEdge("C", "C");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(
             ImmutableSet.of("C", "D")));
 
     // Empty graph is not cyclic.
     graph.removeAllVertices(graph.vertexSet());
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+    assertThat(new CycleDetector<>(graph).findCycles(),
         CoreMatchers.equalTo(ImmutableSet.of()));
   }
 
   /** Unit test for
    * {@link org.apache.calcite.util.graph.BreadthFirstIterator}. */
   @Test void testBreadthFirstIterator() {
-    DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    DefaultDirectedGraph<String, TypedEdge<String>> graph = createDag();
     final List<String> expected =
         ImmutableList.of("A", "B", "E", "C", "F", "D");
     assertThat(getA(graph, "A"), equalTo(expected));
     assertThat(Lists.newArrayList(getB(graph, "A")), equalTo(expected));
   }
 
-  private List<String> getA(DefaultDirectedGraph<String, DefaultEdge> graph,
+  private List<String> getA(DefaultDirectedGraph<String, TypedEdge<String>> graph,
       String root) {
     final List<String> list = new ArrayList<String>();
     for (String s : BreadthFirstIterator.of(graph, root)) {
@@ -337,7 +337,7 @@ class DirectedGraphTest {
     return list;
   }
 
-  private Set<String> getB(DefaultDirectedGraph<String, DefaultEdge> graph,
+  private Set<String> getB(DefaultDirectedGraph<String, TypedEdge<String>> graph,
       String root) {
     final Set<String> list = new LinkedHashSet<String>();
     BreadthFirstIterator.reachable(list, graph, root);
@@ -345,7 +345,7 @@ class DirectedGraphTest {
   }
 
   @Test void testAttributed() {
-    AttributedDirectedGraph<String, DefaultEdge> g =
+    AttributedDirectedGraph<String, TypedEdge<String>> g =
         AttributedDirectedGraph.create(new DefaultAttributedEdgeFactory());
     g.addVertex("A");
     g.addVertex("B");
@@ -376,7 +376,7 @@ class DirectedGraphTest {
   }
 
   /** Edge that stores its attributes in a list. */
-  private static class DefaultAttributedEdge extends DefaultEdge {
+  private static class DefaultAttributedEdge extends TypedEdge<String> {
     private final List list;
 
     DefaultAttributedEdge(String source, String target, List list) {
@@ -400,13 +400,13 @@ class DirectedGraphTest {
     /** Factory for {@link DefaultAttributedEdge}. */
   private static class DefaultAttributedEdgeFactory
       implements AttributedDirectedGraph.AttributedEdgeFactory<String,
-          DefaultEdge> {
-    public DefaultEdge createEdge(String v0, String v1, Object... attributes) {
+        TypedEdge<String>> {
+    public TypedEdge<String> createEdge(String v0, String v1, Object... attributes) {
       return new DefaultAttributedEdge(v0, v1,
           ImmutableList.copyOf(attributes));
     }
 
-    public DefaultEdge createEdge(String v0, String v1) {
+    public TypedEdge<String> createEdge(String v0, String v1) {
       throw new UnsupportedOperationException();
     }
   }

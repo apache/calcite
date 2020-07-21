@@ -29,7 +29,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class DepthFirstIterator<V, E extends DefaultEdge>
+public class DepthFirstIterator<V, E extends TypedEdge<V>>
     implements Iterator<V> {
   private final Iterator<V> iterator;
 
@@ -38,7 +38,7 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
     iterator = buildList(graph, start).iterator();
   }
 
-  private static <V, E extends DefaultEdge> List<V> buildList(
+  private static <V, E extends TypedEdge<V>> List<V> buildList(
       DirectedGraph<V, E> graph, V start) {
     final List<V> list = new ArrayList<>();
     buildListRecurse(list, new HashSet<>(), graph, start);
@@ -47,7 +47,7 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
 
   /** Creates an iterable over the vertices in the given graph in a depth-first
    * iteration order. */
-  public static <V, E extends DefaultEdge> Iterable<V> of(
+  public static <V, E extends TypedEdge<V>> Iterable<V> of(
       DirectedGraph<V, E> graph, V start) {
     // Doesn't actually return a DepthFirstIterator, but a list with the same
     // contents, which is more efficient.
@@ -55,12 +55,12 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
   }
 
   /** Populates a collection with the nodes reachable from a given node. */
-  public static <V, E extends DefaultEdge> void reachable(Collection<V> list,
+  public static <V, E extends TypedEdge<V>> void reachable(Collection<V> list,
       final DirectedGraph<V, E> graph, final V start) {
     buildListRecurse(list, new HashSet<>(), graph, start);
   }
 
-  private static <V, E extends DefaultEdge> void buildListRecurse(
+  private static <V, E extends TypedEdge<V>> void buildListRecurse(
       Collection<V> list, Set<V> activeVertices, DirectedGraph<V, E> graph,
       V start) {
     if (!activeVertices.add(start)) {
@@ -70,7 +70,7 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
     List<E> edges = graph.getOutwardEdges(start);
     for (E edge : edges) {
       //noinspection unchecked
-      buildListRecurse(list, activeVertices, graph, (V) edge.target);
+      buildListRecurse(list, activeVertices, graph, edge.target);
     }
     activeVertices.remove(start);
   }

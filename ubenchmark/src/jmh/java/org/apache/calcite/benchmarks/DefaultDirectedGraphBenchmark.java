@@ -17,8 +17,8 @@
 package org.apache.calcite.benchmarks;
 
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.collect.Lists;
 
@@ -27,6 +27,7 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -71,19 +72,9 @@ public class DefaultDirectedGraphBenchmark {
 
     static final int NUM_LAYERS = 8;
 
-    DirectedGraph<Node, DefaultEdge> graph;
+    DirectedGraph<Node, TypedEdge<Node>> graph;
 
     List<Node> nodes;
-
-    List<Node> tenNodes;
-    List<Node> twentyNodes;
-    List<Node> thirtyNodes;
-    List<Node> fortyNodes;
-    List<Node> fiftyNodes;
-    List<Node> sixtyNodes;
-    List<Node> seventyNodes;
-    List<Node> eightyNodes;
-    List<Node> ninetyNodes;
 
     @Setup(Level.Invocation)
     public void setUp() {
@@ -119,32 +110,39 @@ public class DefaultDirectedGraphBenchmark {
         }
         prevLayerNodes = curLayerNodes;
       }
+    }
+  }
 
-      int tenNodeCount = (int) (nodes.size() * 0.1);
-      int twentyNodeCount = (int) (nodes.size() * 0.2);
-      int thirtyNodeCount = (int) (nodes.size() * 0.3);
-      int fortyNodeCount = (int) (nodes.size() * 0.4);
-      int fiftyNodeCount = (int) (nodes.size() * 0.5);
-      int sixtyNodeCount = (int) (nodes.size() * 0.6);
-      int seventyNodeCount = (int) (nodes.size() * 0.7);
-      int eightyNodeCount = (int) (nodes.size() * 0.8);
-      int ninetyNodeCount = (int) (nodes.size() * 0.9);
-      tenNodes = nodes.subList(0, tenNodeCount);
-      twentyNodes = nodes.subList(0, twentyNodeCount);
-      thirtyNodes = nodes.subList(0, thirtyNodeCount);
-      fortyNodes = nodes.subList(0, fortyNodeCount);
-      fiftyNodes = nodes.subList(0, fiftyNodeCount);
-      sixtyNodes = nodes.subList(0, sixtyNodeCount);
-      seventyNodes = nodes.subList(0, seventyNodeCount);
-      eightyNodes = nodes.subList(0, eightyNodeCount);
-      ninetyNodes = nodes.subList(0, ninetyNodeCount);
+  /**
+   * State object for {@link DefaultDirectedGraphBenchmark#removeVertices(GraphRemoveState)}..
+   */
+  @State(Scope.Benchmark)
+  public static class GraphRemoveState {
+
+    GraphState innerState;
+
+    /**
+     * The fraction of nodes that will be removed.
+     */
+    @Param({"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"})
+    public double removeFraction;
+
+    List<Node> nodesToRemove;
+
+    @Setup(Level.Invocation)
+    public void setUp() {
+      innerState = new GraphState();
+      innerState.setUp();
+
+      int removeNodeCount = (int) (innerState.nodes.size() * removeFraction);
+      nodesToRemove = innerState.nodes.subList(0, removeNodeCount);
     }
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public int getInwardEdgesBenchmark(GraphState state) {
+  public int getInwardEdges(GraphState state) {
     int sum = 0;
     int curId = 1;
     for (int i = 0; i < GraphState.NUM_LAYERS; i++) {
@@ -159,7 +157,7 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public int getOutwardEdgesBenchmark(GraphState state) {
+  public int getOutwardEdges(GraphState state) {
     int sum = 0;
     int curId = 1;
     for (int i = 0; i < GraphState.NUM_LAYERS; i++) {
@@ -174,98 +172,42 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public boolean addVertexBenchmark(GraphState state) {
+  public boolean addVertex(GraphState state) {
     return state.graph.addVertex(new Node(100));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge addEdgeBenchmark(GraphState state) {
+  public TypedEdge<Node> addEdge(GraphState state) {
     return state.graph.addEdge(state.nodes.get(0), state.nodes.get(5));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge getEdgeBenchmark(GraphState state) {
+  public TypedEdge<Node> getEdge(GraphState state) {
     return state.graph.getEdge(state.nodes.get(0), state.nodes.get(1));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public boolean removeEdgeBenchmark(GraphState state) {
+  public boolean removeEdge(GraphState state) {
     return state.graph.removeEdge(state.nodes.get(0), state.nodes.get(1));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices10Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.tenNodes);
+  public void removeVertices(GraphRemoveState state) {
+    state.innerState.graph.removeAllVertices(state.nodesToRemove);
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices20Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.twentyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices30Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.thirtyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices40Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.fortyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices50Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.fiftyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices60Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.sixtyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices70Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.seventyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices80Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.eightyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices90Benchmark(GraphState state) {
-    state.graph.removeAllVertices(state.ninetyNodes);
-  }
-
-  @Benchmark
-  @BenchmarkMode(Mode.AverageTime)
-  @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVertices100Benchmark(GraphState state) {
+  public void removeAllVertices(GraphState state) {
     state.graph.removeAllVertices(state.nodes);
   }
 

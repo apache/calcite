@@ -104,7 +104,7 @@ class MutableNode {
     for (Step step1 : path.steps) {
       MutableNode n2 = n.findChild(step1);
       if (n2 == null) {
-        n2 = new MutableNode(step1.target(), n, step1);
+        n2 = new MutableNode(step1.target, n, step1);
         if (alias != null) {
           n2.alias = alias;
         }
@@ -115,7 +115,7 @@ class MutableNode {
 
   private MutableNode findChild(Step step) {
     for (MutableNode child : children) {
-      if (child.table.equals(step.target())
+      if (child.table.equals(step.target)
           && child.step.equals(step)) {
         return child;
       }

@@ -21,9 +21,9 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.Graphs;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -208,18 +208,18 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
 
   /** Workspace for converting from one convention to another. */
   private static final class ConversionData {
-    final DirectedGraph<Convention, DefaultEdge> conversionGraph =
+    final DirectedGraph<Convention, TypedEdge<Convention>> conversionGraph =
         DefaultDirectedGraph.create();
 
     /**
      * For a given source/target convention, there may be several possible
-     * conversion rules. Maps {@link DefaultEdge} to a
+     * conversion rules. Maps {@link TypedEdge} to a
      * collection of {@link ConverterRule} objects.
      */
     final Multimap<Pair<Convention, Convention>, ConverterRule> mapArcToConverterRule =
         HashMultimap.create();
 
-    private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
+    private Graphs.FrozenGraph<Convention, TypedEdge<Convention>> pathMap;
 
     public List<List<Convention>> getPaths(
         Convention fromConvention,
@@ -227,7 +227,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       return getPathMap().getPaths(fromConvention, toConvention);
     }
 
-    private Graphs.FrozenGraph<Convention, DefaultEdge> getPathMap() {
+    private Graphs.FrozenGraph<Convention, TypedEdge<Convention>> getPathMap() {
       if (pathMap == null) {
         pathMap = Graphs.makeImmutable(conversionGraph);
       }

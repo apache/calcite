@@ -34,7 +34,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class DefaultDirectedGraph<V, E extends DefaultEdge>
+public class DefaultDirectedGraph<V, E extends TypedEdge<V>>
     implements DirectedGraph<V, E> {
   final Set<E> edges = new LinkedHashSet<>();
   final Map<V, VertexInfo<V, E>> vertexMap = new LinkedHashMap<>();
@@ -45,11 +45,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     this.edgeFactory = edgeFactory;
   }
 
-  public static <V> DefaultDirectedGraph<V, DefaultEdge> create() {
-    return create(DefaultEdge.factory());
+  public static <V> DefaultDirectedGraph<V, TypedEdge<V>> create() {
+    return create(TypedEdge.factory());
   }
 
-  public static <V, E extends DefaultEdge> DefaultDirectedGraph<V, E> create(
+  public static <V, E extends TypedEdge<V>> DefaultDirectedGraph<V, E> create(
       EdgeFactory<V, E> edgeFactory) {
     return new DefaultDirectedGraph<>(edgeFactory);
   }
@@ -182,14 +182,14 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
       // remove all edges pointing to v
       for (E edge : info.inEdges) {
-        final V source = (V) edge.source;
+        final V source = edge.source;
         final VertexInfo<V, E> sourceInfo = vertexMap.get(source);
         sourceInfo.outEdges.removeIf(e -> e.target.equals(v));
       }
 
       // remove all edges starting from v
       for (E edge : info.outEdges) {
-        final V target = (V) edge.target;
+        final V target = edge.target;
         final VertexInfo<V, E> targetInfo = vertexMap.get(target);
         targetInfo.inEdges.removeIf(e -> e.source.equals(v));
       }
@@ -203,8 +203,8 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   private void removeMajorityVertices(Set<V> vertexSet) {
     vertexMap.keySet().removeAll(vertexSet);
     for (VertexInfo<V, E> info : vertexMap.values()) {
-      info.outEdges.removeIf(e -> vertexSet.contains((V) e.target));
-      info.inEdges.removeIf(e -> vertexSet.contains((V) e.source));
+      info.outEdges.removeIf(e -> vertexSet.contains(e.target));
+      info.inEdges.removeIf(e -> vertexSet.contains(e.source));
     }
   }
 
@@ -218,12 +218,12 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   final V source(E edge) {
     //noinspection unchecked
-    return (V) edge.source;
+    return edge.source;
   }
 
   final V target(E edge) {
     //noinspection unchecked
-    return (V) edge.target;
+    return edge.target;
   }
 
   /**

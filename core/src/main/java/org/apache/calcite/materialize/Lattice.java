@@ -52,9 +52,9 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.base.Preconditions;
@@ -502,7 +502,7 @@ public class Lattice {
   }
 
   /** Edge in the temporary graph. */
-  private static class Edge extends DefaultEdge {
+  private static class Edge extends TypedEdge<Vertex> {
     public static final DirectedGraph.EdgeFactory<Vertex, Edge> FACTORY =
         Edge::new;
 
@@ -510,14 +510,6 @@ public class Lattice {
 
     Edge(Vertex source, Vertex target) {
       super(source, target);
-    }
-
-    Vertex getTarget() {
-      return (Vertex) target;
-    }
-
-    Vertex getSource() {
-      return (Vertex) source;
     }
   }
 
@@ -840,10 +832,10 @@ public class Lattice {
                 "child node must have precisely one parent: " + vertex);
           }
           final Edge edge = edges.get(0);
-          final MutableNode parent = map.get(edge.getSource().table);
+          final MutableNode parent = map.get(edge.source.table);
           final Step step =
-              Step.create(edge.getSource().table,
-                  edge.getTarget().table, edge.pairs, space);
+              Step.create(edge.source.table,
+                  edge.target.table, edge.pairs, space);
           node = new MutableNode(vertex.table, parent, step);
           node.alias = vertex.alias;
         }

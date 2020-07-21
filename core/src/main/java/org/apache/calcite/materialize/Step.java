@@ -18,7 +18,7 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
@@ -36,7 +36,7 @@ import java.util.Objects;
  * <p>When created via
  * {@link LatticeSpace#addEdge(LatticeTable, LatticeTable, List)}
  * it is unique within the {@link LatticeSpace}. */
-class Step extends DefaultEdge {
+class Step extends TypedEdge<LatticeTable> {
   final List<IntPair> keys;
 
   /** String representation of {@link #keys}. Computing the string requires a
@@ -80,18 +80,10 @@ class Step extends DefaultEdge {
     return "Step(" + source + ", " + target + "," + keyString + ")";
   }
 
-  LatticeTable source() {
-    return (LatticeTable) source;
-  }
-
-  LatticeTable target() {
-    return (LatticeTable) target;
-  }
-
   boolean isBackwards(SqlStatisticProvider statisticProvider) {
-    final RelOptTable sourceTable = source().t;
+    final RelOptTable sourceTable = source.t;
     final List<Integer> sourceColumns = IntPair.left(keys);
-    final RelOptTable targetTable = target().t;
+    final RelOptTable targetTable = target.t;
     final List<Integer> targetColumns = IntPair.right(keys);
     final boolean noDerivedSourceColumns =
         sourceColumns.stream().allMatch(i ->

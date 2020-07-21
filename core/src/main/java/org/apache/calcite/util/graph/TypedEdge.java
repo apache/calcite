@@ -16,22 +16,33 @@
  */
 package org.apache.calcite.util.graph;
 
-import java.util.Set;
+import java.util.Objects;
 
 /**
- * Detects cycles in directed graphs.
- *
- * @param <V> Vertex type
- * @param <E> Edge type
+ * Edge implementation with generic vertex type.
+ * @param <V> vertex type.
  */
-public class CycleDetector<V, E extends TypedEdge<V>> {
-  private final DirectedGraph<V, E> graph;
+public class TypedEdge<V> {
+  public final V source;
+  public final V target;
 
-  public CycleDetector(DirectedGraph<V, E> graph) {
-    this.graph = graph;
+  public TypedEdge(V source, V target) {
+    this.source = Objects.requireNonNull(source);
+    this.target = Objects.requireNonNull(target);
   }
 
-  public Set<V> findCycles() {
-    return new TopologicalOrderIterator<>(graph).findCycles();
+  @Override public int hashCode() {
+    return source.hashCode() * 31 + target.hashCode();
+  }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof TypedEdge
+        && ((TypedEdge<V>) obj).source.equals(source)
+        && ((TypedEdge<V>) obj).target.equals(target);
+  }
+
+  public static <V> DirectedGraph.EdgeFactory<V, TypedEdge<V>> factory() {
+    return TypedEdge::new;
   }
 }
