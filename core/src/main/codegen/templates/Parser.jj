@@ -1826,7 +1826,12 @@ SqlNode SelectItem() :
     e = SelectExpression()
     [
         [ <AS> ]
-        id = SimpleIdentifier() {
+        (
+            id = SimpleIdentifier()
+        |
+            id = SimpleIdentifierFromStringLiteral()
+        )
+        {
             e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
         }
     ]
@@ -4673,6 +4678,23 @@ SqlIdentifier SimpleIdentifier() :
 {
     IdentifierSegment(names, positions) {
         return new SqlIdentifier(names.get(0), positions.get(0));
+    }
+}
+
+/**
+ * Parses a character literal as an SqlIdentifier.
+ * Only valid for column aliases in certain dialects.
+ */
+SqlIdentifier SimpleIdentifierFromStringLiteral() :
+{
+}
+{
+    <QUOTED_STRING> {
+        if (!this.conformance.allowCharLiteralAlias()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.charLiteralAliasNotValid());
+        }
+        final String s = SqlParserUtil.parseString(token.image);
+        return new SqlIdentifier(s, getPos());
     }
 }
 

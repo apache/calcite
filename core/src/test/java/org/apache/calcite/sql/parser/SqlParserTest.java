@@ -2123,6 +2123,79 @@ public class SqlParserTest {
             + "WHERE (`x`.`DEPTNO` IN (10, 20))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4080">[CALCITE-4080]
+   * Allow character literals as column aliases, if
+   * SqlConformance.allowCharLiteralAlias()</a>. */
+  @Test void testSingleQuotedAlias() {
+    final String expectingAlias = "Expecting alias, found character literal";
+
+    final String sql1 = "select 1 as ^'a b'^ from t";
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql(sql1).fails(expectingAlias);
+    conformance = SqlConformanceEnum.MYSQL_5;
+    final String sql1b = "SELECT 1 AS `a b`\n"
+        + "FROM `T`";
+    sql(sql1).sansCarets().ok(sql1b);
+    conformance = SqlConformanceEnum.BIG_QUERY;
+    sql(sql1).sansCarets().ok(sql1b);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(sql1).sansCarets().ok(sql1b);
+
+    // valid on MSSQL (alias contains a single quote)
+    final String sql2 = "with t as (select 1 as ^'x''y'^)\n"
+        + "select [x'y] from t as [u]";
+    conformance = SqlConformanceEnum.DEFAULT;
+    quoting = Quoting.BRACKET;
+    sql(sql2).fails(expectingAlias);
+    conformance = SqlConformanceEnum.MYSQL_5;
+    final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) (SELECT `x'y`\n"
+        + "FROM `T` AS `u`)";
+    sql(sql2).sansCarets().ok(sql2b);
+    conformance = SqlConformanceEnum.BIG_QUERY;
+    sql(sql2).sansCarets().ok(sql2b);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(sql2).sansCarets().ok(sql2b);
+
+    // also valid on MSSQL
+    final String sql3 = "with [t] as (select 1 as [x]) select [x] from [t]";
+    final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) (SELECT `x`\n"
+        + "FROM `t`)";
+    conformance = SqlConformanceEnum.DEFAULT;
+    quoting = Quoting.BRACKET;
+    sql(sql3).sansCarets().ok(sql3b);
+    conformance = SqlConformanceEnum.MYSQL_5;
+    sql(sql3).sansCarets().ok(sql3b);
+    conformance = SqlConformanceEnum.BIG_QUERY;
+    sql(sql3).sansCarets().ok(sql3b);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(sql3).sansCarets().ok(sql3b);
+
+    // char literal as table alias is invalid on MSSQL (and others)
+    final String sql4 = "with t as (select 1 as x) select x from t as ^'u'^";
+    final String sql4b = "(?s)Encountered \"\\\\'u\\\\'\" at .*";
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql(sql4).fails(sql4b);
+    conformance = SqlConformanceEnum.MYSQL_5;
+    sql(sql4).fails(sql4b);
+    conformance = SqlConformanceEnum.BIG_QUERY;
+    sql(sql4).fails(sql4b);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(sql4).fails(sql4b);
+
+    // char literal as table alias (without AS) is invalid on MSSQL (and others)
+    final String sql5 = "with t as (select 1 as x) select x from t ^'u'^";
+    final String sql5b = "(?s)Encountered \"\\\\'u\\\\'\" at .*";
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql(sql5).fails(sql5b);
+    conformance = SqlConformanceEnum.MYSQL_5;
+    sql(sql5).fails(sql5b);
+    conformance = SqlConformanceEnum.BIG_QUERY;
+    sql(sql5).fails(sql5b);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(sql5).fails(sql5b);
+  }
+
   @Test void testInList() {
     sql("select * from emp where deptno in (10, 20) and gender = 'F'")
         .ok("SELECT *\n"
@@ -3960,8 +4033,8 @@ public class SqlParserTest {
 
   @Test void testBitStringNotImplemented() {
     // Bit-string is longer part of the SQL standard. We do not support it.
-    sql("select B^'1011'^ || 'foobar' from (values (true))")
-        .fails("(?s).*Encountered \"\\\\'1011\\\\'\" at line 1, column 9.*");
+    sql("select (B^'1011'^ || 'foobar') from (values (true))")
+        .fails("(?s).*Encountered \"\\\\'1011\\\\'\" at .*");
   }
 
   @Test void testHexAndBinaryString() {
@@ -4040,16 +4113,17 @@ public class SqlParserTest {
   }
 
   @Test void testStringLiteralFails() {
-    sql("select N ^'space'^")
+    sql("select (N ^'space'^)")
         .fails("(?s).*Encountered .*space.* at line 1, column ...*");
-    sql("select _latin1\n^'newline'^")
+    sql("select (_latin1\n^'newline'^)")
         .fails("(?s).*Encountered.*newline.* at line 2, column ...*");
     sql("select ^_unknown-charset''^ from (values(true))")
         .fails("Unknown character set 'unknown-charset'");
 
     // valid syntax, but should give a validator error
-    sql("select N'1' '2' from t")
-        .ok("SELECT _ISO-8859-1'1'\n'2'\n"
+    sql("select (N'1' '2') from t")
+        .ok("SELECT _ISO-8859-1'1'\n"
+            + "'2'\n"
             + "FROM `T`");
   }
 

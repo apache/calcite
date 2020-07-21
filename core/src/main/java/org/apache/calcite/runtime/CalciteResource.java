@@ -283,6 +283,9 @@ public interface CalciteResource {
   @BaseMessage("Table or column alias must be a simple identifier")
   ExInst<SqlValidatorException> aliasMustBeSimpleIdentifier();
 
+  @BaseMessage("Expecting alias, found character literal")
+  ExInst<SqlValidatorException> charLiteralAliasNotValid();
+
   @BaseMessage("List of column aliases must have same degree as table; table has {0,number,#} columns {1}, whereas alias list has {2,number,#} columns")
   ExInst<SqlValidatorException> aliasListDegree(int a0, String a1, int a2);
 
