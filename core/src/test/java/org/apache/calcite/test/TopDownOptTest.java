@@ -217,6 +217,16 @@ class TopDownOptTest extends RelOptTestBase {
         .check();
   }
 
+  // test if limit and sort are replaced by a top-n heap sort
+  @Test void testSortLimit() {
+    final String sql = "select mgr from sales.emp\n"
+        + "union select mgr from sales.emp\n"
+        + "order by mgr limit 10 offset 5";
+    Query.create(sql)
+        .addRule(EnumerableRules.ENUMERABLE_TOPN_HEAP_SORT_RULE)
+        .check();
+  }
+
   // test that Sort cannot push through projection because of non-trival call
   // (e.g. RexCall(sal * -1)). In this example, the reason is that "sal * -1"
   // creates opposite ordering if Sort is pushed down.

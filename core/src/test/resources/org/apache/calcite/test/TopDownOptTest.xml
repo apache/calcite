@@ -1253,6 +1253,32 @@ EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[i
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortLimit">
+    <Resource name="sql">
+      <![CDATA[select mgr from sales.emp  union select mgr from sales.emp order by mgr limit 10 offset 5]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
+  LogicalProject(MGR=[$0])
+    LogicalUnion(all=[false])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableTopNHeapSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
+  EnumerableUnion(all=[false])
+    EnumerableProject(MGR=[$3])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableProject(MGR=[$3])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testValuesTraitRequest">
     <Resource name="sql">
       <![CDATA[SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))

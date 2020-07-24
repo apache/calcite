@@ -2637,6 +2637,56 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * A sort implementation based on a heap (or priority queue).
+   * @param fetch must be greater than 0
+   * @param offset must be greater than or equal to 0
+   */
+  public static <TSource, TKey> Enumerable<TSource> orderBy(
+      Enumerable<TSource> source,
+      Function1<TSource, TKey> keySelector,
+      Comparator<TKey> comparator,
+      int fetch,
+      int offset) {
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        TopNHeap<TSource, TKey> heap = new TopNHeap<>(
+            keySelector,
+            comparator,
+            fetch,
+            offset);
+        try (Enumerator<TSource> os = source.enumerator()) {
+          while (os.moveNext()) {
+            TSource o = os.current();
+            heap.offer(o);
+          }
+        }
+
+        // reverse queue
+        Object[] result = heap.getResult();
+        return new Enumerator<TSource>() {
+          int i = -1;
+
+          @SuppressWarnings("unchecked")
+          @Override public TSource current() {
+            return (TSource) result[this.i];
+          }
+
+          @Override public boolean moveNext() {
+            return ++this.i < result.length;
+          }
+
+          @Override public void reset() {
+            this.i = -1;
+          }
+
+          @Override public void close() {
+          }
+        };
+      }
+    };
+  }
+
+  /**
    * Inverts the order of the elements in a
    * sequence.
    */

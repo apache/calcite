@@ -65,6 +65,9 @@ public class EnumerableRules {
   public static final EnumerableSortRule ENUMERABLE_SORT_RULE =
       new EnumerableSortRule();
 
+  public static final EnumerableTopNHeapSortRule ENUMERABLE_TOPN_HEAP_SORT_RULE =
+      new EnumerableTopNHeapSortRule();
+
   public static final EnumerableLimitRule ENUMERABLE_LIMIT_RULE =
       new EnumerableLimitRule();
 
