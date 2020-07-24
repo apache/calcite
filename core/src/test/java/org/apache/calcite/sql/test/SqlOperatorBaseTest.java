@@ -9164,6 +9164,16 @@ public abstract class SqlOperatorBaseTest {
         "cast(null AS BINARY)"};
     tester.checkAgg("bit_and(x)", binaryValues, "02", 0);
     tester.checkAgg("bit_and(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
+
+    tester.checkAggFails(
+        "bit_and(x)",
+        new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
+        "Error while executing SQL"
+          +  " \"SELECT bit_and\\(x\\)"
+          +  " FROM \\(SELECT CAST\\(x'0201' AS VARBINARY\\) AS x FROM \\(VALUES \\(1\\)\\)"
+          + " UNION ALL SELECT CAST\\(x'02' AS VARBINARY\\) AS x FROM \\(VALUES \\(1\\)\\)\\)\":"
+          + " Different length for bitwise operands: the first: 2, the second: 1",
+        true);
   }
 
   @Test void testBitOrFunc() {
