@@ -309,15 +309,13 @@ allprojects {
     }
     if (!skipCheckstyle) {
         apply<CheckstylePlugin>()
+        // This will be config_loc in Checkstyle (checker.xml)
+        val configLoc = File(rootDir, "src/main/config/checkstyle")
         checkstyle {
             toolVersion = "checkstyle".v
             isShowViolations = true
-            configDirectory.set(File(rootDir, "src/main/config/checkstyle"))
+            configDirectory.set(configLoc)
             configFile = configDirectory.get().file("checker.xml").asFile
-            configProperties = mapOf(
-                "base_dir" to rootDir.toString(),
-                "cache_file" to buildDir.resolve("checkstyle/cacheFile")
-            )
         }
         tasks.register("checkstyleAll") {
             dependsOn(tasks.withType<Checkstyle>())
@@ -328,6 +326,12 @@ allprojects {
             // On the other hand, supporessions.xml still analyzes the file, and
             // then it recognizes it should suppress all the output.
             excludeJavaCcGenerated()
+            // Workaround for https://github.com/gradle/gradle/issues/13927
+            // Absolute paths must not be used as they defeat Gradle build cache
+            // Unfortunately, Gradle passes only config_loc variable by default, so we make
+            // all the paths relative to config_loc
+            configProperties!!["cache_file"] =
+                buildDir.resolve("checkstyle/cacheFile").relativeTo(configLoc)
         }
     }
     if (!skipAutostyle || !skipCheckstyle) {
