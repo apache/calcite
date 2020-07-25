@@ -292,7 +292,7 @@ public abstract class Project extends SingleRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected boolean digestEquals0(Object obj) {
+  protected boolean deepEquals0(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -301,15 +301,15 @@ public abstract class Project extends SingleRel implements Hintable {
     }
     Project o = (Project) obj;
     return traitSet.equals(o.traitSet)
-        && input.digestEquals(o.input)
+        && input.deepEquals(o.input)
         && exps.equals(o.exps)
         && hints.equals(o.hints)
         && getRowType().equalsSansFieldNames(o.getRowType());
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected int digestHash0() {
-    return Objects.hash(traitSet, input.digestHash(), exps, hints);
+  protected int deepHashCode0() {
+    return Objects.hash(traitSet, input.deepHashCode(), exps, hints);
   }
 
   /**

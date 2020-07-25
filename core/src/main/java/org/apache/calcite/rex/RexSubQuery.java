@@ -147,12 +147,12 @@ public class RexSubQuery extends RexCall {
     RexSubQuery sq = (RexSubQuery) obj;
     return op.equals(sq.op)
         && operands.equals(sq.operands)
-        && rel.digestEquals(sq.rel);
+        && rel.deepEquals(sq.rel);
   }
 
   @Override public int hashCode() {
     if (hash == 0) {
-      hash = Objects.hash(op, operands, rel.digestHash());
+      hash = Objects.hash(op, operands, rel.deepHashCode());
     }
     return hash;
   }

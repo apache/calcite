@@ -310,6 +310,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode onRegister(RelOptPlanner planner);
 
   /**
+   * Returns digest string of this {@code RelNode}. It will create new digest
+   * string on each call, so don't forget to cache the result if necessary.
+   *
    * @return Digest string of this {@code RelNode}
    */
   default String getDigest() {
@@ -336,24 +339,22 @@ public interface RelNode extends RelOptNode, Cloneable {
   void recomputeDigest();
 
   /**
-   * Equality check for RelNode digest.
+   * Deep equality check for RelNode digest.
    *
    * <p>By default this method collects digest attributes from
    * explain terms, then compares each attribute pair.</p>
    *
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
-   * @see #digestHash()
+   * @see #deepHashCode()
    */
-  @API(since = "1.25", status = API.Status.EXPERIMENTAL)
-  boolean digestEquals(Object obj);
+  boolean deepEquals(Object obj);
 
   /**
-   * Compute hash code for RelNode digest.
+   * Compute deep hash code for RelNode digest.
    *
-   * @see #digestEquals(Object)
+   * @see #deepEquals(Object)
    */
-  @API(since = "1.25", status = API.Status.EXPERIMENTAL)
-  int digestHash();
+  int deepHashCode();
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must

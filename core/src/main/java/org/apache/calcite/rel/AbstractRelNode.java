@@ -401,13 +401,12 @@ public abstract class AbstractRelNode implements RelNode {
    * This should work well for most cases. If this method is a performance
    * bottleneck for your project, or the default behavior can't handle
    * your scenario properly, you can choose to override this method and
-   * {@link #digestHash()}. See {@code LogicalJoin} as an example.</p>
+   * {@link #deepHashCode()}. See {@code LogicalJoin} as an example.</p>
    *
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
-   * @see #digestHash()
+   * @see #deepHashCode()
    */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  public boolean digestEquals(Object obj) {
+  public boolean deepEquals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -429,7 +428,7 @@ public abstract class AbstractRelNode implements RelNode {
       Pair<String, Object> attr1 = items1.get(i);
       Pair<String, Object> attr2 = items2.get(i);
       if (attr1.right instanceof RelNode) {
-        result = ((RelNode) attr1.right).digestEquals(attr2.right);
+        result = ((RelNode) attr1.right).deepEquals(attr2.right);
       } else {
         result = attr1.equals(attr2);
       }
@@ -440,10 +439,9 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Compute hash code for RelNode digest.
    *
-   * @see #digestEquals(Object)
+   * @see #deepEquals(Object)
    */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  public int digestHash() {
+  public int deepHashCode() {
     int result = 31 + getTraitSet().hashCode();
     List<Pair<String, Object>> items = this.getDigestItems();
     for (Pair<String, Object> item : items) {
@@ -452,7 +450,7 @@ public abstract class AbstractRelNode implements RelNode {
       if (value == null) {
         h = 0;
       } else if (value instanceof RelNode) {
-        h = ((RelNode) value).digestHash();
+        h = ((RelNode) value).deepHashCode();
       } else {
         h = value.hashCode();
       }
@@ -493,12 +491,12 @@ public abstract class AbstractRelNode implements RelNode {
         return false;
       }
       final InnerRelDigest relDigest = (InnerRelDigest) o;
-      return digestEquals(relDigest.getRel());
+      return deepEquals(relDigest.getRel());
     }
 
     @Override public int hashCode() {
       if (hash == 0) {
-        hash = digestHash();
+        hash = deepHashCode();
       }
       return hash;
     }
