@@ -284,26 +284,17 @@ public class JoinProjectTransposeRule
     call.transformTo(relBuilder.build());
   }
 
-  /**
-   * @param call RelOptRuleCall
-   * @return true if the rule was invoked with a left project child
-   */
+  /** Returns whether the rule was invoked with a left project child. */
   protected boolean hasLeftChild(RelOptRuleCall call) {
     return call.rel(1) instanceof Project;
   }
 
-  /**
-   * @param call RelOptRuleCall
-   * @return true if the rule was invoked with 2 children
-   */
+  /** Returns whether the rule was invoked with 2 children. */
   protected boolean hasRightChild(RelOptRuleCall call) {
     return call.rels.length == 3;
   }
 
-  /**
-   * @param call RelOptRuleCall
-   * @return LogicalProject corresponding to the right child
-   */
+  /** Returns the Project corresponding to the right child. */
   protected Project getRightChild(RelOptRuleCall call) {
     return call.rel(2);
   }

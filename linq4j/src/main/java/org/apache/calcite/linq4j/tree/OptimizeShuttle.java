@@ -406,9 +406,8 @@ public class OptimizeShuttle extends Shuttle {
                 ((MethodCallExpression) expression).method));
   }
 
-  /**
-   * Treats two expressions equal even if they represent different null types
-   */
+  /** Compares two expressions for equality, treating them as equal even if they
+   * represent different null types. */
   private static boolean eq(Expression a, Expression b) {
     return a.equals(b)
         || (a instanceof ConstantExpression

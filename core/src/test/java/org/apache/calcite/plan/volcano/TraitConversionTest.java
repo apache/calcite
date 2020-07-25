@@ -240,9 +240,8 @@ class TraitConversionTest {
     @Override public void register(RelOptPlanner planner) {}
   }
 
-  /**
-   * Dummy distribution trait def for test (handles conversion of SimpleDistribution)
-   */
+  /** Dummy distribution trait def for test (handles conversion of
+   * SimpleDistribution). */
   private static class ConvertRelDistributionTraitDef
       extends RelTraitDef<SimpleDistribution> {
 

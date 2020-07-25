@@ -32,7 +32,7 @@ public class RexMultisetUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
-   * A set defining all implementable multiset calls
+   * A set defining all implementable multiset calls.
    */
   private static final Set<SqlOperator> MULTISET_OPERATORS =
       ImmutableSet.of(
@@ -134,7 +134,7 @@ public class RexMultisetUtil {
 
   /**
    * Returns a reference to the first found multiset call or null if none was
-   * found
+   * found.
    */
   public static RexCall findFirstMultiset(final RexNode node, boolean deep) {
     if (node instanceof RexFieldAccess) {

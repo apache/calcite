@@ -105,19 +105,13 @@ public abstract class SqlOperator {
    */
   private final int rightPrec;
 
-  /**
-   * used to infer the return type of a call to this operator
-   */
+  /** Used to infer the return type of a call to this operator. */
   private final SqlReturnTypeInference returnTypeInference;
 
-  /**
-   * used to infer types of unknown operands
-   */
+  /** Used to infer types of unknown operands. */
   private final SqlOperandTypeInference operandTypeInference;
 
-  /**
-   * used to validate operand types
-   */
+  /** Used to validate operand types. */
   private final SqlOperandTypeChecker operandTypeChecker;
 
   //~ Constructors -----------------------------------------------------------
@@ -885,17 +879,16 @@ public abstract class SqlOperator {
     }
   }
 
-  /**
-   * @return the return type inference strategy for this operator, or null if
-   * return type inference is implemented by a subclass override
-   */
+  /** Returns the return type inference strategy for this operator, or null if
+   * return type inference is implemented by a subclass override. */
   public SqlReturnTypeInference getReturnTypeInference() {
     return returnTypeInference;
   }
 
   /**
-   * Returns the {@link Strong.Policy} strategy for this operator, or null if there is no particular
-   * strategy, in which case this policy will be deducted from the operator's {@link SqlKind}.
+   * Returns the {@link Strong.Policy} strategy for this operator, or null if
+   * there is no particular strategy, in which case this policy will be deducted
+   * from the operator's {@link SqlKind}.
    *
    * @see Strong
    */
@@ -935,7 +928,7 @@ public abstract class SqlOperator {
 
   /**
    * Returns whether a call to this operator is guaranteed to always return
-   * the same result given the same operands; true is assumed by default
+   * the same result given the same operands; true is assumed by default.
    */
   public boolean isDeterministic() {
     return true;
@@ -954,7 +947,7 @@ public abstract class SqlOperator {
 
   /**
    * Returns whether it is unsafe to cache query plans referencing this
-   * operator; false is assumed by default
+   * operator; false is assumed by default.
    */
   public boolean isDynamicFunction() {
     return false;

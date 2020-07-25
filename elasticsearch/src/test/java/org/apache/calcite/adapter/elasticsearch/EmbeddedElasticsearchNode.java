@@ -55,9 +55,12 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   }
 
   /**
-   * Creates an instance with existing settings
-   * @param settings configuration parameters of ES instance
-   * @return instance which needs to be explicitly started (using {@link #start()})
+   * Creates an instance with existing settings.
+   *
+   * @param settings Configuration parameters of ES instance
+   *
+   * @return instance that needs to be explicitly started (using
+   * {@link #start()})
    */
   private static EmbeddedElasticsearchNode create(Settings settings) {
     // ensure PainlessPlugin is installed or otherwise scripted fields would not work
@@ -91,9 +94,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
     return create(settings);
   }
 
-  /**
-   * Starts current node
-   */
+  /** Starts the current node. */
   public void start() {
     Preconditions.checkState(!isStarted, "already started");
     try {

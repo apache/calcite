@@ -261,7 +261,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Column resolver*/
+  /** Column resolver. */
   public interface ColumnResolver {
     List<Pair<RelDataTypeField, List<String>>> resolveColumn(
         RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names);

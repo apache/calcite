@@ -338,10 +338,8 @@ public enum SqlTypeName {
     return special;
   }
 
-  /**
-   * @return the ordinal from {@link java.sql.Types} corresponding to this
-   * SqlTypeName
-   */
+  /** Returns the ordinal from {@link java.sql.Types} corresponding to this
+   * SqlTypeName. */
   public int getJdbcOrdinal() {
     return jdbcOrdinal;
   }
@@ -355,10 +353,8 @@ public enum SqlTypeName {
         .build();
   }
 
-  /**
-   * @return default scale for this type if supported, otherwise -1 if scale
-   * is either unsupported or must be specified explicitly
-   */
+  /** Returns the default scale for this type if supported, otherwise -1 if
+   * scale is either unsupported or must be specified explicitly. */
   public int getDefaultScale() {
     switch (this) {
     case DECIMAL:
@@ -938,9 +934,7 @@ public enum SqlTypeName {
     }
   }
 
-  /**
-   * @return name of this type
-   */
+  /** Returns the name of this type. */
   public String getName() {
     return toString();
   }

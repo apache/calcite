@@ -124,7 +124,7 @@ class RelSet {
   }
 
   /**
-   * Returns the child Relset for current set
+   * Returns the child RelSet for the current set.
    */
   public Set<RelSet> getChildSets(VolcanoPlanner planner) {
     Set<RelSet> childSets = new HashSet<>();
@@ -143,8 +143,8 @@ class RelSet {
   }
 
   /**
-   * @return all of the {@link RelNode}s contained by any subset of this set
-   * (does not include the subset objects themselves)
+   * Returns all of the {@link RelNode}s contained by any subset of this set
+   * (does not include the subset objects themselves).
    */
   public List<RelNode> getRelsFromAllSubsets() {
     return rels;

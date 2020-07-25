@@ -95,6 +95,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
+  // CHECKSTYLE: IGNORE 1
   /**
    * @deprecated Deprecated so that usages of this constant will show up in
    * yellow in Intellij and maybe someone will fix them.

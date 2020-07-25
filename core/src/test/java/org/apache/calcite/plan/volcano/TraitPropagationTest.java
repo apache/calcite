@@ -117,7 +117,7 @@ class TraitPropagationTest {
   }
 
   /**
-   * Materialized anonymous class for simplicity
+   * Materialized anonymous class for simplicity.
    */
   private static class PropAction {
     public RelNode apply(RelOptCluster cluster, RelOptSchema relOptSchema,
@@ -282,7 +282,7 @@ class TraitPropagationTest {
     }
   }
 
-  /** Rule for PhysSort */
+  /** Rule for PhysSort. */
   private static class PhysSortRule extends ConverterRule {
     static final PhysSortRule INSTANCE = Config.INSTANCE
         .withConversion(Sort.class, Convention.NONE, PHYSICAL, "PhysSortRule")
@@ -335,10 +335,10 @@ class TraitPropagationTest {
   }
 
   /* RELS */
-  /** Market interface for Phys nodes */
+  /** Market interface for Phys nodes. */
   private interface Phys extends RelNode { }
 
-  /** Physical Aggregate RelNode */
+  /** Physical Aggregate RelNode. */
   private static class PhysAgg extends Aggregate implements Phys {
     PhysAgg(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
         ImmutableBitSet groupSet,
@@ -359,7 +359,7 @@ class TraitPropagationTest {
     }
   }
 
-  /** Physical Project RelNode */
+  /** Physical Project RelNode. */
   private static class PhysProj extends Project implements Phys {
     PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
@@ -389,7 +389,7 @@ class TraitPropagationTest {
     }
   }
 
-  /** Physical Sort RelNode */
+  /** Physical Sort RelNode. */
   private static class PhysSort extends Sort implements Phys {
     PhysSort(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         RelCollation collation, RexNode offset,
@@ -411,7 +411,7 @@ class TraitPropagationTest {
     }
   }
 
-  /** Physical Table RelNode */
+  /** Physical Table RelNode. */
   private static class PhysTable extends AbstractRelNode implements Phys {
     PhysTable(RelOptCluster cluster) {
       super(cluster, cluster.traitSet().replace(PHYSICAL).replace(COLLATION));

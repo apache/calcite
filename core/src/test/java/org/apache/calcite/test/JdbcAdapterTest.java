@@ -85,11 +85,10 @@ class JdbcAdapterTest {
             + "FROM \"foodmart\".\"sales_fact_1998\"");
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3115">[CALCITE-3115]
    * Cannot add JdbcRules which have different JdbcConvention
-   * to same VolcanoPlanner's RuleSet.</a>*/
+   * to same VolcanoPlanner's RuleSet</a>. */
   @Test void testUnionPlan2() {
     CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
         .query("select \"store_name\" from \"foodmart\".\"store\" where \"store_id\" < 10\n"

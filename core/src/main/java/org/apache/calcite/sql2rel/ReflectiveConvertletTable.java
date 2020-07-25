@@ -165,7 +165,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   }
 
   /**
-   * Registers a convertlet for a given operator instance
+   * Registers a convertlet for a given operator instance.
    *
    * @param op         Operator instance, say
    * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#MINUS}

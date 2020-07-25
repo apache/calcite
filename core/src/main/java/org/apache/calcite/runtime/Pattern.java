@@ -38,9 +38,9 @@ public interface Pattern {
   enum Op {
     /** A leaf pattern, consisting of a single symbol. */
     SYMBOL(0, 0),
-    /** Anchor for start "^" */
+    /** Anchor for start "^". */
     ANCHOR_START(0, 0),
-    /** Anchor for end "$" */
+    /** Anchor for end "$". */
     ANCHOR_END(0, 0),
     /** Pattern that matches one pattern followed by another. */
     SEQ(2, -1),
@@ -53,7 +53,7 @@ public interface Pattern {
     /** Pattern that matches a pattern repeated between {@code minRepeat}
      * and {@code maxRepeat} times. */
     REPEAT(1, 1),
-    /** Pattern that machtes a pattern one time or zero times */
+    /** Pattern that matches a pattern one time or zero times. */
     OPTIONAL(1, 1);
 
     private final int minArity;

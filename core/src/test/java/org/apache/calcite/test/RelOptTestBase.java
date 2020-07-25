@@ -203,6 +203,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
           FlatLists.append(hooks, hook, handler), transforms);
     }
 
+    // CHECKSTYLE: IGNORE 1
     /** @deprecated Use {@link #withHook(Hook, Consumer)}. */
     @SuppressWarnings("Guava")
     @Deprecated // to be removed before 2.0

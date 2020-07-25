@@ -51,6 +51,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Test for {@link RelFieldTrimmer}. */
 class RelFieldTrimmerTest {
   public static Frameworks.ConfigBuilder config() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);

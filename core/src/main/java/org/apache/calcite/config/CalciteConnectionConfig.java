@@ -29,59 +29,70 @@ import java.util.Properties;
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Default configuration. */
-  CalciteConnectionConfigImpl DEFAULT = new CalciteConnectionConfigImpl(new Properties());
-  /** @see CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT */
+  CalciteConnectionConfigImpl DEFAULT =
+      new CalciteConnectionConfigImpl(new Properties());
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT}. */
   boolean approximateDistinctCount();
-  /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#APPROXIMATE_TOP_N}. */
   boolean approximateTopN();
-  /** @see CalciteConnectionProperty#APPROXIMATE_DECIMAL */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#APPROXIMATE_DECIMAL}. */
   boolean approximateDecimal();
-  /** @see CalciteConnectionProperty#NULL_EQUAL_TO_EMPTY */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#NULL_EQUAL_TO_EMPTY}. */
   boolean nullEqualToEmpty();
-  /** @see CalciteConnectionProperty#AUTO_TEMP */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#AUTO_TEMP}. */
   boolean autoTemp();
-  /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#MATERIALIZATIONS_ENABLED}. */
   boolean materializationsEnabled();
-  /** @see CalciteConnectionProperty#CREATE_MATERIALIZATIONS */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#CREATE_MATERIALIZATIONS}. */
   boolean createMaterializations();
-  /** @see CalciteConnectionProperty#DEFAULT_NULL_COLLATION */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#DEFAULT_NULL_COLLATION}. */
   NullCollation defaultNullCollation();
-  /** @see CalciteConnectionProperty#FUN */
+  /** Returns the value of {@link CalciteConnectionProperty#FUN}. */
   <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable);
-  /** @see CalciteConnectionProperty#MODEL */
+  /** Returns the value of {@link CalciteConnectionProperty#MODEL}. */
   String model();
-  /** @see CalciteConnectionProperty#LEX */
+  /** Returns the value of {@link CalciteConnectionProperty#LEX}. */
   Lex lex();
-  /** @see CalciteConnectionProperty#QUOTING */
+  /** Returns the value of {@link CalciteConnectionProperty#QUOTING}. */
   Quoting quoting();
-  /** @see CalciteConnectionProperty#UNQUOTED_CASING */
+  /** Returns the value of {@link CalciteConnectionProperty#UNQUOTED_CASING}. */
   Casing unquotedCasing();
-  /** @see CalciteConnectionProperty#QUOTED_CASING */
+  /** Returns the value of {@link CalciteConnectionProperty#QUOTED_CASING}. */
   Casing quotedCasing();
-  /** @see CalciteConnectionProperty#CASE_SENSITIVE */
+  /** Returns the value of {@link CalciteConnectionProperty#CASE_SENSITIVE}. */
   boolean caseSensitive();
-  /** @see CalciteConnectionProperty#PARSER_FACTORY */
+  /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY}. */
   <T> T parserFactory(Class<T> parserFactoryClass, T defaultParserFactory);
-  /** @see CalciteConnectionProperty#SCHEMA_FACTORY */
+  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_FACTORY}. */
   <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
-  /** @see CalciteConnectionProperty#SCHEMA_TYPE */
+  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_TYPE}. */
   JsonSchema.Type schemaType();
-  /** @see CalciteConnectionProperty#SPARK */
+  /** Returns the value of {@link CalciteConnectionProperty#SPARK}. */
   boolean spark();
-  /** @see CalciteConnectionProperty#FORCE_DECORRELATE */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#FORCE_DECORRELATE}. */
   boolean forceDecorrelate();
-  /** @see CalciteConnectionProperty#TYPE_SYSTEM */
+  /** Returns the value of {@link CalciteConnectionProperty#TYPE_SYSTEM}. */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
-  /** @see CalciteConnectionProperty#CONFORMANCE */
+  /** Returns the value of {@link CalciteConnectionProperty#CONFORMANCE}. */
   SqlConformance conformance();
-  /** @see CalciteConnectionProperty#TIME_ZONE */
+  /** Returns the value of {@link CalciteConnectionProperty#TIME_ZONE}. */
   @Override String timeZone();
-  /** @see CalciteConnectionProperty#LOCALE */
+  /** Returns the value of {@link CalciteConnectionProperty#LOCALE}. */
   String locale();
-  /** @see CalciteConnectionProperty#TYPE_COERCION */
+  /** Returns the value of {@link CalciteConnectionProperty#TYPE_COERCION}. */
   boolean typeCoercion();
-  /** @see CalciteConnectionProperty#LENIENT_OPERATOR_LOOKUP */
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#LENIENT_OPERATOR_LOOKUP}. */
   boolean lenientOperatorLookup();
-  /** @see CalciteConnectionProperty#TOPDOWN_OPT */
+  /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
 }

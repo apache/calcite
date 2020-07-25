@@ -34,33 +34,28 @@ import java.util.Map;
 public class SqlSimpleParser {
   //~ Enums ------------------------------------------------------------------
 
+  /** Token. */
   enum TokenType {
     // keywords
     SELECT, FROM, JOIN, ON, USING, WHERE, GROUP, HAVING, ORDER, BY,
 
     UNION, INTERSECT, EXCEPT, MINUS,
 
-    /**
-     * left parenthesis
-     */
+    /** Left parenthesis. */
     LPAREN {
       public String sql() {
         return "(";
       }
     },
 
-    /**
-     * right parenthesis
-     */
+    /** Right parenthesis. */
     RPAREN {
       public String sql() {
         return ")";
       }
     },
 
-    /**
-     * identifier, or indeed any miscellaneous sequence of characters
-     */
+    /** Identifier, or indeed any miscellaneous sequence of characters. */
     ID,
 
     /**
@@ -96,10 +91,10 @@ public class SqlSimpleParser {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SqlSimpleParser
+   * Creates a SqlSimpleParser.
    *
    * @param hintToken Hint token
-   * @deprecated
+   * @deprecated Use {@link #SqlSimpleParser(String, SqlParser.Config)}
    */
   @Deprecated // to be removed before 2.0
   public SqlSimpleParser(String hintToken) {
@@ -107,7 +102,7 @@ public class SqlSimpleParser {
   }
 
   /**
-   * Creates a SqlSimpleParser
+   * Creates a SqlSimpleParser.
    *
    * @param hintToken Hint token
    * @param parserConfig parser configuration
@@ -142,8 +137,8 @@ public class SqlSimpleParser {
   }
 
   /**
-   * Turns a partially completed or syntactically incorrect sql statement into
-   * a simplified, valid one that can be validated
+   * Turns a partially completed or syntactically incorrect SQL statement into a
+   * simplified, valid one that can be validated.
    *
    * @param sql A partial or syntactically incorrect sql statement
    * @return a completed, valid (and possibly simplified) SQL statement
@@ -260,6 +255,7 @@ public class SqlSimpleParser {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Tokenizer. */
   public static class Tokenizer {
     private static final Map<String, TokenType> TOKEN_TYPES = new HashMap<>();
 
@@ -444,6 +440,7 @@ public class SqlSimpleParser {
     }
   }
 
+  /** Token. */
   public static class Token {
     private final TokenType type;
     private final String s;
@@ -470,6 +467,7 @@ public class SqlSimpleParser {
     }
   }
 
+  /** Token representing an identifier. */
   public static class IdToken extends Token {
     public IdToken(TokenType type, String s) {
       super(type, s);
@@ -477,6 +475,7 @@ public class SqlSimpleParser {
     }
   }
 
+  /** Token representing a query. */
   static class Query extends Token {
     private final List<Token> tokenList;
 

@@ -116,7 +116,7 @@ public class GeodeUtils {
   }
 
   /**
-   * Obtains a proxy pointing to an existing Region on the server
+   * Obtains a proxy pointing to an existing Region on the server.
    *
    * @param cache {@link GemFireCache} instance to interact with the Geode server
    * @param regionName  Name of the region to create proxy for.

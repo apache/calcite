@@ -23,7 +23,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link CassandraSchema}
+ * Factory that creates a {@link CassandraSchema}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CassandraSchemaFactory implements SchemaFactory {

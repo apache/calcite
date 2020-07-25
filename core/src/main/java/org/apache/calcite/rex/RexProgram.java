@@ -401,7 +401,7 @@ public class RexProgram {
   }
 
   /**
-   * Returns whether this program contains windowed aggregate functions
+   * Returns whether this program contains windowed aggregate functions.
    *
    * @return whether this program contains windowed aggregate functions
    */

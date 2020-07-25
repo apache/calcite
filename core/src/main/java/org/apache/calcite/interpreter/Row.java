@@ -113,7 +113,8 @@ public class Row {
     }
 
     /**
-     * Set the value of a particular column.
+     * Sets the value of a particular column.
+     *
      * @param index Zero-indexed position of value.
      * @param value Desired column value.
      */
@@ -121,7 +122,7 @@ public class Row {
       values[index] = value;
     }
 
-    /** Return a Row object **/
+    /** Returns a Row. */
     public Row build() {
       return new Row(values);
     }

@@ -378,25 +378,25 @@ public class JoinToMultiJoinRule
    * Combines the join filters from the left and right inputs (if they are
    * MultiJoinRels) with the join filter in the joinrel into a single AND'd
    * join filter, unless the inputs correspond to null generating inputs in an
-   * outer join
+   * outer join.
    *
-   * @param joinRel join rel
-   * @param left    left child of the join
-   * @param right   right child of the join
+   * @param join    Join
+   * @param left    Left input of the join
+   * @param right   Right input of the join
    * @return combined join filters AND-ed together
    */
   private List<RexNode> combineJoinFilters(
-      Join joinRel,
+      Join join,
       RelNode left,
       RelNode right) {
-    JoinRelType joinType = joinRel.getJoinType();
+    JoinRelType joinType = join.getJoinType();
 
     // AND the join condition if this isn't a left or right outer join;
     // in those cases, the outer join condition is already tracked
     // separately
     final List<RexNode> filters = new ArrayList<>();
     if ((joinType != JoinRelType.LEFT) && (joinType != JoinRelType.RIGHT)) {
-      filters.add(joinRel.getCondition());
+      filters.add(join.getCondition());
     }
     if (canCombine(left, joinType.generatesNullsOnLeft())) {
       filters.add(((MultiJoin) left).getJoinFilter());
@@ -406,7 +406,7 @@ public class JoinToMultiJoinRule
     if (canCombine(right, joinType.generatesNullsOnRight())) {
       MultiJoin multiJoin = (MultiJoin) right;
       filters.add(
-          shiftRightFilter(joinRel, left, multiJoin,
+          shiftRightFilter(join, left, multiJoin,
               multiJoin.getJoinFilter()));
     }
 

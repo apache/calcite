@@ -29,9 +29,7 @@ public class ForStatement extends Statement {
   public final Expression condition;
   public final Expression post;
   public final Statement body;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public ForStatement(List<DeclarationStatement> declarations,

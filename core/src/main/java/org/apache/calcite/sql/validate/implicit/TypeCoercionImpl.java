@@ -409,7 +409,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * STRATEGIES
+   * {@inheritDoc}
+   *
+   * <p>STRATEGIES
    *
    * <p>With(Without) sub-query:
    *
@@ -442,9 +444,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *                     |                          |
    *                     +-------------type3--------+
    *</pre>
-   *   </li>
    *   <li>For both basic sql types(LHS and RHS),
-   *   find the common type of LHS and RHS nodes.</li>
+   *   find the common type of LHS and RHS nodes.
    * </ul>
    */
   public boolean inOperationCoercion(SqlCallBinding binding) {

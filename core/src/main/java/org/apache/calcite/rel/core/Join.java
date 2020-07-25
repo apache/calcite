@@ -191,6 +191,7 @@ public abstract class Join extends BiRel implements Hintable {
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link RelMdUtil#getJoinRowCount(RelMetadataQuery, Join, RexNode)}. */
   @Deprecated // to be removed before 2.0
   public static double estimateJoinedRows(

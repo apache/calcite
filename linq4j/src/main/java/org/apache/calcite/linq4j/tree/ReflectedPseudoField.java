@@ -20,7 +20,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
 /**
- * Represents a PseudoField that is implemented via java reflection Field
+ * Represents a PseudoField that is implemented via a Java reflection
+ * {@link Field}.
  */
 public class ReflectedPseudoField implements PseudoField {
   private final Field field;

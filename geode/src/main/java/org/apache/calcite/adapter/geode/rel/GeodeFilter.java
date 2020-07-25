@@ -155,9 +155,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       return Util.toString(predicates, "", " AND ", "");
     }
 
-    /**
-     *  Get the field name for the left node to use for IN SET query
-     */
+    /** Returns the field name for the left node to use for {@code IN SET}
+     * query. */
     private String getLeftNodeFieldName(RexNode left) {
       switch (left.getKind()) {
       case INPUT_REF:
@@ -174,9 +173,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       }
     }
 
-    /**
-     *  Check if we can use IN SET Query clause to improve query performance
-     */
+    /** Returns whether we can use the {@code IN SET} query clause to
+     * improve query performance. */
     private boolean useInSetQueryClause(List<RexNode> disjunctions) {
       // Only use the in set for more than one disjunctions
       if (disjunctions.size() <= 1) {
@@ -207,9 +205,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       });
     }
 
-    /**
-     * Creates OQL IN SET predicate string
-     */
+    /** Creates OQL {@code IN SET} predicate string. */
     private String translateInSet(List<RexNode> disjunctions) {
       Preconditions.checkArgument(
           !disjunctions.isEmpty(), "empty disjunctions");

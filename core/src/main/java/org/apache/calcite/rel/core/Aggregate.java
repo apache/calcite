@@ -481,7 +481,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return Group.induce(groupSet, groupSets);
   }
 
-  /** What kind of roll-up is it? */
+  /** Describes the kind of roll-up. */
   public enum Group {
     SIMPLE,
     ROLLUP,
@@ -577,7 +577,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     private final boolean filter;
 
     /**
-     * Creates an AggCallBinding
+     * Creates an AggCallBinding.
      *
      * @param typeFactory  Type factory
      * @param aggFunction  Aggregate function

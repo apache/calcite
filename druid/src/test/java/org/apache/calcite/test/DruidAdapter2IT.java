@@ -88,9 +88,7 @@ public class DruidAdapter2IT {
     assumeTrue(enabled(), "Druid tests disabled. Add -Dcalcite.test.druid to enable it");
   }
 
-  /**
-   * Creates a query against FOODMART with approximate parameters
-   * */
+  /** Creates a query against FOODMART with approximate parameters. */
   private CalciteAssert.AssertQuery foodmartApprox(String sql) {
     return approxQuery(FOODMART, sql);
   }
@@ -1834,9 +1832,7 @@ public class DruidAdapter2IT {
         .queryContains(new DruidChecker(postAggString));
   }
 
-  /**
-   * Turn on now count(distinct )
-   */
+  /** Turn on now {@code COUNT(DISTINCT ...)}. */
   @Test void testHyperUniquePostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
         + "\"brand_name\") as a from \"foodmart\"  group by \"store_state\" order by a desc";
@@ -2079,10 +2075,8 @@ public class DruidAdapter2IT {
         .queryContains(new DruidChecker(queryType));
   }
 
-  /**
-   * Tests whether an aggregate with a filter clause has it's filter factored out
-   * when there is no outer filter
-   */
+  /** Tests whether an aggregate with a filter clause has its filter factored
+    * out when there is no outer filter. */
   @Test void testFilterClauseFactoredOut() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "the_year" >= 1997
@@ -2097,9 +2091,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear or not
-   */
+  /** Tests whether filter clauses with filters that are always true
+   * disappear. */
   @Test void testFilterClauseAlwaysTrueGone() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart"
@@ -2112,10 +2105,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear in the presence
-   * of another aggregate without a filter clause
-   */
+  /** Tests whether filter clauses with filters that are always true disappear
+   * in the presence of another aggregate without a filter clause. */
   @Test void testFilterClauseAlwaysTrueWithAggGone1() {
     // Logically equivalent to
     // select sum("store_sales"), sum("store_cost") from "foodmart"
@@ -2130,10 +2121,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear in the presence
-   * of another aggregate with a filter clause
-   */
+  /** Tests whether filter clauses with filters that are always true disappear
+   * in the presence of another aggregate with a filter clause. */
   @Test void testFilterClauseAlwaysTrueWithAggGone2() {
     // Logically equivalent to
     // select sum("store_sales"),
@@ -2152,10 +2141,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether an existing outer filter is untouched when an aggregate has a filter clause
-   * that is always true
-   */
+  /** Tests whether an existing outer filter is untouched when an aggregate
+   * has a filter clause that is always true. */
   @Test void testOuterFilterRemainsWithAlwaysTrueClause() {
     // Logically equivalent to
     // select sum("store_sales"), sum("store_cost") from "foodmart" where "store_city" = 'Seattle'
@@ -2172,9 +2159,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is always false does not get pushed in
-   */
+  /** Tests that an aggregate with a filter clause that is always false does
+   * not get pushed in. */
   @Test void testFilterClauseAlwaysFalseNotPushed() {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) from \"foodmart\"";
     // Calcite takes care of the unsatisfiable filter
@@ -2195,10 +2181,8 @@ public class DruidAdapter2IT {
         .explainContains(expectedSubExplain);
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is always false does not get pushed when
-   * there is already an outer filter
-   */
+  /** Tests that an aggregate with a filter clause that is always false does
+   * not get pushed when there is already an outer filter. */
   @Test void testFilterClauseAlwaysFalseNotPushedWithFilter() {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) "
         + "from \"foodmart\" where \"store_city\" = 'Seattle'";
@@ -2217,10 +2201,9 @@ public class DruidAdapter2IT {
                 + "{\"type\":\"selector\",\"dimension\":\"store_city\",\"value\":\"Seattle\"}]}"));
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is the same as the outer filter has no
-   * references to that filter, and that the original outer filter remains
-   */
+  /** Tests that an aggregate with a filter clause that is the same as the
+   * outer filter has no references to that filter, and that the original outer
+   * filter remains. */
   @Test void testFilterClauseSameAsOuterFilterGone() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "store_city" = 'Seattle'
@@ -2237,10 +2220,9 @@ public class DruidAdapter2IT {
         .returnsUnordered("EXPR$0=52644.07000000001");
   }
 
-  /**
-   * Test to ensure that an aggregate with a filter clause in the presence of another aggregate
-   * without a filter clause does not have it's filter factored out into the outer filter
-   */
+  /** Tests that an aggregate with a filter clause in the presence of another
+   * aggregate without a filter clause does not have its filter factored out
+   * into the outer filter. */
   @Test void testFilterClauseNotFactoredOut1() {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
         + "sum(\"store_cost\") from \"foodmart\"";
@@ -2254,11 +2236,9 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Test to ensure that an aggregate with a filter clause in the presence of another aggregate
-   * without a filter clause, and an outer filter does not have it's
-   * filter factored out into the outer filter
-   */
+  /** Tests that an aggregate with a filter clause in the presence of another
+   * aggregate without a filter clause, and an outer filter does not have its
+   * filter factored out into the outer filter. */
   @Test void testFilterClauseNotFactoredOut2() {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
         + "sum(\"store_cost\") from \"foodmart\" where \"the_year\" >= 1997";
@@ -2274,10 +2254,8 @@ public class DruidAdapter2IT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Test to ensure that multiple aggregates with filter clauses have their filters extracted to
-   * the outer filter field for data pruning
-   */
+  /** Tests that multiple aggregates with filter clauses have their filters
+  extracted to the outer filter field for data pruning. */
   @Test void testFilterClausesFactoredForPruning1() {
     String sql = "select "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
@@ -2299,10 +2277,9 @@ public class DruidAdapter2IT {
         .returnsUnordered("EXPR$0=159167.83999999994; EXPR$1=263793.2200000001");
   }
 
-  /**
-   * Test to ensure that multiple aggregates with filter clauses have their filters extracted to
-   * the outer filter field for data pruning in the presence of an outer filter
-   */
+  /** Tests that multiple aggregates with filter clauses have their filters
+   * extracted to the outer filter field for data pruning in the presence of an
+   * outer filter. */
   @Test void testFilterClausesFactoredForPruning2() {
     String sql = "select "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
@@ -2325,10 +2302,9 @@ public class DruidAdapter2IT {
         .returnsUnordered("EXPR$0=2600.01; EXPR$1=4486.4400000000005");
   }
 
-  /**
-   * Test to ensure that multiple aggregates with the same filter clause have them factored
-   * out in the presence of an outer filter, and that they no longer refer to those filters
-   */
+  /** Tests that multiple aggregates with the same filter clause have them
+   * factored out in the presence of an outer filter, and that they no longer
+   * refer to those filters. */
   @Test void testMultipleFiltersFactoredOutWithOuterFilter() {
     // Logically Equivalent to
     // select sum("store_sales"), sum("store_cost")
@@ -2453,9 +2429,8 @@ public class DruidAdapter2IT {
             + "EXPR$0=13.25; product_id=1556");
   }
 
-  /**
-   * Test to ensure that an aggregate with a nested filter clause has it's filter factored out
-   */
+  /** Tests that an aggregate with a nested filter clause has its filter
+   * factored out. */
   @Test void testNestedFilterClauseFactored() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "store_state" in ('CA', 'OR')
@@ -2478,10 +2453,9 @@ public class DruidAdapter2IT {
         .returnsUnordered("EXPR$0=301444.9099999999");
   }
 
-  /**
-   * Test to ensure that aggregates with nested filters have their filters factored out
-   * into the outer filter for data pruning while still holding a reference to the filter clause
-   */
+  /** Tests that aggregates with nested filters have their filters factored out
+   * into the outer filter for data pruning while still holding a reference to
+   * the filter clause.  */
   @Test void testNestedFilterClauseInAggregates() {
     String sql =
         "select "
@@ -2520,9 +2494,8 @@ public class DruidAdapter2IT {
         .queryContains(new DruidChecker(druidQuery));
   }
 
-  /**
-   * Test to make sure the "not" filter has only 1 field, rather than an array of fields.
-   */
+  /** Tests that the "not" filter has only 1 field, rather than an array of
+   * fields. */
   @Test void testNotFilterForm() {
     String sql = "select count(distinct \"the_month\") from "
         + "\"foodmart\" where \"the_month\" <> \'October\'";
@@ -2534,10 +2507,8 @@ public class DruidAdapter2IT {
         .returnsOrdered("EXPR$0=11");
   }
 
-  /**
-   * Test to ensure that count(distinct ...) gets pushed to Druid when approximate results are
-   * acceptable
-   * */
+  /** Tests that {@code count(distinct ...)} gets pushed to Druid when
+   * approximate results are acceptable. */
   @Test void testDistinctCountWhenApproxResultsAccepted() {
     String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
@@ -2548,10 +2519,8 @@ public class DruidAdapter2IT {
     testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
   }
 
-  /**
-   * Test to ensure that count(distinct ...) doesn't get pushed to Druid when approximate results
-   * are not acceptable
-   */
+  /** Tests that {@code count(distinct ...)} doesn't get pushed to Druid
+   * when approximate results are not acceptable. */
   @Test void testDistinctCountWhenApproxResultsNotAccepted() {
     String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
@@ -2579,9 +2548,7 @@ public class DruidAdapter2IT {
     testCountWithApproxDistinct(false, sql, expectedSubExplainNoApprox, "'queryType':'groupBy'");
   }
 
-  /**
-   * Test to ensure that a count on a metric does not get pushed into Druid
-   */
+  /** Tests that a count on a metric does not get pushed into Druid. */
   @Test void testCountOnMetric() {
     String sql = "select \"brand_name\", count(\"store_sales\") from \"foodmart\" "
         + "group by \"brand_name\"";
@@ -2592,9 +2559,7 @@ public class DruidAdapter2IT {
     testCountWithApproxDistinct(false, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
   }
 
-  /**
-   * Test to ensure that count(*) is pushed into Druid
-   */
+  /** Tests that {@code count(*)} is pushed into Druid. */
   @Test void testCountStar() {
     String sql = "select count(*) from \"foodmart\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"

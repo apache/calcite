@@ -189,7 +189,7 @@ public enum JavaRowFormat {
   },
 
   /**
-   * See {@link org.apache.calcite.interpreter.Row}
+   * See {@link org.apache.calcite.interpreter.Row}.
    */
   ROW {
     @Override Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {

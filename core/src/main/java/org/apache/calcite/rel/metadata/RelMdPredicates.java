@@ -485,6 +485,7 @@ public class RelMdPredicates
     return mq.getPulledUpPredicates(input);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
   public RelOptPredicateList getPredicates(RelSubset r,
       RelMetadataQuery mq) {

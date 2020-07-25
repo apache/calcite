@@ -33,6 +33,7 @@ public class JdbcImplementor extends RelToSqlConverter {
     Util.discard(typeFactory);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
   public Result visit(JdbcTableScan scan) {
     return result(scan.jdbcTable.tableName(),

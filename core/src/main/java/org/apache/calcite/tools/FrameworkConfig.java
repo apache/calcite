@@ -112,7 +112,7 @@ public interface FrameworkConfig {
 
   /**
    * Returns the convertlet table that should be used when converting from SQL
-   * to row expressions
+   * to row expressions.
    */
   SqlRexConvertletTable getConvertletTable();
 

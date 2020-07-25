@@ -2824,8 +2824,8 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2625">[CALCITE-2625]
-   * Removing Window Boundaries from SqlWindow of Aggregate Function which do not allow Framing</a>
-   * */
+   * Removing Window Boundaries from SqlWindow of Aggregate Function which do
+   * not allow Framing</a>. */
   @Test void testRowNumberFunctionForPrintingOfFrameBoundary() {
     String query = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
     String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
@@ -4534,9 +4534,10 @@ class RelToSqlConverterTest {
         .ok(expectedPostgresql);
   }
 
-  /** Test case fo
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3840">[CALCITE-3840]
-   * Re-aliasing of VALUES that has column aliases produces wrong SQL in the JDBC adapter</a>*/
+   * Re-aliasing of VALUES that has column aliases produces wrong SQL in the
+   * JDBC adapter</a>. */
   @Test void testValuesReAlias() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder

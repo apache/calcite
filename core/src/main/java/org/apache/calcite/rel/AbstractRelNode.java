@@ -76,14 +76,10 @@ public abstract class AbstractRelNode implements RelNode {
 
   private final RelOptCluster cluster;
 
-  /**
-   * unique id of this object -- for debugging
-   */
+  /** Unique id of this object, for debugging. */
   protected final int id;
 
-  /**
-   * The RelTraitSet that describes the traits of this RelNode.
-   */
+  /** RelTraitSet that describes the traits of this RelNode. */
   protected RelTraitSet traitSet;
 
   //~ Constructors -----------------------------------------------------------
@@ -296,12 +292,11 @@ public abstract class AbstractRelNode implements RelNode {
     throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
-  /** Description, consists of id plus digest */
+  /** Description; consists of id plus digest. */
   public String toString() {
     return "rel#" + id + ':' + getDigest();
   }
 
-  /** Description, consists of id plus digest */
   @Deprecated // to be removed before 2.0
   public final String getDescription() {
     return this.toString();
@@ -419,10 +414,9 @@ public abstract class AbstractRelNode implements RelNode {
     return rdw.attrs;
   }
 
+  /** Implementation of {@link RelDigest}. */
   private class InnerRelDigest implements RelDigest {
-    /**
-     * Cache of hash code.
-     */
+    /** Cached hash code. */
     private int hash = 0;
 
     @Override public RelNode getRel() {

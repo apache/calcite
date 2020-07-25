@@ -183,9 +183,9 @@ public abstract class SqlCall extends SqlNode {
   }
 
   /**
-   * Test to see if it is the function COUNT(*)
+   * Returns whether it is the function {@code COUNT(*)}.
    *
-   * @return boolean true if function call to COUNT(*)
+   * @return true if function call to COUNT(*)
    */
   public boolean isCountStar() {
     SqlOperator sqlOperator = getOperator();

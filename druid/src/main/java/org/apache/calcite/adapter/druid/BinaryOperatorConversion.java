@@ -24,7 +24,8 @@ import org.apache.calcite.sql.SqlOperator;
 import java.util.List;
 
 /**
- * Binary operator conversion utility class used to convert expression like exp1 Operator exp2
+ * Binary operator conversion utility class; used to convert expressions like
+ * {@code exp1 Operator exp2}.
  */
 public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
   private final SqlOperator operator;

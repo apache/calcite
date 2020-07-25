@@ -137,9 +137,10 @@ public abstract class SqlImplementor {
     };
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use either {@link #visitRoot(RelNode)} or
    * {@link #visitInput(RelNode, int)}. */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public final Result visitChild(int i, RelNode e) {
     throw new UnsupportedOperationException();
   }
@@ -1261,9 +1262,7 @@ public abstract class SqlImplementor {
     return new TableFunctionScanContext(dialect, inputSqlNodes);
   }
 
-  /**
-   * Context for translating MATCH_RECOGNIZE clause
-   */
+  /** Context for translating MATCH_RECOGNIZE clause. */
   public class MatchRecognizeContext extends AliasContext {
     protected MatchRecognizeContext(SqlDialect dialect,
         Map<String, RelDataType> aliases) {
@@ -1398,6 +1397,7 @@ public abstract class SqlImplementor {
       return builder(rel, expectedClauses);
     }
 
+    // CHECKSTYLE: IGNORE 3
     /** @deprecated Provide the expected clauses up-front, when you call
      * {@link #visitInput(RelNode, int, Set)}, then create a builder using
      * {@link #builder(RelNode)}. */

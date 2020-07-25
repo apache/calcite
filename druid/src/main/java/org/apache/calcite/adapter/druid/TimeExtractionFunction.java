@@ -189,11 +189,11 @@ public class TimeExtractionFunction implements ExtractionFunction {
     return timeUnit != null && VALID_TIME_FLOOR.contains(timeUnit);
   }
 
-  /**
-   * @param rexNode cast RexNode
-   * @param timeZone timezone
+  /** Translates a CAST expression to a Druid Time extraction function, or null
+   * when can not translate the cast.
    *
-   * @return Druid Time extraction function or null when can not translate the cast.
+   * @param rexNode CAST RexNode
+   * @param timeZone Timezone
    */
   @Nullable
   public static TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,

@@ -168,8 +168,7 @@ public abstract class Bug {
 
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2401">[CALCITE-2401]
-   * Improve RelMdPredicates performance</a>
-   */
+   * Improve RelMdPredicates performance</a> is fixed. */
   public static final boolean CALCITE_2401_FIXED = false;
 
   /** Whether

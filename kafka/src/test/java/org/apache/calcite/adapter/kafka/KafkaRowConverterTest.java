@@ -25,13 +25,14 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 /**
- * Implementation of {@link KafkaRowConverter} for test, both key and value are saved as byte[].
+ * Implementation of {@link KafkaRowConverter} for testing. Both key and value
+ * are saved as {@code byte[]}.
  */
 class KafkaRowConverterTest implements KafkaRowConverter<String, String> {
   /**
-   * Generate row schema for a given Kafka topic.
+   * Generates a row schema for a given Kafka topic.
    *
-   * @param topicName, Kafka topic name;
+   * @param topicName Kafka topic name
    * @return row type
    */
   @Override public RelDataType rowDataType(final String topicName) {
@@ -46,9 +47,10 @@ class KafkaRowConverterTest implements KafkaRowConverter<String, String> {
   }
 
   /**
-   * Parse and reformat Kafka message from consumer, to fit with row schema
+   * Parses and reformats Kafka messages from consumer, to fit with row schema
    * defined as {@link #rowDataType(String)}.
-   * @param message, the raw Kafka message record;
+   *
+   * @param message Raw Kafka message record
    * @return fields in the row
    */
   @Override public Object[] toRow(final ConsumerRecord<String, String> message) {

@@ -301,9 +301,9 @@ public class SqlCollation implements Serializable {
   }
 
   /**
-   * @return the {@link Collator} to compare values having the current collation,
-   * or {@code null} if no specific {@link Collator} is needed, in which case
-   * {@link String#compareTo} will be used.
+   * Returns the {@link Collator} to compare values having the current
+   * collation, or {@code null} if no specific {@link Collator} is needed, in
+   * which case {@link String#compareTo} will be used.
    */
   public Collator getCollator() {
     return null;

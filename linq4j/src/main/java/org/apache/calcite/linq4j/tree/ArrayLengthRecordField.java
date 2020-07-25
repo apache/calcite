@@ -21,7 +21,7 @@ import java.lang.reflect.Type;
 import java.util.Objects;
 
 /**
- * Represents a length field of a RecordType
+ * Length field of a RecordType.
  */
 public class ArrayLengthRecordField implements Types.RecordField {
   private final String fieldName;

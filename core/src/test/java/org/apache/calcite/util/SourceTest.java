@@ -63,7 +63,7 @@ class SourceTest {
   }
 
   /**
-   * Read lines from {@link CharSource}
+   * Read lines from {@link CharSource}.
    */
   @Test void charSource() throws IOException {
     Source source = Sources.fromCharSource(CharSource.wrap("a\nb"));

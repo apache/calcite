@@ -25,7 +25,7 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Base Class for relations with three or more inputs */
+/** Base Class for relations with three or more inputs. */
 abstract class MutableMultiRel extends MutableRel {
   protected final List<MutableRel> inputs;
 

@@ -206,7 +206,7 @@ public interface SqlValidator {
   void validateLiteral(SqlLiteral literal);
 
   /**
-   * Validates a {@link SqlIntervalQualifier}
+   * Validates a {@link SqlIntervalQualifier}.
    *
    * @param qualifier Interval qualifier
    */
@@ -301,7 +301,7 @@ public interface SqlValidator {
       SqlNodeList orderList, SqlValidatorScope scope);
 
   /**
-   * Validates a COLUMN_LIST parameter
+   * Validates a COLUMN_LIST parameter.
    *
    * @param function function containing COLUMN_LIST parameter
    * @param argTypes function arguments
@@ -384,7 +384,11 @@ public interface SqlValidator {
       SqlNode windowOrRef,
       SqlValidatorScope scope);
 
-  /** @deprecated Use {@link #resolveWindow(SqlNode, SqlValidatorScope)}, which
+  /**
+   * Converts a window specification or window name into a fully-resolved
+   * window specification.
+   *
+   * @deprecated Use {@link #resolveWindow(SqlNode, SqlValidatorScope)}, which
    * does not have the deprecated {@code populateBounds} parameter.
    *
    * @param populateBounds Whether to populate bounds. Doing so may alter the
@@ -472,7 +476,7 @@ public interface SqlValidator {
       RelDataType type);
 
   /**
-   * Removes a node from the set of validated nodes
+   * Removes a node from the set of validated nodes.
    *
    * @param node node to be removed
    */
@@ -787,9 +791,7 @@ public interface SqlValidator {
      * contain NULLS FIRST or NULLS LAST. */
     Config withDefaultNullCollation(NullCollation nullCollation);
 
-    /**
-     * Returns whether column reference expansion is enabled
-     */
+    /** Returns whether column reference expansion is enabled. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     boolean columnReferenceExpansion();

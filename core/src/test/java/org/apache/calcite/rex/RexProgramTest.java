@@ -192,7 +192,8 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /**
-   * Creates a program, depending on variant:
+   * Creates one of several programs. The program generated depends on the
+   * {@code variant} parameter, as follows:
    *
    * <ol>
    * <li><code>select (x + y) + (x + 1) as a, (x + x) as b from t(x, y)</code>
@@ -1707,7 +1708,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(caseNode);
   }
 
-  /** Tests a CASE condition that contains division, */
+  /** Tests a CASE condition that contains division. */
   @Test void testSimplifyCaseDiv2() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
     simplify = simplify.withParanoid(false);
@@ -2672,6 +2673,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(expr);
   }
 
+  /** An operator that overrides the {@link #getStrongPolicyInference}
+   * method. */
   private static class SqlSpecialOperatorWithPolicy extends SqlSpecialOperator {
     private final Strong.Policy policy;
     private SqlSpecialOperatorWithPolicy(String name, SqlKind kind, int prec, boolean leftAssoc,

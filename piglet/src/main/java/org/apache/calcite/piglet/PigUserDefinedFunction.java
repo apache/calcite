@@ -32,9 +32,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/**
- * Class to represent Pig UDF objects
- */
+/** Pig user-defined function. */
 public class PigUserDefinedFunction extends SqlUserDefinedFunction {
   public final FuncSpec funcSpec;
   private PigUserDefinedFunction(SqlIdentifier opName,

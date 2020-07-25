@@ -42,9 +42,7 @@ public final class FunctionExpression<F extends Function<?>>
   public final BlockStatement body;
   public final List<ParameterExpression> parameterList;
   private F dynamicFunction;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   private FunctionExpression(Class<F> type, F function, BlockStatement body,

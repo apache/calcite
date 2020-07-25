@@ -38,7 +38,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * Unit tests for {@link RexShuttle}
+ * Unit tests for {@link RexShuttle}.
  */
 class RexShuttleTest {
 

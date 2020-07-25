@@ -28,9 +28,7 @@ public class NewArrayExpression extends Expression {
   public final int dimension;
   public final Expression bound;
   public final List<Expression> expressions;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public NewArrayExpression(Type type, int dimension, Expression bound,

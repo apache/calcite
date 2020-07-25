@@ -1032,7 +1032,7 @@ public class RexSimplify {
             && oldType.isNullable());
   }
 
-  /** Object to describe a Case branch */
+  /** Object to describe a CASE branch. */
   static final class CaseBranch {
 
     private final RexNode cond;
@@ -1074,7 +1074,7 @@ public class RexSimplify {
   }
 
   /**
-   * Decides whether it is safe to flatten the given case part into AND/ORs
+   * Decides whether it is safe to flatten the given CASE part into ANDs/ORs.
    */
   enum SafeRexVisitor implements RexVisitor<Boolean> {
     INSTANCE;

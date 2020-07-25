@@ -40,7 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Checks renaming of fields (also upper, lower cases) during projections
+ * Checks renaming of fields (also upper, lower cases) during projections.
  */
 @Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)

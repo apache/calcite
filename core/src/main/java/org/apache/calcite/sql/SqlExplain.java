@@ -102,14 +102,14 @@ public class SqlExplain extends SqlCall {
   }
 
   /**
-   * @return the underlying SQL statement to be explained
+   * Returns the underlying SQL statement to be explained.
    */
   public SqlNode getExplicandum() {
     return explicandum;
   }
 
   /**
-   * @return detail level to be generated
+   * Return the detail level to be generated.
    */
   public SqlExplainLevel getDetailLevel() {
     return detailLevel.symbolValue(SqlExplainLevel.class);
@@ -123,21 +123,21 @@ public class SqlExplain extends SqlCall {
   }
 
   /**
-   * @return the number of dynamic parameters in the statement
+   * Returns the number of dynamic parameters in the statement.
    */
   public int getDynamicParamCount() {
     return dynamicParameterCount;
   }
 
   /**
-   * @return whether physical plan implementation should be returned
+   * Returns whether physical plan implementation should be returned.
    */
   public boolean withImplementation() {
     return getDepth() == Depth.PHYSICAL;
   }
 
   /**
-   * @return whether type should be returned
+   * Returns whether type should be returned.
    */
   public boolean withType() {
     return getDepth() == Depth.TYPE;

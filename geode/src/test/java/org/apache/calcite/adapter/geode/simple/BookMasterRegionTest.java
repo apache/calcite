@@ -25,7 +25,7 @@ import org.apache.geode.cache.query.SelectResults;
 import org.apache.geode.pdx.ReflectionBasedAutoSerializer;
 
 /**
- *
+ * Test based on BookMaster region.
  */
 class BookMasterRegionTest {
 

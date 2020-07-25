@@ -185,7 +185,7 @@ class FileReaderTest {
     assertTrue(row.get(2).text().equals("R0C2"));
   }
 
-  /** Tests {@link FileReader} iterator with static file, */
+  /** Tests {@link FileReader} iterator with a static file. */
   @Test void testFileReaderIterator() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);

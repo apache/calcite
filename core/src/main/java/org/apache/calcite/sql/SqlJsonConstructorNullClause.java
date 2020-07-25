@@ -17,7 +17,7 @@
 package org.apache.calcite.sql;
 
 /**
- * Indicating that how do Json constructors handle null
+ * Indicating how JSON constructors handle null.
  */
 public enum SqlJsonConstructorNullClause {
   NULL_ON_NULL("NULL ON NULL"),

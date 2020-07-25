@@ -218,10 +218,11 @@ public class PigRelSqlUdfs {
   }
 
   /**
-   * Helper method to return a list of SqlTypeFamily for a given list of relational operands
+   * Helper method to return a list of SqlTypeFamily for a given list of
+   * relational operands.
    *
    * @param operands List of relational operands
-   * @return List of SqlTypeFamilies
+   * @return List of SqlTypeFamily objects
    */
   private static List<SqlTypeFamily> getTypeFamilies(ImmutableList<RexNode> operands) {
     List<SqlTypeFamily> ret = new ArrayList<>();
@@ -233,7 +234,8 @@ public class PigRelSqlUdfs {
   }
 
   /**
-   * Helper method to return a list of RelDataType for a given list of relational operands
+   * Helper method to return a list of RelDataType for a given list of
+   * relational operands.
    *
    * @param operands List of relational operands
    * @return List of RelDataTypes

@@ -21,8 +21,8 @@ import java.util.Iterator;
 /**
  * Simple implementation of
  * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping} where the
- * number of sources and targets are specified as constructor parameters and you
- * just need to implement one method,
+ * number of sources and targets are specified as constructor parameters, and you
+ * just need to implement one method.
  */
 public abstract class AbstractTargetMapping
     extends Mappings.AbstractMapping

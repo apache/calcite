@@ -38,7 +38,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * DataContext for evaluating an RexExpression
+ * DataContext for evaluating a RexExpression.
  */
 public class VisitorDataContext implements DataContext {
   private static final CalciteLogger LOGGER =

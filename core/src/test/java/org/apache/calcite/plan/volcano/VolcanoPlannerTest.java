@@ -220,8 +220,8 @@ class VolcanoPlannerTest {
   }
 
   /**
-   * Tests a rule that is fired once per subset (whereas most rules are fired
-   * once per rel in a set or rel in a subset)
+   * Tests a rule that is fired once per subset. (Whereas most rules are fired
+   * once per rel in a set or rel in a subset.)
    */
   @Test void testSubsetRule() {
     VolcanoPlanner planner = new VolcanoPlanner();
@@ -712,6 +712,7 @@ class VolcanoPlannerTest {
     }
   }
 
+  /** Rule that matches a PhysSingle on a RelSubset. */
   public static class PhysSingleSubsetRule
       extends RelRule<PhysSingleSubsetRule.Config> {
     static Config config(List<String> buf) {
@@ -753,9 +754,7 @@ class VolcanoPlannerTest {
     }
   }
 
-  /**
-   * Create an artificial RelSet merge in the PhysSingleRel's input RelSet
-   */
+  /** Creates an artificial RelSet merge in the PhysSingleRel's input RelSet. */
   public static class PhysSingleInputSetMergeRule
       extends RelRule<PhysSingleInputSetMergeRule.Config> {
     static final PhysSingleInputSetMergeRule INSTANCE =
@@ -989,6 +988,7 @@ class VolcanoPlannerTest {
     }
   }
 
+  /** Rule that converts a physical RelNode to an iterator. */
   private static class PhysToIteratorRule extends ConverterRule {
     static final PhysToIteratorRule INSTANCE = Config.INSTANCE
         .withConversion(RelNode.class, PlannerTests.PHYS_CALLING_CONVENTION,

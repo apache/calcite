@@ -169,7 +169,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   /**
-   * Returns the rule with a given description
+   * Returns the rule with a given description.
    *
    * @param description Description
    * @return Rule with given description, or null if not found
@@ -411,12 +411,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   /**
-   * Takes care of tracing and listener notification when a rel is discarded
+   * Takes care of tracing and listener notification when a rel is discarded.
    *
-   * @param rel discarded rel
+   * @param rel Discarded rel
    */
-  protected void notifyDiscard(
-      RelNode rel) {
+  protected void notifyDiscard(RelNode rel) {
     if (listener != null) {
       RelOptListener.RelDiscardedEvent event =
           new RelOptListener.RelDiscardedEvent(

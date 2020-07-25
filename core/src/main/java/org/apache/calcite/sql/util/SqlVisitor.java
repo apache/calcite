@@ -92,7 +92,7 @@ public interface SqlVisitor<R> {
   R visit(SqlDynamicParam param);
 
   /**
-   * Visits an interval qualifier
+   * Visits an interval qualifier.
    *
    * @param intervalQualifier Interval qualifier
    * @see SqlIntervalQualifier#accept(SqlVisitor)

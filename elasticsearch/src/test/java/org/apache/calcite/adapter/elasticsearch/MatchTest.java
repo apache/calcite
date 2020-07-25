@@ -75,9 +75,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class MatchTest {
 
-  public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
+  public static final EmbeddedElasticsearchPolicy NODE =
+      EmbeddedElasticsearchPolicy.create();
 
-  /** Default index/type name */
+  /** Default index/type name. */
   private static final String ZIPS = "match-zips";
   private static final int ZIPS_SIZE = 149;
 

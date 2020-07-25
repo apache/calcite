@@ -82,12 +82,14 @@ class MongoEnumerator implements Enumerator<Object> {
     return a0 -> (Map) a0;
   }
 
+  /** Returns a function that projects a single field. */
   static Function1<Document, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
     return a0 -> convert(a0.get(fieldName), fieldClass);
   }
 
-  /**
+  /** Returns a function that projects fields.
+   *
    * @param fields List of fields to project; or null to return map
    */
   static Function1<Document, Object[]> listGetter(

@@ -50,6 +50,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
     return null;
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addEdge(Object, Object, Object...)}. */
   @Deprecated
   public E addEdge(V vertex, V targetVertex) {

@@ -44,9 +44,8 @@ public class RelOptRules {
   private RelOptRules() {
   }
 
-  /**
-   * The calc rule set is public for use from {@link org.apache.calcite.tools.Programs}
-   */
+  /** Calc rule set; public so that {@link org.apache.calcite.tools.Programs} can
+   * use it. */
   public static final ImmutableList<RelOptRule> CALC_RULES =
       ImmutableList.of(
           Bindables.FROM_NONE_RULE,

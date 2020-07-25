@@ -138,7 +138,7 @@ public class RexBuilder {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns this RexBuilder's type factory
+   * Returns this RexBuilder's type factory.
    *
    * @return type factory
    */
@@ -147,7 +147,7 @@ public class RexBuilder {
   }
 
   /**
-   * Returns this RexBuilder's operator table
+   * Returns this RexBuilder's operator table.
    *
    * @return operator table
    */
@@ -730,7 +730,7 @@ public class RexBuilder {
   }
 
   /**
-   * Retrieves an interval or decimal node's integer representation
+   * Retrieves an INTERVAL or DECIMAL node's integer representation.
    *
    * @param node the interval or decimal value as an opaque type
    * @return an integer representation of the decimal value
@@ -1138,6 +1138,7 @@ public class RexBuilder {
     return makeLiteral(str, type, SqlTypeName.CHAR);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #makeDateLiteral(DateString)}. */
   @Deprecated // to be removed before 2.0
   public RexLiteral makeDateLiteral(Calendar calendar) {
@@ -1152,6 +1153,7 @@ public class RexBuilder {
         typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #makeTimeLiteral(TimeString, int)}. */
   @Deprecated // to be removed before 2.0
   public RexLiteral makeTimeLiteral(Calendar calendar, int precision) {
@@ -1178,6 +1180,7 @@ public class RexBuilder {
         SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #makeTimestampLiteral(TimestampString, int)}. */
   @Deprecated // to be removed before 2.0
   public RexLiteral makeTimestampLiteral(Calendar calendar, int precision) {
@@ -1230,7 +1233,7 @@ public class RexBuilder {
   }
 
   /**
-   * Creates a reference to a dynamic parameter
+   * Creates a reference to a dynamic parameter.
    *
    * @param type  Type of dynamic parameter
    * @param index Index of dynamic parameter
@@ -1260,12 +1263,14 @@ public class RexBuilder {
     return (RexLiteral) makeCast(type, constantNull);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
   @Deprecated // to be removed before 2.0
   public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
     return makeNullLiteral(typeFactory.createSqlType(typeName, precision));
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
   @Deprecated // to be removed before 2.0
   public RexNode makeNullLiteral(SqlTypeName typeName) {
@@ -1629,7 +1634,7 @@ public class RexBuilder {
   }
 
   /** Returns a byte-string padded with zero bytes to make it at least a given
-   * length, */
+   * length. */
   private static ByteString padRight(ByteString s, int length) {
     if (s.length() >= length) {
       return s;

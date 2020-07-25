@@ -85,7 +85,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   }
 
   /**
-   * Optimizes {@code new Type()} constructs,
+   * Optimizes {@code new Type()} constructs.
    *
    * @param newExpression expression to optimize
    * @return optimized expression

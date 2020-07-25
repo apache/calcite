@@ -227,27 +227,20 @@ public interface RelDataType {
    */
   RelDataTypeFamily getFamily();
 
-  /**
-   * @return precedence list for this type
-   */
+  /** Returns the precedence list for this type. */
   RelDataTypePrecedenceList getPrecedenceList();
 
-  /**
-   * @return the category of comparison operators which make sense when
-   * applied to values of this type
-   */
+  /** Returns the category of comparison operators that make sense when applied
+   * to values of this type. */
   RelDataTypeComparability getComparability();
 
-  /**
-   * @return whether it has dynamic structure (for "schema-on-read" table)
-   */
+  /** Returns whether this type has dynamic structure (for "schema-on-read"
+   * table). */
   boolean isDynamicStruct();
 
-  /**
-   * @return whether the field types are equal with each other by ignoring
-   * the field names. If it is not a struct, just return the result of
-   * {@code #equals(Object)}.
-   */
+  /** Returns whether the field types are equal with each other by ignoring the
+   * field names. If it is not a struct, just return the result of {@code
+   * #equals(Object)}. */
   @API(since = "1.24", status = API.Status.INTERNAL)
   default boolean equalsSansFieldNames(RelDataType that) {
     if (this == that) {

@@ -28,9 +28,7 @@ import java.util.Set;
  */
 public class BlockStatement extends Statement {
   public final List<Statement> statements;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   BlockStatement(List<Statement> statements, Type type) {

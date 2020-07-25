@@ -91,7 +91,7 @@ public class TableAccessMap {
   }
 
   /**
-   * Constructs a TableAccessMap for a single table
+   * Constructs a TableAccessMap for a single table.
    *
    * @param table fully qualified name of the table, represented as a list
    * @param mode  access mode for the table
@@ -104,7 +104,7 @@ public class TableAccessMap {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return set of qualified names for all tables accessed
+   * Returns a set of qualified names for all tables accessed.
    */
   public Set<List<String>> getTablesAccessed() {
     return accessMap.keySet();

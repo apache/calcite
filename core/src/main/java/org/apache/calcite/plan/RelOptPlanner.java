@@ -212,10 +212,9 @@ public interface RelOptPlanner {
    */
   RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
 
-  /**
-   * @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
-   * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}.
-   */
+  // CHECKSTYLE: IGNORE 2
+  /** @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
+   * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}. */
   @Deprecated // to be removed before 2.0
   RelOptCost getCost(RelNode rel);
 
@@ -334,6 +333,7 @@ public interface RelOptPlanner {
   /** Called when a relational expression is copied to a similar expression. */
   void onCopy(RelNode rel, RelNode newRel);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link RexExecutor} */
   @Deprecated // to be removed before 2.0
   interface Executor extends RexExecutor {

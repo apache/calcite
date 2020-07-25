@@ -64,6 +64,7 @@ public abstract class SqlNode implements Cloneable {
 
   //~ Methods ----------------------------------------------------------------
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Please use {@link #clone(SqlNode)}; this method brings
    * along too much baggage from early versions of Java */
   @Deprecated

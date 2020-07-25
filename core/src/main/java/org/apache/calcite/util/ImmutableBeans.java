@@ -363,7 +363,7 @@ public class ImmutableBeans {
     }
   }
 
-  /** Is the method reading or writing? */
+  /** Whether the method is reading or writing. */
   private enum Mode {
     GET, SET, WITH
   }

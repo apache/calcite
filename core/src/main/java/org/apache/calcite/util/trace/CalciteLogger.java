@@ -60,7 +60,7 @@ public class CalciteLogger {
   // WARN
 
   /**
-   * Logs a WARN message with two Object parameters
+   * Logs a WARN message with two Object parameters.
    */
   public void warn(String format, Object arg1, Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
@@ -68,7 +68,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a WARN message with three Object parameters
+   * Conditionally logs a WARN message with three Object parameters.
    */
   public void warn(String format, Object arg1, Object arg2, Object arg3) {
     if (logger.isWarnEnabled()) {
@@ -77,7 +77,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a WARN message with four Object parameters
+   * Conditionally logs a WARN message with four Object parameters.
    */
   public void warn(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
     if (logger.isWarnEnabled()) {
@@ -94,7 +94,7 @@ public class CalciteLogger {
   // INFO
 
   /**
-   * Logs an INFO message with two Object parameters
+   * Logs an INFO message with two Object parameters.
    */
   public void info(String format, Object arg1, Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
@@ -102,7 +102,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs an INFO message with three Object parameters
+   * Conditionally logs an INFO message with three Object parameters.
    */
   public void info(String format, Object arg1, Object arg2, Object arg3) {
     if (logger.isInfoEnabled()) {
@@ -111,7 +111,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs an INFO message with four Object parameters
+   * Conditionally logs an INFO message with four Object parameters.
    */
   public void info(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
     if (logger.isInfoEnabled()) {
@@ -128,7 +128,7 @@ public class CalciteLogger {
   // DEBUG
 
   /**
-   * Logs a DEBUG message with two Object parameters
+   * Logs a DEBUG message with two Object parameters.
    */
   public void debug(String format, Object arg1, Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
@@ -136,7 +136,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a DEBUG message with three Object parameters
+   * Conditionally logs a DEBUG message with three Object parameters.
    */
   public void debug(String format, Object arg1, Object arg2, Object arg3) {
     if (logger.isDebugEnabled()) {
@@ -145,7 +145,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a DEBUG message with four Object parameters
+   * Conditionally logs a DEBUG message with four Object parameters.
    */
   public void debug(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
     if (logger.isDebugEnabled()) {
@@ -162,7 +162,7 @@ public class CalciteLogger {
   // TRACE
 
   /**
-   * Logs a TRACE message with two Object parameters
+   * Logs a TRACE message with two Object parameters.
    */
   public void trace(String format, Object arg1, Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
@@ -170,7 +170,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a TRACE message with three Object parameters
+   * Conditionally logs a TRACE message with three Object parameters.
    */
   public void trace(String format, Object arg1, Object arg2, Object arg3) {
     if (logger.isTraceEnabled()) {
@@ -179,7 +179,7 @@ public class CalciteLogger {
   }
 
   /**
-   * Conditionally logs a TRACE message with four Object parameters
+   * Conditionally logs a TRACE message with four Object parameters.
    */
   public void trace(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
     if (logger.isTraceEnabled()) {

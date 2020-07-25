@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * An interface of an object identifier that represents a SqlIdentifier
+ * An interface of an object identifier that represents a SqlIdentifier.
  */
 public interface SqlMoniker {
   Comparator<SqlMoniker> COMPARATOR =

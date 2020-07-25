@@ -1088,10 +1088,10 @@ public class JdbcRules {
     }
   }
 
-  /**
-   * Visitor for checking whether part of projection is a user defined function or not
-   */
-  private static class CheckingUserDefinedFunctionVisitor extends RexVisitorImpl<Void> {
+  /** Visitor that checks whether part of a projection is a user-defined
+   * function (UDF). */
+  private static class CheckingUserDefinedFunctionVisitor
+      extends RexVisitorImpl<Void> {
 
     private boolean containsUsedDefinedFunction = false;
 

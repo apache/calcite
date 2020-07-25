@@ -124,10 +124,10 @@ class BlockBuilderTest {
         "x in the second block should be renamed to avoid name clash");
   }
 
-  /**
-   * CALCITE-2413: RexToLixTranslator does not generate correct declaration of Methods with
-   * generic return types
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2413">[CALCITE-2413]
+   * RexToLixTranslator does not generate correct declaration of Methods with
+   * generic return types</a>. */
   @Test void genericMethodCall() throws NoSuchMethodException {
     BlockBuilder bb = new BlockBuilder();
     bb.append("_i",
@@ -145,7 +145,10 @@ class BlockBuilderTest {
 
   }
 
-  /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2611">[CALCITE-2611]
+   * Linq4j code generation failure if one side of an OR contains
+   * UNKNOWN</a>. */
   @Test void testOptimizeBoxedFalseEqNull() {
     BlockBuilder outer = new BlockBuilder();
     outer.append(

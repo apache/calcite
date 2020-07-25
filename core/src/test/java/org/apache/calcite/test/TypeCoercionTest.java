@@ -650,7 +650,7 @@ class TypeCoercionTest extends SqlValidatorTestCase {
         .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
   }
 
-  /** Test case for {@link AbstractTypeCoercion#implicitCast} */
+  /** Test for {@link AbstractTypeCoercion#implicitCast}. */
   @Test void testImplicitCasts() {
     // TINYINT
     RelDataType checkedType1 = dataTypeFactory.createSqlType(SqlTypeName.TINYINT);

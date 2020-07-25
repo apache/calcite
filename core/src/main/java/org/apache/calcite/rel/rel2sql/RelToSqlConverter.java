@@ -156,7 +156,7 @@ public class RelToSqlConverter extends SqlImplementor
             frame.parent);
   }
 
-  /** @see #dispatch */
+  /** Visits a RelNode; called by {@link #dispatch} via reflection. */
   public Result visit(RelNode e) {
     throw new AssertionError("Need to implement " + e.getClass().getName());
   }
@@ -192,7 +192,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  /** @see #dispatch */
+  /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
     case ANTI:
@@ -284,7 +284,7 @@ public class RelToSqlConverter extends SqlImplementor
     return e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue();
   }
 
-  /** @see #dispatch */
+  /** Visits a Correlate; called by {@link #dispatch} via reflection. */
   public Result visit(Correlate e) {
     final Result leftResult =
         visitInput(e, 0)
@@ -308,7 +308,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(join, leftResult, rightResult);
   }
 
-  /** @see #dispatch */
+  /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
     if (input instanceof Aggregate) {
@@ -329,7 +329,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  /** @see #dispatch */
+  /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
     final Result x = visitInput(e, 0, Clause.SELECT);
     parseCorrelTable(e, x);
@@ -361,7 +361,7 @@ public class RelToSqlConverter extends SqlImplementor
             sqlNodeNull, dialect.getCastSpec(field.getType()));
   }
 
-  /** @see #dispatch */
+  /** Visits a Window; called by {@link #dispatch} via reflection. */
   public Result visit(Window e) {
     final Result x = visitInput(e, 0);
     final Builder builder = x.builder(e);
@@ -385,7 +385,7 @@ public class RelToSqlConverter extends SqlImplementor
     return builder.result();
   }
 
-  /** @see #dispatch */
+  /** Visits an Aggregate; called by {@link #dispatch} via reflection. */
   public Result visit(Aggregate e) {
     final Builder builder =
         visitAggregate(e, e.getGroupSet().toList(), Clause.GROUP_BY);
@@ -510,34 +510,34 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  /** @see #dispatch */
+  /** Visits a TableScan; called by {@link #dispatch} via reflection. */
   public Result visit(TableScan e) {
     final SqlIdentifier identifier = getSqlTargetTable(e);
     return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
-  /** @see #dispatch */
+  /** Visits a Union; called by {@link #dispatch} via reflection. */
   public Result visit(Union e) {
     return setOpToSql(e.all
         ? SqlStdOperatorTable.UNION_ALL
         : SqlStdOperatorTable.UNION, e);
   }
 
-  /** @see #dispatch */
+  /** Visits an Intersect; called by {@link #dispatch} via reflection. */
   public Result visit(Intersect e) {
     return setOpToSql(e.all
         ? SqlStdOperatorTable.INTERSECT_ALL
         : SqlStdOperatorTable.INTERSECT, e);
   }
 
-  /** @see #dispatch */
+  /** Visits a Minus; called by {@link #dispatch} via reflection. */
   public Result visit(Minus e) {
     return setOpToSql(e.all
         ? SqlStdOperatorTable.EXCEPT_ALL
         : SqlStdOperatorTable.EXCEPT, e);
   }
 
-  /** @see #dispatch */
+  /** Visits a Calc; called by {@link #dispatch} via reflection. */
   public Result visit(Calc e) {
     final RexProgram program = e.getProgram();
     final ImmutableSet<Clause> expectedClauses =
@@ -563,7 +563,7 @@ public class RelToSqlConverter extends SqlImplementor
     return builder.result();
   }
 
-  /** @see #dispatch */
+  /** Visits a Values; called by {@link #dispatch} via reflection. */
   public Result visit(Values e) {
     final List<Clause> clauses = ImmutableList.of(Clause.SELECT);
     final Map<String, RelDataType> pairs = ImmutableMap.of();
@@ -680,7 +680,7 @@ public class RelToSqlConverter extends SqlImplementor
                     SqlLiteral.createExactNumeric("0", POS)));
   }
 
-  /** @see #dispatch */
+  /** Visits a Sort; called by {@link #dispatch} via reflection. */
   public Result visit(Sort e) {
     if (e.getInput() instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) e.getInput();
@@ -784,7 +784,7 @@ public class RelToSqlConverter extends SqlImplementor
     return sqlTargetTable;
   }
 
-  /** @see #dispatch */
+  /** Visits a TableModify; called by {@link #dispatch} via reflection. */
   public Result visit(TableModify modify) {
     final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
@@ -847,7 +847,7 @@ public class RelToSqlConverter extends SqlImplementor
         Lists.transform(names, name -> new SqlIdentifier(name, POS)), POS);
   }
 
-  /** @see #dispatch */
+  /** Visits a Match; called by {@link #dispatch} via reflection. */
   public Result visit(Match e) {
     final RelNode input = e.getInput();
     final Result x = visitInput(e, 0);

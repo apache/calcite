@@ -51,7 +51,8 @@ class BooleanLogicTest {
   private static final String NAME = "booleanlogic";
 
   /**
-   * Used to create {@code zips} index and insert some data
+   * Creates {@code zips} index and inserts some data.
+   *
    * @throws Exception when ES node setup failed
    */
   @BeforeAll

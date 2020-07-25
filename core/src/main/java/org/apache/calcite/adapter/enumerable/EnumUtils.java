@@ -593,7 +593,7 @@ public class EnumUtils {
   }
 
   /**
-   * Handle decimal type specifically with explicit type conversion
+   * Handles decimal type specifically with explicit type conversion.
    */
   private static Expression convertAssignableType(
       Expression argument, Type targetType) {
@@ -671,7 +671,8 @@ public class EnumUtils {
   }
 
   /**
-   * Match an argument expression to method parameter type with best effort
+   * Matches an argument expression to method parameter type with best effort.
+   *
    * @param argument Argument Expression
    * @param parameter Parameter type
    * @return Converted argument expression that matches the parameter type.
@@ -832,6 +833,7 @@ public class EnumUtils {
     };
   }
 
+  /** Enumerator that converts rows into sessions separated by gaps. */
   private static class SessionizationEnumerator implements Enumerator<Object[]> {
     private final Enumerator<Object[]> inputEnumerator;
     private final int indexOfWatermarkedColumn;
@@ -972,6 +974,7 @@ public class EnumUtils {
     };
   }
 
+  /** Enumerator that computes HOP. */
   private static class HopEnumerator implements Enumerator<Object[]> {
     private final Enumerator<Object[]> inputEnumerator;
     private final int indexOfWatermarkedColumn;

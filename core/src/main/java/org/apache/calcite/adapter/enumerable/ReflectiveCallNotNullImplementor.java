@@ -36,8 +36,9 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   protected final Method method;
 
   /**
-   * Constructor of {@link ReflectiveCallNotNullImplementor}
-   * @param method method that is used to implement the call
+   * Constructor of {@link ReflectiveCallNotNullImplementor}.
+   *
+   * @param method Method that is used to implement the call
    */
   public ReflectiveCallNotNullImplementor(Method method) {
     this.method = method;

@@ -542,7 +542,7 @@ class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and
-   * plans for query using order by */
+   * plans for query using ORDER BY. */
   @Test void testSortPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
@@ -647,7 +647,7 @@ class PlannerTest {
   }
 
   /** Tests that outer order by is not removed since window function
-   * might reorder the rows in-between */
+   * might reorder the rows in-between. */
   @Test void testDuplicateSortPlanWithOver() throws Exception {
     runDuplicateSortCheck("select emp_cnt, empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
@@ -796,7 +796,7 @@ class PlannerTest {
   }
 
   /** Unit test that calls {@link Planner#transform} twice with
-   * rule name conflicts */
+   * rule name conflicts. */
   @Test void testPlanTransformWithRuleNameConflicts() throws Exception {
     // Create two dummy rules with identical rules.
     RelOptRule rule1 = MyProjectFilterRule.config("MYRULE").toRule();
@@ -1166,6 +1166,7 @@ class PlannerTest {
     assertThat(toString(transform), containsString(expected));
   }
 
+  /** Rule that matches a Project on a Filter. */
   public static class MyProjectFilterRule
       extends RelRule<MyProjectFilterRule.Config> {
     static Config config(String description) {
@@ -1197,6 +1198,7 @@ class PlannerTest {
     }
   }
 
+  /** Rule that matches a Filter on a Project. */
   public static class MyFilterProjectRule
       extends RelRule<MyFilterProjectRule.Config> {
     static Config config(String description) {

@@ -867,7 +867,7 @@ public class RexProgramBuilder {
   }
 
   /**
-   * Returns the rowtype of the input to the program
+   * Returns the row type of the input to the program.
    */
   public RelDataType getInputRowType() {
     return inputRowType;
@@ -1045,8 +1045,8 @@ public class RexProgramBuilder {
   }
 
   /**
-   * Shuttle which rewires {@link RexLocalRef} using a list of updated
-   * references
+   * Shuttle that rewires {@link RexLocalRef} using a list of updated
+   * references.
    */
   private class UpdateRefShuttle extends RexShuttle {
     private List<RexLocalRef> newRefs;

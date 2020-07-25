@@ -1097,7 +1097,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /**
    * For {@code PREV} operator, the offset of {@code inputGetter}
-   * should be set first
+   * should be set first.
    */
   private Result implementPrev(RexCall call) {
     final RexNode node = call.getOperands().get(0);

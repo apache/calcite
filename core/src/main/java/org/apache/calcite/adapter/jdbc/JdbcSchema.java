@@ -561,7 +561,7 @@ public class JdbcSchema implements Schema {
     }
   }
 
-  /** Do not use */
+  /** Do not use. */
   @Experimental
   public interface Foo
       extends BiFunction<String, String, Iterable<MetaImpl.MetaTable>> {

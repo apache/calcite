@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Unit test for
- * {@link org.apache.calcite.adapter.enumerable.EnumerableCalc}
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableCalc}.
  */
 class EnumerableCalcTest {
 

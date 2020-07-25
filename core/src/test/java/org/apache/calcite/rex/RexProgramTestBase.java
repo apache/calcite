@@ -27,6 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** Base class for tests of {@link RexProgram}. */
 class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected void checkDigest(RexNode node, String expected) {
@@ -55,7 +56,9 @@ class RexProgramTestBase extends RexProgramBuilderBase {
   }
 
   /**
-   * Asserts that given node has expected string representation with account of node type
+   * Asserts that a given node has expected string representation with account
+   * of node type.
+   *
    * @param message extra message that clarifies where the node came from
    * @param expected expected string representation of the node
    * @param node node to check

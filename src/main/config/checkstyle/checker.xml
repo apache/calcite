@@ -78,6 +78,21 @@
   </module>
 
   <module name="TreeWalker">
+
+    <!-- Packages must have javadoc. -->
+    <module name="MissingJavadocPackage"/>
+
+    <!-- Classes, interfaces, enums (even private ones) must have javadoc. -->
+    <module name="MissingJavadocType">
+      <property name="scope" value="private"/>
+    </module>
+
+    <!-- Javadoc must not have empty @param, @return etc. -->
+    <module name="NonEmptyAtclauseDescription"/>
+
+   <!-- Javadoc must have at least one sentence. -->
+    <module name="SummaryJavadocCheck"/>
+
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
       <!-- No empty blocks (i.e. catch); must contain at least a comment -->

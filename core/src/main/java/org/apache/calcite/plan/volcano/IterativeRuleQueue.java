@@ -170,7 +170,7 @@ class IterativeRuleQueue extends RuleQueue {
   private static class MatchList {
 
     /**
-     * Rule match queue for SubstitutionRule
+     * Rule match queue for SubstitutionRule.
      */
     private final Queue<VolcanoRuleMatch> preQueue = new LinkedList<>();
 

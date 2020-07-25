@@ -157,7 +157,7 @@ final class Fixture extends AbstractFixture {
 }
 
 /**
- * Just a little trick to store factory ref before field init in fixture
+ * Just a little trick to store factory ref before field init in fixture.
  */
 abstract class AbstractFixture {
   final RelDataTypeFactory typeFactory;

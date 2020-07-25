@@ -205,7 +205,6 @@ public class CassandraRules {
       }
     }
 
-    /** @see org.apache.calcite.rel.convert.ConverterRule */
     @Override public void onMatch(RelOptRuleCall call) {
       LogicalFilter filter = call.rel(0);
       CassandraTableScan scan = call.rel(1);
@@ -370,7 +369,6 @@ public class CassandraRules {
       }
     }
 
-    /** @see org.apache.calcite.rel.convert.ConverterRule */
     @Override public void onMatch(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
       CassandraFilter filter = call.rel(2);
@@ -426,7 +424,6 @@ public class CassandraRules {
         convert(limit.getInput(), CassandraRel.CONVENTION), limit.offset, limit.fetch);
     }
 
-    /** @see org.apache.calcite.rel.convert.ConverterRule */
     @Override public void onMatch(RelOptRuleCall call) {
       final EnumerableLimit limit = call.rel(0);
       final RelNode converted = convert(limit);

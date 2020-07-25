@@ -104,16 +104,12 @@ public class DruidAdapterIT {
     assumeTrue(enabled(), "Druid tests disabled. Add -Dcalcite.test.druid to enable it");
   }
 
-  /**
-   * Creates a query against FOODMART with approximate parameters
-   * */
+  /** Creates a query against FOODMART with approximate parameters. */
   private CalciteAssert.AssertQuery foodmartApprox(String sql) {
     return approxQuery(FOODMART, sql);
   }
 
-  /**
-   * Creates a query against WIKI with approximate parameters
-   * */
+  /** Creates a query against WIKI with approximate parameters. */
   private CalciteAssert.AssertQuery wikiApprox(String sql) {
     return approxQuery(WIKI, sql);
   }
@@ -561,11 +557,9 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(druidQuery));
   }
 
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2804">[CALCITE-2804]</a>
-   * Cast does not work in Druid when casting to timestamp
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2804">[CALCITE-2804]
+   * Cast does not work in Druid when casting to timestamp</a>. */
   @Test void testCastToTimestamp() {
     final String sql = "select cast(\"timestamp\" as timestamp) from \"foodmart\"";
     final String druidQuery = "timestamp_format(\\\"__time\\\","
@@ -2116,9 +2110,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(postAggString));
   }
 
-  /**
-   * Turn on now count(distinct )
-   */
+  /** Turn on now {@code count(distinct ...)}. */
   @Test void testHyperUniquePostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
         + "\"brand_name\") as a from \"foodmart\"  group by \"store_state\" order by a desc";
@@ -2358,10 +2350,8 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(queryType));
   }
 
-  /**
-   * Tests whether an aggregate with a filter clause has it's filter factored out
-   * when there is no outer filter
-   */
+  /** Tests whether an aggregate with a filter clause has its filter factored out
+   * when there is no outer filter. */
   @Test void testFilterClauseFactoredOut() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "the_year" >= 1997
@@ -2376,9 +2366,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear or not
-   */
+  /** Tests whether filter clauses with filters that are always true
+   * disappear. */
   @Test void testFilterClauseAlwaysTrueGone() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart"
@@ -2391,10 +2380,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear in the presence
-   * of another aggregate without a filter clause
-   */
+  /** Tests whether filter clauses with filters that are always true disappear
+   * in the presence of another aggregate without a filter clause. */
   @Test void testFilterClauseAlwaysTrueWithAggGone1() {
     // Logically equivalent to
     // select sum("store_sales"), sum("store_cost") from "foodmart"
@@ -2409,10 +2396,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether filter clauses with filters that are always true disappear in the presence
-   * of another aggregate with a filter clause
-   */
+  /** Tests whether filter clauses with filters that are always true disappear
+   * in the presence of another aggregate with a filter clause. */
   @Test void testFilterClauseAlwaysTrueWithAggGone2() {
     // Logically equivalent to
     // select sum("store_sales"),
@@ -2431,10 +2416,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests whether an existing outer filter is untouched when an aggregate has a filter clause
-   * that is always true
-   */
+  /** Tests whether an existing outer filter is untouched when an aggregate has
+   * a filter clause that is always true. */
   @Test void testOuterFilterRemainsWithAlwaysTrueClause() {
     // Logically equivalent to
     // select sum("store_sales"), sum("store_cost") from "foodmart" where "store_city" = 'Seattle'
@@ -2451,9 +2434,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is always false does not get pushed in
-   */
+  /** Tests that an aggregate with a filter clause that is always false does not
+   * get pushed in. */
   @Test void testFilterClauseAlwaysFalseNotPushed() {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) from \"foodmart\"";
     // Calcite takes care of the unsatisfiable filter
@@ -2474,10 +2456,8 @@ public class DruidAdapterIT {
         .explainContains(expectedSubExplain);
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is always false does not get pushed when
-   * there is already an outer filter
-   */
+  /** Tests that an aggregate with a filter clause that is always false does not
+   * get pushed when there is already an outer filter. */
   @Test void testFilterClauseAlwaysFalseNotPushedWithFilter() {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) "
             + "from \"foodmart\" where \"store_city\" = 'Seattle'";
@@ -2496,10 +2476,9 @@ public class DruidAdapterIT {
                 + "{\"type\":\"selector\",\"dimension\":\"store_city\",\"value\":\"Seattle\"}]}"));
   }
 
-  /**
-   * Tests that an aggregate with a filter clause that is the same as the outer filter has no
-   * references to that filter, and that the original outer filter remains
-   */
+  /** Tests that an aggregate with a filter clause that is the same as the outer
+   * filter has no references to that filter, and that the original outer filter
+   * remains. */
   @Test void testFilterClauseSameAsOuterFilterGone() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "store_city" = 'Seattle'
@@ -2516,10 +2495,9 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=52644.07000000001");
   }
 
-  /**
-   * Test to ensure that an aggregate with a filter clause in the presence of another aggregate
-   * without a filter clause does not have it's filter factored out into the outer filter
-   */
+  /** Tests that an aggregate with a filter clause in the presence of another
+   * aggregate without a filter clause does not have its filter factored out
+   * into the outer filter. */
   @Test void testFilterClauseNotFactoredOut1() {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
             + "sum(\"store_cost\") from \"foodmart\"";
@@ -2533,11 +2511,9 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Test to ensure that an aggregate with a filter clause in the presence of another aggregate
-   * without a filter clause, and an outer filter does not have it's
-   * filter factored out into the outer filter
-   */
+  /** Tests that an aggregate with a filter clause in the presence of another
+   * aggregate without a filter clause, and an outer filter does not have its
+   * filter factored out into the outer filter. */
   @Test void testFilterClauseNotFactoredOut2() {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
             + "sum(\"store_cost\") from \"foodmart\" where \"the_year\" >= 1997";
@@ -2553,10 +2529,8 @@ public class DruidAdapterIT {
     sql(sql).queryContains(new DruidChecker(expectedQuery));
   }
 
-  /**
-   * Test to ensure that multiple aggregates with filter clauses have their filters extracted to
-   * the outer filter field for data pruning
-   */
+  /** Tests that multiple aggregates with filter clauses have their filters
+   * extracted to the outer filter field for data pruning. */
   @Test void testFilterClausesFactoredForPruning1() {
     String sql = "select "
             + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
@@ -2578,10 +2552,9 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=159167.83999999994; EXPR$1=263793.2200000001");
   }
 
-  /**
-   * Test to ensure that multiple aggregates with filter clauses have their filters extracted to
-   * the outer filter field for data pruning in the presence of an outer filter
-   */
+  /** Tests that multiple aggregates with filter clauses have their filters
+   * extracted to the outer filter field for data pruning in the presence of an
+   * outer filter. */
   @Test void testFilterClausesFactoredForPruning2() {
     String sql = "select "
             + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
@@ -2604,10 +2577,9 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=2600.01; EXPR$1=4486.4400000000005");
   }
 
-  /**
-   * Test to ensure that multiple aggregates with the same filter clause have them factored
-   * out in the presence of an outer filter, and that they no longer refer to those filters
-   */
+  /** Tests that multiple aggregates with the same filter clause have them
+   * factored out in the presence of an outer filter, and that they no longer
+   * refer to those filters. */
   @Test void testMultipleFiltersFactoredOutWithOuterFilter() {
     // Logically Equivalent to
     // select sum("store_sales"), sum("store_cost")
@@ -2633,10 +2605,8 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=2600.01; EXPR$1=1013.162");
   }
 
-  /**
-   * Tests that when the resulting filter from factoring filter clauses out is always false,
-   * that they are still pushed to Druid to handle.
-   */
+  /** Tests that when the resulting filter from factoring filter clauses out is
+   * always false, that they are still pushed to Druid to handle. */
   @Test void testOuterFilterFalseAfterFactorSimplification() {
     // Normally we would factor out "the_year" > 1997 into the outer filter to prune the data
     // before aggregation and simplify the expression, but in this case that would produce:
@@ -2656,10 +2626,8 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(expectedFilter, context));
   }
 
-  /**
-   * Test to ensure that aggregates with filter clauses that Druid cannot handle are not pushed in
-   * as filtered aggregates.
-   */
+  /** Tests that aggregates with filter clauses that Druid cannot handle are not
+   * pushed in as filtered aggregates. */
   @Test void testFilterClauseNotPushable() {
     // Currently the adapter does not support the LIKE operator
     String sql = "select sum(\"store_sales\") "
@@ -2733,9 +2701,8 @@ public class DruidAdapterIT {
             + "EXPR$0=13.25; product_id=1556");
   }
 
-  /**
-   * Test to ensure that an aggregate with a nested filter clause has it's filter factored out
-   */
+  /** Tests that an aggregate with a nested filter clause has its filter
+   * factored out. */
   @Test void testNestedFilterClauseFactored() {
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "store_state" in ('CA', 'OR')
@@ -2758,10 +2725,9 @@ public class DruidAdapterIT {
             .returnsUnordered("EXPR$0=301444.9099999999");
   }
 
-  /**
-   * Test to ensure that aggregates with nested filters have their filters factored out
-   * into the outer filter for data pruning while still holding a reference to the filter clause
-   */
+  /** Tests that aggregates with nested filters have their filters factored out
+   * into the outer filter for data pruning while still holding a reference to
+   * the filter clause. */
   @Test void testNestedFilterClauseInAggregates() {
     String sql =
             "select "
@@ -2852,10 +2818,8 @@ public class DruidAdapterIT {
             .returnsOrdered("EXPR$0=11");
   }
 
-  /**
-   * Test to ensure that count(distinct ...) gets pushed to Druid when approximate results are
-   * acceptable
-   * */
+  /** Tests that {@code count(distinct ...)} gets pushed to Druid when
+   * approximate results are acceptable. */
   @Test void testDistinctCountWhenApproxResultsAccepted() {
     String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
@@ -2866,10 +2830,8 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
   }
 
-  /**
-   * Test to ensure that count(distinct ...) doesn't get pushed to Druid when approximate results
-   * are not acceptable
-   */
+  /** Tests that {@code count(distinct ...)} doesn't get pushed to Druid when
+   * approximate results are not acceptable. */
   @Test void testDistinctCountWhenApproxResultsNotAccepted() {
     String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
@@ -2897,9 +2859,7 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(false, sql, expectedSubExplainNoApprox, "'queryType':'groupBy'");
   }
 
-  /**
-   * Test to ensure that a count on a metric does not get pushed into Druid
-   */
+  /** Tests that a count on a metric does not get pushed into Druid. */
   @Test void testCountOnMetric() {
     String sql = "select \"brand_name\", count(\"store_sales\") from \"foodmart\" "
         + "group by \"brand_name\"";
@@ -2910,9 +2870,7 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(false, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
   }
 
-  /**
-   * Test to ensure that count(*) is pushed into Druid
-   */
+  /** Tests that {@code count(*)} is pushed into Druid. */
   @Test void testCountStar() {
     String sql = "select count(*) from \"foodmart\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
@@ -2967,39 +2925,36 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(expectedDruidQuery));
   }
 
-  /**
-   * Tests the use of count(distinct ...) on a complex metric column in SELECT
-   * */
+  /** Tests the use of count(distinct ...) on a complex metric column in
+   * SELECT. */
   @Test void testCountDistinctOnComplexColumn() {
     // Because approximate distinct count has not been enabled
     sql("select count(distinct \"user_id\") from \"wiki\"", WIKI)
-            .failsAtValidation("Rolled up column 'user_id' is not allowed in COUNT");
+        .failsAtValidation("Rolled up column 'user_id' is not allowed in COUNT");
 
     foodmartApprox("select count(distinct \"customer_id\") from \"foodmart\"")
-            // customer_id gets transformed into it's actual underlying sketch column,
-            // customer_id_ts. The thetaSketch aggregation is used to compute the count distinct.
-            .queryContains(
-                    new DruidChecker("{'queryType':'timeseries','dataSource':"
-                            + "'foodmart','descending':false,'granularity':'all','aggregations':[{'type':"
-                            + "'thetaSketch','name':'EXPR$0','fieldName':'customer_id_ts'}],"
-                            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-                            + "'context':{'skipEmptyBuckets':false}}"))
-            .returnsUnordered("EXPR$0=5581");
+        // customer_id gets transformed into its actual underlying sketch column,
+        // customer_id_ts. The thetaSketch aggregation is used to compute the count distinct.
+        .queryContains(
+            new DruidChecker("{'queryType':'timeseries','dataSource':"
+                + "'foodmart','descending':false,'granularity':'all','aggregations':[{'type':"
+                + "'thetaSketch','name':'EXPR$0','fieldName':'customer_id_ts'}],"
+                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+                + "'context':{'skipEmptyBuckets':false}}"))
+        .returnsUnordered("EXPR$0=5581");
 
     foodmartApprox("select sum(\"store_sales\"), "
-            + "count(distinct \"customer_id\") filter (where \"store_state\" = 'CA') "
-            + "from \"foodmart\" where \"the_month\" = 'October'")
-            // Check that filtered aggregations work correctly
-            .queryContains(
-                    new DruidChecker("{'type':'filtered','filter':"
-                            + "{'type':'selector','dimension':'store_state','value':'CA'},'aggregator':"
-                            + "{'type':'thetaSketch','name':'EXPR$1','fieldName':'customer_id_ts'}}]"))
-            .returnsUnordered("EXPR$0=42342.26999999995; EXPR$1=459");
+        + "count(distinct \"customer_id\") filter (where \"store_state\" = 'CA') "
+        + "from \"foodmart\" where \"the_month\" = 'October'")
+        // Check that filtered aggregations work correctly
+        .queryContains(
+            new DruidChecker("{'type':'filtered','filter':"
+                + "{'type':'selector','dimension':'store_state','value':'CA'},'aggregator':"
+                + "{'type':'thetaSketch','name':'EXPR$1','fieldName':'customer_id_ts'}}]"))
+        .returnsUnordered("EXPR$0=42342.26999999995; EXPR$1=459");
   }
 
-  /**
-   * Tests the use of other aggregations with complex columns
-   * */
+  /** Tests the use of other aggregations with complex columns. */
   @Test void testAggregationsWithComplexColumns() {
     wikiApprox("select count(\"user_id\") from \"wiki\"")
             .failsAtValidation("Rolled up column 'user_id' is not allowed in COUNT");
@@ -3019,9 +2974,7 @@ public class DruidAdapterIT {
             .failsAtValidation("Rolled up column 'user_id' is not allowed in MIN");
   }
 
-  /**
-   * Test post aggregation support with +, -, /, * operators
-   * */
+  /** Tests post-aggregation support with +, -, /, * operators. */
   @Test void testPostAggregationWithComplexColumns() {
     foodmartApprox("select "
             + "(count(distinct \"customer_id\") * 2) + "

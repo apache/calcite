@@ -102,7 +102,7 @@ public interface RelOptTable extends Wrapper {
 
   /**
    * Returns a list of unique keys, empty list if no key exist,
-   * the result should be consistent with {@code isKey}
+   * the result should be consistent with {@code isKey}.
    */
   List<ImmutableBitSet> getKeys();
 

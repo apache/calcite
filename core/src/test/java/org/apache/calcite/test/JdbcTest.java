@@ -933,7 +933,7 @@ public class JdbcTest {
    * and also
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1222">[CALCITE-1222]
    * DatabaseMetaData.getColumnLabel returns null when query has ORDER
-   * BY</a>, */
+   * BY</a>. */
   @Test void testResultSetMetaData()
       throws ClassNotFoundException, SQLException {
     try (Connection connection =
@@ -1113,6 +1113,25 @@ public class JdbcTest {
             "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by CASE WHEN \"time_by_day\".\"the_year\" IS NULL THEN 1 ELSE 0 END, \"time_by_day\".\"the_year\" ASC")
         .returns("c0=1997\n"
             + "c0=1998\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2894">[CALCITE-2894]
+   * NullPointerException thrown by RelMdPercentageOriginalRows when explaining
+   * plan with all attributes</a>. */
+  @Test void testExplainAllAttributesSemiJoinUnionCorrelate() {
+    final String sql = "select deptno, name from depts where deptno in (\n"
+        + "  select e.deptno from emps e where exists (\n"
+        + "     select 1 from depts d where d.deptno = e.deptno)\n"
+        + "   union\n"
+        + "   select e.deptno from emps e where e.salary > 10000)";
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .query(sql)
+        .explainMatches("including all attributes ",
+            CalciteAssert.checkResultContains("EnumerableCorrelate"));
   }
 
   /** Just short of bushy. */
@@ -3858,7 +3877,7 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1");
   }
 
-  /** Tests for RANK with same values */
+  /** Tests for RANK with same values. */
   @Test void testWinAggRankValues() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -3873,7 +3892,7 @@ public class JdbcTest {
             "deptno=20; R=4"); // 4 for rank and 2 for dense_rank
   }
 
-  /** Tests for RANK with same values */
+  /** Tests for RANK with same values. */
   @Test void testWinAggRankValuesDesc() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -3888,7 +3907,7 @@ public class JdbcTest {
             "deptno=20; R=1");
   }
 
-  /** Tests for DENSE_RANK with same values */
+  /** Tests for DENSE_RANK with same values. */
   @Test void testWinAggDenseRankValues() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -3903,7 +3922,7 @@ public class JdbcTest {
             "deptno=20; R=2");
   }
 
-  /** Tests for DENSE_RANK with same values */
+  /** Tests for DENSE_RANK with same values. */
   @Test void testWinAggDenseRankValuesDesc() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -3918,7 +3937,7 @@ public class JdbcTest {
             "deptno=20; R=1");
   }
 
-  /** Tests for DATE +- INTERVAL window frame */
+  /** Tests for DATE +- INTERVAL window frame. */
   @Test void testWinIntervalFrame() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -4296,7 +4315,7 @@ public class JdbcTest {
             "Cannot apply 'NTILE' to arguments of type 'NTILE(<DECIMAL(10, 9)>)'");
   }
 
-  /** Tests for FIRST_VALUE */
+  /** Tests for FIRST_VALUE. */
   @Test void testWinAggFirstValue() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -4313,7 +4332,7 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; R=500");
   }
 
-  /** Tests for FIRST_VALUE desc */
+  /** Tests for FIRST_VALUE desc. */
   @Test void testWinAggFirstValueDesc() {
     CalciteAssert.hr()
         .query("select  \"deptno\",\n"
@@ -4330,7 +4349,7 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; R=500");
   }
 
-  /** Tests for FIRST_VALUE empty window */
+  /** Tests for FIRST_VALUE empty window. */
   @Test void testWinAggFirstValueEmptyWindow() {
     CalciteAssert.hr()
         .query("select \"deptno\",\n"
@@ -4347,7 +4366,7 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; R=null");
   }
 
-  /** Tests for ROW_NUMBER */
+  /** Tests for ROW_NUMBER. */
   @Test void testWinRowNumber() {
     CalciteAssert.hr()
         .query("select \"deptno\",\n"
@@ -4637,7 +4656,9 @@ public class JdbcTest {
             "DEPTNO=null; G=2; C=14");
   }
 
-  /** Tests CALCITE-980: Not (C='a' or C='b') causes NPE */
+  /** Tests
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-980">[CALCITE-980]
+   * Not (C='a' or C='b') causes NPE</a>. */
   @Test void testWhereOrAndNullable() {
     /* Generates the following code:
        public boolean moveNext() {

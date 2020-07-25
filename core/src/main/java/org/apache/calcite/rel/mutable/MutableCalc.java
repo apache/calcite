@@ -30,7 +30,7 @@ public class MutableCalc extends MutableSingleRel {
   }
 
   /**
-   * Creates a MutableCalc
+   * Creates a MutableCalc.
    *
    * @param input   Input relational expression
    * @param program Calc program

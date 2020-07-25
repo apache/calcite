@@ -1319,7 +1319,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
    * Support validation of UNNEST multiple array columns like Presto</a>.
    */
-  @Test public void testAliasUnnestArrayPlanWithSingleColumn() {
+  @Test void testAliasUnnestArrayPlanWithSingleColumn() {
     final String sql = "select d.deptno, employee.empno\n"
         + "from dept_nested_expanded as d,\n"
         + " UNNEST(d.employees) as t(employee)";
@@ -1331,7 +1331,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
    * Support validation of UNNEST multiple array columns like Presto</a>.
    */
-  @Test public void testAliasUnnestArrayPlanWithDoubleColumn() {
+  @Test void testAliasUnnestArrayPlanWithDoubleColumn() {
     final String sql = "select d.deptno, e, k.empno\n"
         + "from dept_nested_expanded as d CROSS JOIN\n"
         + " UNNEST(d.admins, d.employees) as t(e, k)";
@@ -1828,21 +1828,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionHop() {
+  @Test void testTableFunctionHop() {
     final String sql = "select *\n"
         + "from table(hop(table Shipments, descriptor(rowtime), "
         + "INTERVAL '1' MINUTE, INTERVAL '2' MINUTE))";
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionHopWithOffset() {
+  @Test void testTableFunctionHopWithOffset() {
     final String sql = "select *\n"
         + "from table(hop(table Shipments, descriptor(rowtime), "
         + "INTERVAL '1' MINUTE, INTERVAL '5' MINUTE, INTERVAL '3' MINUTE))";
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionSession() {
+  @Test void testTableFunctionSession() {
     final String sql = "select *\n"
         + "from table(session(table Shipments, descriptor(rowtime), "
         + "descriptor(orderId), INTERVAL '10' MINUTE))";
@@ -1855,21 +1855,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionHopWithSubQueryParam() {
+  @Test void testTableFunctionHopWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(hop((select * from Shipments), descriptor(rowtime), "
         + "INTERVAL '1' MINUTE, INTERVAL '2' MINUTE))";
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionSessionWithSubQueryParam() {
+  @Test void testTableFunctionSessionWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(session((select * from Shipments), descriptor(rowtime), "
         + "descriptor(orderId), INTERVAL '10' MINUTE))";
     sql(sql).ok();
   }
 
-  @Test public void testTableFunctionSessionCompoundSessionKey() {
+  @Test void testTableFunctionSessionCompoundSessionKey() {
     final String sql = "select *\n"
         + "from table(session(table Orders, descriptor(rowtime), "
         + "descriptor(orderId, productId), INTERVAL '10' MINUTE))";
@@ -2151,7 +2151,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner(Contexts.empty()) {
           @Override public List<RelTraitDef> getRelTraitDefs() {
-            return ImmutableList.<RelTraitDef>of(RelCollationTraitDef.INSTANCE);
+            return ImmutableList.of(RelCollationTraitDef.INSTANCE);
           }
           @Override public RelTraitSet emptyTraitSet() {
             return RelTraitSet.createEmpty().plus(
@@ -2232,9 +2232,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test group-by CASE expression involving a non-query IN
-   */
+  /** Tests group-by CASE expression involving a non-query IN. */
   @Test void testGroupByCaseSubQuery() {
     final String sql = "SELECT CASE WHEN emp.empno IN (3) THEN 0 ELSE 1 END\n"
         + "FROM emp\n"
@@ -2242,9 +2240,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test aggregate function on a CASE expression involving a non-query IN
-   */
+  /** Tests an aggregate function on a CASE expression involving a non-query
+   * IN. */
   @Test void testAggCaseSubQuery() {
     final String sql =
         "SELECT SUM(CASE WHEN empno IN (3) THEN 0 ELSE 1 END) FROM emp";
@@ -2965,21 +2962,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
-   * Dynamic Table / Dynamic Star support</a>
-   */
-  @Test void testSelectFromDynamicTable() throws Exception {
+   * Dynamic Table / Dynamic Star support</a>. */
+  @Test void testSelectFromDynamicTable() {
     final String sql = "select n_nationkey, n_name from SALES.NATION";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testSelectStarFromDynamicTable() throws Exception {
+  /** As {@link #testSelectFromDynamicTable} but "SELECT *". */
+  @Test void testSelectStarFromDynamicTable() {
     final String sql = "select * from SALES.NATION";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
@@ -2997,22 +2989,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testReferDynamicStarInSelectOB() throws Exception {
+  /** As {@link #testSelectFromDynamicTable} but with ORDER BY. */
+  @Test void testReferDynamicStarInSelectOB() {
     final String sql = "select n_nationkey, n_name\n"
         + "from (select * from SALES.NATION)\n"
         + "order by n_regionkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testDynamicStarInTableJoin() throws Exception {
+  /** As {@link #testSelectFromDynamicTable} but with join. */
+  @Test void testDynamicStarInTableJoin() {
     final String sql = "select * from "
         + " (select * from SALES.NATION) T1, "
         + " (SELECT * from SALES.CUSTOMER) T2 "
@@ -3028,13 +3014,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2900">[CALCITE-2900]
-   * RelStructuredTypeFlattener generates wrong types on nested columns</a>.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2900">[CALCITE-2900]
+   * RelStructuredTypeFlattener generates wrong types on nested columns</a>. */
   @Test void testNestedColumnType() {
-    final String sql =
-        "select empa.home_address.zip from sales.emp_address empa where empa.home_address.city = 'abc'";
+    final String sql = "select empa.home_address.zip\n"
+        + "from sales.emp_address empa\n"
+        + "where empa.home_address.city = 'abc'";
     sql(sql).ok();
   }
 
@@ -3220,54 +3206,34 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql3).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testReferDynamicStarInSelectWhereGB() throws Exception {
+  @Test void testReferDynamicStarInSelectWhereGB() {
     final String sql = "select n_regionkey, count(*) as cnt from "
         + "(select * from SALES.NATION) where n_nationkey > 5 "
         + "group by n_regionkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testDynamicStarInJoinAndSubQ() throws Exception {
+  @Test void testDynamicStarInJoinAndSubQ() {
     final String sql = "select * from "
         + " (select * from SALES.NATION T1, "
         + " SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey)";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testStarJoinStaticDynTable() throws Exception {
+  @Test void testStarJoinStaticDynTable() {
     final String sql = "select * from SALES.NATION N, SALES.REGION as R "
         + "where N.n_regionkey = R.r_regionkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testGrpByColFromStarInSubQuery() throws Exception {
+  @Test void testGrpByColFromStarInSubQuery() {
     final String sql = "SELECT n.n_nationkey AS col "
         + " from (SELECT * FROM SALES.NATION) as n "
         + " group by n.n_nationkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test void testDynStarInExistSubQ() throws Exception {
+  @Test void testDynStarInExistSubQ() {
     final String sql = "select *\n"
         + "from SALES.REGION where exists (select * from SALES.NATION)";
     sql(sql).with(getTesterWithDynamicTable()).ok();
@@ -3277,7 +3243,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
    * Create the a new DynamicRecordType, avoiding star expansion when working
    * with this type</a>. */
-  @Test void testSelectDynamicStarOrderBy() throws Exception {
+  @Test void testSelectDynamicStarOrderBy() {
     final String sql = "SELECT * from SALES.NATION order by n_nationkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
@@ -3301,7 +3267,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]
    * Window function applied to sub-query with dynamic star gets wrong
    * plan</a>. */
-  @Test void testWindowOnDynamicStar() throws Exception {
+  @Test void testWindowOnDynamicStar() {
     final String sql = "SELECT SUM(n_nationkey) OVER w\n"
         + "FROM (SELECT * FROM SALES.NATION) subQry\n"
         + "WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)";
@@ -3325,17 +3291,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
    * Add support for ANY_VALUE aggregate function</a>. */
-  @Test void testAnyValueAggregateFunctionNoGroupBy() throws Exception {
+  @Test void testAnyValueAggregateFunctionNoGroupBy() {
     final String sql = "SELECT any_value(empno) as anyempno FROM emp AS e";
     sql(sql).ok();
   }
 
-  @Test void testAnyValueAggregateFunctionGroupBy() throws Exception {
+  @Test void testAnyValueAggregateFunctionGroupBy() {
     final String sql = "SELECT any_value(empno) as anyempno FROM emp AS e group by e.sal";
     sql(sql).ok();
   }
 
-  @Test void testSomeAndEveryAggregateFunctions() throws Exception {
+  @Test void testSomeAndEveryAggregateFunctions() {
     final String sql = "SELECT some(empno = 130) as someempnoexists,\n"
         + " every(empno > 0) as everyempnogtzero\n"
         + " FROM emp AS e group by e.sal";
@@ -3712,9 +3678,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests left join lateral with using
-   */
+  /** Tests LEFT JOIN LATERAL with USING. */
   @Test void testLeftJoinLateral1() {
     final String sql = "select * from (values 4) as t(c)\n"
         + " left join lateral\n"
@@ -3723,9 +3687,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests left join lateral with natural join
-   */
+  /** Tests LEFT JOIN LATERAL with NATURAL JOIN. */
   @Test void testLeftJoinLateral2() {
     final String sql = "select * from (values 4) as t(c)\n"
         + " natural left join lateral\n"
@@ -3733,9 +3695,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests left join lateral with on condition
-   */
+  /** Tests LEFT JOIN LATERAL with ON condition. */
   @Test void testLeftJoinLateral3() {
     final String sql = "select * from (values 4) as t(c)\n"
         + " left join lateral\n"
@@ -3744,9 +3704,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests left join lateral with multiple columns from outer
-   */
+  /** Tests LEFT JOIN LATERAL with multiple columns from outer. */
   @Test void testLeftJoinLateral4() {
     final String sql = "select * from (values (4,5)) as t(c,d)\n"
         + " left join lateral\n"
@@ -3755,10 +3713,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests left join lateral with correlate variable coming
-   * from one level up join scope
-   */
+  /** Tests LEFT JOIN LATERAL with correlating variable coming
+   * from one level up join scope. */
   @Test void testLeftJoinLateral5() {
     final String sql = "select * from (values 4) as t (c)\n"
         + "left join lateral\n"
@@ -3770,9 +3726,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests cross join lateral with multiple columns from outer
-   */
+  /** Tests CROSS JOIN LATERAL with multiple columns from outer. */
   @Test void testCrossJoinLateral1() {
     final String sql = "select * from (values (4,5)) as t(c,d)\n"
         + " cross join lateral\n"
@@ -3781,10 +3735,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Tests cross join lateral with correlate variable coming
-   * from one level up join scope
-   */
+  /** Tests CROSS JOIN LATERAL with correlating variable coming
+   * from one level up join scope. */
   @Test void testCrossJoinLateral2() {
     final String sql = "select * from (values 4) as t (c)\n"
         + "cross join lateral\n"

@@ -26,7 +26,7 @@ import java.util.List;
 
 /**
  * Implementation of
- * {@link org.apache.calcite.adapter.enumerable.AggResetContext}
+ * {@link org.apache.calcite.adapter.enumerable.AggResetContext}.
  */
 public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     implements AggResetContext {

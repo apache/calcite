@@ -901,13 +901,18 @@ class RelWriterTest {
   }
 
   /**
-   * Mock a {@link RelNode} for sql:
-   * select count(*) over (partition by {@code partitionKeyNames}
+   * Creates a mock {@link RelNode} that contains OVER. The SQL is as follows:
+   *
+   * <blockquote>
+   * select count(*) over (partition by {@code partitionKeyNames}<br>
    * order by {@code orderKeyNames}) from {@code table}
+   * </blockquote>
+   *
    * @param table Table name
-   * @param partitionKeyNames Partition by column names, may empty, can not be null
+   * @param partitionKeyNames Partition by column names, may empty, can not be
+   * null
    * @param orderKeyNames Order by column names, may empty, can not be null
-   * @return RelNode for the sql
+   * @return RelNode for the SQL
    */
   private RelNode mockCountOver(String table,
       List<String> partitionKeyNames, List<String> orderKeyNames) {

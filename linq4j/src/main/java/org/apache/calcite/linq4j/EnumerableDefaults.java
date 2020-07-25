@@ -843,6 +843,13 @@ public abstract class EnumerableDefaults {
     };
   }
 
+  /** Enumerator that evaluates aggregate functions over an input that is sorted
+   * by the group key.
+   *
+   * @param <TSource> left input record type
+   * @param <TKey> key type
+   * @param <TAccumulate> accumulator type
+   * @param <TResult> result type */
   private static class SortedAggregateEnumerator<TSource, TKey, TAccumulate, TResult>
       implements Enumerator<TResult> {
     private final Enumerable<TSource> enumerable;
@@ -1361,7 +1368,7 @@ public abstract class EnumerableDefaults {
   }
 
   /** Implementation of join that builds the right input and probes with the
-   * left */
+   * left. */
   private static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoinWithPredicate_(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
@@ -4042,19 +4049,15 @@ public abstract class EnumerableDefaults {
       return rightEnumerator;
     }
 
-    /**
-     * @return {@code true} if the left enumerator was successfully advanced to the next element,
-     * and it does not have a null key; {@code false} otherwise.
-     */
+    /** Returns whether the left enumerator was successfully advanced to the next
+     * element, and it does not have a null key. */
     private boolean leftMoveNext() {
       return getLeftEnumerator().moveNext()
           && outerKeySelector.apply(getLeftEnumerator().current()) != null;
     }
 
-    /**
-     * @return {@code true} if the right enumerator was successfully advanced to the next element,
-     * and it does not have a null key; {@code false} otherwise.
-     */
+    /** Returns whether the right enumerator was successfully advanced to the
+     * next element, and it does not have a null key. */
     private boolean rightMoveNext() {
       return getRightEnumerator().moveNext()
           && innerKeySelector.apply(getRightEnumerator().current()) != null;
@@ -4312,13 +4315,18 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /** Enumerates the elements of a cartesian product of two inputs.
+   *
+   * @param <TResult> result type
+   * @param <TOuter> left input record type
+   * @param <TInner> right input record type */
   private static class CartesianProductJoinEnumerator<TResult, TOuter, TInner>
       extends CartesianProductEnumerator<Object, TResult> {
     private final Function2<TOuter, TInner, TResult> resultSelector;
 
     @SuppressWarnings("unchecked")
     CartesianProductJoinEnumerator(Function2<TOuter, TInner, TResult> resultSelector,
-                                   Enumerator<TOuter> outer, Enumerator<TInner> inner) {
+        Enumerator<TOuter> outer, Enumerator<TInner> inner) {
       super(ImmutableList.of((Enumerator<Object>) outer, (Enumerator<Object>) inner));
       this.resultSelector = resultSelector;
     }
@@ -4334,9 +4342,10 @@ public abstract class EnumerableDefaults {
   private static final Object DUMMY = new Object();
 
   /**
-   * Repeat Union enumerable: it will evaluate the seed enumerable once, and then
-   * it will start to evaluate the iteration enumerable over and over until either it returns
-   * no results, or an optional maximum numbers of iterations is reached
+   * Repeat Union enumerable. Evaluates the seed enumerable once, and then starts
+   * to evaluate the iteration enumerable over and over, until either it returns
+   * no results, or it reaches an optional maximum number of iterations.
+   *
    * @param seed seed enumerable
    * @param iteration iteration enumerable
    * @param iterationLimit maximum numbers of repetitions for the iteration enumerable
@@ -4457,9 +4466,7 @@ public abstract class EnumerableDefaults {
     };
   }
 
-  /**
-   * Lazy read and lazy write spool that stores data into a collection
-   */
+  /** Lazy read and lazy write spool that stores data into a collection. */
   @SuppressWarnings("unchecked")
   public static <TSource> Enumerable<TSource> lazyCollectionSpool(
       Collection<TSource> outputCollection,

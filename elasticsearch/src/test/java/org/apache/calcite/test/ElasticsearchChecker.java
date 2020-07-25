@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Internal util methods for ElasticSearch tests
+ * Internal utility methods for Elasticsearch tests.
  */
 public class ElasticsearchChecker {
 

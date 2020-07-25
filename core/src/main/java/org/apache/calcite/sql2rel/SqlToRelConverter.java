@@ -335,9 +335,7 @@ public class SqlToRelConverter {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return the RelOptCluster in use.
-   */
+  /** Returns the RelOptCluster in use. */
   public RelOptCluster getCluster() {
     return cluster;
   }
@@ -388,10 +386,8 @@ public class SqlToRelConverter {
     return retVal;
   }
 
-  /**
-   * @return mapping of non-correlated sub-queries that have been converted to
-   * the constants that they evaluate to
-   */
+  /** Returns the mapping of non-correlated sub-queries that have been converted
+   * to the constants that they evaluate to. */
   public Map<SqlNode, RexNode> getMapConvertedNonCorrSubqs() {
     return mapConvertedNonCorrSubqs;
   }
@@ -5132,7 +5128,7 @@ public class SqlToRelConverter {
     private final Map<AggregateCall, RexNode> aggCallMapping =
         new HashMap<>();
 
-    /** Are we directly inside a windowed aggregate? */
+    /** Whether we are directly inside a windowed aggregate. */
     private boolean inOver = false;
 
     /**

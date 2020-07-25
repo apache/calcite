@@ -425,7 +425,7 @@ public class RelMdUtil {
 
   /**
    * Takes the difference between two predicates, removing from the first any
-   * predicates also in the second
+   * predicates also in the second.
    *
    * @param rexBuilder rexBuilder used to construct AND'd RexNode
    * @param pred1      first predicate
@@ -472,7 +472,8 @@ public class RelMdUtil {
 
   /**
    * Forms two bitmaps by splitting the columns in a bitmap according to
-   * whether or not the column references the child input or is an expression
+   * whether or not the column references the child input or is an expression.
+   *
    * @param projExprs Project expressions
    * @param groupKey  Bitmap whose columns will be split
    * @param baseCols  Bitmap representing columns from the child input
@@ -507,22 +508,22 @@ public class RelMdUtil {
   }
 
   /**
-   * Computes the population size for a set of keys returned from a join
+   * Computes the population size for a set of keys returned from a join.
    *
-   * @param joinRel  the join rel
-   * @param groupKey keys to compute the population for
+   * @param join_  Join relational operator
+   * @param groupKey Keys to compute the population for
    * @return computed population size
    */
   public static Double getJoinPopulationSize(RelMetadataQuery mq,
-      RelNode joinRel, ImmutableBitSet groupKey) {
-    Join join = (Join) joinRel;
+      RelNode join_, ImmutableBitSet groupKey) {
+    Join join = (Join) join_;
     if (!join.getJoinType().projectsRight()) {
       return mq.getPopulationSize(join.getLeft(), groupKey);
     }
     ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
-    RelNode left = joinRel.getInputs().get(0);
-    RelNode right = joinRel.getInputs().get(1);
+    RelNode left = join.getLeft();
+    RelNode right = join.getRight();
 
     // separate the mask into masks for the left and right
     RelMdUtil.setLeftRightBitmaps(
@@ -533,7 +534,7 @@ public class RelMdUtil {
             mq.getPopulationSize(left, leftMask.build()),
             mq.getPopulationSize(right, rightMask.build()));
 
-    return numDistinctVals(population, mq.getRowCount(joinRel));
+    return numDistinctVals(population, mq.getRowCount(join));
   }
 
   /** Add an epsilon to the value passed in. **/
@@ -560,7 +561,7 @@ public class RelMdUtil {
 
   /**
    * Computes the number of distinct rows for a set of keys returned from a
-   * semi-join
+   * semi-join.
    *
    * @param semiJoinRel RelNode representing the semi-join
    * @param mq          metadata query

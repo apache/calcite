@@ -67,7 +67,7 @@ public interface Converter extends RelNode {
   RelTraitDef getTraitDef();
 
   /**
-   * Returns the sole input relational expression
+   * Returns the sole input relational expression.
    *
    * @return child relational expression
    */

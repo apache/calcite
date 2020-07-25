@@ -23,7 +23,8 @@ import org.apache.calcite.sql.SqlOperator;
 import javax.annotation.Nullable;
 
 /**
- * Defines how to convert RexNode with a given calcite SQL operator to Druid expressions
+ * Defines how to convert a {@link RexNode} with a given Calcite SQL operator to
+ * a Druid expression.
  */
 public interface DruidSqlOperatorConverter {
 

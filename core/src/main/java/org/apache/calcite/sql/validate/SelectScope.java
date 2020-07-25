@@ -99,9 +99,7 @@ public class SelectScope extends ListScope {
    */
   private SqlNodeList orderList;
 
-  /**
-   * Scope to use to resolve windows
-   */
+  /** Scope to use to resolve windows. */
   private final SqlValidatorScope windowParent;
 
   //~ Constructors -----------------------------------------------------------

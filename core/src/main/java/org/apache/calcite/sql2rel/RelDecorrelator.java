@@ -1499,7 +1499,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /**
-   * Remove correlated variables from the tree at root corRel
+   * Removes correlated variables from the tree at root corRel.
    *
    * @param correlate Correlate
    */

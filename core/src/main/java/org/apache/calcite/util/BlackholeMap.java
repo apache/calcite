@@ -101,7 +101,7 @@ final class BlackholeMap<K, V> extends AbstractMap<K, V> {
   }
 
   /**
-   * Gets an instance of {@code BlackholeMap}
+   * Gets an instance of {@code BlackholeMap}.
    *
    * @param <K> type of the keys for the map
    * @param <V> type of the values for the map

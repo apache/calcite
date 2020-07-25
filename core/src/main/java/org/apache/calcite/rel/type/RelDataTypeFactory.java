@@ -183,9 +183,7 @@ public interface RelDataTypeFactory {
       Charset charset,
       SqlCollation collation);
 
-  /**
-   * @return the default {@link Charset} for string types
-   */
+  /** Returns the default {@link Charset} (valid if this is a string type). */
   Charset getDefaultCharset();
 
   /**

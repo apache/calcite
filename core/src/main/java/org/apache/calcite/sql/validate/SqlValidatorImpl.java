@@ -168,8 +168,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   final SqlValidatorCatalogReader catalogReader;
 
   /**
-   * Maps ParsePosition strings to the {@link SqlIdentifier} identifier
-   * objects at these positions
+   * Maps {@link SqlParserPos} strings to the {@link SqlIdentifier} identifier
+   * objects at these positions.
    */
   protected final Map<String, IdInfo> idPositions = new HashMap<>();
 
@@ -208,7 +208,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Maps a {@link SqlSelect} node that is the argument to a CURSOR
-   * constructor to the scope of the result of that select node
+   * constructor to the scope of the result of that select node.
    */
   private final Map<SqlSelect, SqlValidatorScope> cursorScopes =
       new IdentityHashMap<>();
@@ -5709,9 +5709,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  /**
-   * retrieve pattern variables defined
-   */
+  /** Visitor that retrieves pattern variables defined. */
   private static class PatternVarVisitor implements SqlVisitor<Void> {
     private MatchRecognizeScope scope;
     PatternVarVisitor(MatchRecognizeScope scope) {
@@ -6368,9 +6366,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  /**
-   * Within one navigation function, the pattern var should be same
-   */
+  /** Validates that within one navigation function, the pattern var is the
+   * same. */
   private class PatternValidator extends SqlBasicVisitor<Set<String>> {
     private final boolean isMeasure;
     int firstLastCount;

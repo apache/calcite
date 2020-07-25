@@ -47,9 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests factoring out deterministic expressions.
  */
 class DeterministicTest {
-  /**
-   * Class to test @Deterministic annotation
-   */
+  /** Class to test {@code @Deterministic} annotation. */
   public static class TestClass {
     @Deterministic
     public static int deterministic(int a) {
@@ -61,9 +59,7 @@ class DeterministicTest {
     }
   }
 
-  /**
-   * Class to test @NonDeterministic annotation
-   */
+  /** Class to test {@code @NonDeterministic} annotation. */
   @Deterministic
   public static class TestDeterministicClass {
     public static int deterministic(int a) {

@@ -60,8 +60,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
   }
 
   /**
-   * Returns the current code block
-   * @return current code block
+   * Returns the current code block.
    */
   public final BlockBuilder currentBlock() {
     return blocks.get(blocks.size() - 1);

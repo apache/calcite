@@ -183,11 +183,11 @@ public class PigRelBuilder extends RelBuilder {
     return super.as(alias);
   }
 
-  /** Partitioner for group and join */
+  /** Partitioner for group and join. */
   interface Partitioner {
   }
 
-  /** Option for performing group efficiently if data set is already sorted */
+  /** Option for performing group efficiently if data set is already sorted. */
   public enum GroupOption {
     MERGE,
     COLLECTED

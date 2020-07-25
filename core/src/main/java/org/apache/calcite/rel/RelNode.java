@@ -233,19 +233,23 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode onRegister(RelOptPlanner planner);
 
   /**
-   * Returns digest string of this {@code RelNode}. It will create new digest
-   * string on each call, so don't forget to cache the result if necessary.
+   * Returns a digest string of this {@code RelNode}.
+   *
+   * <p>Each call creates a new digest string,
+   * so don't forget to cache the result if necessary.
    *
    * @return Digest string of this {@code RelNode}
+   *
+   * @see #getRelDigest()
    */
   default String getDigest() {
     return getRelDigest().toString();
   }
 
   /**
-   * Digest of the {@code RelNode}, for planner internal use only.
+   * Returns a digest of this {@code RelNode}.
    *
-   * <p>INTERNAL USE ONLY.</p>
+   * <p>INTERNAL USE ONLY. For use by the planner.
    *
    * @return Digest of this {@code RelNode}
    * @see #getDigest()
@@ -254,7 +258,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelDigest getRelDigest();
 
   /**
-   * Recomputes the digest. For planner internal use only.
+   * Recomputes the digest.
+   *
+   * <p>INTERNAL USE ONLY. For use by the planner.
    *
    * @see #getDigest()
    */

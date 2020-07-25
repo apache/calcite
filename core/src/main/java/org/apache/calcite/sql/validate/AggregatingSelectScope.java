@@ -71,7 +71,7 @@ public class AggregatingSelectScope
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AggregatingSelectScope
+   * Creates an AggregatingSelectScope.
    *
    * @param selectScope Parent scope
    * @param select      Enclosing SELECT node

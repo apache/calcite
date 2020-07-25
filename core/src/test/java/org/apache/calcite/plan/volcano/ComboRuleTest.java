@@ -45,7 +45,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit test for {@link VolcanoPlanner}
+ * Unit test for {@link VolcanoPlanner}.
  */
 class ComboRuleTest {
 

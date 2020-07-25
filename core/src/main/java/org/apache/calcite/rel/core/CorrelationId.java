@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Describes the necessary parameters for an implementation in order to
- * identify and set dynamic variables
+ * identify and set dynamic variables.
  */
 public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
   /**

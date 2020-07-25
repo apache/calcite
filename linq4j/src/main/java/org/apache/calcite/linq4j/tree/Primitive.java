@@ -1002,7 +1002,9 @@ public enum Primitive {
     Object getObject();
   }
 
-  /** What kind of type? */
+  /** Whether a type is primitive (e.g. {@code int}),
+   * a box type for a primitive (e.g. {@code java.lang.Integer}),
+   * or something else. */
   public enum Flavor {
     /** A primitive type, e.g. {@code int}. */
     PRIMITIVE,

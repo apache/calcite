@@ -100,6 +100,7 @@ public class ModelHandler {
     visit(root);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addFunctions}. */
   @Deprecated
   public static void create(SchemaPlus schema, String functionName,

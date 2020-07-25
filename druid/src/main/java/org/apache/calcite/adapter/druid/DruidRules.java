@@ -313,9 +313,7 @@ public class DruidRules {
     }
   }
 
-  /**
-   * Rule to Push a Having {@link Filter} into a {@link DruidQuery}
-   */
+  /** Rule to Push a Having {@link Filter} into a {@link DruidQuery}. */
   public static class DruidHavingFilterRule
       extends RelRule<DruidHavingFilterRule.Config> {
 
@@ -596,10 +594,8 @@ public class DruidRules {
       call.transformTo(query2);
     }
 
-    /**
-     * Returns an array of unique filter references from
-     * the given list of {@link org.apache.calcite.rel.core.AggregateCall}
-     * */
+    /** Returns an array of unique filter references from the given list of
+     * {@link org.apache.calcite.rel.core.AggregateCall}s. */
     private Set<Integer> getUniqueFilterRefs(List<AggregateCall> calls) {
       Set<Integer> refs = new HashSet<>();
       for (AggregateCall call : calls) {

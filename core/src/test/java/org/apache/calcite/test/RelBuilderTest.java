@@ -3177,7 +3177,7 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  /** Tests filter builder with correlation variables */
+  /** Tests filter builder with correlation variables. */
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<RexCorrelVariable> v = Holder.of(null);
@@ -3225,7 +3225,9 @@ public class RelBuilderTest {
     assertThat(root, hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  /** Checks if simplification is run in {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for filter conditions */
+  /** Checks if simplification is run in
+   * {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for filter
+   * conditions. */
   @Test void testFilterSimplification() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =

@@ -94,7 +94,8 @@ public class RexTableInputRef extends RexInputRef {
     return SqlKind.TABLE_INPUT_REF;
   }
 
-  /** Identifies uniquely a table by its qualified name and its entity number (occurrence) */
+  /** Identifies uniquely a table by its qualified name and its entity number
+   * (occurrence). */
   public static class RelTableRef implements Comparable<RelTableRef> {
 
     private final RelOptTable table;

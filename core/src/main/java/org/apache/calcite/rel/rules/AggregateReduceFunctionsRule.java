@@ -178,7 +178,7 @@ public class AggregateReduceFunctionsRule
   }
 
   /**
-   * Returns whether the aggregate call is a reducible function
+   * Returns whether the aggregate call is a reducible function.
    */
   private boolean isReducible(final SqlKind kind) {
     return functionsToReduce.contains(kind);

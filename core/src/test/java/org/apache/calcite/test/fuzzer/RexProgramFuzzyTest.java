@@ -91,7 +91,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private static final Strong STRONG = Strong.of(ImmutableBitSet.of());
 
   /**
-   * A bounded variation of {@link PriorityQueue}
+   * A bounded variation of {@link PriorityQueue}.
    *
    * @param <E> the type of elements held in this collection
    */

@@ -166,7 +166,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
         writer.newlineAndIndent();
       }
       if (rand instanceof SqlCharStringLiteral) {
-        NlsString nls = ((SqlCharStringLiteral) rand).getNlsString();
+        final NlsString nls = rand.getValueAs(NlsString.class);
         if (operand.i == 0) {
           collation = nls.getCollation();
 

@@ -27,7 +27,7 @@ import java.util.List;
 
 /**
  * Implementation of
- * {@link org.apache.calcite.adapter.enumerable.AggResultContext}
+ * {@link org.apache.calcite.adapter.enumerable.AggResultContext}.
  */
 public class AggResultContextImpl extends AggResetContextImpl
     implements AggResultContext {

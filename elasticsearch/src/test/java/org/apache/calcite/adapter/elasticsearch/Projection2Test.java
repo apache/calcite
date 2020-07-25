@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 
 /**
- * Checks renaming of fields (also upper, lower cases) during projections
+ * Checks renaming of fields (also upper, lower cases) during projections.
  */
 @Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
@@ -194,12 +194,12 @@ class Projection2Test {
   }
 
   /**
-   * Avoid using scripting for simple projections
+   * Avoid using scripting for simple projections.
    *
    * <p> When projecting simple fields (without expression) no
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-scripting.html">scripting</a>
    * should be used just
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-source-filtering.html">_source</a>
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-source-filtering.html">_source</a>.
    */
   @Test void simpleProjectionNoScripting() {
     CalciteAssert.that()

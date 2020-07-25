@@ -47,7 +47,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final JavaSparkContext sparkContext =
       new JavaSparkContext("local[1]", "calcite");
 
-  /** Thread-safe holder */
+  /** Thread-safe holder. */
   private static class Holder {
     private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
   }

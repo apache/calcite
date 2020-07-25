@@ -111,8 +111,8 @@ class TableNamespace extends AbstractNamespace {
   }
 
   /**
-   * Gets the data-type of all columns in a table (for a view table: including
-   * columns of the underlying table)
+   * Gets the data-type of all columns in a table. For a view table, includes
+   * columns of the underlying table.
    */
   private RelDataType getBaseRowType() {
     final Table schemaTable = table.unwrap(Table.class);

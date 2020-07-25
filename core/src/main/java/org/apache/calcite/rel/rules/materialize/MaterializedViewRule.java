@@ -605,10 +605,11 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     return result;
   }
 
-  /** Currently we only support TableScan - Project - Filter - Inner Join */
+  /** Returns whether a RelNode is a valid tree. Currently we only support
+   * TableScan - Project - Filter - Inner Join. */
   protected boolean isValidRelNodePlan(RelNode node, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> m =
-            mq.getNodeTypes(node);
+        mq.getNodeTypes(node);
     if (m == null) {
       return false;
     }
@@ -616,9 +617,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
       Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)
-              && !Project.class.isAssignableFrom(c)
-              && !Filter.class.isAssignableFrom(c)
-              && (!Join.class.isAssignableFrom(c))) {
+          && !Project.class.isAssignableFrom(c)
+          && !Filter.class.isAssignableFrom(c)
+          && (!Join.class.isAssignableFrom(c))) {
         // Skip it
         return false;
       }
@@ -1329,7 +1330,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     }
   }
 
-  /** Edge for graph */
+  /** Edge for graph. */
   protected static class Edge extends DefaultEdge {
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
@@ -1343,7 +1344,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     }
   }
 
-  /** View partitioning result */
+  /** View partitioning result. */
   protected static class ViewPartialRewriting {
     private final RelNode newView;
     private final Project newTopViewProject;

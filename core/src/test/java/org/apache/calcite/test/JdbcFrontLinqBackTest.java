@@ -394,9 +394,7 @@ public class JdbcFrontLinqBackTest {
         .returns("C=6\n");
   }
 
-  /**
-   * Local Statement insert
-   */
+  /** Local Statement insert. */
   @Test void testInsert3() throws Exception {
     Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
@@ -410,9 +408,7 @@ public class JdbcFrontLinqBackTest {
     assertTrue(updateCount == 1);
   }
 
-  /**
-   * Local PreparedStatement insert WITHOUT bind variables
-   */
+  /** Local PreparedStatement insert WITHOUT bind variables. */
   @Test void testPreparedStatementInsert() throws Exception {
     Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
     assertFalse(connection.isClosed());
@@ -429,9 +425,7 @@ public class JdbcFrontLinqBackTest {
     assertTrue(updateCount == 1);
   }
 
-  /**
-   * Local PreparedStatement insert WITH bind variables
-   */
+  /** Local PreparedStatement insert WITH bind variables. */
   @Test void testPreparedStatementInsert2() throws Exception {
   }
 

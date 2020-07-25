@@ -24,7 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
- * Tests against parameters in prepared statement when using underlying jdbc subschema
+ * Tests against parameters in prepared statement when using underlying JDBC
+ * sub-schema.
  */
 class RemotePreparedStatementParametersTest {
 

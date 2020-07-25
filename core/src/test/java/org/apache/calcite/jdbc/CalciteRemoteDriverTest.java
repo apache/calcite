@@ -859,7 +859,7 @@ class CalciteRemoteDriverTest {
   }
 
   /**
-   * Remote PreparedStatement insert WITHOUT bind variables
+   * Remote PreparedStatement insert WITHOUT bind variables.
    */
   @Test void testRemotePreparedStatementInsert() throws Exception {
     final Connection connection = DriverManager.getConnection(
@@ -880,7 +880,7 @@ class CalciteRemoteDriverTest {
   }
 
   /**
-   * Remote PreparedStatement insert WITH bind variables
+   * Remote PreparedStatement insert WITH bind variables.
    */
   @Test void testRemotePreparedStatementInsert2() throws Exception {
   }

@@ -50,16 +50,19 @@ abstract class DruidJsonFilter implements DruidJson {
       getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
 
   /**
-   * @param rexNode    rexNode to translate to Druid Json Filter
-   * @param rowType    rowType associated to rexNode
-   * @param druidQuery druid query
+   * Converts a {@link RexNode} to a Druid JSON filter.
    *
-   * @return Druid Json filter or null if it can not translate
+   * @param rexNode    RexNode to translate to Druid Json Filter
+   * @param rowType    Row type associated to rexNode
+   * @param druidQuery Druid query
+   *
+   * @return Druid JSON filter, or null if it cannot translate
    */
   @Nullable
-  private static DruidJsonFilter toEqualityKindDruidFilter(RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
-    if (rexNode.getKind() != SqlKind.EQUALS && rexNode.getKind() != SqlKind.NOT_EQUALS) {
+  private static DruidJsonFilter toEqualityKindDruidFilter(RexNode rexNode,
+      RelDataType rowType, DruidQuery druidQuery) {
+    if (rexNode.getKind() != SqlKind.EQUALS
+        && rexNode.getKind() != SqlKind.NOT_EQUALS) {
       throw new AssertionError(
           DruidQuery.format("Expecting EQUALS or NOT_EQUALS but got [%s]", rexNode.getKind()));
     }
@@ -88,7 +91,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final String literalValue = toDruidLiteral(rexLiteral, rowType, druidQuery);
     if (literalValue == null) {
-      // can not translate literal better bail out
+      // cannot translate literal; better bail out
       return null;
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
@@ -118,11 +121,14 @@ abstract class DruidJsonFilter implements DruidJson {
 
 
   /**
-   * @param rexNode    rexNode to translate
-   * @param rowType    row type associated to Filter
-   * @param druidQuery druid query
+   * Converts a {@link RexNode} to a Druid JSON bound filter.
    *
-   * @return valid Druid Json Bound Filter or null if it can not translate the rexNode.
+   * @param rexNode    RexNode to translate
+   * @param rowType    Row type associated to Filter
+   * @param druidQuery Druid query
+   *
+   * @return valid Druid JSON Bound Filter, or null if it cannot translate the
+   * RexNode
    */
   @Nullable
   private static DruidJsonFilter toBoundDruidFilter(RexNode rexNode, RelDataType rowType,
@@ -150,18 +156,20 @@ abstract class DruidJsonFilter implements DruidJson {
     }
 
     if (RexLiteral.isNullLiteral(rexLiteral)) {
-      // we are not handling is NULL filter here thus we bail out if Literal is null
+      // we are not handling is NULL filter here; thus we bail out if Literal is
+      // null
       return null;
     }
-    final String literalValue = DruidJsonFilter.toDruidLiteral(rexLiteral, rowType, druidQuery);
+    final String literalValue =
+        DruidJsonFilter.toDruidLiteral(rexLiteral, rowType, druidQuery);
     if (literalValue == null) {
-      // can not translate literal better bail out
+      // cannot translate literal; better bail out
       return null;
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = DruidQuery.toDruidColumn(refNode, rowType,
-        druidQuery);
+    final Pair<String, ExtractionFunction> druidColumn =
+        DruidQuery.toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
     if (columnName == null) {
@@ -199,11 +207,14 @@ abstract class DruidJsonFilter implements DruidJson {
   }
 
   /**
-   * @param rexNode    rexNode to translate to Druid literal equivalante
-   * @param rowType    rowType associated to rexNode
-   * @param druidQuery druid Query
+   * Converts a {@link RexNode} to a Druid literal.
    *
-   * @return non null string or null if it can not translate to valid Druid equivalent
+   * @param rexNode    RexNode to translate to Druid literal equivalant
+   * @param rowType    Row type associated to rexNode
+   * @param druidQuery Druid query
+   *
+   * @return non null string, or null if it cannot translate to valid Druid
+   * equivalent
    */
   @Nullable
   private static String toDruidLiteral(RexNode rexNode, RelDataType rowType,
@@ -356,11 +367,14 @@ abstract class DruidJsonFilter implements DruidJson {
   }
 
   /**
-   * @param rexNode    rexNode to translate to Druid Filter
-   * @param rowType    rowType of filter input
+   * Converts a {@link RexNode} to a Druid filter.
+   *
+   * @param rexNode    RexNode to translate to Druid Filter
+   * @param rowType    Row type of filter input
    * @param druidQuery Druid query
    *
-   * @return Druid Json Filters or null when can not translate to valid Druid Filters.
+   * @return Druid Json filters, or null when cannot translate to valid Druid
+   * filters
    */
   @Nullable
   static DruidJsonFilter toDruidFilters(final RexNode rexNode, RelDataType rowType,
@@ -411,9 +425,7 @@ abstract class DruidJsonFilter implements DruidJson {
     return expression == null ? null : new JsonExpressionFilter(expression);
   }
 
-  /**
-   * Supported filter types
-   */
+  /** Supported filter types. */
   protected enum Type {
     AND,
     OR,
@@ -613,9 +625,7 @@ abstract class DruidJsonFilter implements DruidJson {
     return new JsonSelector(column, value, extractionFunction);
   }
 
-  /**
-   * Druid Having Filter spec
-   */
+  /** Druid Having Filter spec. */
   protected static class JsonDimHavingFilter implements DruidJson {
 
     private final DruidJsonFilter filter;

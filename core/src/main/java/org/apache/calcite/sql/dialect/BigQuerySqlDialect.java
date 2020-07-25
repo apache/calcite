@@ -246,9 +246,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  /** BigQuery data type reference:
+  /** {@inheritDoc}
+   *
+   * <p>BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
-   * BigQuery Standard SQL Data Types</a>
+   * BigQuery Standard SQL Data Types</a>.
    */
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {

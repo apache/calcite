@@ -82,9 +82,9 @@ class ElasticsearchRules {
 
   /**
    * Checks if current node represents item access as in {@code _MAP['foo']} or
-   * {@code cast(_MAP['foo'] as integer)}
+   * {@code cast(_MAP['foo'] as integer)}.
    *
-   * @return true if expression is item, false otherwise
+   * @return whether expression is item
    */
   static boolean isItem(RexNode node) {
     final Boolean result = node.accept(new RexVisitorImpl<Boolean>(false) {

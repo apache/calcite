@@ -330,9 +330,12 @@ public class DruidDateTimeUtils {
   }
 
   /**
+   * Converts a granularity to ISO period format.
+   *
    * @param type Druid Granularity  to translate as period of time
    *
-   * @return String representing the granularity as ISO8601 Period of Time, null for unknown case.
+   * @return String representing the granularity as ISO8601 Period of Time; null
+   * for unknown case
    */
   @Nullable
   public static String toISOPeriodFormat(Granularity.Type type) {
@@ -359,7 +362,8 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Translates Calcite TimeUnitRange to Druid {@link Granularity}
+   * Translates a Calcite {@link TimeUnitRange} to a Druid {@link Granularity}.
+   *
    * @param timeUnit Calcite Time unit to convert
    *
    * @return Druid Granularity or null

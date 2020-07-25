@@ -327,7 +327,7 @@ public class LoptSemiJoinOptimizer {
 
   /**
    * Modifies the semijoin condition to reflect the fact that the RHS is now
-   * the second factor into a join and the LHS is the first
+   * the second factor into a join and the LHS is the first.
    *
    * @param multiJoin join factors being optimized
    * @param leftAdjustment amount the left RexInputRefs need to be adjusted by
@@ -764,7 +764,7 @@ public class LoptSemiJoinOptimizer {
   }
 
   /**
-   * Removes a dimension table from a fact table's list of possible semijoins
+   * Removes a dimension table from a fact table's list of possible semi-joins.
    *
    * @param possibleDimensions possible dimension tables associated with the
    * fact table
@@ -789,10 +789,10 @@ public class LoptSemiJoinOptimizer {
   }
 
   /**
-   * @param factIdx index corresponding to the desired factor
+   * Returns the optimal semijoin for the specified factor; may be the factor
+   * itself if semijoins are not chosen for the factor.
    *
-   * @return optimal semijoin for the specified factor; may be the factor
-   * itself if semijoins are not chosen for the factor
+   * @param factIdx Index corresponding to the desired factor
    */
   public RelNode getChosenSemiJoin(int factIdx) {
     return chosenSemiJoins[factIdx];

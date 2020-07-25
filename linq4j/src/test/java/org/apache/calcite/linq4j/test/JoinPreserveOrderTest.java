@@ -395,7 +395,7 @@ public final class JoinPreserveOrderTest {
     }
   }
 
-  /** Department */
+  /** Department. */
   private static class Department {
     private final int did;
     private final Integer deptno;
@@ -420,7 +420,7 @@ public final class JoinPreserveOrderTest {
     }
   }
 
-  /** Employee */
+  /** Employee. */
   private static class Employee {
     private final int eid;
     private final String name;

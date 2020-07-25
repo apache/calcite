@@ -51,9 +51,7 @@ import java.util.Set;
 public class LoptMultiJoin {
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * The MultiJoin being optimized
-   */
+  /** The MultiJoin being optimized. */
   MultiJoin multiJoin;
 
   /**
@@ -68,32 +66,26 @@ public class LoptMultiJoin {
    */
   private List<RexNode> allJoinFilters;
 
-  /**
-   * Number of factors into the MultiJoin
-   */
+  /** Number of factors into the MultiJoin. */
   private final int nJoinFactors;
 
-  /**
-   * Total number of fields in the MultiJoin
-   */
+  /** Total number of fields in the MultiJoin. */
   private int nTotalFields;
 
-  /**
-   * Original inputs into the MultiJoin
-   */
+  /** Original inputs into the MultiJoin. */
   private final ImmutableList<RelNode> joinFactors;
 
   /**
-   * If a join factor is null generating in a left or right outer join,
+   * If a join factor is null-generating in a left or right outer join,
    * joinTypes indicates the join type corresponding to the factor. Otherwise,
    * it is set to INNER.
    */
   private final ImmutableList<JoinRelType> joinTypes;
 
   /**
-   * If a join factor is null generating in a left or right outer join, the
-   * bitmap contains the non-null generating factors that the null generating
-   * factor is dependent upon
+   * If a join factor is null-generating in a left or right outer join, the
+   * bitmap contains the non-null generating factors that the null-generating
+   * factor is dependent upon.
    */
   private final ImmutableBitSet [] outerJoinFactors;
 
@@ -115,39 +107,39 @@ public class LoptMultiJoin {
 
   /**
    * For each join filter, associates a bitmap indicating all factors
-   * referenced by the filter
+   * referenced by the filter.
    */
   private Map<RexNode, ImmutableBitSet> factorsRefByJoinFilter;
 
   /**
    * For each join filter, associates a bitmap indicating all fields
-   * referenced by the filter
+   * referenced by the filter.
    */
   private Map<RexNode, ImmutableBitSet> fieldsRefByJoinFilter;
 
   /**
-   * Starting RexInputRef index corresponding to each join factor
+   * Starting RexInputRef index corresponding to each join factor.
    */
   int [] joinStart;
 
   /**
-   * Number of fields in each join factor
+   * Number of fields in each join factor.
    */
   int [] nFieldsInJoinFactor;
 
   /**
    * Bitmap indicating which factors each factor references in join filters
-   * that correspond to comparisons
+   * that correspond to comparisons.
    */
   ImmutableBitSet [] factorsRefByFactor;
 
   /**
-   * Weights of each factor combination
+   * Weights of each factor combination.
    */
   int [][] factorWeights;
 
   /**
-   * Type factory
+   * Type factory.
    */
   final RelDataTypeFactory factory;
 
@@ -161,13 +153,13 @@ public class LoptMultiJoin {
   Integer [] joinRemovalFactors;
 
   /**
-   * The semijoins that allow the join of a dimension table to be removed
+   * The semijoins that allow the join of a dimension table to be removed.
    */
   LogicalJoin[] joinRemovalSemiJoins;
 
   /**
    * Set of null-generating factors whose corresponding outer join can be
-   * removed from the query plan
+   * removed from the query plan.
    */
   Set<Integer> removableOuterJoinFactors;
 
@@ -241,168 +233,168 @@ public class LoptMultiJoin {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return the MultiJoin corresponding to this multijoin
+   * Returns the MultiJoin corresponding to this multi-join.
    */
   public MultiJoin getMultiJoinRel() {
     return multiJoin;
   }
 
   /**
-   * @return number of factors in this multijoin
+   * Returns the number of factors in this multi-join.
    */
   public int getNumJoinFactors() {
     return nJoinFactors;
   }
 
   /**
-   * @param factIdx factor to be returned
+   * Returns the factor corresponding to the given factor index.
    *
-   * @return factor corresponding to the factor index passed in
+   * @param factIdx Factor to be returned
    */
   public RelNode getJoinFactor(int factIdx) {
     return joinFactors.get(factIdx);
   }
 
   /**
-   * @return total number of fields in the multijoin
+   * Returns the total number of fields in the multi-join.
    */
   public int getNumTotalFields() {
     return nTotalFields;
   }
 
   /**
-   * @param factIdx desired factor
+   * Returns the number of fields in a given factor.
    *
-   * @return number of fields in the specified factor
+   * @param factIdx Desired factor
    */
   public int getNumFieldsInJoinFactor(int factIdx) {
     return nFieldsInJoinFactor[factIdx];
   }
 
   /**
-   * @return all non-outer join filters in this multijoin
+   * Returns all non-outer join filters in this multi-join.
    */
   public List<RexNode> getJoinFilters() {
     return joinFilters;
   }
 
   /**
-   * @param joinFilter filter for which information will be returned
+   * Returns a bitmap corresponding to the factors referenced within
+   * the specified join filter.
    *
-   * @return bitmap corresponding to the factors referenced within the
-   * specified join filter
+   * @param joinFilter Filter for which information will be returned
    */
   public ImmutableBitSet getFactorsRefByJoinFilter(RexNode joinFilter) {
     return factorsRefByJoinFilter.get(joinFilter);
   }
 
   /**
-   * Returns array of fields contained within the multi-join
+   * Returns an array of fields contained within the multi-join.
    */
   public List<RelDataTypeField> getMultiJoinFields() {
     return multiJoin.getRowType().getFieldList();
   }
 
   /**
-   * @param joinFilter the filter for which information will be returned
+   * Returns a bitmap corresponding to the fields referenced by a join filter.
    *
-   * @return bitmap corresponding to the fields referenced by a join filter
+   * @param joinFilter the filter for which information will be returned
    */
   public ImmutableBitSet getFieldsRefByJoinFilter(RexNode joinFilter) {
     return fieldsRefByJoinFilter.get(joinFilter);
   }
 
   /**
-   * @return weights of the different factors relative to one another
+   * Returns weights of the different factors relative to one another.
    */
   public int [][] getFactorWeights() {
     return factorWeights;
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns a bitmap corresponding to the factors referenced by the specified
+   * factor in the various join filters that correspond to comparisons.
    *
-   * @return bitmap corresponding to the factors referenced by the specified
-   * factor in the various join filters that correspond to comparisons
+   * @param factIdx Factor for which information will be returned
    */
   public ImmutableBitSet getFactorsRefByFactor(int factIdx) {
     return factorsRefByFactor[factIdx];
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns the starting offset within the multi-join for the specified factor.
    *
-   * @return starting offset within the multijoin for the specified factor
+   * @param factIdx Factor for which information will be returned
    */
   public int getJoinStart(int factIdx) {
     return joinStart[factIdx];
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns whether the factor corresponds to a null-generating factor
+   * in a left or right outer join.
    *
-   * @return whether or not the factor corresponds to a null-generating factor
-   * in a left or right outer join
+   * @param factIdx Factor for which information will be returned
    */
   public boolean isNullGenerating(int factIdx) {
     return joinTypes.get(factIdx).isOuterJoin();
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns a bitmap containing the factors that a null-generating factor is
+   * dependent upon, if the factor is null-generating in a left or right outer
+   * join; otherwise null is returned.
    *
-   * @return bitmap containing the factors that a null generating factor is
-   * dependent upon, if the factor is null generating in a left or right outer
-   * join; otherwise null is returned
+   * @param factIdx Factor for which information will be returned
    */
   public ImmutableBitSet getOuterJoinFactors(int factIdx) {
     return outerJoinFactors[factIdx];
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns outer join conditions associated with the specified null-generating
+   * factor.
    *
-   * @return outer join conditions associated with the specified null
-   * generating factor
+   * @param factIdx Factor for which information will be returned
    */
   public RexNode getOuterJoinCond(int factIdx) {
     return multiJoin.getOuterJoinConditions().get(factIdx);
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns a bitmap containing the fields that are projected from a factor.
    *
-   * @return bitmap containing the fields that are projected from a factor
+   * @param factIdx Factor for which information will be returned
    */
   public ImmutableBitSet getProjFields(int factIdx) {
     return projFields.get(factIdx);
   }
 
   /**
-   * @param factIdx factor for which information will be returned
+   * Returns the join field reference counts for a factor.
    *
-   * @return the join field reference counts for a factor
+   * @param factIdx Factor for which information will be returned
    */
   public int [] getJoinFieldRefCounts(int factIdx) {
     return joinFieldRefCountsMap.get(factIdx);
   }
 
   /**
-   * @param dimIdx the dimension factor for which information will be returned
+   * Returns the factor id of the fact table corresponding to a dimension
+   * table in a semi-join, in the case where the join with the dimension table
+   * can be removed.
    *
-   * @return the factor id of the fact table corresponding to a dimension
-   * table in a semijoin, in the case where the join with the dimension table
-   * can be removed
+   * @param dimIdx Dimension factor for which information will be returned
    */
   public Integer getJoinRemovalFactor(int dimIdx) {
     return joinRemovalFactors[dimIdx];
   }
 
   /**
-   * @param dimIdx the dimension factor for which information will be returned
+   * Returns the semi-join that allows the join of a dimension table to be
+   * removed.
    *
-   * @return the semijoin that allows the join of a dimension table to be
-   * removed
+   * @param dimIdx Dimension factor for which information will be returned
    */
   public LogicalJoin getJoinRemovalSemiJoin(int dimIdx) {
     return joinRemovalSemiJoins[dimIdx];
@@ -412,18 +404,18 @@ public class LoptMultiJoin {
    * Indicates that a dimension factor's join can be removed because of a
    * semijoin with a fact table.
    *
-   * @param dimIdx id of the dimension factor
-   * @param factIdx id of the fact factor
+   * @param dimIdx Dimension factor
+   * @param factIdx Fact factor
    */
   public void setJoinRemovalFactor(int dimIdx, int factIdx) {
     joinRemovalFactors[dimIdx] = factIdx;
   }
 
   /**
-   * Indicates the semijoin that allows the join of a dimension table to be
-   * removed
+   * Indicates the semi-join that allows the join of a dimension table to be
+   * removed.
    *
-   * @param dimIdx id of the dimension factor
+   * @param dimIdx Dimension factor
    * @param semiJoin the semijoin
    */
   public void setJoinRemovalSemiJoin(int dimIdx, LogicalJoin semiJoin) {
@@ -431,7 +423,7 @@ public class LoptMultiJoin {
   }
 
   /**
-   * Returns a bitmap representing the factors referenced in a join filter
+   * Returns a bitmap representing the factors referenced in a join filter.
    *
    * @param joinFilter the join filter
    * @param setFields if true, add the fields referenced by the join filter
@@ -458,7 +450,7 @@ public class LoptMultiJoin {
 
   /**
    * Sets bitmaps indicating which factors and fields each join filter
-   * references
+   * references.
    */
   private void setJoinFilterRefs() {
     fieldsRefByJoinFilter = new HashMap<>();
@@ -480,7 +472,7 @@ public class LoptMultiJoin {
 
   /**
    * Sets the bitmap indicating which factors a filter references based on
-   * which fields it references
+   * which fields it references.
    *
    * @param fieldRefBitmap bitmap representing fields referenced
    * @return bitmap representing factors referenced that will
@@ -496,7 +488,7 @@ public class LoptMultiJoin {
   }
 
   /**
-   * Determines the join factor corresponding to a RexInputRef
+   * Determines the join factor corresponding to a RexInputRef.
    *
    * @param rexInputRef rexInputRef index
    *
@@ -590,7 +582,7 @@ public class LoptMultiJoin {
 
   /**
    * Sets an individual weight if the new weight is better than the current
-   * one
+   * one.
    *
    * @param weight weight to be set
    * @param leftFactor index of left factor
@@ -604,10 +596,10 @@ public class LoptMultiJoin {
   }
 
   /**
-   * Returns true if a join tree contains all factors required
+   * Returns whether if a join tree contains all factors required.
    *
-   * @param joinTree join tree to be examined
-   * @param factorsNeeded bitmap of factors required
+   * @param joinTree Join tree to be examined
+   * @param factorsNeeded Bitmap of factors required
    *
    * @return true if join tree contains all required factors
    */
@@ -618,7 +610,7 @@ public class LoptMultiJoin {
   }
 
   /**
-   * Sets a bitmap indicating all child RelNodes in a join tree
+   * Sets a bitmap indicating all child RelNodes in a join tree.
    *
    * @param joinTree join tree to be examined
    * @param childFactors bitmap to be set
@@ -633,7 +625,7 @@ public class LoptMultiJoin {
 
   /**
    * Retrieves the fields corresponding to a join between a left and right
-   * tree
+   * tree.
    *
    * @param left left hand side of the join
    * @param right right hand side of the join
@@ -652,20 +644,20 @@ public class LoptMultiJoin {
 
   /**
    * Adds a join factor to the set of factors that can be removed because the
-   * factor is the null generating factor in an outer join, its join keys are
-   * unique, and the factor is not projected in the query
+   * factor is the null-generating factor in an outer join, its join keys are
+   * unique, and the factor is not projected in the query.
    *
-   * @param factIdx join factor
+   * @param factIdx Join factor
    */
   public void addRemovableOuterJoinFactor(int factIdx) {
     removableOuterJoinFactors.add(factIdx);
   }
 
   /**
-   * @param factIdx factor in question
+   * Return whether the factor corresponds to the null-generating factor in
+   * an outer join that can be removed.
    *
-   * @return true if the factor corresponds to the null generating factor in
-   * an outer join that can be removed
+   * @param factIdx Factor in question
    */
   public boolean isRemovableOuterJoinFactor(int factIdx) {
     return removableOuterJoinFactors.contains(factIdx);
@@ -746,37 +738,37 @@ public class LoptMultiJoin {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(factIdx);
     if (selfJoin == null) {
       return null;
-    } else if (selfJoin.getRightFactor() == factIdx) {
-      return selfJoin.getLeftFactor();
+    } else if (selfJoin.rightFactor == factIdx) {
+      return selfJoin.leftFactor;
     } else {
-      return selfJoin.getRightFactor();
+      return selfJoin.rightFactor;
     }
   }
 
   /**
-   * @param factIdx factor in a self-join
+   * Returns whether the factor is the left factor in a self-join.
    *
-   * @return true if the factor is the left factor in a self-join
+   * @param factIdx Factor in a self-join
    */
   public boolean isLeftFactorInRemovableSelfJoin(int factIdx) {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(factIdx);
     if (selfJoin == null) {
       return false;
     }
-    return selfJoin.getLeftFactor() == factIdx;
+    return selfJoin.leftFactor == factIdx;
   }
 
   /**
-   * @param factIdx factor in a self-join
+   * Returns whether the factor is the right factor in a self-join.
    *
-   * @return true if the factor is the right factor in a self-join
+   * @param factIdx Factor in a self-join
    */
   public boolean isRightFactorInRemovableSelfJoin(int factIdx) {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(factIdx);
     if (selfJoin == null) {
       return false;
     }
-    return selfJoin.getRightFactor() == factIdx;
+    return selfJoin.rightFactor == factIdx;
   }
 
   /**
@@ -792,8 +784,8 @@ public class LoptMultiJoin {
    */
   public Integer getRightColumnMapping(int rightFactor, int rightOffset) {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(rightFactor);
-    assert selfJoin.getRightFactor() == rightFactor;
-    return selfJoin.getColumnMapping().get(rightOffset);
+    assert selfJoin.rightFactor == rightFactor;
+    return selfJoin.columnMapping.get(rightOffset);
   }
 
   public Edge createEdge(RexNode condition) {
@@ -827,24 +819,18 @@ public class LoptMultiJoin {
    * Utility class used to keep track of the factors in a removable self-join.
    * The right factor in the self-join is the one that will be removed.
    */
-  private class RemovableSelfJoin {
-    /**
-     * The left factor in a removable self-join
-     */
-    private int leftFactor;
+  private static class RemovableSelfJoin {
+    /** The left factor in a removable self-join. */
+    private final int leftFactor;
 
-    /**
-     * The right factor in a removable self-join, namely the factor that
-     * will be removed
-     */
-    private int rightFactor;
+    /** The right factor in a removable self-join, namely the factor that will
+     * be removed. */
+    private final int rightFactor;
 
-    /**
-     * A mapping that maps references to columns from the right factor to
+    /** A mapping that maps references to columns from the right factor to
      * columns in the left factor, if the column is referenced in both
-     * factors
-     */
-    private Map<Integer, Integer> columnMapping;
+     * factors. */
+    private final Map<Integer, Integer> columnMapping;
 
     RemovableSelfJoin(
         int leftFactor,
@@ -853,18 +839,6 @@ public class LoptMultiJoin {
       this.leftFactor = leftFactor;
       this.rightFactor = rightFactor;
       this.columnMapping = columnMapping;
-    }
-
-    public int getLeftFactor() {
-      return leftFactor;
-    }
-
-    public int getRightFactor() {
-      return rightFactor;
-    }
-
-    public Map<Integer, Integer> getColumnMapping() {
-      return columnMapping;
     }
   }
 }

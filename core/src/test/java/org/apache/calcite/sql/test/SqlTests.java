@@ -89,7 +89,7 @@ public abstract class SqlTests {
 
   /**
    * Helper function to get the string representation of a RelDataType
-   * (include precision/scale but no charset or collation)
+   * (include precision/scale but no charset or collation).
    *
    * @param sqlType Type
    * @return String representation of type
@@ -505,7 +505,7 @@ public abstract class SqlTests {
     }
   }
 
-  /** Stage of query processing */
+  /** Stage of query processing. */
   public enum Stage {
     PARSE("Parser"),
     VALIDATE("Validator"),

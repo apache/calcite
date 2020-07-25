@@ -37,7 +37,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Strategies for checking operand types.
  *
  * <p>This class defines singleton instances of strategy objects for operand
- * type checking. {@link org.apache.calcite.sql.type.ReturnTypes}
+ * type-checking. {@link org.apache.calcite.sql.type.ReturnTypes}
  * and {@link org.apache.calcite.sql.type.InferTypes} provide similar strategies
  * for operand type inference and operator return type inference.
  *
@@ -445,8 +445,8 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
 
   /**
-   * Parameter type-checking strategy type must a nullable time interval,
-   * nullable time interval
+   * Parameter type-checking strategy where type must a nullable time interval,
+   * nullable time interval.
    */
   public static final SqlSingleOperandTypeChecker INTERVAL_SAME_SAME =
       OperandTypes.and(INTERVAL_INTERVAL, SAME_SAME);
@@ -485,13 +485,13 @@ public abstract class OperandTypes {
           INTERVAL_DATETIME);
 
   /**
-   * Type checking strategy for the "*" operator
+   * Type-checking strategy for the "*" operator.
    */
   public static final SqlSingleOperandTypeChecker MULTIPLY_OPERATOR =
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_NUMERIC, NUMERIC_INTERVAL);
 
   /**
-   * Type checking strategy for the "/" operator
+   * Type-checking strategy for the "/" operator.
    */
   public static final SqlSingleOperandTypeChecker DIVISION_OPERATOR =
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_NUMERIC);
@@ -681,11 +681,14 @@ public abstract class OperandTypes {
         }
       };
 
-  /** Operand type checker that accepts period types:
-   * PERIOD (DATETIME, DATETIME)
-   * PERIOD (DATETIME, INTERVAL)
-   * [ROW] (DATETIME, DATETIME)
-   * [ROW] (DATETIME, INTERVAL) */
+  /** Operand type-checker that accepts period types. Examples:
+   *
+   * <ul>
+   * <li>PERIOD (DATETIME, DATETIME)
+   * <li>PERIOD (DATETIME, INTERVAL)
+   * <li>[ROW] (DATETIME, DATETIME)
+   * <li>[ROW] (DATETIME, INTERVAL)
+   * </ul> */
   private static class PeriodOperandTypeChecker
       implements SqlSingleOperandTypeChecker {
     public boolean checkSingleOperandType(SqlCallBinding callBinding,

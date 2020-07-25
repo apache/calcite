@@ -213,20 +213,17 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
             || kind == SqlKind.TIMES;
   }
 
-  /**
-   * Returns the list of {@link ComplexMetric} that match the given <code>alias</code> if it exists,
-   * otherwise returns an empty list, never <code>null</code>
-   * */
+  /** Returns the list of {@link ComplexMetric} that match the given
+   * <code>alias</code> if it exists, otherwise returns an empty list, never
+   * <code>null</code>. */
   public List<ComplexMetric> getComplexMetricsFrom(String alias) {
     return complexMetrics.containsKey(alias)
             ? complexMetrics.get(alias)
             : new ArrayList<>();
   }
 
-  /**
-   * Returns true if and only if the given <code>alias</code> is a reference to a registered
-   * {@link ComplexMetric}
-   * */
+  /** Returns whether the given <code>alias</code> is a reference to a
+   * registered {@link ComplexMetric}. */
   public boolean isComplexMetric(String alias) {
     return complexMetrics.get(alias) != null;
   }

@@ -95,12 +95,12 @@ public final class JavaTypeFactoryTest {
         () -> "Type {" + actual.getTypeName() + "} is not a subtype of Types.RecordType");
   }
 
-  /***/
+  /** Struct with one field. */
   private static class OneFieldStruct {
     public Integer intField;
   }
 
-  /***/
+  /** Struct with two fields. */
   private static class TwoFieldStruct {
     public Integer intField;
     public String strField;

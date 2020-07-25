@@ -39,7 +39,8 @@ import java.util.function.Consumer;
 class EnumerableCorrelateTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2605">[CALCITE-2605]
-   * NullPointerException when left outer join implemented with EnumerableCorrelate</a> */
+   * NullPointerException when left outer join implemented with
+   * EnumerableCorrelate</a>. */
   @Test void leftOuterJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
@@ -82,7 +83,7 @@ class EnumerableCorrelateTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2621">[CALCITE-2621]
-   * Add rule to execute semi joins with correlation</a> */
+   * Add rule to execute semi joins with correlation</a>. */
   @Test void semiJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
@@ -109,8 +110,8 @@ class EnumerableCorrelateTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2930">[CALCITE-2930]
-   * FilterCorrelateRule on a Correlate with SemiJoinType SEMI (or ANTI)
-   * throws IllegalStateException</a> */
+   * FilterCorrelateRule on a Correlate with SemiJoinType SEMI (or ANTI) throws
+   * IllegalStateException</a>. */
   @Test void semiJoinCorrelateWithFilterCorrelateRule() {
     tester(false, new JdbcTest.HrSchema())
         .query(
@@ -236,7 +237,7 @@ class EnumerableCorrelateTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
-   * RelBuilder: new method to create an antijoin</a> */
+   * RelBuilder: new method to create an antijoin</a>. */
   @Test void antiJoinCorrelateWithNullValues() {
     final Integer salesDeptNo = 10;
     tester(false, new JdbcTest.HrSchema())

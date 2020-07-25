@@ -93,9 +93,8 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
             .file().getAbsolutePath());
   }
 
-  /**
-   * Register cassandra resource in root context so it can be shared with other tests
-   */
+  /** Registers a Cassandra resource in root context so it can be shared with
+   * other tests. */
   private static CassandraResource getOrCreate(ExtensionContext context) {
     // same cassandra instance should be shared across all extension instances
     return context.getRoot()
@@ -128,7 +127,9 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
     return ConditionEvaluationResult.disabled("Cassandra tests disabled");
   }
 
-  private static class CassandraResource implements ExtensionContext.Store.CloseableResource {
+  /** Cassandra resource. */
+  private static class CassandraResource
+      implements ExtensionContext.Store.CloseableResource {
     private final Session session;
     private final Cluster cluster;
 

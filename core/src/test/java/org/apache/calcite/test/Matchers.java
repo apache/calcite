@@ -278,8 +278,8 @@ public class Matchers {
     };
   }
 
-  /**
-   * Is the numeric value within a given difference another value?
+  /** Matcher that tests whether the numeric value is within a given difference
+   * another value.
    *
    * @param <T> Value type
    */

@@ -118,7 +118,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     reset();
   }
 
-  /** Gets a user defined config and appends default connection values */
+  /** Gets a user-defined config and appends default connection values. */
   private CalciteConnectionConfig connConfig() {
     CalciteConnectionConfigImpl config = Util.first(
         context.unwrap(CalciteConnectionConfigImpl.class),
@@ -256,9 +256,10 @@ public class PlannerImpl implements Planner, ViewExpander {
     return root;
   }
 
+  // CHECKSTYLE: IGNORE 2
   /** @deprecated Now {@link PlannerImpl} implements {@link ViewExpander}
    * directly. */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public class ViewExpanderImpl implements ViewExpander {
     ViewExpanderImpl() {
     }

@@ -187,9 +187,7 @@ class BitSetsTest {
     assertThat(BitSets.previousClearBit(BitSets.of(1, 3, 4), 1), equalTo(0));
   }
 
-  /**
-   * Tests the method {@link BitSets#closure(java.util.SortedMap)}
-   */
+  /** Tests the method {@link BitSets#closure(java.util.SortedMap)}. */
   @Test void testClosure() {
     final SortedMap<Integer, BitSet> empty = new TreeMap<>();
     assertThat(BitSets.closure(empty), equalTo(empty));

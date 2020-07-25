@@ -762,7 +762,7 @@ public class Util {
   }
 
   /**
-   * @return true if s==null or if s.length()==0
+   * Returns whether s == null or if s.length() == 0.
    */
   public static boolean isNullOrEmpty(String s) {
     return (null == s) || (s.length() == 0);
@@ -803,7 +803,7 @@ public class Util {
 
   /**
    * Returns the {@link Charset} object representing the value of
-   * {@link CalciteSystemProperty#DEFAULT_CHARSET}
+   * {@link CalciteSystemProperty#DEFAULT_CHARSET}.
    *
    * @throws java.nio.charset.IllegalCharsetNameException If the given charset
    *                                                      name is illegal
@@ -817,18 +817,21 @@ public class Util {
     return DEFAULT_CHARSET;
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Throw new {@link AssertionError} */
   @Deprecated // to be removed before 2.0
   public static Error newInternal() {
     return new AssertionError("(unknown cause)");
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Throw new {@link AssertionError} */
   @Deprecated // to be removed before 2.0
   public static Error newInternal(String s) {
     return new AssertionError(s);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Throw new {@link RuntimeException} if checked; throw raw
    * exception if unchecked or {@link Error} */
   @Deprecated // to be removed before 2.0
@@ -836,6 +839,7 @@ public class Util {
     return new AssertionError(e);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Throw new {@link AssertionError} if applicable;
    * or {@link RuntimeException} if e is checked;
    * or raw exception if e is unchecked or {@link Error}. */
@@ -908,6 +912,7 @@ public class Util {
     return sw.toString();
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link Preconditions#checkArgument}
    * or {@link Objects#requireNonNull(Object)} */
   @Deprecated // to be removed before 2.0
@@ -917,6 +922,7 @@ public class Util {
     }
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link Preconditions#checkArgument}
    * or {@link Objects#requireNonNull(Object)} */
   @Deprecated // to be removed before 2.0
@@ -926,6 +932,7 @@ public class Util {
     }
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link Preconditions#checkArgument} */
   @Deprecated // to be removed before 2.0
   public static void permAssert(boolean b, String description) {

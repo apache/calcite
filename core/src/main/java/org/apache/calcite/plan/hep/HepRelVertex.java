@@ -85,7 +85,7 @@ public class HepRelVertex extends AbstractRelNode {
   }
 
   /**
-   * @return current implementation chosen for this vertex
+   * Returns current implementation chosen for this vertex.
    */
   public RelNode getCurrentRel() {
     return currentRel;

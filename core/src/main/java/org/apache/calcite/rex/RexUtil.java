@@ -94,7 +94,7 @@ public class RexUtil {
   }
 
   /**
-   * Generates a cast from one row type to another
+   * Generates a cast from one row type to another.
    *
    * @param rexBuilder RexBuilder to use for constructing casts
    * @param lhsRowType target row type
@@ -629,7 +629,7 @@ public class RexUtil {
   }
 
    /**
-   * Returns whether a given node contains a RexCall with a specified operator
+   * Returns whether a given node contains a RexCall with a specified operator.
    *
    * @param operator Operator to look for
    * @param node     a RexNode tree
@@ -766,7 +766,7 @@ public class RexUtil {
   }
 
   /**
-   * Determines whether any operand of a set requires decimal expansion
+   * Determines whether any operand of a set requires decimal expansion.
    */
   public static boolean requiresDecimalExpansion(
       List<RexNode> operands,

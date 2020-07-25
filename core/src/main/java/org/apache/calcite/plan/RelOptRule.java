@@ -178,6 +178,7 @@ public abstract class RelOptRule {
         operandList.operands);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #operandJ} */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -269,6 +270,7 @@ public abstract class RelOptRule {
     return new ConverterRelOptRuleOperand(clazz, trait, predicate);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #convertOperand(Class, Predicate, RelTrait)}. */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -435,7 +437,7 @@ public abstract class RelOptRule {
   }
 
   /**
-   * Returns the root operand of this rule
+   * Returns the root operand of this rule.
    *
    * @return the root operand of this rule
    */

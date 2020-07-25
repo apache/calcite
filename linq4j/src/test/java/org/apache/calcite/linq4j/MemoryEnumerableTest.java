@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-/** Tests for {@link org.apache.calcite.linq4j.MemoryEnumerable} */
+/** Tests for {@link org.apache.calcite.linq4j.MemoryEnumerable}. */
 class MemoryEnumerableTest {
 
   @Test void testHistoryAndFuture() {

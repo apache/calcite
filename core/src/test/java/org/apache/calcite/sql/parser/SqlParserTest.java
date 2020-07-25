@@ -1287,14 +1287,14 @@ public class SqlParserTest {
     sqlList(sql).ok(expected, expected1, expected2);
   }
 
-  /** Should fail since the first statement lacks semicolon */
+  /** Should fail since the first statement lacks semicolon. */
   @Test void testStmtListWithoutSemiColon1() {
     sqlList("select * from emp where name like 'toto' "
         + "^delete^ from emp")
         .fails("(?s).*Encountered \"delete\" at .*");
   }
 
-  /** Should fail since the third statement lacks semicolon */
+  /** Should fail since the third statement lacks semicolon. */
   @Test void testStmtListWithoutSemiColon2() {
     sqlList("select * from emp where name like 'toto'; "
         + "delete from emp; "
@@ -7424,9 +7424,8 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"from\" at .*");
   }
 
-  /**
-   * Tests that applying member function of a specific type as a suffix function
-   */
+  /** Tests applying a member function of a specific type as a suffix
+   * function. */
   @Test void testMemberFunction() {
     sql("SELECT myColumn.func(a, b) FROM tbl")
         .ok("SELECT `MYCOLUMN`.`FUNC`(`A`, `B`)\n"

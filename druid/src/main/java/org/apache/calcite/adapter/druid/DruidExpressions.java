@@ -44,10 +44,10 @@ import javax.annotation.Nullable;
  */
 public class DruidExpressions {
 
-  /**
-   * Type mapping between Calcite SQL family types and native Druid expression types
-   */
+  /** Type mapping between Calcite SQL family types and native Druid expression
+   * types. */
   static final Map<SqlTypeName, DruidType> EXPRESSION_TYPES;
+
   /**
    * Druid expression safe chars, must be sorted.
    */
@@ -88,12 +88,14 @@ public class DruidExpressions {
 
 
   /**
-   * Translates Calcite rexNode to Druid Expression when possible
-   * @param rexNode rexNode to convert to a Druid Expression
-   * @param inputRowType input row type of the rexNode to translate
+   * Translates a Calcite {@link RexNode} to a Druid expression, if possible;
+   * returns null if not possible.
+   *
+   * @param rexNode RexNode to convert to a Druid Expression
+   * @param inputRowType Input row type of the rexNode to translate
    * @param druidRel Druid query
    *
-   * @return Druid Expression or null when can not convert the RexNode
+   * @return Druid Expression, or null when can not convert the RexNode
    */
   @Nullable
   public static String toDruidExpression(

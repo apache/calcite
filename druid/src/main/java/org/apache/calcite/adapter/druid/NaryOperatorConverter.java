@@ -26,7 +26,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
- * Converts Calcite n-ary operators to druid expression eg (arg1 Op arg2 Op arg3)
+ * Converts Calcite n-ary operators to Druid expressions, for example
+ * {@code arg1 Op arg2 Op arg3}.
  */
 public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final SqlOperator operator;

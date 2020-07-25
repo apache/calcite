@@ -76,6 +76,8 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   }
 
   /**
+   * Returns a copy of the environment's default socket factory.
+   *
    * @see javax.net.SocketFactory#getDefault()
    */
   public static TrustAllSslSocketFactory getDefault() {

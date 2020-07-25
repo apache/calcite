@@ -34,7 +34,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
- * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}
+ * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}.
  */
 class CorrelateJoinTest {
   static final Function2<Integer, Integer, Integer[]> SELECT_BOTH =

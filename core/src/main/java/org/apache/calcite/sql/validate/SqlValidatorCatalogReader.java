@@ -84,6 +84,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
    */
   List<List<String>> getSchemaPaths();
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#field(RelDataType, String)} */
   @Deprecated // to be removed before 2.0
@@ -94,6 +95,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
    * that matches the case-sensitivity policy. */
   SqlNameMatcher nameMatcher();
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#matches(String, String)} */
   @Deprecated // to be removed before 2.0
@@ -102,6 +104,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
   RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#isCaseSensitive()} */
   @Deprecated // to be removed before 2.0
@@ -110,6 +113,6 @@ public interface SqlValidatorCatalogReader extends Wrapper {
   /** Returns the root namespace for name resolution. */
   CalciteSchema getRootSchema();
 
-  /** Returns Config settings */
+  /** Returns Config settings. */
   CalciteConnectionConfig getConfig();
 }

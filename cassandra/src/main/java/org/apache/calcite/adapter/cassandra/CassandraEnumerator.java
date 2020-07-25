@@ -57,7 +57,7 @@ class CassandraEnumerator implements Enumerator<Object> {
     this.fieldTypes = protoRowType.apply(typeFactory).getFieldList();
   }
 
-  /** Produce the next row from the results
+  /** Produces the next row from the results.
    *
    * @return A new row from the results
    */

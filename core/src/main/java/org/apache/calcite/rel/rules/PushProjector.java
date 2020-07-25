@@ -76,22 +76,22 @@ public class PushProjector {
   private final RelBuilder relBuilder;
 
   /**
-   * Original projection expressions
+   * Original projection expressions.
    */
   final List<RexNode> origProjExprs;
 
   /**
-   * Fields from the RelNode that the projection is being pushed past
+   * Fields from the RelNode that the projection is being pushed past.
    */
   final List<RelDataTypeField> childFields;
 
   /**
-   * Number of fields in the RelNode that the projection is being pushed past
+   * Number of fields in the RelNode that the projection is being pushed past.
    */
   final int nChildFields;
 
   /**
-   * Bitmap containing the references in the original projection
+   * Bitmap containing the references in the original projection.
    */
   final BitSet projRefs;
 
@@ -571,7 +571,7 @@ public class PushProjector {
 
   /**
    * Determines how much each input reference needs to be adjusted as a result
-   * of projection
+   * of projection.
    *
    * @return array indicating how much each input needs to be adjusted by
    */

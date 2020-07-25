@@ -76,15 +76,11 @@ public abstract class RelTraitDef<T extends RelTrait> {
     return false;
   }
 
-  /**
-   * @return the specific RelTrait type associated with this RelTraitDef.
-   */
+  /** Returns the specific RelTrait type associated with this RelTraitDef. */
   public abstract Class<T> getTraitClass();
 
-  /**
-   * @return a simple name for this RelTraitDef (for use in
-   * {@link org.apache.calcite.rel.RelNode#explain}).
-   */
+  /** Returns a simple name for this RelTraitDef (for use in
+   * {@link org.apache.calcite.rel.RelNode#explain}). */
   public abstract String getSimpleName();
 
   /**

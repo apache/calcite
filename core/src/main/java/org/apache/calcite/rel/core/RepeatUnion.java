@@ -59,7 +59,7 @@ public abstract class RepeatUnion extends BiRel {
 
   /**
    * Maximum number of times to repeat the iterative relational expression;
-   * negative value means no limit, 0 means only seed will be evaluated
+   * negative value means no limit, 0 means only seed will be evaluated.
    */
   public final int iterationLimit;
 

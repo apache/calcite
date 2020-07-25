@@ -42,7 +42,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   private final Cache cache;
   private final RelTrait[] traits;
   private String string;
-  /** Cache the hash code for the traits */
+  /** Caches the hash code for the traits. */
   private int hash; // Default to 0
 
   //~ Constructors -----------------------------------------------------------

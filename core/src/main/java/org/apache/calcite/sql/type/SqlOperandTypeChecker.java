@@ -41,9 +41,7 @@ public interface SqlOperandTypeChecker {
       SqlCallBinding callBinding,
       boolean throwOnFailure);
 
-  /**
-   * @return range of operand counts allowed in a call
-   */
+  /** Returns the range of operand counts allowed in a call. */
   SqlOperandCountRange getOperandCountRange();
 
   /**

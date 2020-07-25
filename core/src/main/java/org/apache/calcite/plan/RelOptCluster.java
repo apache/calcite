@@ -235,6 +235,7 @@ public class RelOptCluster {
     return emptyTraitSet;
   }
 
+  // CHECKSTYLE: IGNORE 2
   /** @deprecated For {@code traitSetOf(t1, t2)},
    * use {@link #traitSet}().replace(t1).replace(t2). */
   @Deprecated // to be removed before 2.0

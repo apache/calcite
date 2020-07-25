@@ -91,7 +91,7 @@ public class Enumerables {
           /** Current result row. Null if no row is ready. */
           TResult resultRow;
 
-          /** Match counter is 1 based in Oracle */
+          /** Match counter is 1-based in Oracle. */
           final AtomicInteger matchCounter = new AtomicInteger(1);
 
           public TResult current() {

@@ -40,7 +40,7 @@ public abstract class SqlTypeTransforms {
   /**
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type but nullable if any of a calls operands is
-   * nullable
+   * nullable.
    */
   public static final SqlTypeTransform TO_NULLABLE =
       (opBinding, typeToTransform) ->

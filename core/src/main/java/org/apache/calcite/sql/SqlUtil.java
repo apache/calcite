@@ -135,9 +135,7 @@ public abstract class SqlUtil {
     }
   }
 
-  /**
-   * Converts an SqlNode array to a SqlNodeList
-   */
+  /** Converts a SqlNode array to a SqlNodeList. */
   public static SqlNodeList toNodeList(SqlNode[] operands) {
     SqlNodeList ret = new SqlNodeList(SqlParserPos.ZERO);
     for (SqlNode node : operands) {
@@ -581,6 +579,9 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Filters an iterator of routines, keeping only those that have the required
+   * argument types and names.
+   *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4 Syntax Rule 6.b.iii.2.B
    */
   private static Iterator<SqlOperator> filterRoutinesByParameterTypeAndName(
@@ -653,6 +654,9 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Filters an iterator of routines, keeping only those with the best match for
+   * the actual argument types.
+   *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.4
    */
   private static Iterator<SqlOperator> filterRoutinesByTypePrecedence(

@@ -75,16 +75,12 @@ public abstract class SqlOperatorBinding {
     return false;
   }
 
-  /**
-   * @return bound operator
-   */
+  /** Returns the bound operator. */
   public SqlOperator getOperator() {
     return sqlOperator;
   }
 
-  /**
-   * @return factory for type creation
-   */
+  /** Returns the factory for type creation. */
   public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
@@ -169,9 +165,7 @@ public abstract class SqlOperatorBinding {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * @return the number of bound operands
-   */
+  /** Returns the number of bound operands. */
   public abstract int getOperandCount();
 
   /**

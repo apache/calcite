@@ -188,14 +188,14 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Returns a set of tables used by this expression or its children
+   * Returns a set of tables used by this expression or its children.
    */
   public static Set<RelOptTable> findTables(RelNode rel) {
     return new LinkedHashSet<>(findAllTables(rel));
   }
 
   /**
-   * Returns a list of all tables used by this expression or its children
+   * Returns a list of all tables used by this expression or its children.
    */
   public static List<RelOptTable> findAllTables(RelNode rel) {
     final Multimap<Class<? extends RelNode>, RelNode> nodes =
@@ -929,6 +929,7 @@ public abstract class RelOptUtil {
         null, aggCalls);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link RelBuilder#distinct()}. */
   @Deprecated // to be removed before 2.0
   public static RelNode createDistinctRel(RelNode rel) {
@@ -2831,7 +2832,7 @@ public abstract class RelOptUtil {
 
   /**
    * Splits a filter into two lists, depending on whether or not the filter
-   * only references its child input
+   * only references its child input.
    *
    * @param childBitmap Fields in the child
    * @param predicate   filters that will be split
@@ -3235,6 +3236,7 @@ public abstract class RelOptUtil {
         .build();
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link RelBuilder#projectNamed(Iterable, Iterable, boolean)} */
   @Deprecated // to be removed before 2.0
@@ -4074,12 +4076,11 @@ public abstract class RelOptUtil {
    *
    * <ul>
    *   <li>Project: remove the hints that have non-empty inherit path
-   *   (which means the hint was not originally declared from it); </li>
-   *   <li>Aggregate: remove the hints that have non-empty inherit path;</>
-   *   <li>Join: remove all the hints;</li>
-   *   <li>TableScan: remove the hints that have non-empty inherit path.</li>
+   *   (which means the hint was not originally declared from it);
+   *   <li>Aggregate: remove the hints that have non-empty inherit path;
+   *   <li>Join: remove all the hints;
+   *   <li>TableScan: remove the hints that have non-empty inherit path.
    * </ul>
-   *
    */
   private static class ResetHintsShuttle extends RelHomogeneousShuttle {
     public RelNode visit(RelNode node) {
@@ -4310,6 +4311,8 @@ public abstract class RelOptUtil {
     private final int[] adjustments;
 
     /**
+     * Creates a RexInputConverter.
+     *
      * @param rexBuilder      builder for creating new RexInputRefs
      * @param srcFields       fields where the RexInputRefs originated
      *                        from; if null, a new RexInputRef is always
@@ -4455,7 +4458,7 @@ public abstract class RelOptUtil {
   }
 
   /** Result of calling
-   * {@link org.apache.calcite.plan.RelOptUtil#createExistsPlan} */
+   * {@link org.apache.calcite.plan.RelOptUtil#createExistsPlan}. */
   public static class Exists {
     public final RelNode r;
     public final boolean indicator;

@@ -79,9 +79,9 @@ public class SqlWindowTableFunction extends SqlFunction {
   }
 
   /**
-   * Type-inference strategy whereby the result type of a table function call is a ROW,
-   * which is combined from the operand #0(TABLE parameter)'s schema and two
-   * additional fields:
+   * Type-inference strategy whereby the result type of a table function call is
+   * a ROW, which is combined from the operand #0(TABLE parameter)'s schema and
+   * two additional fields. The fields are as follows:
    *
    * <ol>
    *  <li>window_start: TIMESTAMP type to indicate a window's start.</li>

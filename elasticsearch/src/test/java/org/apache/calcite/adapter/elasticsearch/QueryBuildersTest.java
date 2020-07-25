@@ -34,7 +34,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Check that internal queries are correctly converted to ES search query (as JSON)
+ * Check that internal queries are correctly converted to ES search query (as
+ * JSON).
  */
 class QueryBuildersTest {
 

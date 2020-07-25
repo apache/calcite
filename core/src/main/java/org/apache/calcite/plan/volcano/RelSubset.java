@@ -84,37 +84,30 @@ public class RelSubset extends AbstractRelNode {
 
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * Optimization task state
-   */
+  /** Optimization task state. */
   OptimizeState taskState;
 
-  /**
-   * cost of best known plan (it may have improved since)
-   */
+  /** Cost of best known plan (it may have improved since). */
   RelOptCost bestCost;
 
-  /**
-   * The set this subset belongs to.
-   */
+  /** The set this subset belongs to. */
   final RelSet set;
 
-  /**
-   * best known plan
-   */
+  /** Best known plan. */
   RelNode best;
 
-  /**
-   * Timestamp for metadata validity
-   */
+  /** Timestamp for metadata validity. */
   long timestamp;
 
   /**
-   * Physical property state of current subset
-   * 0: logical operators, NONE convention is neither DELIVERED nor REQUIRED
-   * 1: traitSet DELIVERED from child operators or itself
-   * 2: traitSet REQUIRED from parent operators
-   * 3: both DELIVERED and REQUIRED
+   * Physical property state of current subset. Values:
+   *
+   * <ul>
+   * <li>0: logical operators, NONE convention is neither DELIVERED nor REQUIRED
+   * <li>1: traitSet DELIVERED from child operators or itself
+   * <li>2: traitSet REQUIRED from parent operators
+   * <li>3: both DELIVERED and REQUIRED
+   * </ul>
    */
   private int state = 0;
 
@@ -781,6 +774,7 @@ public class RelSubset extends AbstractRelNode {
     }
   }
 
+  /** State of optimizer. */
   enum OptimizeState {
     OPTIMIZING,
     COMPLETED

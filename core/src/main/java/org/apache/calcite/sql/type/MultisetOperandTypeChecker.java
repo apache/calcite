@@ -27,8 +27,8 @@ import com.google.common.collect.ImmutableList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Parameter type-checking strategy types must be [nullable] Multiset,
- * [nullable] Multiset and the two types must have the same element type
+ * Parameter type-checking strategy where types must be ([nullable] Multiset,
+ * [nullable] Multiset), and the two types must have the same element type.
  *
  * @see MultisetSqlType#getComponentType
  */

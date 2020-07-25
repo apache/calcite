@@ -62,7 +62,7 @@ import static java.lang.String.format;
 class PredicateAnalyzer {
 
   /**
-   * Internal exception
+   * Internal exception.
    */
   @SuppressWarnings("serial")
   private static final class PredicateAnalyzerException extends RuntimeException {
@@ -77,8 +77,8 @@ class PredicateAnalyzer {
   }
 
   /**
-   * Thrown when {@link org.apache.calcite.rel.RelNode} expression can't be processed
-   * (or converted into ES query)
+   * Exception that is thrown when a {@link org.apache.calcite.rel.RelNode}
+   * expression cannot be processed (or converted into an Elasticsearch query).
    */
   static class ExpressionNotAnalyzableException extends Exception {
     ExpressionNotAnalyzableException(String message, Throwable cause) {
@@ -521,7 +521,7 @@ class PredicateAnalyzer {
   }
 
   /**
-   * Empty interface; exists only to define type hierarchy
+   * Empty interface; exists only to define the type hierarchy.
    */
   interface Expression {
   }
@@ -581,7 +581,7 @@ class PredicateAnalyzer {
   }
 
   /**
-   * Builds conjunctions / disjunctions based on existing expressions
+   * Builds conjunctions / disjunctions based on existing expressions.
    */
   static class CompoundQueryExpression extends QueryExpression {
 
@@ -597,8 +597,9 @@ class PredicateAnalyzer {
     }
 
     /**
-     * if partial expression, we will need to complete it with a full filter
-     * @param partial whether we partially converted a and for push down purposes.
+     * If partial expression, we will need to complete it with a full filter.
+     *
+     * @param partial whether we partially converted a and for push down purposes
      * @param expressions list of expressions to join with {@code and} boolean
      * @return new instance of expression
      */
@@ -836,13 +837,13 @@ class PredicateAnalyzer {
   }
 
   /**
-   * Empty interface; exists only to define type hierarchy
+   * Empty interface; exists only to define the type hierarchy.
    */
   interface TerminalExpression extends Expression {
   }
 
   /**
-   * SQL cast: {@code cast(col as INTEGER)}
+   * SQL cast. For example, {@code cast(col as INTEGER)}.
    */
   static final class CastExpression implements TerminalExpression {
     private final RelDataType type;
@@ -871,7 +872,7 @@ class PredicateAnalyzer {
   }
 
   /**
-   * Used for bind variables
+   * Used for bind variables.
    */
   static final class NamedFieldExpression implements TerminalExpression {
 
@@ -967,8 +968,9 @@ class PredicateAnalyzer {
 
   /**
    * If one operand in a binary operator is a DateTime type, but the other isn't,
-   * we should not push down the predicate
-   * @param call current node being evaluated
+   * we should not push down the predicate.
+   *
+   * @param call Current node being evaluated
    */
   private static void checkForIncompatibleDateTimeOperands(RexCall call) {
     RelDataType op1 = call.getOperands().get(0).getType();

@@ -528,28 +528,28 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   }
 
   /**
-   * @see java.sql.DatabaseMetaData#getNumericFunctions
+   * As {@link java.sql.DatabaseMetaData#getNumericFunctions}.
    */
   public static String getNumericFunctions() {
     return NUMERIC_FUNCTIONS;
   }
 
   /**
-   * @see java.sql.DatabaseMetaData#getStringFunctions
+   * As {@link java.sql.DatabaseMetaData#getStringFunctions}.
    */
   public static String getStringFunctions() {
     return STRING_FUNCTIONS;
   }
 
   /**
-   * @see java.sql.DatabaseMetaData#getTimeDateFunctions
+   * As {@link java.sql.DatabaseMetaData#getTimeDateFunctions}.
    */
   public static String getTimeDateFunctions() {
     return TIME_DATE_FUNCTIONS;
   }
 
   /**
-   * @see java.sql.DatabaseMetaData#getSystemFunctions
+   * As {@link java.sql.DatabaseMetaData#getSystemFunctions}.
    */
   public static String getSystemFunctions() {
     return SYSTEM_FUNCTIONS;
@@ -657,7 +657,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   }
 
   /**
-   * Lookup table between JDBC functions and internal representation
+   * Lookup table between JDBC functions and internal representation.
    */
   private static class JdbcToInternalLookupTable {
     /**

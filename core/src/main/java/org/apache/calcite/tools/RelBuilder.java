@@ -728,6 +728,7 @@ public class RelBuilder {
     return groupKey_(nodes, nodeLists);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Now that indicator is deprecated, use
    * {@link #groupKey(Iterable, Iterable)}, which has the same behavior as
    * calling this method with {@code indicator = false}. */
@@ -779,6 +780,7 @@ public class RelBuilder {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #groupKey(ImmutableBitSet)}
    * or {@link #groupKey(ImmutableBitSet, Iterable)}. */
   @Deprecated // to be removed before 2.0
@@ -788,6 +790,7 @@ public class RelBuilder {
         ? ImmutableList.of(groupSet) : ImmutableList.copyOf(groupSets));
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #groupKey(ImmutableBitSet, Iterable)}. */
   @Deprecated // to be removed before 2.0
   public GroupKey groupKey(ImmutableBitSet groupSet, boolean indicator,
@@ -2045,7 +2048,7 @@ public class RelBuilder {
   }
 
   /**
-   * Auxiliary class to find a certain RelOptTable based on its name
+   * Auxiliary class to find a certain RelOptTable based on its name.
    */
   private static final class RelOptTableFinder extends RelHomogeneousShuttle {
     private RelOptTable relOptTable = null;

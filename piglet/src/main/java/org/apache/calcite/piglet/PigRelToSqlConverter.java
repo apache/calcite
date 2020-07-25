@@ -86,6 +86,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
     return buildAggregate(e, builder, selectList, groupBy.getList()).result();
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
   public Result visit(Window e) {
     final Result x = visitInput(e, 0, Clause.SELECT);

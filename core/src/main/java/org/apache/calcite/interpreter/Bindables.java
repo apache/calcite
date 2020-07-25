@@ -109,6 +109,7 @@ public class Bindables {
   public static final RelOptRule BINDABLE_SET_OP_RULE =
       BindableSetOpRule.DEFAULT_CONFIG.toRule(BindableSetOpRule.class);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #BINDABLE_SET_OP_RULE}. */
   public static final RelOptRule BINDABLE_SETOP_RULE =
       BINDABLE_SET_OP_RULE;

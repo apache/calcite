@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 
 /**
  * Unit test for
- * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
  */
 class EnumerableBatchNestedLoopJoinTest {
 

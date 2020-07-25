@@ -29,11 +29,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
+/** Test for
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableSortedAggregate}. */
 public class EnumerableSortedAggregateTest {
   @Test void sortedAgg() {
     tester(false, new JdbcTest.HrSchema())
-        .query(
-            "select deptno, "
+        .query("select deptno, "
             + "max(salary) as max_salary, count(name) as num_employee "
             + "from emps group by deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {

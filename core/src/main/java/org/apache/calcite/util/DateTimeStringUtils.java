@@ -29,7 +29,8 @@ public class DateTimeStringUtils {
 
   private DateTimeStringUtils() {}
 
-  /** The SimpleDateFormat string for ISO timestamps, "yyyy-MM-dd'T'HH:mm:ss'Z'"*/
+  /** The SimpleDateFormat string for ISO timestamps,
+   * "yyyy-MM-dd'T'HH:mm:ss'Z'". */
   public static final String ISO_DATETIME_FORMAT =
       "yyyy-MM-dd'T'HH:mm:ss'Z'";
 

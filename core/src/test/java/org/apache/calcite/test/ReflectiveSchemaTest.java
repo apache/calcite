@@ -296,8 +296,8 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; bigDecimal=null\n");
   }
 
-  /**
-   * Tests NOT for nullable columns
+  /** Tests NOT for nullable columns.
+   *
    * @see CatchallSchema#everyTypes */
   @Test void testWhereNOT() throws Exception {
     final CalciteAssert.AssertThat with =
@@ -307,8 +307,8 @@ public class ReflectiveSchemaTest {
         .returnsUnordered("wrapperByte=0");
   }
 
-  /**
-   * Tests NOT for nullable columns
+  /** Tests NOT for nullable columns.
+   *
    * @see CatchallSchema#everyTypes */
   @Test void testSelectNOT() throws Exception {
     final CalciteAssert.AssertThat with =
@@ -761,7 +761,7 @@ public class ReflectiveSchemaTest {
                 + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
-  /** Table with single field as Integer[] */
+  /** Table with single field as Integer[]. */
   @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test void testArrayOfBoxedPrimitives() {
@@ -771,7 +771,7 @@ public class ReflectiveSchemaTest {
         .returnsUnordered("value=1", "value=3", "value=7");
   }
 
-  /** Table with single field as int[] */
+  /** Table with single field as int[]. */
   @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test void testArrayOfPrimitives() {
@@ -977,7 +977,7 @@ public class ReflectiveSchemaTest {
     public final BitSet bitSet = new BitSet(0);
   }
 
-  /** Table that has integer and string fields */
+  /** Table that has integer and string fields. */
   public static class IntAndString {
     public final int id;
     public final String value;
@@ -1062,7 +1062,9 @@ public class ReflectiveSchemaTest {
     };
   }
 
-  /** CALCITE-2611 unknown on one side of an or may lead to uncompilable code */
+  /** Tests
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2611">[CALCITE-2611]
+   * UNKNOWN on one side of an OR may lead to uncompilable code</a>. */
   @Test void testUnknownInOr() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)

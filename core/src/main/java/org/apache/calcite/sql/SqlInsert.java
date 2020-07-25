@@ -105,14 +105,14 @@ public class SqlInsert extends SqlCall {
   }
 
   /**
-   * @return the identifier for the target table of the insertion
+   * Return the identifier for the target table of the insertion.
    */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
   /**
-   * @return the source expression for the data to be inserted
+   * Returns the source expression for the data to be inserted.
    */
   public SqlNode getSource() {
     return source;
@@ -123,8 +123,8 @@ public class SqlInsert extends SqlCall {
   }
 
   /**
-   * @return the list of target column names, or null for all columns in the
-   * target table
+   * Returns the list of target column names, or null for all columns in the
+   * target table.
    */
   public SqlNodeList getTargetColumnList() {
     return columnList;

@@ -41,17 +41,20 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return the underlying NlsString
+   * Returns the underlying NlsString.
+   *
+   * @deprecated Use {@link #getValueAs getValueAs(NlsString.class)}
    */
+  @Deprecated // to be removed before 2.0
   public NlsString getNlsString() {
     return (NlsString) value;
   }
 
   /**
-   * @return the collation
+   * Returns the collation.
    */
   public SqlCollation getCollation() {
-    return getNlsString().getCollation();
+    return ((NlsString) value).getCollation();
   }
 
   @Override public SqlCharStringLiteral clone(SqlParserPos pos) {
@@ -77,7 +80,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     return new SqlCharStringLiteral(
         NlsString.concat(
             Util.transform(literals,
-                literal -> ((SqlCharStringLiteral) literal).getNlsString())),
+                literal -> literal.getValueAs(NlsString.class))),
         literals.get(0).getParserPosition());
   }
 }

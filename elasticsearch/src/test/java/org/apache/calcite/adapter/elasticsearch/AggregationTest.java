@@ -232,9 +232,8 @@ class AggregationTest {
             "cat1=b; cat3=z; EXPR$2=7.0; EXPR$3=42.0");
   }
 
-  /**
-   * Testing {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate function
-   */
+  /** Tests the {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate
+   * function. */
   @Test void anyValue() {
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -346,9 +345,8 @@ class AggregationTest {
                           "cat1=null; EXPR$1=1");
   }
 
-  /**
-   * {@code select max(cast(_MAP['foo'] as integer)) from tbl}
-   */
+  /** Tests aggregation with cast,
+   * {@code select max(cast(_MAP['foo'] as integer)) from tbl}. */
   @Test void aggregationWithCast() {
     CalciteAssert.that()
         .with(newConnectionFactory())

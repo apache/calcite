@@ -320,7 +320,7 @@ public class Matcher<E> {
   }
 
   /**
-   * Represents a Tuple of a symbol and a row
+   * A 2-tuple consisting of a symbol and a row.
    *
    * @param <E> Type of Row
    */

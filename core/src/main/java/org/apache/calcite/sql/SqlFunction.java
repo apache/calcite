@@ -53,9 +53,9 @@ public class SqlFunction extends SqlOperator {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new SqlFunction for a call to a builtin function.
+   * Creates a new SqlFunction for a call to a built-in function.
    *
-   * @param name                 Name of builtin function
+   * @param name                 Name of built-in function
    * @param kind                 kind of operator implemented by function
    * @param returnTypeInference  strategy to use for return type inference
    * @param operandTypeInference strategy to use for parameter type inference
@@ -70,7 +70,7 @@ public class SqlFunction extends SqlOperator {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     // We leave sqlIdentifier as null to indicate
-    // that this is a builtin.  Same for paramTypes.
+    // that this is a built-in.  Same for paramTypes.
     this(name, null, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, category);
 
@@ -80,7 +80,7 @@ public class SqlFunction extends SqlOperator {
 
   /**
    * Creates a placeholder SqlFunction for an invocation of a function with a
-   * possibly qualified name. This name must be resolved into either a builtin
+   * possibly qualified name. This name must be resolved into either a built-in
    * function or a user-defined function.
    *
    * @param sqlIdentifier        possibly qualified identifier for function
@@ -130,7 +130,8 @@ public class SqlFunction extends SqlOperator {
   }
 
   /**
-   * @return fully qualified name of function, or null for a builtin function
+   * Returns the fully-qualified name of function, or null for a built-in
+   * function.
    */
   public SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
@@ -144,7 +145,7 @@ public class SqlFunction extends SqlOperator {
   }
 
   /**
-   * @return array of parameter types, or null for builtin function
+   * Return array of parameter types, or null for built-in function.
    */
   public List<RelDataType> getParamTypes() {
     return paramTypes;
@@ -168,7 +169,7 @@ public class SqlFunction extends SqlOperator {
   }
 
   /**
-   * @return function category
+   * Return function category.
    */
   @Nonnull public SqlFunctionCategory getFunctionType() {
     return this.category;

@@ -235,7 +235,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   //~ Tools ------------------------------------------------------------------
 
   /**
-   * @return true if this type name has "local time zone" definition.
+   * Returns whether this type name has "local time zone" definition.
    */
   private static boolean isWithLocalTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {

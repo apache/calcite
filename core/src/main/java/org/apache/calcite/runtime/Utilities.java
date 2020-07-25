@@ -33,6 +33,7 @@ public class Utilities {
   protected Utilities() {
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link java.util.Objects#equals}. */
   @Deprecated // to be removed before 2.0
   public static boolean equal(Object o0, Object o1) {

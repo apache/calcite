@@ -2158,7 +2158,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  /** Tests to see if the final branch of union is missed */
+  /** Tests to see if the final branch of union is missed. */
   @Test void testUnionMergeRule() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
@@ -4357,8 +4357,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3111">[CALCITE-3111]
-   * Allow custom implementations of Correlate in RelDecorrelator </a>
-   */
+   * Allow custom implementations of Correlate in RelDecorrelator</a>. */
   @Test void testCustomDecorrelate() {
     final String sql = "SELECT e1.empno\n"
         + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
@@ -4510,9 +4509,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for DX-11490
+  /** Test case for DX-11490:
    * Make sure the planner doesn't fail over wrong push down
-   * of is null */
+   * of is null. */
   @Test void testIsNullPushDown() {
     HepProgramBuilder preBuilder = new HepProgramBuilder();
     preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
@@ -4591,8 +4590,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on non-join keys, group by on non-null generating side only */
+  /** Test case for outer join, group by on non-join keys, group by on
+   * non-null generating side only. */
   @Test void testPushAggregateThroughOuterJoin1() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4606,8 +4605,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on non-join keys, on null generating side only */
+  /** Test case for outer join, group by on non-join keys, on null
+   * generating side only. */
   @Test void testPushAggregateThroughOuterJoin2() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4621,8 +4620,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on both side on non-join keys */
+  /** Test case for outer join, group by on both side on non-join
+   * keys. */
   @Test void testPushAggregateThroughOuterJoin3() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4636,8 +4635,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on key same as join key, group by on non-null generating side */
+  /** Test case for outer join, group by on key same as join key,
+   * group by on non-null generating side. */
   @Test void testPushAggregateThroughOuterJoin4() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4651,8 +4650,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on key same as join key, group by on null generating side */
+  /** Test case for outer join, group by on key same as join key,
+   * group by on null generating side. */
   @Test void testPushAggregateThroughOuterJoin5() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4666,8 +4665,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by on key same as join key, group by on both side */
+  /** Test case for outer join, group by on key same as join key,
+   * group by on both side. */
   @Test void testPushAggregateThroughOuterJoin6() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4681,8 +4680,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by key is susbset of join keys, group by on non-null generating side */
+  /** Test case for outer join, group by key is susbset of join keys,
+   * group by on non-null generating side. */
   @Test void testPushAggregateThroughOuterJoin7() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4697,8 +4696,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by key is susbset of join keys, group by on null generating side */
+  /** Test case for outer join, group by key is susbset of join keys,
+   * group by on null generating side. */
   @Test void testPushAggregateThroughOuterJoin8() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4713,8 +4712,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, group by key is susbset of join keys, group by on both sides */
+  /** Test case for outer join, group by key is susbset of join keys,
+   * group by on both sides. */
   @Test void testPushAggregateThroughOuterJoin9() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4729,8 +4728,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * outer join, with aggregate functions */
+  /** Test case for outer join, with aggregate functions. */
   @Test void testPushAggregateThroughOuterJoin10() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4744,8 +4742,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for
-   * non-equi outer join */
+  /** Test case for non-equi outer join. */
   @Test void testPushAggregateThroughOuterJoin11() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4759,8 +4756,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for
-   * right outer join, group by on key same as join key, group by on (left)null generating side */
+  /** Test case for right outer join, group by on key same as join
+   * key, group by on (left)null generating side. */
   @Test void testPushAggregateThroughOuterJoin12() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4774,8 +4771,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * full outer join, group by on key same as join key, group by on one side */
+  /** Test case for full outer join, group by on key same as join key,
+   * group by on one side. */
   @Test void testPushAggregateThroughOuterJoin13() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4789,8 +4786,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * full outer join, group by on key same as join key, group by on both side */
+  /** Test case for full outer join, group by on key same as join key,
+   * group by on both side. */
   @Test void testPushAggregateThroughOuterJoin14() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4804,8 +4801,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * full outer join, group by on both side on non-join keys */
+  /** Test case for full outer join, group by on both side on non-join
+   * keys. */
   @Test void testPushAggregateThroughOuterJoin15() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -4819,8 +4816,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * full outer join, group by key is susbset of join keys */
+  /** Test case for full outer join, group by key is susbset of join
+   * keys. */
   @Test void testPushAggregateThroughOuterJoin16() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
@@ -5377,10 +5374,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /**
-   * The top Aggregate should be removed -- given "deptno=100",
-   * the input of top Aggregate must be already distinct by "mgr"
-   */
+  /** Tests that top Aggregate is removed. Given "deptno=100", the
+   * input of top Aggregate must be already distinct by "mgr". */
   @Test void testAggregateRemove7() {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_REMOVE)
@@ -6705,8 +6700,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3151">[CALCITE-3151]
-   * RexCall's Monotonicity is not considered in determining a Calc's collation</a>
-   */
+   * RexCall's Monotonicity is not considered in determining a Calc's
+   * collation</a>. */
   @Test void testMonotonicityUDF() {
     final SqlFunction monotonicityFun =
         new SqlFunction("MONOFUN", SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
@@ -6761,8 +6756,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3997">[CALCITE-3997]
-   * Logical rules applied on physical operator but failed handle traits</a>
-   */
+   * Logical rules applied on physical operator but failed handle
+   * traits</a>. */
   @Test void testMergeJoinCollation() {
     final String sql = "select r.ename, s.sal from\n"
         + "sales.emp r join sales.bonus s\n"
@@ -6790,7 +6785,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Custom implementation of {@link Filter} for use
    * in test case to verify that {@link FilterMultiJoinMergeRule}
    * can be created with any {@link Filter} and not limited to
-   * {@link org.apache.calcite.rel.logical.LogicalFilter}
+   * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   private static class MyFilter extends Filter {
 
@@ -6844,7 +6839,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Custom implementation of {@link Project} for use
    * in test case to verify that {@link ProjectMultiJoinMergeRule}
    * can be created with any {@link Project} and not limited to
-   * {@link org.apache.calcite.rel.logical.LogicalProject}
+   * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   private static class MyProject extends Project {
     MyProject(
@@ -6967,8 +6962,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]
-   * Decorrelator gives empty result
-   * after decorrelating sort rel with null offset and fetch </a>
+   * Decorrelator gives empty result after decorrelating sort rel with
+   * null offset and fetch</a>.
    */
   @Test void testDecorrelationWithSort() {
     final String sql = "SELECT e1.empno\n"
@@ -6985,8 +6980,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3319">[CALCITE-3319]
-   * AssertionError for ReduceDecimalsRule </a>
-   */
+   * AssertionError for ReduceDecimalsRule</a>. */
   @Test void testReduceDecimal() {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.FILTER_TO_CALC)
@@ -7033,10 +7027,9 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3404">[CALCITE-3404]
-   * Treat agg expressions that can ignore distinct constraint as distinct
-   * in AggregateExpandDistinctAggregatesRule
-   * when all the other agg expressions are distinct and have same arguments</a>
-   */
+   * Treat agg expressions that can ignore distinct constraint as
+   * distinct in AggregateExpandDistinctAggregatesRule when all the
+   * other agg expressions are distinct and have same arguments</a>. */
   @Test void testMaxReuseDistinctAttrWithMixedOptionality() {
     final String sql = "select sum(distinct deptno), count(distinct deptno), "
         + "max(deptno) from emp";

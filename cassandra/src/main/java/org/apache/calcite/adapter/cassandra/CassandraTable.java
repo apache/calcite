@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Table based on a Cassandra column family
+ * Table based on a Cassandra column family.
  */
 public class CassandraTable extends AbstractQueryableTable
     implements TranslatableTable {

@@ -30,9 +30,7 @@ public class NewExpression extends Expression {
   public final Type type;
   public final List<Expression> arguments;
   public final List<MemberDeclaration> memberDeclarations;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public NewExpression(Type type, List<Expression> arguments,

@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Tests return type inference using {@code RelDataTypeSystem}
+ * Tests the inference of return types using {@code RelDataTypeSystem}.
  */
 class RelDataTypeSystemTest {
 

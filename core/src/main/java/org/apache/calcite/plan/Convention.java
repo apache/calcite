@@ -82,9 +82,8 @@ public interface Convention extends RelTrait {
     return false;
   }
 
-  /**
-   * Return RelFactories struct for the convention which can be used to build RelNode
-   */
+  /** Return RelFactories struct for this convention. It can can be used to
+   * build RelNode. */
   default RelFactories.Struct getRelFactories() {
     return RelFactories.DEFAULT_STRUCT;
   }

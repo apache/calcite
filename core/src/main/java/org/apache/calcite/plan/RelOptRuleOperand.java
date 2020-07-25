@@ -158,7 +158,7 @@ public class RelOptRuleOperand {
   }
 
   /**
-   * Sets the rule this operand belongs to
+   * Sets the rule this operand belongs to.
    *
    * @param rule containing rule
    */
@@ -249,7 +249,7 @@ public class RelOptRuleOperand {
   }
 
   /**
-   * @return relational expression class matched by this operand
+   * Returns relational expression class matched by this operand.
    */
   public Class<? extends RelNode> getMatchedClass() {
     return clazz;

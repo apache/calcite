@@ -21,19 +21,19 @@ package org.apache.calcite.sql;
  */
 public enum JoinConditionType implements Symbolizable {
   /**
-   * Join clause has no condition, for example "FROM EMP, DEPT"
+   * Join clause has no condition, for example "{@code FROM EMP, DEPT}".
    */
   NONE,
 
   /**
-   * Join clause has an ON condition, for example "FROM EMP JOIN DEPT ON
-   * EMP.DEPTNO = DEPT.DEPTNO"
+   * Join clause has an {@code ON} condition,
+   * for example "{@code FROM EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO}".
    */
   ON,
 
   /**
-   * Join clause has a USING condition, for example "FROM EMP JOIN DEPT
-   * USING (DEPTNO)"
+   * Join clause has a {@code USING} condition,
+   * for example "{@code FROM EMP JOIN DEPT USING (DEPTNO)}".
    */
   USING
 }

@@ -219,7 +219,7 @@ class MutableRelTest {
     assertEquals(mutableRel1, mutableRel2);
   }
 
-  /** Verifies equivalence of {@link MutableScan} */
+  /** Verifies equivalence of {@link MutableScan}. */
   @Test public void testMutableScanEquivalence() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);

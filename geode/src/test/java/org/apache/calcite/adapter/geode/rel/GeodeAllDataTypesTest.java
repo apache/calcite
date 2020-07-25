@@ -39,9 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Test with different types of data like boolean, time, timestamp
- */
+/** Test with different types of data, like BOOLEAN, TIME, TIMESTAMP. */
 class GeodeAllDataTypesTest extends AbstractGeodeTest {
 
   @BeforeAll

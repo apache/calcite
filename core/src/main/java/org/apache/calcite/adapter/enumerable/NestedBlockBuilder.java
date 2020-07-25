@@ -41,8 +41,7 @@ public interface NestedBlockBuilder {
   void nestBlock(BlockBuilder block);
 
   /**
-   * Returns the current code block
-   * @return current code block
+   * Returns the current code block.
    */
   BlockBuilder currentBlock();
 

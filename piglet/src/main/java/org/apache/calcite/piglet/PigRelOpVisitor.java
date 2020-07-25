@@ -91,9 +91,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   protected final PigRelBuilder builder;
   private Operator currentRoot;
 
-  /**
-   * Type of Pig groups
-   */
+  /** Type of Pig groups. */
   private enum GroupType {
     CUBE,
     ROLLUP,
@@ -337,7 +335,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   }
 
   /**
-   * Projects out group key and the row for each relation
+   * Projects out group key and the row for each relation.
    *
    * @param loCogroup Pig logical group operator
    * @throws FrontendException Exception during processing Pig operator

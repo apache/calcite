@@ -23,6 +23,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+/** Test for {@link EnumerableUncollect}. */
 class EnumerableUncollectTest {
 
   @Test void simpleUnnestArray() {

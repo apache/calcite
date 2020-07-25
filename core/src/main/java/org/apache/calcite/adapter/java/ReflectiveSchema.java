@@ -196,7 +196,7 @@ public class ReflectiveSchema
   }
 
   /** Deduces the element type of a collection;
-   * same logic as {@link #toEnumerable} */
+   * same logic as {@link #toEnumerable}. */
   private static Type getElementType(Class clazz) {
     if (clazz.isArray()) {
       return clazz.getComponentType();

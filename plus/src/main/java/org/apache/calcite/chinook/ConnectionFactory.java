@@ -23,7 +23,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 /**
- * Wrapping connection factory for quidem
+ * Wrapping connection factory for Quidem.
  */
 public class ConnectionFactory implements Quidem.ConnectionFactory {
 
@@ -34,7 +34,7 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   }
 
   /**
-   * Wrapping with Fairy environmental decoration
+   * Wrapping with Fairy environmental decoration.
    */
   public enum DatabaseWrapper {
     CALCITE_AS_ADMIN {

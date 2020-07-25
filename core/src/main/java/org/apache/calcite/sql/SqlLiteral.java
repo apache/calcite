@@ -175,17 +175,13 @@ public class SqlLiteral extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return value of {@link #typeName}
-   */
+  /** Returns the value of {@link #typeName}. */
   public SqlTypeName getTypeName() {
     return typeName;
   }
 
-  /**
-   * @return whether value is appropriate for its type (we have rules about
-   * these things)
-   */
+  /** Returns whether value is appropriate for its type. (We have rules about
+   * these things!) */
   public static boolean valueMatchesType(
       Object value,
       SqlTypeName typeName) {
@@ -500,7 +496,7 @@ public class SqlLiteral extends SqlNode {
   }
 
   /**
-   * For calc program builder - value may be different than {@link #unparse}
+   * For calc program builder - value may be different than {@link #unparse}.
    * Typical values:
    *
    * <ul>

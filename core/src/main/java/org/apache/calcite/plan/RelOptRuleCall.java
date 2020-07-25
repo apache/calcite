@@ -219,7 +219,7 @@ public abstract class RelOptRuleCall {
   }
 
   /**
-   * @return list of parents of the first relational expression
+   * Returns a list of parents of the first relational expression.
    */
   public List<RelNode> getParents() {
     return parents;

@@ -19,14 +19,14 @@ package org.apache.calcite.linq4j.tree;
 import java.util.Objects;
 
 /**
- * Represents a "for-each" loop, "for (T v : iterable) { f(v); }"
+ * Represents a "for-each" loop, "for (T v : iterable) { f(v); }".
  */
 public class ForEachStatement extends Statement {
   public final ParameterExpression parameter;
   public final Expression iterable;
   public final Statement body;
 
-  /** Cache the hash code for the expression */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public ForEachStatement(ParameterExpression parameter, Expression iterable,

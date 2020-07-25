@@ -663,7 +663,7 @@ public class LoptOptimizeJoinRule
 
   /**
    * Generates a join tree with a specific factor as the first factor in the
-   * join tree
+   * join tree.
    *
    * @param multiJoin join factors being optimized
    * @param semiJoinOpt optimal semijoins for each factor
@@ -1009,7 +1009,7 @@ public class LoptOptimizeJoinRule
 
   /**
    * Creates a join tree where the new factor is pushed down one of the
-   * operands of the current join tree
+   * operands of the current join tree.
    *
    * @param multiJoin join factors being optimized
    * @param semiJoinOpt optimal semijoins for each factor
@@ -1164,7 +1164,7 @@ public class LoptOptimizeJoinRule
   }
 
   /**
-   * Creates a join tree with the new factor added to the top of the tree
+   * Creates a join tree with the new factor added to the top of the tree.
    *
    * @param multiJoin join factors being optimized
    * @param semiJoinOpt optimal semijoins for each factor
@@ -1337,7 +1337,7 @@ public class LoptOptimizeJoinRule
 
   /**
    * Adjusts a filter to reflect a newly added factor in the middle of an
-   * existing join tree
+   * existing join tree.
    *
    * @param multiJoin join factors being optimized
    * @param left left subtree of the join
@@ -1896,7 +1896,7 @@ public class LoptOptimizeJoinRule
   }
 
   /**
-   * Adjusts a filter to reflect swapping of join inputs
+   * Adjusts a filter to reflect swapping of join inputs.
    *
    * @param rexBuilder rexBuilder
    * @param multiJoin join factors being optimized
@@ -1938,7 +1938,7 @@ public class LoptOptimizeJoinRule
 
   /**
    * Sets an array indicating how much each factor in a join tree needs to be
-   * adjusted to reflect the tree's join ordering
+   * adjusted to reflect the tree's join ordering.
    *
    * @param multiJoin join factors being optimized
    * @param adjustments array to be filled out

@@ -76,10 +76,10 @@ public class ExtractionDimensionSpec implements DimensionSpec {
     generator.writeEndObject();
   }
 
-  /**
-   * @param dimensionSpec Druid Dimesion spec object
+  /** Returns a valid {@link Granularity} of floor extract, or null when not
+   * possible.
    *
-   * @return valid {@link Granularity} of floor extract or null when not possible.
+   * @param dimensionSpec Druid Dimension specification
    */
   @Nullable
   public static Granularity toQueryGranularity(DimensionSpec dimensionSpec) {

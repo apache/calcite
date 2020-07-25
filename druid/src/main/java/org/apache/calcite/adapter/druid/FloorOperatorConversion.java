@@ -28,7 +28,8 @@ import java.util.TimeZone;
 import javax.annotation.Nullable;
 
 /**
- * DruidSqlOperatorConverter implementation that handles Floor operations conversions
+ * DruidSqlOperatorConverter implementation that handles Floor operations
+ * conversions.
  */
 public class FloorOperatorConversion implements DruidSqlOperatorConverter {
   @Override public SqlOperator calciteOperator() {

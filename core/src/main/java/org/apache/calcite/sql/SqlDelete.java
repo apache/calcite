@@ -86,14 +86,14 @@ public class SqlDelete extends SqlCall {
   }
 
   /**
-   * @return the identifier for the target table of the deletion
+   * Returns the identifier for the target table of the deletion.
    */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
   /**
-   * @return the alias for the target table of the deletion
+   * Returns the alias for the target table of the deletion.
    */
   public SqlIdentifier getAlias() {
     return alias;

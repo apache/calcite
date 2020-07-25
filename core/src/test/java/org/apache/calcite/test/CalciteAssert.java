@@ -385,12 +385,18 @@ public class CalciteAssert {
     return buf.toString();
   }
 
-  /** @see Matchers#returnsUnordered(String...) */
+  /** Checks that the {@link ResultSet} returns the given set of lines, in no
+   * particular order.
+   *
+   * @see Matchers#returnsUnordered(String...) */
   static Consumer<ResultSet> checkResultUnordered(final String... lines) {
     return checkResult(true, false, lines);
   }
 
-  /** @see Matchers#returnsUnordered(String...) */
+  /** Checks that the {@link ResultSet} returns the given set of lines,
+   * optionally sorting.
+   *
+   * @see Matchers#returnsUnordered(String...) */
   static Consumer<ResultSet> checkResult(final boolean sort,
       final boolean head, final String... lines) {
     return resultSet -> {
@@ -1042,7 +1048,7 @@ public class CalciteAssert {
       }
     }
 
-    /** Creates a copy of this AssertThat, adding more schemas */
+    /** Creates a copy of this AssertThat, adding more schemas. */
     public AssertThat with(SchemaSpec... specs) {
       AssertThat next = this;
       for (SchemaSpec spec : specs) {
@@ -1075,7 +1081,7 @@ public class CalciteAssert {
       return new AssertThat(connectionFactory.with(property, value));
     }
 
-    /** Sets Lex property **/
+    /** Sets the Lex property. **/
     public AssertThat with(Lex lex) {
       return with(CalciteConnectionProperty.LEX, lex);
     }
@@ -1269,7 +1275,7 @@ public class CalciteAssert {
     }
   }
 
-  /** Connection post processor */
+  /** Connection post-processor. */
   @FunctionalInterface
   public interface ConnectionPostProcessor {
     Connection apply(Connection connection) throws SQLException;
@@ -1542,10 +1548,8 @@ public class CalciteAssert {
             hooks, null, null, checkValidationException(optionalMessage)));
     }
 
-    /**
-     * Utility method so that one doesn't have to call
-     * {@link #failsAtValidation} with {@code null}
-     * */
+    /** Utility method so that one doesn't have to call
+     * {@link #failsAtValidation} with {@code null}. */
     public AssertQuery failsAtValidation() {
       return failsAtValidation(null);
     }
@@ -1764,6 +1768,7 @@ public class CalciteAssert {
       });
     }
 
+    // CHECKSTYLE: IGNORE 1
     /** @deprecated Use {@link #queryContains(Consumer)}. */
     @SuppressWarnings("Guava")
     @Deprecated // to be removed before 2.0
@@ -2114,9 +2119,7 @@ public class CalciteAssert {
     }
   }
 
-  /**
-   * We want a consumer which can throw SqlException
-   */
+  /** We want a consumer that can throw SqlException. */
   public interface PreparedStatementConsumer {
     void accept(PreparedStatement statement) throws SQLException;
   }

@@ -297,9 +297,7 @@ public class Smalls {
     };
   }
 
-  /**
-   * A function that adds a number to the first column of input cursor
-   */
+  /** Table function that adds a number to the first column of input cursor. */
   public static QueryableTable processCursor(final int offset,
       final Enumerable<Object[]> a) {
     return new AbstractQueryableTable(Object[].class) {
@@ -606,9 +604,9 @@ public class Smalls {
     public static java.sql.Time toTimeFun(Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
-    /** for Overloaded user-defined functions that have Double and BigDecimal
-     * arguments will goes wrong
-     * */
+
+    /** For overloaded user-defined functions that have {@code double} and
+     * {@code BigDecimal} arguments will go wrong. */
     public static double toDouble(BigDecimal var) {
       return var == null ? null : var.doubleValue();
     }
@@ -661,7 +659,7 @@ public class Smalls {
     }
   }
 
-  /** A generic interface for defining user defined aggregate functions
+  /** A generic interface for defining user-defined aggregate functions.
    *
    * @param <A> accumulator type
    * @param <V> value type

@@ -130,6 +130,7 @@ public enum Hook {
     return () -> remove(handler);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #add(Consumer)}. */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -149,6 +150,7 @@ public enum Hook {
     return () -> removeThread(handler);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addThread(Consumer)}. */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -162,6 +164,7 @@ public enum Hook {
     return threadHandlers.get().remove(handler);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #propertyJ}. */
   @SuppressWarnings("Guava")
   @Deprecated // return type will change in 2.0

@@ -44,19 +44,15 @@ public class RelColumnOrigin {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return table of origin
-   */
+  /** Returns table of origin. */
   public RelOptTable getOriginTable() {
     return originTable;
   }
 
-  /**
-   * @return 0-based index of column in origin table; whether this ordinal is
-   * flattened or unflattened depends on whether UDT flattening has already
+  /** Returns the 0-based index of column in origin table; whether this ordinal
+   * is flattened or unflattened depends on whether UDT flattening has already
    * been performed on the relational expression which produced this
-   * description
-   */
+   * description. */
   public int getOriginColumnOrdinal() {
     return iOriginColumn;
   }

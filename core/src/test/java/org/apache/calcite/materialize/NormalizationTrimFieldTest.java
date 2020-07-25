@@ -49,6 +49,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+/** Tests trimming unused fields before materialized view matching. */
 public class NormalizationTrimFieldTest extends SqlToRelTestBase {
 
   public static Frameworks.ConfigBuilder config() {
@@ -68,7 +69,7 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
         .traitDefs((List<RelTraitDef>) null);
   }
 
-  @Test public void testMVTrimUnusedFiled() {
+  @Test void testMVTrimUnusedFiled() {
     final RelBuilder relBuilder = RelBuilder.create(config().build());
     final LogicalProject project = (LogicalProject) relBuilder.scan("EMP")
         .project(relBuilder.field("EMPNO"),
@@ -78,21 +79,25 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
             relBuilder.field("DEPTNO")).build();
     final LogicalAggregate aggregate = (LogicalAggregate) relBuilder.push(project)
         .aggregate(
-            relBuilder.groupKey(relBuilder.field(1, 0, "DEPTNO")
-        ), relBuilder.count(relBuilder.field(1, 0, "SAL"))).build();
+            relBuilder.groupKey(relBuilder.field(1, 0, "DEPTNO")),
+            relBuilder.count(relBuilder.field(1, 0, "SAL")))
+        .build();
     final ImmutableBitSet groupSet = ImmutableBitSet.of(4);
     final AggregateCall count = aggregate.getAggCallList().get(0);
-    final AggregateCall call = AggregateCall.create(count.getAggregation(), count.isDistinct(),
-        count.isApproximate(), count.ignoreNulls(), ImmutableList.of(3),
+    final AggregateCall call = AggregateCall.create(count.getAggregation(),
+        count.isDistinct(), count.isApproximate(),
+        count.ignoreNulls(), ImmutableList.of(3),
         count.filterArg, count.collation, count.getType(), count.getName());
     final RelNode query = LogicalAggregate.create(project, aggregate.getHints(),
         groupSet, ImmutableList.of(groupSet), ImmutableList.of(call));
     final RelNode target = aggregate;
     final RelNode replacement = relBuilder.scan("mv0").build();
-    final RelOptMaterialization relOptMaterialization = new RelOptMaterialization(replacement,
-        target, null, Lists.newArrayList("mv0"));
-    final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized = RelOptMaterializations
-        .useMaterializedViews(query, ImmutableList.of(relOptMaterialization));
+    final RelOptMaterialization relOptMaterialization =
+        new RelOptMaterialization(replacement,
+            target, null, Lists.newArrayList("mv0"));
+    final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized =
+        RelOptMaterializations.useMaterializedViews(query,
+            ImmutableList.of(relOptMaterialization));
 
     final String optimized = ""
         + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"

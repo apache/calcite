@@ -287,13 +287,14 @@ public abstract class ReturnTypes {
       cascade(INTEGER, SqlTypeTransforms.TO_NULLABLE);
 
   /**
-   * Type-inference strategy whereby the result type of a call is a Bigint
+   * Type-inference strategy whereby the result type of a call is a BIGINT.
    */
   public static final SqlReturnTypeInference BIGINT =
       explicit(SqlTypeName.BIGINT);
+
   /**
    * Type-inference strategy whereby the result type of a call is a nullable
-   * Bigint
+   * BIGINT.
    */
   public static final SqlReturnTypeInference BIGINT_FORCE_NULLABLE =
       cascade(BIGINT, SqlTypeTransforms.FORCE_NULLABLE);
@@ -331,7 +332,7 @@ public abstract class ReturnTypes {
       cascade(VARCHAR_2000, SqlTypeTransforms.TO_NULLABLE);
 
   /**
-   * Type-inference strategy for Histogram agg support
+   * Type-inference strategy for Histogram agg support.
    */
   public static final SqlReturnTypeInference HISTOGRAM =
       explicit(SqlTypeName.VARBINARY, 8);
@@ -388,7 +389,7 @@ public abstract class ReturnTypes {
   };
 
   /**
-   * Returns a multiset type.
+   * Returns a MULTISET type.
    *
    * <p>For example, given <code>INTEGER</code>, returns
    * <code>INTEGER MULTISET</code>.
@@ -397,7 +398,7 @@ public abstract class ReturnTypes {
       cascade(ARG0, SqlTypeTransforms.TO_MULTISET);
 
   /**
-   * Returns the element type of a multiset
+   * Returns the element type of a MULTISET.
    */
   public static final SqlReturnTypeInference MULTISET_ELEMENT_NULLABLE =
       cascade(MULTISET, SqlTypeTransforms.TO_MULTISET_ELEMENT_TYPE);
@@ -474,10 +475,11 @@ public abstract class ReturnTypes {
     RelDataType type2 = opBinding.getOperandType(1);
     return typeFactory.getTypeSystem().deriveDecimalMultiplyType(typeFactory, type1, type2);
   };
+
   /**
    * Same as {@link #DECIMAL_PRODUCT} but returns with nullability if any of
    * the operands is nullable by using
-   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_PRODUCT_NULLABLE =
       cascade(DECIMAL_PRODUCT, SqlTypeTransforms.TO_NULLABLE);
@@ -508,7 +510,7 @@ public abstract class ReturnTypes {
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
    * the operands is nullable by using
-   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DECIMAL_QUOTIENT_NULLABLE =
       cascade(DECIMAL_QUOTIENT, SqlTypeTransforms.TO_NULLABLE);
@@ -574,7 +576,8 @@ public abstract class ReturnTypes {
           chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
 
   /**
-   * Type-inference strategy whereby the result type of a call is
+   * Type-inference strategy for concatenating two string arguments. The result
+   * type of a call is:
    *
    * <ul>
    * <li>the same type as the input types but with the combined length of the
@@ -735,7 +738,7 @@ public abstract class ReturnTypes {
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
-   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE =
       cascade(DYADIC_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE);

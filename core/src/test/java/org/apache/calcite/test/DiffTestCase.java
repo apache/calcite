@@ -69,10 +69,7 @@ public abstract class DiffTestCase {
    */
   protected OutputStream logOutputStream;
 
-  /**
-   * Diff masks defined so far
-   */
-  // private List diffMasks;
+  /** Diff masks defined so far. */
   private String diffMasks;
   Pattern compiledDiffPattern;
   Matcher compiledDiffMatcher;
@@ -149,9 +146,7 @@ public abstract class DiffTestCase {
         openTestLogOutputStream(testLogFile), StandardCharsets.UTF_8);
   }
 
-  /**
-   * @return the root under which testlogs should be written
-   */
+  /** Returns the root directory under which testlogs should be written. */
   protected abstract File getTestlogRoot() throws Exception;
 
   /**

@@ -30,7 +30,7 @@ import org.apache.geode.cache.client.ClientCache;
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
 
 /**
- * Geode Simple Scannable Table Abstraction
+ * Geode Simple Scannable Table abstraction.
  */
 public class GeodeSimpleScannableTable extends AbstractTable implements ScannableTable {
 

@@ -100,16 +100,12 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
-  /**
-   * @return the identifier for the target table of the update
-   */
+  /** Returns the identifier for the target table of this UPDATE. */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
-  /**
-   * @return the alias for the target table of the update
-   */
+  /** Returns the alias for the target table of this UPDATE. */
   public SqlIdentifier getAlias() {
     return alias;
   }
@@ -118,16 +114,12 @@ public class SqlUpdate extends SqlCall {
     this.alias = alias;
   }
 
-  /**
-   * @return the list of target column names
-   */
+  /** Returns the list of target column names. */
   public SqlNodeList getTargetColumnList() {
     return targetColumnList;
   }
 
-  /**
-   * @return the list of source expressions
-   */
+  /** Returns the list of source expressions. */
   public SqlNodeList getSourceExpressionList() {
     return sourceExpressionList;
   }

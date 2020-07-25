@@ -175,9 +175,7 @@ public class LoptJoinTree {
       this.id = rootId;
     }
 
-    /**
-     * @return the id associated with a leaf node in a binary tree
-     */
+    /** Returns the id associated with a leaf node in a binary tree. */
     public int getId() {
       return id;
     }

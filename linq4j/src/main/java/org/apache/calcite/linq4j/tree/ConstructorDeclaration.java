@@ -31,9 +31,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
   public final Type resultType;
   public final List<ParameterExpression> parameters;
   public final BlockStatement body;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public ConstructorDeclaration(int modifier, Type declaredAgainst,

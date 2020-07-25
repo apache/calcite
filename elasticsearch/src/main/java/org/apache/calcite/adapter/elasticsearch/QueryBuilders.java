@@ -203,12 +203,13 @@ class QueryBuilders {
   }
 
   /**
-   * Base class to build ES queries
+   * Base class to build Elasticsearch queries.
    */
   abstract static class QueryBuilder {
 
     /**
-     * Convert existing query to JSON format using jackson API.
+     * Converts an existing query to JSON format using jackson API.
+     *
      * @param generator used to generate JSON elements
      * @throws IOException if IO error occurred
      */
@@ -216,7 +217,7 @@ class QueryBuilders {
   }
 
   /**
-   * Query for boolean logic
+   * Query for boolean logic.
    */
   static class BoolQueryBuilder extends QueryBuilder {
     private final List<QueryBuilder> mustClauses = new ArrayList<>();

@@ -78,7 +78,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Connection factory based on the "mongo-zips" model. */
   protected static final URL MODEL = MongoAdapterTest.class.getResource("/mongo-model.json");
 
-  /** Number of records in local file */
+  /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
 
   @RegisterExtension

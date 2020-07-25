@@ -98,32 +98,24 @@ public class SqlParserPos implements Serializable {
         && this.endColumnNumber == ((SqlParserPos) o).endColumnNumber;
   }
 
-  /**
-   * @return 1-based starting line number
-   */
+  /** Returns 1-based starting line number. */
   public int getLineNum() {
     return lineNumber;
   }
 
-  /**
-   * @return 1-based starting column number
-   */
+  /** Returns 1-based starting column number. */
   public int getColumnNum() {
     return columnNumber;
   }
 
-  /**
-   * @return 1-based end line number (same as starting line number if the
-   * ParserPos is a point, not a range)
-   */
+  /** Returns 1-based end line number (same as starting line number if the
+   * ParserPos is a point, not a range). */
   public int getEndLineNum() {
     return endLineNumber;
   }
 
-  /**
-   * @return 1-based end column number (same as starting column number if the
-   * ParserPos is a point, not a range)
-   */
+  /** Returns 1-based end column number (same as starting column number if the
+   * ParserPos is a point, not a range). */
   public int getEndColumnNum() {
     return endColumnNumber;
   }
@@ -141,7 +133,7 @@ public class SqlParserPos implements Serializable {
     }
   }
 
-  /** @return true if this SqlParserPos is quoted. **/
+  /** Returns whether this SqlParserPos is quoted. */
   public boolean isQuoted() {
     return false;
   }

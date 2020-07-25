@@ -101,16 +101,22 @@ class RelToSqlConverterStructsTest {
 
   private static final Table TABLE = new Table() {
     /**
-     * Table schema is as following:
+     * {@inheritDoc}
+     *
+     * <p>Table schema is as follows:
+     *
+     * <blockquote>
+     * <pre>
      *  myTable(
      *          a: BIGINT,
-     *          n1: STRUCT<
-     *                n11: STRUCT<b: BIGINT>,
-     *                n12: STRUCT<c: BIGINT>
-     *              >,
-     *          n2: STRUCT<d: BIGINT>,
-     *          e: BIGINT
-     *  )
+     *          n1: STRUCT&lt;
+     *                n11: STRUCT&lt;b: BIGINT&gt;,
+     *                n12: STRUCT&lt;c: BIGINT&gt;
+     *              &gt;,
+     *          n2: STRUCT&lt;d: BIGINT&gt;,
+     *          e: BIGINT)
+     * </pre>
+     * </blockquote>
      */
     @Override public RelDataType getRowType(RelDataTypeFactory tf) {
       RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);

@@ -42,9 +42,7 @@ public interface RelWriter {
    */
   void explain(RelNode rel, List<Pair<String, Object>> valueList);
 
-  /**
-   * @return detail level at which plan should be generated
-   */
+  /** Returns detail level at which plan should be generated. */
   SqlExplainLevel getDetailLevel();
 
   /**

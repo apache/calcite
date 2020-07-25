@@ -211,7 +211,7 @@ public class CodeGenerationBenchmark {
     }
   }
 
-  /***/
+  /** Plan information. */
   private static class PlanInfo {
     ClassDeclaration classExpr;
     IClassBodyEvaluator cbe;

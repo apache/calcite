@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Basic tests for parsing ES version in different formats
+ * Basic tests for parsing Elasticsearch version in different formats.
  */
 class ElasticsearchVersionTest {
 

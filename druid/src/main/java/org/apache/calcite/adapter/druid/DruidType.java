@@ -35,16 +35,13 @@ public enum DruidType {
     this.sqlType = sqlType;
   }
 
-  /**
-   * Returns true if and only if this enum should be used inside of a {@link ComplexMetric}
-   * */
+  /** Returns whether this type should be used inside a
+   * {@link ComplexMetric}. */
   public boolean isComplex() {
     return this == THETA_SKETCH || this == HYPER_UNIQUE || this == COMPLEX;
   }
 
-  /**
-   * Returns a DruidType matching the given String type from a Druid metric
-   * */
+  /** Returns a DruidType matching the given String type from a Druid metric. */
   protected static DruidType getTypeFromMetric(String type) {
     assert type != null;
     if (type.equals("hyperUnique")) {
@@ -61,9 +58,7 @@ public enum DruidType {
     throw new AssertionError("Unknown type: " + type);
   }
 
-  /**
-   * Returns a DruidType matching the String from a meta data query
-   * */
+  /** Returns a DruidType matching the String from a meta data query. */
   protected static DruidType getTypeFromMetaData(String type) {
     assert type != null;
     switch (type) {

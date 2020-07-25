@@ -80,10 +80,8 @@ public final class SqlParserUtil {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return the character-set prefix of an sql string literal; returns null
-   * if there is none
-   */
+  /** Returns the character-set prefix of a SQL string literal; returns null if
+   * there is none. */
   public static String getCharacterSet(String s) {
     if (s.charAt(0) == '\'') {
       return null;
@@ -116,25 +114,22 @@ public final class SqlParserUtil {
     return new BigDecimal(s);
   }
 
-  /**
-   * @deprecated this method is not localized for Farrago standards
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated this method is not localized for Farrago standards */
   @Deprecated // to be removed before 2.0
   public static java.sql.Date parseDate(String s) {
     return java.sql.Date.valueOf(s);
   }
 
-  /**
-   * @deprecated Does not parse SQL:99 milliseconds
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated Does not parse SQL:99 milliseconds */
   @Deprecated // to be removed before 2.0
   public static java.sql.Time parseTime(String s) {
     return java.sql.Time.valueOf(s);
   }
 
-  /**
-   * @deprecated this method is not localized for Farrago standards
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated this method is not localized for Farrago standards */
   @Deprecated // to be removed before 2.0
   public static java.sql.Timestamp parseTimestamp(String s) {
     return java.sql.Timestamp.valueOf(s);
@@ -207,7 +202,7 @@ public final class SqlParserUtil {
   }
 
   /**
-   * Checks if the date/time format is valid
+   * Checks if the date/time format is valid, throws if not.
    *
    * @param pattern {@link SimpleDateFormat}  pattern
    */

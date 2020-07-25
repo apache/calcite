@@ -98,7 +98,8 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
   }
 
   /**
-   * Builds elastic rest client from user configuration
+   * Builds Elastic rest client from user configuration.
+   *
    * @param hosts list of ES HTTP Hosts to connect to
    * @return newly initialized low-level rest http client for ES
    */

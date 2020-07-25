@@ -70,6 +70,7 @@ public interface SqlValidatorScope {
   void resolve(List<String> names, SqlNameMatcher nameMatcher, boolean deep,
       Resolved resolved);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #findQualifyingTableNames(String, SqlNode, SqlNameMatcher)} */
   @Deprecated // to be removed before 2.0
@@ -177,6 +178,7 @@ public interface SqlValidatorScope {
    */
   void validateExpr(SqlNode expr);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #resolveTable(List, SqlNameMatcher, Path, Resolved)}. */
   @Deprecated // to be removed before 2.0

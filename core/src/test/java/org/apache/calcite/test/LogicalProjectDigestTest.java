@@ -34,9 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Verifies digest for {@link LogicalProject}.
  */
 class LogicalProjectDigestTest {
-  /**
-   * Planner does not compare
-   */
+  /** Planner does not compare. */
   @Test void fieldNamesDoNotInfluenceDigest() {
     final RelBuilder rb = RelBuilder.create(Frameworks.newConfigBuilder().build());
     final RelNode xAsEmpid = rb.values(new String[]{"x", "y", "z"}, 1, 2, 3)

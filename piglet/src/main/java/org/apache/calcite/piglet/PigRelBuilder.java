@@ -269,7 +269,7 @@ public class PigRelBuilder extends RelBuilder {
   }
 
   /**
-   * Makes a table scan operator for a given row type and names
+   * Makes a table scan operator for a given row type and names.
    *
    * @param rowType Row type
    * @param tableNames Table names
@@ -280,7 +280,7 @@ public class PigRelBuilder extends RelBuilder {
   }
 
   /**
-   * Makes a table scan operator for a given row type and names
+   * Makes a table scan operator for a given row type and names.
    *
    * @param rowType Row type
    * @param tableNames Table names
@@ -593,7 +593,7 @@ public class PigRelBuilder extends RelBuilder {
   }
 
   /**
-   * Save the store alias with the corresponding relational algebra node
+   * Saves the store alias with the corresponding relational algebra node.
    *
    * @param storeAlias alias of the Pig store operator
    * @return This builder

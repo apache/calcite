@@ -132,43 +132,44 @@ public class CalciteContextException extends CalciteException {
   }
 
   /**
-   * @return 1-based line number, or 0 for missing position information
+   * Returns the 1-based line number, or 0 for missing position information.
    */
   public int getPosLine() {
     return posLine;
   }
 
   /**
-   * @return 1-based column number, or 0 for missing position information
+   * Returns the 1-based column number, or 0 for missing position information.
    */
   public int getPosColumn() {
     return posColumn;
   }
 
   /**
-   * @return 1-based ending line number, or 0 for missing position information
+   * Returns the 1-based ending line number, or 0 for missing position
+   * information.
    */
   public int getEndPosLine() {
     return endPosLine;
   }
 
   /**
-   * @return 1-based ending column number, or 0 for missing position
-   * information
+   * Returns the 1-based ending column number, or 0 for missing position
+   * information.
    */
   public int getEndPosColumn() {
     return endPosColumn;
   }
 
   /**
-   * @return the input string that is associated with the context
+   * Returns the input string that is associated with the context.
    */
   public String getOriginalStatement() {
     return originalStatement;
   }
 
   /**
-   * @param originalStatement - String to associate with the current context
+   * Sets the input string to associate with the current context.
    */
   public void setOriginalStatement(String originalStatement) {
     this.originalStatement = originalStatement;

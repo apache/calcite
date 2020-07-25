@@ -30,7 +30,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 /**
- * Checks if silent precondition has noticeable overhead
+ * Checks if silent precondition has noticeable overhead.
  */
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Benchmark)

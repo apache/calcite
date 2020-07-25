@@ -55,7 +55,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Table based on a Geode Region
+ * Table based on a Geode Region.
  */
 public class GeodeTable extends AbstractQueryableTable implements TranslatableTable {
 

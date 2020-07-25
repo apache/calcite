@@ -30,9 +30,7 @@ public class MethodCallExpression extends Expression {
   public final Method method;
   public final Expression targetExpression; // null for call to static method
   public final List<Expression> expressions;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   MethodCallExpression(Type returnType, Method method,

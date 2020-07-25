@@ -90,6 +90,7 @@ public interface Planner extends AutoCloseable {
    */
   RelRoot rel(SqlNode sql) throws RelConversionException;
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #rel}. */
   @Deprecated // to removed before 2.0
   RelNode convert(SqlNode sql) throws RelConversionException;

@@ -205,59 +205,59 @@ public final class MultiJoin extends AbstractRelNode {
   }
 
   /**
-   * @return join filters associated with this MultiJoin
+   * Returns join filters associated with this MultiJoin.
    */
   public RexNode getJoinFilter() {
     return joinFilter;
   }
 
   /**
-   * @return true if the MultiJoin corresponds to a full outer join.
+   * Returns true if the MultiJoin corresponds to a full outer join.
    */
   public boolean isFullOuterJoin() {
     return isFullOuterJoin;
   }
 
   /**
-   * @return outer join conditions for null-generating inputs
+   * Returns outer join conditions for null-generating inputs.
    */
   public List<RexNode> getOuterJoinConditions() {
     return outerJoinConditions;
   }
 
   /**
-   * @return join types of each input
+   * Returns join types of each input.
    */
   public List<JoinRelType> getJoinTypes() {
     return joinTypes;
   }
 
   /**
-   * @return bitmaps representing the fields projected from each input; if an
-   * entry is null, all fields are projected
+   * Returns bitmaps representing the fields projected from each input; if an
+   * entry is null, all fields are projected.
    */
   public List<ImmutableBitSet> getProjFields() {
     return projFields;
   }
 
   /**
-   * @return the map of reference counts for each input, representing the
-   * fields accessed in join conditions
+   * Returns the map of reference counts for each input, representing the fields
+   * accessed in join conditions.
    */
   public ImmutableMap<Integer, ImmutableIntList> getJoinFieldRefCountsMap() {
     return joinFieldRefCountsMap;
   }
 
   /**
-   * @return a copy of the map of reference counts for each input,
-   * representing the fields accessed in join conditions
+   * Returns a copy of the map of reference counts for each input, representing
+   * the fields accessed in join conditions.
    */
   public Map<Integer, int[]> getCopyJoinFieldRefCountsMap() {
     return cloneJoinFieldRefCountsMap();
   }
 
   /**
-   * @return post-join filter associated with this MultiJoin
+   * Returns post-join filter associated with this MultiJoin.
    */
   public RexNode getPostJoinFilter() {
     return postJoinFilter;

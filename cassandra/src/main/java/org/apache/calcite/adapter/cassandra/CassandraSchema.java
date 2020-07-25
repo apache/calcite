@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Schema mapped onto a Cassandra column family
+ * Schema mapped onto a Cassandra column family.
  */
 public class CassandraSchema extends AbstractSchema {
   final Session session;
@@ -243,7 +243,7 @@ public class CassandraSchema extends AbstractSchema {
   }
 
   /**
-   * Get all primary key columns from the underlying CQL table
+   * Returns all primary key columns from the underlying CQL table.
    *
    * @return A list of field names that are part of the partition and clustering keys
    */
@@ -305,8 +305,7 @@ public class CassandraSchema extends AbstractSchema {
     return keyCollations;
   }
 
-  /** Add all materialized views defined in the schema to this column family
-   */
+  /** Adds all materialized views defined in the schema to this column family. */
   private void addMaterializedViews() {
     // Close the hook use to get us here
     hook.close();

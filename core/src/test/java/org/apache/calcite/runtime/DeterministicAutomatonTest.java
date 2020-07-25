@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-/** Tests for the {@link DeterministicAutomaton} */
+/** Tests for the {@link DeterministicAutomaton}. */
 class DeterministicAutomatonTest {
   @Test void convertAutomaton() {
     final Pattern.PatternBuilder builder = Pattern.builder();

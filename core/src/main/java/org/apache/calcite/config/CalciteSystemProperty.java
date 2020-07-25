@@ -357,8 +357,9 @@ public final class CalciteSystemProperty<T> {
   }
 
   /**
-   * Returns the value of the system property with the specified name as int, or
-   * the <code>defaultValue</code> if any of the conditions below hold:
+   * Returns the value of the system property with the specified name as {@code
+   * int}. If any of the conditions below hold, returns the
+   * <code>defaultValue</code>:
    *
    * <ol>
    * <li>the property is not defined;

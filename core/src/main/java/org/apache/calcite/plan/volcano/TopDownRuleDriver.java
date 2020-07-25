@@ -130,6 +130,7 @@ class TopDownRuleDriver implements RuleDriver {
     applying = null;
   }
 
+  /** Procedure. */
   private interface Procedure {
     void exec();
   }
@@ -280,6 +281,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
+  /** Task for generator. */
   private interface GeneratorTask extends Task {
     RelSubset group();
     boolean exploring();
@@ -435,7 +437,7 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * Explore an input for a RelNode
+   * Explore an input for a RelNode.
    */
   private class ExploreInput implements Task {
     private final RelSubset group;
@@ -496,7 +498,7 @@ class TopDownRuleDriver implements RuleDriver {
   }
 
   /**
-   * Apply a rule match
+   * Apply a rule match.
    */
   private class ApplyRule implements GeneratorTask {
     private final VolcanoRuleMatch match;

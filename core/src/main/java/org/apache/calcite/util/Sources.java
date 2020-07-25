@@ -94,9 +94,7 @@ public abstract class Sources {
     return source.protocol().equals("file");
   }
 
-  /**
-   * Adapter for {@link CharSource}
-   */
+  /** Adapter for {@link CharSource}. */
   private static class GuavaCharSource implements Source {
     private final CharSource charSource;
 
@@ -155,7 +153,8 @@ public abstract class Sources {
     }
   }
 
-  /** Implementation of {@link Source} on the top of a {@link File} or {@link URL} */
+  /** Implementation of {@link Source} on the top of a {@link File} or
+   * {@link URL}. */
   private static class FileSource implements Source {
     private final File file;
     private final URL url;

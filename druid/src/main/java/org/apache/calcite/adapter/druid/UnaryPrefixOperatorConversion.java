@@ -26,7 +26,8 @@ import com.google.common.collect.Iterables;
 import java.util.List;
 
 /**
- * Unary prefix Operator conversion class used to convert expression like Unary NOT and Minus
+ * Unary prefix Operator conversion class; used to convert expressions like
+ * Unary NOT and Minus.
  */
 public class UnaryPrefixOperatorConversion implements DruidSqlOperatorConverter {
 

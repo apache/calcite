@@ -134,7 +134,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Rewrites a call in place, from bottom up, as follows:
+     * Rewrites a call in place, from bottom up. Algorithm is as follows:
      *
      * <ol>
      * <li>visit operands
@@ -163,7 +163,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Registers node so it will not be computed again
+     * Registers node so it will not be computed again.
      */
     private void register(RexNode node, RexNode reducedNode) {
       Pair<RexNode, String> key = RexUtil.makeKey(node);
@@ -175,7 +175,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Lookup registered node
+     * Looks up a registered node.
      */
     private RexNode lookup(RexNode node) {
       Pair<RexNode, String> key = RexUtil.makeKey(node);
@@ -186,7 +186,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Rewrites a call, if required, or returns the original call
+     * Rewrites a call, if required, or returns the original call.
      */
     private RexNode rewriteCall(RexCall call) {
       SqlOperator operator = call.getOperator();
@@ -202,7 +202,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Returns a {@link RexExpander} for a call
+     * Returns a {@link RexExpander} for a call.
      */
     private RexExpander getExpander(RexCall call) {
       return expanderMap.getExpander(call);
@@ -285,7 +285,7 @@ public class ReduceDecimalsRule
    */
   public abstract static class RexExpander {
     /**
-     * Factory for constructing new relational expressions
+     * Factory for creating relational expressions.
      */
     final RexBuilder builder;
 
@@ -302,7 +302,7 @@ public class ReduceDecimalsRule
     final RelDataType real8;
 
     /**
-     * Constructs a RexExpander
+     * Creates a RexExpander.
      */
     RexExpander(RexBuilder builder) {
       this.builder = builder;
@@ -333,7 +333,7 @@ public class ReduceDecimalsRule
     public abstract RexNode expand(RexCall call);
 
     /**
-     * Makes an exact numeric literal to be used for scaling
+     * Makes an exact numeric literal to be used for scaling.
      *
      * @param scale a scale from one to max precision - 1
      * @return 10^scale as an exact numeric value
@@ -346,7 +346,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Makes an approximate literal to be used for scaling
+     * Makes an approximate literal to be used for scaling.
      *
      * @param scale a scale from -99 to 99
      * @return 10^scale as an approximate value
@@ -376,7 +376,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Calculates a power of ten, as a long value
+     * Calculates a power of ten, as a long value.
      */
     protected long powerOfTen(int scale) {
       assert scale >= 0;
@@ -386,7 +386,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Makes an exact, non-nullable literal of Bigint type
+     * Makes an exact, non-nullable literal of Bigint type.
      */
     protected RexNode makeExactLiteral(long l) {
       BigDecimal bd = BigDecimal.valueOf(l);
@@ -394,7 +394,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Makes an approximate literal of double precision
+     * Makes an approximate literal of double precision.
      */
     protected RexNode makeApproxLiteral(BigDecimal bd) {
       return builder.makeApproxLiteral(bd);
@@ -535,7 +535,7 @@ public class ReduceDecimalsRule
     }
 
     /**
-     * Retrieves a decimal node's integer representation
+     * Retrieves a decimal node's integer representation.
      *
      * @param decimalNode the decimal value as an opaque type
      * @return an integer representation of the decimal value
@@ -995,7 +995,8 @@ public class ReduceDecimalsRule
   }
 
   /**
-   * Expander that rewrites floor(decimal) expressions:
+   * Expander that rewrites {@code FLOOR(DECIMAL)} expressions.
+   * Rewrite is as follows:
    *
    * <blockquote><pre>
    * if (value &lt; 0)
@@ -1044,7 +1045,8 @@ public class ReduceDecimalsRule
   }
 
   /**
-   * Expander that rewrites ceiling(decimal) expressions:
+   * Expander that rewrites {@code CEILING(DECIMAL)} expressions.
+   * Rewrite is as follows:
    *
    * <blockquote><pre>
    * if (value &gt; 0)
@@ -1174,7 +1176,7 @@ public class ReduceDecimalsRule
   }
 
   /**
-   * An expander that casts decimal arguments as doubles
+   * Expander that casts DECIMAL arguments as DOUBLE.
    */
   private static class CastArgAsDoubleExpander extends CastArgAsTypeExpander {
     private CastArgAsDoubleExpander(RexBuilder builder) {
@@ -1194,7 +1196,7 @@ public class ReduceDecimalsRule
   }
 
   /**
-   * An expander that casts decimal arguments as another type
+   * Expander that casts DECIMAL arguments as another type.
    */
   private abstract static class CastArgAsTypeExpander extends RexExpander {
     private CastArgAsTypeExpander(RexBuilder builder) {

@@ -604,7 +604,7 @@ class RexBuilderTest {
     checkBigDecimalLiteral(builder, "-73786976294838206464");
   }
 
-  /** Tests {@link RexCopier#visitOver(RexOver)} */
+  /** Tests {@link RexCopier#visitOver(RexOver)}. */
   @Test void testCopyOver() {
     final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -643,7 +643,7 @@ class RexBuilderTest {
     }
   }
 
-  /** Tests {@link RexCopier#visitCorrelVariable(RexCorrelVariable)} */
+  /** Tests {@link RexCopier#visitCorrelVariable(RexCorrelVariable)}. */
   @Test void testCopyCorrelVariable() {
     final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -664,7 +664,7 @@ class RexBuilderTest {
     assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
-  /** Tests {@link RexCopier#visitLocalRef(RexLocalRef)} */
+  /** Tests {@link RexCopier#visitLocalRef(RexLocalRef)}. */
   @Test void testCopyLocalRef() {
     final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -684,7 +684,7 @@ class RexBuilderTest {
     assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
-  /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)} */
+  /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)}. */
   @Test void testCopyDynamicParam() {
     final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -704,7 +704,7 @@ class RexBuilderTest {
     assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
-  /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)} */
+  /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)}. */
   @Test void testCopyRangeRef() {
     final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

@@ -137,7 +137,7 @@ final class ElasticsearchJson {
 
 
   /**
-   * Identifies a calcite row (as in relational algebra)
+   * Identifies a Calcite row (as in relational algebra).
    */
   private static class RowKey {
     private final Map<String, Object> keys;
@@ -207,7 +207,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Response from Elastic
+   * Response from Elastic.
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class Result {
@@ -277,7 +277,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Container for total hits
+   * Container for total hits.
    */
   @JsonDeserialize(using = SearchTotalDeserializer.class)
   static class SearchTotal {
@@ -332,7 +332,7 @@ final class ElasticsearchJson {
   static class SearchHit {
 
     /**
-     * ID of the document (not available in aggregations)
+     * ID of the document (not available in aggregations).
      */
     private final String id;
     private final Map<String, Object> source;
@@ -363,7 +363,8 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns id of this hit (usually document id)
+     * Returns id of this hit (usually document id).
+     *
      * @return unique id
      */
     public String id() {
@@ -501,26 +502,26 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Identifies all aggregations
+   * Identifies all aggregations.
    */
   interface Aggregation {
 
     /**
-     * @return The name of this aggregation.
+     * Returns the name of this aggregation.
      */
     String getName();
 
   }
 
   /**
-   * Allows traversing aggregations tree
+   * Allows traversing aggregations tree.
    */
   interface HasAggregations {
     Aggregations getAggregations();
   }
 
   /**
-   * An aggregation that returns multiple buckets
+   * An aggregation that returns multiple buckets.
    */
   static class MultiBucketsAggregation implements Aggregation {
 
@@ -534,7 +535,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The buckets of this aggregation.
+     * Returns the buckets of this aggregation.
      */
     List<Bucket> buckets() {
       return buckets;
@@ -564,14 +565,14 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return The key associated with the bucket
+     * Returns the key associated with the bucket.
      */
     Object key() {
       return key;
     }
 
     /**
-     * @return The key associated with the bucket as a string
+     * Returns the key associated with the bucket as a string.
      */
     String keyAsString() {
       return Objects.toString(key());
@@ -585,7 +586,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The sub-aggregations of this bucket
+     * Returns the sub-aggregations of this bucket.
      */
     @Override public Aggregations getAggregations() {
       return aggregations;
@@ -597,8 +598,8 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Multi value aggregatoin like
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>
+   * Multi-value aggregation, like
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>.
    */
   static class MultiValue implements Aggregation {
     private final String name;

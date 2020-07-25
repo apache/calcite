@@ -40,7 +40,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * Test for {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}
+ * Test for
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}.
  */
 class TypeFinderTest {
 

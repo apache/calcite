@@ -41,10 +41,11 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmarks for {@link org.apache.calcite.util.graph.DefaultDirectedGraph}
+ * Benchmarks for {@link org.apache.calcite.util.graph.DefaultDirectedGraph}.
  */
 public class DefaultDirectedGraphBenchmark {
 
+  /** Node in the graph. */
   private static class Node {
     final int id;
 

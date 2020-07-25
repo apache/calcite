@@ -29,29 +29,21 @@ package org.apache.calcite.plan;
 public interface RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return number of rows processed; this should not be confused with the
-   * row count produced by a relational expression
-   * ({@link org.apache.calcite.rel.RelNode#estimateRowCount})
-   */
+  /** Returns the number of rows processed; this should not be
+   * confused with the row count produced by a relational expression
+   * ({@link org.apache.calcite.rel.RelNode#estimateRowCount}). */
   double getRows();
 
-  /**
-   * @return usage of CPU resources
-   */
+  /** Returns usage of CPU resources. */
   double getCpu();
 
-  /**
-   * @return usage of I/O resources
-   */
+  /** Returns usage of I/O resources. */
   double getIo();
 
-  /**
-   * @return true iff this cost represents an expression that hasn't actually
+  /** Returns whether this cost represents an expression that hasn't actually
    * been implemented (e.g. a pure relational algebra expression) or can't
    * actually be implemented, e.g. a transfer of data between two disconnected
-   * sites
-   */
+   * sites. */
   boolean isInfinite();
 
   // REVIEW jvs 3-Apr-2006:  we should standardize this

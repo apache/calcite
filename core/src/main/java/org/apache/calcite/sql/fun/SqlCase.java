@@ -59,7 +59,7 @@ public class SqlCase extends SqlCall {
   }
 
   /**
-   * Creates a call to the switched form of the case operator, viz:
+   * Creates a call to the switched form of the CASE operator. For example:
    *
    * <blockquote><code>CASE value<br>
    * WHEN whenList[0] THEN thenList[0]<br>
