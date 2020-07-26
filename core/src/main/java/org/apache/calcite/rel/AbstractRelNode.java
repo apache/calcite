@@ -406,6 +406,7 @@ public abstract class AbstractRelNode implements RelNode {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
+  @API(since = "1.25", status = API.Status.MAINTAINED)
   public boolean deepEquals(Object obj) {
     if (this == obj) {
       return true;
@@ -441,6 +442,7 @@ public abstract class AbstractRelNode implements RelNode {
    *
    * @see #deepEquals(Object)
    */
+  @API(since = "1.25", status = API.Status.MAINTAINED)
   public int deepHashCode() {
     int result = 31 + getTraitSet().hashCode();
     List<Pair<String, Object>> items = this.getDigestItems();
