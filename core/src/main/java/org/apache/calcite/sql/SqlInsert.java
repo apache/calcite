@@ -29,7 +29,17 @@ import java.util.List;
  */
 public class SqlInsert extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("INSERT", SqlKind.INSERT);
+      new SqlSpecialOperator("INSERT", SqlKind.INSERT) {
+        @Override public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
+            SqlNode... operands) {
+          return new SqlInsert(
+              pos,
+              (SqlNodeList) operands[0],
+              operands[1],
+              operands[2],
+              (SqlNodeList) operands[3]);
+        }
+      };
 
   SqlNodeList keywords;
   SqlNode targetTable;
