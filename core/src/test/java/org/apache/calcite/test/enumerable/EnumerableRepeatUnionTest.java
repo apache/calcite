@@ -210,4 +210,27 @@ class EnumerableRepeatUnionTest {
             "n=100", "n=200", "n=300", "n=400", "n=500", "n=600", "n=700", "n=800", "n=900");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4139">[CALCITE-4139]
+   * Prevent NPE in ListTransientTable</a>. */
+  @Test void testGenerateNumbersWithNull() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            builder -> builder
+                .values(new String[] { "i" }, 1, 2, null, 3)
+                .transientScan("DELTA")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(3)))
+                .project(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field(0),
+                        builder.literal(1)))
+                .repeatUnion("DELTA", true)
+                .build())
+        .returnsOrdered("i=1", "i=2", "i=null", "i=3", "i=2", "i=3", "i=3");
+  }
+
 }
