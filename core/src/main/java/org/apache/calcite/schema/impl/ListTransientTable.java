@@ -99,7 +99,7 @@ public class ListTransientTable extends AbstractQueryableTable
           // TODO cleaner way to handle non-array objects?
           @Override public Object[] current() {
             Object current = list.get(i);
-            return current.getClass().isArray()
+            return current != null && current.getClass().isArray()
                 ? (Object[]) current
                 : new Object[]{current};
           }
