@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
@@ -1917,7 +1918,9 @@ public class RexSimplify {
       if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
           && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
           || e.getType().getSqlTypeName() == SqlTypeName.CHAR
-          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)) {
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
+          && SqlTypeCoercionRule.instance()
+          .canApplyFrom(intExpr.getType().getSqlTypeName(), e.getType().getSqlTypeName())) {
         return rexBuilder.makeCast(e.getType(), intExpr);
       }
     }

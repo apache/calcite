@@ -2734,4 +2734,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAny, vIntNotNull()));
     checkSimplify3(rexBuilder.makeCall(opPolicyAny, nullInt), "null:BOOLEAN", "false", "true");
   }
+
+  @Test void testSimplifyVarbinary() {
+    checkSimplifyUnchanged(cast(cast(vInt(), tVarchar(true, 100)), tVarbinary(true)));
+  }
 }
