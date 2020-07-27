@@ -476,11 +476,11 @@ particular release managers.
 
 ## Managing Calcite repositories through GitHub
 
-Committers have write access to Calcite's 
+Committers have write access to Calcite's
 [ASF git repositories](https://gitbox.apache.org/repos/asf#calcite) hosting
 the source code of the project as well as the website.
 
-All repositories present on GitBox are available on GitHub with write-access 
+All repositories present on GitBox are available on GitHub with write-access
 enabled, including rights to open/close/merge pull requests and address issues.
 
 In order to exploit the GitHub services, committers should link their ASF and
@@ -490,15 +490,15 @@ Here are the steps:
 
  * Set your GitHub username into your [Apache profile](https://id.apache.org/).
  * Enable [GitHub 2FA](https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/)
-on your GitHub account. 
- * Activating GitHub 2FA changes the authentication process and may affect the way you 
+on your GitHub account.
+ * Activating GitHub 2FA changes the authentication process and may affect the way you
  [access GitHub](https://help.github.com/en/github/authenticating-to-github/accessing-github-using-two-factor-authentication#using-two-factor-authentication-with-the-command-line).
-You may need to establish personal access tokens or upload your public SSH key to GitHub depending on the 
-protocol that you are using (HTTPS vs. SSH).     
+You may need to establish personal access tokens or upload your public SSH key to GitHub depending on the
+protocol that you are using (HTTPS vs. SSH).
  * Merge your Apache and GitHub accounts using the [account linking page](https://gitbox.apache.org/setup/)
 (you should see 3 green checks in GitBox).
- * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization. 
- * Accept the invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members). 
+ * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization.
+ * Accept the invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members).
 
 ## Merging pull requests
 
@@ -541,11 +541,12 @@ for their contribution.
 
 Follow instructions [here](https://www.apache.org/dev/release-signing) to
 create a key pair. (On macOS, I did `brew install gpg` and
-`gpg --gen-key`.)
+`gpg --full-generate-key`.)
 
 Add your public key to the
 [`KEYS`](https://dist.apache.org/repos/dist/release/calcite/KEYS)
-file by following instructions in the `KEYS` file.
+file by following instructions in the `KEYS` file. If you don't have
+the permission to update the `KEYS` file, ask PMC for help.
 (The `KEYS` file is not present in the git repo or in a release tar
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
@@ -561,17 +562,32 @@ The following options are used:
 
 {% highlight properties %}
 asfCommitterId=
+
 asfNexusUsername=
 asfNexusPassword=
 asfSvnUsername=
 asfSvnPassword=
+
+asfGitSourceUsername=
+asfGitSourcePassword=
 {% endhighlight %}
 
-Note: when https://github.com/vlsi/asflike-release-environment is used, the credentials are takend from
+Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
+`asfSvnPassword` are corresponding password.
+
+Note: when https://github.com/vlsi/asflike-release-environment is used, the credentials are taken from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
 
-Note: if you want to uses `gpg-agent`, you need to pass `useGpgCmd` property, and specify the key id
-via `signing.gnupg.keyName`.
+Note: `asfGitSourceUsername` is your github id while `asfGitSourcePassword` is not your github password.
+You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
+
+Note: if you want to uses `gpg-agent`, you need to pass anther properties:
+
+{% highlight properties %}
+useGpgCmd=true
+signing.gnupg.keyName=
+signing.gnupg.useLegacyGpg=
+{% endhighlight %}
 
 ## Making a snapshot
 
@@ -886,7 +902,7 @@ the `master` with the `site` branch (e.g., `git merge --ff-only site`).
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
-and do a bulk update changing their status to "Closed",
+and do a bulk update(choose the `transition issues` option) changing their status to "Closed",
 with a change comment
 "Resolved in release X.Y.Z (YYYY-MM-DD)"
 (fill in release number and date appropriately).
@@ -895,8 +911,8 @@ of the Calcite project mark the release X.Y.Z as released. If it does not alread
 a new version (e.g., X.Y+1.Z) for the next release.
 
 After 24 hours, announce the release by sending an email to
-[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
-You can use
+[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
+address. You can use
 [the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 

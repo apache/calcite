@@ -37,7 +37,7 @@ and bug-fixes. Among others, it is worth highlighting the following.
 * Support [top-down rule applying and upper bound space pruning](https://issues.apache.org/jira/browse/CALCITE-3916)
 * Support [OFFSET](https://issues.apache.org/jira/browse/CALCITE-4000) parameter in `TUMBLE/HOP`
 table functions
-* A new [Presto dialect implementation](https://issues.apache.org/jira/browse/CALCITE-3224)
+* A new [Presto dialect implementation](https://issues.apache.org/jira/browse/CALCITE-3724)
 * [Hoist](https://issues.apache.org/jira/browse/CALCITE-4087), a utility to replace literals in a
 SQL string with placeholders
 
