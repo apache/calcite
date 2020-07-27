@@ -747,6 +747,30 @@ public final class SqlParserUtil {
     }
   }
 
+  /**
+   * Returns whether the reported ParseException tokenImage
+   * allows SQL identifier.
+   *
+   * @param tokenImage The allowed tokens from the ParseException
+   * @param expectedTokenSequences Expected token sequences
+   *
+   * @return true if SQL identifier is allowed
+   */
+  public static boolean allowsIdentifier(String[] tokenImage, int[][] expectedTokenSequences) {
+    // Compares from tailing tokens first because the <IDENTIFIER>
+    // was very probably at the tail.
+    for (int i = expectedTokenSequences.length - 1; i >= 0; i--) {
+      int[] expectedTokenSequence = expectedTokenSequences[i];
+      for (int j = expectedTokenSequence.length - 1; j >= 0; j--) {
+        if (tokenImage[expectedTokenSequence[j]].equals("<IDENTIFIER>")) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /** The components of a collation definition, per the SQL standard. */
