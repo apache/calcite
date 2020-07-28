@@ -36,6 +36,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 /**
@@ -59,6 +60,21 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
   @Deprecated // to be removed before 1.25
   public static final JoinCommuteRule SWAP_OUTER = CoreRules.JOIN_COMMUTE_OUTER;
 
+  /**
+   * A predicate for the left and right children of the join is required to
+   * prevent endless firing of the rule.
+   * <p>
+   *   The swap for the left and right children should happen only if the predicate yields true.
+   *   The predicate must form a partial order. That means for different a and b,
+   *   if pred(a, b) = true, then we must have pred(b, a) = false; and vice versa.
+   *  </p>
+   *  <p>
+   *  Here we just give a sample implementation of the predicate.
+   *  </p>
+   */
+  private static final BiPredicate<RelNode, RelNode> DEFAULT_JOIN_CHILDREN_PREDICATE =
+      (left, right) -> left.getId() < right.getId();
+
   private final boolean swapOuter;
 
   //~ Constructors -----------------------------------------------------------
@@ -72,8 +88,8 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
     super(
         operandJ(clazz, null,
             (Predicate<Join>) j -> j.getLeft().getId() != j.getRight().getId()
-                && j.getSystemFieldList().isEmpty(),
-            any()),
+                && j.getSystemFieldList().isEmpty()
+                && DEFAULT_JOIN_CHILDREN_PREDICATE.test(j.getLeft(), j.getRight()), any()),
         relBuilderFactory, null);
     this.swapOuter = swapOuter;
   }
@@ -160,28 +176,7 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
     if (swapped == null) {
       return;
     }
-
-    // The result is either a Project or, if the project is trivial, a
-    // raw Join.
-    final Join newJoin =
-        swapped instanceof Join
-            ? (Join) swapped
-            : (Join) swapped.getInput(0);
-
     call.transformTo(swapped);
-
-    // We have converted join='a join b' into swapped='select
-    // a0,a1,a2,b0,b1 from b join a'. Now register that project='select
-    // b0,b1,a0,a1,a2 from (select a0,a1,a2,b0,b1 from b join a)' is the
-    // same as 'b join a'. If we didn't do this, the swap join rule
-    // would fire on the new join, ad infinitum.
-    final RelBuilder relBuilder = call.builder();
-    final List<RexNode> exps =
-        RelOptUtil.createSwappedJoinExprs(newJoin, join, false);
-    relBuilder.push(swapped)
-        .project(exps, newJoin.getRowType().getFieldNames());
-
-    call.getPlanner().ensureRegistered(relBuilder.build(), newJoin);
   }
 
   //~ Inner Classes ----------------------------------------------------------

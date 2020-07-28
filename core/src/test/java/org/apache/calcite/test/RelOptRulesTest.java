@@ -7008,4 +7008,12 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testJoinCommute() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(CoreRules.JOIN_COMMUTE)
+        .build();
+    final String sql = "select * \n"
+        + "from sales.emp e join sales.dept d on e.empno > d.deptno";
+    sql(sql).with(program).check();
+  }
 }
