@@ -21,6 +21,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -590,8 +591,11 @@ class RexBuilderTest {
 
   /** Tests {@link RexBuilder#makeExactLiteral(java.math.BigDecimal)}. */
   @Test void testBigDecimalLiteral() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+      @Override public int getMaxPrecision(SqlTypeName typeName) {
+        return 38;
+      }
+    });
     final RexBuilder builder = new RexBuilder(typeFactory);
     checkBigDecimalLiteral(builder, "25");
     checkBigDecimalLiteral(builder, "9.9");
