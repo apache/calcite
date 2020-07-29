@@ -561,7 +561,7 @@ public class CsvProjectTableScanRule
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(CsvTableScan.class).noInputs()))
         .as(Config.class);
- 
+
     @Override default CsvProjectTableScanRule toRule() {
       return new CsvProjectTableScanRule(this);
     }
@@ -570,7 +570,7 @@ public class CsvProjectTableScanRule
 
 The default instance of the rule resides in the `CsvRules` holder class:
 
-{% highlight %}
+{% highlight java %}
 public abstract class CsvRules {
   public static final CsvProjectTableScanRule PROJECT_SCAN =
       CsvProjectTableScanRule.Config.DEFAULT.toRule();
