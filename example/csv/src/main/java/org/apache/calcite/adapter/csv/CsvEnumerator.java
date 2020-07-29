@@ -201,7 +201,11 @@ class CsvEnumerator<E> implements Enumerator<E> {
             }
           }
         }
-        current = rowConverter.convertRow(strings);
+        try {
+          current = rowConverter.convertRow(strings);
+        } catch (Exception e) {
+          continue;
+        }
         return true;
       }
     } catch (IOException e) {
@@ -237,6 +241,9 @@ class CsvEnumerator<E> implements Enumerator<E> {
     abstract E convertRow(String[] rows);
 
     protected Object convert(CsvFieldType fieldType, String string) {
+      if (string != null) {
+        string = string.trim();
+      }
       if (fieldType == null) {
         return string;
       }

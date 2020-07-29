@@ -512,6 +512,15 @@ class CsvTest {
         .returns("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2").ok();
   }
 
+  @Test public void testBlankLinesAndSpaces() throws SQLException {
+    final String sql = "SELECT d.name, COUNT(*) cnt"
+        + " FROM emps AS e"
+        + " JOIN mydepts AS d ON e.deptno = d.deptno"
+        + " GROUP BY d.name";
+    sql("smart", sql)
+        .returns("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2").ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-824">[CALCITE-824]
    * Type inference when converting IN clause to semijoin</a>. */
