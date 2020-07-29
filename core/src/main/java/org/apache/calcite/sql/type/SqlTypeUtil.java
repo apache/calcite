@@ -1261,6 +1261,10 @@ public abstract class SqlTypeUtil {
    * Returns the ordinal of a given field in a record type, or -1 if the field
    * is not found.
    *
+   * <p>The {@code fieldName} is always simple, if the field is nested within a record field,
+   * returns index of the outer field instead. i.g. for row type
+   * (a int, b (b1 bigint, b2 varchar(20) not null)), returns 1 for both simple name "b1" and "b2".
+   *
    * @param type      Record type
    * @param fieldName Name of field
    * @return Ordinal of field
@@ -1270,6 +1274,10 @@ public abstract class SqlTypeUtil {
     for (int i = 0; i < fields.size(); i++) {
       RelDataTypeField field = fields.get(i);
       if (field.getName().equals(fieldName)) {
+        return i;
+      }
+      final RelDataType fieldType = field.getType();
+      if (fieldType.isStruct() && findField(fieldType, fieldName) != -1) {
         return i;
       }
     }

@@ -6864,4 +6864,16 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($3), CAST($3):INTEGER NOT NULL, 0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUdfWithStructuredReturnType">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, tmp.r.f0, tmp.r.f1 FROM
+(SELECT deptno, STRUCTURED_FUNC() AS r from dept)tmp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], F0=[STRUCTURED_FUNC().F0], F1=[STRUCTURED_FUNC().F1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

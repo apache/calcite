@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Access to a field of a row-expression.
  *
@@ -57,13 +59,22 @@ public class RexFieldAccess extends RexNode {
   RexFieldAccess(
       RexNode expr,
       RelDataTypeField field) {
+    checkValid(expr, field);
     this.expr = expr;
     this.field = field;
     this.digest = expr + "." + field.getName();
-    assert expr.getType().getFieldList().get(field.getIndex()) == field;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private static void checkValid(RexNode expr, RelDataTypeField field) {
+    RelDataType exprType = expr.getType();
+    int fieldIdx = field.getIndex();
+    Preconditions.checkArgument(
+        fieldIdx < exprType.getFieldList().size()
+            && exprType.getFieldList().get(fieldIdx).equals(field),
+        "Field " + field + " does not exist for expression " + expr);
+  }
 
   public RelDataTypeField getField() {
     return field;

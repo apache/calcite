@@ -3825,6 +3825,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4145">[CALCITE-4145]
+   * Exception when query from UDF field with structured type</a>.
+   */
+  @Test void testUdfWithStructuredReturnType() {
+    final String sql = "SELECT deptno, tmp.r.f0, tmp.r.f1 FROM\n"
+        + "(SELECT deptno, STRUCTURED_FUNC() AS r from dept)tmp";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3826">[CALCITE-3826]
    * UPDATE assigns wrong type to bind variables</a>.
    */
