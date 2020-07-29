@@ -111,6 +111,9 @@ releaseParams {
     releaseTag.set("calcite-$buildVersion")
     rcTag.set(rc.map { "calcite-$buildVersion-rc$it" })
     sitePreviewEnabled.set(false)
+    source {
+        branch.set("main")
+    }
     nexus {
         // https://github.com/marcphilipp/nexus-publish-plugin/issues/35
         packageGroup.set("org.apache.calcite")
