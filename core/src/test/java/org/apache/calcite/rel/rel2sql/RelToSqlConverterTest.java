@@ -5137,6 +5137,21 @@ class RelToSqlConverterTest {
     sql(expected).exec();
   }
 
+  @Test void testCastDecimalOverflow() {
+    final String query =
+        "SELECT CAST('11111111111111111111111111111111.111111' AS DECIMAL(38,6)) AS \"num\" from \"product\"";
+    final String expected =
+        "SELECT CAST('11111111111111111111111111111111.111111' AS DECIMAL(19, 6)) AS \"num\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+
+    final String query2 =
+        "SELECT CAST(1111111 AS DECIMAL(5,2)) AS \"num\" from \"product\"";
+    final String expected2 =
+        "SELECT CAST(1111111 AS DECIMAL(5, 2)) AS \"num\"\nFROM \"foodmart\".\"product\"";
+    sql(query2).ok(expected2);
+  }
+
   @Test void testCastInStringIntegerComparison() {
     final String query = "select \"employee_id\" "
         + "from \"foodmart\".\"employee\" "

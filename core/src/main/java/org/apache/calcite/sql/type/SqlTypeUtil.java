@@ -46,6 +46,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -1678,5 +1679,27 @@ public abstract class SqlTypeUtil {
     final int fieldsCnt = type.getFieldCount();
     return typeFactory.createStructType(
         type.getFieldList().subList(fieldsCnt - numToKeep, fieldsCnt));
+  }
+
+  /**
+   * Returns whether the decimal value is valid for the type. For example, 1111.11 is not
+   * valid for DECIMAL(3, 1) since it overflows.
+   *
+   * @param value Value of literal
+   * @param toType Type of the literal
+   * @return whether the value is valid for the type
+   */
+  public static boolean isValidDecimalValue(BigDecimal value, RelDataType toType) {
+    if (value == null) {
+      return true;
+    }
+    switch (toType.getSqlTypeName()) {
+    case DECIMAL:
+      final int intDigits = value.precision() - value.scale();
+      final int maxIntDigits = toType.getPrecision() - toType.getScale();
+      return intDigits <= maxIntDigits;
+    default:
+      return true;
+    }
   }
 }

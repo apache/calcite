@@ -2634,7 +2634,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testReduceConstExpr() {
-    final String sql = "select sum(case when 'y' = 'n' then ename else 1 end) from emp";
+    final String sql = "select sum(case when 'y' = 'n' then ename else 0.1 end) from emp";
     sql(sql).ok();
   }
 

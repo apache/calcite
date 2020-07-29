@@ -1716,7 +1716,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[123:BIGINT], EXPR$0=[$t1])
 !plan
 
 # Cast an integer literal to a decimal; note: the plan does not contain CAST
-values cast('123.45' as decimal(4, 2));
+values cast('123.45' as decimal(5, 2));
 +--------+
 | EXPR$0 |
 +--------+
@@ -1725,12 +1725,12 @@ values cast('123.45' as decimal(4, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(5, 2)], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast a character literal to a decimal; note: the plan does not contain CAST
-values cast('123.45' as decimal(4, 2));
+values cast('123.45' as decimal(5, 2));
 +--------+
 | EXPR$0 |
 +--------+
@@ -1739,7 +1739,7 @@ values cast('123.45' as decimal(4, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(5, 2)], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 

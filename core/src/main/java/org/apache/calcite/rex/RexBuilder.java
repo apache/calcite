@@ -648,6 +648,12 @@ public class RexBuilder {
         throw new AssertionError(toType);
       }
     }
+
+    if (toType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      final BigDecimal decimalValue = (BigDecimal) value;
+      return SqlTypeUtil.isValidDecimalValue(decimalValue, toType);
+    }
+
     return true;
   }
 
@@ -951,6 +957,11 @@ public class RexBuilder {
       }
       o = ((TimestampString) o).round(p);
       break;
+    }
+    if (type.getSqlTypeName() == SqlTypeName.DECIMAL && !SqlTypeUtil
+        .isValidDecimalValue((BigDecimal) o, type)) {
+      throw new IllegalArgumentException(
+          "Cannot convert " + o + " to " + type  + " due to overflow");
     }
     return new RexLiteral(o, type, typeName);
   }
