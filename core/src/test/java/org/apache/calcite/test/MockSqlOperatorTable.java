@@ -69,9 +69,10 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new RowFunction());
     opTab.addOperator(new NotATableFunction());
     opTab.addOperator(new BadTableFunction());
+    opTab.addOperator(new StructuredFunction());
   }
 
-  /** "RAMP" user-defined function. */
+  /** "RAMP" user-defined table function. */
   public static class RampFunction extends SqlFunction
       implements SqlTableFunction {
     public RampFunction() {
@@ -128,7 +129,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "DEDUP" user-defined function. */
+  /** "DEDUP" user-defined table function. */
   public static class DedupFunction extends SqlFunction
       implements SqlTableFunction {
     public DedupFunction() {
@@ -211,13 +212,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "ROW_FUNC" user-defined function whose return type is
-   * nullable row type with non-nullable fields. */
+  /** "ROW_FUNC" user-defined table function whose return type is
+   * row type with nullable and non-nullable fields. */
   public static class RowFunction extends SqlFunction
       implements SqlTableFunction {
     RowFunction() {
       super("ROW_FUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR, null,
-          OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+          OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
     private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
@@ -232,6 +233,27 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
     @Override public SqlReturnTypeInference getRowTypeInference() {
       return RowFunction::inferRowType;
+    }
+  }
+
+  /** "STRUCTURED_FUNC" user-defined function whose return type is structured type. */
+  public static class StructuredFunction extends SqlFunction {
+    StructuredFunction() {
+      super("STRUCTURED_FUNC", new SqlIdentifier("STRUCTURED_FUNC", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null, OperandTypes.NILADIC, null,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      final RelDataType varcharType =
+          typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+      return typeFactory.builder()
+          .add("F0", bigintType)
+          .add("F1", varcharType)
+          .build();
     }
   }
 }
