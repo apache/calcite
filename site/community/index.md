@@ -78,7 +78,7 @@ Need help with Calcite? Try these resources:
   your question.
 * **Browse the code**.
   One of the advantages of open source software is that you can browse the code.
-  The code is available on [github](https://github.com/apache/calcite/tree/master).
+  The code is available on [GitHub](https://github.com/apache/calcite/tree/main).
 
 # Talks
 

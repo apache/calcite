@@ -28,7 +28,7 @@ collections:
     output: true
 
 # The URL where the code can be found
-sourceRoot: https://github.com/apache/calcite/blob/master
+sourceRoot: https://github.com/apache/calcite/blob/main
 
 # The URL where Javadocs are located
 apiRoot: /javadocAggregate

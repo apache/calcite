@@ -90,9 +90,9 @@ jobs:
           ./gradlew --no-parallel --no-daemon build javadoc
 
   linux-slow:
-    # Run slow tests when the commit is on master or it is requested explicitly by adding an
+    # Run slow tests when the commit is on main or it is requested explicitly by adding an
     # appropriate label in the PR
-    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
     name: 'Linux (JDK 8) Slow Tests'
     runs-on: ubuntu-latest
     steps:

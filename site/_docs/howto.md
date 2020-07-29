@@ -576,7 +576,7 @@ protocol that you are using (HTTPS vs. SSH).
 ## Merging pull requests
 
 These are instructions for a Calcite committer who has reviewed a pull request
-from a contributor, found it satisfactory, and is about to merge it to master.
+from a contributor, found it satisfactory, and is about to merge it to main.
 Usually the contributor is not a committer (otherwise they would be committing
 it themselves, after you gave approval in a review).
 
@@ -679,7 +679,7 @@ git clean -xn
 ## Making a release candidate
 
 Note: release artifacts (dist.apache.org and repository.apache.org) are managed with
-[stage-vote-release-plugin](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin)
+[stage-vote-release-plugin](https://github.com/vlsi/vlsi-release-plugins/tree/main/plugins/stage-vote-release-plugin)
 
 Before you start:
 
@@ -970,8 +970,8 @@ javadoc, and release note appear correctly and then publish the site following t
 in the same file. Now checkout again the release branch (`git checkout branch-X.Y`) and commit
 the release announcement.
 
-Merge the release branch back into `master` (e.g., `git merge --ff-only branch-X.Y`) and align
-the `master` with the `site` branch (e.g., `git merge --ff-only site`).
+Merge the release branch back into `main` (e.g., `git merge --ff-only branch-X.Y`) and align
+the `main` with the `site` branch (e.g., `git merge --ff-only site`).
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),

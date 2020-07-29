@@ -139,7 +139,7 @@ the JIRA case number, like this:
 [CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal (FirstName LastName)
 {% endhighlight %}
 
-If your change had multiple commits, use `git rebase -i master` to
+If your change had multiple commits, use `git rebase -i main` to
 squash them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
@@ -165,7 +165,7 @@ the implementation ("Add handler for FileNotFound").
  of the message.
 
 Then push your commit(s) to GitHub, and create a pull request from
-your branch to the calcite master branch. Update the JIRA case
+your branch to the calcite main branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
