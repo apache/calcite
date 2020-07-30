@@ -56,6 +56,7 @@ import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
+import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -999,6 +1000,12 @@ public class SqlFunctionsTest {
     assertThat(toVarchar(23, "99"), is("23"));
     assertThat(toVarchar(123, "999"), is("123"));
     assertThat(toVarchar(1.5, "9.99"), is("1.50"));
+  }
+
+  /** Test for {@link SqlFunctions#timestampToDate}. */
+  @Test public void testTimestampToDate() {
+    assertThat(timestampToDate("2020-12-12 12:12:12").toString(), is("2020-12-12"));
+    assertThat(timestampToDate("2001-01-11 00:43:30").toString(), is("2001-01-11"));
   }
 }
 
