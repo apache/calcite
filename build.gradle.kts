@@ -38,6 +38,7 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
+    jacoco
     id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
@@ -47,6 +48,7 @@ plugins {
     id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
+    id("org.sonarqube")
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -81,6 +83,7 @@ val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
 val enableDependencyAnalysis by props()
+val enableJacoco by props()
 val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
@@ -294,6 +297,12 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
     endWithNewline()
 }
 
+sonarqube {
+    properties {
+        property("sonar.test.inclusions", "**/*Test*/**")
+    }
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
@@ -332,6 +341,9 @@ allprojects {
                 testImplementation("junit:junit")
                 testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
             }
+        }
+        if (enableJacoco) {
+            apply(plugin = "jacoco")
         }
     }
 
@@ -762,6 +774,14 @@ allprojects {
                     xml.isEnabled = !reportsForHumans()
                 }
                 enabled = enableSpotBugs
+            }
+            configureEach<JacocoReport> {
+                reports {
+                    // The reports are mainly consumed by Sonar, which only uses the XML format
+                    xml.required.set(true)
+                    html.required.set(false)
+                    csv.required.set(false)
+                }
             }
 
             afterEvaluate {
