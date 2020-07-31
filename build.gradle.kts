@@ -530,6 +530,9 @@ allprojects {
                 options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Werror"))
             }
             configureEach<Test> {
+                outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
+                    false
+                }
                 useJUnitPlatform {
                     excludeTags("slow")
                 }

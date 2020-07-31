@@ -37,6 +37,10 @@ pluginManagement {
     }
 }
 
+plugins {
+    `gradle-enterprise`
+}
+
 // This is the name of a current project
 // Note: it cannot be inferred from the directory name as developer might clone Calcite to calcite_tmp folder
 rootProject.name = "calcite"
@@ -77,6 +81,25 @@ fun property(name: String) =
         true -> extra.get(name) as? String
         else -> null
     }
+
+val isCiServer = System.getenv().containsKey("CI")
+
+if (isCiServer) {
+    gradleEnterprise {
+        buildScan {
+            termsOfServiceUrl = "https://gradle.com/terms-of-service"
+            termsOfServiceAgree = "yes"
+            tag("CI")
+        }
+    }
+}
+
+// Cache build artifacts, so expensive operations do not need to be re-computed
+buildCache {
+    local {
+        isEnabled = !isCiServer || System.getenv().containsKey("GITHUB_ACTIONS")
+    }
+}
 
 // This enables to use local clone of vlsi-release-plugins for debugging purposes
 property("localReleasePlugins")?.ifBlank { "../vlsi-release-plugins" }?.let {
