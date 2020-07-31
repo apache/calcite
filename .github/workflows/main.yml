@@ -47,10 +47,11 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
-    - name: 'Test'
-      shell: cmd
-      run: |
-        ./gradlew --no-parallel --no-daemon build javadoc
+    - uses: burrunan/gradle-cache-action@v1
+      name: Test
+      with:
+        job-id: jdk${{ matrix.jdk }}
+        arguments: --scan --no-parallel --no-daemon build javadoc
 
   linux-avatica:
     if: github.event.action != 'labeled'
@@ -61,17 +62,30 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-    - name: 'Install Avatica to Maven Local repository'
+    - name: 'Clone Avatica to Maven Local repository'
       run: |
         git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
-        cd ../calcite-avatica
-        ./gradlew publishToMavenLocal -Pcalcite.avatica.version=1.0.0-dev-master -PskipJavadoc
+    - uses: burrunan/gradle-cache-action@v1
+      name: Build Avatica
+      with:
+        job-id: avatica-jdk${{ matrix.jdk }}
+        build-root-directory: ../calcite-avatica
+        arguments: publishToMavenLocal
+        properties: |
+          calcite.avatica.version=1.0.0-dev-master
+          skipJavadoc=
     - uses: actions/checkout@v2
       with:
         fetch-depth: 50
-    - name: 'Test'
-      run: |
-        ./gradlew --no-parallel --no-daemon build javadoc -Pcalcite.avatica.version=1.0.0-dev-master-SNAPSHOT -PenableMavenLocal
+    - uses: burrunan/gradle-cache-action@v1
+      name: Test
+      with:
+        job-id: jdk${{ matrix.jdk }}
+        execution-only-caches: true
+        arguments: --scan --no-parallel --no-daemon build javadoc
+        properties: |
+          calcite.avatica.version=1.0.0-dev-master-SNAPSHOT
+          enableMavenLocal=
 
   mac:
     if: github.event.action != 'labeled'
@@ -85,9 +99,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 14
-      - name: 'Test'
-        run: |
-          ./gradlew --no-parallel --no-daemon build javadoc
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        with:
+          job-id: jdk14
+          arguments: --scan --no-parallel --no-daemon build javadoc
 
   linux-slow:
     # Run slow tests when the commit is on master or it is requested explicitly by adding an
@@ -103,6 +119,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - name: 'Test'
-        run: |
-          ./gradlew --no-parallel --no-daemon testSlow
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        with:
+          job-id: jdk8
+          arguments: --scan --no-parallel --no-daemon testSlow
