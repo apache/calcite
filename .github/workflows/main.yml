@@ -54,8 +54,12 @@ jobs:
         java-version: 8
     - uses: burrunan/gradle-cache-action@v1
       name: Test
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk${{ matrix.jdk }}
+        remote-build-cache-proxy-enabled: false
         arguments: --scan --no-parallel --no-daemon build javadoc
     - name: 'sqlline and sqllsh'
       shell: cmd
@@ -82,8 +86,12 @@ jobs:
         git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: avatica-jdk${{ matrix.jdk }}
+        remote-build-cache-proxy-enabled: false
         build-root-directory: ../calcite-avatica
         arguments: publishToMavenLocal
         properties: |
@@ -94,8 +102,12 @@ jobs:
         fetch-depth: 50
     - uses: burrunan/gradle-cache-action@v1
       name: Test
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk${{ matrix.jdk }}
+        remote-build-cache-proxy-enabled: false
         execution-only-caches: true
         arguments: --scan --no-parallel --no-daemon build javadoc
         properties: |
@@ -117,8 +129,12 @@ jobs:
           architecture: x64
       - uses: burrunan/gradle-cache-action@v1
         name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk8-openj9
+          remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
         run: |
@@ -144,8 +160,12 @@ jobs:
           java-version: 15
       - uses: burrunan/gradle-cache-action@v1
         name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk15
+          remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
         run: |
@@ -171,8 +191,12 @@ jobs:
           java-version: 11
       - uses: burrunan/gradle-cache-action@v1
         name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: errprone
+          remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -PenableErrorprone classes
 
   linux-checkerframework:
@@ -188,8 +212,12 @@ jobs:
           java-version: 11
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: checkerframework-jdk11
+          remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
 
   linux-slow:
@@ -208,8 +236,12 @@ jobs:
           java-version: 8
       - uses: burrunan/gradle-cache-action@v1
         name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk8
+          remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon testSlow
 
   linux-druid:
@@ -248,7 +280,11 @@ jobs:
         path: calcite
     - uses: burrunan/gradle-cache-action@v1
       name: 'Run Druid tests'
+      env:
+        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         build-root-directory: ./calcite
         job-id: Druid8
+        remote-build-cache-proxy-enabled: false
         arguments: --scan --no-parallel --no-daemon :druid:test -Dcalcite.test.druid=true

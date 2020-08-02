@@ -1,0 +1,33 @@
+name: Seed build cache
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  ubuntu-code-style:
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+        jdk: [8, 11, 15]
+
+    name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK ${{ matrix.jdk }}'
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jdk }}
+      - uses: burrunan/gradle-cache-action@v1
+        name: Build Calcite
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon build -x test
