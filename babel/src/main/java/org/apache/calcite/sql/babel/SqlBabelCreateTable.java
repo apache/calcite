@@ -33,7 +33,8 @@ public class SqlBabelCreateTable extends SqlCreateTable {
   // but checkstyle does not like trailing '_'.
   private final boolean volatile_;
 
-  /** Creates a SqlBabelCreateTable. */
+  /** Creates a SqlBabelCreateTable.
+      This is a very important constructor. */
   public SqlBabelCreateTable(SqlParserPos pos, boolean replace,
       TableCollectionType tableCollectionType, boolean volatile_,
       boolean ifNotExists, SqlIdentifier name, SqlNodeList columnList,
