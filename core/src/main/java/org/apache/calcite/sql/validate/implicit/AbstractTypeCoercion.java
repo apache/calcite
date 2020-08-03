@@ -583,7 +583,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     List<RelDataType> nonCharacterTypes = new ArrayList<>();
 
     for (RelDataType tp : types) {
-      if (SqlTypeUtil.hasCharactor(tp)) {
+      if (SqlTypeUtil.hasCharacter(tp)) {
         withCharacterTypes.add(tp);
       } else {
         nonCharacterTypes.add(tp);

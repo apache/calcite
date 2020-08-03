@@ -1228,6 +1228,39 @@ LogicalProject(EXPR$0=[*($0, 3660000:INTERVAL HOUR TO MINUTE)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectNull">
+        <Resource name="sql">
+            <![CDATA[select null from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[null:NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectNullWithAlias">
+        <Resource name="sql">
+            <![CDATA[select null as dummy from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DUMMY=[null:NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectNullWithCast">
+        <Resource name="sql">
+            <![CDATA[select cast(null as timestamp) dummy from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DUMMY=[null:TIMESTAMP(0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSelectDistinct">
         <Resource name="sql">
             <![CDATA[select distinct sal + 5 from emp]]>

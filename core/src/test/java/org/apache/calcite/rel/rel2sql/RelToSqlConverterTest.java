@@ -5049,89 +5049,109 @@ class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
-  @Test void testSelectNull() {
-    String query = "SELECT CAST(NULL AS INT)";
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4150">[CALCITE-4150]
+   * JDBC adapter throws UnsupportedOperationException when generating SQL
+   * for untyped NULL literal</a>. */
+  @Test void testSelectRawNull() {
+    final String query = "SELECT NULL FROM \"product\"";
+    final String expected = "SELECT NULL\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test void testSelectRawNullWithAlias() {
+    final String query = "SELECT NULL AS DUMMY FROM \"product\"";
+    final String expected = "SELECT NULL AS \"DUMMY\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test void testSelectNullWithCast() {
+    final String query = "SELECT CAST(NULL AS INT)";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
 
   @Test void testSelectNullWithCount() {
-    String query = "SELECT COUNT(CAST(NULL AS INT))";
+    final String query = "SELECT COUNT(CAST(NULL AS INT))";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
 
   @Test void testSelectNullWithGroupByNull() {
-    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM (VALUES  (0))\n"
-            + "AS \"t\" GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
+        + "FROM (VALUES  (0))AS \"t\"\n"
+        + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
-            + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+        + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
 
   @Test void testSelectNullWithGroupByVar() {
-    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM \"account\"\n"
-            + "AS \"t\" GROUP BY \"account_type\"";
+    final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
+        + "FROM \"account\" AS \"t\"\n"
+        + "GROUP BY \"account_type\"";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-            + "FROM \"foodmart\".\"account\"\n"
-            + "GROUP BY \"account_type\"";
+        + "FROM \"foodmart\".\"account\"\n"
+        + "GROUP BY \"account_type\"";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
 
   @Test void testSelectNullWithInsert() {
-    String query = "insert into\n"
-            + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")\n"
-            + "select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
+    final String query = "insert into\n"
+        + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")\n"
+        + "select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
     final String expected = "INSERT INTO \"foodmart\".\"account\" ("
-            + "\"account_id\", \"account_parent\", \"account_description\", "
-            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-            + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
-            + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
-            + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
-            + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
-            + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
-            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+        + "\"account_id\", \"account_parent\", \"account_description\", "
+        + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+        + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
+        + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
+        + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
+        + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
+        + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
 
   @Test void testSelectNullWithInsertFromJoin() {
-    String query = "insert into\n"
-            + "\"account\"(\"account_id\",\"account_parent\",\n"
-            + "\"account_type\",\"account_rollup\")\n"
-            + "select \"product\".\"product_id\",\n"
-            + "cast(NULL AS INT),\n"
-            + "cast(\"product\".\"product_id\" as varchar),\n"
-            + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
-            + "from \"product\"\n"
-            + "inner join \"sales_fact_1997\"\n"
-            + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
+    final String query = "insert into\n"
+        + "\"account\"(\"account_id\",\"account_parent\",\n"
+        + "\"account_type\",\"account_rollup\")\n"
+        + "select \"product\".\"product_id\",\n"
+        + "cast(NULL AS INT),\n"
+        + "cast(\"product\".\"product_id\" as varchar),\n"
+        + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
+        + "from \"product\"\n"
+        + "inner join \"sales_fact_1997\"\n"
+        + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
     final String expected = "INSERT INTO \"foodmart\".\"account\" "
-            + "(\"account_id\", \"account_parent\", \"account_description\", "
-            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-            + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
-            + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
-            + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
-            + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
-            + "\"ISO-8859-1\") AS \"account_type\", "
-            + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
-            + "\"account_rollup\", "
-            + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
-            + "FROM \"foodmart\".\"product\"\n"
-            + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
-            + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
+        + "(\"account_id\", \"account_parent\", \"account_description\", "
+        + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+        + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
+        + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
+        + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
+        + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
+        + "\"ISO-8859-1\") AS \"account_type\", "
+        + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
+        + "\"account_rollup\", "
+        + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();

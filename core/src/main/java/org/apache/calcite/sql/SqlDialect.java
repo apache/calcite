@@ -763,11 +763,17 @@ public class SqlDialect {
   }
 
  /** Returns SqlNode for type in "cast(column as type)", which might be
-  * different between databases by type name, precision etc. */
+  * different between databases by type name, precision etc.
+  *
+  * <p>If this method returns null, the cast will be omitted. In the default
+  * implementation, this is the case for the NULL type, and therefore
+  * {@code CAST(NULL AS <nulltype>)} is rendered as {@code NULL}. */
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       int maxPrecision = -1;
       switch (type.getSqlTypeName()) {
+      case NULL:
+        return null;
       case VARCHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());

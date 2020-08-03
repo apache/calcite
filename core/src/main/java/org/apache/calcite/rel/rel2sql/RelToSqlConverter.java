@@ -339,8 +339,9 @@ public class RelToSqlConverter extends SqlImplementor
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
         if (SqlUtil.isNullLiteral(sqlExpr, false)) {
-          sqlExpr = castNullType(sqlExpr,
-              e.getRowType().getFieldList().get(selectList.size()));
+          final RelDataTypeField field =
+              e.getRowType().getFieldList().get(selectList.size());
+          sqlExpr = castNullType(sqlExpr, field.getType());
         }
         addSelect(selectList, sqlExpr, e.getRowType());
       }
@@ -350,15 +351,19 @@ public class RelToSqlConverter extends SqlImplementor
     return builder.result();
   }
 
-  /**
-   * Wrap the {@code sqlNodeNull} in a CAST operator with target type as {@code field}.
-   * @param sqlNodeNull NULL literal
-   * @param field field description of {@code sqlNodeNull}
-   * @return null literal wrapped in CAST call.
+  /** Wraps a NULL literal in a CAST operator to a target type.
+   *
+   * @param nullLiteral NULL literal
+   * @param type Target type
+   *
+   * @return null literal wrapped in CAST call
    */
-  private SqlNode castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
-    return SqlStdOperatorTable.CAST.createCall(POS,
-            sqlNodeNull, dialect.getCastSpec(field.getType()));
+  private SqlNode castNullType(SqlNode nullLiteral, RelDataType type) {
+    final SqlNode typeNode = dialect.getCastSpec(type);
+    if (typeNode == null) {
+      return nullLiteral;
+    }
+    return SqlStdOperatorTable.CAST.createCall(POS, nullLiteral, typeNode);
   }
 
   /** Visits a Window; called by {@link #dispatch} via reflection. */

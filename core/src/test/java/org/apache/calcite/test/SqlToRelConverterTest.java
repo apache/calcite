@@ -607,6 +607,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("SELECT * FROM (VALUES (0, 0)) AS T(A, \"*\")").ok();
   }
 
+  @Test void testSelectNull() {
+    sql("select null from emp").ok();
+  }
+
+  @Test void testSelectNullWithAlias() {
+    sql("select null as dummy from emp").ok();
+  }
+
+  @Test void testSelectNullWithCast() {
+    sql("select cast(null as timestamp) dummy from emp").ok();
+  }
+
   @Test void testSelectDistinct() {
     sql("select distinct sal + 5 from emp").ok();
   }
