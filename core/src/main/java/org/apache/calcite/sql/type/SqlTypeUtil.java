@@ -477,7 +477,7 @@ public abstract class SqlTypeUtil {
     return isExactNumeric(type) || isApproximateNumeric(type);
   }
 
-  /** Returns whether a type is null. */
+  /** Returns whether a type is NULL type. Returns false if a type is a null reference. */
   public static boolean isNull(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -993,7 +993,7 @@ public abstract class SqlTypeUtil {
     assert typeName != null;
 
     final SqlTypeNameSpec typeNameSpec;
-    if (isAtomic(type)) {
+    if (isAtomic(type) || isNull(type)) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
@@ -1609,12 +1609,12 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns whether a type is a CHARACTER or contains a CHARACTER type. */
-  public static boolean hasCharactor(RelDataType type) {
+  public static boolean hasCharacter(RelDataType type) {
     if (isCharacter(type)) {
       return true;
     }
     if (isArray(type)) {
-      return hasCharactor(type.getComponentType());
+      return hasCharacter(type.getComponentType());
     }
     return false;
   }
