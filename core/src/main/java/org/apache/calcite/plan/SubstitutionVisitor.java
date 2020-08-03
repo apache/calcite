@@ -126,7 +126,7 @@ import static java.util.Objects.requireNonNull;
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
 
-  protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
+  public static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.of(
           TrivialRule.INSTANCE,
           ScanToCalcUnifyRule.INSTANCE,
@@ -862,7 +862,7 @@ public class SubstitutionVisitor {
    * <p>The rule declares the query and target types; this allows the
    * engine to fire only a few rules in a given context.</p>
    */
-  protected abstract static class UnifyRule {
+  public abstract static class UnifyRule {
     protected final int slotCount;
     protected final Operand queryOperand;
     protected final Operand targetOperand;
@@ -929,7 +929,7 @@ public class SubstitutionVisitor {
   /**
    * Arguments to an application of a {@link UnifyRule}.
    */
-  protected class UnifyRuleCall {
+  public class UnifyRuleCall {
     protected final UnifyRule rule;
     public final MutableRel query;
     public final MutableRel target;
@@ -984,7 +984,7 @@ public class SubstitutionVisitor {
    * contains {@code target}. {@code stopTrying} indicates whether there's
    * no need to do matching for the same query node again.
    */
-  protected static class UnifyResult {
+  public static class UnifyResult {
     private final UnifyRuleCall call;
     private final MutableRel result;
     private final boolean stopTrying;
@@ -999,7 +999,7 @@ public class SubstitutionVisitor {
   }
 
   /** Abstract base class for implementing {@link UnifyRule}. */
-  protected abstract static class AbstractUnifyRule extends UnifyRule {
+  public abstract static class AbstractUnifyRule extends UnifyRule {
     @SuppressWarnings("method.invocation.invalid")
     protected AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
@@ -1754,7 +1754,7 @@ public class SubstitutionVisitor {
   }
 
   /** Explain filtering condition and projections from MutableCalc. */
-  private static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
+  public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
     final RexNode condition = shuttle.apply(calc.program.getCondition());
     final List<RexNode> projects = new ArrayList<>();
@@ -2106,7 +2106,7 @@ public class SubstitutionVisitor {
   }
 
   /** Operand to a {@link UnifyRule}. */
-  protected abstract static class Operand {
+  public abstract static class Operand {
     protected final Class<? extends MutableRel> clazz;
 
     protected Operand(Class<? extends MutableRel> clazz) {
