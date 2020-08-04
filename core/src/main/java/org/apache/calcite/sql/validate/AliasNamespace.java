@@ -72,7 +72,7 @@ public class AliasNamespace extends AbstractNamespace {
         validator.getNamespace(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
     List<SqlNode> columnNames;
-    if (SqlUtil.isTableFunctionInSelect(call)) {
+    if (SqlUtil.isAsOperatorWithListOperand(call)) {
       columnNames = ((SqlNodeList) operands.get(1)).getList();
     } else {
       columnNames = Util.skip(operands, 2);

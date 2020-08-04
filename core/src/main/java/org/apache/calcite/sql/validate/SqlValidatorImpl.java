@@ -280,9 +280,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // TypeCoercion instance used for implicit type coercion.
   private TypeCoercion typeCoercion;
 
-  // Flag saying if we enable the implicit type coercion.
-  private boolean enableTypeCoercion;
-
   // Mapping the table function and the select node.
   private final Map<SqlSelect, SqlBasicCall> selectTableFunctions =
       new IdentityHashMap<>();
@@ -4190,7 +4187,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             expandedSelectItems,
             aliases,
             fieldList);
-      } else if (SqlUtil.isTableFunctionInSelect(selectItem)) {
+      } else if (SqlUtil.isAsOperatorWithListOperand(selectItem)) {
         handleTableFunctionInSelect(
             select,
             (SqlBasicCall) selectItem,
@@ -4317,9 +4314,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Processes table function found in select list.Checks that is
-   * actually a table function and validate the table function
-   * count in Select list.
+   * Processes table function found in select list. Checks whether it is a table function and
+   * validate the table function number in select list.
    *
    * @param parentSelect        Base SqlSelect
    * @param selectItem          Child select items from select list
@@ -4337,16 +4333,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlFunction function = (SqlFunction) functionCall.getOperator();
     // Check whether there are more than one table function in select list.
     for (SqlNode item : parentSelect.getSelectList()) {
-      if (SqlUtil.isTableFunctionInSelect(item)
+      if (SqlUtil.isAsOperatorWithListOperand(item)
           && item != selectItem) {
         throw newValidationError(parentSelect.getSelectList(),
             RESOURCE.onlyOneTableFunctionAllowedInSelect());
       }
     }
 
-    // Change the function category to USER_DEFINED_TABLE_FUNCTION.
-    // It is because that in sql-select list, the SqlFunctionCategory is USER_DEFINED_FUNCTION
-    // for a SqlUnresolvedFunction,so we should do this change.
+    // Change the function category to USER_DEFINED_TABLE_FUNCTION since the SqlFunctionCategory
+    // is USER_DEFINED_FUNCTION for a SqlUnresolvedFunction in sql-select list.
     if (function instanceof SqlUnresolvedFunction) {
       if (!function.getFunctionType().isTableFunction()) {
         SqlFunction newFunction =
@@ -4360,7 +4355,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         function = newFunction;
       }
     }
-    // Check functionCall whether is a table function
+    // Check whether functionCall is a table function.
     List<SqlOperator> overloads  = new ArrayList<>();
     opTab.lookupOperatorOverloads(function.getNameAsId(),
         function.getFunctionType(),
@@ -4369,7 +4364,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(functionCall,
           RESOURCE.exceptTableFunction(function.getName()));
     }
-    // Check the parent select whether is a aggregate statement
+    // Check whether the parent select is a aggregate statement.
     if (isAggregate(parentSelect)) {
       throw newValidationError(functionCall,
           RESOURCE.notAllowTableFunctionInAggregate());
@@ -4383,7 +4378,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     aliases.addAll(aliasList);
 
     String tableAlias = functionCall.getOperator().getName();
-    // Expand the table function alias
+    // Expand the table function alias.
     for (String alias : aliasList) {
       List<String> names = new ArrayList<>(2);
       names.add(tableAlias);
@@ -4392,7 +4387,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       expandedSelectItems.add(id);
     }
 
-    // Register namespace for table function
+    // Register namespace for table function.
     SqlValidatorScope fromScope = getFromScope(parentSelect);
     ProcedureNamespace tableNs = new ProcedureNamespace(this,
         fromScope, functionCall, selectItem);
@@ -4405,7 +4400,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     registerNamespace(getSelectScope(parentSelect),
         tableAlias, aliasNs, false);
 
-    // Create a table scope for table function
+    // Create a table scope for table function.
     TableScope tableScope = new TableScope(fromScope, parentSelect);
     if (fromScope instanceof ListScope) {
       for (ScopeChild child : ((ListScope) fromScope).children) {
@@ -4413,7 +4408,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     scopes.put(functionCall, tableScope);
-    // Associate the select with the table function
+    // Associate the select with the table function.
     selectTableFunctions.put(parentSelect, functionCall);
 
     RelDataType type = aliasNs.getRowType();

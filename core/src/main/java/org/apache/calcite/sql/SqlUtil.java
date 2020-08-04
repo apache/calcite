@@ -1191,13 +1191,13 @@ public abstract class SqlUtil {
   }
 
   /**
-   * Whether the selectItem is a table function node in the select.
-   * eg. "select table_func(1) as (f0,f1)"
+   * Whether the selectItem is a AS operator whose second operand is a List. It implies a table
+   * function, e.g. "select table_func(1) as (f0,f1)"
    *
    * @param selectItem select item
    * @return true if this selectItem is a table function call
    */
-  public static boolean isTableFunctionInSelect(SqlNode selectItem) {
+  public static boolean isAsOperatorWithListOperand(SqlNode selectItem) {
     if (selectItem.getKind() == SqlKind.AS) {
       SqlBasicCall call = (SqlBasicCall) selectItem;
       return call.getOperands()[1] instanceof SqlNodeList;

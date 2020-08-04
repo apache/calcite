@@ -1824,7 +1824,7 @@ SqlNode SelectItem() :
     SqlNode e;
     SqlIdentifier columnAlias;
     final List<SqlNode> columnAliases = new ArrayList();
-    final Span s = span();
+    final Span s;
     final SqlIdentifier id;
 }
 {
@@ -1843,11 +1843,14 @@ SqlNode SelectItem() :
                     id = SimpleIdentifierFromStringLiteral()
                 )
                 {
-                    e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
+                    s = span();
+                    e = SqlStdOperatorTable.AS.createCall(s.end(e), e, id);
                 }
             )
         |
             (
+                 // Parse table function like TABLE_FUNC(a, b) AS (a, b, e, f).
+                 { s = span(); }
                  <AS> <LPAREN>
                  columnAlias = SimpleIdentifier() {
                      columnAliases.add(columnAlias);

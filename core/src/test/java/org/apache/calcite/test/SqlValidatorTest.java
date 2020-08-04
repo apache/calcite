@@ -11606,7 +11606,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^test_udf('1')^ as (n,c) from emp")
         .fails("'TEST_UDF' should be a table function");
 
-    sql("^select TABLE_FUNC(1) as (n1,c1), TABLE_FUNC(2)^ as (n2,c2) from emp")
+    sql("select ^TABLE_FUNC(1) as (n1,c1), TABLE_FUNC(2)^ as (n2,c2) from emp")
         .fails("Only one table function is allowed in select list");
 
     sql("select ^TABLE_FUNC(1)^ as (n1,c1) , count(1) from emp having count(1) > 0")
