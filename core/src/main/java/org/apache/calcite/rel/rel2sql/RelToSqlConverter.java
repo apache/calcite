@@ -76,6 +76,7 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -357,8 +358,12 @@ public class RelToSqlConverter extends SqlImplementor
    * @return null literal wrapped in CAST call.
    */
   private SqlNode castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
-    return SqlStdOperatorTable.CAST.createCall(POS,
-            sqlNodeNull, dialect.getCastSpec(field.getType()));
+    if (SqlTypeUtil.isNull(field.getType())) {
+      return sqlNodeNull;
+    } else {
+      return SqlStdOperatorTable.CAST.createCall(POS,
+          sqlNodeNull, dialect.getCastSpec(field.getType()));
+    }
   }
 
   /** Visits a Window; called by {@link #dispatch} via reflection. */

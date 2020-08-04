@@ -5050,8 +5050,15 @@ class RelToSqlConverterTest {
   }
 
   @Test void testSelectNull() {
+    String query = "SELECT NULL FROM \"product\"";
+    final String expected = "SELECT NULL\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test void testSelectNullWithAlias() {
     String query = "SELECT NULL AS DUMMY FROM \"product\"";
-    final String expected = "SELECT CAST(NULL AS NULL) AS \"DUMMY\"\n"
+    final String expected = "SELECT NULL AS \"DUMMY\"\n"
             + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
