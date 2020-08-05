@@ -5202,6 +5202,95 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectAggregateMerge">
+        <Resource name="sql">
+            <![CDATA[select deptno + ss
+from (
+  select job, deptno, min(sal) as ms, sum(sal) as ss
+  from sales.emp
+  group by job, deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($1, $3)])
+  LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($f0=[+($1, $2)])
+  LogicalAggregate(group=[{0, 1}], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectAggregateMergeNoOp">
+        <Resource name="sql">
+            <![CDATA[select deptno + ss + ms
+from (
+  select job, deptno, min(sal) as ms, sum(sal) as ss
+  from sales.emp
+  group by job, deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[+(+($1, $3), $2)])
+  LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectAggregateMergeSum0">
+        <Resource name="sql">
+            <![CDATA[select coalesce(sum_sal, 0) as ss0
+from (
+  select sum(sal) as sum_sal
+  from sales.emp)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectAggregateMergeSum0AndSum">
+        <Resource name="sql">
+            <![CDATA[select sum_sal * 2, coalesce(sum_sal, 0) as ss0
+from (
+  select sum(sal) as sum_sal
+  from sales.emp)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[*($0, 2)], SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($f0=[*($0, 2)], $f1=[$1])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], agg#1=[$SUM0($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testRemoveSemiJoinWithFilter">
         <Resource name="sql">
             <![CDATA[select e.ename from emp e, dept d

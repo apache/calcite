@@ -123,6 +123,7 @@ public class RelOptRules {
       CoreRules.AGGREGATE_REMOVE,
       CoreRules.UNION_TO_DISTINCT,
       CoreRules.PROJECT_REMOVE,
+      CoreRules.PROJECT_AGGREGATE_MERGE,
       CoreRules.AGGREGATE_JOIN_TRANSPOSE,
       CoreRules.AGGREGATE_MERGE,
       CoreRules.AGGREGATE_PROJECT_MERGE,
