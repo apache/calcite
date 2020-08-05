@@ -545,6 +545,28 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateMergeSum0">
+        <Resource name="sql">
+            <![CDATA[select coalesce(sum(count_comm), 0)
+from (
+  select deptno, count(comm) as count_comm
+  from sales.emp
+  group by deptno, mgr) t]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], agg#0=[$SUM0($2)])
+  LogicalAggregate(group=[{3, 7}], COUNT_COMM=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], agg#0=[COUNT()])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAll">
         <Resource name="sql">
             <![CDATA[select * from emp e1
