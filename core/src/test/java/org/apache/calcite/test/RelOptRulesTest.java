@@ -4740,6 +4740,52 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Tests that ProjectAggregateMergeRule removes unused aggregate calls but
+   * not group keys. */
+  @Test void testProjectAggregateMerge() {
+    final String sql = "select deptno + ss\n"
+        + "from (\n"
+        + "  select job, deptno, min(sal) as ms, sum(sal) as ss\n"
+        + "  from sales.emp\n"
+        + "  group by job, deptno)";
+    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .check();
+  }
+
+  /** Tests that ProjectAggregateMergeRule does nothing when all aggregate calls
+   * are referenced. */
+  @Test void testProjectAggregateMergeNoOp() {
+    final String sql = "select deptno + ss + ms\n"
+        + "from (\n"
+        + "  select job, deptno, min(sal) as ms, sum(sal) as ss\n"
+        + "  from sales.emp\n"
+        + "  group by job, deptno)";
+    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Tests that ProjectAggregateMergeRule converts {@code COALESCE(SUM(x), 0)}
+   * into {@code SUM0(x)}. */
+  @Test void testProjectAggregateMergeSum0() {
+    final String sql = "select coalesce(sum_sal, 0) as ss0\n"
+        + "from (\n"
+        + "  select sum(sal) as sum_sal\n"
+        + "  from sales.emp)";
+    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .check();
+  }
+
+  /** As {@link #testProjectAggregateMergeSum0()} but there is another use of
+   * {@code SUM} that cannot be converted to {@code SUM0}. */
+  @Test void testProjectAggregateMergeSum0AndSum() {
+    final String sql = "select sum_sal * 2, coalesce(sum_sal, 0) as ss0\n"
+        + "from (\n"
+        + "  select sum(sal) as sum_sal\n"
+        + "  from sales.emp)";
+    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .check();
+  }
+
   /**
    * Test case for AggregateMergeRule, should merge 2 aggregates
    * into a single aggregate.

@@ -340,6 +340,11 @@ public class CoreRules {
   public static final UnionMergeRule MINUS_MERGE =
       UnionMergeRule.Config.MINUS.toRule();
 
+  /** Rule that matches a {@link Project} on an {@link Aggregate},
+   * projecting away aggregate calls that are not used. */
+  public static final ProjectAggregateMergeRule PROJECT_AGGREGATE_MERGE =
+      ProjectAggregateMergeRule.Config.DEFAULT.toRule();
+
   /** Rule that merges a {@link LogicalProject} and a {@link LogicalCalc}.
    *
    * @see #FILTER_CALC_MERGE */
