@@ -78,7 +78,9 @@ public class ReflectiveRelMetadataProvider
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
       Multimap<Method, MetadataHandler> handlerMap) {
-    assert !map.isEmpty() : "are your methods named wrong?";
+    if (map.isEmpty()) {
+      throw new IllegalArgumentException("ReflectiveRelMetadataProvider methods map is empty");
+    }
     this.map = map;
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
