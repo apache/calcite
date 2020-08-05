@@ -1825,7 +1825,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2343">[CALCITE-2343]
    * Should not push over whose columns are all from left child past join since
-   * join will affect row count.</a>. */
+   * join will affect row count</a>. */
   @Test void testPushProjectWithOverPastJoin1() {
     final String sql = "select e.sal + b.comm,\n"
         + "count(e.empno) over (partition by e.deptno)\n"
@@ -4731,11 +4731,11 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2249">[CALCITE-2249]
-   * AggregateJoinTransposeRule generates inequivalent nodes if Aggregate relNode contains
-   * distinct aggregate function.</a>. */
+   * AggregateJoinTransposeRule generates non-equivalent nodes if Aggregate
+   * contains DISTINCT aggregate function</a>. */
   @Test void testPushDistinctAggregateIntoJoin() {
-    final String sql =
-            "select count(distinct sal) from sales.emp join sales.dept on job = name";
+    final String sql = "select count(distinct sal) from sales.emp\n"
+        + " join sales.dept on job = name";
     sql(sql).withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .checkUnchanged();
   }
@@ -4893,6 +4893,24 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3957">[CALCITE-3957]
+   * AggregateMergeRule should merge SUM0 into COUNT even if GROUP BY is
+   * empty</a>. (It is not valid to merge a SUM onto a SUM0 if the top GROUP BY
+   * is empty.) */
+  @Test void testAggregateMergeSum0() {
+    final String sql = "select coalesce(sum(count_comm), 0)\n"
+        + "from (\n"
+        + "  select deptno, count(comm) as count_comm\n"
+        + "  from sales.emp\n"
+        + "  group by deptno, mgr) t";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_AGGREGATE_MERGE,
+            CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_MERGE)
+        .check();
+  }
+
   /**
    * Test case for AggregateMergeRule, should not merge 2 aggregates
    * into a single aggregate, since top agg contains empty grouping set,
@@ -5027,7 +5045,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2712">[CALCITE-2712]
    * Should remove the left join since the aggregate has no call and
-   * only uses column in the left input of the bottom join as group key.</a>. */
+   * only uses column in the left input of the bottom join as group key</a>. */
   @Test void testAggregateJoinRemove1() {
     final String sql = "select distinct e.deptno from sales.emp e\n"
         + "left outer join sales.dept d on e.deptno = d.deptno";

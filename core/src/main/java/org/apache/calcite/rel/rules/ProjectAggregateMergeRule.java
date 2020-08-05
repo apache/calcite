@@ -47,7 +47,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Planner rule that matches a {@link Project} on a {@link Aggregate}
  * and projects away aggregate calls that are not used.
  *
- * <p>Also converts {@code NVL(SUM(x), 0)} to {@code SUM0(x)}.
+ * <p>Also converts {@code COALESCE(SUM(x), 0)} to {@code SUM0(x)}.
+ * This transformation is useful because there are cases where
+ * {@link AggregateMergeRule} can merge {@code SUM0} but not {@code SUM}.
  *
  * @see CoreRules#PROJECT_AGGREGATE_MERGE
  */

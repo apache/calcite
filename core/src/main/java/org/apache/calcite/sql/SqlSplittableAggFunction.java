@@ -198,7 +198,8 @@ public interface SqlSplittableAggFunction {
 
     public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (bottom.getAggregation().getKind() == SqlKind.COUNT
-          && top.getAggregation().getKind() == SqlKind.SUM) {
+          && (top.getAggregation().getKind() == SqlKind.SUM
+              || top.getAggregation().getKind() == SqlKind.SUM0)) {
         return AggregateCall.create(bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.getArgList(), bottom.filterArg, bottom.getCollation(),

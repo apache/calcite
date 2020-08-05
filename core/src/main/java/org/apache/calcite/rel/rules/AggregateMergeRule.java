@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -99,7 +100,7 @@ public class AggregateMergeRule
     }
 
     boolean hasEmptyGroup = topAgg.getGroupSets()
-        .stream().anyMatch(n -> n.isEmpty());
+        .stream().anyMatch(ImmutableBitSet::isEmpty);
 
     final List<AggregateCall> finalCalls = new ArrayList<>();
     for (AggregateCall topCall : topAgg.getAggCallList()) {
@@ -120,6 +121,7 @@ public class AggregateMergeRule
       // 0, which is wrong.
       if (!isAggregateSupported(bottomCall)
           || (bottomCall.getAggregation() == SqlStdOperatorTable.COUNT
+               && topCall.getAggregation().getKind() != SqlKind.SUM0
                && hasEmptyGroup)) {
         return;
       }
