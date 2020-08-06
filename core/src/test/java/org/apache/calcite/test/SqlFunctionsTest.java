@@ -25,6 +25,7 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,6 +53,7 @@ import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
+import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
@@ -999,6 +1001,12 @@ public class SqlFunctionsTest {
     assertThat(toVarchar(23, "99"), is("23"));
     assertThat(toVarchar(123, "999"), is("123"));
     assertThat(toVarchar(1.5, "9.99"), is("1.50"));
+  }
+
+  /** Test for {@link SqlFunctions#timestampToDate}. */
+  @Test public void testTimestampToDate() {
+    assertThat(timestampToDate("2020-12-12 12:12:12").toString(), is("2020-12-12"));
+    assertThat(timestampToDate(new Timestamp(1607731932)).toString(), is("1970-01-19"));
   }
 }
 

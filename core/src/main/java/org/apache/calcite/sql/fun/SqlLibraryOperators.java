@@ -604,6 +604,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
-}
 
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIMESTAMP_TO_DATE = new SqlFunction(
+      "DATE",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.ARG0_NULLABLE,
+      null,
+      OperandTypes.DATETIME,
+      SqlFunctionCategory.TIMEDATE);
+}
 // End SqlLibraryOperators.java
