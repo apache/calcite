@@ -5049,6 +5049,17 @@ class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4165">[CALCITE-4165]
+   * JDBC adapter throws UnsupportedOperationException when generating SQL
+   * for untyped NULL literal</a>. */
+  @Test void testSelectRawNull() {
+    final String query = "SELECT NULL FROM \"warehouse_class\"";
+    final String expected = "SELECT CAST(NULL AS NULL)\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testSelectNull() {
     String query = "SELECT NULL FROM \"product\"";
     final String expected = "SELECT NULL\n"

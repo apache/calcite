@@ -477,7 +477,7 @@ public abstract class SqlTypeUtil {
     return isExactNumeric(type) || isApproximateNumeric(type);
   }
 
-  /** Returns whether a type is NULL type. Returns false if a type is a null reference. */
+  /** Returns whether a type is the NULL type. */
   public static boolean isNull(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
