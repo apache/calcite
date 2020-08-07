@@ -5055,7 +5055,7 @@ class RelToSqlConverterTest {
    * for untyped NULL literal</a>. */
   @Test void testSelectRawNull() {
     final String query = "SELECT NULL FROM \"warehouse_class\"";
-    final String expected = "SELECT CAST(NULL AS NULL)\n"
+    final String expected = "SELECT NULL\n"
         + "FROM \"foodmart\".\"warehouse_class\"";
     sql(query).ok(expected);
   }
