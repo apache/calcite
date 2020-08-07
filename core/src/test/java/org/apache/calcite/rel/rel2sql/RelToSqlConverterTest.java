@@ -818,8 +818,8 @@ class RelToSqlConverterTest {
         .build();
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE (\"EMPNO\" = 0 OR \"EMPNO\" = 1 OR (\"EMPNO\" = 2 OR \"EMPNO\" = 3))"
-        + " AND (\"DEPTNO\" = 5 OR (\"DEPTNO\" = 6 OR \"DEPTNO\" = 7))";
+        + "WHERE \"EMPNO\" >= 0 AND \"EMPNO\" <= 3"
+        + " AND (\"DEPTNO\" >= 5 AND \"DEPTNO\" <= 7)";
     relFn(relFn).ok(expected);
   }
 
@@ -1453,7 +1453,7 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" IN (21)";
+        + "WHERE \"DEPTNO\" = 21";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1466,7 +1466,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" IN (20, 21)";
+        + "WHERE \"DEPTNO\" = 20 OR \"DEPTNO\" = 21";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1482,7 +1482,7 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1500,7 +1500,8 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT') OR "
+        + "ROW(\"DEPTNO\", \"JOB\") = ROW(2, 'PRESIDENT')";
     relFn(relFn).ok(expectedSql);
   }
 

@@ -36,6 +36,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.rex.RexUnknownAs.FALSE;
 import static org.apache.calcite.rex.RexUnknownAs.TRUE;
@@ -295,6 +297,8 @@ public class RexSimplify {
       return simplifyUnaryMinus((RexCall) e, unknownAs);
     case PLUS_PREFIX:
       return simplifyUnaryPlus((RexCall) e, unknownAs);
+    case IN:
+      return simplifyIn((RexCall) e, unknownAs);
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);
@@ -668,6 +672,93 @@ public class RexSimplify {
       return simplified;
     }
     return call;
+  }
+
+  private RexNode simplifyIn(RexCall call, RexUnknownAs unknownAs) {
+    if (call instanceof RexSubQuery || call.getOperands().size() < 2) {
+      return call.getClass() == RexCall.class ? simplifyGenericNode(call) : call;
+    }
+
+    RexNode variable = call.getOperands().get(0);
+    List<RexNode> orTerms = new ArrayList<>();
+    for (int i = 1; i < call.getOperands().size(); i++) {
+      orTerms.add(
+          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, variable, call.getOperands().get(i)));
+    }
+    return simplifyOrs(orTerms, unknownAs);
+  }
+
+  /**
+   * Simplify the expression with a variable comparing against a number of discrete values.
+   *
+   * @param variable the variable operand.
+   * @param values the discrete values.
+   * @param unknownAs the option for unknown value.
+   * @return the simplified expression, or null if simplification failed.
+   */
+  private RexNode simplifyDiscreteValueComparisons(
+      RexNode variable, List<RexLiteral> values, RexUnknownAs unknownAs) {
+    if (values.isEmpty()) {
+      return null;
+    }
+    SqlTypeName typeName = variable.getType().getSqlTypeName();
+    if (typeName != SqlTypeName.TINYINT && typeName != SqlTypeName.SMALLINT
+        && typeName != SqlTypeName.INTEGER && typeName != SqlTypeName.BIGINT) {
+      // we only support integer types
+      return null;
+    }
+
+    // create initial value ranges
+    Map<Long, RexLiteral> value2Literal = new HashMap<>();
+    List<RexUtil.DiscreteValueRange> originalRanges = new ArrayList<>();
+    for (int i = 0; i < values.size(); i++) {
+      long value = values.get(i).getValueAs(Long.class);
+      value2Literal.put(value, values.get(i));
+      originalRanges.add(new RexUtil.DiscreteValueRange(value));
+    }
+
+    // simplify ranges
+    List<RexUtil.DiscreteValueRange> simplifiedRanges =
+        RexUtil.DiscreteValueRange.mergeRanges(originalRanges);
+
+    if (simplifiedRanges.size() == originalRanges.size()
+        || RexUtil.DiscreteValueRange.getCost(originalRanges)
+        <= RexUtil.DiscreteValueRange.getCost(simplifiedRanges)) {
+      // if the original expression is cheaper, we give up the simplification.
+      return null;
+    }
+
+    // construct simplified expression
+    List<RexNode> rangeExprs = simplifiedRanges.stream().map(r -> {
+      if (r.isSingleton()) {
+        // e.g. a = 5
+        return rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS, variable, value2Literal.get(r.lowerBound));
+      } else {
+        // e.g. a >= 1 and a <= 5
+        return rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                variable, value2Literal.get(r.lowerBound)),
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                variable, value2Literal.get(r.upperBound)));
+      }
+    }).collect(Collectors.toList());
+
+    if (rangeExprs.size() == 1) {
+      RexCall simplifiedExpr = (RexCall) rangeExprs.get(0);
+      RexUtil.DiscreteValueRange r = simplifiedRanges.get(0);
+      if (r.isSingleton()) {
+        // e.g. a = 5
+        return simplifyGenericNode(simplifiedExpr);
+      } else {
+        // e.g. a >= 1 and a <= 5
+        return simplifyAnd(simplifiedExpr, unknownAs);
+      }
+    } else {
+      // e.g. (a >= 1 and a <= 5) or (a >= 10 and a <= 15)
+      return simplifyOrs(rangeExprs, unknownAs);
+    }
   }
 
   private RexNode simplifyIsPredicate(SqlKind kind, RexNode a) {
@@ -1814,7 +1905,62 @@ public class RexSimplify {
       }
       terms.set(i, term);
     }
-    return RexUtil.composeDisjunction(rexBuilder, terms);
+    RexNode simplified =  RexUtil.composeDisjunction(rexBuilder, terms);
+    if (!(simplified instanceof RexCall)) {
+      return simplified;
+    }
+
+    // otherwise, we try discrete value simplification
+
+    // all terms must have the form 'variable = const'
+    boolean allEqualExprs = terms.stream().allMatch(t -> {
+      if (t instanceof RexCall && ((RexCall) t).getOperator().kind == SqlKind.EQUALS) {
+        RexNode leftOp = ((RexCall) t).getOperands().get(0);
+        RexNode rightOp = ((RexCall) t).getOperands().get(1);
+        return (leftOp instanceof RexLiteral && !(rightOp instanceof RexLiteral))
+            || (!(leftOp instanceof RexLiteral) && rightOp instanceof RexLiteral);
+      }
+      return false;
+    });
+    if (!allEqualExprs) {
+      return simplified;
+    }
+
+    // classify terms by variables
+    Multimap<RexNode, RexLiteral> termEqualMap = HashMultimap.create();
+    for (RexNode t : terms) {
+      RexNode leftOp = ((RexCall) t).getOperands().get(0);
+      RexNode rightOp = ((RexCall) t).getOperands().get(1);
+      if (leftOp instanceof RexLiteral) {
+        termEqualMap.put(rightOp, (RexLiteral) leftOp);
+      } else {
+        termEqualMap.put(leftOp, (RexLiteral) rightOp);
+      }
+    }
+
+    // try to simplify terms by individual variables
+    boolean comparisonSimplified = false;
+    List<RexNode> simplifiedTerms = new ArrayList<>();
+    for (RexNode var : termEqualMap.keySet()) {
+      Collection<RexLiteral> values = termEqualMap.get(var);
+      RexNode simpTerm = null;
+      if (values.size() > 2) {
+        simpTerm = simplifyDiscreteValueComparisons(var, new ArrayList<>(values), unknownAs);
+      }
+
+      if (simpTerm == null) {
+        // simplification failed, add original terms.
+        for (RexLiteral literal : values) {
+          simplifiedTerms.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, var, literal));
+        }
+      } else {
+        // simplification worked, add simplified term.
+        comparisonSimplified = true;
+        simplifiedTerms.add(simpTerm);
+      }
+    }
+
+    return comparisonSimplified ? simplifyOrs(simplifiedTerms, unknownAs) : simplified;
   }
 
   private void verify(RexNode before, RexNode simplified, RexUnknownAs unknownAs) {

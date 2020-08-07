@@ -45,10 +45,15 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.collect.BoundType;
+import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
 import org.apiguardian.api.API;
 
@@ -63,6 +68,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 /**
@@ -2745,6 +2751,78 @@ public class RexUtil {
         return simplifiedNode;
       }
       return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, matchNullability);
+    }
+  }
+
+  /**
+   * Utility for a range of discrete values.
+   */
+  static class DiscreteValueRange {
+    // both bounds are inclusive
+    final long lowerBound;
+    final long upperBound;
+
+    DiscreteValueRange(long bound) {
+      this(bound, bound);
+    }
+
+    DiscreteValueRange(long lowerBound, long upperBound) {
+      this.lowerBound = lowerBound;
+      this.upperBound = upperBound;
+    }
+
+    DiscreteValueRange(Range<Long> range) {
+      assert range.hasLowerBound();
+      assert range.hasUpperBound();
+      this.lowerBound = range.lowerBoundType() == BoundType.OPEN
+          ? range.lowerEndpoint() + 1 : range.lowerEndpoint();
+      this.upperBound = range.upperBoundType() == BoundType.OPEN
+          ? range.upperEndpoint() - 1 : range.upperEndpoint();
+    }
+
+    boolean isSingleton() {
+      return lowerBound == upperBound;
+    }
+
+    /**
+     * Merge ranges until there is no chance for further merging.
+     */
+    static List<DiscreteValueRange> mergeRanges(List<DiscreteValueRange> ranges) {
+      RangeSet<Long> rangeSet = TreeRangeSet.create();
+      for (DiscreteValueRange r : ranges) {
+        rangeSet.add(Range.closed(r.lowerBound, r.upperBound).canonical(DiscreteDomain.longs()));
+      }
+      return rangeSet.asRanges().stream().map(
+          r -> new DiscreteValueRange(r)).collect(Collectors.toList());
+    }
+
+    @Override public String toString() {
+      return "[" + lowerBound + ", " + upperBound + "]";
+    }
+
+    static final double COMPARISON_COST = 1.0;
+    static final double LOGICAL_OP_COST = 0.2;
+
+    /**
+     * Gets the cost for evaluating the range related expression.
+     * We assume comparison and logical operations have different costs.
+     */
+    double getCost() {
+      if (lowerBound == upperBound) {
+        // e.g. a = 5
+        return COMPARISON_COST;
+      } else {
+        // e.g. a >= 1 and a <= 5;
+        return 2 * COMPARISON_COST + LOGICAL_OP_COST;
+      }
+    }
+
+    /**
+     * Gets the cost of a list of range evaluations combined by logical or.
+     */
+    static double getCost(List<DiscreteValueRange> ranges) {
+      return (ranges.size() - 1) * LOGICAL_OP_COST
+          + ranges.stream().mapToDouble(r -> r.getCost()).sum();
     }
   }
 }

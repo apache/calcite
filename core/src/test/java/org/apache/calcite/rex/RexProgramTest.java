@@ -2634,6 +2634,74 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(simplifiedExpr, is(origExpr));
   }
 
+  @Test void testSimplifyInValues() {
+    RexNode a = vIntNotNull(1);
+    RexNode n1 = literal(1);
+    RexNode n2 = literal(2);
+    RexNode n3 = literal(3);
+    RexNode n4 = literal(4);
+    RexNode n5 = literal(5);
+    RexNode n6 = literal(6);
+
+    // input: a in (1, 2, 3, 4, 5)
+    // simplified: a >= 1 and a <= 5
+    checkSimplify(in(a, n1, n2, n3, n4, n5),
+        "AND(>=(?0.notNullInt1, 1), <=(?0.notNullInt1, 5))");
+
+    // input: a in (2, 3, 5, 4, 1)
+    // simplified: a >= 1 and a <= 5
+    checkSimplify(in(a, n2, n3, n5, n4, n1),
+        "AND(>=(?0.notNullInt1, 1), <=(?0.notNullInt1, 5))");
+
+    // input: a in (1, 2, 4, 5),
+    // simplified: a = 1 or a = 2 or a = 4 or a = 5,
+    // because the simplified expr has higher cost
+    checkSimplify(in(a, n1, n2, n4, n5),
+        "OR(=(?0.notNullInt1, 1), =(?0.notNullInt1, 2), "
+            + "=(?0.notNullInt1, 4), =(?0.notNullInt1, 5))");
+
+    // input: a in (1, 2, 4, 5, 6)
+    // simplified: (a >= 1 and a <= 2) or (a >= 4 and a <=6),
+    // because this time, the simplified expr is cheaper
+    checkSimplify(in(a, n1, n2, n4, n5, n6),
+        "OR(AND(>=(?0.notNullInt1, 1), <=(?0.notNullInt1, 2)), "
+            + "AND(>=(?0.notNullInt1, 4), <=(?0.notNullInt1, 6)))");
+
+    RexNode b = vDecimalNotNull(1);
+
+    // input: b in (1, 2, 3, 4, 5)
+    // simplified: b = 1 or b = 2 or b = 3 or b = 4 or b = 5,
+    // because we only support integers
+    checkSimplify(in(b, n1, n2, n3, n4, n5),
+        "OR(=(?0.notNullDecimal1, 1), =(?0.notNullDecimal1, 2), "
+            + "=(?0.notNullDecimal1, 3), =(?0.notNullDecimal1, 4), =(?0.notNullDecimal1, 5))");
+  }
+
+  @Test void testSimplifyDiscreteOrs() {
+    RexNode a = vIntNotNull(1);
+    RexNode n1 = literal(1);
+    RexNode n2 = literal(2);
+    RexNode n3 = literal(3);
+    RexNode n4 = literal(4);
+    RexNode n5 = literal(5);
+    RexNode n6 = literal(6);
+
+    // input: a = 1 or a = 2 or a = 3 or a = 4 or a = 5
+    // simplified: a >= 1 and a <= 5
+    checkSimplify(or(eq(a, n1), eq(a, n2), eq(a, n3), eq(a, n4), eq(a, n5)),
+        "AND(>=(?0.notNullInt1, 1), <=(?0.notNullInt1, 5))");
+
+    RexNode b = vIntNotNull(1);
+    RexNode c = vIntNotNull(2);
+
+    // input: (b = 1 or b = 2 or b = 3) or (c = 4 or c = 5 or c = 6)
+    // simplified: (b >= 1 and b <= 3) or (c >=4 and c <=6)
+    checkSimplify(
+        or(eq(b, n1), eq(b, n2), eq(b, n3), eq(c, n4), eq(c, n5), eq(c, n6)),
+        "OR(AND(>=(?0.notNullInt1, 1), <=(?0.notNullInt1, 3)), "
+            + "AND(>=(?0.notNullInt2, 4), <=(?0.notNullInt2, 6)))");
+  }
+
   @Test void testSimplifyRangeWithMultiPredicates() {
     final RexNode ref = input(tInt(), 0);
     RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
