@@ -3968,6 +3968,10 @@ public class SqlToRelConverter {
       RexInputRef inputRef) {
     RelDataTypeField field = bb.getRootField(inputRef);
     if (field != null) {
+      if (!SqlTypeUtil.equalSansNullability(typeFactory,
+          field.getType(), inputRef.getType())) {
+        return inputRef;
+      }
       return rexBuilder.makeInputRef(
           field.getType(),
           inputRef.getIndex());

@@ -6909,4 +6909,18 @@ LogicalProject(DEPTNO=[$0], F0=[STRUCTURED_FUNC().F0], F1=[STRUCTURED_FUNC().F1]
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testGroupByCoalesceIn">
+        <Resource name="sql">
+            <![CDATA[select case when coalesce(ename, 'a') in ('1', '2')
+then 'CKA' else 'QT' END, count(distinct deptno) from emp
+group by case when coalesce(ename, 'a') in ('1', '2') then 'CKA' else 'QT' END]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
+  LogicalProject(EXPR$0=[CASE(OR(=($1, '1'), =($1, '2')), 'CKA', 'QT ')], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
