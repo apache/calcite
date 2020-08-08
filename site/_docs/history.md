@@ -27,6 +27,84 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
+
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.25.0">1.25.0</a> / 2020-08-08
+{: #v1-25-0}
+
+This release comes shortly after [1.24.0](#v1-24-0) (in just two weeks) and removes methods 
+which were deprecated in the previous version. It also introduces other breaking changes so
+make sure to consult corresponding section. Notable improvements in this release are:
+
+* [Interval Expressions](https://issues.apache.org/jira/browse/CALCITE-4134)
+(e.g. `INTERVAL '1' HOUR`, `INTERVAL -'1:2' HOUR TO MINUTE`)
+* [Character Literals as Aliases](https://issues.apache.org/jira/browse/CALCITE-4080)
+* [Refactor How Planner Rules are Parameterized](https://issues.apache.org/jira/browse/CALCITE-3923)
+* [Spacial Functions](https://issues.apache.org/jira/browse/CALCITE-2160)
+
+Compatibility: This release is tested on Linux, MacOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11, 12, 13, 14 and OpenJDK 8, 9, 10, 11, 12, 13, 14;
+Guava versions 19.0 to 28.2-jre; other software versions as specified in
+gradle.properties.
+
+#### Breaking Changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2569">CALCITE-2569</a>]
+UDFs that are table functions must implement `SqlTableFunction` and have `CURSOR` as their return type
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3923">CALCITE-3923</a>]
+Refactor how planner rules are parameterized
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4079">CALCITE-4079</a>]
+Dialect constants in `SqlDialect` can cause class initialization deadlock
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4114">CALCITE-4114</a>]
+Remove method `CalciteAssert.forceDecorrelate` (Jiatao Tao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4128">CALCITE-4128</a>]
+Remove dependency of File adapter on Example CSV adapter
+
+#### New features
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2160">CALCITE-2160</a>]
+Spatial: Add functions `ST_MakeGrid` and `ST_MakeGridPoints`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4134">CALCITE-4134</a>]
+Interval expressions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4154">CALCITE-4154</a>]
+Add a rule, `ProjectAggregateMergeRule`, to merge a `Project` onto an `Aggregate`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4080">CALCITE-4080</a>]
+Allow character literals as column aliases, if `SqlConformance.allowCharLiteralAlias()`
+
+#### Bug fixes, API changes and minor enhancements
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4139">CALCITE-4139</a>]
+Prevent NPE in `ListTransientTable`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2854">CALCITE-2854</a>]
+Codegen compile error when implementing unary minus function with data type `BigDecimal` (Qi Yu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3957">CALCITE-3957</a>]
+`AggregateMergeRule` should merge `SUM0` into `COUNT` even if `GROUP BY` is empty
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4150">CALCITE-4150</a>]
+JDBC adapter throws `UnsupportedOperationException` when generating SQL for untyped `NULL` literal (Anton Haidai)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4118">CALCITE-4118</a>]
+RexSimplify might remove `CAST` from RexNode incorrectly
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4145">CALCITE-4145</a>]
+Exception when query from UDF field with structured type
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4081">CALCITE-4081</a>]
+Round-tripping a DECIMAL literal throws validation error
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4132">CALCITE-4132</a>]
+Estimate the number of distinct values more accurately (Liya Fan)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4102">CALCITE-4102</a>]
+Some improvements to aggregate related operations (Liya Fan)
+
+#### Build and test suite
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4141">CALCITE-4141</a>]
+Make checkstyle tasks relocatable to support Gradle build cache
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4137">CALCITE-4137</a>]
+Checkstyle should ensure that every class has a Javadoc comment
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4156">CALCITE-4156</a>]
+`ReflectiveRelMetadataProvider` constructor should throw an exception (instead of assertion) when called with an empty map
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4022">CALCITE-4022</a>]
+Support unparse special syntax for `INSERT` (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4115">CALCITE-4115</a>]
+Improve the prompt of using SQL keywords for sql parses (part2)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4129">CALCITE-4129</a>]
+Support deep equality check for `RelNode`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4111">CALCITE-4111</a>]
+Remove `VolcanoPlannerPhase` in Planner (Jiatao Tao)
+
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.24.0">1.24.0</a> / 2020-07-24
 {: #v1-24-0}
 
