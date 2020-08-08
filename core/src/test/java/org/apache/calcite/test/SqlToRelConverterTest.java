@@ -3861,6 +3861,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4167">[CALCITE-4167]
+   * Group by COALESCE IN throws NullPointerException</a>.
+   */
+  @Test void testGroupByCoalesceIn() {
+    final String sql = "select case when coalesce(ename, 'a') in ('1', '2')\n"
+        + "then 'CKA' else 'QT' END, count(distinct deptno) from emp\n"
+        + "group by case when coalesce(ename, 'a') in ('1', '2') then 'CKA' else 'QT' END";
+    sql(sql).ok();
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(Litmus, RelNode.Context)
