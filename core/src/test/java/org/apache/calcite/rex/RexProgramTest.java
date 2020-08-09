@@ -1354,27 +1354,86 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
     final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
+    final RexLiteral literal3 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
+    final RexLiteral literal4 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
+    final RexLiteral literal5 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(5));
 
-    // "a != 1 or a = 1" ==> "true"
+    // "a <> 1 or a = 1" ==> "true"
     checkSimplifyFilter(
-        or(ne(aRef, literal(1)),
-            eq(aRef, literal(1))),
+        or(ne(aRef, literal1),
+            eq(aRef, literal1)),
         "true");
 
-    // TODO: make this simplify to "true"
+    // "a = 1 or a <> 1" ==> "true"
     checkSimplifyFilter(
-        or(eq(aRef, literal(1)),
-            ne(aRef, literal(1))),
-        "OR(=(?0.a, 1), <>(?0.a, 1))");
+        or(eq(aRef, literal1),
+            ne(aRef, literal1)),
+        "true");
 
-    // "b != 1 or b = 1" cannot be simplified, because b might be null
+    // "a = 1 or a <> 2" could (and should) be simplified to "a <> 2"
+    // but can't do that right now
+    checkSimplifyFilter(
+        or(eq(aRef, literal1),
+            ne(aRef, literal2)),
+        "OR(=(?0.a, 1), <>(?0.a, 2))");
+
+    // "(a >= 1 and a <= 3) or a <> 2", or equivalently
+    // "a between 1 and 3 or a <> 2" ==> "true"
+    checkSimplifyFilter(
+        or(
+            and(ge(aRef, literal1),
+                le(aRef, literal3)),
+            ne(aRef, literal2)),
+        "true");
+
+    // "(a >= 1 and a <= 3) or a < 4" ==> "a < 4"
+    checkSimplifyFilter(
+        or(
+            and(ge(aRef, literal1),
+                le(aRef, literal3)),
+            lt(aRef, literal4)),
+        "<(?0.a, 4)");
+
+    // "(a >= 1 and a <= 2) or (a >= 4 and a <= 5) or a <> 3" ==> "a <> 3"
+    checkSimplifyFilter(
+        or(
+            and(ge(aRef, literal1),
+                le(aRef, literal2)),
+            and(ge(aRef, literal4),
+                le(aRef, literal5)),
+            ne(aRef, literal3)),
+        "<>(?0.a, 3)");
+
+    // "(a >= 1 and a <= 2) or (a >= 4 and a <= 5) or a <> 4" ==> "true"
+    checkSimplifyFilter(
+        or(
+            and(ge(aRef, literal1),
+                le(aRef, literal2)),
+            and(ge(aRef, literal4),
+                le(aRef, literal5)),
+            ne(aRef, literal4)),
+        "true");
+
+    // "(a >= 1 and a <= 2) or (a > 4 and a <= 5) or a <> 4" ==> "a <> 4"
+    checkSimplifyFilter(
+        or(
+            and(ge(aRef, literal1),
+                le(aRef, literal2)),
+            and(gt(aRef, literal4),
+                le(aRef, literal5)),
+            ne(aRef, literal4)),
+        "<>(?0.a, 4)");
+
+    // "b <> 1 or b = 1" cannot be simplified, because b might be null
     final RexNode neOrEq =
         or(ne(bRef, literal(1)),
             eq(bRef, literal(1)));
     checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), =(?0.b, 1))");
 
     // Careful of the excluded middle!
-    // We cannot simplify "b != 1 or b = 1" to "true" because if b is null, the
+    // We cannot simplify "b <> 1 or b = 1" to "true" because if b is null, the
     // result is unknown.
     // TODO: "b is not unknown" would be the best simplification.
     final RexNode simplified =

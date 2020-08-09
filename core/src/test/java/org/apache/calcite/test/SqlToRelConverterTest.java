@@ -1859,8 +1859,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testTableFunctionTumbleWithOffset() {
     final String sql = "select *\n"
-        + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '10' MINUTE, \n"
-        + "INTERVAL '1' MINUTE))";
+        + "from table(tumble(table Shipments, descriptor(rowtime),\n"
+        + "  INTERVAL '10' MINUTE, INTERVAL '1' MINUTE))";
     sql(sql).ok();
   }
 

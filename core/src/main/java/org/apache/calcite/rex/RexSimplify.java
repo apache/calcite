@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -1577,46 +1578,10 @@ public class RexSimplify {
     return RexUtil.composeConjunction(rexBuilder, terms);
   }
 
-  private RexNode simplifyNotEqual(RexNode e) {
-    final Comparison comparison = Comparison.of(e);
-    if (comparison == null) {
-      return e;
-    }
-
-    for (RexNode node: predicates.pulledUpPredicates) {
-      final Comparison predicate = Comparison.of(node);
-      if (predicate == null
-          || predicate.kind != SqlKind.EQUALS
-          || !predicate.ref.equals(comparison.ref)) {
-        continue;
-      }
-
-      // Given x=5, x!=5 can be simplified to 'null and x is null' and x!=3 can
-      // be simplified to 'null or x is not null'.
-      RexNode simplified;
-      if (predicate.literal.equals(comparison.literal)) {
-        simplified = rexBuilder.makeCall(SqlStdOperatorTable.AND,
-            rexBuilder.makeNullLiteral(e.getType()),
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, comparison.ref));
-      } else {
-        simplified = rexBuilder.makeCall(SqlStdOperatorTable.OR,
-            rexBuilder.makeNullLiteral(e.getType()),
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref));
-      }
-      return simplify(simplified);
-    }
-
-    return e;
-  }
-
   private <C extends Comparable<C>> RexNode simplifyUsingPredicates(RexNode e,
       Class<C> clazz) {
     if (predicates.pulledUpPredicates.isEmpty()) {
       return e;
-    }
-
-    if (e.getKind() == SqlKind.NOT_EQUALS) {
-      return simplifyNotEqual(e);
     }
 
     final Comparison comparison = Comparison.of(e);
