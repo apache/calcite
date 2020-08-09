@@ -306,6 +306,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, n1, n2);
   }
 
+  protected RexNode like(RexNode ref, RexNode pattern) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern);
+  }
+
+  protected RexNode like(RexNode ref, RexNode pattern, RexNode escape) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern, escape);
+  }
+
   protected RexNode plus(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }

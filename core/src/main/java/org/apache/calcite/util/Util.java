@@ -2435,6 +2435,45 @@ public class Util {
     return new FilteringIterator<>(iterator, predicate);
   }
 
+  /** Returns a list with any elements for which the predicate is true moved to
+   * the head of the list. The algorithm does not modify the list, is stable,
+   * and is idempotent. */
+  public static <E> List<E> moveToHead(List<E> terms, Predicate<E> predicate) {
+    if (alreadyAtFront(terms, predicate)) {
+      return terms;
+    }
+    final List<E> newTerms = new ArrayList<>(terms.size());
+    for (E term : terms) {
+      if (predicate.test(term)) {
+        newTerms.add(term);
+      }
+    }
+    for (E term : terms) {
+      if (!predicate.test(term)) {
+        newTerms.add(term);
+      }
+    }
+    return newTerms;
+  }
+
+  /** Returns whether of the elements of a list for which predicate is true
+   * occur before all elements where the predicate is false. (Returns true in
+   * corner cases such as empty list, all true, or all false. */
+  private static <E> boolean alreadyAtFront(List<E> list,
+      Predicate<E> predicate) {
+    boolean prev = true;
+    for (E e : list) {
+      final boolean pass = predicate.test(e);
+      if (pass && !prev) {
+        return false;
+      }
+      prev = pass;
+    }
+    return true;
+  }
+
+
+
   /** Returns a view of a list, picking the elements of a list with the given
    * set of ordinals. */
   public static <E> List<E> select(List<E> list, List<Integer> ordinals) {
