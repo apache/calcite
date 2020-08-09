@@ -36,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -44,8 +45,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -1342,6 +1346,44 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
+  @SuppressWarnings("UnstableApiUsage")
+  @Test void testRangeSetMinus() {
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    final RangeSet<Integer> setGt2 = ImmutableRangeSet.of(Range.greaterThan(2));
+    final RangeSet<Integer> setGt1 = ImmutableRangeSet.of(Range.greaterThan(1));
+    final RangeSet<Integer> setGe1 = ImmutableRangeSet.of(Range.atLeast(1));
+    final RangeSet<Integer> setGt0 = ImmutableRangeSet.of(Range.greaterThan(0));
+    final RangeSet<Integer> setComplex =
+        ImmutableRangeSet.<Integer>builder()
+            .add(Range.closed(0, 2))
+            .add(Range.singleton(3))
+            .add(Range.greaterThan(5))
+            .build();
+    assertThat(setComplex.toString(), is("[[0‥2], [3‥3], (5‥+∞)]"));
+
+    assertThat(RangeSets.minus(setAll, Range.singleton(1)).toString(),
+        is("[(-∞‥1), (1‥+∞)]"));
+    assertThat(RangeSets.minus(setNone, Range.singleton(1)), is(setNone));
+    assertThat(RangeSets.minus(setGt2, Range.singleton(1)), is(setGt2));
+    assertThat(RangeSets.minus(setGt1, Range.singleton(1)), is(setGt1));
+    assertThat(RangeSets.minus(setGe1, Range.singleton(1)), is(setGt1));
+    assertThat(RangeSets.minus(setGt0, Range.singleton(1)).toString(),
+        is("[(0‥1), (1‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(1)).toString(),
+        is("[[0‥1), (1‥2], [3‥3], (5‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(2)).toString(),
+        is("[[0‥2), [3‥3], (5‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(3)).toString(),
+        is("[[0‥2], (5‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)).toString(),
+        is("[[0‥2], [3‥3], (5‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)).toString(),
+        is("[[0‥2), (5‥+∞)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)).toString(),
+        is("[[0‥2), (7‥+∞)]"));
+  }
+
   @Test void testSimplifyOrTerms() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
@@ -1459,17 +1501,47 @@ class RexProgramTest extends RexProgramTestBase {
             isNull(bRef)),
         "true");
 
-    // "b is not null or c is null" unchanged
+    // "b is null b > 1 or b <= 1" ==> "true"
+    checkSimplifyFilter(
+        or(isNull(bRef),
+            gt(bRef, literal(1)),
+            le(bRef, literal(1))),
+        "true");
+
+    // "b > 1 or b <= 1 or b is null" ==> "true"
+    checkSimplifyFilter(
+        or(gt(bRef, literal(1)),
+            le(bRef, literal(1)),
+            isNull(bRef)),
+        "true");
+
+    // "b <= 1 or b > 1 or b is null" ==> "true"
+    checkSimplifyFilter(
+        or(le(bRef, literal(1)),
+            gt(bRef, literal(1)),
+            isNull(bRef)),
+        "true");
+
+    // "b < 2 or b > 0 or b is null" ==> "true"
+    checkSimplifyFilter(
+        or(lt(bRef, literal(2)),
+            gt(bRef, literal(0)),
+            isNull(bRef)),
+        "true");
+
+    // "b is not null or c is null" unchanged,
+    // but "c is null" is moved to front
     checkSimplifyFilter(
         or(isNotNull(bRef),
             isNull(cRef)),
-        "OR(IS NOT NULL(?0.b), IS NULL(?0.c))");
+        "OR(IS NULL(?0.c), IS NOT NULL(?0.b))");
 
-    // "b is null or b is not false" unchanged
+    // "b is null or b is not false" => "b is null or b"
+    // (because after the first term we know that b cannot be null)
     checkSimplifyFilter(
         or(isNull(bRef),
             isNotFalse(bRef)),
-        "OR(IS NULL(?0.b), IS NOT FALSE(?0.b))");
+        "OR(IS NULL(?0.b), ?0.b)");
 
     // multiple predicates are handled correctly
     checkSimplifyFilter(
@@ -2659,17 +2731,28 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   @Test void testSimplifyNotEqual() {
-    RexNode ref = input(tInt(), 0);
+    final RexNode ref = input(tInt(), 0);
     RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
         ImmutableList.of(eq(ref, literal(9))));
     checkSimplifyFilter(ne(ref, literal(9)), relOptPredicateList, "false");
     checkSimplifyFilter(ne(ref, literal(5)), relOptPredicateList, "true");
 
-    ref = input(tInt(true), 0);
-    checkSimplifyFilter(ne(ref, literal(9)), relOptPredicateList,
-        "AND(null, IS NULL($0))");
-    checkSimplifyFilter(ne(ref, literal(5)), relOptPredicateList,
-        "OR(null, IS NOT NULL($0))");
+    final RexNode refNullable = input(tInt(true), 0);
+    checkSimplifyFilter(ne(refNullable, literal(9)), relOptPredicateList,
+        "false");
+    checkSimplifyFilter(ne(refNullable, literal(5)), relOptPredicateList,
+        "IS NOT NULL($0)");
+  }
+
+  /** Tests
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4094">[CALCITE-4094]
+   * RexSimplify should simplify more always true OR expressions</a>. */
+  @Test void testSimplifyLike() {
+    final RexNode ref = input(tVarchar(true, 10), 0);
+    checkSimplify(like(ref, literal("%")), "true");
+    checkSimplify(like(ref, literal("%"), literal("#")), "true");
+    checkSimplifyUnchanged(like(ref, literal("%A")));
+    checkSimplifyUnchanged(like(ref, literal("%A"), literal("#")));
   }
 
   @Test void testSimplifyNonDeterministicFunction() {

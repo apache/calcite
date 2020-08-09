@@ -95,6 +95,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -2564,6 +2565,28 @@ class UtilTest {
         isIterable(Collections.singletonList(null)));
     assertThat(Util.filter(nullBeatles, Objects::nonNull),
         isIterable(Arrays.asList("John", "Paul", "Ringo")));
+  }
+
+  /** Tests {@link Util#moveToHead(List, Predicate)}. */
+  @Test void testMoveToHead() {
+    final List<Integer> primes = ImmutableList.of(2, 3, 5, 7);
+    final List<Integer> evenInMiddle = ImmutableList.of(1, 2, 3);
+    final List<Integer> evenAtEnd = ImmutableList.of(1, 3, 8);
+    final List<Integer> empty = ImmutableList.of();
+    final List<Integer> evens = ImmutableList.of(0, 2, 4);
+    final List<Integer> odds = ImmutableList.of(1, 3, 5);
+    final Predicate<Integer> isEven = i -> i % 2 == 0;
+    assertThat(Util.moveToHead(primes, isEven).toString(), is("[2, 3, 5, 7]"));
+    assertThat(Util.moveToHead(primes, isEven), sameInstance(primes));
+    assertThat(Util.moveToHead(evenInMiddle, isEven).toString(),
+        is("[2, 1, 3]"));
+    assertThat(Util.moveToHead(evenAtEnd, isEven).toString(), is("[8, 1, 3]"));
+    assertThat(Util.moveToHead(empty, isEven).toString(), is("[]"));
+    assertThat(Util.moveToHead(empty, isEven), sameInstance(empty));
+    assertThat(Util.moveToHead(evens, isEven).toString(), is("[0, 2, 4]"));
+    assertThat(Util.moveToHead(evens, isEven), sameInstance(evens));
+    assertThat(Util.moveToHead(odds, isEven).toString(), is("[1, 3, 5]"));
+    assertThat(Util.moveToHead(odds, isEven), sameInstance(odds));
   }
 
   /** Tests {@link Util#select(List, List)}. */

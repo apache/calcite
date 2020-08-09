@@ -38,10 +38,13 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.TreeRangeSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -292,6 +295,8 @@ public class RexSimplify {
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
       return simplifyComparison((RexCall) e, unknownAs);
+    case LIKE:
+      return simplifyLike((RexCall) e);
     case MINUS_PREFIX:
       return simplifyUnaryMinus((RexCall) e, unknownAs);
     case PLUS_PREFIX:
@@ -315,6 +320,16 @@ public class RexSimplify {
       return e;
     }
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
+  }
+
+  private RexNode simplifyLike(RexCall e) {
+    if (e.operands.get(1) instanceof RexLiteral) {
+      final RexLiteral literal = (RexLiteral) e.operands.get(1);
+      if (literal.getValueAs(String.class).equals("%")) {
+        return rexBuilder.makeLiteral(true);
+      }
+    }
+    return simplifyGenericNode(e);
   }
 
   // e must be a comparison (=, >, >=, <, <=, !=)
@@ -513,7 +528,7 @@ public class RexSimplify {
     RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (!allowedAsPredicateDuringOrSimplification(t)) {
+      if (!simplify.allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
       final RexNode t2 = simplify.simplify(t, unknownAs);
@@ -540,14 +555,7 @@ public class RexSimplify {
    */
   private boolean allowedAsPredicateDuringOrSimplification(final RexNode t) {
     Predicate predicate = Predicate.of(t);
-    if (predicate == null) {
-      return false;
-    }
-    SqlKind kind = t.getKind();
-    if (SqlKind.COMPARISON.contains(kind) && t.getType().isNullable()) {
-      return false;
-    }
-    return true;
+    return predicate != null && predicate.allowedInOr(predicates);
   }
 
   private RexNode simplifyNot(RexCall call, RexUnknownAs unknownAs) {
@@ -711,7 +719,7 @@ public class RexSimplify {
     case IS_NOT_FALSE:
       // x IS TRUE ==> x (if x is not nullable)
       // x IS NOT FALSE ==> x (if x is not nullable)
-      if (!a.getType().isNullable()) {
+      if (predicates.isEffectivelyNotNull(a)) {
         return simplify(a, unknownAs);
       } else {
         RexNode newSub =
@@ -725,7 +733,7 @@ public class RexSimplify {
     case IS_NOT_TRUE:
       // x IS NOT TRUE ==> NOT x (if x is not nullable)
       // x IS FALSE ==> NOT x (if x is not nullable)
-      if (!a.getType().isNullable()) {
+      if (predicates.isEffectivelyNotNull(a)) {
         return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
       }
       break;
@@ -1592,32 +1600,31 @@ public class RexSimplify {
     }
 
     final C v0 = comparison.literal.getValueAs(clazz);
-    final Range<C> range = range(comparison.kind, v0);
-    final Range<C> range2 =
-        residue(comparison.ref, range, predicates.pulledUpPredicates,
+    final RangeSet<C> rangeSet = rangeSet(comparison.kind, v0);
+    final RangeSet<C> rangeSet2 =
+        residue(comparison.ref, rangeSet, predicates.pulledUpPredicates,
             clazz);
-    if (range2 == null) {
+    if (rangeSet2.isEmpty()) {
       // Term is impossible to satisfy given these predicates
       return rexBuilder.makeLiteral(false);
-    } else if (range2.equals(range)) {
+    } else if (rangeSet2.equals(rangeSet)) {
       // no change
       return e;
-    } else if (range2.equals(Range.all())) {
+    } else if (rangeSet2.equals(RangeSets.rangeSetAll())) {
       // Range is always satisfied given these predicates; but nullability might
       // be problematic
       return simplify(
           rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref),
           RexUnknownAs.UNKNOWN);
-    } else if (range2.lowerEndpoint().equals(range2.upperEndpoint())) {
-      if (range2.lowerBoundType() == BoundType.OPEN
-          || range2.upperBoundType() == BoundType.OPEN) {
-        // range is a point, but does not include its endpoint, therefore is
-        // effectively empty
-        return rexBuilder.makeLiteral(false);
-      }
+    } else if (rangeSet2.asRanges().size() == 1
+        && Iterables.getOnlyElement(rangeSet2.asRanges()).hasLowerBound()
+        && Iterables.getOnlyElement(rangeSet2.asRanges()).hasUpperBound()
+        && Iterables.getOnlyElement(rangeSet2.asRanges()).lowerEndpoint()
+        .equals(Iterables.getOnlyElement(rangeSet2.asRanges()).upperEndpoint())) {
+      final Range<C> r = Iterables.getOnlyElement(rangeSet2.asRanges());
       // range is now a point; it's worth simplifying
       return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, comparison.ref,
-          rexBuilder.makeLiteral(range2.lowerEndpoint(),
+          rexBuilder.makeLiteral(r.lowerEndpoint(),
               comparison.literal.getType(), comparison.literal.getTypeName()));
     } else {
       // range has been reduced but it's not worth simplifying
@@ -1638,12 +1645,13 @@ public class RexSimplify {
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
    */
-  private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
-      List<RexNode> predicates, Class<C> clazz) {
-    Range<C> result = r0;
+  private <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
+      RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
+    RangeSet<C> result = r0;
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
       case EQUALS:
+      case NOT_EQUALS:
       case LESS_THAN:
       case LESS_THAN_OR_EQUAL:
       case GREATER_THAN:
@@ -1653,23 +1661,81 @@ public class RexSimplify {
             && call.operands.get(1) instanceof RexLiteral) {
           final RexLiteral literal = (RexLiteral) call.operands.get(1);
           final C c1 = literal.getValueAs(clazz);
-          final Range<C> r1 = range(predicate.getKind(), c1);
-          if (result.encloses(r1)) {
-            // Given these predicates, term is always satisfied.
-            // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-            result = Range.all();
-            continue;
+          switch (predicate.getKind()) {
+          case NOT_EQUALS:
+            // We want to intersect result with the range set of everything but
+            // c1. We subtract the point c1 from result, which is equivalent.
+            final Range<C> pointRange = range(SqlKind.EQUALS, c1);
+            final RangeSet<C> notEqualsRangeSet =
+                ImmutableRangeSet.of(pointRange).complement();
+            if (result.enclosesAll(notEqualsRangeSet)) {
+              result = RangeSets.rangeSetAll();
+              continue;
+            }
+            result = RangeSets.minus(result, pointRange);
+            break;
+          default:
+            final Range<C> r1 = range(predicate.getKind(), c1);
+            if (result.encloses(r1)) {
+              // Given these predicates, term is always satisfied.
+              // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
+              result = RangeSets.rangeSetAll();
+              continue;
+            }
+            result = result.subRangeSet(r1);
           }
-          if (result.isConnected(r1)) {
-            result = result.intersection(r1);
-            continue;
+          if (result.isEmpty()) {
+            break; // short-cut
           }
-          // Ranges do not intersect. Return null meaning the empty range.
-          return null;
         }
       }
     }
     return result;
+  }
+
+  /** Subtracts a range from a range set. */
+  public static <C extends Comparable<C>> RangeSet<C> minus(RangeSet<C> rangeSet,
+      Range<C> range) {
+    final TreeRangeSet<C> mutableRangeSet = TreeRangeSet.create(rangeSet);
+    mutableRangeSet.remove(range);
+    return mutableRangeSet.equals(rangeSet) ? rangeSet
+        : ImmutableRangeSet.copyOf(mutableRangeSet);
+  }
+
+  // TODO
+  public static <C extends Comparable<C>> RangeSet<C> minus0(RangeSet<C> rangeSet,
+      Range<C> range) {
+    ImmutableRangeSet<C> x = ImmutableRangeSet.of(range).complement();
+    final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.<C>builder();
+    for (Range<C> r : x.asRanges()) {
+      builder.addAll(rangeSet.subRangeSet(r));
+    }
+    return builder.build();
+  }
+
+  /** Returns the intersection of two range sets.
+   *
+   * <p>For example:
+   * <ul>
+   *   <li>empty intersect empty &rarr; empty
+   *   <li>{1, [3, 5], (9, &inf;)} intersect {1, 3, 5, 7, 9, 11}} &rarr;
+   *   {1, 3, 5, 11}
+   *   <li>all intersect {[3, 5)} &rarr; {[3, 5)}
+   * </ul>
+   *
+   * @param s0 First range set
+   * @param s1 Second range set
+   * @param <C> Value type
+   * @return Intersection of range sets
+   */
+  // TODO
+  private static <C extends Comparable<C>> RangeSet<C> intersect(RangeSet<C> s0,
+      RangeSet<C> s1) {
+    RangeSet<C> s = s0;
+    for (Range<C> range : s1.asRanges()) {
+      s = s.subRangeSet(range);
+    }
+    return s;
   }
 
   /** Simplifies OR(x, x) into x, and similar.
@@ -1682,10 +1748,13 @@ public class RexSimplify {
 
   private RexNode simplifyOr(RexCall call, RexUnknownAs unknownAs) {
     assert call.getKind() == SqlKind.OR;
-    final List<RexNode> terms = RelOptUtil.disjunctions(call);
+    final List<RexNode> terms0 = RelOptUtil.disjunctions(call);
+    final List<RexNode> terms;
     if (predicateElimination) {
+      terms = Util.moveToHead(terms0, e -> e.getKind() == SqlKind.IS_NULL);
       simplifyOrTerms(terms, unknownAs);
     } else {
+      terms = terms0;
       simplifyList(terms, unknownAs);
     }
     return simplifyOrs(terms, unknownAs);
@@ -2239,6 +2308,25 @@ public class RexSimplify {
     }
   }
 
+  private static <C extends Comparable<C>> RangeSet<C> rangeSet(SqlKind comparison,
+      C c) {
+    switch (comparison) {
+    case EQUALS:
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+      return ImmutableRangeSet.of(range(comparison, c));
+    case NOT_EQUALS:
+      return ImmutableRangeSet.<C>builder()
+          .add(range(SqlKind.LESS_THAN, c))
+          .add(range(SqlKind.GREATER_THAN, c))
+          .build();
+    default:
+      throw new AssertionError();
+    }
+  }
+
   /** Marker interface for predicates (expressions that evaluate to BOOLEAN). */
   private interface Predicate {
     /** Wraps an expression in a Predicate or returns null. */
@@ -2248,6 +2336,12 @@ public class RexSimplify {
         return p;
       }
       return IsPredicate.of(t);
+    }
+
+    /** Returns whether this predicate can be used while simplifying other OR
+     * operands. */
+    default boolean allowedInOr(RelOptPredicateList predicates) {
+      return true;
     }
   }
 
@@ -2299,6 +2393,11 @@ public class RexSimplify {
         }
       }
       return null;
+    }
+
+    @Override public boolean allowedInOr(RelOptPredicateList predicates) {
+      return !ref.getType().isNullable()
+          || predicates.isEffectivelyNotNull(ref);
     }
   }
 
