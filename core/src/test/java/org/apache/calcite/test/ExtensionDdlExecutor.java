@@ -177,7 +177,7 @@ public class ExtensionDdlExecutor extends DdlExecutorImpl {
 
   /** Table backed by a Java list. */
   private static class MutableArrayTable
-      extends JdbcTest.AbstractModifiableTable {
+      extends AbstractModifiableTable {
     final List list = new ArrayList();
     private final RelProtoDataType protoRowType;
 

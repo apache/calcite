@@ -27,5 +27,5 @@ dependencies {
     runtimeOnly("xalan:xalan")
     runtimeOnly("xerces:xercesImpl")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
 }

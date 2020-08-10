@@ -22,5 +22,5 @@ dependencies {
 
     implementation("com.google.guava:guava")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
 }

@@ -23,7 +23,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +33,7 @@ import java.util.function.Consumer;
  * {@link org.apache.calcite.adapter.enumerable.EnumerableSortedAggregate}. */
 public class EnumerableSortedAggregateTest {
   @Test void sortedAgg() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("select deptno, "
             + "max(salary) as max_salary, count(name) as num_employee "
             + "from emps group by deptno")
@@ -51,7 +51,7 @@ public class EnumerableSortedAggregateTest {
   }
 
   @Test void sortedAggTwoGroupKeys() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select deptno, commission, "
                 + "max(salary) as max_salary, count(name) as num_employee "
@@ -73,7 +73,7 @@ public class EnumerableSortedAggregateTest {
 
   // Outer sort is expected to be pushed through aggregation.
   @Test void sortedAggGroupbyXOrderbyX() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select deptno, "
                 + "max(salary) as max_salary, count(name) as num_employee "
@@ -93,7 +93,7 @@ public class EnumerableSortedAggregateTest {
 
   // Outer sort is not expected to be pushed through aggregation.
   @Test void sortedAggGroupbyXOrderbyY() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select deptno, "
                 + "max(salary) as max_salary, count(name) as num_employee "
@@ -113,7 +113,7 @@ public class EnumerableSortedAggregateTest {
   }
 
   @Test void sortedAggNullValueInSortedGroupByKeys() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select commission, "
                 + "count(deptno) as num_dept "

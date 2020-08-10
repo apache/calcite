@@ -27,7 +27,7 @@ dependencies {
     implementation("org.apache.commons:commons-pool2")
     implementation("org.slf4j:slf4j-api")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("com.github.kstyrc:embedded-redis")
     testImplementation("org.mockito:mockito-core")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")

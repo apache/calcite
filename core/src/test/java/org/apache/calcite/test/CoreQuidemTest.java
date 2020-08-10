@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.util.TryThreadLocal;
 
+import net.hydromatic.quidem.Quidem;
+
+import java.sql.Connection;
 import java.util.Collection;
 
 /**
@@ -44,6 +48,23 @@ class CoreQuidemTest extends QuidemTest {
     // its files.
     final String first = "sql/agg.iq";
     return data(first);
+  }
+
+  @Override protected Quidem.ConnectionFactory createConnectionFactory() {
+    return new QuidemConnectionFactory() {
+      @Override public Connection connect(String name, boolean reference) throws Exception {
+        switch (name) {
+        case "blank":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteAssert.SchemaSpec.BLANK)
+              .connect();
+        default:
+        }
+        return super.connect(name, reference);
+      }
+    };
   }
 
   /** Override settings for "sql/misc.iq". */

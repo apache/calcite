@@ -71,31 +71,18 @@ dependencies {
     testOracle("com.oracle.ojdbc:ojdbc8")
     testPostgresql("org.postgresql:postgresql")
 
+    testImplementation(project(":testkit"))
     testImplementation("commons-lang:commons-lang")
-    testImplementation("net.hydromatic:foodmart-data-hsqldb")
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
-    testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.calcite.avatica:avatica-server")
     testImplementation("org.apache.commons:commons-pool2")
     testImplementation("org.hsqldb:hsqldb")
-    testImplementation("org.incava:java-diff")
     testImplementation("sqlline:sqlline")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
-}
-
-// There are users that reuse/extend test code (e.g. Apache Felix)
-// So publish test jar to Nexus repository
-// TODO: remove when calcite-test-framework is extracted to a standalone artifact
-publishing {
-    publications {
-        named<MavenPublication>(project.name) {
-            artifact(tasks.testJar.get())
-        }
-    }
 }
 
 tasks.jar {

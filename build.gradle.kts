@@ -208,6 +208,7 @@ val sqllineClasspath by configurations.creating {
 
 dependencies {
     sqllineClasspath(platform(project(":bom")))
+    sqllineClasspath(project(":testkit"))
     sqllineClasspath("sqlline:sqlline")
     for (p in adaptersForSqlline) {
         sqllineClasspath(project(p))
@@ -778,11 +779,6 @@ allprojects {
             archiveClassifier.set("tests")
         }
 
-        val testSourcesJar by tasks.registering(Jar::class) {
-            from(sourceSets["test"].allJava)
-            archiveClassifier.set("test-sources")
-        }
-
         val sourcesJar by tasks.registering(Jar::class) {
             from(sourceSets["main"].allJava)
             archiveClassifier.set("sources")
@@ -793,18 +789,11 @@ allprojects {
             archiveClassifier.set("javadoc")
         }
 
-        val testClasses by configurations.creating {
-            extendsFrom(configurations["testRuntime"])
-        }
-
         val archives by configurations.getting
 
         // Parenthesis needed to use Project#getArtifacts
         (artifacts) {
-            testClasses(testJar)
             archives(sourcesJar)
-            archives(testJar)
-            archives(testSourcesJar)
         }
 
         val archivesBaseName = "calcite-$name"

@@ -26,7 +26,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.test.schemata.hr.HrSchemaBig;
 
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ import java.util.function.Consumer;
 class EnumerableBatchNestedLoopJoinTest {
 
   @Test void simpleInnerBatchJoinTestBuilder() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
@@ -63,7 +64,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void simpleInnerBatchJoinTestSQL() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.name from emps e join depts d on d.deptno = e.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -76,7 +77,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void simpleLeftBatchJoinTestSQL() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.name, d.deptno from emps e left join depts d on d.deptno = e.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -90,7 +91,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void innerBatchJoinTestSQL() {
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -101,7 +102,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void innerBatchJoinTestSQL2() {
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.empid")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -112,7 +113,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void leftBatchJoinTestSQL() {
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(
             "select count(d.deptno) from depts d left join emps e on d.deptno = e.deptno"
             + " where d.deptno <30 and d.deptno>10")
@@ -126,7 +127,7 @@ class EnumerableBatchNestedLoopJoinTest {
   @Test void testJoinSubQuery() {
     String sql = "SELECT count(name) FROM emps e WHERE e.deptno NOT IN "
         + "(SELECT d.deptno FROM depts d WHERE d.name = 'Sales')";
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
@@ -139,7 +140,7 @@ class EnumerableBatchNestedLoopJoinTest {
 
   @Test void testInnerJoinOnString() {
     String sql = "SELECT d.name, e.salary FROM depts d join emps e on d.name = e.name";
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
@@ -150,7 +151,7 @@ class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("");
   }
   @Test void testSemiJoin() {
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
@@ -177,7 +178,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void testAntiJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
@@ -208,7 +209,7 @@ class EnumerableBatchNestedLoopJoinTest {
   }
 
   @Test void innerBatchJoinAndTestSQL() {
-    tester(false, new JdbcTest.HrSchemaBig())
+    tester(false, new HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.empid and d.deptno = e.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -223,7 +224,7 @@ class EnumerableBatchNestedLoopJoinTest {
    * Join with three tables causes IllegalArgumentException
    * in EnumerableBatchNestedLoopJoinRule</a>. */
   @Test void doubleInnerBatchJoinTestSQL() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("select e.name, d.name as dept, l.name as location "
             + "from emps e join depts d on d.deptno <> e.salary "
             + "join locations l on e.empid <> l.empid and d.deptno = l.empid")

@@ -54,9 +54,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
@@ -432,7 +432,7 @@ class RelWriterTest {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
-              new ReflectiveSchema(new JdbcTest.HrSchema()));
+              new ReflectiveSchema(new HrSchema()));
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
@@ -477,7 +477,7 @@ class RelWriterTest {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
-              new ReflectiveSchema(new JdbcTest.HrSchema()));
+              new ReflectiveSchema(new HrSchema()));
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
@@ -528,7 +528,7 @@ class RelWriterTest {
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
               rootSchema.add("hr",
-                  new ReflectiveSchema(new JdbcTest.HrSchema()));
+                  new ReflectiveSchema(new HrSchema()));
           final RelJsonReader reader =
               new RelJsonReader(cluster, relOptSchema, schema);
           RelNode node;
@@ -555,7 +555,7 @@ class RelWriterTest {
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
               rootSchema.add("hr",
-                  new ReflectiveSchema(new JdbcTest.HrSchema()));
+                  new ReflectiveSchema(new HrSchema()));
           final RelJsonReader reader =
               new RelJsonReader(cluster, relOptSchema, schema);
           RelNode node;
@@ -585,7 +585,7 @@ class RelWriterTest {
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
               rootSchema.add("hr",
-                  new ReflectiveSchema(new JdbcTest.HrSchema()));
+                  new ReflectiveSchema(new HrSchema()));
           final RelJsonReader reader =
               new RelJsonReader(cluster, relOptSchema, schema);
           RelNode node;

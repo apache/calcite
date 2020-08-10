@@ -22,7 +22,7 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.pig:pig::h2")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("org.apache.hadoop:hadoop-client")
     testImplementation("org.apache.hadoop:hadoop-common")
     testImplementation("org.apache.pig:pigunit") {

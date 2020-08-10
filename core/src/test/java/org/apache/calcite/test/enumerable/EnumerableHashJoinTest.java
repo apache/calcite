@@ -24,7 +24,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 class EnumerableHashJoinTest {
 
   @Test void innerJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts "
                 + "d on e.deptno=d.deptno")
@@ -57,7 +57,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void innerJoinWithPredicate() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts d"
                 + " on e.deptno=d.deptno and e.empid<150 and e.empid>d.deptno")
@@ -75,7 +75,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void leftOuterJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e  left outer "
                 + "join depts d on e.deptno=d.deptno")
@@ -96,7 +96,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void rightOuterJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e  right outer "
                 + "join depts d on e.deptno=d.deptno")
@@ -116,7 +116,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void leftOuterJoinWithPredicate() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e left outer "
                 + "join depts d on e.deptno=d.deptno and e.empid<150 and e"
@@ -139,7 +139,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void rightOuterJoinWithPredicate() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e right outer "
                 + "join depts d on e.deptno=d.deptno and e.empid<150")
@@ -160,7 +160,7 @@ class EnumerableHashJoinTest {
 
 
   @Test void semiJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query(
             "SELECT d.deptno, d.name FROM depts d WHERE d.deptno in (SELECT e.deptno FROM emps e)")
         .explainContains("EnumerableHashJoin(condition=[=($0, $3)], "
@@ -173,7 +173,7 @@ class EnumerableHashJoinTest {
   }
 
   @Test void semiJoinWithPredicate() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withRel(
             // Retrieve employees with the top salary in their department. Equivalent SQL:

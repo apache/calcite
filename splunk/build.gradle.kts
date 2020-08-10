@@ -23,6 +23,6 @@ dependencies {
 
     implementation("net.sf.opencsv:opencsv")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

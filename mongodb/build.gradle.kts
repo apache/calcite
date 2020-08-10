@@ -23,7 +23,7 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.mongodb:mongo-java-driver")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("de.bwaldvogel:mongo-java-server-core")
     testImplementation("de.bwaldvogel:mongo-java-server-memory-backend")
     testImplementation("net.hydromatic:foodmart-data-json")

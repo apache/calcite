@@ -28,7 +28,7 @@ import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -533,9 +533,9 @@ class CalciteRemoteDriverTest {
   }
 
   public static Connection makeConnection() throws Exception {
-    List<JdbcTest.Employee> employees = new ArrayList<JdbcTest.Employee>();
+    List<Employee> employees = new ArrayList<Employee>();
     for (int i = 1; i <= 101; i++) {
-      employees.add(new JdbcTest.Employee(i, 0, "first", 0f, null));
+      employees.add(new Employee(i, 0, "first", 0f, null));
     }
     Connection conn = JdbcFrontLinqBackTest.makeConnection(employees);
     return conn;

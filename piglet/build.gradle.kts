@@ -30,7 +30,7 @@ dependencies {
     implementation("org.checkerframework:checker-qual")
     implementation("org.slf4j:slf4j-api")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.hadoop:hadoop-client")
     testImplementation("org.hsqldb:hsqldb")

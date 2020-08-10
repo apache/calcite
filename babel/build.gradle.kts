@@ -32,7 +32,7 @@ dependencies {
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
     testImplementation("org.slf4j:slf4j-log4j12")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
 }
 
 val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {

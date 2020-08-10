@@ -29,6 +29,6 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.hsqldb:hsqldb")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("org.incava:java-diff")
 }

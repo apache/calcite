@@ -31,9 +31,9 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-core")
 
     testImplementation("sqlline:sqlline")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
 
-    sqllineClasspath(project(":example:csv", "testClasses"))
+    sqllineClasspath(files(sourceSets.test.map { it.output }))
 }
 
 val buildSqllineClasspath by tasks.registering(Jar::class) {

@@ -23,7 +23,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.HierarchySchema;
+import org.apache.calcite.test.schemata.hr.HierarchySchema;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.jupiter.params.ParameterizedTest;

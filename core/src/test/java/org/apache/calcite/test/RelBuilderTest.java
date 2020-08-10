@@ -67,6 +67,7 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -4390,7 +4391,7 @@ public class RelBuilderTest {
    * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
   @Test void testExecuteNotLike() {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("?")
         .withRel(
             builder -> builder

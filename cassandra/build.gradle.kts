@@ -24,7 +24,7 @@ dependencies {
 
     implementation("org.apache.calcite.avatica:avatica-core")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("org.apache.cassandra:cassandra-all") {
         exclude("org.slf4j", "log4j-over-slf4j")
             .because("log4j is already present in the classpath")

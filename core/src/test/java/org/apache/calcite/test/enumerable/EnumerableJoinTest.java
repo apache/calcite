@@ -27,8 +27,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.HierarchySchema;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HierarchySchema;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +43,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
   @Test void equiAntiJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withRel(
             // Retrieve departments without employees. Equivalent SQL:
@@ -69,7 +69,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
   @Test void nonEquiAntiJoin() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withRel(
             // Retrieve employees with the top salary in their department. Equivalent SQL:
@@ -103,7 +103,7 @@ class EnumerableJoinTest {
    * New AntiJoin relational expression</a>. */
   @Test void equiAntiJoinWithNullValues() {
     final Integer salesDeptNo = 10;
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withRel(
             // Retrieve employees from any department other than Sales (deptno 10) whose
@@ -141,7 +141,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
    * ANTI join on conditions push down generates wrong plan</a>. */
   @Test void testCanNotPushAntiJoinConditionsToLeft() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?").withRel(
             // build a rel equivalent to sql:
             // select * from emps
@@ -171,7 +171,7 @@ class EnumerableJoinTest {
    * The test verifies if {@link EnumerableMergeJoin} can implement a join with non-equi conditions.
    */
   @Test void testSortMergeJoinWithNonEquiCondition() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
@@ -224,7 +224,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3846">[CALCITE-3846]
    * EnumerableMergeJoin: wrong comparison of composite key with null values</a>. */
   @Test void testMergeJoinWithCompositeKeyAndNullValues() {
-    tester(false, new JdbcTest.HrSchema())
+    tester(false, new HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);

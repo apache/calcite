@@ -25,7 +25,7 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

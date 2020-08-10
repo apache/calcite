@@ -36,8 +36,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
@@ -287,6 +287,6 @@ class EnumerableStringComparisonTest {
     return CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()));
+        .withSchema("s", new ReflectiveSchema(new HrSchema()));
   }
 }

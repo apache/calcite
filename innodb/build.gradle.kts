@@ -25,6 +25,6 @@ dependencies {
     implementation("org.apache.commons:commons-lang3")
     implementation("org.slf4j:slf4j-api")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

@@ -20,7 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ class EnumerableCalcTest {
    */
   @Test void testCoalesceImplementation() {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("?")
         .withRel(
             builder -> builder
@@ -93,7 +93,7 @@ class EnumerableCalcTest {
       SqlOperator operator,
       String... expectedResult) {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("?")
         .withRel(
             builder -> builder

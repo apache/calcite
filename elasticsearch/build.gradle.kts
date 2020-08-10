@@ -58,7 +58,7 @@ dependencies {
     testImplementation("org.codelibs.elasticsearch.module:lang-painless")
     testImplementation("org.elasticsearch.plugin:transport-netty4-client")
     testImplementation("org.elasticsearch:elasticsearch")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testRuntimeOnly("net.java.dev.jna:jna")
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

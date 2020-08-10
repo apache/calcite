@@ -27,7 +27,7 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("org.apache.commons:commons-lang3")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("org.mockito:mockito-core")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

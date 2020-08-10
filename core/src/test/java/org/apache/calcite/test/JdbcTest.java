@@ -48,33 +48,23 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.TableModify;
-import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.schema.ModifiableTable;
-import org.apache.calcite.schema.ModifiableView;
-import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.TableMacro;
-import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
@@ -90,6 +80,11 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.test.schemata.catchall.CatchallSchema;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
+import org.apache.calcite.test.schemata.hr.Department;
+import org.apache.calcite.test.schemata.hr.Employee;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -140,7 +135,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -174,25 +168,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Tests for using Calcite via JDBC.
  */
 public class JdbcTest {
-
-  public static final String FOODMART_SCHEMA = "     {\n"
-      + "       type: 'jdbc',\n"
-      + "       name: 'foodmart',\n"
-      + "       jdbcDriver: " + q(CalciteAssert.DB.foodmart.driver) + ",\n"
-      + "       jdbcUser: " + q(CalciteAssert.DB.foodmart.username) + ",\n"
-      + "       jdbcPassword: " + q(CalciteAssert.DB.foodmart.password) + ",\n"
-      + "       jdbcUrl: " + q(CalciteAssert.DB.foodmart.url) + ",\n"
-      + "       jdbcCatalog: " + q(CalciteAssert.DB.foodmart.catalog) + ",\n"
-      + "       jdbcSchema: " + q(CalciteAssert.DB.foodmart.schema) + "\n"
-      + "     }\n";
-
-  public static final String FOODMART_MODEL = "{\n"
-      + "  version: '1.0',\n"
-      + "  defaultSchema: 'foodmart',\n"
-      + "   schemas: [\n"
-      + FOODMART_SCHEMA
-      + "   ]\n"
-      + "}";
 
   public static final ConnectionSpec SCOTT =
       Util.first(CalciteAssert.DB.scott,
@@ -239,7 +214,7 @@ public class JdbcTest {
   public static final String FOODMART_SCOTT_MODEL = "{\n"
       + "  version: '1.0',\n"
       + "   schemas: [\n"
-      + FOODMART_SCHEMA
+      + FoodmartSchema.FOODMART_SCHEMA
       + ",\n"
       + SCOTT_SCHEMA
       + "   ]\n"
@@ -1158,7 +1133,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query(sql)
         .explainMatches("including all attributes ",
             CalciteAssert.checkResultContains("EnumerableCorrelate"));
@@ -2549,8 +2524,8 @@ public class JdbcTest {
         + "from \"hr\".\"emps\"";
     final String plan = ""
         + "      String case_when_value;\n"
-        + "              final org.apache.calcite.test.JdbcTest.Employee current = (org.apache"
-        + ".calcite.test.JdbcTest.Employee) inputEnumerator.current();\n"
+        + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
+        + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
         + "              if (current.empid > current.deptno * 10) {\n"
         + "                case_when_value = \"y\";\n"
         + "              } else {\n"
@@ -2573,8 +2548,8 @@ public class JdbcTest {
         + "from \"hr\".\"emps\"";
     final String plan = ""
         + "      String case_when_value;\n"
-        + "              final org.apache.calcite.test.JdbcTest.Employee current = (org.apache"
-        + ".calcite.test.JdbcTest.Employee) inputEnumerator.current();\n"
+        + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
+        + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
         + "              if (current.empid > current.deptno * 10) {\n"
         + "                case_when_value = current.name;\n"
         + "              } else {\n"
@@ -2596,8 +2571,8 @@ public class JdbcTest {
         + " \"deptno\"+case when CURRENT_PATH <> '' then 1 end)\n"
         + "from \"hr\".\"emps\"";
     final String plan = ""
-        + "              final org.apache.calcite.test.JdbcTest.Employee current"
-        + " = (org.apache.calcite.test.JdbcTest.Employee) inputEnumerator.current();\n"
+        + "              final org.apache.calcite.test.schemata.hr.Employee current"
+        + " = (org.apache.calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
         + "              final String input_value = current.name;\n"
         + "              Integer case_when_value;\n"
         + "              if ($L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_) {\n"
@@ -2628,8 +2603,8 @@ public class JdbcTest {
         + "from\n"
         + "\"hr\".\"emps\"";
     final String plan = ""
-        + "              final org.apache.calcite.test.JdbcTest.Employee current ="
-        + " (org.apache.calcite.test.JdbcTest.Employee) inputEnumerator.current();\n"
+        + "              final org.apache.calcite.test.schemata.hr.Employee current ="
+        + " (org.apache.calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
         + "              final String input_value = current.name;\n"
         + "              final int input_value0 = current.deptno;\n"
         + "              Integer case_when_value;\n"
@@ -2692,8 +2667,8 @@ public class JdbcTest {
         + "from\n"
         + "\"hr\".\"emps\"";
     final String plan = ""
-        + "              final org.apache.calcite.test.JdbcTest.Employee current ="
-        + " (org.apache.calcite.test.JdbcTest.Employee) inputEnumerator.current();\n"
+        + "              final org.apache.calcite.test.schemata.hr.Employee current ="
+        + " (org.apache.calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
         + "              final String input_value = current.name;\n"
         + "              final int input_value0 = current.deptno;\n"
         + "              Integer case_when_value;\n"
@@ -4802,7 +4777,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .withSchema("s",
             new ReflectiveSchema(
-                new ReflectiveSchemaTest.CatchallSchema()))
+                new CatchallSchema()))
         .query("select a.\"value\", b.\"value\"\n"
             + "  from \"bools\" a\n"
             + "     , \"bools\" b\n"
@@ -4823,7 +4798,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .withSchema("s",
             new ReflectiveSchema(
-                new ReflectiveSchemaTest.CatchallSchema()))
+                new CatchallSchema()))
         .query(sql)
         .returnsUnordered("value=T; value=T",
             "value=T; value=F",
@@ -4859,7 +4834,7 @@ public class JdbcTest {
   }
 
   @Test void testVarcharEquals() {
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select \"lname\" from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=Nowmer\n");
 
@@ -4868,12 +4843,12 @@ public class JdbcTest {
     // type, thus lname would be cast to a varchar(40) in this case.
     // These sorts of casts are removed though when constructing the jdbc
     // sql, since e.g. HSQLDB does not support them.
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where \"lname\" = 'this string is longer than 30 characters'")
         .returns("C=0\n");
 
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select count(*) as c from \"customer\" "
             + "where cast(\"customer_id\" as char(20)) = 'this string is longer than 30 characters'")
         .returns("C=0\n");
@@ -4886,7 +4861,7 @@ public class JdbcTest {
     final String sql = "select count(*) as c\n"
         + "from \"customer\" as c\n"
         + "join \"product\" as p on c.\"lname\" = p.\"brand_name\"";
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .returns("C=607\n");
   }
@@ -4896,7 +4871,7 @@ public class JdbcTest {
         + "  select \"lname\" from \"customer\" as c\n"
         + "  intersect\n"
         + "  select \"brand_name\" from \"product\" as p)";
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .returns("C=12\n");
   }
@@ -4962,12 +4937,12 @@ public class JdbcTest {
   }
 
   @Test void testTrim() {
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select trim(\"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=Nowmer\n");
 
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select trim(leading 'N' from \"lname\") as \"lname\" "
             + "from \"customer\" where \"lname\" = 'Nowmer'")
         .returns("lname=owmer\n");
@@ -5423,7 +5398,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model (a single schema based on
    * a JDBC database). */
   @Test void testModel() {
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
         .returns("C=730\n");
   }
@@ -5436,8 +5411,8 @@ public class JdbcTest {
    * Allow comments in schema definitions</a>. */
   @Test void testModelWithComment() {
     final String model =
-        FOODMART_MODEL.replace("schemas:", "/* comment */ schemas:");
-    assertThat(model, not(equalTo(FOODMART_MODEL)));
+        FoodmartSchema.FOODMART_MODEL.replace("schemas:", "/* comment */ schemas:");
+    assertThat(model, not(equalTo(FoodmartSchema.FOODMART_MODEL)));
     CalciteAssert.model(model)
         .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
         .returns("C=730\n");
@@ -5448,13 +5423,13 @@ public class JdbcTest {
    * are more comprehensive tests in {@link MaterializationTest}. */
   @Disabled("until JdbcSchema can define materialized views")
   @Test void testModelWithMaterializedView() {
-    CalciteAssert.model(FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .enable(false)
         .query(
             "select count(*) as c from \"foodmart\".\"sales_fact_1997\" join \"foodmart\".\"time_by_day\" using (\"time_id\")")
         .returns("C=86837\n");
     CalciteAssert.that().withMaterializations(
-        FOODMART_MODEL,
+        FoodmartSchema.FOODMART_MODEL,
         "agg_c_10_sales_fact_1997",
             "select t.`month_of_year`, t.`quarter`, t.`the_year`, sum(s.`store_sales`) as `store_sales`, sum(s.`store_cost`), sum(s.`unit_sales`), count(distinct s.`customer_id`), count(*) as `fact_count` from `time_by_day` as t join `sales_fact_1997` as s using (`time_id`) group by t.`month_of_year`, t.`quarter`, t.`the_year`")
         .query(
@@ -7784,302 +7759,6 @@ public class JdbcTest {
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
-  /** A schema that contains two tables by reflection.
-   *
-   * <p>Here is the SQL to create equivalent tables in Oracle:
-   *
-   * <blockquote>
-   * <pre>
-   * CREATE TABLE "emps" (
-   *   "empid" INTEGER NOT NULL,
-   *   "deptno" INTEGER NOT NULL,
-   *   "name" VARCHAR2(10) NOT NULL,
-   *   "salary" NUMBER(6, 2) NOT NULL,
-   *   "commission" INTEGER);
-   * INSERT INTO "emps" VALUES (100, 10, 'Bill', 10000, 1000);
-   * INSERT INTO "emps" VALUES (200, 20, 'Eric', 8000, 500);
-   * INSERT INTO "emps" VALUES (150, 10, 'Sebastian', 7000, null);
-   * INSERT INTO "emps" VALUES (110, 10, 'Theodore', 11500, 250);
-   *
-   * CREATE TABLE "depts" (
-   *   "deptno" INTEGER NOT NULL,
-   *   "name" VARCHAR2(10) NOT NULL,
-   *   "employees" ARRAY OF "Employee",
-   *   "location" "Location");
-   * INSERT INTO "depts" VALUES (10, 'Sales', null, (-122, 38));
-   * INSERT INTO "depts" VALUES (30, 'Marketing', null, (0, 52));
-   * INSERT INTO "depts" VALUES (40, 'HR', null, null);
-   * </pre>
-   * </blockquote>
-   */
-  public static class HrSchema {
-    @Override public String toString() {
-      return "HrSchema";
-    }
-
-    public final Employee[] emps = {
-      new Employee(100, 10, "Bill", 10000, 1000),
-      new Employee(200, 20, "Eric", 8000, 500),
-      new Employee(150, 10, "Sebastian", 7000, null),
-      new Employee(110, 10, "Theodore", 11500, 250),
-    };
-    public final Department[] depts = {
-      new Department(10, "Sales", Arrays.asList(emps[0], emps[2]),
-          new Location(-122, 38)),
-      new Department(30, "Marketing", ImmutableList.of(), new Location(0, 52)),
-      new Department(40, "HR", Collections.singletonList(emps[1]), null),
-    };
-    public final Dependent[] dependents = {
-      new Dependent(10, "Michael"),
-      new Dependent(10, "Jane"),
-    };
-    public final Dependent[] locations = {
-      new Dependent(10, "San Francisco"),
-      new Dependent(20, "San Diego"),
-    };
-
-    public QueryableTable foo(int count) {
-      return Smalls.generateStrings(count);
-    }
-
-    public TranslatableTable view(String s) {
-      return Smalls.view(s);
-    }
-  }
-
-  public static class HrSchemaBig {
-    @Override public String toString() {
-      return "HrSchema";
-    }
-
-    public final Employee[] emps = {
-        new Employee(1, 10, "Bill", 10000, 1000),
-        new Employee(2, 20, "Eric", 8000, 500),
-        new Employee(3, 10, "Sebastian", 7000, null),
-        new Employee(4, 10, "Theodore", 11500, 250),
-        new Employee(5, 10, "Marjorie", 10000, 1000),
-        new Employee(6, 20, "Guy", 8000, 500),
-        new Employee(7, 10, "Dieudonne", 7000, null),
-        new Employee(8, 10, "Haroun", 11500, 250),
-        new Employee(9, 10, "Sarah", 10000, 1000),
-        new Employee(10, 20, "Gabriel", 8000, 500),
-        new Employee(11, 10, "Pierre", 7000, null),
-        new Employee(12, 10, "Paul", 11500, 250),
-        new Employee(13, 10, "Jacques", 100, 1000),
-        new Employee(14, 20, "Khawla", 8000, 500),
-        new Employee(15, 10, "Brielle", 7000, null),
-        new Employee(16, 10, "Hyuna", 11500, 250),
-        new Employee(17, 10, "Ahmed", 10000, 1000),
-        new Employee(18, 20, "Lara", 8000, 500),
-        new Employee(19, 10, "Capucine", 7000, null),
-        new Employee(20, 10, "Michelle", 11500, 250),
-        new Employee(21, 10, "Cerise", 10000, 1000),
-        new Employee(22, 80, "Travis", 8000, 500),
-        new Employee(23, 10, "Taylor", 7000, null),
-        new Employee(24, 10, "Seohyun", 11500, 250),
-        new Employee(25, 70, "Helen", 10000, 1000),
-        new Employee(26, 50, "Patric", 8000, 500),
-        new Employee(27, 10, "Clara", 7000, null),
-        new Employee(28, 10, "Catherine", 11500, 250),
-        new Employee(29, 10, "Anibal", 10000, 1000),
-        new Employee(30, 30, "Ursula", 8000, 500),
-        new Employee(31, 10, "Arturito", 7000, null),
-        new Employee(32, 70, "Diane", 11500, 250),
-        new Employee(33, 10, "Phoebe", 10000, 1000),
-        new Employee(34, 20, "Maria", 8000, 500),
-        new Employee(35, 10, "Edouard", 7000, null),
-        new Employee(36, 110, "Isabelle", 11500, 250),
-        new Employee(37, 120, "Olivier", 10000, 1000),
-        new Employee(38, 20, "Yann", 8000, 500),
-        new Employee(39, 60, "Ralf", 7000, null),
-        new Employee(40, 60, "Emmanuel", 11500, 250),
-        new Employee(41, 10, "Berenice", 10000, 1000),
-        new Employee(42, 20, "Kylie", 8000, 500),
-        new Employee(43, 80, "Natacha", 7000, null),
-        new Employee(44, 100, "Henri", 11500, 250),
-        new Employee(45, 90, "Pascal", 10000, 1000),
-        new Employee(46, 90, "Sabrina", 8000, 500),
-        new Employee(47, 8, "Riyad", 7000, null),
-        new Employee(48, 5, "Andy", 11500, 250),
-    };
-    public final Department[] depts = {
-        new Department(10, "Sales", Arrays.asList(emps[0], emps[2]),
-            new Location(-122, 38)),
-        new Department(20, "Marketing", ImmutableList.of(), new Location(0, 52)),
-        new Department(30, "HR", Collections.singletonList(emps[1]), null),
-        new Department(40, "Administration", Arrays.asList(emps[0], emps[2]),
-            new Location(-122, 38)),
-        new Department(50, "Design", ImmutableList.of(), new Location(0, 52)),
-        new Department(60, "IT", Collections.singletonList(emps[1]), null),
-        new Department(70, "Production", Arrays.asList(emps[0], emps[2]),
-            new Location(-122, 38)),
-        new Department(80, "Finance", ImmutableList.of(), new Location(0, 52)),
-        new Department(90, "Accounting", Collections.singletonList(emps[1]), null),
-        new Department(100, "Research", Arrays.asList(emps[0], emps[2]),
-            new Location(-122, 38)),
-        new Department(110, "Maintenance", ImmutableList.of(), new Location(0, 52)),
-        new Department(120, "Client Support", Collections.singletonList(emps[1]), null),
-    };
-  }
-
-  public static class Employee {
-    public final int empid;
-    public final int deptno;
-    public final String name;
-    public final float salary;
-    public final Integer commission;
-
-    public Employee(int empid, int deptno, String name, float salary,
-        Integer commission) {
-      this.empid = empid;
-      this.deptno = deptno;
-      this.name = name;
-      this.salary = salary;
-      this.commission = commission;
-    }
-
-    @Override public String toString() {
-      return "Employee [empid: " + empid + ", deptno: " + deptno
-          + ", name: " + name + "]";
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof Employee
-          && empid == ((Employee) obj).empid;
-    }
-  }
-
-  public static class Department {
-    public final int deptno;
-    public final String name;
-
-    @org.apache.calcite.adapter.java.Array(component = Employee.class)
-    public final List<Employee> employees;
-    public final Location location;
-
-    public Department(int deptno, String name, List<Employee> employees,
-        Location location) {
-      this.deptno = deptno;
-      this.name = name;
-      this.employees = employees;
-      this.location = location;
-    }
-
-    @Override public String toString() {
-      return "Department [deptno: " + deptno + ", name: " + name
-          + ", employees: " + employees + ", location: " + location + "]";
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof Department
-          && deptno == ((Department) obj).deptno;
-    }
-  }
-
-  public static class DepartmentPlus extends Department {
-    public final Timestamp inceptionDate;
-
-    public DepartmentPlus(int deptno, String name, List<Employee> employees,
-        Location location, Timestamp inceptionDate) {
-      super(deptno, name, employees, location);
-      this.inceptionDate = inceptionDate;
-    }
-  }
-
-  public static class Location {
-    public final int x;
-    public final int y;
-
-    public Location(int x, int y) {
-      this.x = x;
-      this.y = y;
-    }
-
-    @Override public String toString() {
-      return "Location [x: " + x + ", y: " + y + "]";
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof Location
-          && x == ((Location) obj).x
-          && y == ((Location) obj).y;
-    }
-  }
-
-  public static class Dependent {
-    public final int empid;
-    public final String name;
-
-    public Dependent(int empid, String name) {
-      this.empid = empid;
-      this.name = name;
-    }
-
-    @Override public String toString() {
-      return "Dependent [empid: " + empid + ", name: " + name + "]";
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof Dependent
-          && empid == ((Dependent) obj).empid
-          && Objects.equals(name, ((Dependent) obj).name);
-    }
-  }
-
-  public static class Event {
-    public final int eventid;
-    public final Timestamp ts;
-
-    public Event(int eventid, Timestamp ts) {
-      this.eventid = eventid;
-      this.ts = ts;
-    }
-
-    @Override public String toString() {
-      return "Event [eventid: " + eventid + ", ts: " + ts + "]";
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof Event
-          && eventid == ((Event) obj).eventid;
-    }
-  }
-
-  public static class FoodmartSchema {
-    public final SalesFact[] sales_fact_1997 = {
-      new SalesFact(100, 10),
-      new SalesFact(150, 20),
-    };
-  }
-
-  public static class LingualSchema {
-    public final LingualEmp[] EMPS = {
-      new LingualEmp(1, 10),
-      new LingualEmp(2, 30)
-    };
-  }
-
-  public static class LingualEmp {
-    public final int EMPNO;
-    public final int DEPTNO;
-
-    public LingualEmp(int EMPNO, int DEPTNO) {
-      this.EMPNO = EMPNO;
-      this.DEPTNO = DEPTNO;
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof LingualEmp
-          && EMPNO == ((LingualEmp) obj).EMPNO;
-    }
-  }
-
   public static class FoodmartJdbcSchema extends JdbcSchema {
     public FoodmartJdbcSchema(DataSource dataSource, SqlDialect dialect,
         JdbcConvention convention, String catalog, String schema) {
@@ -8103,51 +7782,7 @@ public class JdbcTest {
     }
   }
 
-  public static class SalesFact {
-    public final int cust_id;
-    public final int prod_id;
-
-    public SalesFact(int cust_id, int prod_id) {
-      this.cust_id = cust_id;
-      this.prod_id = prod_id;
-    }
-
-    @Override public boolean equals(Object obj) {
-      return obj == this
-          || obj instanceof SalesFact
-          && cust_id == ((SalesFact) obj).cust_id
-          && prod_id == ((SalesFact) obj).prod_id;
-    }
-  }
-
   //CHECKSTYLE: ON
-
-  /** Abstract base class for implementations of {@link ModifiableTable}. */
-  public abstract static class AbstractModifiableTable
-      extends AbstractTable implements ModifiableTable {
-    protected AbstractModifiableTable(String tableName) {
-    }
-
-    public TableModify toModificationRel(
-        RelOptCluster cluster,
-        RelOptTable table,
-        Prepare.CatalogReader catalogReader,
-        RelNode child,
-        TableModify.Operation operation,
-        List<String> updateColumnList,
-        List<RexNode> sourceExpressionList,
-        boolean flattened) {
-      return LogicalTableModify.create(table, catalogReader, child, operation,
-          updateColumnList, sourceExpressionList, flattened);
-    }
-  }
-
-  /** Abstract base class for implementations of {@link ModifiableView}. */
-  public abstract static class AbstractModifiableView
-      extends AbstractTable implements ModifiableView {
-    protected AbstractModifiableView() {
-    }
-  }
 
   /** Factory for EMP and DEPT tables. */
   public static class EmpDeptTableFactory implements TableFactory<Table> {
