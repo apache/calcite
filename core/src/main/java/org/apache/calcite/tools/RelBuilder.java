@@ -581,10 +581,10 @@ public class RelBuilder {
   }
 
   /** Creates a call to a scalar operator. */
-  private @Nonnull RexNode call(SqlOperator operator, List<RexNode> operandList) {
+  private @Nonnull RexCall call(SqlOperator operator, List<RexNode> operandList) {
     final RexBuilder builder = cluster.getRexBuilder();
     final RelDataType type = builder.deriveReturnType(operator, operandList);
-    return builder.makeCall(type, operator, operandList);
+    return (RexCall) builder.makeCall(type, operator, operandList);
   }
 
   /** Creates a call to a scalar operator. */
@@ -1148,7 +1148,7 @@ public class RelBuilder {
       inputs.add(0, build());
     }
 
-    final RexNode call = call(operator, ImmutableList.copyOf(operands));
+    final RexCall call = call(operator, ImmutableList.copyOf(operands));
     final RelNode functionScan =
         struct.tableFunctionScanFactory.createTableFunctionScan(cluster,
             inputs, call, null, getColumnMappings(operator));

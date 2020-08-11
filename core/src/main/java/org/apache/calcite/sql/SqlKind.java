@@ -1200,7 +1200,7 @@ public enum SqlKind {
   /**
    * Simple binary operators are those operators which expects operands from the same Domain.
    *
-   * <p>Example: simple comparisions ({@code =}, {@code <}).
+   * <p>Example: simple comparisons ({@code =}, {@code <}).
    *
    * <p>Note: it does not contain {@code IN} because that is defined on D x D^n.
    */

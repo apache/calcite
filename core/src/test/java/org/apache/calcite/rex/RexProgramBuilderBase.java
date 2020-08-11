@@ -463,41 +463,42 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeNullLiteral(nullable(type));
   }
 
-  protected RexNode literal(boolean value) {
-    return rexBuilder.makeLiteral(value, nonNullableBool, false);
+  protected RexLiteral literal(boolean value) {
+    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableBool, false);
   }
 
-  protected RexNode literal(Boolean value) {
+  protected RexLiteral literal(Boolean value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableBool);
     }
     return literal(value.booleanValue());
   }
 
-  protected RexNode literal(int value) {
-    return rexBuilder.makeLiteral(value, nonNullableInt, false);
+  protected RexLiteral literal(int value) {
+    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableInt, false);
   }
 
-  protected RexNode literal(BigDecimal value) {
+  protected RexLiteral literal(BigDecimal value) {
     return rexBuilder.makeExactLiteral(value);
   }
 
-  protected RexNode literal(BigDecimal value, RelDataType type) {
+  protected RexLiteral literal(BigDecimal value, RelDataType type) {
     return rexBuilder.makeExactLiteral(value, type);
   }
 
-  protected RexNode literal(Integer value) {
+  protected RexLiteral literal(Integer value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableInt);
     }
     return literal(value.intValue());
   }
 
-  protected RexNode literal(String value) {
+  protected RexLiteral literal(String value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableVarchar);
     }
-    return rexBuilder.makeLiteral(value, nonNullableVarchar, false);
+    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableVarchar,
+        false);
   }
 
   // Variables

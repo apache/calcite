@@ -224,21 +224,14 @@ class RexProgramTest extends RexProgramTestBase {
     // $t2 = $t0 + 1 (i.e. x + 1)
     final RexNode i0 = rexBuilder.makeInputRef(
         types.get(0), 0);
-    final RexLiteral c1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral c5 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(5L));
     RexLocalRef t2 =
         builder.addExpr(
             rexBuilder.makeCall(
                 SqlStdOperatorTable.PLUS,
-                i0,
-                c1));
+                i0, literal(1)));
     // $t3 = 77 (not used)
-    final RexLiteral c77 =
-        rexBuilder.makeExactLiteral(
-            BigDecimal.valueOf(77));
     RexLocalRef t3 =
-        builder.addExpr(
-            c77);
+        builder.addExpr(literal(77));
     Util.discard(t3);
     // $t4 = $t0 + $t1 (i.e. x + y)
     final RexNode i1 = rexBuilder.makeInputRef(
@@ -270,8 +263,7 @@ class RexProgramTest extends RexProgramTestBase {
           builder.addExpr(
               rexBuilder.makeCall(
                   SqlStdOperatorTable.PLUS,
-                  i0,
-                  c1));
+                  i0, literal(1)));
       // $t5 = $t0 + $tx (i.e. x + (x + 1))
       t5 =
           builder.addExpr(
@@ -314,7 +306,7 @@ class RexProgramTest extends RexProgramTestBase {
     case 3:
     case 4:
       // $t7 = 5
-      t7 = builder.addExpr(c5);
+      t7 = builder.addExpr(literal(5));
       // $t8 = $t2 > $t7 (i.e. (x + 1) > 5)
       t8 = builder.addExpr(gt(t2, t7));
       // $t9 = true
@@ -555,9 +547,7 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
     final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
 
-    final RexLiteral sevenLiteral =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(7));
-    final RexNode hEqSeven = eq(hRef, sevenLiteral);
+    final RexNode hEqSeven = eq(hRef, literal(7));
 
     checkCnf(aRef, "?0.a");
     checkCnf(trueLiteral, "true");
@@ -624,24 +614,17 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode bRef = rexBuilder.makeFieldAccess(range, 4);
 
-    final RexLiteral literal1 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1));
-    final RexLiteral literal2 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
-    final RexLiteral literal3 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
-
     checkCnf(
         or(
-            and(eq(xRef, literal1),
-                eq(yRef, literal1),
-                eq(zRef, literal1)),
-            and(eq(xRef, literal2),
-                eq(yRef, literal2),
-                eq(aRef, literal2)),
-            and(eq(xRef, literal3),
-                eq(aRef, literal3),
-                eq(bRef, literal3))),
+            and(eq(xRef, literal(1)),
+                eq(yRef, literal(1)),
+                eq(zRef, literal(1))),
+            and(eq(xRef, literal(2)),
+                eq(yRef, literal(2)),
+                eq(aRef, literal(2))),
+            and(eq(xRef, literal(3)),
+                eq(aRef, literal(3)),
+                eq(bRef, literal(3)))),
         "AND("
             + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.x, 3)), "
             + "OR(=(?0.x, 1), =(?0.x, 2), =(?0.a, 3)), "
@@ -686,22 +669,14 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode xRef = rexBuilder.makeFieldAccess(range, 0);
     final RexNode yRef = rexBuilder.makeFieldAccess(range, 1);
 
-    final RexLiteral literal1 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1));
-    final RexLiteral literal2 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
-    final RexLiteral literal3 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
-    final RexLiteral literal4 =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
-
     // Expression
     //   OR(=(?0.x, 1), AND(=(?0.x, 2), =(?0.y, 3)))
     // transformation creates 7 nodes
     //   AND(OR(=(?0.x, 1), =(?0.x, 2)), OR(=(?0.x, 1), =(?0.y, 3)))
     // Thus, it is triggered.
     checkThresholdCnf(
-        or(eq(xRef, literal1), and(eq(xRef, literal2), eq(yRef, literal3))),
+        or(eq(xRef, literal(1)),
+            and(eq(xRef, literal(2)), eq(yRef, literal(3)))),
         8, "AND(OR(=(?0.x, 1), =(?0.x, 2)), OR(=(?0.x, 1), =(?0.y, 3)))");
 
     // Expression
@@ -711,8 +686,8 @@ class RexProgramTest extends RexProgramTestBase {
     //       OR(=(?0.x, 1), =(?0.x, 2), =(?0.y, 8)))
     // Thus, it is NOT triggered.
     checkThresholdCnf(
-        or(eq(xRef, literal1), eq(xRef, literal2),
-            and(eq(xRef, literal3), eq(yRef, literal4))),
+        or(eq(xRef, literal(1)), eq(xRef, literal(2)),
+            and(eq(xRef, literal(3)), eq(yRef, literal(4)))),
                 8, "OR(=(?0.x, 1), =(?0.x, 2), AND(=(?0.x, 3), =(?0.y, 4)))");
   }
 
@@ -780,9 +755,7 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
     final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
 
-    final RexLiteral sevenLiteral =
-        rexBuilder.makeExactLiteral(BigDecimal.valueOf(7));
-    final RexNode hEqSeven = eq(hRef, sevenLiteral);
+    final RexNode hEqSeven = eq(hRef, literal(7));
 
     // Most of the expressions in testCnf are unaffected by pullFactors.
     checkPullFactors(
@@ -855,7 +828,6 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
     final RexNode jRef = rexBuilder.makeFieldAccess(range, 9);
     final RexNode kRef = rexBuilder.makeFieldAccess(range, 10);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
     checkSimplify(and(aRef, bRef, aRef), "AND(?0.a, ?0.b)");
@@ -912,7 +884,8 @@ class RexProgramTest extends RexProgramTestBase {
 
     // case: always same value
     checkSimplify(
-        case_(aRef, literal1, bRef, literal1, cRef, literal1, dRef, literal1, literal1), "1");
+        case_(aRef, literal(1), bRef, literal(1), cRef, literal(1), dRef,
+            literal(1), literal(1)), "1");
 
     // case: trailing false and null, no simplification
     checkSimplify3(
@@ -951,69 +924,69 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
 
     // condition, and the inverse - nothing to do due to null values
-    checkSimplify2(and(le(hRef, literal1), gt(hRef, literal1)),
+    checkSimplify2(and(le(hRef, literal(1)), gt(hRef, literal(1))),
         "AND(<=(?0.h, 1), >(?0.h, 1))",
         "false");
 
-    checkSimplify2(and(le(hRef, literal1), ge(hRef, literal1)),
+    checkSimplify2(and(le(hRef, literal(1)), ge(hRef, literal(1))),
         "AND(<=(?0.h, 1), >=(?0.h, 1))",
         "=(?0.h, 1)");
 
-    checkSimplify2(and(lt(hRef, literal1), eq(hRef, literal1), ge(hRef, literal1)),
+    checkSimplify2(and(lt(hRef, literal(1)), eq(hRef, literal(1)), ge(hRef, literal(1))),
         "AND(<(?0.h, 1), =(?0.h, 1), >=(?0.h, 1))",
         "false");
 
-    checkSimplify(and(lt(hRef, literal1), or(falseLiteral, falseLiteral)),
+    checkSimplify(and(lt(hRef, literal(1)), or(falseLiteral, falseLiteral)),
         "false");
-    checkSimplify(and(lt(hRef, literal1), or(falseLiteral, gt(jRef, kRef))),
+    checkSimplify(and(lt(hRef, literal(1)), or(falseLiteral, gt(jRef, kRef))),
         "AND(<(?0.h, 1), >(?0.j, ?0.k))");
-    checkSimplify(or(lt(hRef, literal1), and(trueLiteral, trueLiteral)),
+    checkSimplify(or(lt(hRef, literal(1)), and(trueLiteral, trueLiteral)),
         "true");
     checkSimplify(
-        or(lt(hRef, literal1),
+        or(lt(hRef, literal(1)),
             and(trueLiteral, or(trueLiteral, falseLiteral))),
         "true");
     checkSimplify(
-        or(lt(hRef, literal1),
+        or(lt(hRef, literal(1)),
             and(trueLiteral, and(trueLiteral, falseLiteral))),
         "<(?0.h, 1)");
     checkSimplify(
-        or(lt(hRef, literal1),
+        or(lt(hRef, literal(1)),
             and(trueLiteral, or(falseLiteral, falseLiteral))),
         "<(?0.h, 1)");
 
     // "x = x" simplifies to "x is not null"
-    checkSimplify(eq(literal1, literal1), "true");
+    checkSimplify(eq(literal(1), literal(1)), "true");
     checkSimplify(eq(hRef, hRef), "true");
     checkSimplify3(eq(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(eq(iRef, hRef));
 
     // "x <= x" simplifies to "x is not null"
-    checkSimplify(le(literal1, literal1), "true");
+    checkSimplify(le(literal(1), literal(1)), "true");
     checkSimplify(le(hRef, hRef), "true");
     checkSimplify3(le(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(le(iRef, hRef));
 
     // "x >= x" simplifies to "x is not null"
-    checkSimplify(ge(literal1, literal1), "true");
+    checkSimplify(ge(literal(1), literal(1)), "true");
     checkSimplify(ge(hRef, hRef), "true");
     checkSimplify3(ge(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(ge(iRef, hRef));
 
-    // "x != x" simplifies to "false"
-    checkSimplify(ne(literal1, literal1), "false");
+    // "x <> x" simplifies to "false"
+    checkSimplify(ne(literal(1), literal(1)), "false");
     checkSimplify(ne(hRef, hRef), "false");
     checkSimplify3(ne(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(ne(iRef, hRef));
 
     // "x < x" simplifies to "false"
-    checkSimplify(lt(literal1, literal1), "false");
+    checkSimplify(lt(literal(1), literal(1)), "false");
     checkSimplify(lt(hRef, hRef), "false");
     checkSimplify3(lt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(lt(iRef, hRef));
 
     // "x > x" simplifies to "false"
-    checkSimplify(gt(literal1, literal1), "false");
+    checkSimplify(gt(literal(1), literal(1)), "false");
     checkSimplify(gt(hRef, hRef), "false");
     checkSimplify3(gt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(gt(iRef, hRef));
@@ -1085,24 +1058,22 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
     final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literal5 = rexBuilder.makeExactLiteral(new BigDecimal(5));
-    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
 
     // condition, and the inverse
-    checkSimplifyFilter(and(le(aRef, literal1), gt(aRef, literal1)),
+    checkSimplifyFilter(and(le(aRef, literal(1)), gt(aRef, literal(1))),
         "false");
 
-    checkSimplifyFilter(and(le(aRef, literal1), ge(aRef, literal1)),
+    checkSimplifyFilter(and(le(aRef, literal(1)), ge(aRef, literal(1))),
         "=(?0.a, 1)");
 
-    checkSimplifyFilter(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
+    checkSimplifyFilter(
+        and(lt(aRef, literal(1)), eq(aRef, literal(1)), ge(aRef, literal(1))),
         "false");
 
     // simplify equals boolean
     final ImmutableList<RexNode> args =
-        ImmutableList.of(eq(eq(aRef, literal1), trueLiteral),
-            eq(bRef, literal1));
+        ImmutableList.of(eq(eq(aRef, literal(1)), trueLiteral),
+            eq(bRef, literal(1)));
     checkSimplifyFilter(and(args),
         "AND(=(?0.a, 1), =(?0.b, 1))");
 
@@ -1114,7 +1085,7 @@ class RexProgramTest extends RexProgramTestBase {
 
     // "a = 1 and a = 10" is always false
     final ImmutableList<RexNode> args2 =
-        ImmutableList.of(eq(aRef, literal1), eq(aRef, literal10));
+        ImmutableList.of(eq(aRef, literal(1)), eq(aRef, literal(10)));
     checkSimplifyFilter(and(args2), "false");
 
     assertThat(simplify
@@ -1122,20 +1093,20 @@ class RexProgramTest extends RexProgramTestBase {
         nullValue());
 
     // equality on constants, can remove the equality on the variables
-    checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal1), eq(aRef, bRef)),
+    checkSimplifyFilter(and(eq(aRef, literal(1)), eq(bRef, literal(1)), eq(aRef, bRef)),
         "AND(=(?0.a, 1), =(?0.b, 1))");
 
     // condition not satisfiable
-    checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal10), eq(aRef, bRef)),
+    checkSimplifyFilter(and(eq(aRef, literal(1)), eq(bRef, literal(10)), eq(aRef, bRef)),
         "false");
 
     // condition not satisfiable
-    checkSimplifyFilter(and(gt(aRef, literal10), ge(bRef, literal1), lt(aRef, literal10)),
+    checkSimplifyFilter(and(gt(aRef, literal(10)), ge(bRef, literal(1)), lt(aRef, literal(10))),
         "false");
 
     // one "and" containing three "or"s
     checkSimplifyFilter(
-        or(gt(aRef, literal10), gt(bRef, literal1), gt(aRef, literal10)),
+        or(gt(aRef, literal(10)), gt(bRef, literal(1)), gt(aRef, literal(10))),
         "OR(>(?0.a, 10), >(?0.b, 1))");
 
     // case: trailing false and null, remove
@@ -1145,36 +1116,36 @@ class RexProgramTest extends RexProgramTestBase {
         "OR(?0.c, ?0.d)");
 
     // condition with null value for range
-    checkSimplifyFilter(and(gt(aRef, nullBool), ge(bRef, literal1)), "false");
+    checkSimplifyFilter(and(gt(aRef, nullBool), ge(bRef, literal(1))), "false");
 
     // condition "1 < a && 5 < x" yields "5 < x"
     checkSimplifyFilter(
-        and(lt(literal1, aRef), lt(literal5, aRef)),
+        and(lt(literal(1), aRef), lt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
         "<(5, ?0.a)");
 
     // condition "1 < a && a < 5" is unchanged
     checkSimplifyFilter(
-        and(lt(literal1, aRef), lt(aRef, literal5)),
+        and(lt(literal(1), aRef), lt(aRef, literal(5))),
         RelOptPredicateList.EMPTY,
         "AND(<(1, ?0.a), <(?0.a, 5))");
 
     // condition "1 > a && 5 > x" yields "1 > a"
     checkSimplifyFilter(
-        and(gt(literal1, aRef), gt(literal5, aRef)),
+        and(gt(literal(1), aRef), gt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
         ">(1, ?0.a)");
 
     // condition "1 > a && a > 5" yields false
     checkSimplifyFilter(
-        and(gt(literal1, aRef), gt(aRef, literal5)),
+        and(gt(literal(1), aRef), gt(aRef, literal(5))),
         RelOptPredicateList.EMPTY,
         "false");
 
     // range with no predicates;
     // condition "a > 1 && a < 10 && a < 5" yields "a < 1 && a < 5"
     checkSimplifyFilter(
-        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        and(gt(aRef, literal(1)), lt(aRef, literal(10)), lt(aRef, literal(5))),
         RelOptPredicateList.EMPTY,
         "AND(>(?0.a, 1), <(?0.a, 5))");
 
@@ -1182,9 +1153,9 @@ class RexProgramTest extends RexProgramTestBase {
     // with pre-condition "a > 5"
     // yields "false"
     checkSimplifyFilter(
-        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        and(gt(aRef, literal(1)), lt(aRef, literal(10)), lt(aRef, literal(5))),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(gt(aRef, literal5))),
+            ImmutableList.of(gt(aRef, literal(5)))),
         "false");
 
     // condition "a > 1 && a < 10 && a <= 5"
@@ -1192,66 +1163,66 @@ class RexProgramTest extends RexProgramTestBase {
     // yields "a = 5"
     // "a <= 5" would also be correct, just a little less concise.
     checkSimplifyFilter(
-        and(gt(aRef, literal1), lt(aRef, literal10), le(aRef, literal5)),
+        and(gt(aRef, literal(1)), lt(aRef, literal(10)), le(aRef, literal(5))),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(ge(aRef, literal5))),
+            ImmutableList.of(ge(aRef, literal(5)))),
         "=(?0.a, 5)");
 
     // condition "a > 1 && a < 10 && a < 5"
     // with pre-condition "b < 10 && a > 5"
     // yields "a > 1 and a < 5"
     checkSimplifyFilter(
-        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        and(gt(aRef, literal(1)), lt(aRef, literal(10)), lt(aRef, literal(5))),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(lt(bRef, literal10), ge(aRef, literal1))),
+            ImmutableList.of(lt(bRef, literal(10)), ge(aRef, literal(1)))),
         "AND(>(?0.a, 1), <(?0.a, 5))");
 
     // condition "a > 1"
     // with pre-condition "b < 10 && a > 5"
     // yields "true"
-    checkSimplifyFilter(gt(aRef, literal1),
+    checkSimplifyFilter(gt(aRef, literal(1)),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(lt(bRef, literal10), gt(aRef, literal5))),
+            ImmutableList.of(lt(bRef, literal(10)), gt(aRef, literal(5)))),
         "true");
 
     // condition "a < 1"
     // with pre-condition "b < 10 && a > 5"
     // yields "false"
-    checkSimplifyFilter(lt(aRef, literal1),
+    checkSimplifyFilter(lt(aRef, literal(1)),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(lt(bRef, literal10), gt(aRef, literal5))),
+            ImmutableList.of(lt(bRef, literal(10)), gt(aRef, literal(5)))),
         "false");
 
     // condition "a > 5"
     // with pre-condition "b < 10 && a >= 5"
     // yields "a > 5"
-    checkSimplifyFilter(gt(aRef, literal5),
+    checkSimplifyFilter(gt(aRef, literal(5)),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(lt(bRef, literal10), ge(aRef, literal5))),
+            ImmutableList.of(lt(bRef, literal(10)), ge(aRef, literal(5)))),
         ">(?0.a, 5)");
 
     // condition "a > 5"
     // with pre-condition "a <= 5"
     // yields "false"
-    checkSimplifyFilter(gt(aRef, literal5),
+    checkSimplifyFilter(gt(aRef, literal(5)),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(le(aRef, literal5))),
+            ImmutableList.of(le(aRef, literal(5)))),
         "false");
 
     // condition "a > 5"
     // with pre-condition "a <= 5 and b <= 5"
     // yields "false"
-    checkSimplifyFilter(gt(aRef, literal5),
+    checkSimplifyFilter(gt(aRef, literal(5)),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(le(aRef, literal5), le(bRef, literal5))),
+            ImmutableList.of(le(aRef, literal(5)), le(bRef, literal(5)))),
         "false");
 
     // condition "a > 5 or b > 5"
     // with pre-condition "a <= 5 and b <= 5"
     // should yield "false" but yields "a = 5 or b = 5"
-    checkSimplifyFilter(or(gt(aRef, literal5), gt(bRef, literal5)),
+    checkSimplifyFilter(or(gt(aRef, literal(5)), gt(bRef, literal(5))),
         RelOptPredicateList.of(rexBuilder,
-            ImmutableList.of(le(aRef, literal5), le(bRef, literal5))),
+            ImmutableList.of(le(aRef, literal(5)), le(bRef, literal(5)))),
         "false");
   }
 
@@ -1313,46 +1284,43 @@ class RexProgramTest extends RexProgramTestBase {
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
     final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literal5 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(5));
-    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
 
     checkSimplifyFilter(
         or(
-            or(eq(aRef, literal1),
-                eq(aRef, literal1)),
-            eq(aRef, literal1)),
+            or(eq(aRef, literal(1)),
+                eq(aRef, literal(1))),
+            eq(aRef, literal(1))),
         "=(?0.a, 1)");
 
     checkSimplifyFilter(
         or(
-            and(eq(aRef, literal1),
-                eq(aRef, literal1)),
-            and(eq(aRef, literal10),
-                eq(aRef, literal1))),
+            and(eq(aRef, literal(1)),
+                eq(aRef, literal(1))),
+            and(eq(aRef, literal(10)),
+                eq(aRef, literal(1)))),
         "=(?0.a, 1)");
 
     checkSimplifyFilter(
         and(
-            eq(aRef, literal1),
-            or(eq(aRef, literal1),
-                eq(aRef, literal10))),
+            eq(aRef, literal(1)),
+            or(eq(aRef, literal(1)),
+                eq(aRef, literal(10)))),
         "=(?0.a, 1)");
     checkSimplifyFilter(
         and(
-            or(eq(aRef, literal1),
-                eq(aRef, literal10)),
-            eq(aRef, literal1)),
+            or(eq(aRef, literal(1)),
+                eq(aRef, literal(10))),
+            eq(aRef, literal(1))),
         "=(?0.a, 1)");
 
     checkSimplifyFilter(
-        and(gt(aRef, literal10),
-            gt(aRef, literal1)),
+        and(gt(aRef, literal(10)),
+            gt(aRef, literal(1))),
         ">(?0.a, 10)");
 
     checkSimplifyFilter(
-        and(gt(aRef, literal1),
-            gt(aRef, literal10)),
+        and(gt(aRef, literal(1)),
+            gt(aRef, literal(10))),
         ">(?0.a, 10)");
 
     // "null AND NOT(null OR x)" => "null AND NOT(x)"
@@ -1386,27 +1354,23 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
     final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literal2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
-    final RexLiteral literal3 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
-    final RexLiteral literal4 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
 
     // "a != 1 or a = 1" ==> "true"
     checkSimplifyFilter(
-        or(ne(aRef, literal1),
-            eq(aRef, literal1)),
+        or(ne(aRef, literal(1)),
+            eq(aRef, literal(1))),
         "true");
 
     // TODO: make this simplify to "true"
     checkSimplifyFilter(
-        or(eq(aRef, literal1),
-            ne(aRef, literal1)),
+        or(eq(aRef, literal(1)),
+            ne(aRef, literal(1))),
         "OR(=(?0.a, 1), <>(?0.a, 1))");
 
     // "b != 1 or b = 1" cannot be simplified, because b might be null
     final RexNode neOrEq =
-        or(ne(bRef, literal1),
-            eq(bRef, literal1));
+        or(ne(bRef, literal(1)),
+            eq(bRef, literal(1)));
     checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), =(?0.b, 1))");
 
     // Careful of the excluded middle!
@@ -1451,12 +1415,12 @@ class RexProgramTest extends RexProgramTestBase {
     // multiple predicates are handled correctly
     checkSimplifyFilter(
         and(
-            or(eq(bRef, literal1),
-                eq(bRef, literal2)),
-            eq(bRef, literal2),
-            eq(aRef, literal3),
-            or(eq(aRef, literal3),
-                eq(aRef, literal4))),
+            or(eq(bRef, literal(1)),
+                eq(bRef, literal(2))),
+            eq(bRef, literal(2)),
+            eq(aRef, literal(3)),
+            or(eq(aRef, literal(3)),
+                eq(aRef, literal(4)))),
         "AND(=(?0.b, 2), =(?0.a, 3))");
 
     checkSimplify3(
@@ -1500,11 +1464,9 @@ class RexProgramTest extends RexProgramTestBase {
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-
 
     checkSimplify2(
-        and(eq(aRef, literal1),
+        and(eq(aRef, literal(1)),
             nullInt),
         "AND(=(?0.a, 1), null:INTEGER)",
         "false");
@@ -1521,13 +1483,13 @@ class RexProgramTest extends RexProgramTestBase {
 
     checkSimplify3(
         and(nullBool,
-            eq(aRef, literal1)),
+            eq(aRef, literal(1))),
         "AND(null, =(?0.a, 1))",
         "false",
         "=(?0.a, 1)");
 
     checkSimplify3(
-        or(eq(aRef, literal1),
+        or(eq(aRef, literal(1)),
             nullBool),
         "OR(=(?0.a, 1), null)",
         "=(?0.a, 1)",
@@ -1592,7 +1554,7 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat("The case should be nonNullable", caseNode.getType().isNullable(), is(false));
     assertThat("Expected a nonNullable type", result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
-    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_TRUE));
+    assertThat(result.getOperator(), is(SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
   }
 
@@ -1770,13 +1732,12 @@ class RexProgramTest extends RexProgramTestBase {
     final RexInputRef i1 = rexBuilder.makeInputRef(intNullableType, 1);
     final RexInputRef i2 = rexBuilder.makeInputRef(intType, 2);
     final RexInputRef i3 = rexBuilder.makeInputRef(intType, 3);
-    final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral null_ = rexBuilder.makeNullLiteral(intType);
     checkSimplify(isNotNull(lt(i0, i1)),
         "AND(IS NOT NULL($0), IS NOT NULL($1))");
     checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL($0)");
     checkSimplify(isNotNull(lt(i2, i3)), "true");
-    checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL($0)");
+    checkSimplify(isNotNull(lt(i0, literal(1))), "IS NOT NULL($0)");
     checkSimplify(isNotNull(lt(i0, null_)), "false");
     // test simplify operand of case when expression
     checkSimplify(
@@ -1933,7 +1894,6 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testSimplifyCastLiteral2() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
-    final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType varcharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
@@ -1943,17 +1903,17 @@ class RexProgramTest extends RexProgramTestBase {
     final RelDataType timestampType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
     checkSimplifyUnchanged(cast(literalAbc, intType));
-    checkSimplifyUnchanged(cast(literalOne, intType));
+    checkSimplifyUnchanged(cast(literal(1), intType));
     checkSimplifyUnchanged(cast(literalAbc, varcharType));
-    checkSimplify(cast(literalOne, varcharType), "'1':VARCHAR(10)");
+    checkSimplify(cast(literal(1), varcharType), "'1':VARCHAR(10)");
     checkSimplifyUnchanged(cast(literalAbc, booleanType));
-    checkSimplify(cast(literalOne, booleanType),
+    checkSimplify(cast(literal(1), booleanType),
         "false"); // different from Hive
     checkSimplifyUnchanged(cast(literalAbc, dateType));
-    checkSimplify(cast(literalOne, dateType),
+    checkSimplify(cast(literal(1), dateType),
         "1970-01-02"); // different from Hive
     checkSimplifyUnchanged(cast(literalAbc, timestampType));
-    checkSimplify(cast(literalOne, timestampType),
+    checkSimplify(cast(literal(1), timestampType),
         "1970-01-01 00:00:00"); // different from Hive
   }
 
@@ -2058,10 +2018,8 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testSimplifyLiterals() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
     final RexLiteral literalDef = rexBuilder.makeLiteral("def");
-
-    final RexLiteral literalZero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
-    final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literalOneDotZero = rexBuilder.makeExactLiteral(new BigDecimal(1.0));
+    final RexLiteral literalOneDotZero =
+        rexBuilder.makeExactLiteral(new BigDecimal(1D));
 
     // Check string comparison
     checkSimplify(eq(literalAbc, literalAbc), "true");
@@ -2082,48 +2040,48 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(le(literalDef, literalDef), "true");
 
     // Check whole number comparison
-    checkSimplify(eq(literalZero, literalOne), "false");
-    checkSimplify(eq(literalOne, literalZero), "false");
-    checkSimplify(ne(literalZero, literalOne), "true");
-    checkSimplify(ne(literalOne, literalZero), "true");
-    checkSimplify(gt(literalZero, literalOne), "false");
-    checkSimplify(gt(literalOne, literalZero), "true");
-    checkSimplify(gt(literalOne, literalOne), "false");
-    checkSimplify(ge(literalZero, literalOne), "false");
-    checkSimplify(ge(literalOne, literalZero), "true");
-    checkSimplify(ge(literalOne, literalOne), "true");
-    checkSimplify(lt(literalZero, literalOne), "true");
-    checkSimplify(lt(literalOne, literalZero), "false");
-    checkSimplify(lt(literalOne, literalOne), "false");
-    checkSimplify(le(literalZero, literalOne), "true");
-    checkSimplify(le(literalOne, literalZero), "false");
-    checkSimplify(le(literalOne, literalOne), "true");
+    checkSimplify(eq(literal(0), literal(1)), "false");
+    checkSimplify(eq(literal(1), literal(0)), "false");
+    checkSimplify(ne(literal(0), literal(1)), "true");
+    checkSimplify(ne(literal(1), literal(0)), "true");
+    checkSimplify(gt(literal(0), literal(1)), "false");
+    checkSimplify(gt(literal(1), literal(0)), "true");
+    checkSimplify(gt(literal(1), literal(1)), "false");
+    checkSimplify(ge(literal(0), literal(1)), "false");
+    checkSimplify(ge(literal(1), literal(0)), "true");
+    checkSimplify(ge(literal(1), literal(1)), "true");
+    checkSimplify(lt(literal(0), literal(1)), "true");
+    checkSimplify(lt(literal(1), literal(0)), "false");
+    checkSimplify(lt(literal(1), literal(1)), "false");
+    checkSimplify(le(literal(0), literal(1)), "true");
+    checkSimplify(le(literal(1), literal(0)), "false");
+    checkSimplify(le(literal(1), literal(1)), "true");
 
     // Check decimal equality comparison
-    checkSimplify(eq(literalOne, literalOneDotZero), "true");
-    checkSimplify(eq(literalOneDotZero, literalOne), "true");
-    checkSimplify(ne(literalOne, literalOneDotZero), "false");
-    checkSimplify(ne(literalOneDotZero, literalOne), "false");
+    checkSimplify(eq(literal(1), literalOneDotZero), "true");
+    checkSimplify(eq(literalOneDotZero, literal(1)), "true");
+    checkSimplify(ne(literal(1), literalOneDotZero), "false");
+    checkSimplify(ne(literalOneDotZero, literal(1)), "false");
 
     // Check different types shouldn't change simplification
-    checkSimplifyUnchanged(eq(literalZero, literalAbc));
-    checkSimplifyUnchanged(eq(literalAbc, literalZero));
-    checkSimplifyUnchanged(ne(literalZero, literalAbc));
-    checkSimplifyUnchanged(ne(literalAbc, literalZero));
-    checkSimplifyUnchanged(gt(literalZero, literalAbc));
-    checkSimplifyUnchanged(gt(literalAbc, literalZero));
-    checkSimplifyUnchanged(ge(literalZero, literalAbc));
-    checkSimplifyUnchanged(ge(literalAbc, literalZero));
-    checkSimplifyUnchanged(lt(literalZero, literalAbc));
-    checkSimplifyUnchanged(lt(literalAbc, literalZero));
-    checkSimplifyUnchanged(le(literalZero, literalAbc));
-    checkSimplifyUnchanged(le(literalAbc, literalZero));
+    checkSimplifyUnchanged(eq(literal(0), literalAbc));
+    checkSimplifyUnchanged(eq(literalAbc, literal(0)));
+    checkSimplifyUnchanged(ne(literal(0), literalAbc));
+    checkSimplifyUnchanged(ne(literalAbc, literal(0)));
+    checkSimplifyUnchanged(gt(literal(0), literalAbc));
+    checkSimplifyUnchanged(gt(literalAbc, literal(0)));
+    checkSimplifyUnchanged(ge(literal(0), literalAbc));
+    checkSimplifyUnchanged(ge(literalAbc, literal(0)));
+    checkSimplifyUnchanged(lt(literal(0), literalAbc));
+    checkSimplifyUnchanged(lt(literalAbc, literal(0)));
+    checkSimplifyUnchanged(le(literal(0), literalAbc));
+    checkSimplifyUnchanged(le(literalAbc, literal(0)));
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2421">[CALCITE-2421]
    * to-be-filled </a>. */
-  @Test void testSelfComparisions() {
+  @Test void testSelfComparisons() {
     checkSimplify3(and(eq(vInt(), vInt()), eq(vInt(1), vInt(1))),
         "AND(OR(null, IS NOT NULL(?0.int0)), OR(null, IS NOT NULL(?0.int1)))",
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))",
@@ -2134,7 +2092,7 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
   }
 
-  @Test void testBooleanComparisions() {
+  @Test void testBooleanComparisons() {
     checkSimplify(eq(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ge(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ne(vBool(), trueLiteral), "NOT(?0.bool0)");
@@ -2222,13 +2180,11 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
     final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
     final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
-    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literal2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
 
     final ImmutableMap<RexNode, RexNode> map =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
             ImmutableList.of(eq(aRef, bRef),
-                eq(cRef, literal1),
+                eq(cRef, literal(1)),
                 eq(cRef, aRef),
                 eq(dRef, eRef)));
     assertThat(getString(map),
@@ -2238,16 +2194,16 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode ref0 = rexBuilder.makeInputRef(rowType, 0);
     final ImmutableMap<RexNode, RexNode> map2 =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
-            ImmutableList.of(eq(ref0, literal1),
-                eq(ref0, literal2)));
+            ImmutableList.of(eq(ref0, literal(1)),
+                eq(ref0, literal(2))));
     assertThat(getString(map2), is("{}"));
 
     // Contradictory constraints on field accesses SHOULD yield no constants
     // but currently there's a bug
     final ImmutableMap<RexNode, RexNode> map3 =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
-            ImmutableList.of(eq(aRef, literal1),
-                eq(aRef, literal2)));
+            ImmutableList.of(eq(aRef, literal(1)),
+                eq(aRef, literal(2))));
     assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
 
     // Different precision and scale in decimal
@@ -2274,7 +2230,8 @@ class RexProgramTest extends RexProgramTestBase {
     final ImmutableMap<RexNode, RexNode> map6 =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
             ImmutableList.of(
-                eq(cast(eRef, typeFactory.createSqlType(SqlTypeName.INTEGER)), literal1)));
+                eq(cast(eRef, typeFactory.createSqlType(SqlTypeName.INTEGER)),
+                    literal(1))));
     assertThat(
         getString(map6), is("{1=CAST(?0.e):INTEGER NOT NULL, CAST(?0.e):INTEGER NOT NULL=1}"));
 
@@ -2282,7 +2239,8 @@ class RexProgramTest extends RexProgramTestBase {
     final ImmutableMap<RexNode, RexNode> map7 =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
             ImmutableList.of(
-                eq(cast(aRef, typeFactory.createSqlType(SqlTypeName.BIGINT)), literal1)));
+                eq(cast(aRef, typeFactory.createSqlType(SqlTypeName.BIGINT)),
+                    literal(1))));
     assertThat(getString(map7), is("{1=CAST(?0.a):BIGINT NOT NULL, ?0.a=1}"));
   }
 

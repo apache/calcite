@@ -503,7 +503,7 @@ public class RelFactories {
   public interface TableFunctionScanFactory {
     /** Creates a {@link TableFunctionScan}. */
     RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexNode rexCall, Type elementType,
+        List<RelNode> inputs, RexCall call, Type elementType,
         Set<RelColumnMapping> columnMappings);
   }
 
@@ -515,9 +515,8 @@ public class RelFactories {
   private static class TableFunctionScanFactoryImpl
       implements TableFunctionScanFactory {
     @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexNode rexCall, Type elementType,
+        List<RelNode> inputs, RexCall call, Type elementType,
         Set<RelColumnMapping> columnMappings) {
-      final RexCall call = (RexCall) rexCall;
       final SqlOperatorBinding callBinding =
           new RexCallBinding(cluster.getTypeFactory(), call.getOperator(),
               call.operands, ImmutableList.of());
@@ -525,7 +524,7 @@ public class RelFactories {
       final SqlReturnTypeInference rowTypeInference =
           operator.getRowTypeInference();
       final RelDataType rowType = rowTypeInference.inferReturnType(callBinding);
-      return LogicalTableFunctionScan.create(cluster, inputs, rexCall,
+      return LogicalTableFunctionScan.create(cluster, inputs, call,
           elementType, rowType, columnMappings);
     }
   }

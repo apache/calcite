@@ -195,8 +195,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *   <li>For EQUALS(=) operator: 1. If operands are BOOLEAN and NUMERIC, evaluate
    *   `1=true` and `0=false` all to be true; 2. If operands are datetime and string,
    *   do nothing because the SqlToRelConverter already makes the type coercion;</li>
-   *   <li>For binary comparision [=, &gt;, &gt;=, &lt;, &lt;=]: try to find the common type,
-   *   i.e. "1 &gt; '1'" will be converted to "1 &gt; 1";</li>
+   *   <li>For binary comparison [=, &gt;, &gt;=, &lt;, &lt;=]: try to find the
+   *   common type, i.e. "1 &gt; '1'" will be converted to "1 &gt; 1";</li>
    *   <li>For BETWEEN operator, find the common comparison data type of all the operands,
    *   the common type is deduced from left to right, i.e. for expression "A between B and C",
    *   finds common comparison type D between A and B
@@ -220,7 +220,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         // BOOLEAN and literal
         coerced = booleanEquality(binding, type1, type2) || coerced;
       }
-      // Binary comparision operator like: = > >= < <=
+      // Binary comparison operator like: = > >= < <=
       if (kind.belongsTo(SqlKind.BINARY_COMPARISON)) {
         final RelDataType commonType = commonTypeForBinaryComparison(type1, type2);
         if (null != commonType) {
