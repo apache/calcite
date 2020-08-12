@@ -2130,6 +2130,7 @@ public abstract class EnumerableDefaults {
     case INNER:
     case SEMI:
     case ANTI:
+    case LEFT:
       return true;
     default:
       return false;
@@ -3995,6 +3996,7 @@ public abstract class EnumerableDefaults {
    * @param <TSource> left input record type
    * @param <TKey> key type
    * @param <TInner> right input record type */
+  @SuppressWarnings("unchecked")
   private static class MergeJoinEnumerator<TResult, TSource, TInner, TKey extends Comparable<TKey>>
       implements Enumerator<TResult> {
     private final List<TSource> lefts = new ArrayList<>();
@@ -4012,9 +4014,10 @@ public abstract class EnumerableDefaults {
     // key comparator, possibly null (Comparable#compareTo to be used in that case)
     private final Comparator<TKey> comparator;
     private boolean done;
-    private Enumerator<TResult> results;
-    // only used for ANTI join: if right input is over, all remaining elements from left are results
+    private Enumerator<TResult> results = null;
+    // used for LEFT/ANTI join: if right input is over, all remaining elements from left are results
     private boolean remainingLeft;
+    private TResult current = (TResult) DUMMY;
 
     MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
         Enumerable<TInner> rightEnumerable,
@@ -4050,10 +4053,12 @@ public abstract class EnumerableDefaults {
     }
 
     /** Returns whether the left enumerator was successfully advanced to the next
-     * element, and it does not have a null key. */
+     * element, and it does not have a null key (except for LEFT join, that needs to process
+     * all elements from left. */
     private boolean leftMoveNext() {
       return getLeftEnumerator().moveNext()
-          && outerKeySelector.apply(getLeftEnumerator().current()) != null;
+          && (joinType == JoinType.LEFT
+              || outerKeySelector.apply(getLeftEnumerator().current()) != null);
     }
 
     /** Returns whether the right enumerator was successfully advanced to the
@@ -4063,21 +4068,13 @@ public abstract class EnumerableDefaults {
           && innerKeySelector.apply(getRightEnumerator().current()) != null;
     }
 
-    /**
-     * Only for joinType ANTI: if right input is over, all remaining elements from left are results.
-     * @param currentLeft current element from left iterator.
-     */
-    private void computeLeftRemainder(TSource currentLeft) {
-      // before reaching this point, we have always performed a leftEnumerator moveNext,
-      // so we must save the leftEnumerator current item as a result, otherwise it would be lost
-      results = Linq4j.enumerator(
-          Collections.singletonList(resultSelector.apply(currentLeft, null)));
-      remainingLeft = true;
+    private boolean isLeftOrAntiJoin() {
+      return joinType == JoinType.LEFT || joinType == JoinType.ANTI;
     }
 
     private void start() {
-      if (joinType == JoinType.ANTI) {
-        startAntiJoin();
+      if (isLeftOrAntiJoin()) {
+        startLeftOrAntiJoin();
       } else {
         // joinType INNER or SEMI
         if (!leftMoveNext() || !rightMoveNext() || !advance()) {
@@ -4086,13 +4083,13 @@ public abstract class EnumerableDefaults {
       }
     }
 
-    private void startAntiJoin() {
+    private void startLeftOrAntiJoin() {
       if (!leftMoveNext()) {
         finish();
       } else {
         if (!rightMoveNext()) {
           // all remaining items in left are results for anti join
-          computeLeftRemainder(getLeftEnumerator().current());
+          remainingLeft = true;
         } else {
           if (!advance()) {
             finish();
@@ -4107,7 +4104,14 @@ public abstract class EnumerableDefaults {
     }
 
     private int compare(TKey key1, TKey key2) {
-      return comparator != null ? comparator.compare(key1, key2) : key1.compareTo(key2);
+      return comparator != null ? comparator.compare(key1, key2) : compareNullsLast(key1, key2);
+    }
+
+    private int compareNullsLast(TKey v0, TKey v1) {
+      return v0 == v1 ? 0
+          : v0 == null ? 1
+              : v1 == null ? -1
+                  : v0.compareTo(v1);
     }
 
     /** Moves to the next key that is present in both sides. Populates
@@ -4124,9 +4128,9 @@ public abstract class EnumerableDefaults {
           // mergeJoin assumes inputs sorted in ascending order with nulls last,
           // if we reach a null key, we are done.
           if (leftKey == null || rightKey == null) {
-            if (joinType == JoinType.ANTI && leftKey != null) {
-              // all remaining items in left are results for anti join
-              computeLeftRemainder(left);
+            if (joinType == JoinType.LEFT || (joinType == JoinType.ANTI && leftKey != null)) {
+              // all remaining items in left are results for left/anti join
+              remainingLeft = true;
               return true;
             }
             done = true;
@@ -4137,8 +4141,8 @@ public abstract class EnumerableDefaults {
             break;
           }
           if (c < 0) {
-            if (joinType == JoinType.ANTI) {
-              // left (and all other items with the same key) are results for anti join
+            if (isLeftOrAntiJoin()) {
+              // left (and all other items with the same key) are results for left/anti join
               if (!advanceLeft(left, leftKey)) {
                 done = true;
               }
@@ -4154,9 +4158,9 @@ public abstract class EnumerableDefaults {
             leftKey = outerKeySelector.apply(left);
           } else {
             if (!getRightEnumerator().moveNext()) {
-              if (joinType == JoinType.ANTI) {
-                // all remaining items in left are results for anti join
-                computeLeftRemainder(left);
+              if (isLeftOrAntiJoin()) {
+                // all remaining items in left are results for left/anti join
+                remainingLeft = true;
                 return true;
               }
               done = true;
@@ -4172,9 +4176,9 @@ public abstract class EnumerableDefaults {
         }
 
         if (!advanceRight(right, rightKey)) {
-          if (!done && joinType == JoinType.ANTI) {
-            // all remaining items in left are results for anti join
-            computeLeftRemainder(getLeftEnumerator().current());
+          if (!done && isLeftOrAntiJoin()) {
+            // all remaining items in left are results for left/anti join
+            remainingLeft = true;
           } else {
             done = true;
           }
@@ -4221,9 +4225,9 @@ public abstract class EnumerableDefaults {
       while (getLeftEnumerator().moveNext()) {
         left = getLeftEnumerator().current();
         TKey leftKey2 = outerKeySelector.apply(left);
-        if (leftKey2 == null) {
+        if (leftKey2 == null && joinType != JoinType.LEFT) {
           // mergeJoin assumes inputs sorted in ascending order with nulls last,
-          // if we reach a null key, we are done
+          // if we reach a null key, we are done (except LEFT join, that needs to process LHS fully)
           break;
         }
         int c = compare(leftKey, leftKey2);
@@ -4273,20 +4277,29 @@ public abstract class EnumerableDefaults {
     }
 
     public TResult current() {
-      if (remainingLeft) {
-        final TSource left = getLeftEnumerator().current();
-        return resultSelector.apply(left, null);
+      if (current == DUMMY) {
+        throw new NoSuchElementException();
       }
-      return results.current();
+      return current;
     }
 
     public boolean moveNext() {
       for (;;) {
-        if (results.moveNext()) {
-          return true;
+        if (results != null) {
+          if (results.moveNext()) {
+            current = results.current();
+            return true;
+          } else {
+            results = null;
+          }
         }
         if (remainingLeft) {
-          return leftMoveNext();
+          current = resultSelector.apply(getLeftEnumerator().current(), null);
+          if (!leftMoveNext()) {
+            remainingLeft = false;
+            done = true;
+          }
+          return true;
         }
         if (done) {
           return false;
@@ -4299,6 +4312,8 @@ public abstract class EnumerableDefaults {
 
     public void reset() {
       done = false;
+      results = null;
+      current = (TResult) DUMMY;
       remainingLeft = false;
       leftEnumerator.reset();
       if (rightEnumerator != null) {

@@ -50,6 +50,7 @@ class EnumerableCorrelateTest {
           // instead of EnumerableHashJoin
           planner.addRule(CoreRules.JOIN_TO_CORRELATE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains(""
             + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept=[$t4])\n"
