@@ -228,6 +228,8 @@ public enum BuiltInMethod {
       Function2.class, Function1.class),
   ORDER_BY(ExtendedEnumerable.class, "orderBy", Function1.class,
       Comparator.class),
+  ORDER_BY_WITH_FETCH_AND_OFFSET(EnumerableDefaults.class, "orderBy", Enumerable.class,
+      Function1.class, Comparator.class, int.class, int.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,

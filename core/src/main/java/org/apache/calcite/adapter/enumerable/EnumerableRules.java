@@ -86,6 +86,9 @@ public class EnumerableRules {
   public static final EnumerableSortRule ENUMERABLE_SORT_RULE =
       EnumerableSortRule.DEFAULT_CONFIG.toRule(EnumerableSortRule.class);
 
+  public static final EnumerableLimitSortRule ENUMERABLE_LIMIT_SORT_RULE =
+      EnumerableLimitSortRule.Config.DEFAULT.toRule();
+
   public static final EnumerableLimitRule ENUMERABLE_LIMIT_RULE =
       EnumerableLimitRule.Config.DEFAULT.toRule();
 

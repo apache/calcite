@@ -125,16 +125,16 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  private static Expression getExpression(RexNode offset) {
-    if (offset instanceof RexDynamicParam) {
-      final RexDynamicParam param = (RexDynamicParam) offset;
+  static Expression getExpression(RexNode rexNode) {
+    if (rexNode instanceof RexDynamicParam) {
+      final RexDynamicParam param = (RexDynamicParam) rexNode;
       return Expressions.convert_(
           Expressions.call(DataContext.ROOT,
               BuiltInMethod.DATA_CONTEXT_GET.method,
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
-      return Expressions.constant(RexLiteral.intValue(offset));
+      return Expressions.constant(RexLiteral.intValue(rexNode));
     }
   }
 }

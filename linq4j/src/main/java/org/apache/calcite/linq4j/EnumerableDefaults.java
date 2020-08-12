@@ -2625,6 +2625,100 @@ public abstract class EnumerableDefaults {
     };
   }
 
+
+  /**
+   * A sort implementation optimized for a sort with a fetch size (LIMIT).
+   * @param offset how many rows are skipped from the sorted output.
+   *               Must be greater than or equal to 0.
+   * @param fetch how many rows are retrieved. Must be greater than or equal to 0.
+   */
+  public static <TSource, TKey> Enumerable<TSource> orderBy(
+      Enumerable<TSource> source,
+      Function1<TSource, TKey> keySelector,
+      Comparator<TKey> comparator,
+      int offset, int fetch) {
+    // As discussed in CALCITE-3920 and CALCITE-4157, this method avoids to sort the complete input,
+    // if only the first N rows are actually needed. A TreeMap implementation has been chosen,
+    // so that it behaves similar to the orderBy method without fetch/offset.
+    // The TreeMap has a better performance if there are few distinct sort keys.
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        if (fetch == 0) {
+          return Linq4j.emptyEnumerator();
+        }
+
+        TreeMap<TKey, List<TSource>> map = new TreeMap<>(comparator);
+        long size = 0;
+        long needed = fetch + offset;
+
+        // read the input into a tree map
+        try (Enumerator<TSource> os = source.enumerator()) {
+          while (os.moveNext()) {
+            TSource o = os.current();
+            TKey key = keySelector.apply(o);
+            if (needed >= 0 && size >= needed) {
+              // the current row will never appear in the output, so just skip it
+              if (comparator.compare(key, map.lastKey()) >= 0) {
+                continue;
+              }
+              // remove last entry from tree map, so that we keep at most 'needed' rows
+              List<TSource> l = map.get(map.lastKey());
+              if (l.size() == 1) {
+                map.remove(map.lastKey());
+              } else {
+                l.remove(l.size() - 1);
+              }
+              size--;
+            }
+            // add the current element to the map
+            map.compute(key, (k, l) -> {
+              // for first entry, use a singleton list to save space
+              // when we go from 1 to 2 elements, switch to array list
+              if (l == null) {
+                return Collections.singletonList(o);
+              }
+              if (l.size() == 1) {
+                l = new ArrayList<>(l);
+              }
+              l.add(o);
+              return l;
+            });
+            size++;
+          }
+        }
+
+        // skip the first 'offset' rows by deleting them from the map
+        if (offset > 0) {
+          // search the key up to (but excluding) which we have to remove entries from the map
+          int skipped = 0;
+          TKey until = null;
+          for (Map.Entry<TKey, List<TSource>> e : map.entrySet()) {
+            skipped += e.getValue().size();
+
+            if (skipped > offset) {
+              // we might need to remove entries from the list
+              List<TSource> l = e.getValue();
+              int toKeep = skipped - offset;
+              if (toKeep < l.size()) {
+                l.subList(0, l.size() - toKeep).clear();
+              }
+
+              until = e.getKey();
+              break;
+            }
+          }
+          if (until == null) {
+            // the offset is bigger than the number of rows in the map
+            return Linq4j.emptyEnumerator();
+          }
+          map.headMap(until).clear();
+        }
+
+        return new LookupImpl<>(map).valuesEnumerable().enumerator();
+      }
+    };
+  }
+
   /**
    * Sorts the elements of a sequence in descending
    * order according to a key.
