@@ -4922,11 +4922,13 @@ public class JdbcTest {
         + " where e.\"deptno\"=\"depts\".\"deptno\") on true";
     final String explain = ""
         + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[$t6])\n"
-        + "  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n"
-        + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
-        + "      EnumerableAggregate(group=[{0}])\n"
-        + "        EnumerableTableScan(table=[[hr, depts]])";
+        + "  EnumerableMergeJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "      EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
+        + "        EnumerableAggregate(group=[{0}])\n"
+        + "          EnumerableTableScan(table=[[hr, depts]])";
     CalciteAssert.hr()
         .query(sql)
         .explainContains(explain)

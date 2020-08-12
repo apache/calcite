@@ -443,11 +443,13 @@ where not exists (
 
 !ok
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], proj#0..4=[{exprs}], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])
-    EnumerableTableScan(table=[[hr, emps]])
-    EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
-        EnumerableTableScan(table=[[hr, depts]])
+  EnumerableMergeJoin(condition=[=($1, $5)], joinType=[left])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableTableScan(table=[[hr, emps]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
+          EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # NOT EXISTS .. OR NOT EXISTS
@@ -469,16 +471,20 @@ or not exists (
 
 !ok
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t5)], expr#9=[IS NULL($t7)], expr#10=[OR($t8, $t9)], proj#0..4=[{exprs}], $condition=[$t10])
-  EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
-    EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], $f0=[$t6])
-      EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])
-        EnumerableTableScan(table=[[hr, emps]])
-        EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
-            EnumerableTableScan(table=[[hr, depts]])
-    EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+($t0, $t4)], expr#6=[true], $f4=[$t5], $f0=[$t6])
-        EnumerableTableScan(table=[[hr, depts]])
+  EnumerableMergeJoin(condition=[=($0, $6)], joinType=[left])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], $f0=[$t6])
+        EnumerableMergeJoin(condition=[=($1, $5)], joinType=[left])
+          EnumerableSort(sort0=[$1], dir0=[ASC])
+            EnumerableTableScan(table=[[hr, emps]])
+          EnumerableSort(sort0=[$0], dir0=[ASC])
+            EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
+              EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
+                EnumerableTableScan(table=[[hr, depts]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+($t0, $t4)], expr#6=[true], $f4=[$t5], $f0=[$t6])
+          EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Left join to a relation with one row is recognized as a trivial semi-join
