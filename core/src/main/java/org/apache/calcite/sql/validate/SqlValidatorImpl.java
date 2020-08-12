@@ -3997,7 +3997,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final String clause = "GROUP BY";
     validateNoAggs(aggOrOverFinder, groupList, clause);
     final SqlValidatorScope groupScope = getGroupScope(select);
-    inferUnknownTypes(unknownType, groupScope, groupList);
 
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
@@ -4007,6 +4006,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
     select.setGroupBy(groupList);
+    inferUnknownTypes(unknownType, groupScope, groupList);
     for (SqlNode groupItem : expandedList) {
       validateGroupByItem(select, groupItem);
     }

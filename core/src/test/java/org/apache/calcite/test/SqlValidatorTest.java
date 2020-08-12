@@ -25,31 +25,40 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
@@ -62,7 +71,6 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -82,6 +90,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.util.Arrays.asList;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -4082,7 +4092,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testWindowFunctions2() {
     List<String> defined =
-        Arrays.asList("CUME_DIST", "DENSE_RANK", "PERCENT_RANK", "RANK",
+        asList("CUME_DIST", "DENSE_RANK", "PERCENT_RANK", "RANK",
             "ROW_NUMBER");
     if (Bug.TODO_FIXED) {
       sql("select rank() over (order by deptno) from emp")
@@ -7536,7 +7546,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp where deptno = ? and sal < 100000").ok();
     sql("select case when deptno = ? then 1 else 2 end from emp").ok();
     // It is not possible to infer type of ?, because SUBSTRING is overloaded
-    sql("select deptno from emp group by substring(name from ^?^ for ?)")
+    sql("select deptno from emp group by substring(ename from ^?^ for ?)")
         .fails("Illegal use of dynamic parameter");
     // In principle we could infer that ? should be a VARCHAR
     sql("select count(*) from emp group by position(^?^ in ename)")
@@ -8482,6 +8492,83 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withValidatorIdentifierExpansion(true)
         .withValidatorColumnReferenceExpansion(true)
         .rewritesTo(expected);
+  }
+
+  @Test void testRewriteExpansionOfColumnReferenceBeforeResolution() {
+    SqlValidatorTester sqlValidatorTester = new SqlValidatorTester(
+        SqlTestFactory.INSTANCE.withValidator((opTab, catalogReader, typeFactory, config) ->
+             // Rewrites columnar sql identifiers 'UNEXPANDED'.'Something' to 'DEPT'.'Something',
+             // where 'Something' is any string.
+            new SqlValidatorImpl(opTab, catalogReader, typeFactory, config) {
+              @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
+                SqlNode rewrittenNode = rewriteNode(expr);
+                return super.expand(rewrittenNode, scope);
+              }
+
+              @Override public SqlNode expandSelectExpr(
+                  SqlNode expr,
+                  SelectScope scope,
+                  SqlSelect select) {
+                SqlNode rewrittenNode = rewriteNode(expr);
+                return super.expandSelectExpr(rewrittenNode, scope, select);
+              }
+
+              @Override public SqlNode expandGroupByOrHavingExpr(
+                  SqlNode expr,
+                  SqlValidatorScope scope,
+                  SqlSelect select,
+                  boolean havingExpression) {
+                SqlNode rewrittenNode = rewriteNode(expr);
+                return super.expandGroupByOrHavingExpr(
+                    rewrittenNode,
+                    scope,
+                    select,
+                    havingExpression);
+              }
+
+              private SqlNode rewriteNode(SqlNode sqlNode) {
+                return sqlNode.accept(new SqlShuttle() {
+                  @Override public SqlNode visit(SqlIdentifier id) {
+                    return rewriteIdentifier(id);
+                  }
+                });
+              }
+
+              private SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
+                Preconditions.checkArgument(sqlIdentifier.names.size() == 2);
+                if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
+                  return new SqlIdentifier(
+                      asList("DEPT", sqlIdentifier.names.get(1)),
+                      null,
+                      sqlIdentifier.getParserPosition(),
+                      asList(
+                          sqlIdentifier.getComponentParserPosition(0),
+                          sqlIdentifier.getComponentParserPosition(1)));
+                } else if (sqlIdentifier.names.get(0).equals("DEPT")) {
+                  //  Identifiers are expanded multiple times
+                  return sqlIdentifier;
+                } else {
+                  throw new RuntimeException("Unknown Identifier " + sqlIdentifier);
+                }
+              }
+            }));
+
+    final String sql = "select unexpanded.deptno from dept \n"
+        + " where unexpanded.name = 'Moonracer' \n"
+        + " group by unexpanded.deptno\n"
+        + " having sum(unexpanded.deptno) > 0\n"
+        + " order by unexpanded.deptno";
+    final String expectedSql = "SELECT `DEPT`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
+        + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
+        + "GROUP BY `DEPT`.`DEPTNO`\n"
+        + "HAVING SUM(`DEPT`.`DEPTNO`) > 0\n"
+        + "ORDER BY `DEPT`.`DEPTNO`";
+    new Sql(sqlValidatorTester, sql, true, false)
+        .withValidatorIdentifierExpansion(true)
+        .withValidatorColumnReferenceExpansion(true)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .rewritesTo(expectedSql);
   }
 
   @Test void testCoalesceWithoutRewrite() {
