@@ -3806,6 +3806,35 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testLimitSort">
+        <Resource name="sql">
+            <![CDATA[select mgr from sales.emp
+union select mgr from sales.emp
+order by mgr limit 10 offset 5]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
+  LogicalProject(MGR=[$0])
+    LogicalUnion(all=[false])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableLimitSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
+  EnumerableProject(MGR=[$0])
+    EnumerableUnion(all=[false])
+      EnumerableProject(MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableProject(MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testMergeIntersect">
         <Resource name="sql">
             <![CDATA[select * from emp where deptno = 10
