@@ -2447,6 +2447,26 @@ class UtilTest {
         is("[[0‥2), (7‥+∞)]"));
   }
 
+
+  @Test void testRangeSetIsPoint() {
+    // TODO check ranges such as -inf,-inf, [4,4)
+  }
+
+  /** Tests {@link RangeSets#isPoint(Range)}. */
+  @Test void testRangeIsPoint() {
+    // TODO check ranges such as -inf,-inf, [4,4)
+  }
+
+  /** Tests {@link RangeSets#hashCode(RangeSet)}. */
+  @Test void testRangeSetHashCode() {
+    // TODO
+  }
+
+  /** Tests {@link RangeSets#compare(RangeSet, RangeSet)}. */
+  @Test void testRangeSetCompare() {
+    // TODO
+  }
+
   @Test void testNlsStringClone() {
     final NlsString s = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
     assertThat(s.toString(), is("_LATIN1'foo'"));

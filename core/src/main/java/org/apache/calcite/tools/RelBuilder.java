@@ -593,6 +593,19 @@ public class RelBuilder {
     return call(operator, ImmutableList.copyOf(operands));
   }
 
+  /** Creates an IN. */
+  public RexNode in(RexNode arg, RexNode... ranges) {
+    return in(arg, ImmutableList.copyOf(ranges));
+  }
+
+  /** Creates an IN. */
+  public RexNode in(RexNode arg, Iterable<? extends RexNode> ranges) {
+    return getRexBuilder().makeIn(arg, ImmutableList.copyOf(ranges));
+  }
+
+  private static boolean isConstant(RexNode e) {
+    return e instanceof RexLiteral;
+  }
   /** Creates an AND. */
   public RexNode and(RexNode... operands) {
     return and(ImmutableList.copyOf(operands));

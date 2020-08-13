@@ -301,6 +301,10 @@ public enum SqlKind {
   /** {@code IS NOT DISTINCT FROM} operator. */
   IS_NOT_DISTINCT_FROM,
 
+  /** {@code SEARCH} operator. (Analogous to scalar {@code IN}, used only in
+   * RexNode, not SqlNode.) */
+  SEARCH,
+
   /** Logical "OR" operator. */
   OR,
 

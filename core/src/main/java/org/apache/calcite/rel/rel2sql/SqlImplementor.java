@@ -30,6 +30,8 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -70,11 +72,14 @@ import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.RangeSets;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -84,6 +89,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.RangeSet;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -650,6 +656,7 @@ public abstract class SqlImplementor {
     public SqlNode toSql(RexProgram program, RexNode rex) {
       final RexSubQuery subQuery;
       final SqlNode sqlSubQuery;
+      final RexLiteral literal;
       switch (rex.getKind()) {
       case LOCAL_REF:
         final int index = ((RexLocalRef) rex).getIndex();
@@ -702,10 +709,23 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        final RexLiteral literal = (RexLiteral) rex;
-        if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+        literal = (RexLiteral) rex;
+        switch (literal.getTypeName()) {
+        case SYMBOL:
           final Enum symbol = (Enum) literal.getValue();
           return SqlLiteral.createSymbol(symbol, POS);
+
+        case ROW:
+          //noinspection unchecked
+          final List<RexLiteral> list = literal.getValueAs(List.class);
+          return SqlStdOperatorTable.ROW.createCall(POS,
+              list.stream().map(e -> toSql(program, e))
+                  .collect(Util.toImmutableList()));
+
+        case SARG:
+          final Sarg arg = literal.getValueAs(Sarg.class);
+          throw new AssertionError("sargs [" + arg
+              + "] should be handled as part of predicates, not as literals");
         }
         switch (literal.getTypeName().getFamily()) {
         case CHARACTER:
@@ -794,11 +814,20 @@ public abstract class SqlImplementor {
           }
           return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
         } else {
+          // TODO remove
           final RexCall call = (RexCall) rex;
           final List<SqlNode> cols = toSql(program, call.operands);
           return call.getOperator().createCall(POS, cols.get(0),
               new SqlNodeList(cols.subList(1, cols.size()), POS));
         }
+
+      case SEARCH:
+        final RexCall search = (RexCall) rex;
+        literal = (RexLiteral) search.operands.get(1);
+        final Sarg sarg = literal.getValueAs(Sarg.class);
+        //noinspection unchecked
+        return toSql(program, search.operands.get(0), literal.getType(),
+            sarg.rangeSet);
 
       case EXISTS:
       case SCALAR_QUERY:
@@ -867,6 +896,26 @@ public abstract class SqlImplementor {
         }
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
+    }
+
+    /** Converts a sarg to SQL, generating "operand IN (c1, c2, ...)" if the
+     * ranges are all points. */
+    @SuppressWarnings("UnstableApiUsage")
+    private <C extends Comparable> SqlNode toSql(RexProgram program,
+        RexNode operand, RelDataType type, RangeSet<C> rangeSet) {
+      if (rangeSet.asRanges().stream().allMatch(RangeSets::isPoint)) {
+        final RexBuilder rexBuilder =
+            new RexBuilder(
+                new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+        final SqlNodeList list = rangeSet.asRanges().stream()
+            .map(range ->
+                toSql(program,
+                    rexBuilder.makeLiteral(range.lowerEndpoint(), type, false)))
+            .collect(SqlNode.toList());
+        return SqlStdOperatorTable.IN.createCall(POS, toSql(program, operand),
+            list);
+      }
+      throw new AssertionError();
     }
 
     /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}

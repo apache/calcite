@@ -2397,12 +2397,22 @@ public class Util {
    */
   public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
       toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add,
-        (t, u) -> {
-          t.addAll(u.build());
-          return t;
-        },
+    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
         ImmutableList.Builder::build);
+  }
+
+  /** Combines a second immutable list builder into a first. */
+  public static <E> ImmutableList.Builder<E> combine(
+      ImmutableList.Builder<E> b0, ImmutableList.Builder<E> b1) {
+    b0.addAll(b1.build());
+    return b0;
+  }
+
+  /** Combines a second array list into a first. */
+  public static <E> ArrayList<E> combine(ArrayList<E> list0,
+      ArrayList<E> list1) {
+    list0.addAll(list1);
+    return list0;
   }
 
   /** Returns an operator that applies {@code op1} and then {@code op2}.

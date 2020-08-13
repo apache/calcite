@@ -2664,7 +2664,15 @@ class RexProgramTest extends RexProgramTestBase {
    * Computing digest of IN expressions leads to Exceptions</a>. */
   @Test void testInDigest() {
     RexNode e = in(vInt(), literal(1), literal(2));
-    assertThat(e.toString(), is("IN(?0.int0, 1, 2)"));
+    assertThat(e.toString(), is("SEARCH(?0.int0, Sarg([[1‥1], [2‥2]]))"));
+  }
+
+  /** Tests that {@link #in} does not generate SEARCH if any of the arguments
+   * are not literals. */
+  @Test void testInDigest2() {
+    RexNode e = in(vInt(0), literal(1), plus(literal(2), vInt(1)));
+    assertThat(e.toString(),
+        is("OR(=(?0.int0, 1), =(?0.int0, +(2, ?0.int1)))"));
   }
 
   /** Unit test for

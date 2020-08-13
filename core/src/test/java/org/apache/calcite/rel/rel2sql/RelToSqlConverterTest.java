@@ -1447,9 +1447,7 @@ class RelToSqlConverterTest {
   @Test void testUnparseIn1() {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
-            .filter(
-                b.call(SqlStdOperatorTable.IN, b.field("DEPTNO"),
-                    b.literal(21)))
+            .filter(b.in(b.field("DEPTNO"), b.literal(21)))
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
@@ -1460,9 +1458,7 @@ class RelToSqlConverterTest {
   @Test void testUnparseIn2() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
-        .filter(
-            b.call(SqlStdOperatorTable.IN, b.field("DEPTNO"),
-                b.literal(20), b.literal(21)))
+        .filter(b.in(b.field("DEPTNO"), b.literal(20), b.literal(21)))
         .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
@@ -1474,7 +1470,7 @@ class RelToSqlConverterTest {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
             .filter(
-                b.call(SqlStdOperatorTable.IN,
+                b.in(
                     b.call(SqlStdOperatorTable.ROW,
                         b.field("DEPTNO"), b.field("JOB")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(1),
@@ -1490,7 +1486,7 @@ class RelToSqlConverterTest {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
             .filter(
-                b.call(SqlStdOperatorTable.IN,
+                b.in(
                     b.call(SqlStdOperatorTable.ROW,
                         b.field("DEPTNO"), b.field("JOB")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(1),

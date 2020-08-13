@@ -28,11 +28,13 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collector;
 import javax.annotation.Nonnull;
 
 /**
@@ -349,5 +351,20 @@ public abstract class SqlNode implements Cloneable {
       }
     }
     return litmus.succeed();
+  }
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a
+   * {@link SqlNodeList}.
+   *
+   * @param <T> Type of the input elements
+   *
+   * @return a {@code Collector} that collects all the input elements into a
+   * {@link SqlNodeList}, in encounter order
+   */
+  public static <T extends SqlNode> Collector<T, ArrayList<T>, SqlNodeList>
+  toList() {
+    return Collector.of(ArrayList::new, ArrayList::add, Util::combine,
+        list -> new SqlNodeList(list, SqlParserPos.ZERO));
   }
 }

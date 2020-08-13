@@ -268,10 +268,11 @@ class CalciteRemoteDriverTest {
         .returns(CalciteAssert.checkResultContains("COLUMN_NAME=EMPNO"));
   }
 
-  @Test void testRemoteTypeInfo() throws Exception {
+  @Test void testRemoteTypeInfo() {
+    // TypeInfo does not include internal types (NULL, SYMBOL, ANY, etc.)
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_TYPEINFO)
-        .returns(CalciteAssert.checkResultCount(is(45)));
+        .returns(CalciteAssert.checkResultCount(is(41)));
   }
 
   @Test void testRemoteTableTypes() throws Exception {
