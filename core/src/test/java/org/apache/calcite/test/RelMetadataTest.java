@@ -2048,7 +2048,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "select empno, deptno from emp where empno=3 or deptno=4");
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[OR(=($0, 1), =($1, 2), =($0, 3), =($1, 4))]"));
+        sortsAs("[OR(SEARCH($0, Sarg[1, 3]), SEARCH($1, Sarg[2, 4]))]"));
   }
 
   @Test void testPullUpPredicatesFromUnion2() {

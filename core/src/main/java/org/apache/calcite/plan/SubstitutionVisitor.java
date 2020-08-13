@@ -356,6 +356,10 @@ public class SubstitutionVisitor {
       }
       return RexUtil.invert(rexBuilder, call);
     }
+    case SEARCH: {
+      final RexNode e = RexUtil.expandSearch(rexBuilder, null, condition);
+      return canonizeNode(rexBuilder, e);
+    }
     case PLUS:
     case TIMES: {
       RexCall call = (RexCall) condition;

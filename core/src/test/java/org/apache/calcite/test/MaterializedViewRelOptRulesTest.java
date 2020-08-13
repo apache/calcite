@@ -448,12 +448,11 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "where \"depts\".\"deptno\" > 10\n"
             + "group by \"dependents\".\"empid\"")
         .withChecker(
-            resultContains(
-            "EnumerableAggregate(group=[{0}])",
-            "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{2}])",
-            "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[>=($t7, $t0)]"))
+            resultContains("EnumerableAggregate(group=[{0}])",
+                "EnumerableUnion(all=[true])",
+                "EnumerableAggregate(group=[{2}])",
+                "EnumerableTableScan(table=[[hr, MV0]])",
+                "expr#5=[Sarg[(10\u202511]]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -491,12 +490,11 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
             + "group by \"dependents\".\"empid\"")
         .withChecker(
-            resultContains(
-            "EnumerableAggregate(group=[{0}])",
-            "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{2}])",
-            "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
+            resultContains("EnumerableAggregate(group=[{0}])",
+                "EnumerableUnion(all=[true])",
+                "EnumerableAggregate(group=[{2}])",
+                "EnumerableTableScan(table=[[hr, MV0]])",
+                "expr#5=[Sarg[(10\u202511], [19\u202520)]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -705,15 +703,14 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
             + "group by \"dependents\".\"empid\"")
         .withChecker(
-            resultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
-                + "empid=[$t0], EXPR$1=[$t3])\n"
-                + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
-            "EnumerableUnion(all=[true])",
-            "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
-            "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
-            "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"))
+            resultContains("EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
+                    + "expr#3=[+($t1, $t2)], empid=[$t0], EXPR$1=[$t3])\n"
+                    + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
+                "EnumerableUnion(all=[true])",
+                "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
+                "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
+                "EnumerableTableScan(table=[[hr, MV0]])",
+                "expr#5=[Sarg[(10\u202511], [19\u202520)]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -889,10 +886,9 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10")
         .withChecker(
-            resultContains(
-            "EnumerableUnion(all=[true])",
-            "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"))
+            resultContains("EnumerableUnion(all=[true])",
+                "EnumerableTableScan(table=[[hr, MV0]])",
+                "expr#5=[Sarg[(10\u202530]]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 

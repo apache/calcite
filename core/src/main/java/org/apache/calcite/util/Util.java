@@ -95,7 +95,9 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.jar.JarFile;
@@ -108,6 +110,9 @@ import javax.annotation.Nonnull;
  * Miscellaneous utility functions.
  */
 public class Util {
+
+  private static final int QUICK_DISTINCT = 15;
+
   private Util() {}
 
   //~ Static fields/initializers ---------------------------------------------
@@ -798,6 +803,51 @@ public class Util {
         return buf.toString();
       }
       buf.append(sep);
+    }
+  }
+
+  /** Prints a collection of elements to a StringBuilder, in the same format as
+   * {@link AbstractCollection#toString()}. */
+  public static <E> StringBuilder printIterable(StringBuilder sb,
+      Iterable<E> iterable) {
+    final Iterator<E> it = iterable.iterator();
+    if (!it.hasNext()) {
+      return sb.append("[]");
+    }
+    sb.append('[');
+    for (;;) {
+      final E e = it.next();
+      sb.append(e);
+      if (!it.hasNext()) {
+        return sb.append(']');
+      }
+      sb.append(", ");
+    }
+  }
+
+  /** Prints a set of elements to a StringBuilder, in the same format same as
+   * {@link AbstractCollection#toString()}.
+   *
+   * <p>The 'set' is represented by the number of elements and an action to
+   * perform for each element.
+   *
+   * <p>This method can be a very efficient way to convert a structure to a
+   * string, because the components can write directly to the StringBuilder
+   * rather than constructing intermediate strings.
+   *
+   * @see org.apache.calcite.linq4j.function.Functions#generate */
+  public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
+      ObjIntConsumer<StringBuilder> consumer) {
+    if (elementCount == 0) {
+      return sb.append("[]");
+    }
+    sb.append('[');
+    for (int i = 0;;) {
+      consumer.accept(sb, i);
+      if (++i == elementCount) {
+        return sb.append(']');
+      }
+      sb.append(", ");
     }
   }
 
@@ -2033,7 +2083,7 @@ public class Util {
       // Lists of size 0 and 1 are always distinct.
       return -1;
     }
-    if (size < 15) {
+    if (size < QUICK_DISTINCT) {
       // For smaller lists, avoid the overhead of creating a set. Threshold
       // determined empirically using UtilTest.testIsDistinctBenchmark.
       for (int i = 1; i < size; i++) {
@@ -2064,10 +2114,28 @@ public class Util {
    *
    * <p>If the list is already unique it is returned unchanged. */
   public static <E> List<E> distinctList(List<E> list) {
-    if (isDistinct(list)) {
+    // If the list is small, check for duplicates using pairwise comparison.
+    if (list.size() < QUICK_DISTINCT && isDistinct(list)) {
       return list;
     }
+    // Lists that have all the same element are common. Avoiding creating a set.
+    if (allSameElement(list)) {
+      return ImmutableList.of(list.get(0));
+    }
     return ImmutableList.copyOf(new LinkedHashSet<>(list));
+  }
+
+  /** Returns whether all of the elements of a list are equal.
+   * The list is assumed to be non-empty. */
+  private static <E> boolean allSameElement(List<E> list) {
+    final Iterator<E> iterator = list.iterator();
+    final E first = iterator.next();
+    while (iterator.hasNext()) {
+      if (!first.equals(iterator.next())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Converts an iterable into a list with unique elements.
@@ -2365,6 +2433,23 @@ public class Util {
     return reader(new FileInputStream(file));
   }
 
+  /** Given an {@link Appendable}, performs an action that requires a
+   * {@link StringBuilder}. Casts the Appendable if possible. */
+  public static void asStringBuilder(Appendable appendable,
+      Consumer<StringBuilder> consumer) {
+    if (appendable instanceof StringBuilder) {
+      consumer.accept((StringBuilder) appendable);
+    } else {
+      try {
+        final StringBuilder sb = new StringBuilder();
+        consumer.accept(sb);
+        appendable.append(sb);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
   /** Creates a {@link Calendar} in the UTC time zone and root locale.
    * Does not use the time zone or locale. */
   public static Calendar calendar() {
@@ -2397,12 +2482,22 @@ public class Util {
    */
   public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
       toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add,
-        (t, u) -> {
-          t.addAll(u.build());
-          return t;
-        },
+    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
         ImmutableList.Builder::build);
+  }
+
+  /** Combines a second immutable list builder into a first. */
+  public static <E> ImmutableList.Builder<E> combine(
+      ImmutableList.Builder<E> b0, ImmutableList.Builder<E> b1) {
+    b0.addAll(b1.build());
+    return b0;
+  }
+
+  /** Combines a second array list into a first. */
+  public static <E> ArrayList<E> combine(ArrayList<E> list0,
+      ArrayList<E> list1) {
+    list0.addAll(list1);
+    return list0;
   }
 
   /** Returns an operator that applies {@code op1} and then {@code op2}.

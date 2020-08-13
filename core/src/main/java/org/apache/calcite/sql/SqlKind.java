@@ -274,6 +274,12 @@ public enum SqlKind {
    */
   NOT_IN("NOT IN"),
 
+  /** Variant of {@code IN} for the Druid adapter. */
+  DRUID_IN,
+
+  /** Variant of {@code NOT_IN} for the Druid adapter. */
+  DRUID_NOT_IN,
+
   /** Less-than operator, "&lt;". */
   LESS_THAN("<"),
 
@@ -300,6 +306,10 @@ public enum SqlKind {
 
   /** {@code IS NOT DISTINCT FROM} operator. */
   IS_NOT_DISTINCT_FROM,
+
+  /** {@code SEARCH} operator. (Analogous to scalar {@code IN}, used only in
+   * RexNode, not SqlNode.) */
+  SEARCH,
 
   /** Logical "OR" operator. */
   OR,
@@ -348,6 +358,9 @@ public enum SqlKind {
 
   /** {@code BETWEEN} operator. */
   BETWEEN,
+
+  /** Variant of {@code BETWEEN} for the Druid adapter. */
+  DRUID_BETWEEN,
 
   /** {@code CASE} expression. */
   CASE,
