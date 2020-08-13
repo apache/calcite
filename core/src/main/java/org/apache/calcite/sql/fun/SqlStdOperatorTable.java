@@ -402,6 +402,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBinaryOperator NOT_IN =
       new SqlInOperator(SqlKind.NOT_IN);
 
+  /** Operator that tests whether its left operand is included in the range of
+   * values covered by search arguments. */
+  public static final SqlInternalOperator SEARCH =
+      new SqlSearchOperator();
+
   /**
    * The <code>&lt; SOME</code> operator (synonymous with
    * <code>&lt; ANY</code>).

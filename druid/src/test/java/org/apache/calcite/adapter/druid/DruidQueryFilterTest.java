@@ -22,7 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -49,8 +49,8 @@ import static org.hamcrest.core.Is.is;
 class DruidQueryFilterTest {
 
   private DruidQuery druidQuery;
-  @BeforeEach
-  public void testSetup() {
+
+  @BeforeEach void testSetup() {
     druidQuery = Mockito.mock(DruidQuery.class);
     final CalciteConnectionConfig connectionConfigMock = Mockito
         .mock(CalciteConnectionConfig.class);
@@ -62,6 +62,7 @@ class DruidQueryFilterTest {
                 ImmutableSet.of(), "timestamp", null, null,
                 null));
   }
+
   @Test void testInFilter() throws IOException {
     final Fixture f = new Fixture();
     final List<? extends RexNode> listRexNodes =
@@ -71,7 +72,7 @@ class DruidQueryFilterTest {
             f.rexBuilder.makeLiteral("value1"));
 
     RexNode inRexNode =
-        f.rexBuilder.makeCall(SqlStdOperatorTable.IN, listRexNodes);
+        f.rexBuilder.makeCall(SqlInternalOperators.DRUID_IN, listRexNodes);
     DruidJsonFilter returnValue = DruidJsonFilter
         .toDruidFilters(inRexNode, f.varcharRowType, druidQuery);
     assertThat("Filter is null", returnValue, notNullValue());
@@ -95,7 +96,7 @@ class DruidQueryFilterTest {
             f.rexBuilder.makeLiteral("upper-bound"));
     RelDataType relDataType = f.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     RexNode betweenRexNode = f.rexBuilder.makeCall(relDataType,
-        SqlStdOperatorTable.BETWEEN, listRexNodes);
+        SqlInternalOperators.DRUID_BETWEEN, listRexNodes);
 
     DruidJsonFilter returnValue = DruidJsonFilter
         .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery);

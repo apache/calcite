@@ -35,6 +35,7 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -357,6 +358,8 @@ public class RexLiteral extends RexNode {
       return (value instanceof NlsString)
           && (((NlsString) value).getCharset() != null)
           && (((NlsString) value).getCollation() != null);
+    case SARG:
+      return value instanceof Sarg;
     case SYMBOL:
       return value instanceof Enum;
     case ROW:
@@ -370,6 +373,23 @@ public class RexLiteral extends RexNode {
       return false;
     default:
       throw Util.unexpected(typeName);
+    }
+  }
+
+  /** Returns the strict literal type for a given type. */
+  public static SqlTypeName strictType(RelDataType type) {
+    final SqlTypeName typeName = type.getSqlTypeName();
+    switch (typeName) {
+    case INTEGER:
+    case TINYINT:
+    case SMALLINT:
+      return SqlTypeName.DECIMAL;
+    case VARBINARY:
+      return SqlTypeName.BINARY;
+    case VARCHAR:
+      return SqlTypeName.CHAR;
+    default:
+      return typeName;
     }
   }
 
@@ -627,6 +647,10 @@ public class RexLiteral extends RexNode {
       case NULL:
         assert value == null;
         destination.append("null");
+        break;
+      case SARG:
+        assert value instanceof Sarg;
+        destination.append(value.toString());
         break;
       case SYMBOL:
         assert value instanceof Enum;

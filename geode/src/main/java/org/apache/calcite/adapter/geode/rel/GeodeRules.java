@@ -289,7 +289,8 @@ public class GeodeRules {
         return true;
       }
 
-      if (!SqlKind.COMPARISON.contains(node.getKind())) {
+      if (!SqlKind.COMPARISON.contains(node.getKind())
+          && node.getKind() != SqlKind.SEARCH) {
         return false;
       }
 

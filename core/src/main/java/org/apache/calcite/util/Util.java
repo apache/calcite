@@ -108,6 +108,9 @@ import javax.annotation.Nonnull;
  * Miscellaneous utility functions.
  */
 public class Util {
+
+  private static final int QUICK_DISTINCT = 15;
+
   private Util() {}
 
   //~ Static fields/initializers ---------------------------------------------
@@ -2033,7 +2036,7 @@ public class Util {
       // Lists of size 0 and 1 are always distinct.
       return -1;
     }
-    if (size < 15) {
+    if (size < QUICK_DISTINCT) {
       // For smaller lists, avoid the overhead of creating a set. Threshold
       // determined empirically using UtilTest.testIsDistinctBenchmark.
       for (int i = 1; i < size; i++) {
@@ -2064,10 +2067,28 @@ public class Util {
    *
    * <p>If the list is already unique it is returned unchanged. */
   public static <E> List<E> distinctList(List<E> list) {
-    if (isDistinct(list)) {
+    // If the list is small, check for duplicates using pairwise comparison.
+    if (list.size() < QUICK_DISTINCT && isDistinct(list)) {
       return list;
     }
+    // Lists that have all the same element are common. Avoiding creating a set.
+    if (allSameElement(list)) {
+      return ImmutableList.of(list.get(0));
+    }
     return ImmutableList.copyOf(new LinkedHashSet<>(list));
+  }
+
+  /** Returns whether all of the elements of a list are equal.
+   * The list is assumed to be non-empty. */
+  private static <E> boolean allSameElement(List<E> list) {
+    final Iterator<E> iterator = list.iterator();
+    final E first = iterator.next();
+    while (iterator.hasNext()) {
+      if (!first.equals(iterator.next())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Converts an iterable into a list with unique elements.
@@ -2397,12 +2418,22 @@ public class Util {
    */
   public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
       toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add,
-        (t, u) -> {
-          t.addAll(u.build());
-          return t;
-        },
+    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
         ImmutableList.Builder::build);
+  }
+
+  /** Combines a second immutable list builder into a first. */
+  public static <E> ImmutableList.Builder<E> combine(
+      ImmutableList.Builder<E> b0, ImmutableList.Builder<E> b1) {
+    b0.addAll(b1.build());
+    return b0;
+  }
+
+  /** Combines a second array list into a first. */
+  public static <E> ArrayList<E> combine(ArrayList<E> list0,
+      ArrayList<E> list1) {
+    list0.addAll(list1);
+    return list0;
   }
 
   /** Returns an operator that applies {@code op1} and then {@code op2}.

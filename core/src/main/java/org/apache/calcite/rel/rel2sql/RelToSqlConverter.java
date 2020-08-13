@@ -640,10 +640,10 @@ public class RelToSqlConverter extends SqlImplementor
         // In case of empty values, we need to build:
         // select * from VALUES(NULL, NULL ...) as T (C1, C2 ...)
         // where 1=0.
-        List<SqlNode> nulls = IntStream.range(0, fieldNames.size())
-            .mapToObj(i ->
-                SqlLiteral.createNull(POS)).collect(Collectors.toList());
-        selects.add(ANONYMOUS_ROW.createCall(new SqlNodeList(nulls, POS)));
+        SqlNodeList nulls = IntStream.range(0, fieldNames.size())
+            .mapToObj(i -> SqlLiteral.createNull(POS))
+            .collect(SqlNode.toList());
+        selects.add(ANONYMOUS_ROW.createCall(nulls));
       } else {
         for (List<RexLiteral> tuple : e.getTuples()) {
           selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));

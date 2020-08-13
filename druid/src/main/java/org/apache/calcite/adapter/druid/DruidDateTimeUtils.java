@@ -25,12 +25,15 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.RangeSets;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -111,8 +114,8 @@ public class DruidDateTimeUtils {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
-    case BETWEEN:
-    case IN:
+    case DRUID_IN:
+    case SEARCH:
       return leafToRanges((RexCall) node, withNot);
 
     case NOT:
@@ -165,6 +168,7 @@ public class DruidDateTimeUtils {
 
   @Nullable
   protected static List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
+    final ImmutableList.Builder<Range<Long>> ranges;
     switch (call.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -218,9 +222,8 @@ public class DruidDateTimeUtils {
       return ImmutableList.of(Range.lessThan(inverted ? value2 : value1),
           Range.greaterThan(inverted ? value1 : value2));
     }
-    case IN: {
-      ImmutableList.Builder<Range<Long>> ranges =
-          ImmutableList.builder();
+    case DRUID_IN:
+      ranges = ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
         final Long element = literalValue(operand);
         if (element == null) {
@@ -234,10 +237,32 @@ public class DruidDateTimeUtils {
         }
       }
       return ranges.build();
-    }
+
+    case SEARCH:
+      final RexLiteral right = (RexLiteral) call.operands.get(1);
+      final Sarg<?> sarg = right.getValueAs(Sarg.class);
+      ranges = ImmutableList.builder();
+      for (Range range : sarg.rangeSet.asRanges()) {
+        Range<Long> range2 = RangeSets.copy(range, DruidDateTimeUtils::toLong);
+        if (withNot) {
+          ranges.addAll(ImmutableRangeSet.of(range2).complement().asRanges());
+        } else {
+          ranges.add(range2);
+        }
+      }
+      return ranges.build();
+
     default:
       return null;
     }
+  }
+
+  private static Long toLong(Comparable comparable) {
+    if (comparable instanceof TimestampString) {
+      TimestampString timestampString = (TimestampString) comparable;
+      return timestampString.getMillisSinceEpoch();
+    }
+    throw new AssertionError("unsupported type: " + comparable.getClass());
   }
 
   /**

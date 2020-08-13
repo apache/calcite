@@ -1784,7 +1784,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  LogicalJoin(condition=[AND(=($7, $9), OR(=($0, 1), =($0, 3)))], joinType=[inner])
+  LogicalJoin(condition=[AND(=($7, $9), SEARCH($0, Sarg[1, 3]))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -3652,7 +3652,7 @@ group by (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
-  LogicalProject(EXPR$0=[CASE(OR(=($7, 10), =($7, 20)), 0, $7)], EMPNO=[$0])
+  LogicalProject(EXPR$0=[CASE(SEARCH($7, Sarg[10, 20]), 0, $7)], EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -3682,7 +3682,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[AND(<>($0, 1), <>($0, 2))])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -3870,7 +3870,7 @@ sum(case when deptno in (3, 4) then 0 else 1 end) > 10]]>
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[>(+($1, $2), 10)])
     LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[SUM($2)])
-      LogicalProject(DEPTNO=[$7], $f1=[CASE(OR(=($7, 1), =($7, 2)), 0, 1)], $f2=[CASE(OR(=($7, 3), =($7, 4)), 0, 1)])
+      LogicalProject(DEPTNO=[$7], $f1=[CASE(SEARCH($7, Sarg[1, 2]), 0, 1)], $f2=[CASE(SEARCH($7, Sarg[3, 4]), 0, 1)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5111,9 +5111,9 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
             <![CDATA[select *
 from table(
 hop(
+  DATA => table Shipments,
   TIMECOL => descriptor(rowtime),
   SLIDE => INTERVAL '1' MINUTE,
-  DATA => table Shipments,
   SIZE => INTERVAL '2' MINUTE))]]>
         </Resource>
         <Resource name="plan">
@@ -6746,7 +6746,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[AND(<>($0, 1), <>($0, 2))])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6976,7 +6976,7 @@ GROUP by deptno, job]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(JOB_NAME=[CASE(OR(=($1, '810000'), =($1, '820000')), $1, 'error':VARCHAR(10))], EXPR$1=[$2])
+LogicalProject(JOB_NAME=[CASE(SEARCH($1, Sarg[_ISO-8859-1'810000', _ISO-8859-1'820000']:CHAR(6)), $1, 'error':VARCHAR(10))], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
     LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
       LogicalFilter(condition=[OR(<>($2, ''), =($2, '810000'), =($2, '820000'))])
@@ -7033,7 +7033,7 @@ group by case when coalesce(ename, 'a') in ('1', '2') then 'CKA' else 'QT' END]]
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
-  LogicalProject(EXPR$0=[CASE(OR(=($1, '1'), =($1, '2')), 'CKA', 'QT ')], DEPTNO=[$7])
+  LogicalProject(EXPR$0=[CASE(SEARCH($1, Sarg[_ISO-8859-1'1', _ISO-8859-1'2']:CHAR(1)), 'CKA', 'QT ')], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

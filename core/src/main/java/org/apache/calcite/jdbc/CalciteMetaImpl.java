@@ -413,6 +413,10 @@ public class CalciteMetaImpl extends MetaImpl {
     final CalciteConnectionImpl conn = (CalciteConnectionImpl) connection;
     final RelDataTypeSystem typeSystem = conn.typeFactory.getTypeSystem();
     for (SqlTypeName sqlTypeName : SqlTypeName.values()) {
+      if (sqlTypeName.isSpecial()) {
+        // Skip internal types (NULL, ANY, SYMBOL, SARG).
+        continue;
+      }
       allTypeList.add(
           new MetaTypeInfo(sqlTypeName.getName(),
               sqlTypeName.getJdbcOrdinal(),

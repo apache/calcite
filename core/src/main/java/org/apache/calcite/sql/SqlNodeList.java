@@ -32,6 +32,8 @@ import java.util.List;
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
  * {@link SqlNode}, so may appear in a parse tree.
+ *
+ * @see SqlNode#toList()
  */
 public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
   //~ Static fields/initializers ---------------------------------------------

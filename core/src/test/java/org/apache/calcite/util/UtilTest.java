@@ -40,12 +40,9 @@ import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
 import com.google.common.primitives.Ints;
 
 import org.hamcrest.Description;
@@ -1679,6 +1676,10 @@ class UtilTest {
     final Collection<String> cbcaC = new LinkedHashSet<>(cbca);
     assertThat(Util.distinctList(cbcaC), not(sameInstance(cbca)));
     assertThat(Util.distinctList(cbcaC), is(Arrays.asList("c", "b", "a")));
+    final List<String> a2 = ImmutableList.of("a", "a");
+    assertThat(Util.distinctList(a2), is(a));
+    final List<String> a1m = Collections.nCopies(1_000_000, "a");
+    assertThat(Util.distinctList(a1m), is(a));
   }
 
   /** Unit test for {@link Utilities#hashCode(double)}. */
@@ -2406,45 +2407,6 @@ class UtilTest {
     assertThat(map.containsKey("womBat", false), is(true));
     assertThat(map.containsKey("zyMurgy", true), is(false));
     assertThat(map.containsKey("zyMurgy", false), is(true));
-  }
-
-  /** Tests {@link RangeSets#minus(RangeSet, Range)}. */
-  @SuppressWarnings("UnstableApiUsage")
-  @Test void testRangeSetMinus() {
-    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
-    final RangeSet<Integer> setAll = setNone.complement();
-    final RangeSet<Integer> setGt2 = ImmutableRangeSet.of(Range.greaterThan(2));
-    final RangeSet<Integer> setGt1 = ImmutableRangeSet.of(Range.greaterThan(1));
-    final RangeSet<Integer> setGe1 = ImmutableRangeSet.of(Range.atLeast(1));
-    final RangeSet<Integer> setGt0 = ImmutableRangeSet.of(Range.greaterThan(0));
-    final RangeSet<Integer> setComplex =
-        ImmutableRangeSet.<Integer>builder()
-            .add(Range.closed(0, 2))
-            .add(Range.singleton(3))
-            .add(Range.greaterThan(5))
-            .build();
-    assertThat(setComplex.toString(), is("[[0‥2], [3‥3], (5‥+∞)]"));
-
-    assertThat(RangeSets.minus(setAll, Range.singleton(1)).toString(),
-        is("[(-∞‥1), (1‥+∞)]"));
-    assertThat(RangeSets.minus(setNone, Range.singleton(1)), is(setNone));
-    assertThat(RangeSets.minus(setGt2, Range.singleton(1)), is(setGt2));
-    assertThat(RangeSets.minus(setGt1, Range.singleton(1)), is(setGt1));
-    assertThat(RangeSets.minus(setGe1, Range.singleton(1)), is(setGt1));
-    assertThat(RangeSets.minus(setGt0, Range.singleton(1)).toString(),
-        is("[(0‥1), (1‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(1)).toString(),
-        is("[[0‥1), (1‥2], [3‥3], (5‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(2)).toString(),
-        is("[[0‥2), [3‥3], (5‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(3)).toString(),
-        is("[[0‥2], (5‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)).toString(),
-        is("[[0‥2], [3‥3], (5‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)).toString(),
-        is("[[0‥2), (5‥+∞)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)).toString(),
-        is("[[0‥2), (7‥+∞)]"));
   }
 
   @Test void testNlsStringClone() {

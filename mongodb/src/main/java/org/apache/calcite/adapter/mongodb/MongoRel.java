@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.mongodb;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
@@ -37,9 +38,13 @@ public interface MongoRel extends RelNode {
    * {@link MongoRel} nodes into a MongoDB query. */
   class Implementor {
     final List<Pair<String, String>> list = new ArrayList<>();
-
+    final RexBuilder rexBuilder;
     RelOptTable table;
     MongoTable mongoTable;
+
+    public Implementor(RexBuilder rexBuilder) {
+      this.rexBuilder = rexBuilder;
+    }
 
     public void add(String findOp, String aggOp) {
       list.add(Pair.of(findOp, aggOp));
