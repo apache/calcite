@@ -75,6 +75,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utilities for converting {@link org.apache.calcite.rel.RelNode}
@@ -678,7 +679,7 @@ public class RelJson {
     if (class_ != null) {
       return AvaticaUtils.instantiatePlugin(SqlOperator.class, class_);
     }
-    return null;
+    throw RESOURCE.noOperator(name, kind, syntax).ex();
   }
 
   SqlAggFunction toAggregation(Map<String, Object> map) {

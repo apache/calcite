@@ -931,4 +931,7 @@ public interface CalciteResource {
 
   @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
   ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
+
+  @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
+  ExInst<CalciteException> noOperator(String name, String kind, String syntax);
 }
