@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.config;
 
+import org.apache.calcite.runtime.Hook;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
@@ -430,6 +432,9 @@ public final class CalciteSystemProperty<T> {
             allProperties.setProperty(newKey, (String) prop.getValue());
           }
         });
+
+    Hook.LOAD_SYSTEM_PROPERTY.run(allProperties);
+
     return allProperties;
   }
 

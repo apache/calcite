@@ -71,16 +71,19 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -5383,6 +5386,23 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withBigQuery()
         .ok(expected);
+  }
+
+  @Disabled("CalciteSystemProperty can not load twice")
+  @Test void testMySqlCastUnicode() {
+    String query = "select \"product_id\", \"product_name\"\n"
+        + "from \"foodmart\".\"product\" where \"product_name\" = u&'\\82f1\\56fd'";
+    final String expected = "SELECT `product_id`, `product_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "WHERE `product_name` = '\u82f1\u56fd'";
+    try (Hook.Closeable ignore =
+             Hook.LOAD_SYSTEM_PROPERTY.addThread((Properties property) -> {
+               property.put("calcite.default.charset", ConversionUtil.NATIVE_UTF16_CHARSET_NAME);
+             })) {
+      sql(query)
+          .withMysql()
+          .ok(expected);
+    }
   }
 
   /** Fluid interface to run tests. */

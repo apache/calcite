@@ -224,6 +224,15 @@ public class MysqlSqlDialect extends SqlDialect {
   }
 
   /**
+   * mysql not support a unicode string literal. For example,
+   * <code>u'can''t\0009run\\'</code> will cause MySQLSyntaxErrorException: Unknown column 'u'
+   */
+  @Override public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
+    buf.append("'");
+    buf.append(val);
+    buf.append("'");
+  }
+  /**
    * Unparses datetime floor for MySQL. There is no TRUNC function, so simulate
    * this using calls to DATE_FORMAT.
    *

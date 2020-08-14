@@ -97,7 +97,10 @@ public enum Hook {
    * The hook supplies {@link RelRoot} as an argument.
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  PLAN_BEFORE_IMPLEMENTATION;
+  PLAN_BEFORE_IMPLEMENTATION,
+
+  /** Called when load properties. */
+  LOAD_SYSTEM_PROPERTY;
 
   private final List<Consumer<Object>> handlers =
       new CopyOnWriteArrayList<>();
