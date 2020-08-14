@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import java.util.Iterator;
+import java.util.function.Function;
 
 /** Utilities for Guava {@link com.google.common.collect.RangeSet}. */
 @SuppressWarnings({"UnstableApiUsage"})
@@ -122,5 +124,208 @@ public class RangeSets {
         && range.hasUpperBound()
         && range.lowerEndpoint().equals(range.upperEndpoint())
         && !range.isEmpty();
+  }
+
+  /** Returns the number of ranges in a range set that are points.
+   *
+   * <p>If every range in a range set is a point then it can be converted to a
+   * SQL IN list. */
+  public static <C extends Comparable<C>> int countPoints(RangeSet<C> rangeSet) {
+    int n = 0;
+    for (Range<C> range : rangeSet.asRanges()) {
+      if (isPoint(range)) {
+        ++n;
+      }
+    }
+    return n;
+  }
+
+  /** Calls the appropriate handler method for each range in a range set,
+   * creating a new range set from the results. */
+  public static <C extends Comparable<C>, C2 extends Comparable<C2>>
+      RangeSet<C2> map(RangeSet<C> rangeSet, Handler<C, Range<C2>> handler) {
+    final ImmutableRangeSet.Builder<C2> builder = ImmutableRangeSet.builder();
+    rangeSet.asRanges().forEach(range -> builder.add(map(range, handler)));
+    return builder.build();
+  }
+
+  /** Calls the appropriate handler method for the type of range. */
+  public static <C extends Comparable<C>, R> R map(Range<C> range,
+      Handler<C, R> handler) {
+    if (range.hasLowerBound() && range.hasUpperBound()) {
+      final C lower = range.lowerEndpoint();
+      final C upper = range.upperEndpoint();
+      if (range.lowerBoundType() == BoundType.OPEN) {
+        if (range.upperBoundType() == BoundType.OPEN) {
+          return handler.open(lower, upper);
+        } else {
+          return handler.openClosed(lower, upper);
+        }
+      } else {
+        if (range.upperBoundType() == BoundType.OPEN) {
+          return handler.closedOpen(lower, upper);
+        } else {
+          if (lower.equals(upper)) {
+            return handler.singleton(lower);
+          } else {
+            return handler.closed(lower, upper);
+          }
+        }
+      }
+    } else if (range.hasLowerBound()) {
+      final C lower = range.lowerEndpoint();
+      if (range.lowerBoundType() == BoundType.OPEN) {
+        return handler.greaterThan(lower);
+      } else {
+        return handler.atLeast(lower);
+      }
+    } else if (range.hasUpperBound()) {
+      final C upper = range.upperEndpoint();
+      if (range.upperBoundType() == BoundType.OPEN) {
+        return handler.lessThan(upper);
+      } else {
+        return handler.atMost(upper);
+      }
+    } else {
+      return handler.all();
+    }
+  }
+
+  /** Copies a range set. */
+  public static <C extends Comparable<C>, C2 extends Comparable<C2>>
+      RangeSet<C2> copy(RangeSet<C> rangeSet, Function<C, C2> map) {
+    return map(rangeSet, new CopyingHandler<C, C2>() {
+      @Override C2 convert(C c) {
+        return map.apply(c);
+      }
+    });
+  }
+
+  /** Copies a range. */
+  public static <C extends Comparable<C>, C2 extends Comparable<C2>>
+      Range<C2> copy(Range<C> range, Function<C, C2> map) {
+    return map(range, new CopyingHandler<C, C2>() {
+      @Override C2 convert(C c) {
+        return map.apply(c);
+      }
+    });
+  }
+
+  public static <C extends Comparable<C>> void forEach(RangeSet<C> rangeSet,
+      Consumer<C> consumer) {
+    rangeSet.asRanges().forEach(range -> forEach(range, consumer));
+  }
+
+  public static <C extends Comparable<C>> void forEach(Range<C> range,
+      Consumer<C> consumer) {
+    if (range.hasLowerBound() && range.hasUpperBound()) {
+      final C lower = range.lowerEndpoint();
+      final C upper = range.upperEndpoint();
+      if (range.lowerBoundType() == BoundType.OPEN) {
+        if (range.upperBoundType() == BoundType.OPEN) {
+          consumer.open(lower, upper);
+        } else {
+          consumer.openClosed(lower, upper);
+        }
+      } else {
+        if (range.upperBoundType() == BoundType.OPEN) {
+          consumer.closedOpen(lower, upper);
+        } else {
+          if (lower.equals(upper)) {
+            consumer.singleton(lower);
+          } else {
+            consumer.closed(lower, upper);
+          }
+        }
+      }
+    }
+  }
+
+  /** Deconstructor for {@link Range} values.
+   *
+   * @param <C> Value type
+   * @param <R> Return type
+   *
+   * @see Consumer */
+  public interface Handler<C extends Comparable<C>, R> {
+    R all();
+    R atLeast(C lower);
+    R atMost(C upper);
+    R greaterThan(C lower);
+    R lessThan(C upper);
+    R singleton(C value);
+    R closed(C lower, C upper);
+    R closedOpen(C lower, C upper);
+    R openClosed(C lower, C upper);
+    R open(C lower, C upper);
+  }
+
+  /** Consumer of {@link Range} values.
+   *
+   * @param <C> Value type
+   *
+   * @see Handler */
+  public interface Consumer<C extends Comparable<C>> {
+    void all();
+    void atLeast(C lower);
+    void atMost(C upper);
+    void greaterThan(C lower);
+    void lessThan(C upper);
+    void singleton(C value);
+    void closed(C lower, C upper);
+    void closedOpen(C lower, C upper);
+    void openClosed(C lower, C upper);
+    void open(C lower, C upper);
+  }
+
+  /** Handler that converts a Range into another Range of the same type,
+   * applying a mapping function to the range's bound(s).
+   *
+   * @param <C> Value type
+   * @param <C2> Output value type */
+  private abstract static
+      class CopyingHandler<C extends Comparable<C>, C2 extends Comparable<C2>>
+      implements RangeSets.Handler<C, Range<C2>> {
+    abstract C2 convert(C c);
+
+    @Override public Range<C2> all() {
+      return Range.all();
+    }
+
+    @Override public Range<C2> atLeast(C lower) {
+      return Range.atLeast(convert(lower));
+    }
+
+    @Override public Range<C2> atMost(C upper) {
+      return Range.atMost(convert(upper));
+    }
+
+    @Override public Range<C2> greaterThan(C lower) {
+      return Range.greaterThan(convert(lower));
+    }
+
+    @Override public Range<C2> lessThan(C upper) {
+      return Range.lessThan(convert(upper));
+    }
+
+    @Override public Range<C2> singleton(C value) {
+      return Range.singleton(convert(value));
+    }
+
+    @Override public Range<C2> closed(C lower, C upper) {
+      return Range.closed(convert(lower), convert(upper));
+    }
+
+    @Override public Range<C2> closedOpen(C lower, C upper) {
+      return Range.closedOpen(convert(lower), convert(upper));
+    }
+
+    @Override public Range<C2> openClosed(C lower, C upper) {
+      return Range.openClosed(convert(lower), convert(upper));
+    }
+
+    @Override public Range<C2> open(C lower, C upper) {
+      return Range.open(convert(lower), convert(upper));
+    }
   }
 }

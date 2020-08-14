@@ -274,6 +274,12 @@ public enum SqlKind {
    */
   NOT_IN("NOT IN"),
 
+  /** Variant of {@code IN} for the Druid adapter. */
+  DRUID_IN,
+
+  /** Variant of {@code NOT_IN} for the Druid adapter. */
+  DRUID_NOT_IN,
+
   /** Less-than operator, "&lt;". */
   LESS_THAN("<"),
 
@@ -352,6 +358,9 @@ public enum SqlKind {
 
   /** {@code BETWEEN} operator. */
   BETWEEN,
+
+  /** Variant of {@code BETWEEN} for the Druid adapter. */
+  DRUID_BETWEEN,
 
   /** {@code CASE} expression. */
   CASE,

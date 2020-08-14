@@ -1451,7 +1451,7 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" IN (21)";
+        + "WHERE \"DEPTNO\" = 21";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1478,7 +1478,7 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1490,7 +1490,7 @@ class RelToSqlConverterTest {
                     b.call(SqlStdOperatorTable.ROW,
                         b.field("DEPTNO"), b.field("JOB")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                b.literal("PRESIDENT")),
+                        b.literal("PRESIDENT")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(2),
                         b.literal("PRESIDENT"))))
             .build();

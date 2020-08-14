@@ -3539,16 +3539,34 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3747">[CALCITE-3747]
-   * Constructing BETWEEN with RelBuilder throws class cast exception</a>. */
+   * Constructing BETWEEN with RelBuilder throws class cast exception</a>.
+   *
+   * <p>BETWEEN is no longer allowed in RexCall. 'a BETWEEN b AND c' is expanded
+   * 'a >= b AND a <= c', whether created via
+   * {@link RelBuilder#call(SqlOperator, RexNode...)} or
+   * {@link RelBuilder#between(RexNode, RexNode, RexNode)}.*/
   @Test void testCallBetweenOperator() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RexNode call = builder.scan("EMP")
-        .call(
-            SqlStdOperatorTable.BETWEEN,
+    final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
+
+    final String expected = "AND(>=($0, 1), <=($0, 5))";
+    final RexNode call =
+        builder.call(SqlStdOperatorTable.BETWEEN,
             builder.field("EMPNO"),
             builder.literal(1),
             builder.literal(5));
-    assertThat(call.toString(), is("BETWEEN ASYMMETRIC($0, 1, 5)"));
+    assertThat(call.toString(), is(expected));
+
+    final RexNode call2 =
+        builder.between(builder.field("EMPNO"),
+            builder.literal(1),
+            builder.literal(5));
+    assertThat(call2.toString(), is(expected));
+
+    final RelNode root = builder.filter(call2).build();
+    final String expectedRel = ""
+        + "LogicalFilter(condition=[AND(>=($0, 1), <=($0, 5))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expectedRel));
   }
 
   /** Test case for

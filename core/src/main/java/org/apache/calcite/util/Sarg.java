@@ -29,22 +29,29 @@ import com.google.common.collect.RangeSet;
  * "<a href="https://blog.acolyer.org/2016/01/04/access-path-selection/">morning
  * paper summary</a>.
  *
+ * @param <C> Value type
+ *
  * @see SqlStdOperatorTable#SEARCH
  */
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
+  public final boolean containsNull;
+  public final int pointCount;
 
-  private Sarg(RangeSet<C> rangeSet) {
+  private Sarg(ImmutableRangeSet<C> rangeSet, boolean containsNull) {
     this.rangeSet = rangeSet;
+    this.containsNull = containsNull;
+    this.pointCount = RangeSets.countPoints(rangeSet);
   }
 
   /** Creates a search argument. */
-  public static <C extends Comparable<C>> Sarg<C> of(RangeSet<C> rangeSet) {
-    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet));
+  public static <C extends Comparable<C>> Sarg<C> of(boolean containsNull,
+      RangeSet<C> rangeSet) {
+    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), containsNull);
   }
 
   @Override public String toString() {
-    return "Sarg(" + rangeSet + ")";
+    return "Sarg(" + rangeSet + (containsNull ? ", null" : "") + ")";
   }
 
   @Override public int compareTo(Sarg<C> o) {
@@ -52,12 +59,13 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   @Override public int hashCode() {
-    return RangeSets.hashCode(rangeSet);
+    return RangeSets.hashCode(rangeSet) * 31 + (containsNull ? 2 : 3);
   }
 
   @Override public boolean equals(Object o) {
     return o == this
         || o instanceof Sarg
-        && rangeSet.equals(((Sarg) o).rangeSet);
+        && rangeSet.equals(((Sarg) o).rangeSet)
+        && containsNull == ((Sarg) o).containsNull;
   }
 }

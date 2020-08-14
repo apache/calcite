@@ -582,6 +582,12 @@ public class RelBuilder {
 
   /** Creates a call to a scalar operator. */
   private @Nonnull RexCall call(SqlOperator operator, List<RexNode> operandList) {
+    switch (operator.getKind()) {
+    case BETWEEN:
+      assert operandList.size() == 3;
+      return (RexCall) between(operandList.get(0), operandList.get(1),
+          operandList.get(2));
+    }
     final RexBuilder builder = cluster.getRexBuilder();
     final RelDataType type = builder.deriveReturnType(operator, operandList);
     return (RexCall) builder.makeCall(type, operator, operandList);
@@ -643,6 +649,11 @@ public class RelBuilder {
   /** Creates a {@code <>}. */
   public RexNode notEquals(RexNode operand0, RexNode operand1) {
     return call(SqlStdOperatorTable.NOT_EQUALS, operand0, operand1);
+  }
+
+  /** Creates a {@code BETWEEN}. */
+  public RexNode between(RexNode arg, RexNode lower, RexNode upper) {
+    return getRexBuilder().makeBetween(arg, lower, upper);
   }
 
   /** Creates a IS NULL. */

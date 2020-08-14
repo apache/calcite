@@ -1304,22 +1304,61 @@ public class RexBuilder {
    * <p>If all of the expressions are literals, creates a call {@link Sarg}
    * literal, "SEARCH(arg, SARG([point0..point0], [point1..point1], ...)";
    * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
-  public RexNode makeIn(RexNode arg, ImmutableList<? extends RexNode> ranges) {
-    final Sarg sarg = toSarg(Comparable.class, ranges);
-    if (sarg != null) {
-      final RexNode range0 = ranges.get(0);
-      return makeCall(SqlStdOperatorTable.SEARCH, arg,
-          makeSearchArgumentLiteral(sarg, range0.getType()));
+  public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
+    if (areAssignable(arg, ranges)) {
+      final Sarg sarg = toSarg(Comparable.class, ranges, false);
+      if (sarg != null) {
+        final RexNode range0 = ranges.get(0);
+        return makeCall(SqlStdOperatorTable.SEARCH,
+            arg,
+            makeSearchArgumentLiteral(sarg, range0.getType()));
+      }
     }
-    return makeCall(SqlStdOperatorTable.OR, ranges.stream()
+    return RexUtil.composeDisjunction(this, ranges.stream()
         .map(r -> makeCall(SqlStdOperatorTable.EQUALS, arg, r))
         .collect(Util.toImmutableList()));
+  }
+
+  /** Returns whether and argument and bounds are have types that are
+   * sufficiently compatible to be converted to a {@link Sarg}. */
+  private boolean areAssignable(RexNode arg, List<? extends RexNode> bounds) {
+    for (RexNode bound : bounds) {
+      if (!SqlTypeUtil.inSameFamily(arg.getType(), bound.getType())
+          && !(arg.getType().isStruct() && bound.getType().isStruct())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Creates a {@link RexNode} representation a SQL
+   * "arg BETWEEN lower AND upper" expression.
+   *
+   * <p>If the expressions are all literals of compatible type, creates a call
+   * to {@link Sarg} literal, {@code SEARCH(arg, SARG([lower..upper])};
+   * otherwise creates a disjunction, {@code arg >= lower AND arg <= upper}. */
+  public RexNode makeBetween(RexNode arg, RexNode lower, RexNode upper) {
+    final Comparable lowerValue = toComparable(Comparable.class, lower);
+    final Comparable upperValue = toComparable(Comparable.class, upper);
+    if (lowerValue != null
+        && upperValue != null
+        && areAssignable(arg, Arrays.asList(lower, upper))) {
+      final Sarg sarg =
+          Sarg.of(false,
+              ImmutableRangeSet.<Comparable>of(
+                  Range.closed(lowerValue, upperValue)));
+      return makeCall(SqlStdOperatorTable.SEARCH, arg,
+          makeSearchArgumentLiteral(sarg, lower.getType()));
+    }
+    return makeCall(SqlStdOperatorTable.AND,
+        makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, arg, lower),
+        makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, arg, upper));
   }
 
   /** Converts a list of expressions to a search argument, or returns null if
    * not possible. */
   private static <C extends Comparable<C>> Sarg<C> toSarg(Class<C> clazz,
-      List<? extends RexNode> ranges) {
+      List<? extends RexNode> ranges, boolean containsNull) {
     if (ranges.isEmpty()) {
       // Cannot convert an empty list to a Sarg (by this interface, at least)
       // because we use the type of the first element.
@@ -1333,7 +1372,7 @@ public class RexBuilder {
       }
       b.add(Range.singleton(value));
     }
-    return Sarg.of(b.build());
+    return Sarg.of(containsNull, b.build());
   }
 
   private static <C extends Comparable<C>> C toComparable(Class<C> clazz,

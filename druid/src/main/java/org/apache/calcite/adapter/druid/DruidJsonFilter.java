@@ -267,7 +267,11 @@ abstract class DruidJsonFilter implements DruidJson {
   @Nullable
   private static DruidJsonFilter toInKindDruidFilter(RexNode e, RelDataType rowType,
       DruidQuery druidQuery) {
-    if (e.getKind() != SqlKind.IN && e.getKind() != SqlKind.NOT_IN) {
+    switch (e.getKind()) {
+    case DRUID_IN:
+    case DRUID_NOT_IN:
+      break;
+    default:
       throw new AssertionError(
           DruidQuery.format("Expecting IN or NOT IN but got [%s]", e.getKind()));
     }
@@ -355,8 +359,8 @@ abstract class DruidJsonFilter implements DruidJson {
       return toBoundDruidFilter(e, rowType, druidQuery);
     case BETWEEN:
       return toBetweenDruidFilter(e, rowType, druidQuery);
-    case IN:
-    case NOT_IN:
+    case DRUID_IN:
+    case DRUID_NOT_IN:
       return toInKindDruidFilter(e, rowType, druidQuery);
     case IS_NULL:
     case IS_NOT_NULL:

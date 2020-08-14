@@ -1109,7 +1109,7 @@ public class RexSimplify {
       safeOps.add(SqlKind.IS_DISTINCT_FROM);
       safeOps.add(SqlKind.IS_NOT_DISTINCT_FROM);
       safeOps.add(SqlKind.IN);
-      safeOps.add(SqlKind.NOT_IN);
+      safeOps.add(SqlKind.SEARCH);
       safeOps.add(SqlKind.OR);
       safeOps.add(SqlKind.AND);
       safeOps.add(SqlKind.NOT);

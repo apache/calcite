@@ -40,7 +40,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Range;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -54,7 +53,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -292,20 +290,6 @@ public class RexLiteral extends RexNode {
       SqlTypeName typeName,
       boolean strict) {
     if (value == null) {
-      return true;
-    }
-    if (value instanceof Sarg && false) { // TODO
-      final Set<Range> set = ((Sarg) value).rangeSet.asRanges();
-      for (Range range : set) {
-        if (range.hasLowerBound()
-            && !valueMatchesType(range.lowerEndpoint(), typeName, strict)) {
-          return false;
-        }
-        if (range.hasUpperBound()
-            && !valueMatchesType(range.upperEndpoint(), typeName, strict)) {
-          return false;
-        }
-      }
       return true;
     }
     switch (typeName) {
@@ -599,10 +583,6 @@ public class RexLiteral extends RexNode {
       SqlTypeName typeName,
       boolean java, RexDigestIncludeType includeType) {
     try {
-      if (value instanceof Sarg && false) { // TODO
-        destination.append(value.toString());
-        return;
-      }
       switch (typeName) {
       case CHAR:
         NlsString nlsString = (NlsString) value;

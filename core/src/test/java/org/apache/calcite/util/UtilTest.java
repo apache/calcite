@@ -2457,6 +2457,134 @@ class UtilTest {
     // TODO check ranges such as -inf,-inf, [4,4)
   }
 
+  /** Tests {@link RangeSets#map} and {@link RangeSets#forEach}. */
+  @Test void testRangeMap() {
+    final StringBuilder b = new StringBuilder();
+    final RangeSets.Handler<Integer, StringBuilder> h =
+        new RangeSets.Handler<Integer, StringBuilder>() {
+          @Override public StringBuilder all() {
+            return b.append("all()");
+          }
+
+          @Override public StringBuilder atLeast(Integer lower) {
+            return b.append("atLeast(").append(lower).append(")");
+          }
+
+          @Override public StringBuilder atMost(Integer upper) {
+            return b.append("atMost(").append(upper).append(")");
+          }
+
+          @Override public StringBuilder greaterThan(Integer lower) {
+            return b.append("greaterThan(").append(lower).append(")");
+          }
+
+          @Override public StringBuilder lessThan(Integer upper) {
+            return b.append("lessThan(").append(upper).append(")");
+          }
+
+          @Override public StringBuilder singleton(Integer value) {
+            return b.append("singleton(").append(value).append(")");
+          }
+
+          @Override public StringBuilder closed(Integer lower, Integer upper) {
+            return b.append("closed(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public StringBuilder closedOpen(Integer lower, Integer upper) {
+            return b.append("closedOpen(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public StringBuilder openClosed(Integer lower, Integer upper) {
+            return b.append("openClosed(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public StringBuilder open(Integer lower, Integer upper) {
+            return b.append("open(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+        };
+    final RangeSets.Consumer<Integer> c =
+        new RangeSets.Consumer<Integer>() {
+          @Override public void all() {
+            b.append("all()");
+          }
+
+          @Override public void atLeast(Integer lower) {
+            b.append("atLeast(").append(lower).append(")");
+          }
+
+          @Override public void atMost(Integer upper) {
+            b.append("atMost(").append(upper).append(")");
+          }
+
+          @Override public void greaterThan(Integer lower) {
+            b.append("greaterThan(").append(lower).append(")");
+          }
+
+          @Override public void lessThan(Integer upper) {
+            b.append("lessThan(").append(upper).append(")");
+          }
+
+          @Override public void singleton(Integer value) {
+            b.append("singleton(").append(value).append(")");
+          }
+
+          @Override public void closed(Integer lower, Integer upper) {
+            b.append("closed(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public void closedOpen(Integer lower, Integer upper) {
+            b.append("closedOpen(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public void openClosed(Integer lower, Integer upper) {
+            b.append("openClosed(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+
+          @Override public void open(Integer lower, Integer upper) {
+            b.append("open(").append(lower).append(", ")
+                .append(upper).append(")");
+          }
+        };
+    final List<Range<Integer>> ranges =
+        Arrays.asList(Range.all(),
+            Range.atMost(3),
+            Range.atLeast(4),
+            Range.lessThan(5),
+            Range.greaterThan(6),
+            Range.singleton(7),
+            Range.open(8, 9),
+            Range.openClosed(10, 11),
+            Range.closed(12, 13),
+            Range.closedOpen(14, 15));
+    final String expected = "all()"
+        + "atMost(3)"
+        + "atLeast(4)"
+        + "lessThan(5)"
+        + "greaterThan(6)"
+        + "singleton(7)"
+        + "open(8, 9)"
+        + "openClosed(10, 11)"
+        + "closed(12, 13)"
+        + "closedOpen(14, 15)";
+    for (Range<Integer> range : ranges) {
+      RangeSets.map(range, h);
+    }
+    assertThat(b.toString(), is(expected));
+
+    b.setLength(0);
+    for (Range<Integer> range : ranges) {
+      RangeSets.forEach(range, c);
+    }
+    assertThat(b.toString(), is(expected));
+  }
+
   /** Tests {@link RangeSets#hashCode(RangeSet)}. */
   @Test void testRangeSetHashCode() {
     // TODO
