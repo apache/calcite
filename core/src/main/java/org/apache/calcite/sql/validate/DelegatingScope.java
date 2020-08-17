@@ -295,6 +295,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final ResolvedImpl resolved = new ResolvedImpl();
       int size = identifier.names.size();
       int i = size - 1;
+      // to capture possible suggestion if no table alias found
+      SqlIdentifier suggestionPrefix = null;
+      String suggestionName = null;
+
       for (; i > 0; i--) {
         final SqlIdentifier prefix = identifier.getComponent(0, i);
         resolved.clear();
@@ -307,15 +311,13 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           break;
         }
         // Look for a table alias that is the wrong case.
-        if (nameMatcher.isCaseSensitive()) {
+        if (suggestionName == null && nameMatcher.isCaseSensitive()) {
           final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
           resolved.clear();
           resolve(prefix.names, liberalMatcher, false, resolved);
           if (resolved.count() == 1) {
-            final Step lastStep = Util.last(resolved.only().path.steps());
-            throw validator.newValidationError(prefix,
-                RESOURCE.tableNameNotFoundDidYouMean(prefix.toString(),
-                    lastStep.name));
+            suggestionName = Util.last(resolved.only().path.steps()).name;
+            suggestionPrefix = prefix;
           }
         }
       }
@@ -325,6 +327,14 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         final Map<String, ScopeChild> map =
             findQualifyingTableNames(columnName, identifier, nameMatcher);
         switch (map.size()) {
+        case 0:
+          // Check if found a suggestion earlier
+          if (suggestionName != null) {
+            throw validator.newValidationError(suggestionPrefix,
+                RESOURCE.tableNameNotFoundDidYouMean(suggestionPrefix.toString(),
+                    suggestionName));
+          }
+          // fall through
         default:
           final SqlIdentifier prefix1 = identifier.skipLast(1);
           throw validator.newValidationError(prefix1,

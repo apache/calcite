@@ -10130,6 +10130,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkCustomColumnResolving("T_10");
   }
 
+  @Test void testCustomColumnResolvingAndSimilarAlias() {
+    // Check that lower case alias 'f1' doesn't prevent validator to resolve 'F1' column name
+    sql("select F1.C0 from struct.T as \"f1\"")
+      .type("RecordType(INTEGER C0) NOT NULL");
+  }
+
   private void checkCustomColumnResolving(String table) {
     // Table STRUCT.T is defined as: (
     //   K0 VARCHAR(20) NOT NULL,
