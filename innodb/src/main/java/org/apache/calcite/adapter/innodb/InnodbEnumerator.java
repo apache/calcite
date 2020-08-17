@@ -62,7 +62,7 @@ class InnodbEnumerator implements Enumerator<Object> {
   }
 
   /**
-   * Produce the next row from the results
+   * Produces the next row from the results.
    *
    * @return a new row from the results
    */

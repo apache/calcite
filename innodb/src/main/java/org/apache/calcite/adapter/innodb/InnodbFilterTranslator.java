@@ -436,6 +436,7 @@ class InnodbFilterTranslator {
     return forceIndexName.map(indexCondition::nameMatch).orElse(true);
   }
 
+  /** Internal representation of a row expression. */
   private static class InternalRexNode {
     /** Relation expression node. */
     RexNode node;
@@ -449,6 +450,7 @@ class InnodbFilterTranslator {
     Object right;
   }
 
+  /** Index condition comparator. */
   static class IndexConditionComparator implements Comparator<IndexCondition> {
 
     @Override public int compare(IndexCondition o1, IndexCondition o2) {

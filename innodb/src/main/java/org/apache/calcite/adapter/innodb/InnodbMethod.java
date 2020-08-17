@@ -27,7 +27,7 @@ import java.util.List;
  * Builtin methods in InnoDB data source.
  */
 public enum InnodbMethod {
-  /** Method signature to call for code generation */
+  /** Method signature to call for code generation. */
   INNODB_QUERYABLE_QUERY(InnodbTable.InnodbQueryable.class, "query",
       List.class, List.class, IndexCondition.class, Boolean.class);
 

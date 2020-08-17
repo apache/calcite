@@ -20,9 +20,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
@@ -30,16 +27,15 @@ import java.util.function.Predicate;
  */
 public class InnodbToEnumerableConverterRule extends ConverterRule {
 
-  /**
-   * Creates an InnodbToEnumerableConverterRule.
-   *
-   * @param relBuilderFactory builder for relational expressions
-   */
-  public InnodbToEnumerableConverterRule(
-      RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, (Predicate<RelNode>) r -> true,
-        InnodbRel.CONVENTION, EnumerableConvention.INSTANCE,
-        relBuilderFactory, "InnodbToEnumerableConverterRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(RelNode.class, InnodbRel.CONVENTION,
+          EnumerableConvention.INSTANCE, "InnodbToEnumerableConverterRule")
+      .withRuleFactory(InnodbToEnumerableConverterRule::new);
+
+  /** Creates a InnodbToEnumerableConverterRule. */
+  protected InnodbToEnumerableConverterRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

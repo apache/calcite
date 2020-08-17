@@ -20,14 +20,13 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -41,7 +40,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Rules and relational operators for {@link InnodbRel#CONVENTION}
@@ -53,26 +51,30 @@ public class InnodbRules {
 
   /** Rule to convert a relational expression from
    * {@link InnodbRel#CONVENTION} to {@link EnumerableConvention}. */
-  public static final ConverterRule TO_ENUMERABLE =
-      new InnodbToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
+  public static final InnodbToEnumerableConverterRule TO_ENUMERABLE =
+      InnodbToEnumerableConverterRule.DEFAULT_CONFIG
+          .toRule(InnodbToEnumerableConverterRule.class);
 
   /** Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject}
    * to a {@link InnodbProject}. */
-  public static final InnodbProjectRule PROJECT = new InnodbProjectRule();
+  public static final InnodbProjectRule PROJECT =
+      InnodbProjectRule.DEFAULT_CONFIG.toRule(InnodbProjectRule.class);
 
   /** Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to
    * a {@link InnodbFilter}. */
-  public static final InnodbFilterRule FILTER = new InnodbFilterRule();
+  public static final InnodbFilterRule FILTER =
+      InnodbFilterRule.Config.DEFAULT.toRule();
 
-  /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
+  /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} with a
+   * {@link org.apache.calcite.rel.core.Filter} to a
    * {@link InnodbSort}. */
   public static final InnodbSortFilterRule SORT_FILTER =
-      new InnodbSortFilterRule();
+      InnodbSortFilterRule.Config.DEFAULT.toRule();
 
   /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
    * {@link InnodbSort} based on InnoDB table clustering index. */
   public static final InnodbSortTableScanRule SORT_SCAN =
-      new InnodbSortTableScanRule();
+      InnodbSortTableScanRule.Config.DEFAULT.toRule();
 
   public static final RelOptRule[] RULES = {
       PROJECT,
@@ -86,6 +88,8 @@ public class InnodbRules {
         SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
+  /** Translator from {@link RexNode} to strings in InnoDB's expression
+   * language. */
   static class RexToInnodbTranslator extends RexVisitorImpl<String> {
     private final List<String> inFields;
 
@@ -104,18 +108,8 @@ public class InnodbRules {
    * Innodb calling convention.
    */
   abstract static class InnodbConverterRule extends ConverterRule {
-    protected final Convention out;
-
-    InnodbConverterRule(Class<? extends RelNode> clazz, String description) {
-      this(clazz, r -> true, description);
-    }
-
-    <R extends RelNode> InnodbConverterRule(Class<R> clazz,
-        Predicate<? super R> predicate,
-        String description) {
-      super(clazz, predicate, Convention.NONE,
-          InnodbRel.CONVENTION, RelFactories.LOGICAL_BUILDER, description);
-      this.out = InnodbRel.CONVENTION;
+    InnodbConverterRule(Config config) {
+      super(config);
     }
   }
 
@@ -125,10 +119,15 @@ public class InnodbRules {
    *
    * @see #PROJECT
    */
-  private static class InnodbProjectRule extends InnodbConverterRule {
+  public static class InnodbProjectRule extends InnodbConverterRule {
+    /** Default configuration. */
+    private static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(LogicalProject.class, Convention.NONE,
+            InnodbRel.CONVENTION, "InnodbProjectRule")
+        .withRuleFactory(InnodbProjectRule::new);
 
-    private InnodbProjectRule() {
-      super(LogicalProject.class, "InnodbProjectRule");
+    protected InnodbProjectRule(Config config) {
+      super(config);
     }
 
     @Override public boolean matches(RelOptRuleCall call) {
@@ -157,11 +156,10 @@ public class InnodbRules {
    *
    * @see #FILTER
    */
-  private static class InnodbFilterRule extends RelOptRule {
-
-    private InnodbFilterRule() {
-      super(operand(LogicalFilter.class, operand(InnodbTableScan.class, none())),
-          "InnodbFilterRule");
+  public static class InnodbFilterRule extends RelRule<InnodbFilterRule.Config> {
+    /** Creates a InnodbFilterRule. */
+    protected InnodbFilterRule(Config config) {
+      super(config);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -196,16 +194,33 @@ public class InnodbRules {
       }
       return filter;
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      Config DEFAULT = EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalFilter.class)
+                  .oneInput(b1 -> b1.operand(InnodbTableScan.class)
+                      .noInputs()))
+          .as(Config.class);
+
+      @Override default InnodbFilterRule toRule() {
+        return new InnodbFilterRule(this);
+      }
+    }
   }
 
   /**
    * Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
    * {@link InnodbSort}.
+   *
+   * @param <C> The rule configuration type.
    */
-  private static class AbstractInnodbSortRule extends RelOptRule {
+  private static class AbstractInnodbSortRule<C extends RelRule.Config>
+      extends RelRule<C> {
 
-    AbstractInnodbSortRule(RelOptRuleOperand operand, String description) {
-      super(operand, description);
+    AbstractInnodbSortRule(C config) {
+      super(config);
     }
 
     RelNode convert(Sort sort) {
@@ -276,21 +291,36 @@ public class InnodbRules {
    *
    * @see #SORT_FILTER
    */
-  private static class InnodbSortFilterRule extends AbstractInnodbSortRule {
-
-    private InnodbSortFilterRule() {
-      super(
-          operandJ(Sort.class, null, sort -> true,
-              operand(InnodbToEnumerableConverter.class,
-                  operandJ(InnodbFilter.class, null, innodbFilter -> true,
-                      any()))),
-          "InnodbSortFilterRule");
+  public static class InnodbSortFilterRule
+      extends AbstractInnodbSortRule<InnodbSortFilterRule.Config> {
+    /** Creates a InnodbSortFilterRule. */
+    protected InnodbSortFilterRule(Config config) {
+      super(config);
     }
 
     @Override public boolean matches(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
       final InnodbFilter filter = call.rel(2);
       return collationsCompatible(sort.getCollation(), filter.getImplicitCollation());
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      Config DEFAULT = EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(Sort.class)
+                  .predicate(sort -> true)
+                  .oneInput(b1 ->
+                      b1.operand(InnodbToEnumerableConverter.class)
+                          .oneInput(b2 ->
+                              b2.operand(InnodbFilter.class)
+                                  .predicate(innodbFilter -> true)
+                                  .anyInputs())))
+          .as(Config.class);
+
+      @Override default InnodbSortFilterRule toRule() {
+        return new InnodbSortFilterRule(this);
+      }
     }
   }
 
@@ -300,21 +330,36 @@ public class InnodbRules {
    *
    * @see #SORT_SCAN
    */
-  private static class InnodbSortTableScanRule extends AbstractInnodbSortRule {
-
-    private InnodbSortTableScanRule() {
-      super(
-          operandJ(Sort.class, null, sort -> true,
-              operand(InnodbToEnumerableConverter.class,
-                  operandJ(InnodbTableScan.class, null, tableScan -> true,
-                      any()))),
-          "InnodbSortTableScanRule");
+  public static class InnodbSortTableScanRule
+      extends AbstractInnodbSortRule<InnodbSortTableScanRule.Config> {
+    /** Creates a InnodbSortTableScanRule. */
+    protected InnodbSortTableScanRule(Config config) {
+      super(config);
     }
 
     @Override public boolean matches(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
       final InnodbTableScan tableScan = call.rel(2);
       return collationsCompatible(sort.getCollation(), tableScan.getImplicitCollation());
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      InnodbSortTableScanRule.Config DEFAULT = EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(Sort.class)
+                  .predicate(sort -> true)
+                  .oneInput(b1 ->
+                      b1.operand(InnodbToEnumerableConverter.class)
+                          .oneInput(b2 ->
+                              b2.operand(InnodbTableScan.class)
+                                  .predicate(tableScan -> true)
+                                  .anyInputs())))
+          .as(InnodbSortTableScanRule.Config.class);
+
+      @Override default InnodbSortTableScanRule toRule() {
+        return new InnodbSortTableScanRule(this);
+      }
     }
   }
 }
