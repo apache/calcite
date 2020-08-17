@@ -47,4 +47,8 @@ class SqlArgumentAssignmentOperator extends SqlAsOperator {
     writer.keyword(getName());
     call.operand(0).unparse(writer, getRightPrec(), rightPrec);
   }
+
+  @Override public boolean argumentMustBeScalar(int ordinal) {
+    return false;
+  }
 }

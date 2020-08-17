@@ -3318,7 +3318,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param clause    Name of clause: "WHERE", "GROUP BY", "ON"
    */
   private void validateNoAggs(AggFinder aggFinder, SqlNode node,
-                              String clause) {
+      String clause) {
     final SqlCall agg = aggFinder.findAgg(node);
     if (agg == null) {
       return;
@@ -3500,7 +3500,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void checkRollUp(SqlNode grandParent, SqlNode parent,
-                           SqlNode current, SqlValidatorScope scope, String optionalClause) {
+      SqlNode current, SqlValidatorScope scope, String optionalClause) {
     current = stripAs(current);
     if (current instanceof SqlCall && !(current instanceof SqlSelect)) {
       // Validate OVER separately
@@ -3525,7 +3525,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void checkRollUp(SqlNode grandParent, SqlNode parent,
-                           SqlNode current, SqlValidatorScope scope) {
+      SqlNode current, SqlValidatorScope scope) {
     checkRollUp(grandParent, parent, current, scope, null);
   }
 
@@ -3568,7 +3568,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   // Returns true iff the given column is valid inside the given aggCall.
   private boolean isRolledUpColumnAllowedInAgg(SqlIdentifier identifier, SqlValidatorScope scope,
-                                               SqlCall aggCall, SqlNode parent) {
+      SqlCall aggCall, SqlNode parent) {
     Pair<String, String> pair = findTableColumnPair(identifier, scope);
 
     if (pair == null) {

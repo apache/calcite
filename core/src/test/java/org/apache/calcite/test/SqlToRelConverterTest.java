@@ -1829,6 +1829,26 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionTumbleWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "tumble(\n"
+        + "  DATA => table Shipments,\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  SIZE => INTERVAL '1' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionTumbleWithParamReordered() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "tumble(\n"
+        + "  DATA => table Shipments,\n"
+        + "  SIZE => INTERVAL '1' MINUTE,\n"
+        + "  TIMECOL => descriptor(rowtime)))";
+    sql(sql).ok();
+  }
+
   @Test void testTableFunctionTumbleWithInnerJoin() {
     final String sql = "select *\n"
         + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE)) a\n"
@@ -1858,10 +1878,54 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionHopWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "hop(\n"
+        + "  DATA => table Shipments,\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  SLIDE => INTERVAL '1' MINUTE,\n"
+        + "  SIZE => INTERVAL '2' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionHopWithParamReordered() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "hop(\n"
+        + "  DATA => table Shipments,\n"
+        + "  SLIDE => INTERVAL '1' MINUTE,\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  SIZE => INTERVAL '2' MINUTE))";
+    sql(sql).ok();
+  }
+
   @Test void testTableFunctionSession() {
     final String sql = "select *\n"
         + "from table(session(table Shipments, descriptor(rowtime), "
         + "descriptor(orderId), INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "session(\n"
+        + "  DATA => table Shipments,\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  KEY => descriptor(orderId),\n"
+        + "  SIZE => INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithParamReordered() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "session(\n"
+        + "  DATA => table Shipments,\n"
+        + "  KEY => descriptor(orderId),\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  SIZE => INTERVAL '10' MINUTE))";
     sql(sql).ok();
   }
 

@@ -27,6 +27,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -161,17 +163,42 @@ public class SqlCallBinding extends SqlOperatorBinding {
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
     final SqlFunction operator = (SqlFunction) call.getOperator();
-    return Lists.transform(operator.getParamNames(), paramName -> {
-      for (SqlNode operand2 : call.getOperandList()) {
-        final SqlCall call2 = (SqlCall) operand2;
-        assert operand2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
-        final SqlIdentifier id = call2.operand(1);
-        if (id.getSimple().equals(paramName)) {
-          return call2.operand(0);
+    final List<String> paramNames = operator.getParamNames();
+    final List<SqlNode> permuted = new ArrayList<>();
+    final SqlNameMatcher nameMatcher = validator.getCatalogReader().nameMatcher();
+    for (final String paramName : paramNames) {
+      Pair<String, SqlIdentifier> args = null;
+      for (int j = 0; j < call.getOperandList().size(); j++) {
+        final SqlCall call2 = call.operand(j);
+        assert call2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
+        final SqlIdentifier operandID = call2.operand(1);
+        final String operandName = operandID.getSimple();
+        if (nameMatcher.matches(operandName, paramName)) {
+          permuted.add(call2.operand(0));
+          break;
+        } else if (args == null
+            && nameMatcher.isCaseSensitive()
+            && operandName.equalsIgnoreCase(paramName)) {
+          args = Pair.of(paramName, operandID);
+        }
+        // the last operand, there is still no match.
+        if (j == call.getOperandList().size() - 1) {
+          if (args != null) {
+            throw SqlUtil.newContextException(args.right.getParserPosition(),
+                RESOURCE.paramNotFoundInFunctionDidYouMean(args.right.getSimple(),
+                    call.getOperator().getName(), args.left));
+          }
+          if (!(operator instanceof SqlWindowTableFunction)) {
+            // Not like user defined functions, we do not patch up the operands
+            // with DEFAULT and then convert to nulls during sql-to-rel conversion.
+            // Thus, there is no need to show the optional operands in the plan and
+            // decide if the optional operand is null when code generation.
+            permuted.add(DEFAULT_CALL);
+          }
         }
       }
-      return DEFAULT_CALL;
-    });
+    }
+    return permuted;
   }
 
   /**
