@@ -804,7 +804,6 @@ public class EnumUtils {
       expressions.add(expression);
     }
     final Expression wmColExprToLong = EnumUtils.convert(wmColExpr, long.class);
-    final Expression shiftExpr = Expressions.constant(1, long.class);
 
     // Find the fixed window for a timestamp given a window size and an offset, and return the
     // window start.

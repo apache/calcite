@@ -1876,10 +1876,24 @@ is named as "fixed windowing".
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| TUMBLE(table, DESCRIPTOR(datetime), interval [, offset ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at offset.
+| TUMBLE(data, DESCRIPTOR(timecol), size [, offset ]) | Indicates a tumbling window of *size* interval for *timecol*, optionally aligned at *offset*.
 
 Here is an example:
-`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
+```SQL
+SELECT * FROM TABLE(
+  TUMBLE(
+    TABLE orders,
+    DESCRIPTOR(rowtime),
+    INTERVAL '1' MINUTE));
+
+-- or with the named params
+-- note: the DATA param must be the first
+SELECT * FROM TABLE(
+  TUMBLE(
+    DATA => TABLE orders,
+    TIMECOL => DESCRIPTOR(rowtime),
+    SIZE => INTERVAL '1' MINUTE));
+```
 will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
 watermarked column of table orders that tells data completeness.
 
@@ -1890,10 +1904,26 @@ on a timestamp column. Windows assigned could have overlapping so hopping someti
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| HOP(table, DESCRIPTOR(datetime), slide, size [, offset ]) | Indicates a hopping window for *datetime*, covering rows within the interval of *size*, shifting every *slide* and optionally aligned at offset.
+| HOP(data, DESCRIPTOR(timecol), slide, size [, offset ]) | Indicates a hopping window for *timecol*, covering rows within the interval of *size*, shifting every *slide* and optionally aligned at *offset*.
 
 Here is an example:
-`SELECT * FROM TABLE(HOP(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '2' MINUTE, INTERVAL '5' MINUTE))`,
+```SQL
+SELECT * FROM TABLE(
+  HOP(
+    TABLE orders,
+    DESCRIPTOR(rowtime),
+    INTERVAL '2' MINUTE,
+    INTERVAL '5' MINUTE));
+
+-- or with the named params
+-- note: the DATA param must be the first
+SELECT * FROM TABLE(
+  HOP(
+    DATA => TABLE orders,
+    TIMECOL => DESCRIPTOR(rowtime),
+    SLIDE => INTERVAL '2' MINUTE,
+    SIZE => INTERVAL '5' MINUTE));
+```
 will apply hopping with 5-minute interval size on rows from table orders and shifting every 2 minutes. rowtime is the
 watermarked column of table orders that tells data completeness.
 
@@ -1904,12 +1934,33 @@ of rows are less than *interval*. Session window is applied per *key*.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| session(table, DESCRIPTOR(datetime), DESCRIPTOR(key), interval) | Indicates a session window of *interval* for *datetime*. Session window is applied per *key*.
+| session(data, DESCRIPTOR(timecol), DESCRIPTOR(key), size) | Indicates a session window of *size* interval for *timecol*. Session window is applied per *key*.
 
 Here is an example:
-`SELECT * FROM TABLE(SESSION(TABLE orders, DESCRIPTOR(rowtime), DESCRIPTOR(product), INTERVAL '20' MINUTE))`,
+```SQL
+SELECT * FROM TABLE(
+  SESSION(
+    TABLE orders,
+    DESCRIPTOR(rowtime),
+    DESCRIPTOR(product),
+    INTERVAL '20' MINUTE));
+
+-- or with the named params
+-- note: the DATA param must be the first
+SELECT * FROM TABLE(
+  SESSION(
+    DATA => TABLE orders,
+    TIMECOL => DESCRIPTOR(rowtime),
+    KEY => DESCRIPTOR(product),
+    SIZE => INTERVAL '20' MINUTE));
+```
 will apply session with 20-minute inactive gap on rows from table orders. rowtime is the
 watermarked column of table orders that tells data completeness. Session is applied per product.
+
+**Note**: The `Tumble`, `Hop` and `Session` window table functions assign
+each row in the original table to a window. The output table has all
+the same columns as the original table plus two additional columns `window_start`
+and `window_end`, which repesent the start and end of the window interval, respectively.
 
 ### Grouped window functions
 **warning**: grouped window functions are deprecated.
