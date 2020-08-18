@@ -17,8 +17,10 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
@@ -30,6 +32,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -83,7 +86,7 @@ public class PigRelSqlUdfs {
    */
   static final SqlUserDefinedFunction MULTISET_PROJECTION =
       new PigUserDefinedFunction("MULTISET_PROJECTION",
-          multisetProjectionInfer(), multisetProjectionCheck(), null,
+          multisetProjectionInfer(), multisetProjectionCheck(),
           MULTISET_PROJECTION_FUNC);
 
   /**
@@ -95,8 +98,9 @@ public class PigRelSqlUdfs {
   static SqlUserDefinedFunction createPigTupleUDF(ImmutableList<RexNode> operands) {
     return new PigUserDefinedFunction("PIG_TUPLE",
         infer(PigRelSqlUdfs.PIG_TUPLE_FUNC),
-        OperandTypes.family(getTypeFamilies(operands)),
-        getRelDataTypes(operands),
+        OperandTypes.operandMetadata(getTypeFamilies(operands),
+            typeFactory -> getRelDataTypes(operands), i -> "arg" + i,
+            i -> false),
         PigRelSqlUdfs.PIG_TUPLE_FUNC);
   }
 
@@ -107,11 +111,12 @@ public class PigRelSqlUdfs {
    * @return Pig DataBag SqlUDF
    */
   static SqlUserDefinedFunction createPigBagUDF(ImmutableList<RexNode> operands) {
-    return new PigUserDefinedFunction(
-        "PIG_BAG",
-        infer(PigRelSqlUdfs.PIG_BAG_FUNC),
-        OperandTypes.family(getTypeFamilies(operands)),
-        getRelDataTypes(operands),
+    final SqlOperandMetadata operandMetadata =
+        OperandTypes.operandMetadata(getTypeFamilies(operands),
+            typeFactory -> getRelDataTypes(operands), i -> "arg" + i,
+            i -> false);
+    return new PigUserDefinedFunction("PIG_BAG",
+        infer(PigRelSqlUdfs.PIG_BAG_FUNC), operandMetadata,
         PigRelSqlUdfs.PIG_BAG_FUNC);
   }
 
@@ -127,9 +132,12 @@ public class PigRelSqlUdfs {
   static SqlUserDefinedFunction createGeneralPigUdf(String udfName,
       Method method, FuncSpec funcSpec, RelDataType inputType,
       RelDataType returnType) {
+    final SqlOperandMetadata operandMetadata =
+        OperandTypes.operandMetadata(ImmutableList.of(SqlTypeFamily.ANY),
+            typeFactory -> ImmutableList.of(inputType), i -> "arg" + i,
+            i -> false);
     return new PigUserDefinedFunction(udfName, opBinding -> returnType,
-        OperandTypes.ANY, Collections.singletonList(inputType),
-        ScalarFunctionImpl.createUnsafe(method), funcSpec);
+        operandMetadata, ScalarFunctionImpl.createUnsafe(method), funcSpec);
   }
 
   /**
@@ -166,8 +174,13 @@ public class PigRelSqlUdfs {
   /**
    * Returns a {@link SqlOperandTypeChecker} for multiset projection operator.
    */
-  private static SqlOperandTypeChecker multisetProjectionCheck() {
-    return new SqlOperandTypeChecker() {
+  private static SqlOperandMetadata multisetProjectionCheck() {
+    // This should not really be a UDF. A SQL UDF has a fixed number of named
+    // parameters, and this does not. But let's pretend that it has two
+    // parameters of type 'ANY'
+    final int paramCount = 2;
+
+    return new SqlOperandMetadata() {
       public boolean checkOperandTypes(
           SqlCallBinding callBinding, boolean throwOnFailure) {
         // Need at least two arguments
@@ -213,6 +226,20 @@ public class PigRelSqlUdfs {
 
       public Consistency getConsistency() {
         return Consistency.NONE;
+      }
+
+      @Override public List<RelDataType> paramTypes(
+          RelDataTypeFactory typeFactory) {
+        return Functions.generate(paramCount,
+            i -> typeFactory.createSqlType(SqlTypeName.ANY));
+      }
+
+      @Override public List<String> paramNames() {
+        return Functions.generate(paramCount,  i -> "arg" + i);
+      }
+
+      @Override public boolean isFixedParameters() {
+        return true;
       }
     };
   }

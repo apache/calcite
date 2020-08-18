@@ -24,6 +24,8 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -129,22 +131,24 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   public List<SqlNode> operands() {
-    if (hasAssignment() && !(call.getOperator() instanceof SqlUnresolvedFunction)) {
+    if (hasAssignment()
+        && !(call.getOperator() instanceof SqlUnresolvedFunction)) {
       return permutedOperands(call);
     } else {
       final List<SqlNode> operandList = call.getOperandList();
-      if (call.getOperator() instanceof SqlFunction) {
-        final List<RelDataType> paramTypes =
-            ((SqlFunction) call.getOperator()).getParamTypes();
-        if (paramTypes != null && operandList.size() < paramTypes.size()) {
-          final List<SqlNode> list = Lists.newArrayList(operandList);
-          while (list.size() < paramTypes.size()) {
-            list.add(DEFAULT_CALL);
-          }
-          return list;
-        }
+      final SqlOperandTypeChecker checker =
+          call.getOperator().getOperandTypeChecker();
+      if (checker == null) {
+        return operandList;
       }
-      return operandList;
+      final SqlOperandCountRange range = checker.getOperandCountRange();
+      final List<SqlNode> list = Lists.newArrayList(operandList);
+      while (list.size() < range.getMax()
+          && checker.isOptional(list.size())
+          && checker.isFixedParameters()) {
+        list.add(DEFAULT_CALL);
+      }
+      return list;
     }
   }
 
@@ -162,10 +166,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
-    final SqlFunction operator = (SqlFunction) call.getOperator();
-    final List<String> paramNames = operator.getParamNames();
+    final SqlOperandMetadata operandMetadata =
+        (SqlOperandMetadata) call.getOperator().getOperandTypeChecker();
+    final List<String> paramNames = operandMetadata.paramNames();
     final List<SqlNode> permuted = new ArrayList<>();
-    final SqlNameMatcher nameMatcher = validator.getCatalogReader().nameMatcher();
+    final SqlNameMatcher nameMatcher =
+        validator.getCatalogReader().nameMatcher();
     for (final String paramName : paramNames) {
       Pair<String, SqlIdentifier> args = null;
       for (int j = 0; j < call.getOperandList().size(); j++) {
@@ -188,7 +194,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
                 RESOURCE.paramNotFoundInFunctionDidYouMean(args.right.getSimple(),
                     call.getOperator().getName(), args.left));
           }
-          if (!(operator instanceof SqlWindowTableFunction)) {
+          if (operandMetadata.isFixedParameters()) {
             // Not like user defined functions, we do not patch up the operands
             // with DEFAULT and then convert to nulls during sql-to-rel conversion.
             // Thus, there is no need to show the optional operands in the plan and

@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -561,19 +562,22 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Type coercion for user defined functions(UDFs).
+   * Type coercion for user-defined functions (UDFs).
    */
   public boolean userDefinedFunctionCoercion(SqlValidatorScope scope,
       SqlCall call, SqlFunction function) {
-    final List<RelDataType> paramTypes = function.getParamTypes();
-    assert paramTypes != null;
+    final SqlOperandMetadata operandMetadata =
+        (SqlOperandMetadata) function.getOperandTypeChecker();
+    final List<RelDataType> paramTypes =
+        operandMetadata.paramTypes(scope.getValidator().getTypeFactory());
     boolean coerced = false;
     for (int i = 0; i < call.operandCount(); i++) {
       SqlNode operand = call.operand(i);
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
         final List<SqlNode> operandList = ((SqlCall) operand).getOperandList();
         String name = ((SqlIdentifier) operandList.get(1)).getSimple();
-        int formalIndex = function.getParamNames().indexOf(name);
+        final List<String> paramNames = operandMetadata.paramNames();
+        int formalIndex = paramNames.indexOf(name);
         if (formalIndex < 0) {
           return false;
         }

@@ -522,7 +522,8 @@ public abstract class SqlOperator {
     // Always disable type coercion for builtin operator operands,
     // they are handled by the TypeCoercion specifically.
     final SqlOperator sqlOperator =
-        SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
+        SqlUtil.lookupRoutine(validator.getOperatorTable(),
+            validator.getTypeFactory(), getNameAsId(),
             argTypes, null, null, getSyntax(), getKind(),
             validator.getCatalogReader().nameMatcher(), false);
 

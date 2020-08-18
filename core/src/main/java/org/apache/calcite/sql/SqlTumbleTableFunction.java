@@ -16,12 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * SqlTumbleTableFunction implements an operator for tumbling.
@@ -36,53 +31,33 @@ import java.util.List;
  */
 public class SqlTumbleTableFunction extends SqlWindowTableFunction {
   public SqlTumbleTableFunction() {
-    super(SqlKind.TUMBLE.name(), OperandTypeCheckerImpl.INSTANCE);
+    super(SqlKind.TUMBLE.name(), new OperandMetadataImpl());
   }
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(3, 4);
-  }
+  /** Operand type checker for TUMBLE. */
+  private static class OperandMetadataImpl extends AbstractOperandMetadata {
+    OperandMetadataImpl() {
+      super(
+          ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SIZE, PARAM_OFFSET),
+          3);
+    }
 
-  @Override public List<String> getParamNames() {
-    return ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SIZE, PARAM_OFFSET);
-  }
-
-  // -------------------------------------------------------------------------
-  //  Inner Class
-  // -------------------------------------------------------------------------
-
-  /** Operand type checker for SESSION. */
-  private static class OperandTypeCheckerImpl implements SqlOperandTypeChecker {
-    static final OperandTypeCheckerImpl INSTANCE = new OperandTypeCheckerImpl();
-
-    @Override public boolean checkOperandTypes(
-        SqlCallBinding callBinding, boolean throwOnFailure) {
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+        boolean throwOnFailure) {
       // There should only be three operands, and number of operands are checked before
       // this call.
-      if (!validateTableWithFollowingDescriptors(callBinding, 1)) {
+      if (!checkTableAndDescriptorOperands(callBinding, 1)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
-      if (!validateTailingIntervals(callBinding, 2)) {
+      if (!checkIntervalOperands(callBinding, 2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
       return true;
     }
 
-    @Override public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.of(4);
-    }
-
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return opName + "(TABLE table_name, DESCRIPTOR(col1, col2 ...), datetime interval"
           + "[, datetime interval])";
-    }
-
-    @Override public Consistency getConsistency() {
-      return Consistency.NONE;
-    }
-
-    @Override public boolean isOptional(int i) {
-      return i == 3;
     }
   }
 }

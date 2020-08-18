@@ -157,7 +157,6 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           null,
           null,
           OperandTypes.NUMERIC,
-          null,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -185,8 +184,9 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
   public static class SplitFunction extends SqlFunction {
 
     public SplitFunction() {
-      super("SPLIT", new SqlIdentifier("SPLIT", SqlParserPos.ZERO), SqlKind.OTHER_FUNCTION, null,
-          null, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING), null,
+      super("SPLIT", new SqlIdentifier("SPLIT", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -239,8 +239,9 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
   /** "STRUCTURED_FUNC" user-defined function whose return type is structured type. */
   public static class StructuredFunction extends SqlFunction {
     StructuredFunction() {
-      super("STRUCTURED_FUNC", new SqlIdentifier("STRUCTURED_FUNC", SqlParserPos.ZERO),
-          SqlKind.OTHER_FUNCTION, null, null, OperandTypes.NILADIC, null,
+      super("STRUCTURED_FUNC",
+          new SqlIdentifier("STRUCTURED_FUNC", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null, OperandTypes.NILADIC,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 

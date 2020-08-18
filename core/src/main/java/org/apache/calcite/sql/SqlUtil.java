@@ -31,6 +31,7 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -422,6 +423,7 @@ public abstract class SqlUtil {
    * types.
    *
    * @param opTab         operator table to search
+   * @param typeFactory   Type factory
    * @param funcName      name of function being invoked
    * @param argTypes      argument types
    * @param argNames      argument names, or null if call by position
@@ -435,6 +437,7 @@ public abstract class SqlUtil {
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
   public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
+      RelDataTypeFactory typeFactory,
       SqlIdentifier funcName, List<RelDataType> argTypes,
       List<String> argNames, SqlFunctionCategory category,
       SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher,
@@ -442,6 +445,7 @@ public abstract class SqlUtil {
     Iterator<SqlOperator> list =
         lookupSubjectRoutines(
             opTab,
+            typeFactory,
             funcName,
             argTypes,
             argNames,
@@ -467,6 +471,7 @@ public abstract class SqlUtil {
    * Looks up all subject routines matching the given name and argument types.
    *
    * @param opTab       operator table to search
+   * @param typeFactory Type factory
    * @param funcName    name of function being invoked
    * @param argTypes    argument types
    * @param argNames    argument names, or null if call by position
@@ -480,14 +485,10 @@ public abstract class SqlUtil {
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
   public static Iterator<SqlOperator> lookupSubjectRoutines(
-      SqlOperatorTable opTab,
-      SqlIdentifier funcName,
-      List<RelDataType> argTypes,
-      List<String> argNames,
-      SqlSyntax sqlSyntax,
-      SqlKind sqlKind,
-      SqlFunctionCategory category,
-      SqlNameMatcher nameMatcher,
+      SqlOperatorTable opTab, RelDataTypeFactory typeFactory,
+      SqlIdentifier funcName, List<RelDataType> argTypes, List<String> argNames,
+      SqlSyntax sqlSyntax, SqlKind sqlKind,
+      SqlFunctionCategory category, SqlNameMatcher nameMatcher,
       boolean coerce) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
@@ -507,7 +508,8 @@ public abstract class SqlUtil {
     // second pass:  eliminate routines which don't accept the given
     // argument types and parameter names if specified
     routines =
-        filterRoutinesByParameterTypeAndName(sqlSyntax, routines, argTypes, argNames, coerce);
+        filterRoutinesByParameterTypeAndName(typeFactory, sqlSyntax, routines,
+            argTypes, argNames, coerce);
 
     // see if we can stop now; this is necessary for the case
     // of builtin functions where we don't have param type info,
@@ -521,7 +523,7 @@ public abstract class SqlUtil {
     // third pass:  for each parameter from left to right, eliminate
     // all routines except those with the best precedence match for
     // the given arguments
-    routines = filterRoutinesByTypePrecedence(sqlSyntax, routines, argTypes, argNames);
+    routines = filterRoutinesByTypePrecedence(sqlSyntax, typeFactory, routines, argTypes, argNames);
 
     // fourth pass: eliminate routines which do not have the same
     // SqlKind as requested
@@ -591,11 +593,9 @@ public abstract class SqlUtil {
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4 Syntax Rule 6.b.iii.2.B
    */
   private static Iterator<SqlOperator> filterRoutinesByParameterTypeAndName(
-      SqlSyntax syntax,
-      final Iterator<SqlOperator> routines,
-      final List<RelDataType> argTypes,
-      final List<String> argNames,
-      final boolean coerce) {
+      RelDataTypeFactory typeFactory, SqlSyntax syntax,
+      final Iterator<SqlOperator> routines, final List<RelDataType> argTypes,
+      final List<String> argNames, final boolean coerce) {
     if (syntax != SqlSyntax.FUNCTION) {
       return routines;
     }
@@ -604,15 +604,20 @@ public abstract class SqlUtil {
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
         function -> {
-          List<RelDataType> paramTypes = function.getParamTypes();
-          if (paramTypes == null) {
+          if (Objects.requireNonNull(function).getOperandTypeChecker() == null
+              || !function.getOperandTypeChecker().isFixedParameters()) {
             // no parameter information for builtins; keep for now,
             // the type coerce will not work here.
             return true;
           }
+          final SqlOperandMetadata operandMetadata =
+              (SqlOperandMetadata) function.getOperandTypeChecker();
+          final List<RelDataType> paramTypes =
+              operandMetadata.paramTypes(typeFactory);
           final List<RelDataType> permutedArgTypes;
           if (argNames != null) {
-            permutedArgTypes = permuteArgTypes(function, argNames, argTypes);
+            final List<String> paramNames = operandMetadata.paramNames();
+            permutedArgTypes = permuteArgTypes(paramNames, argNames, argTypes);
             if (permutedArgTypes == null) {
               return false;
             }
@@ -638,19 +643,19 @@ public abstract class SqlUtil {
   /**
    * Permutes argument types to correspond to the order of parameter names.
    */
-  private static List<RelDataType> permuteArgTypes(SqlFunction function,
+  private static List<RelDataType> permuteArgTypes(List<String> paramNames,
       List<String> argNames, List<RelDataType> argTypes) {
     // Arguments passed by name. Make sure that the function has
     // parameters of all of these names.
     Map<Integer, Integer> map = new HashMap<>();
     for (Ord<String> argName : Ord.zip(argNames)) {
-      int i = function.getParamNames().indexOf(argName.e);
+      int i = paramNames.indexOf(argName.e);
       if (i < 0) {
         return null;
       }
       map.put(i, argName.i);
     }
-    return Functions.generate(function.getParamTypes().size(), index -> {
+    return Functions.generate(paramNames.size(), index -> {
       if (map.containsKey(index)) {
         return argTypes.get(map.get(index));
       } else {
@@ -667,6 +672,7 @@ public abstract class SqlUtil {
    */
   private static Iterator<SqlOperator> filterRoutinesByTypePrecedence(
       SqlSyntax sqlSyntax,
+      RelDataTypeFactory typeFactory,
       Iterator<SqlOperator> routines,
       List<RelDataType> argTypes,
       List<String> argNames) {
@@ -680,16 +686,21 @@ public abstract class SqlUtil {
     for (final Ord<RelDataType> argType : Ord.zip(argTypes)) {
       final RelDataTypePrecedenceList precList =
           argType.e.getPrecedenceList();
-      final RelDataType bestMatch = bestMatch(sqlFunctions, argType.i, argNames, precList);
+      final RelDataType bestMatch =
+          bestMatch(typeFactory, sqlFunctions, argType.i, argNames, precList);
       if (bestMatch != null) {
         sqlFunctions = sqlFunctions.stream()
             .filter(function -> {
-              final List<RelDataType> paramTypes = function.getParamTypes();
-              if (paramTypes == null) {
+              if (!function.getOperandTypeChecker().isFixedParameters()) {
                 return false;
               }
+              final SqlOperandMetadata operandMetadata =
+                  (SqlOperandMetadata) function.getOperandTypeChecker();
+              final List<String> paramNames = operandMetadata.paramNames();
+              final List<RelDataType> paramTypes =
+                  operandMetadata.paramTypes(typeFactory);
               int index = argNames != null
-                  ? function.getParamNames().indexOf(argNames.get(argType.i))
+                  ? paramNames.indexOf(argNames.get(argType.i))
                   : argType.i;
               final RelDataType paramType = paramTypes.get(index);
               return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
@@ -701,16 +712,21 @@ public abstract class SqlUtil {
     return (Iterator) sqlFunctions.iterator();
   }
 
-  private static RelDataType bestMatch(List<SqlFunction> sqlFunctions, int i,
+  private static RelDataType bestMatch(RelDataTypeFactory typeFactory,
+      List<SqlFunction> sqlFunctions, int i,
       List<String> argNames, RelDataTypePrecedenceList precList) {
     RelDataType bestMatch = null;
     for (SqlFunction function : sqlFunctions) {
-      List<RelDataType> paramTypes = function.getParamTypes();
-      if (paramTypes == null) {
+      if (!function.getOperandTypeChecker().isFixedParameters()) {
         continue;
       }
+      final SqlOperandMetadata operandMetadata =
+          (SqlOperandMetadata) function.getOperandTypeChecker();
+      final List<RelDataType> paramTypes =
+          operandMetadata.paramTypes(typeFactory);
+      final List<String> paramNames = operandMetadata.paramNames();
       final RelDataType paramType = argNames != null
-          ? paramTypes.get(function.getParamNames().indexOf(argNames.get(i)))
+          ? paramTypes.get(paramNames.indexOf(argNames.get(i)))
           : paramTypes.get(i);
       if (bestMatch == null) {
         bestMatch = paramType;

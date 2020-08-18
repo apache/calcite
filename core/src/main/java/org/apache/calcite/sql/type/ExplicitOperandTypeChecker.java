@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlOperator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parameter type-checking strategy for Explicit Type.
@@ -31,10 +32,10 @@ import java.util.List;
 public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  private RelDataType type;
+  private final RelDataType type;
 
   public ExplicitOperandTypeChecker(RelDataType type) {
-    this.type = type;
+    this.type = Objects.requireNonNull(type);
   }
 
   public boolean isOptional(int i) {

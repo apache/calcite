@@ -18,8 +18,10 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -27,8 +29,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
@@ -47,8 +47,6 @@ public class SqlFunction extends SqlOperator {
   private final SqlFunctionCategory category;
 
   private final SqlIdentifier sqlIdentifier;
-
-  private final List<RelDataType> paramTypes;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -70,9 +68,9 @@ public class SqlFunction extends SqlOperator {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     // We leave sqlIdentifier as null to indicate
-    // that this is a built-in.  Same for paramTypes.
+    // that this is a built-in.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, null, category);
+        operandTypeChecker, category);
 
     assert !((category == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR)
         && (returnTypeInference == null));
@@ -102,6 +100,20 @@ public class SqlFunction extends SqlOperator {
         paramTypes, funcType);
   }
 
+  @Deprecated // to be removed before 2.0
+  protected SqlFunction(
+      String name,
+      SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      SqlFunctionCategory category) {
+    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, category);
+  }
+
   /**
    * Internal constructor.
    */
@@ -112,15 +124,12 @@ public class SqlFunction extends SqlOperator {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
-      List<RelDataType> paramTypes,
       SqlFunctionCategory category) {
     super(name, kind, 100, 100, returnTypeInference, operandTypeInference,
         operandTypeChecker);
 
     this.sqlIdentifier = sqlIdentifier;
     this.category = Objects.requireNonNull(category);
-    this.paramTypes =
-        paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -144,20 +153,18 @@ public class SqlFunction extends SqlOperator {
     return super.getNameAsId();
   }
 
-  /**
-   * Return array of parameter types, or null for built-in function.
-   */
+  /** Use {@link SqlOperandMetadata#paramTypes(RelDataTypeFactory)} on the
+   * result of {@link #getOperandTypeChecker()}. */
+  @Deprecated // to be removed before 2.0
   public List<RelDataType> getParamTypes() {
-    return paramTypes;
+    return null;
   }
 
-  /**
-   * Returns a list of parameter names.
-   *
-   * <p>The default implementation returns {@code [arg0, arg1, ..., argN]}.
-   */
+  /** Use {@link SqlOperandMetadata#paramNames()} on the result of
+   * {@link #getOperandTypeChecker()}. */
+  @Deprecated // to be removed before 2.0
   public List<String> getParamNames() {
-    return Functions.generate(paramTypes.size(), i -> "arg" + i);
+    return Functions.generate(getParamTypes().size(), i -> "arg" + i);
   }
 
   public void unparse(
@@ -239,10 +246,9 @@ public class SqlFunction extends SqlOperator {
 
     SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
-            getNameAsId(), argTypes, argNames, getFunctionType(),
-            SqlSyntax.FUNCTION, getKind(),
-            validator.getCatalogReader().nameMatcher(),
-            false);
+            validator.getTypeFactory(), getNameAsId(), argTypes, argNames,
+            getFunctionType(), SqlSyntax.FUNCTION, getKind(),
+            validator.getCatalogReader().nameMatcher(), false);
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -280,7 +286,9 @@ public class SqlFunction extends SqlOperator {
         if (validator.config().typeCoercionEnabled()) {
           // try again if implicit type coercion is allowed.
           function = (SqlFunction)
-              SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
+              SqlUtil.lookupRoutine(validator.getOperatorTable(),
+                  validator.getTypeFactory(),
+                  getNameAsId(),
                   argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION,
                   getKind(), validator.getCatalogReader().nameMatcher(), true);
           // try to coerce the function arguments to the declared sql type name.
