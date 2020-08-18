@@ -62,6 +62,15 @@ public interface SqlOperandTypeChecker {
   /** Returns whether the {@code i}th operand is optional. */
   boolean isOptional(int i);
 
+  /** Returns whether the list of parameters is fixed-length. In standard SQL,
+   * user-defined functions are fixed-length.
+   *
+   * <p>If true, the validator should expand calls, supplying a {@code DEFAULT}
+   * value for each parameter for which an argument is not supplied. */
+  default boolean isFixedParameters() {
+    return false;
+  }
+
   /** Strategy used to make arguments consistent. */
   enum Consistency {
     /** Do not try to make arguments consistent. */

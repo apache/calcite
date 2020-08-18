@@ -25,10 +25,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.AggregateFunction;
-import org.apache.calcite.schema.Function;
-import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
@@ -37,16 +34,17 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
@@ -65,7 +63,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -137,8 +135,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return config;
   }
 
-  private Collection<Function> getFunctionsFrom(List<String> names) {
-    final List<Function> functions2 = new ArrayList<>();
+  private Collection<org.apache.calcite.schema.Function> getFunctionsFrom(
+      List<String> names) {
+    final List<org.apache.calcite.schema.Function> functions2 =
+        new ArrayList<>();
     final List<List<String>> schemaNameList = new ArrayList<>();
     if (names.size() > 1) {
       // Name qualified: ignore path. But we do look in "/catalog" and "/",
@@ -253,7 +253,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       return;
     }
 
-    final Predicate<Function> predicate;
+    final Predicate<org.apache.calcite.schema.Function> predicate;
     if (category == null) {
       predicate = function -> true;
     } else if (category.isTableFunction()) {
@@ -285,61 +285,73 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           className, "*", true);
     }
 
-    // The following is technical debt; see [CALCITE-2082] Remove
-    // RelDataTypeFactory argument from SqlUserDefinedAggFunction constructor
-    final SqlTypeFactoryImpl typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-
     final ListSqlOperatorTable table = new ListSqlOperatorTable();
     for (String name : schema.getFunctionNames()) {
-      for (Function function : schema.getFunctions(name, true)) {
+      schema.getFunctions(name, true).forEach(function -> {
         final SqlIdentifier id = new SqlIdentifier(name, SqlParserPos.ZERO);
-        table.add(
-            toOp(typeFactory, id, function));
-      }
+        table.add(toOp(id, function));
+      });
     }
     return table;
   }
 
-  private SqlOperator toOp(SqlIdentifier name, final Function function) {
-    return toOp(typeFactory, name, function);
-  }
+  /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
+  private static SqlOperator toOp(SqlIdentifier name,
+      final org.apache.calcite.schema.Function function) {
+    final Function<RelDataTypeFactory, List<RelDataType>> argTypesFactory =
+        typeFactory -> function.getParameters()
+            .stream()
+            .map(o -> o.getType(typeFactory))
+            .collect(Util.toImmutableList());
+    final Function<RelDataTypeFactory, List<SqlTypeFamily>> typeFamiliesFactory =
+        typeFactory -> argTypesFactory.apply(typeFactory)
+            .stream()
+            .map(type ->
+                Util.first(type.getSqlTypeName().getFamily(),
+                    SqlTypeFamily.ANY))
+            .collect(Util.toImmutableList());
+    final Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory =
+        typeFactory ->
+            argTypesFactory.apply(typeFactory)
+                .stream()
+                .map(type -> toSql(typeFactory, type))
+                .collect(Util.toImmutableList());
 
-  /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}.
-   *
-   * <p>The {@code typeFactory} argument is technical debt; see [CALCITE-2082]
-   * Remove RelDataTypeFactory argument from SqlUserDefinedAggFunction
-   * constructor. */
-  private static SqlOperator toOp(RelDataTypeFactory typeFactory,
-      SqlIdentifier name, final Function function) {
-    List<RelDataType> argTypes = new ArrayList<>();
-    List<SqlTypeFamily> typeFamilies = new ArrayList<>();
-    for (FunctionParameter o : function.getParameters()) {
-      final RelDataType type = o.getType(typeFactory);
-      argTypes.add(type);
-      typeFamilies.add(
-          Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
-    }
-    final FamilyOperandTypeChecker typeChecker =
-        OperandTypes.family(typeFamilies, i ->
-            function.getParameters().get(i).isOptional());
-    final List<RelDataType> paramTypes = toSql(typeFactory, argTypes);
+    // Use a short-lived type factory to populate "typeFamilies" and "argTypes".
+    // SqlOperandMetadata.paramTypes will use the real type factory, during
+    // validation.
+    final RelDataTypeFactory dummyTypeFactory = new JavaTypeFactoryImpl();
+    final List<RelDataType> argTypes = argTypesFactory.apply(dummyTypeFactory);
+    final List<SqlTypeFamily> typeFamilies =
+        typeFamiliesFactory.apply(dummyTypeFactory);
+
+    final SqlOperandTypeInference operandTypeInference =
+        InferTypes.explicit(argTypes);
+
+    final SqlOperandMetadata operandMetadata =
+        OperandTypes.operandMetadata(typeFamilies, paramTypesFactory,
+            i -> function.getParameters().get(i).getName(),
+            i -> function.getParameters().get(i).isOptional());
+
+    final SqlKind kind = SqlKind.OTHER_FUNCTION;
     if (function instanceof ScalarFunction) {
-      return new SqlUserDefinedFunction(name, infer((ScalarFunction) function),
-          InferTypes.explicit(argTypes), typeChecker, paramTypes, function);
+      final SqlReturnTypeInference returnTypeInference =
+          infer((ScalarFunction) function);
+      return new SqlUserDefinedFunction(name, kind, returnTypeInference,
+          operandTypeInference, operandMetadata, function);
     } else if (function instanceof AggregateFunction) {
-      return new SqlUserDefinedAggFunction(name,
-          infer((AggregateFunction) function), InferTypes.explicit(argTypes),
-          typeChecker, (AggregateFunction) function, false, false,
-          Optionality.FORBIDDEN, typeFactory);
+      final SqlReturnTypeInference returnTypeInference =
+          infer((AggregateFunction) function);
+      return new SqlUserDefinedAggFunction(name, kind,
+          returnTypeInference, operandTypeInference,
+          operandMetadata, (AggregateFunction) function, false, false,
+          Optionality.FORBIDDEN);
     } else if (function instanceof TableMacro) {
-      return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
-          InferTypes.explicit(argTypes), typeChecker, paramTypes,
-          (TableMacro) function);
+      return new SqlUserDefinedTableMacro(name, kind, ReturnTypes.CURSOR,
+          operandTypeInference, operandMetadata, (TableMacro) function);
     } else if (function instanceof TableFunction) {
-      return new SqlUserDefinedTableFunction(name, ReturnTypes.CURSOR,
-          InferTypes.explicit(argTypes), typeChecker, paramTypes,
-          (TableFunction) function);
+      return new SqlUserDefinedTableFunction(name, kind, ReturnTypes.CURSOR,
+          operandTypeInference, operandMetadata, (TableFunction) function);
     } else {
       throw new AssertionError("unknown function type " + function);
     }
@@ -368,11 +380,6 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     };
   }
 
-  private static List<RelDataType> toSql(
-      final RelDataTypeFactory typeFactory, List<RelDataType> types) {
-    return Lists.transform(types, type -> toSql(typeFactory, type));
-  }
-
   private static RelDataType toSql(RelDataTypeFactory typeFactory,
       RelDataType type) {
     if (type instanceof RelDataTypeFactoryImpl.JavaType
@@ -385,7 +392,18 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public List<SqlOperator> getOperatorList() {
-    return null;
+    final ImmutableList.Builder<SqlOperator> b = ImmutableList.builder();
+    for (List<String> schemaPath : schemaPaths) {
+      CalciteSchema schema =
+          SqlValidatorUtil.getSchema(rootSchema, schemaPath, nameMatcher);
+      if (schema != null) {
+        for (String name : schema.getFunctionNames()) {
+          schema.getFunctions(name, true).forEach(f ->
+              b.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f)));
+        }
+      }
+    }
+    return b.build();
   }
 
   public CalciteSchema getRootSchema() {
@@ -396,7 +414,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return typeFactory;
   }
 
-  public void registerRules(RelOptPlanner planner) throws Exception {
+  public void registerRules(RelOptPlanner planner) {
   }
 
   @SuppressWarnings("deprecation")

@@ -17,14 +17,10 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * SqlSessionTableFunction implements an operator for per-key sessionization. It allows
@@ -39,25 +35,20 @@ import java.util.List;
  */
 public class SqlSessionTableFunction extends SqlWindowTableFunction {
   public SqlSessionTableFunction() {
-    super(SqlKind.SESSION.name(), OperandTypeCheckerImpl.INSTANCE);
+    super(SqlKind.SESSION.name(), new OperandMetadataImpl());
   }
-
-  @Override public List<String> getParamNames() {
-    return ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_KEY, PARAM_SIZE);
-  }
-
-  // -------------------------------------------------------------------------
-  //  Inner Class
-  // -------------------------------------------------------------------------
 
   /** Operand type checker for SESSION. */
-  private static class OperandTypeCheckerImpl implements SqlOperandTypeChecker {
-    static final OperandTypeCheckerImpl INSTANCE = new OperandTypeCheckerImpl();
+  private static class OperandMetadataImpl extends AbstractOperandMetadata {
+    OperandMetadataImpl() {
+      super(ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_KEY, PARAM_SIZE),
+          4);
+    }
 
-    @Override public boolean checkOperandTypes(
-        SqlCallBinding callBinding, boolean throwOnFailure) {
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+        boolean throwOnFailure) {
       final SqlValidator validator = callBinding.getValidator();
-      if (!validateTableWithFollowingDescriptors(callBinding, 2)) {
+      if (!checkTableAndDescriptorOperands(callBinding, 2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
       final RelDataType type3 = validator.getValidatedNodeType(callBinding.operand(3));
@@ -67,21 +58,9 @@ public class SqlSessionTableFunction extends SqlWindowTableFunction {
       return true;
     }
 
-    @Override public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.of(4);
-    }
-
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
           + "DESCRIPTOR(key), datetime interval)";
-    }
-
-    @Override public Consistency getConsistency() {
-      return Consistency.NONE;
-    }
-
-    @Override public boolean isOptional(int i) {
-      return false;
     }
   }
 }

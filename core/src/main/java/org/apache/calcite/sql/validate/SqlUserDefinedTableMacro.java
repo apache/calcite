@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -38,7 +39,6 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * User-defined table macro.
@@ -50,18 +50,36 @@ public class SqlUserDefinedTableMacro extends SqlFunction
     implements SqlTableFunction {
   private final TableMacro tableMacro;
 
+  @Deprecated // to be removed before 2.0
   public SqlUserDefinedTableMacro(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, List<RelDataType> paramTypes,
       TableMacro tableMacro) {
-    super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
-        returnTypeInference, operandTypeInference, operandTypeChecker,
-        Objects.requireNonNull(paramTypes),
+    this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker instanceof SqlOperandMetadata
+            ? (SqlOperandMetadata) operandTypeChecker : null, tableMacro);
+    Util.discard(paramTypes); // no longer used
+  }
+
+  /** Creates a user-defined table macro. */
+  public SqlUserDefinedTableMacro(SqlIdentifier opName, SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandMetadata operandMetadata,
+      TableMacro tableMacro) {
+    super(Util.last(opName.names), opName, kind,
+        returnTypeInference, operandTypeInference, operandMetadata,
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     this.tableMacro = tableMacro;
   }
 
+  @Override public SqlOperandMetadata getOperandTypeChecker() {
+    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  }
+
+  @SuppressWarnings("deprecation")
   @Override public List<String> getParamNames() {
     return Lists.transform(tableMacro.getParameters(),
         FunctionParameter::getName);

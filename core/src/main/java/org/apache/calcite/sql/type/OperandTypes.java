@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -29,6 +30,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -78,6 +81,23 @@ public abstract class OperandTypes {
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families) {
     return family(families, i -> false);
+  }
+
+  /**
+   * Creates a checker for user-defined functions (including user-defined
+   * aggregate functions, table functions, and table macros).
+   *
+   * <p>Unlike built-in functions, there is a fixed number of parameters,
+   * and the parameters have names. You can ask for the type of a parameter
+   * without providing a particular call (and with it actual arguments) but you
+   * do need to provide a type factory, and therefore the types are only good
+   * for the duration of the current statement.
+   */
+  public static SqlOperandMetadata operandMetadata(List<SqlTypeFamily> families,
+      Function<RelDataTypeFactory, List<RelDataType>> typesFactory,
+      IntFunction<String> operandName, Predicate<Integer> optional) {
+    return new OperandMetadataImpl(families, typesFactory, operandName,
+        optional);
   }
 
   /**

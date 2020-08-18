@@ -16,12 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * SqlHopTableFunction implements an operator for hopping.
@@ -37,47 +32,31 @@ import java.util.List;
  */
 public class SqlHopTableFunction extends SqlWindowTableFunction {
   public SqlHopTableFunction() {
-    super(SqlKind.HOP.name(), OperandTypeCheckerImpl.INSTANCE);
+    super(SqlKind.HOP.name(), new OperandMetadataImpl());
   }
-
-  @Override public List<String> getParamNames() {
-    return ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SLIDE, PARAM_SIZE, PARAM_OFFSET);
-  }
-
-  // -------------------------------------------------------------------------
-  //  Inner Class
-  // -------------------------------------------------------------------------
 
   /** Operand type checker for HOP. */
-  private static class OperandTypeCheckerImpl implements SqlOperandTypeChecker {
-    static final OperandTypeCheckerImpl INSTANCE = new OperandTypeCheckerImpl();
+  private static class OperandMetadataImpl extends AbstractOperandMetadata {
+    OperandMetadataImpl() {
+      super(
+          ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SLIDE,
+              PARAM_SIZE, PARAM_OFFSET), 4);
+    }
 
-    @Override public boolean checkOperandTypes(
-        SqlCallBinding callBinding, boolean throwOnFailure) {
-      if (!validateTableWithFollowingDescriptors(callBinding, 1)) {
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      if (!checkTableAndDescriptorOperands(callBinding, 1)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
-      if (!validateTailingIntervals(callBinding, 2)) {
+      if (!checkIntervalOperands(callBinding, 2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
       return true;
     }
 
-    @Override public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.between(4, 5);
-    }
-
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
           + "datetime interval, datetime interval[, datetime interval])";
-    }
-
-    @Override public Consistency getConsistency() {
-      return Consistency.NONE;
-    }
-
-    @Override public boolean isOptional(int i) {
-      return i == 4;
     }
   }
 }
