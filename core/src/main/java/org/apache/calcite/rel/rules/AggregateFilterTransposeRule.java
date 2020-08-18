@@ -144,10 +144,8 @@ public class AggregateFilterTransposeRule
           return;
         }
         topAggCallList.add(
-            AggregateCall.create(rollup, aggregateCall.isDistinct(),
-                aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-                ImmutableList.of(i++), -1, aggregateCall.collation,
-                aggregateCall.type, aggregateCall.name));
+            AggregateCall.builder(aggregateCall).aggFunction(rollup)
+            .argList(ImmutableList.of(i++)).filterArg(-1).build());
       }
       final Aggregate topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter,

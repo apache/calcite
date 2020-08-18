@@ -1808,9 +1808,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
             ImmutableBitSet.of(2, 0),
             ImmutableList.of(),
             ImmutableList.of(
-                AggregateCall.create(SqlStdOperatorTable.COUNT,
-                    false, false, false, ImmutableIntList.of(),
-                    -1, RelCollations.EMPTY, 2, join, null, null)));
+                AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+                .groupCount(2).input(join).build()));
     rowSize = mq.getAverageRowSize(aggregate);
     columnSizes = mq.getAverageColumnSizes(aggregate);
     assertThat(columnSizes.size(), equalTo(3));

@@ -447,12 +447,11 @@ class RelWriterTest {
                   ImmutableBitSet.of(0),
                   null,
                   ImmutableList.of(
-                      AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          true, false, false, ImmutableList.of(1), -1,
-                          RelCollations.EMPTY, bigIntType, "c"),
-                      AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          false, false, false, ImmutableList.of(), -1,
-                          RelCollations.EMPTY, bigIntType, "d")));
+                      AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+                          .distinct(true).argList(ImmutableList.of(1)).type(bigIntType)
+                          .name("c").build(),
+                      AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+                          .type(bigIntType).name("d").build()));
           aggregate.explain(writer);
           return writer.asString();
         });
