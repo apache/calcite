@@ -563,13 +563,14 @@ class TopDownRuleDriver implements RuleDriver {
     return new OptimizeInputs(rel, group);
   }
 
-  // Try converting the physical node to another trait sets
-  // either by converter rule or traits pass though.
+  // Try to convert the physical node to another trait sets,
+  // either by converter rule or traits pass through.
   private RelNode convert(RelNode rel, RelSubset group) {
     if (!passThroughCache.contains(rel)) {
       if (checkLowerBound(rel, group)) {
         RelNode passThrough = group.passThrough(rel);
         if (passThrough != null) {
+          assert passThrough.getConvention() == rel.getConvention();
           passThroughCache.add(passThrough);
           return passThrough;
         }
