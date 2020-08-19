@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlWriter.DynamicParamType;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
@@ -36,6 +40,8 @@ public class SqlString {
   private final String sql;
   private SqlDialect dialect;
   private @Nullable ImmutableList<Integer> dynamicParameters;
+  private @Nullable ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexMap;
+  private @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicTypeIndexes;
 
   /**
    * Creates a SqlString.
@@ -53,9 +59,25 @@ public class SqlString {
    */
   public SqlString(SqlDialect dialect, String sql,
       @Nullable ImmutableList<Integer> dynamicParameters) {
-    this.dialect = dialect;
+    this(dialect, sql, dynamicParameters, ImmutableMap.of(), ImmutableList.of());
+  }
+
+  /**
+   * Creates a SqlString. The SQL might contain correlate dynamic parameters and default dynamic
+   * parameters.
+   *
+   * @param rexFieldAccessIndexMap correlate field indices
+   * @param dynamicTypeIndexes dynamic parameters indices
+   */
+  public SqlString(SqlDialect dialect, String sql,
+      @Nullable ImmutableList<Integer> dynamicParameters,
+      @Nullable ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexMap,
+      @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicTypeIndexes) {
     this.sql = sql;
+    this.dialect = dialect;
     this.dynamicParameters = dynamicParameters;
+    this.rexFieldAccessIndexMap = rexFieldAccessIndexMap;
+    this.dynamicTypeIndexes = dynamicTypeIndexes;
     assert sql != null : "sql must be NOT null";
     assert dialect != null : "dialect must be NOT null";
   }
@@ -99,6 +121,25 @@ public class SqlString {
   @Pure
   public @Nullable ImmutableList<Integer> getDynamicParameters() {
     return dynamicParameters;
+  }
+
+  /**
+   * Returns indices of correlate dynamic parameters.
+   *
+   * @return indices of correlate dynamic parameters
+   */
+  @Pure
+  public @Nullable ImmutableMap<RexFieldAccess, Integer> getRexFieldAccessIndexMap() {
+    return rexFieldAccessIndexMap;
+  }
+
+  /**
+   * Returns indices of default and correlate dynamic parameters.
+   * @return indices of default and correlate dynamic parameters
+   */
+  @Pure
+  public @Nullable ImmutableList<Pair<DynamicParamType, Integer>> getDynamicTypeIndexes() {
+    return dynamicTypeIndexes;
   }
 
   /**

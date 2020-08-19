@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 
@@ -293,6 +294,22 @@ public interface SqlWriter {
     }
   }
 
+  /**
+   * Type of dynamic parameters.
+   */
+  enum DynamicParamType {
+    /**
+     * default dynamic param type, identifies by sql.
+     */
+    DEFAULT,
+
+    /**
+     * correlate dynamic param type, created by
+     * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
+     */
+    CORRELATE
+  }
+
   /** Comma operator.
    *
    * <p>Defined in {@code SqlWriter} because it is only used while converting
@@ -442,6 +459,12 @@ public interface SqlWriter {
    */
   @Pure
   void endFunCall(Frame frame);
+
+  /**
+   * Prints a correlate dynamic parameter (e.g. {@code ?} for default JDBC).
+   * @param fieldAccess rexFieldAccess
+   */
+  void fieldAccessCorrelate(RexFieldAccess fieldAccess);
 
   /**
    * Starts a list.

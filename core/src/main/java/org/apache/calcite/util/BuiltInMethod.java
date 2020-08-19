@@ -178,6 +178,8 @@ public enum BuiltInMethod {
       ResultSetEnumerable.PreparedStatementEnricher.class),
   CREATE_ENRICHER(ResultSetEnumerable.class, "createEnricher", Integer[].class,
       DataContext.class),
+  CREATE_CORRELATE_ENRICHER(ResultSetEnumerable.class, "createCorrelateEnricher", Integer[].class,
+      DataContext.class, Map.class, Pair[].class),
   HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class,
       Function1.class,
       Function1.class, Function2.class, EqualityComparer.class,
