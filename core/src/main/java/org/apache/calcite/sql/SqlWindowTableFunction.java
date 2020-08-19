@@ -133,7 +133,7 @@ public class SqlWindowTableFunction extends SqlFunction
     return true;
   }
 
-  private static void validateColumnNames(SqlValidator validator,
+  public static void validateColumnNames(SqlValidator validator,
       List<String> fieldNames, List<SqlNode> columnNames) {
     final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
     for (SqlNode columnName : columnNames) {

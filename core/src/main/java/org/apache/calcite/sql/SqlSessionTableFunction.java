@@ -57,23 +57,33 @@ public class SqlSessionTableFunction extends SqlWindowTableFunction {
     @Override public boolean checkOperandTypes(
         SqlCallBinding callBinding, boolean throwOnFailure) {
       final SqlValidator validator = callBinding.getValidator();
-      if (!validateTableWithFollowingDescriptors(callBinding, 2)) {
+      if (!validateTableWithFollowingDescriptors(callBinding, 1)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
-      final RelDataType type3 = validator.getValidatedNodeType(callBinding.operand(3));
-      if (!SqlTypeUtil.isInterval(type3)) {
+
+      final SqlNode operand2 = callBinding.operand(2);
+      final RelDataType type2 = validator.getValidatedNodeType(operand2);
+      if (operand2.getKind() == SqlKind.DESCRIPTOR) {
+        validateColumnNames(validator, type2.getFieldNames(), ((SqlCall) operand2).getOperandList());
+      } else if (!SqlTypeUtil.isInterval(type2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
+      if (callBinding.getOperandCount() > 3) {
+        final RelDataType type3 = validator.getValidatedNodeType(callBinding.operand(3));
+        if (!SqlTypeUtil.isInterval(type3)) {
+          return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+        }
       }
       return true;
     }
 
     @Override public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.of(4);
+      return SqlOperandCountRanges.between(3, 4);
     }
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
-          + "DESCRIPTOR(key), datetime interval)";
+          + "DESCRIPTOR(key) optional, datetime interval)";
     }
 
     @Override public Consistency getConsistency() {
