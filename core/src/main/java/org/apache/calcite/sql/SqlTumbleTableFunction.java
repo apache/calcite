@@ -51,7 +51,7 @@ public class SqlTumbleTableFunction extends SqlWindowTableFunction {
   //  Inner Class
   // -------------------------------------------------------------------------
 
-  /** Operand type checker for SESSION. */
+  /** Operand type checker for TUMBLE. */
   private static class OperandTypeCheckerImpl implements SqlOperandTypeChecker {
     static final OperandTypeCheckerImpl INSTANCE = new OperandTypeCheckerImpl();
 

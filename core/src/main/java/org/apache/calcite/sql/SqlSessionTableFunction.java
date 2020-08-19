@@ -64,7 +64,10 @@ public class SqlSessionTableFunction extends SqlWindowTableFunction {
       final SqlNode operand2 = callBinding.operand(2);
       final RelDataType type2 = validator.getValidatedNodeType(operand2);
       if (operand2.getKind() == SqlKind.DESCRIPTOR) {
-        validateColumnNames(validator, type2.getFieldNames(), ((SqlCall) operand2).getOperandList());
+        final SqlNode operand0 = callBinding.operand(0);
+        final RelDataType type = validator.getValidatedNodeType(operand0);
+        validateColumnNames(
+            validator, type.getFieldNames(), ((SqlCall) operand2).getOperandList());
       } else if (!SqlTypeUtil.isInterval(type2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
@@ -91,7 +94,7 @@ public class SqlSessionTableFunction extends SqlWindowTableFunction {
     }
 
     @Override public boolean isOptional(int i) {
-      return false;
+      return i == 2;
     }
   }
 }
