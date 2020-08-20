@@ -1860,11 +1860,42 @@ public class SubstitutionVisitor {
       RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
-    if (query.groupSets.equals(target.groupSets)) {
+    Map<RexNode, RexNode> targetCondConstantMap =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder, RelOptUtil.conjunctions(targetCond));
+    // Collect rexInputRef in constant filter condition.
+    Set<Integer> constantCondInputRefs = new HashSet<>();
+    List<Integer> targetGroupByIndexList = target.groupSet.asList();
+    RexShuttle rexShuttle = new RexShuttle() {
+      public RexNode visitInputRef(RexInputRef inputRef) {
+        constantCondInputRefs.add(targetGroupByIndexList.get(inputRef.getIndex()));
+        return super.visitInputRef(inputRef);
+      }
+    };
+    for (RexNode rexNode : targetCondConstantMap.keySet()) {
+      rexNode.accept(rexShuttle);
+    }
+    Set<Integer> compenGroupSet = null;
+    // Calc the missing group list of query, do not cover grouping sets cases.
+    if (query.groupSets.size() == 1 && target.groupSets.size() == 1) {
+      if (target.groupSet.contains(query.groupSet)) {
+        compenGroupSet = target.groupSets.get(0).except(query.groupSets.get(0)).asSet();
+      }
+    }
+    // If query and target have the same group list,
+    // or query has constant filter for missing columns in group by list.
+    if (query.groupSets.equals(target.groupSets)
+        || (compenGroupSet != null && constantCondInputRefs.containsAll(compenGroupSet))) {
+      int projOffset = 0;
+      if (!query.groupSets.equals(target.groupSets)) {
+        projOffset = compenGroupSet.size();
+      }
       // Same level of aggregation. Generate a project.
       final List<Integer> projects = new ArrayList<>();
       final int groupCount = query.groupSet.cardinality();
-      for (int i = 0; i < groupCount; i++) {
+      final List<Integer> targetGroupList = target.groupSet.asList();
+      for (Integer inputIndex : query.groupSet.asList()) {
+        // Use the index in target group by.
+        int i = targetGroupList.indexOf(inputIndex);
         projects.add(i);
       }
       for (AggregateCall aggregateCall : query.aggCalls) {
@@ -1872,7 +1903,7 @@ public class SubstitutionVisitor {
         if (i < 0) {
           return null;
         }
-        projects.add(groupCount + i);
+        projects.add(groupCount + i +  projOffset);
       }
 
       List<RexNode> compenProjs = MutableRels.createProjectExprs(target, projects);

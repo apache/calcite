@@ -970,6 +970,77 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  @Test void testConstantFilterInAgg() {
+    final String mv = ""
+        + "select \"name\", count(distinct \"deptno\") as cnt\n"
+        + "from \"emps\" group by \"name\"";
+    final String query = ""
+        + "select count(distinct \"deptno\") as cnt\n"
+        + "from \"emps\" where \"name\" = 'hello'";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..1=[{inputs}], expr#2=['hello':VARCHAR], expr#3=[CAST($t0)"
+            + ":VARCHAR], expr#4=[=($t2, $t3)], CNT=[$t1], $condition=[$t4])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testConstantFilterInAgg2() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" = 'hello'\n"
+        + "group by \"deptno\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=['hello':VARCHAR], expr#4=[CAST($t0)"
+            + ":VARCHAR], expr#5=[=($t3, $t4)], deptno=[$t1], CNT=[$t2], $condition=[$t5])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testConstantFilterInAgg3() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" = 'hello' and \"deptno\" = 1\n"
+        + "group by \"deptno\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=['hello':VARCHAR], expr#4=[CAST($t0)"
+            + ":VARCHAR], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[CAST($t1):INTEGER NOT NULL], "
+            + "expr#8=[=($t6, $t7)], expr#9=[AND($t5, $t8)], deptno=[$t1], CNT=[$t2], "
+            + "$condition=[$t9])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testConstantFilterInAgg4() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", \"commission\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" = 'hello' and \"deptno\" = 1\n"
+        + "group by \"deptno\", \"commission\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testConstantFilterInAggUsingSubquery() {
+    final String mv = ""
+        + "select \"name\", count(distinct \"deptno\") as cnt "
+        + "from \"emps\" group by \"name\"";
+    final String query = ""
+        + "select cnt from(\n"
+        + " select \"name\", count(distinct \"deptno\") as cnt "
+        + " from \"emps\" group by \"name\") t\n"
+        + "where \"name\" = 'hello'";
+    sql(mv, query).ok();
+  }
 
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
