@@ -33,6 +33,9 @@ branches:
     - /^[0-9]+-.*$/
 install: true
 script:
+  # Throw OutOfMemoryError in case less than 35% is free after full GC
+  # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
+  - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
   - ./gradlew --no-daemon build
 git:
   depth: 100
