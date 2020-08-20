@@ -21,14 +21,18 @@ import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.withGroovyBuilder
 
+@CacheableTask
 open class FmppTask @Inject constructor(
     objectFactory: ObjectFactory
 ) : DefaultTask() {
@@ -37,9 +41,11 @@ open class FmppTask @Inject constructor(
         .convention(project.configurations.named(FmppPlugin.FMPP_CLASSPATH_CONFIGURATION_NAME))
 
     @InputFile
+    @PathSensitive(PathSensitivity.NONE)
     val config = objectFactory.fileProperty()
 
     @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
     val templates = objectFactory.directoryProperty()
 
     @OutputDirectory

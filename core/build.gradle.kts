@@ -159,9 +159,9 @@ val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::c
 val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCTask::class) {
     dependsOn(fmppMain)
     val parserFile = fmppMain.map {
-        it.output.asFileTree.matching { include("**/Parser.jj") }.singleFile
+        it.output.asFileTree.matching { include("**/Parser.jj") }
     }
-    inputFile.set(parserFile)
+    inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.impl")
 }
 
@@ -173,9 +173,9 @@ val fmppTest by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::c
 val javaCCTest by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCTask::class) {
     dependsOn(fmppTest)
     val parserFile = fmppTest.map {
-        it.output.asFileTree.matching { include("**/Parser.jj") }.singleFile
+        it.output.asFileTree.matching { include("**/Parser.jj") }
     }
-    inputFile.set(parserFile)
+    inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.parserextensiontesting")
 }
 

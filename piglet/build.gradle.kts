@@ -38,7 +38,7 @@ dependencies {
 }
 
 val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCTask::class) {
-    inputFile.set(file("src/main/javacc/PigletParser.jj"))
+    inputFile.from(file("src/main/javacc/PigletParser.jj"))
     packageName.set("org.apache.calcite.piglet.parser")
 }
 
