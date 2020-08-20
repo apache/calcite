@@ -3548,7 +3548,7 @@ public class RelBuilderTest {
   @Test void testCallBetweenOperator() {
     final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
 
-    final String expected = "AND(>=($0, 1), <=($0, 5))";
+    final String expected = "SEARCH($0, Sarg([[1‥5]]))";
     final RexNode call =
         builder.call(SqlStdOperatorTable.BETWEEN,
             builder.field("EMPNO"),
@@ -3564,9 +3564,37 @@ public class RelBuilderTest {
 
     final RelNode root = builder.filter(call2).build();
     final String expectedRel = ""
-        + "LogicalFilter(condition=[AND(>=($0, 1), <=($0, 5))])\n"
+        + "LogicalFilter(condition=[SEARCH($0, Sarg([[1‥5]]))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expectedRel));
+
+    // Consecutive filters are not merged. (For now, anyway.)
+    builder.push(root)
+        .filter(
+            builder.not(
+                builder.equals(builder.field("EMPNO"), builder.literal(3))),
+            builder.equals(builder.field("DEPTNO"), builder.literal(10)));
+    final RelNode root2 = builder.build();
+    final String expectedRel2 = ""
+        + "LogicalFilter(condition=[AND(<>($0, 3), =($7, 10))])\n"
+        + "  LogicalFilter(condition=[SEARCH($0, Sarg([[1‥5]]))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root2, hasTree(expectedRel2));
+
+    // The conditions in one filter are simplified.
+    builder.scan("EMP")
+        .filter(
+            builder.between(builder.field("EMPNO"),
+                builder.literal(1),
+                builder.literal(5)),
+            builder.not(
+                builder.equals(builder.field("EMPNO"), builder.literal(3))),
+            builder.equals(builder.field("DEPTNO"), builder.literal(10)));
+    final RelNode root3 = builder.build();
+    final String expectedRel3 = ""
+        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg([[1‥5]])), <>($0, 3), =($7, 10))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root3, hasTree(expectedRel3));
   }
 
   /** Test case for

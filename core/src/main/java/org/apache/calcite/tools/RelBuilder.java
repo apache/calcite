@@ -609,9 +609,6 @@ public class RelBuilder {
     return getRexBuilder().makeIn(arg, ImmutableList.copyOf(ranges));
   }
 
-  private static boolean isConstant(RexNode e) {
-    return e instanceof RexLiteral;
-  }
   /** Creates an AND. */
   public RexNode and(RexNode... operands) {
     return and(ImmutableList.copyOf(operands));

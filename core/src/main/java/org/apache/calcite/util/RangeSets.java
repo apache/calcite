@@ -30,6 +30,7 @@ import java.util.function.Function;
 public class RangeSets {
   private RangeSets() {}
 
+  @SuppressWarnings("rawtypes")
   private static final ImmutableRangeSet ALL =
       ImmutableRangeSet.of().complement();
 
@@ -76,25 +77,25 @@ public class RangeSets {
       return c;
     }
     if (r0.hasLowerBound()) {
-      c = r0.lowerBoundType().compareTo(r1.lowerBoundType());
+      c = r0.lowerEndpoint().compareTo(r1.lowerEndpoint());
       if (c != 0) {
         return c;
       }
-      c = r0.lowerEndpoint().compareTo(r1.lowerEndpoint());
+      c = r0.lowerBoundType().compareTo(r1.lowerBoundType());
       if (c != 0) {
         return c;
       }
     }
     c = Boolean.compare(r0.hasUpperBound(), r1.hasUpperBound());
     if (c != 0) {
-      return c;
+      return -c;
     }
     if (r0.hasUpperBound()) {
-      c = r0.upperBoundType().compareTo(r1.upperBoundType());
+      c = r0.upperEndpoint().compareTo(r1.upperEndpoint());
       if (c != 0) {
         return c;
       }
-      c = r0.upperEndpoint().compareTo(r1.upperEndpoint());
+      c = r0.upperBoundType().compareTo(r1.upperBoundType());
       if (c != 0) {
         return c;
       }
@@ -238,6 +239,22 @@ public class RangeSets {
           }
         }
       }
+    } else if (range.hasLowerBound()) {
+      final C lower = range.lowerEndpoint();
+      if (range.lowerBoundType() == BoundType.OPEN) {
+        consumer.greaterThan(lower);
+      } else {
+        consumer.atLeast(lower);
+      }
+    } else if (range.hasUpperBound()) {
+      final C upper = range.upperEndpoint();
+      if (range.upperBoundType() == BoundType.OPEN) {
+        consumer.lessThan(upper);
+      } else {
+        consumer.atMost(upper);
+      }
+    } else {
+      consumer.all();
     }
   }
 
