@@ -326,6 +326,8 @@ allprojects {
             // On the other hand, supporessions.xml still analyzes the file, and
             // then it recognizes it should suppress all the output.
             excludeJavaCcGenerated()
+            // Checkstyle 8.26 does not need classpath, see https://github.com/gradle/gradle/issues/14227
+            classpath = files()
             // Workaround for https://github.com/gradle/gradle/issues/13927
             // Absolute paths must not be used as they defeat Gradle build cache
             // Unfortunately, Gradle passes only config_loc variable by default, so we make
