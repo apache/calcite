@@ -3657,7 +3657,27 @@ public class SqlParserTest {
     sql(sql4).ok(expected4);
   }
 
-  @Test void testCollectionTableWithLateral() {
+  @Test public void testTableFunctionInSelect() {
+    conformance = SqlConformanceEnum.HIVE;
+    sql("select n,c from (select TABLE_FUNC(1) as (n,c) from emp)")
+        .ok("SELECT `N`, `C`\n"
+            + "FROM (SELECT `TABLE_FUNC`(1) AS (`N`, `C`)\n"
+            + "FROM `EMP`)");
+    sql("select TABLE_FUNC(1) as (c) from emp")
+        .ok("SELECT `TABLE_FUNC`(1) AS (`C`)\n"
+            + "FROM `EMP`");
+    sql("select char_length(c)*2 from"
+        +  " (select TABLE_FUNC(1) as (n,c) from emp) where char_length(c) > 1")
+        .ok("SELECT (CHAR_LENGTH(`C`) * 2)\n"
+            + "FROM (SELECT `TABLE_FUNC`(1) AS (`N`, `C`)\n"
+            + "FROM `EMP`)\n"
+            + "WHERE (CHAR_LENGTH(`C`) > 1)");
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql("select TABLE_FUNC(1) as (n,c^)^ from emp")
+        .fails("(.*)Table function is not allowed in select list(.*)");
+  }
+
+  @Test public void testCollectionTableWithLateral() {
     final String sql = "select * from dept, lateral table(ramp(dept.deptno))";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`,\n"

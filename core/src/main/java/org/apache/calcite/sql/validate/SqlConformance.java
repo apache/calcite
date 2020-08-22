@@ -455,6 +455,19 @@ public interface SqlConformance {
   boolean allowPluralTimeUnits();
 
   /**
+   * Whether SELECT can contain a table function.
+   *
+   * For example, consider the query
+   *
+   * <blockquote><pre> SELECT SPLIT(col) AS (F0, F1) FROM A </pre> </blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#HIVE};
+   * false otherwise.
+   */
+  boolean allowSelectTableFunction();
+
+  /**
    * Whether to allow a qualified common column in a query that has a
    * NATURAL join or a join with a USING clause.
    *

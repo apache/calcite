@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
@@ -70,7 +71,12 @@ public class AliasNamespace extends AbstractNamespace {
     final SqlValidatorNamespace childNs =
         validator.getNamespace(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    final List<SqlNode> columnNames = Util.skip(operands, 2);
+    List<SqlNode> columnNames;
+    if (SqlUtil.isAsOperatorWithListOperand(call)) {
+      columnNames = ((SqlNodeList) operands.get(1)).getList();
+    } else {
+      columnNames = Util.skip(operands, 2);
+    }
     for (final SqlNode operand : columnNames) {
       String name = ((SqlIdentifier) operand).getSimple();
       if (nameList.contains(name)) {

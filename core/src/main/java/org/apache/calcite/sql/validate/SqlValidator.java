@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
@@ -720,6 +721,14 @@ public interface SqlValidator {
    * @return Scope
    */
   SqlValidatorScope getOverScope(SqlNode node);
+
+  /**
+   * Returns the table function SqlBasicCall in SqlSelect.
+   *
+   * @param select      The select node
+   * @return            The table function node  associate with the select node
+   */
+  SqlBasicCall getTableFunctionInSelect(SqlSelect select);
 
   /**
    * Validates that a query is capable of producing a return of given modality

@@ -254,6 +254,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // TypeCoercion instance used for implicit type coercion.
   private TypeCoercion typeCoercion;
 
+  // Mapping the table function and the select node.
+  private final Map<SqlSelect, SqlBasicCall> selectTableFunctions =
+      new IdentityHashMap<>();
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -1120,6 +1124,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public SqlValidatorScope getOverScope(SqlNode node) {
     return scopes.get(node);
+  }
+
+  public SqlBasicCall getTableFunctionInSelect(SqlSelect select) {
+    return selectTableFunctions.get(select);
   }
 
   private SqlValidatorNamespace getNamespace(SqlNode node,
@@ -4153,6 +4161,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             expandedSelectItems,
             aliases,
             fieldList);
+      } else if (SqlUtil.isAsOperatorWithListOperand(selectItem)) {
+        handleTableFunctionInSelect(
+            select,
+            (SqlBasicCall) selectItem,
+            expandedSelectItems,
+            aliases,
+            fieldList
+        );
       } else {
         // Use the field list size to record the field index
         // because the select item may be a STAR(*), which could have been expanded.
@@ -4269,6 +4285,114 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     RelDataType nodeType = rec.getFieldList().get(0).getType();
     nodeType = typeFactory.createTypeWithNullability(nodeType, true);
     fieldList.add(Pair.of(alias, nodeType));
+  }
+
+  /**
+   * Processes table function found in select list. Checks whether it is a table function and
+   * validate the table function number in select list.
+   *
+   * @param parentSelect        Base SqlSelect
+   * @param selectItem          Child select items from select list
+   * @param expandedSelectItems Select items after processing
+   * @param aliases             Built from user or system values
+   * @param fields              Built up entries for each select list entry
+   */
+  private void handleTableFunctionInSelect(
+      SqlSelect parentSelect,
+      SqlBasicCall selectItem,
+      List<SqlNode> expandedSelectItems,
+      Set<String> aliases,
+      List<Map.Entry<String, RelDataType>> fields) {
+    SqlBasicCall functionCall = (SqlBasicCall) selectItem.getOperands()[0];
+    SqlFunction function = (SqlFunction) functionCall.getOperator();
+    // Check whether there are more than one table function in select list.
+    for (SqlNode item : parentSelect.getSelectList()) {
+      if (SqlUtil.isAsOperatorWithListOperand(item)
+          && item != selectItem) {
+        throw newValidationError(parentSelect.getSelectList(),
+            RESOURCE.onlyOneTableFunctionAllowedInSelect());
+      }
+    }
+
+    // Change the function category to USER_DEFINED_TABLE_FUNCTION since the SqlFunctionCategory
+    // is USER_DEFINED_FUNCTION for a SqlUnresolvedFunction in sql-select list.
+    if (function instanceof SqlUnresolvedFunction) {
+      if (!function.getFunctionType().isTableFunction()) {
+        SqlFunction newFunction =
+            new SqlUnresolvedFunction(function.getNameAsId(),
+                function.getReturnTypeInference(),
+                function.getOperandTypeInference(),
+                function.getOperandTypeChecker(),
+                function.getParamTypes(),
+                SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+        functionCall.setOperator(newFunction);
+        function = newFunction;
+      }
+    }
+    // Check whether functionCall is a table function.
+    List<SqlOperator> overloads  = new ArrayList<>();
+    opTab.lookupOperatorOverloads(function.getNameAsId(),
+        function.getFunctionType(),
+        function.getSyntax(), overloads, catalogReader.nameMatcher());
+    if (overloads.size() == 0) {
+      throw newValidationError(functionCall,
+          RESOURCE.exceptTableFunction(function.getName()));
+    }
+    // Check whether the parent select is a aggregate statement.
+    if (isAggregate(parentSelect)) {
+      throw newValidationError(functionCall,
+          RESOURCE.notAllowTableFunctionInAggregate());
+    }
+    SqlNodeList aliasNodes
+        = (SqlNodeList) selectItem.getOperands()[1];
+    List<String> aliasList = new ArrayList<>();
+    for (SqlNode aliasNode : aliasNodes) {
+      aliasList.add(deriveAlias(aliasNode, aliasList.size()));
+    }
+    aliases.addAll(aliasList);
+
+    String tableAlias = functionCall.getOperator().getName();
+    // Expand the table function alias.
+    for (String alias : aliasList) {
+      List<String> names = new ArrayList<>(2);
+      names.add(tableAlias);
+      names.add(alias);
+      SqlIdentifier id = new SqlIdentifier(names, SqlParserPos.ZERO);
+      expandedSelectItems.add(id);
+    }
+
+    // Register namespace for table function.
+    SqlValidatorScope fromScope = getFromScope(parentSelect);
+    ProcedureNamespace tableNs = new ProcedureNamespace(this,
+        fromScope, functionCall, selectItem);
+    tableNs.validateImpl(unknownType);
+    registerNamespace(null, null,
+        tableNs, false);
+    AliasNamespace aliasNs = new AliasNamespace(this,
+        selectItem, parentSelect);
+    aliasNs.validateImpl(unknownType);
+    registerNamespace(getSelectScope(parentSelect),
+        tableAlias, aliasNs, false);
+
+    // Create a table scope for table function.
+    TableScope tableScope = new TableScope(fromScope, parentSelect);
+    if (fromScope instanceof ListScope) {
+      for (ScopeChild child : ((ListScope) fromScope).children) {
+        tableScope.addChild(child.namespace, child.name, child.nullable);
+      }
+    }
+    scopes.put(functionCall, tableScope);
+    // Associate the select with the table function.
+    selectTableFunctions.put(parentSelect, functionCall);
+
+    RelDataType type = aliasNs.getRowType();
+    setValidatedNodeType(selectItem, type);
+    for (int i = 0; i < aliasList.size(); i++) {
+      fields.add(
+          Pair.of(
+            aliasList.get(i), type.getFieldList()
+                .get(i).getType()));
+    }
   }
 
   /**
