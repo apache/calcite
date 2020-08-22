@@ -31,7 +31,7 @@ Downloads are available on the
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.25.0">1.25.0</a> / 2020-08-08
 {: #v1-25-0}
 
-This release comes shortly after [1.24.0](#v1-24-0) (in just two weeks) and removes methods 
+This release comes shortly after [1.24.0](#v1-24-0) and removes methods 
 which were deprecated in the previous version. It also introduces other breaking changes so
 make sure to consult corresponding section. Notable improvements in this release are:
 
@@ -53,8 +53,6 @@ UDFs that are table functions must implement `SqlTableFunction` and have `CURSOR
 Refactor how planner rules are parameterized
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4079">CALCITE-4079</a>]
 Dialect constants in `SqlDialect` can cause class initialization deadlock
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4114">CALCITE-4114</a>]
-Remove method `CalciteAssert.forceDecorrelate` (Jiatao Tao)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4128">CALCITE-4128</a>]
 Remove dependency of File adapter on Example CSV adapter
 
@@ -103,7 +101,8 @@ Improve the prompt of using SQL keywords for sql parses (part2)
 Support deep equality check for `RelNode`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4111">CALCITE-4111</a>]
 Remove `VolcanoPlannerPhase` in Planner (Jiatao Tao)
-
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4114">CALCITE-4114</a>]
+Remove method `CalciteAssert.forceDecorrelate` (Jiatao Tao)
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.24.0">1.24.0</a> / 2020-07-24
 {: #v1-24-0}
