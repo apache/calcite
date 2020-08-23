@@ -47,6 +47,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -526,11 +527,19 @@ public class RexSimplify {
     // may be unknown), because if either of them were true we would have
     // stopped.
     RexSimplify simplify = this;
+
+    // 'doneTerms' prevents us from visiting a term in both first and second
+    // loops. If we did this, the second visit would have a predicate saying
+    // that 'term' is false. Effectively, we sort terms: visiting
+    // 'allowedAsPredicate' terms in the first loop, and
+    // non-'allowedAsPredicate' in the second. Each term is visited once.
+    final BitSet doneTerms = new BitSet();
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
       if (!simplify.allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
+      doneTerms.set(i);
       final RexNode t2 = simplify.simplify(t, unknownAs);
       terms.set(i, t2);
       final RexNode inverse =
@@ -542,8 +551,8 @@ public class RexSimplify {
     }
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (allowedAsPredicateDuringOrSimplification(t)) {
-        continue;
+      if (doneTerms.get(i)) {
+        continue; // we visited this term in the first loop
       }
       terms.set(i, simplify.simplify(t, unknownAs));
     }

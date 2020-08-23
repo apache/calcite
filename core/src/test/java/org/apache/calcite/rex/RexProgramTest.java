@@ -1562,6 +1562,48 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  @Test void testSimplifyRange() {
+    final RexNode aRef = input(tInt(), 0);
+    // ((0 < a and a <= 10) or a >= 15) and a <> 6 and a <> 12
+    RexNode expr = and(
+        or(
+            and(lt(literal(0), aRef),
+                le(aRef, literal(10))),
+            ge(aRef, literal(15))),
+        ne(aRef, literal(6)),
+        ne(aRef, literal(12)));
+    checkSimplifyUnchanged(expr);
+  }
+
+  @Test void testSimplifyRange2() {
+    final RexNode aRef = input(tInt(true), 0);
+    // a is null or a >= 15
+    RexNode expr = or(isNull(aRef),
+        ge(aRef, literal(15)));
+    checkSimplifyUnchanged(expr);
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4190">[CALCITE-4190]
+   * OR simplification incorrectly loses term</a>. */
+  @Test void testSimplifyRange3() {
+    final RexNode aRef = input(tInt(true), 0);
+    // (0 < a and a <= 10) or a is null or (8 < a and a < 12) or a >= 15
+    RexNode expr = or(
+        and(lt(literal(0), aRef),
+            le(aRef, literal(10))),
+        isNull(aRef),
+        and(lt(literal(8), aRef),
+            lt(aRef, literal(12))),
+        ge(aRef, literal(15)));
+    // [CALCITE-4190] causes "or a >= 15" to disappear from the simplified form.
+    final String expected = "OR(IS NULL($0),"
+        + " AND(<(0, $0), <=($0, 10)),"
+        + " AND(<(8, $0), <($0, 12)),"
+        + " >=($0, 15))";
+    checkSimplify(expr, expected);
+  }
+
   @Test void testSimplifyItemRangeTerms() {
     RexNode item = item(input(tArray(tInt()), 3), literal(1));
     // paranoid validation doesn't support array types, disable it for a moment
