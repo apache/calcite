@@ -52,12 +52,14 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
@@ -68,6 +70,7 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -6573,6 +6576,97 @@ class RelOptRulesTest extends RelOptTestBase {
         return new MyProjectRule(this);
       }
     }
+  }
+
+  /**
+   * Custom implementation of {@link SetOp} for use
+   * in test case to verify that {@link FilterSetOpTransposeRule}
+   * can be created with any {@link SetOp} and not limited to
+   * {@link org.apache.calcite.rel.core.SetOp}.
+   */
+  private static class MySetOp extends SetOp {
+
+    MySetOp(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        List<RelNode> inputs,
+        SqlKind k,
+        boolean all) {
+      super(cluster, traitSet, inputs, k, all);
+    }
+
+    public MySetOp copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+      return new MySetOp(getCluster(), traitSet, inputs, SqlKind.UNION, all);
+    }
+  }
+
+  /**
+   * Rule to transform {@link SetOp} into custom
+   * MySetOp.
+   */
+  public static class MySetOpRule extends RelRule<MySetOpRule.Config> {
+    static final MySetOpRule INSTANCE = MySetOpRule.Config.EMPTY
+        .withOperandSupplier(b -> b.operand(LogicalUnion.class).anyInputs())
+        .as(Config.class)
+        .toRule();
+
+    protected MySetOpRule(MySetOpRule.Config config) {
+      super(config);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final SetOp setOp = call.rel(0);
+      final List<RelNode> inputs = setOp.getInputs();
+      final MySetOp newMySetOp = new MySetOp(inputs.get(0).getCluster(),
+          inputs.get(0).getTraitSet(), inputs, SqlKind.UNION, true);
+      call.transformTo(newMySetOp);
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default MySetOpRule toRule() {
+        return new MySetOpRule(this);
+      }
+    }
+  }
+
+  /**
+   * Test case to push custom Filter past custom union.
+   */
+  @Test void testFilterSetOpTranspose() {
+
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleCollection(Arrays.asList(MyFilterRule.INSTANCE, MySetOpRule.INSTANCE))
+        .build();
+
+    final FilterSetOpTransposeRule filterSetOpTransposeRule =
+        FilterSetOpTransposeRule.Config.DEFAULT
+            .withOperandFor(MyFilter.class, MySetOp.class)
+            .toRule();
+
+    List<RelOptRule> rules = Arrays.asList(
+        CoreRules.FILTER_SET_OP_TRANSPOSE, // default
+        filterSetOpTransposeRule);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleCollection(rules)
+        .build();
+
+    final String sql = "SELECT e3.empno AS \"$C0\",\n"
+        + "MIN(e3.sal) AS \"$C1\",\n"
+        + "e3.slacker AS \"$C2\"\n"
+        + "FROM ("
+        + "   SELECT empno,\n"
+        + "          sal,\n"
+        + "          slacker\n"
+        + "     FROM emp as e1\n"
+        + "   UNION ALL\n"
+        + "     (SELECT empno, deptno, slacker\n"
+        + "          FROM emp as e2)) AS e3\n"
+        + "WHERE empno > 40\n"
+        + "GROUP BY empno, slacker\n";
+
+    sql(sql).withPre(preProgram).with(program).check();
   }
 
   @Test void testSortJoinCopyInnerJoinOrderBy() {

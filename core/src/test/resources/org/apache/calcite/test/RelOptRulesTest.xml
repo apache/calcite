@@ -3596,6 +3596,40 @@ LogicalFilter(condition=[=($7, 20)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testFilterSetOpTranspose">
+        <Resource name="sql">
+            <![CDATA[select job, sum(sal + 100) over (partition by deptno) from\n"
+        + "((select * from emp e1 union all select * from emp e2)"
+        + "union all select * from emp e3)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject($C0=[$0], $C1=[$2], $C2=[$1])
+  LogicalAggregate(group=[{0, 1}], $C1=[MIN($2)])
+    LogicalProject($C0=[$0], $C2=[$2], SAL=[$1])
+      MyFilter(condition=[>($0, 40)])
+        MySetOp(all=[true])
+          LogicalProject(EMPNO=[$0], SAL=[$5], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($C0=[$0], $C1=[$2], $C2=[$1])
+  LogicalAggregate(group=[{0, 1}], $C1=[MIN($2)])
+    LogicalProject($C0=[$0], $C2=[$2], SAL=[$1])
+      MySetOp(all=[true])
+        LogicalFilter(condition=[>($0, 40)])
+          LogicalProject(EMPNO=[$0], SAL=[$5], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalFilter(condition=[>($0, 40)])
+          LogicalProject(EMPNO=[$0], DEPTNO=[$7], SLACKER=[$8])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testInferringPredicatesWithNotOperatorInJoinCondition">
         <Resource name="sql">
             <![CDATA[select * from sales.emp d

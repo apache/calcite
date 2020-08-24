@@ -106,5 +106,14 @@ public class FilterSetOpTransposeRule
     @Override default FilterSetOpTransposeRule toRule() {
       return new FilterSetOpTransposeRule(this);
     }
+
+    /** Defines an operand tree for the given classes. */
+    default FilterSetOpTransposeRule.Config withOperandFor(Class<? extends Filter> filterClass,
+                                                           Class<? extends SetOp> setOpClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(filterClass).oneInput(b1 ->
+              b1.operand(setOpClass).anyInputs()))
+          .as(FilterSetOpTransposeRule.Config.class);
+    }
   }
 }
