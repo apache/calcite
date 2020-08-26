@@ -47,12 +47,12 @@ class RelMdColumnOriginsTest {
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT TABLE1.ID, TABLE2.ID FROM "
-            + "(SELECT GROUPING(A) AS ID FROM T1 "
-            + "GROUP BY ROLLUP(A,B)) TABLE1 "
-            + "JOIN "
-            + "(SELECT GROUPING(A) AS ID FROM T1 "
-            + "GROUP BY ROLLUP(A,B)) TABLE2 "
-            + "ON TABLE1.ID = TABLE2.ID");
+                + "(SELECT GROUPING(A) AS ID FROM T1 "
+                + "GROUP BY ROLLUP(A,B)) TABLE1 "
+                + "JOIN "
+                + "(SELECT GROUPING(A) AS ID FROM T1 "
+                + "GROUP BY ROLLUP(A,B)) TABLE2 "
+                + "ON TABLE1.ID = TABLE2.ID");
 
     final String result1 = "ID=0; ID=0";
     final String result2 = "ID=1; ID=1";
