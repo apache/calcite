@@ -20,15 +20,6 @@ import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.collect.ImmutableMultiset;
 
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.rel.RelNode;
-
-import org.apache.calcite.rel.metadata.RelColumnOrigin;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
-
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -36,15 +27,13 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-
 /** Test case for CALCITE-542. */
-class RelMdColumnOriginsTest extends SqlToRelConverterTest {
+class RelMdColumnOriginsTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-542">[CALCITE-542]
    * Support for Aggregate with grouping sets in RelMdColumnOrigins</a>. */
@@ -58,12 +47,12 @@ class RelMdColumnOriginsTest extends SqlToRelConverterTest {
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT TABLE1.ID, TABLE2.ID FROM "
-                + "(SELECT GROUPING(A) AS ID FROM T1 "
-                + "GROUP BY ROLLUP(A,B)) TABLE1 "
-                + "JOIN "
-                + "(SELECT GROUPING(A) AS ID FROM T1 "
-                + "GROUP BY ROLLUP(A,B)) TABLE2 "
-                + "ON TABLE1.ID = TABLE2.ID");
+            + "(SELECT GROUPING(A) AS ID FROM T1 "
+            + "GROUP BY ROLLUP(A,B)) TABLE1 "
+            + "JOIN "
+            + "(SELECT GROUPING(A) AS ID FROM T1 "
+            + "GROUP BY ROLLUP(A,B)) TABLE2 "
+            + "ON TABLE1.ID = TABLE2.ID");
 
     final String result1 = "ID=0; ID=0";
     final String result2 = "ID=1; ID=1";
@@ -84,26 +73,5 @@ class RelMdColumnOriginsTest extends SqlToRelConverterTest {
     resultSet.close();
     statement.close();
     connection.close();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4192">[CALCITE-4192]
-   * fix aggregate column origins searching by RelMdColumnOrigins</a>. */
-  @Test void testColumnOriginAfterAggProjectMergeRule() {
-    final String sql = "select count(ename), SAL from emp group by SAL";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
-    final HepProgramBuilder programBuilder = HepProgram.builder();
-    programBuilder.addRuleInstance(AggregateProjectMergeRule.Config.DEFAULT.toRule());
-    final HepPlanner planner = new HepPlanner(programBuilder.build());
-    planner.setRoot(rel);
-    RelNode finalRel = planner.findBestExp();
-
-    Set<RelColumnOrigin> origins = RelMetadataQuery.instance().getColumnOrigins(finalRel, 1);
-    assertThat(origins.size(), equalTo(1));
-
-    RelColumnOrigin columnOrigin = origins.iterator().next();
-    assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
-    assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
-        equalTo("SAL"));
   }
 }
