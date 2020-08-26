@@ -3273,4 +3273,27 @@ public class RelMetadataTest extends SqlToRelTestBase {
       return this;
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4192">[CALCITE-4192]
+   * RelMdColumnOrigins get the wrong index of group by columns after RelNode was optimized by
+   * AggregateProjectMergeRule rule</a>. */
+  @Test void testColumnOriginAfterAggProjectMergeRule() {
+    final String sql = "select count(ename), SAL from emp group by SAL";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode optimizedRel = planner.findBestExp();
+
+    Set<RelColumnOrigin> origins = RelMetadataQuery.instance()
+        .getColumnOrigins(optimizedRel, 1);
+    assertThat(origins.size(), equalTo(1));
+
+    RelColumnOrigin columnOrigin = origins.iterator().next();
+    assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
+    assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
+        equalTo("SAL"));
+  }
 }

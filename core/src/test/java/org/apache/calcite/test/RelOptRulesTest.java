@@ -6812,5 +6812,4 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .checkUnchanged();
   }
-
 }
