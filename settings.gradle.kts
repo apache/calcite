@@ -46,6 +46,7 @@ plugins {
 rootProject.name = "calcite"
 
 include(
+    "arrow",
     "bom",
     "release",
     "babel",
