@@ -17,23 +17,27 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 
 import com.google.common.collect.ImmutableMultiset;
 
 import org.junit.jupiter.api.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Test case for CALCITE-542. */
-class RelMdColumnOriginsTest {
+class RelMdColumnOriginsTest extends SqlToRelConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-542">[CALCITE-542]
    * Support for Aggregate with grouping sets in RelMdColumnOrigins</a>. */
@@ -73,5 +77,26 @@ class RelMdColumnOriginsTest {
     resultSet.close();
     statement.close();
     connection.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4192">[CALCITE-4192]
+   * fix aggregate column origins searching by RelMdColumnOrigins</a>. */
+  @Test void testColumnOriginAfterAggProjectMergeRule() throws Exception {
+    final String sql = "select count(ename), SAL from emp group by SAL";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(AggregateProjectMergeRule.Config.DEFAULT.toRule());
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    RelNode finalRel = planner.findBestExp();
+
+    Set<RelColumnOrigin> origins = RelMetadataQuery.instance().getColumnOrigins(finalRel, 1);
+    assertThat(origins.size(), equalTo(1));
+
+    RelColumnOrigin columnOrigin = origins.iterator().next();
+    assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
+    assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
+        equalTo("SAL"));
   }
 }
