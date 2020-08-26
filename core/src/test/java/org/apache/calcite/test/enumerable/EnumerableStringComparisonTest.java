@@ -22,7 +22,13 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.JavaCollation;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Hook;
@@ -31,6 +37,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
@@ -45,6 +52,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
+import static org.apache.calcite.test.Matchers.isLinux;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test cases for
@@ -157,6 +167,39 @@ class EnumerableStringComparisonTest {
             + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'bureaucracy' }, { 'Sales' }, { 'HR' }]])\n")
         .returnsOrdered("name=HR; name0=HR\n"
             + "name=Marketing; name0=Marketing");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4195">[CALCITE-4195]
+   * Cast between types with different collators must be evaluated as not monotonic</a>. */
+  @Test void testCastDifferentCollationShouldNotApplySortProjectTranspose() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .values(
+            createRecordVarcharSpecialCollation(relBuilder),
+            "Legal", "presales", "hr", "Administration", "MARKETING")
+        .project(
+            relBuilder.cast(relBuilder.field("name"), SqlTypeName.VARCHAR))
+        .sort(
+            relBuilder.field(1, 0, 0))
+        .build();
+
+    // Cast to a type with a different collation, and then sort;
+    // in this scenario SORT_PROJECT_TRANSPOSE must not be applied.
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+    final String planBefore = RelOptUtil.toString(relNode);
+    final String planAfter = RelOptUtil.toString(output);
+    final String expected =
+        "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "  LogicalProject(name=[CAST($0):VARCHAR NOT NULL])\n"
+        + "    LogicalValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n";
+    assertThat(planBefore, isLinux(expected));
+    assertThat(planAfter, isLinux(expected));
   }
 
   @Test void testStringComparison() {
