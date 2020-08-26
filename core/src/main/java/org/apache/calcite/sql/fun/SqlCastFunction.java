@@ -42,6 +42,9 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
+import java.text.Collator;
+import java.util.Objects;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -188,11 +191,22 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    RelDataTypeFamily castFrom = call.getOperandType(0).getFamily();
-    RelDataTypeFamily castTo = call.getOperandType(1).getFamily();
-    if (castFrom instanceof SqlTypeFamily
-        && castTo instanceof SqlTypeFamily
-        && nonMonotonicCasts.containsEntry(castFrom, castTo)) {
+    final RelDataType castFromType = call.getOperandType(0);
+    final RelDataTypeFamily castFromFamily = castFromType.getFamily();
+    final Collator castFromCollator = castFromType.getCollation() == null
+        ? null
+        : castFromType.getCollation().getCollator();
+    final RelDataType castToType = call.getOperandType(1);
+    final RelDataTypeFamily castToFamily = castToType.getFamily();
+    final Collator castToCollator = castToType.getCollation() == null
+        ? null
+        : castToType.getCollation().getCollator();
+    if (!Objects.equals(castFromCollator, castToCollator)) {
+      // Cast between types compared with different collators: not monotonic.
+      return SqlMonotonicity.NOT_MONOTONIC;
+    } else if (castFromFamily instanceof SqlTypeFamily
+        && castToFamily instanceof SqlTypeFamily
+        && nonMonotonicCasts.containsEntry(castFromFamily, castToFamily)) {
       return SqlMonotonicity.NOT_MONOTONIC;
     } else {
       return call.getOperandMonotonicity(0);
