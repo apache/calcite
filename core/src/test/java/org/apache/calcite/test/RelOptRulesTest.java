@@ -130,6 +130,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -6781,10 +6783,11 @@ class RelOptRulesTest extends RelOptTestBase {
 
     Set<RelColumnOrigin> origins = RelMetadataQuery.instance()
         .getColumnOrigins(optimizedRel, 1);
-    assertEquals(1, origins.size());
+    assertThat(origins.size(), equalTo(1));
 
     RelColumnOrigin columnOrigin = origins.iterator().next();
-    assertEquals(5, columnOrigin.getOriginColumnOrdinal());
-    assertEquals("SAL", columnOrigin.getOriginTable().getRowType().getFieldNames().get(5));
+    assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
+    assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
+        equalTo("SAL"));
   }
 }
