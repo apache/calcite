@@ -21,11 +21,16 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -88,7 +93,9 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
       }
       final String pathPrefix = (String) map.get("pathPrefix");
       // create client
-      final RestClient client = connect(hosts, pathPrefix);
+      String username = (String) map.get("username");
+      String password = (String) map.get("password");
+      final RestClient client = connect(hosts, pathPrefix, username, password);
       final String index = (String) map.get("index");
 
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
@@ -100,14 +107,26 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
   /**
    * Builds elastic rest client from user configuration
    * @param hosts list of ES HTTP Hosts to connect to
+   * @param username the username of ES
+   * @param password the password of ES
    * @return newly initialized low-level rest http client for ES
    */
-  private static RestClient connect(List<HttpHost> hosts, String pathPrefix) {
+  private static RestClient connect(List<HttpHost> hosts, String pathPrefix,
+                                    String username, String password) {
 
     Objects.requireNonNull(hosts, "hosts or coordinates");
     Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
 
     RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
+
+    if (!Strings.isNullOrEmpty(username) && !Strings.isNullOrEmpty(password)) {
+      CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+      credentialsProvider.setCredentials(AuthScope.ANY,
+          new UsernamePasswordCredentials(username, password));
+      builder.setHttpClientConfigCallback(httpClientBuilder ->
+          httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+    }
+
     if (pathPrefix != null && !pathPrefix.isEmpty()) {
       builder.setPathPrefix(pathPrefix);
     }
