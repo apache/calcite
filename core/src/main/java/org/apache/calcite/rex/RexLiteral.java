@@ -20,8 +20,11 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Geometries;
 import org.apache.calcite.sql.SqlCollation;
@@ -43,13 +46,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.AbstractList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -377,7 +378,7 @@ public class RexLiteral extends RexNode {
   }
 
   /** Returns the strict literal type for a given type. */
-  public static SqlTypeName strictType(RelDataType type) {
+  public static SqlTypeName strictTypeName(RelDataType type) {
     final SqlTypeName typeName = type.getSqlTypeName();
     switch (typeName) {
     case INTEGER:
@@ -399,15 +400,16 @@ public class RexLiteral extends RexNode {
       RexDigestIncludeType includeType) {
     assert includeType != RexDigestIncludeType.OPTIONAL
         : "toJavaString must not be called with includeType=OPTIONAL";
-    String fullTypeString = type.getFullTypeString();
     if (value == null) {
-      return includeType == RexDigestIncludeType.NO_TYPE ? "null" : "null:" + fullTypeString;
+      return includeType == RexDigestIncludeType.NO_TYPE ? "null"
+          : "null:" + type.getFullTypeString();
     }
     StringBuilder sb = new StringBuilder();
-    appendAsJava(value, sb, typeName, false, includeType);
+    appendAsJava(value, sb, typeName, type, false, includeType);
 
     if (includeType != RexDigestIncludeType.NO_TYPE) {
       sb.append(':');
+      final String fullTypeString = type.getFullTypeString();
       if (!fullTypeString.endsWith("NOT NULL")) {
         sb.append(fullTypeString);
       } else {
@@ -571,7 +573,9 @@ public class RexLiteral extends RexNode {
    * Prints the value this literal as a Java string constant.
    */
   public void printAsJava(PrintWriter pw) {
-    appendAsJava(value, pw, typeName, true, RexDigestIncludeType.NO_TYPE);
+    Util.asStringBuilder(pw, sb ->
+        appendAsJava(value, sb, typeName, type, true,
+            RexDigestIncludeType.NO_TYPE));
   }
 
   /**
@@ -588,137 +592,149 @@ public class RexLiteral extends RexNode {
    * <li>1234ABCD</li>
    * </ul>
    *
-   * <p>The destination where the value is appended must not incur I/O operations. This method is
-   * not meant to be used for writing the values to permanent storage.</p>
-   *
-   * @param value a value to be appended to the provided destination as a Java string
-   * @param destination a destination where to append the specified value
-   * @param typeName a type name to be used for the transformation of the value to a Java string
-   * @param includeType an indicator whether to include the data type in the Java representation
-   * @throws IllegalStateException if the appending to the destination <code>Appendable</code> fails
-   *         due to I/O
+   * @param value    Value to be appended to the provided destination as a Java string
+   * @param sb       Destination to which to append the specified value
+   * @param typeName Type name to be used for the transformation of the value to a Java string
+   * @param type Type to be used for the transformation of the value to a Java string
+   * @param includeType Whether to include the data type in the Java representation
    */
-  private static void appendAsJava(
-      Comparable value,
-      Appendable destination,
-      SqlTypeName typeName,
-      boolean java, RexDigestIncludeType includeType) {
-    try {
-      switch (typeName) {
-      case CHAR:
-        NlsString nlsString = (NlsString) value;
-        if (java) {
-          Util.printJavaString(
-              destination,
-              nlsString.getValue(),
-              true);
-        } else {
-          boolean includeCharset =
-              (nlsString.getCharsetName() != null)
-                  && !nlsString.getCharsetName().equals(
-                  CalciteSystemProperty.DEFAULT_CHARSET.value());
-          destination.append(nlsString.asSql(includeCharset, false));
-        }
-        break;
-      case BOOLEAN:
-        assert value instanceof Boolean;
-        destination.append(value.toString());
-        break;
-      case DECIMAL:
-        assert value instanceof BigDecimal;
-        destination.append(value.toString());
-        break;
-      case DOUBLE:
-        assert value instanceof BigDecimal;
-        destination.append(Util.toScientificNotation((BigDecimal) value));
-        break;
-      case BIGINT:
-        assert value instanceof BigDecimal;
-        long narrowLong = ((BigDecimal) value).longValue();
-        destination.append(String.valueOf(narrowLong));
-        destination.append('L');
-        break;
-      case BINARY:
-        assert value instanceof ByteString;
-        destination.append("X'");
-        destination.append(((ByteString) value).toString(16));
-        destination.append("'");
-        break;
-      case NULL:
-        assert value == null;
-        destination.append("null");
-        break;
-      case SARG:
-        assert value instanceof Sarg;
-        destination.append(value.toString());
-        break;
-      case SYMBOL:
-        assert value instanceof Enum;
-        destination.append("FLAG(");
-        destination.append(value.toString());
-        destination.append(")");
-        break;
-      case DATE:
-        assert value instanceof DateString;
-        destination.append(value.toString());
-        break;
-      case TIME:
-        assert value instanceof TimeString;
-        destination.append(value.toString());
-        break;
-      case TIME_WITH_LOCAL_TIME_ZONE:
-        assert value instanceof TimeString;
-        destination.append(value.toString());
-        break;
-      case TIMESTAMP:
-        assert value instanceof TimestampString;
-        destination.append(value.toString());
-        break;
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        assert value instanceof TimestampString;
-        destination.append(value.toString());
-        break;
-      case INTERVAL_YEAR:
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_DAY_HOUR:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_HOUR:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_MINUTE:
-      case INTERVAL_MINUTE_SECOND:
-      case INTERVAL_SECOND:
-        assert value instanceof BigDecimal;
-        destination.append(value.toString());
-        break;
-      case MULTISET:
-      case ROW:
-        @SuppressWarnings("unchecked")
-        final List<RexLiteral> list = (List) value;
-        destination.append(
-            (new AbstractList<String>() {
-              public String get(int index) {
-                return list.get(index).computeDigest(includeType);
-              }
-
-              public int size() {
-                return list.size();
-              }
-            }).toString());
-        break;
-      case GEOMETRY:
-        final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) value);
-        destination.append(wkt);
-        break;
-      default:
-        assert valueMatchesType(value, typeName, true);
-        throw Util.needToImplement(typeName);
+  private static void appendAsJava(Comparable value, StringBuilder sb,
+      SqlTypeName typeName, RelDataType type, boolean java,
+      RexDigestIncludeType includeType) {
+    switch (typeName) {
+    case CHAR:
+      NlsString nlsString = (NlsString) value;
+      if (java) {
+        Util.printJavaString(
+            sb,
+            nlsString.getValue(),
+            true);
+      } else {
+        boolean includeCharset =
+            (nlsString.getCharsetName() != null)
+                && !nlsString.getCharsetName().equals(
+                CalciteSystemProperty.DEFAULT_CHARSET.value());
+        sb.append(nlsString.asSql(includeCharset, false));
       }
-    } catch (IOException e) {
-      throw new IllegalStateException("The destination Appendable should not incur I/O.", e);
+      break;
+    case BOOLEAN:
+      assert value instanceof Boolean;
+      sb.append(value.toString());
+      break;
+    case DECIMAL:
+      assert value instanceof BigDecimal;
+      sb.append(value.toString());
+      break;
+    case DOUBLE:
+      assert value instanceof BigDecimal;
+      sb.append(Util.toScientificNotation((BigDecimal) value));
+      break;
+    case BIGINT:
+      assert value instanceof BigDecimal;
+      long narrowLong = ((BigDecimal) value).longValue();
+      sb.append(String.valueOf(narrowLong));
+      sb.append('L');
+      break;
+    case BINARY:
+      assert value instanceof ByteString;
+      sb.append("X'");
+      sb.append(((ByteString) value).toString(16));
+      sb.append("'");
+      break;
+    case NULL:
+      assert value == null;
+      sb.append("null");
+      break;
+    case SARG:
+      assert value instanceof Sarg;
+      //noinspection unchecked,rawtypes
+      Util.asStringBuilder(sb, sb2 ->
+          printSarg(sb2, (Sarg) value, type));
+      break;
+    case SYMBOL:
+      assert value instanceof Enum;
+      sb.append("FLAG(");
+      sb.append(value.toString());
+      sb.append(")");
+      break;
+    case DATE:
+      assert value instanceof DateString;
+      sb.append(value.toString());
+      break;
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      assert value instanceof TimeString;
+      sb.append(value.toString());
+      break;
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      assert value instanceof TimestampString;
+      sb.append(value.toString());
+      break;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      assert value instanceof BigDecimal;
+      sb.append(value.toString());
+      break;
+    case MULTISET:
+    case ROW:
+      final List<RexLiteral> list = (List) value;
+      Util.asStringBuilder(sb, sb2 ->
+          Util.printIterable(sb, list.size(), (sb3, i) ->
+              sb3.append(list.get(i).computeDigest(includeType))));
+      break;
+    case GEOMETRY:
+      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) value);
+      sb.append(wkt);
+      break;
+    default:
+      assert valueMatchesType(value, typeName, true);
+      throw Util.needToImplement(typeName);
+    }
+  }
+
+  private static <C extends Comparable<C>> void printSarg(StringBuilder sb,
+      Sarg<C> sarg, RelDataType type) {
+    sarg.printTo(sb, (sb2, value) ->
+        sb2.append(toLiteral(type, value)));
+  }
+
+  /** Converts a value to a temporary literal, for the purposes of generating a
+   * digest. Literals of type ROW and MULTISET require that their components are
+   * also literals. */
+  private static RexLiteral toLiteral(RelDataType type, Comparable<?> value) {
+    final SqlTypeName typeName = strictTypeName(type);
+    switch (typeName) {
+    case ROW:
+      final List<Comparable<?>> fieldValues = (List) value;
+      final List<RelDataTypeField> fields = type.getFieldList();
+      final List<RexLiteral> fieldLiterals =
+          FlatLists.of(
+              Functions.generate(fieldValues.size(), i ->
+                  toLiteral(fields.get(i).getType(), fieldValues.get(i))));
+      return new RexLiteral((Comparable) fieldLiterals, type, typeName);
+
+    case MULTISET:
+      final List<Comparable<?>> elementValues = (List) value;
+      final List<RexLiteral> elementLiterals =
+          FlatLists.of(
+              Functions.generate(elementValues.size(), i ->
+                  toLiteral(type.getComponentType(), elementValues.get(i))));
+      return new RexLiteral((Comparable) elementLiterals, type, typeName);
+
+    default:
+      return new RexLiteral(value, type, typeName);
     }
   }
 

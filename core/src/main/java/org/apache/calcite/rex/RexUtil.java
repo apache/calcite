@@ -607,7 +607,7 @@ public class RexUtil {
     } else {
       final RangeSets.Consumer<C> consumer =
           new RangeToRex<>(ref, orList, rexBuilder, literal.getType(),
-              RexLiteral.strictType(literal.getType()));
+              RexLiteral.strictTypeName(literal.getType()));
       RangeSets.forEach(sarg.rangeSet, consumer);
     }
     return composeDisjunction(rexBuilder, orList);

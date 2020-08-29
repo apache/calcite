@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -118,96 +119,96 @@ class RangeSetTest {
 
   /** Tests {@link RangeSets#map} and {@link RangeSets#forEach}. */
   @Test void testRangeMap() {
-    final StringBuilder b = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     final RangeSets.Handler<Integer, StringBuilder> h =
         new RangeSets.Handler<Integer, StringBuilder>() {
           @Override public StringBuilder all() {
-            return b.append("all()");
+            return sb.append("all()");
           }
 
           @Override public StringBuilder atLeast(Integer lower) {
-            return b.append("atLeast(").append(lower).append(")");
+            return sb.append("atLeast(").append(lower).append(")");
           }
 
           @Override public StringBuilder atMost(Integer upper) {
-            return b.append("atMost(").append(upper).append(")");
+            return sb.append("atMost(").append(upper).append(")");
           }
 
           @Override public StringBuilder greaterThan(Integer lower) {
-            return b.append("greaterThan(").append(lower).append(")");
+            return sb.append("greaterThan(").append(lower).append(")");
           }
 
           @Override public StringBuilder lessThan(Integer upper) {
-            return b.append("lessThan(").append(upper).append(")");
+            return sb.append("lessThan(").append(upper).append(")");
           }
 
           @Override public StringBuilder singleton(Integer value) {
-            return b.append("singleton(").append(value).append(")");
+            return sb.append("singleton(").append(value).append(")");
           }
 
           @Override public StringBuilder closed(Integer lower, Integer upper) {
-            return b.append("closed(").append(lower).append(", ")
+            return sb.append("closed(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public StringBuilder closedOpen(Integer lower, Integer upper) {
-            return b.append("closedOpen(").append(lower).append(", ")
+            return sb.append("closedOpen(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public StringBuilder openClosed(Integer lower, Integer upper) {
-            return b.append("openClosed(").append(lower).append(", ")
+            return sb.append("openClosed(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public StringBuilder open(Integer lower, Integer upper) {
-            return b.append("open(").append(lower).append(", ")
+            return sb.append("open(").append(lower).append(", ")
                 .append(upper).append(")");
           }
         };
     final RangeSets.Consumer<Integer> c =
         new RangeSets.Consumer<Integer>() {
           @Override public void all() {
-            b.append("all()");
+            sb.append("all()");
           }
 
           @Override public void atLeast(Integer lower) {
-            b.append("atLeast(").append(lower).append(")");
+            sb.append("atLeast(").append(lower).append(")");
           }
 
           @Override public void atMost(Integer upper) {
-            b.append("atMost(").append(upper).append(")");
+            sb.append("atMost(").append(upper).append(")");
           }
 
           @Override public void greaterThan(Integer lower) {
-            b.append("greaterThan(").append(lower).append(")");
+            sb.append("greaterThan(").append(lower).append(")");
           }
 
           @Override public void lessThan(Integer upper) {
-            b.append("lessThan(").append(upper).append(")");
+            sb.append("lessThan(").append(upper).append(")");
           }
 
           @Override public void singleton(Integer value) {
-            b.append("singleton(").append(value).append(")");
+            sb.append("singleton(").append(value).append(")");
           }
 
           @Override public void closed(Integer lower, Integer upper) {
-            b.append("closed(").append(lower).append(", ")
+            sb.append("closed(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public void closedOpen(Integer lower, Integer upper) {
-            b.append("closedOpen(").append(lower).append(", ")
+            sb.append("closedOpen(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public void openClosed(Integer lower, Integer upper) {
-            b.append("openClosed(").append(lower).append(", ")
+            sb.append("openClosed(").append(lower).append(", ")
                 .append(upper).append(")");
           }
 
           @Override public void open(Integer lower, Integer upper) {
-            b.append("open(").append(lower).append(", ")
+            sb.append("open(").append(lower).append(", ")
                 .append(upper).append(")");
           }
         };
@@ -215,26 +216,26 @@ class RangeSetTest {
     for (Range<Integer> range : f.ranges) {
       RangeSets.map(range, h);
     }
-    assertThat(b.toString(), is(f.rangesString));
+    assertThat(sb.toString(), is(f.rangesString));
 
-    b.setLength(0);
+    sb.setLength(0);
     for (Range<Integer> range : f.ranges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(b.toString(), is(f.rangesString));
+    assertThat(sb.toString(), is(f.rangesString));
 
     // Use a smaller set of ranges that does not overlap
-    b.setLength(0);
+    sb.setLength(0);
     for (Range<Integer> range : f.disjointRanges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(b.toString(), is(f.disjointRangesString));
+    assertThat(sb.toString(), is(f.disjointRangesString));
 
     // For a RangeSet consisting of disjointRanges the effect is the same,
     // but the ranges are sorted.
-    b.setLength(0);
+    sb.setLength(0);
     RangeSets.forEach(f.rangeSet, c);
-    assertThat(b.toString(), is(f.disjointRangesSortedString));
+    assertThat(sb.toString(), is(f.disjointRangesSortedString));
   }
 
   /** Tests that {@link RangeSets#hashCode(RangeSet)} returns the same result
@@ -288,6 +289,31 @@ class RangeSetTest {
     s3.asRanges().remove(Iterables.getLast(s3.asRanges(), null));
     assertThat(RangeSets.compare(s3, f.treeRangeSet), is(-1));
     assertThat(RangeSets.compare(f.treeRangeSet, s3), is(1));
+  }
+
+  /** Tests {@link RangeSets#printer(StringBuilder, BiConsumer)}. */
+  @Test void testRangePrint() {
+    final Fixture f = new Fixture();
+
+    // RangeSet's native printing
+    final List<String> list = new ArrayList<>();
+    f.ranges.forEach(r -> list.add(r.toString()));
+    final String expected = "[(-∞‥+∞), (-∞‥3], [4‥+∞), (-∞‥5), (6‥+∞), [7‥7], "
+        + "(8‥9), (10‥11], [12‥13], [14‥15)]";
+    assertThat(list.toString(), is(expected));
+    list.clear();
+
+    final StringBuilder sb = new StringBuilder();
+    f.ranges.forEach(r -> {
+      RangeSets.forEach(r, RangeSets.printer(sb, StringBuilder::append));
+      list.add(sb.toString());
+      sb.setLength(0);
+    });
+    // our format matches Guava's, except points ("7" vs "[7, 7]")
+    final String expected2 = "[(-∞‥+∞), (-∞‥3], [4‥+∞), (-∞‥5), (6‥+∞), 7, "
+        + "(8‥9), (10‥11], [12‥13], [14‥15)]";
+    assertThat(list.toString(), is(expected2));
+    list.clear();
   }
 
   /** Data sets used by various tests. */

@@ -23,6 +23,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import java.util.Iterator;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /** Utilities for Guava {@link com.google.common.collect.RangeSet}. */
@@ -258,6 +259,12 @@ public class RangeSets {
     }
   }
 
+  /** Creates a consumer that prints values to a {@link StringBuilder}. */
+  public static <C extends Comparable<C>> Consumer<C> printer(StringBuilder sb,
+      BiConsumer<StringBuilder, C> valuePrinter) {
+    return new Printer<>(sb, valuePrinter);
+  }
+
   /** Deconstructor for {@link Range} values.
    *
    * @param <C> Value type
@@ -343,6 +350,83 @@ public class RangeSets {
 
     @Override public Range<C2> open(C lower, C upper) {
       return Range.open(convert(lower), convert(upper));
+    }
+  }
+
+  /** Converts any type of range to a string, using a given value printer.
+   *
+   * @param <C> Value type */
+  static class Printer<C extends Comparable<C>> implements Consumer<C> {
+    private final StringBuilder sb;
+    private final BiConsumer<StringBuilder, C> valuePrinter;
+
+    Printer(StringBuilder sb, BiConsumer<StringBuilder, C> valuePrinter) {
+      this.sb = sb;
+      this.valuePrinter = valuePrinter;
+    }
+
+    @Override public void all() {
+      sb.append("(-\u221e\u2025+\u221e)");
+    }
+
+    @Override public void atLeast(C lower) {
+      sb.append('[');
+      valuePrinter.accept(sb, lower);
+      sb.append("\u2025+\u221e)");
+    }
+
+    @Override public void atMost(C upper) {
+      sb.append("(-\u221e\u2025");
+      valuePrinter.accept(sb, upper);
+      sb.append("]");
+    }
+
+    @Override public void greaterThan(C lower) {
+      sb.append('(');
+      valuePrinter.accept(sb, lower);
+      sb.append("\u2025+\u221e)");
+    }
+
+    @Override public void lessThan(C upper) {
+      sb.append("(-\u221e\u2025");
+      valuePrinter.accept(sb, upper);
+      sb.append(")");
+    }
+
+    @Override public void singleton(C value) {
+      valuePrinter.accept(sb, value);
+    }
+
+    @Override public void closed(C lower, C upper) {
+      sb.append('[');
+      valuePrinter.accept(sb, lower);
+      sb.append('\u2025');
+      valuePrinter.accept(sb, upper);
+      sb.append(']');
+    }
+
+    @Override public void closedOpen(C lower, C upper) {
+      sb.append('[');
+      valuePrinter.accept(sb, lower);
+      sb.append('\u2025');
+      valuePrinter.accept(sb, upper);
+      sb.append(')');
+    }
+
+    @Override public void openClosed(C lower, C upper) {
+      sb.append('(');
+      valuePrinter.accept(sb, lower);
+      sb.append('\u2025');
+      valuePrinter.accept(sb, upper);
+      sb.append(']');
+    }
+
+    @Override public void open(C lower, C upper) {
+      sb.append('(');
+      valuePrinter.accept(sb, lower);
+      sb.append('\u2025');
+      valuePrinter.accept(sb, upper);
+      sb.append(')');
     }
   }
 }

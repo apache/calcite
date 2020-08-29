@@ -24,6 +24,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 /** Set of values (or ranges) that are the target of a search.
  *
@@ -32,6 +33,8 @@ import java.util.Objects;
  * Database Management System &mdash; Selinger et al. 1979 or the
  * "<a href="https://blog.acolyer.org/2016/01/04/access-path-selection/">morning
  * paper summary</a>.
+ *
+ * <p>In RexNode, Sargs only occur as an </p>
  *
  * @param <C> Value type
  *
@@ -68,22 +71,27 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * <blockquote>{@code Sarg[7, 9, (10‥+∞), null]}</blockquote>
    */
   @Override public String toString() {
-    final StringBuilder b = new StringBuilder("Sarg[");
+    final StringBuilder sb = new StringBuilder();
+    printTo(sb, StringBuilder::append);
+    return sb.toString();
+  }
+
+  /** Prints this Sarg to a StringBuilder, using the given printer to deal
+   * with each embedded value. */
+  public StringBuilder printTo(StringBuilder sb,
+      BiConsumer<StringBuilder, C> valuePrinter) {
+    sb.append("Sarg[");
+    final RangeSets.Consumer<C> printer = RangeSets.printer(sb, valuePrinter);
     Ord.forEach(rangeSet.asRanges(), (r, i) -> {
       if (i > 0) {
-        b.append(", ");
+        sb.append(", ");
       }
-      if (RangeSets.isPoint(r)) {
-        b.append(r.lowerEndpoint());
-      } else {
-        b.append(r);
-      }
+      RangeSets.forEach(r, printer);
     });
     if (containsNull) {
-      b.append(", null");
+      sb.append(", null");
     }
-    return b.append("]")
-        .toString();
+    return sb.append("]");
   }
 
   @Override public int compareTo(Sarg<C> o) {

@@ -552,6 +552,32 @@ class UtilTest {
     }
   }
 
+  /** Tests {@link Util#printIterable(StringBuilder, int, ObjIntConsumer)}. */
+  @Test void testPrintList() {
+    final StringBuilder sb = new StringBuilder();
+    Util.printIterable(sb, 0, (sb2, i) -> sb2.append(i * 2));
+    assertThat(sb.toString(), is("[]"));
+    sb.setLength(0);
+
+    Util.printIterable(sb, 3, (sb2, i) -> sb2.append(i * 2 + 1));
+    assertThat(sb.toString(), is("[1, 3, 5]"));
+    sb.setLength(0);
+  }
+
+  /** Tests {@link Util#printIterable(StringBuilder, Iterable)}. */
+  @Test void testPrintIterable() {
+    final StringBuilder sb = new StringBuilder();
+    final Set<String> beatles =
+        new LinkedHashSet<>(Arrays.asList("John", "Paul", "George", "Ringo"));
+    Util.printIterable(sb, beatles);
+    assertThat(sb.toString(), is("[John, Paul, George, Ringo]"));
+    sb.setLength(0);
+
+    Util.printIterable(sb, ImmutableList.of());
+    assertThat(sb.toString(), is("[]"));
+    sb.setLength(0);
+  }
+
   /**
    * Tests the difference engine, {@link DiffTestCase#diff}.
    */

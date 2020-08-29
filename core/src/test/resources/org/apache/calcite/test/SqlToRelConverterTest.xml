@@ -6976,7 +6976,7 @@ GROUP by deptno, job]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(JOB_NAME=[CASE(SEARCH($1, Sarg[_ISO-8859-1'810000', _ISO-8859-1'820000']:CHAR(6)), $1, 'error':VARCHAR(10))], EXPR$1=[$2])
+LogicalProject(JOB_NAME=[CASE(SEARCH($1, Sarg['810000', '820000']:CHAR(6)), $1, 'error':VARCHAR(10))], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
     LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
       LogicalFilter(condition=[OR(<>($2, ''), =($2, '810000'), =($2, '820000'))])
@@ -7033,7 +7033,7 @@ group by case when coalesce(ename, 'a') in ('1', '2') then 'CKA' else 'QT' END]]
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
-  LogicalProject(EXPR$0=[CASE(SEARCH($1, Sarg[_ISO-8859-1'1', _ISO-8859-1'2']:CHAR(1)), 'CKA', 'QT ')], DEPTNO=[$7])
+  LogicalProject(EXPR$0=[CASE(SEARCH($1, Sarg['1', '2']:CHAR(1)), 'CKA', 'QT ')], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

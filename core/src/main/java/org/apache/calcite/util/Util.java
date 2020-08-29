@@ -95,7 +95,9 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.jar.JarFile;
@@ -801,6 +803,45 @@ public class Util {
         return buf.toString();
       }
       buf.append(sep);
+    }
+  }
+
+  /** Prints a collection of elements to a StringBuilder, in the same format as
+   * {@link AbstractCollection#toString()}. */
+  public static <E> StringBuilder printIterable(StringBuilder sb,
+      Iterable<E> iterable) {
+    final Iterator<E> it = iterable.iterator();
+    if (!it.hasNext()) {
+      return sb.append("[]");
+    }
+    sb.append('[');
+    for (;;) {
+      final E e = it.next();
+      sb.append(e);
+      if (!it.hasNext()) {
+        return sb.append(']');
+      }
+      sb.append(", ");
+    }
+  }
+
+  /** Prints a set of elements to a StringBuilder, in the same format same as
+   * {@link AbstractCollection#toString()}.
+   *
+   * <p>The 'set' is represented by the number of elements and an action to
+   * perform for each element. */
+  public static <E> StringBuilder printIterable(StringBuilder sb, int elementCount,
+      ObjIntConsumer<StringBuilder> consumer) {
+    if (elementCount == 0) {
+      return sb.append("[]");
+    }
+    sb.append('[');
+    for (int i = 0;;) {
+      consumer.accept(sb, i);
+      if (++i == elementCount) {
+        return sb.append(']');
+      }
+      sb.append(", ");
     }
   }
 
@@ -2384,6 +2425,23 @@ public class Util {
    * <p>Does not use the default character set. */
   public static BufferedReader reader(File file) throws FileNotFoundException {
     return reader(new FileInputStream(file));
+  }
+
+  /** Given an {@link Appendable}, performs an action that requires a
+   * {@link StringBuilder}. Casts the Appendable if possible. */
+  public static void asStringBuilder(Appendable appendable,
+      Consumer<StringBuilder> consumer) {
+    if (appendable instanceof StringBuilder) {
+      consumer.accept((StringBuilder) appendable);
+    } else {
+      try {
+        final StringBuilder sb = new StringBuilder();
+        consumer.accept(sb);
+        appendable.append(sb);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /** Creates a {@link Calendar} in the UTC time zone and root locale.
