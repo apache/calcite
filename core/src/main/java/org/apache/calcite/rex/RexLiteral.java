@@ -691,7 +691,7 @@ public class RexLiteral extends RexNode {
     case ROW:
       final List<RexLiteral> list = (List) value;
       Util.asStringBuilder(sb, sb2 ->
-          Util.printIterable(sb, list.size(), (sb3, i) ->
+          Util.printList(sb, list.size(), (sb3, i) ->
               sb3.append(list.get(i).computeDigest(includeType))));
       break;
     case GEOMETRY:

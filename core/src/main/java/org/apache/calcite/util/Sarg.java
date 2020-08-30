@@ -64,11 +64,12 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * if nulls are matched, and simplifies point ranges. For example,
    * the Sarg that allows the range set
    *
-   * <blockquote>{@code [[7‥7], [9‥9], (10‥+∞)]}</blockquote>
+   * <blockquote>{@code [[7&#x2025;7], [9&#x2025;9],
+   * (10&#x2025;+&infin;)]}</blockquote>
    *
    * and also null is printed as
    *
-   * <blockquote>{@code Sarg[7, 9, (10‥+∞), null]}</blockquote>
+   * <blockquote>{@code Sarg[7, 9, (10&#x2025;+&infin;), null]}</blockquote>
    */
   @Override public String toString() {
     final StringBuilder sb = new StringBuilder();

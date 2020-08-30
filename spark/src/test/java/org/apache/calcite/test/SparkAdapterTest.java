@@ -474,7 +474,7 @@ class SparkAdapterTest {
         + "where x between 3 and 4";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[3‥4]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[3\u20254]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n\n";
 
     final String expectedResult = "X=3; Y=b\n"

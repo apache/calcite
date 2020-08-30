@@ -830,7 +830,7 @@ public class Util {
    *
    * <p>The 'set' is represented by the number of elements and an action to
    * perform for each element. */
-  public static <E> StringBuilder printIterable(StringBuilder sb, int elementCount,
+  public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
       ObjIntConsumer<StringBuilder> consumer) {
     if (elementCount == 0) {
       return sb.append("[]");
