@@ -44,3 +44,4 @@ ij_java_space_before_colon = true
 ij_java_ternary_operation_signs_on_next_line = true
 ij_java_use_single_class_imports = true
 ij_java_wrap_long_lines = true
+ij_java_align_multiline_parameters = false
