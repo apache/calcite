@@ -89,42 +89,47 @@ public class DruidRules {
    * {@link org.apache.calcite.rel.core.Project}. Useful to transform
    * to complex Druid queries. */
   public static final SortProjectTransposeRule SORT_PROJECT_TRANSPOSE =
-      SortProjectTransposeRule.Config.DEFAULT
+      (SortProjectTransposeRule) SortProjectTransposeRule.Config.DEFAULT
           .withOperandFor(Sort.class, Project.class, DruidQuery.class)
+          .withDescription("DruidSortProjectTransposeRule")
           .toRule();
 
   /** Rule to push a {@link org.apache.calcite.rel.core.Project}
    * past a {@link org.apache.calcite.rel.core.Filter}
    * when {@code Filter} is on top of a {@link DruidQuery}. */
   public static final ProjectFilterTransposeRule PROJECT_FILTER_TRANSPOSE =
-      ProjectFilterTransposeRule.Config.DEFAULT
+      (ProjectFilterTransposeRule) ProjectFilterTransposeRule.Config.DEFAULT
           .withOperandFor(Project.class, Filter.class, DruidQuery.class)
+          .withDescription("DruidProjectFilterTransposeRule")
           .toRule();
 
   /** Rule to push a {@link org.apache.calcite.rel.core.Filter}
    * past a {@link org.apache.calcite.rel.core.Project}
    * when {@code Project} is on top of a {@link DruidQuery}. */
   public static final FilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
-      FilterProjectTransposeRule.Config.DEFAULT
+      (FilterProjectTransposeRule) FilterProjectTransposeRule.Config.DEFAULT
           .withOperandFor(Filter.class, Project.class, DruidQuery.class)
           .withCopyFilter(true)
           .withCopyProject(true)
+          .withDescription("DruidFilterProjectTransposeRule")
           .toRule();
 
   /** Rule to push an {@link org.apache.calcite.rel.core.Aggregate}
    * past a {@link org.apache.calcite.rel.core.Filter}
    * when {@code Filter} is on top of a {@link DruidQuery}. */
   public static final AggregateFilterTransposeRule AGGREGATE_FILTER_TRANSPOSE =
-      AggregateFilterTransposeRule.Config.DEFAULT
+      (AggregateFilterTransposeRule) AggregateFilterTransposeRule.Config.DEFAULT
           .withOperandFor(Aggregate.class, Filter.class, DruidQuery.class)
+          .withDescription("DruidAggregateFilterTransposeRule")
           .toRule();
 
   /** Rule to push an {@link org.apache.calcite.rel.core.Filter}
    * past an {@link org.apache.calcite.rel.core.Aggregate}
    * when {@code Aggregate} is on top of a {@link DruidQuery}. */
   public static final FilterAggregateTransposeRule FILTER_AGGREGATE_TRANSPOSE =
-      FilterAggregateTransposeRule.Config.DEFAULT
+      (FilterAggregateTransposeRule) FilterAggregateTransposeRule.Config.DEFAULT
           .withOperandFor(Filter.class, Aggregate.class, DruidQuery.class)
+          .withDescription("DruidFilterAggregateTransposeRule")
           .toRule();
 
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
@@ -135,8 +140,9 @@ public class DruidRules {
    * {@link org.apache.calcite.adapter.druid.DruidQuery} based on the fields
    * used in the aggregate. */
   public static final AggregateExtractProjectRule PROJECT_EXTRACT_RULE =
-      AggregateExtractProjectRule.Config.DEFAULT
+      (AggregateExtractProjectRule) AggregateExtractProjectRule.Config.DEFAULT
           .withOperandFor(Aggregate.class, DruidQuery.class)
+          .withDescription("DruidAggregateExtractProjectRule")
           .toRule();
 
   public static final DruidHavingFilterRule DRUID_HAVING_FILTER_RULE =
