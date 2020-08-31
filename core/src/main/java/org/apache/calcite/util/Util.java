@@ -829,7 +829,13 @@ public class Util {
    * {@link AbstractCollection#toString()}.
    *
    * <p>The 'set' is represented by the number of elements and an action to
-   * perform for each element. */
+   * perform for each element.
+   *
+   * <p>This method can be a very efficient way to convert a structure to a
+   * string, because the components can write directly to the StringBuilder
+   * rather than constructing intermediate strings.
+   *
+   * @see org.apache.calcite.linq4j.function.Functions#generate */
   public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
       ObjIntConsumer<StringBuilder> consumer) {
     if (elementCount == 0) {

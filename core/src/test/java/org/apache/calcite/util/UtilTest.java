@@ -555,11 +555,11 @@ class UtilTest {
   /** Tests {@link Util#printList(StringBuilder, int, ObjIntConsumer)}. */
   @Test void testPrintList() {
     final StringBuilder sb = new StringBuilder();
-    Util.printList(sb, 0, (sb2, i) -> sb2.append(i * 2));
+    Util.printList(sb, 0, (sb2, i) -> sb2.append(i * 2 + 1));
     assertThat(sb.toString(), is("[]"));
     sb.setLength(0);
 
-    Util.printList(sb, 1, (sb2, i) -> sb2.append(i * 2));
+    Util.printList(sb, 1, (sb2, i) -> sb2.append(i * 2 + 1));
     assertThat(sb.toString(), is("[1]"));
     sb.setLength(0);
 
