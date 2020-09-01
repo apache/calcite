@@ -1521,15 +1521,12 @@ public class RexBuilder {
     final SqlTypeName sqlTypeName = type.getSqlTypeName();
     switch (sqlTypeName) {
     case CHAR:
-      int precision = type.getPrecision();
-      NlsString nlsString = (NlsString) value;
+      final NlsString nlsString = (NlsString) value;
       if (trim) {
-        nlsString = nlsString.rtrim();
-        precision = nlsString.getValue().length();
+        return makeCharLiteral(nlsString.rtrim());
       } else {
-        nlsString = padRight(nlsString, precision);
+        return makeCharLiteral(padRight(nlsString, type.getPrecision()));
       }
-      return makeCharLiteral(padRight(nlsString, precision));
     case VARCHAR:
       literal = makeCharLiteral((NlsString) value);
       if (allowCast) {

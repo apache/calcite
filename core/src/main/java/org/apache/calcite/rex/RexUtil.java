@@ -606,8 +606,7 @@ public class RexUtil {
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =
-          new RangeToRex<>(ref, orList, rexBuilder, literal.getType(),
-              RexLiteral.strictTypeName(literal.getType()));
+          new RangeToRex<>(ref, orList, rexBuilder, literal.getType());
       RangeSets.forEach(sarg.rangeSet, consumer);
     }
     return composeDisjunction(rexBuilder, orList);
@@ -2906,16 +2905,14 @@ public class RexUtil {
     private final List<RexNode> list;
     private final RexBuilder rexBuilder;
     private final RelDataType type;
-    private final SqlTypeName typeName;
     private final RexNode ref;
 
     RangeToRex(RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
-        RelDataType type, SqlTypeName typeName) {
+        RelDataType type) {
       this.ref = Objects.requireNonNull(ref);
       this.list = Objects.requireNonNull(list);
       this.rexBuilder = Objects.requireNonNull(rexBuilder);
       this.type = Objects.requireNonNull(type);
-      this.typeName = Objects.requireNonNull(typeName);
     }
 
     private void addAnd(RexNode... nodes) {

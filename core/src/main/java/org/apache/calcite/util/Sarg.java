@@ -34,7 +34,27 @@ import java.util.function.BiConsumer;
  * "<a href="https://blog.acolyer.org/2016/01/04/access-path-selection/">morning
  * paper summary</a>.
  *
- * <p>In RexNode, Sargs only occur as an </p>
+ * <p>In RexNode, a Sarg only occur as the right-hand operand in a call to
+ * {@link SqlStdOperatorTable#SEARCH}, wrapped in a
+ * {@link org.apache.calcite.rex.RexLiteral}. Lifecycle methods:
+ *
+ * <ul>
+ * <li>{@link org.apache.calcite.rex.RexUtil#expandSearch} removes
+ *     calls to SEARCH and the included Sarg, converting them to comparisons;
+ * <li>{@link org.apache.calcite.rex.RexSimplify} converts complex comparisons
+ *     on the same argument into SEARCH calls with an included Sarg;
+ * <li>Various {@link org.apache.calcite.tools.RelBuilder} methods,
+ *     including {@link org.apache.calcite.tools.RelBuilder#in}
+ *     and {@link org.apache.calcite.tools.RelBuilder#between}
+ *     call {@link org.apache.calcite.rex.RexBuilder}
+ *     methods {@link org.apache.calcite.rex.RexBuilder#makeIn}
+ *     and {@link org.apache.calcite.rex.RexBuilder#makeBetween}
+ *     that create Sarg instances directly;
+ * <li>{@link org.apache.calcite.rel.rel2sql.SqlImplementor} converts
+ *     {@link org.apache.calcite.rex.RexCall}s
+ *     to SEARCH into {@link org.apache.calcite.sql.SqlNode} AST expressions
+ *     such as comparisons, {@code BETWEEN} and {@code IN}.
+ * </ul>
  *
  * @param <C> Value type
  *
