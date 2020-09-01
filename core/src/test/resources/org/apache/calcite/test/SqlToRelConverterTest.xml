@@ -521,6 +521,33 @@ LogicalProject(DEPTNO=[$0], NUM=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCorrelateSortWithLimit">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, ename
+FROM
+  (SELECT DISTINCT deptno FROM emp) t1,
+  LATERAL (
+    SELECT ename, sal
+    FROM emp
+    WHERE deptno = t1.deptno
+    ORDER BY sal
+    DESC LIMIT 3
+  )]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
+      LogicalProject(ENAME=[$1], SAL=[$5])
+        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInAggregate">
         <Resource name="sql">
             <![CDATA[SELECT SUM(
@@ -2529,14 +2556,16 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], $f1=[CAST($10):BOOLEAN])
-    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
-        LogicalProject(DEPTNO=[$1], $f0=[true])
-          LogicalSort(fetch=[1])
-            LogicalProject(EXPR$0=[1], DEPTNO=[$0])
-              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
+    LogicalFilter(condition=[IS NOT NULL($9)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject($f0=[true])
+            LogicalSort(fetch=[1])
+              LogicalProject(EXPR$0=[1])
+                LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
