@@ -824,10 +824,10 @@ public class SqlToRelConverter {
       List<SqlNode> orderExprList,
       SqlNode offset,
       SqlNode fetch) {
-    if (!bb.top
+    if (removeSortInSubquery(bb.top)
         || select.getOrderList() == null
         || select.getOrderList().getList().isEmpty()) {
-      assert !bb.top || collation.getFieldCollations().isEmpty();
+      assert removeSortInSubquery(bb.top) || collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
                 && ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
@@ -863,6 +863,15 @@ public class SqlToRelConverter {
               rowType.getFieldNames().subList(0, fieldCount)),
           false);
     }
+  }
+
+  /**
+   * Returns whether we should remove the sort for the subsequent query conversion.
+   *
+   * @param topQuery Whether the query is in the top level.
+   */
+  private boolean removeSortInSubquery(boolean topQuery) {
+    return config.isRemoveSortInSubquery() && !topQuery;
   }
 
   /**
@@ -3249,7 +3258,7 @@ public class SqlToRelConverter {
       return;
     }
 
-    if (!bb.top) {
+    if (removeSortInSubquery(bb.top)) {
       SqlNode offset = select.getOffset();
       if ((offset == null
               || (offset instanceof SqlLiteral
@@ -5865,6 +5874,15 @@ public class SqlToRelConverter {
      * the relational expressions. Default is
      * {@link HintStrategyTable#EMPTY}. */
     HintStrategyTable getHintStrategyTable();
+
+    /**
+     * Returns whether to remove sort operator for a sub-query
+     * if the sort has no offset and fetch limit attributes.
+     * Because the remove does not change the semantics, in many cases, this is a promotion.
+     *
+     * <p> Default is true.
+     */
+    boolean isRemoveSortInSubquery();
   }
 
   /** Builder for a {@link Config}. */
@@ -5874,6 +5892,7 @@ public class SqlToRelConverter {
     private boolean createValuesRel = true;
     private boolean explain;
     private boolean expand = true;
+    private boolean removeSortInSubquery = true;
     private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
     private UnaryOperator<RelBuilder.Config> relBuilderConfigTransform = c ->
         c.withPushJoinCondition(true);
@@ -5889,6 +5908,7 @@ public class SqlToRelConverter {
       this.createValuesRel = config.isCreateValuesRel();
       this.explain = config.isExplain();
       this.expand = config.isExpand();
+      this.removeSortInSubquery = config.isRemoveSortInSubquery();
       this.inSubQueryThreshold = config.getInSubQueryThreshold();
       this.relBuilderConfigTransform = config.getRelBuilderConfigTransform();
       this.relBuilderFactory = config.getRelBuilderFactory();
@@ -5918,6 +5938,11 @@ public class SqlToRelConverter {
 
     public ConfigBuilder withExpand(boolean expand) {
       this.expand = expand;
+      return this;
+    }
+
+    public ConfigBuilder withRemoveSortInSubQuery(boolean removeSortInSubquery) {
+      this.removeSortInSubquery = removeSortInSubquery;
       return this;
     }
 
@@ -5959,7 +5984,7 @@ public class SqlToRelConverter {
     /** Builds a {@link Config}. */
     public Config build() {
       return new ConfigImpl(decorrelationEnabled,
-          trimUnusedFields, createValuesRel, explain, expand,
+          trimUnusedFields, createValuesRel, explain, expand, removeSortInSubquery,
           inSubQueryThreshold, relBuilderConfigTransform, relBuilderFactory,
           hintStrategyTable);
     }
@@ -5973,6 +5998,7 @@ public class SqlToRelConverter {
     private final boolean createValuesRel;
     private final boolean explain;
     private final boolean expand;
+    private final boolean removeSortInSubquery;
     private final int inSubQueryThreshold;
     private final UnaryOperator<RelBuilder.Config> relBuilderConfigTransform;
     private final RelBuilderFactory relBuilderFactory;
@@ -5980,7 +6006,7 @@ public class SqlToRelConverter {
 
     private ConfigImpl(boolean decorrelationEnabled,
         boolean trimUnusedFields, boolean createValuesRel, boolean explain,
-        boolean expand, int inSubQueryThreshold,
+        boolean expand, boolean removeSortInSubquery, int inSubQueryThreshold,
         UnaryOperator<RelBuilder.Config> relBuilderConfigTransform,
         RelBuilderFactory relBuilderFactory,
         HintStrategyTable hintStrategyTable) {
@@ -5989,6 +6015,7 @@ public class SqlToRelConverter {
       this.createValuesRel = createValuesRel;
       this.explain = explain;
       this.expand = expand;
+      this.removeSortInSubquery = removeSortInSubquery;
       this.inSubQueryThreshold = inSubQueryThreshold;
       this.relBuilderConfigTransform = relBuilderConfigTransform;
       this.relBuilderFactory = relBuilderFactory;
@@ -6032,6 +6059,10 @@ public class SqlToRelConverter {
 
     public boolean isExpand() {
       return expand;
+    }
+
+    public boolean isRemoveSortInSubquery() {
+      return removeSortInSubquery;
     }
 
     public int getInSubQueryThreshold() {

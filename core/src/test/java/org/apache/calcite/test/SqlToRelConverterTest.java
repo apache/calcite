@@ -3936,6 +3936,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testSortInSubQuery() {
+    final String sql = "select * from (select empno from emp order by empno)";
+    sql(sql).convertsTo("${planRemoveSort}");
+    sql(sql).withConfig(c -> c.withRemoveSortInSubQuery(false)).convertsTo("${planKeepSort}");
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

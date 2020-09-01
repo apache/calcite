@@ -7038,4 +7038,23 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testSortInSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno from emp order by empno)]]>
+    </Resource>
+    <Resource name="planRemoveSort">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planKeepSort">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>
