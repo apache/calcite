@@ -5846,6 +5846,32 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test
+  public void testFormatDatetimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateNode1 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+            builder.literal("DDMMYY"), builder.literal("2008-12-25 15:30:00"));
+    final RexNode formatDateNode2 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+            builder.literal("YY/MM/DD"), builder.literal("2012-12-25 12:50:10"));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(formatDateNode1, "date1"),
+                    builder.alias(formatDateNode2, "date2"))
+            .build();
+    final String expectedSql = "SELECT FORMAT_DATETIME('DDMMYY', '2008-12-25 15:30:00') AS "
+            + "\"date1\", FORMAT_DATETIME('YY/MM/DD', '2012-12-25 12:50:10') AS \"date2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_DATETIME('%d%m%y', '2008-12-25 15:30:00') "
+            + "AS date1, FORMAT_DATETIME('%y/%m/%d', '2012-12-25 12:50:10') AS date2\n"
+            + "FROM scott.EMP";
+    final String expectedSpark = "SELECT DATE_FORMAT('2008-12-25 15:30:00', 'ddMMyy') date1, "
+            + "DATE_FORMAT('2012-12-25 12:50:10', 'yy/MM/dd') date2\n"
+            + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

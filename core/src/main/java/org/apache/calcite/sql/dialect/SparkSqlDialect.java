@@ -567,6 +567,7 @@ public class SparkSqlDialect extends SqlDialect {
     case "FORMAT_TIMESTAMP":
     case "FORMAT_TIME":
     case "FORMAT_DATE":
+    case "FORMAT_DATETIME":
       SqlCall dateFormatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1),
           creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
