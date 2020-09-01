@@ -1188,6 +1188,20 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableSet.of(ImmutableBitSet.of(0)));
   }
 
+  @Test void testUniqueKeysMinus() {
+    checkGetUniqueKeys("select distinct deptno from emp\n"
+            + "except all\n"
+            + "select deptno from dept",
+        ImmutableSet.of(ImmutableBitSet.of(0)));
+  }
+
+  @Test void testUniqueKeysIntersect() {
+    checkGetUniqueKeys("select distinct deptno from emp\n"
+            + "intersect all\n"
+            + "select deptno from dept",
+        ImmutableSet.of(ImmutableBitSet.of(0)));
+  }
+
   @Test void testSingleKeyTableScanUniqueKeys() {
     // select key column
     checkGetUniqueKeys("select empno, ename from emp",
