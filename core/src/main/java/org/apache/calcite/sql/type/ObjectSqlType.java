@@ -65,26 +65,23 @@ public class ObjectSqlType extends AbstractSqlType {
     this.family = family;
   }
 
-  // implement RelDataType
-  public RelDataTypeComparability getComparability() {
+  @Override public RelDataTypeComparability getComparability() {
     return comparability;
   }
 
-  // override AbstractSqlType
-  public SqlIdentifier getSqlIdentifier() {
+  @Override public SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
   }
 
-  // override AbstractSqlType
-  public RelDataTypeFamily getFamily() {
+  @Override public RelDataTypeFamily getFamily() {
     // each UDT is in its own lonely family, until one day when
     // we support inheritance (at which time also need to implement
     // getPrecedenceList).
-    return family;
+    RelDataTypeFamily family = this.family;
+    return family != null ? family : this;
   }
 
-  // implement RelDataTypeImpl
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
     sb.append("ObjectSqlType(");
     sb.append(sqlIdentifier.toString());
