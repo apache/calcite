@@ -23,13 +23,15 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -44,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -247,8 +250,48 @@ public class RelMdUniqueKeys
     return ImmutableSet.of(rel.getGroupSet());
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(SetOp rel, RelMetadataQuery mq,
+  public Set<ImmutableBitSet> getUniqueKeys(Union rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    if (!rel.all) {
+      return ImmutableSet.of(
+          ImmutableBitSet.range(rel.getRowType().getFieldCount()));
+    }
+    return ImmutableSet.of();
+  }
+
+  /**
+   * Any unique key of any input of Intersect is an unique key of the Intersect.
+   */
+  public Set<ImmutableBitSet> getUniqueKeys(Intersect rel,
+      RelMetadataQuery mq, boolean ignoreNulls) {
+    Set<ImmutableBitSet> keys = new LinkedHashSet<>();
+    for (RelNode input : rel.getInputs()) {
+      Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(input, ignoreNulls);
+      if (uniqueKeys != null) {
+        keys.addAll(uniqueKeys);
+      }
+    }
+    if (!keys.isEmpty()) {
+      return keys;
+    }
+
+    if (!rel.all) {
+      return ImmutableSet.of(
+          ImmutableBitSet.range(rel.getRowType().getFieldCount()));
+    }
+    return ImmutableSet.of();
+  }
+
+  /**
+   * The unique keys of Minus are precisely the unique keys of its first input.
+   */
+  public Set<ImmutableBitSet> getUniqueKeys(Minus rel,
+      RelMetadataQuery mq, boolean ignoreNulls) {
+    Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel.getInput(0), ignoreNulls);
+    if (uniqueKeys != null) {
+      return uniqueKeys;
+    }
+
     if (!rel.all) {
       return ImmutableSet.of(
           ImmutableBitSet.range(rel.getRowType().getFieldCount()));
