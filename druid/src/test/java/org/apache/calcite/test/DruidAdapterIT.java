@@ -143,7 +143,7 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[wiki, wiki]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[=($13, 'Jeremy Corbyn')], projects=[[$5]], groups=[{0}], aggs=[[]])\n";
-    checkSelectDistinctWiki(WIKI, "wiki")
+    checkSelectDistinctWiki(WIKI)
         .explainContains(explain);
   }
 
@@ -153,7 +153,7 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[wiki, wiki]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[=($16, 'Jeremy Corbyn')], projects=[[$6]], groups=[{0}], aggs=[[]])\n";
-    checkSelectDistinctWiki(WIKI_AUTO, "wiki")
+    checkSelectDistinctWiki(WIKI_AUTO)
         .explainContains(explain);
   }
 
@@ -217,11 +217,6 @@ public class DruidAdapterIT {
         "PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/"
             + "3000-01-01T00:00:00.000Z]], projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], fetch=[1])";
-    final String druidQuery = "{'queryType':'scan',"
-        + "'dataSource':'wikipedia',"
-        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
-        + "'columns':['__time'],'granularity':'all',"
-        + "'resultFormat':'compactedList','limit':1}";
 
     sql(sql, WIKI_AUTO2)
         .returnsUnordered("__time=2015-09-12 00:46:58")
@@ -288,9 +283,9 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(druidQuery));
   }
 
-  private CalciteAssert.AssertQuery checkSelectDistinctWiki(URL url, String tableName) {
+  private CalciteAssert.AssertQuery checkSelectDistinctWiki(URL url) {
     final String sql = "select distinct \"countryName\"\n"
-        + "from \"" + tableName + "\"\n"
+        + "from \"wiki\"\n"
         + "where \"page\" = 'Jeremy Corbyn'";
     final String druidQuery = "{'queryType':'groupBy',"
         + "'dataSource':'wikipedia','granularity':'all',"
@@ -350,7 +345,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(subDruidQuery));
   }
 
-  @Test void testMetadataColumns() throws Exception {
+  @Test void testMetadataColumns() {
     sql("values 1")
         .withConnection(c -> {
           try {
@@ -2820,7 +2815,7 @@ public class DruidAdapterIT {
    */
   @Test void testNotFilterForm() {
     String sql = "select count(distinct \"the_month\") from "
-            + "\"foodmart\" where \"the_month\" <> \'October\'";
+            + "\"foodmart\" where \"the_month\" <> 'October'";
     String druidFilter = "'filter':{'type':'not',"
             + "'field':{'type':'selector','dimension':'the_month','value':'October'}}";
     // Check that the filter actually worked, and that druid was responsible for the filter
@@ -3907,7 +3902,7 @@ public class DruidAdapterIT {
             false,
             "\"filter\":{"
                 + "\"type\":\"expression\","
-                + "\"expression\":\"(CAST(\\\"product_id\\\", \'DOUBLE\') == 16.0)\""
+                + "\"expression\":\"(CAST(\\\"product_id\\\", 'DOUBLE') == 16.0)\""
                 + "}"));
   }
 
