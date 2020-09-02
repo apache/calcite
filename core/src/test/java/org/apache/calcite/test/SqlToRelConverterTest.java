@@ -537,6 +537,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testGroupingSetsRepeated() {
+    final String sql = "select deptno, group_id()\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), deptno)";
+    sql(sql).ok();
+  }
+
   @Test void testGroupingSetsWith() {
     final String sql = "with t(a, b, c, d) as (values (1, 2, 3, 4))\n"
         + "select 1 from t\n"

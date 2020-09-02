@@ -1406,6 +1406,26 @@ LogicalProject(EXPR$0=[JSON_TYPE(ROW($2.TYPE, $2.DESC, ROW($2.OTHERS.A, $2.OTHER
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testGroupingSetsRepeated">
+        <Resource name="sql">
+            <![CDATA[select deptno, group_id()
+from emp
+group by grouping sets (deptno, (), deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[0:BIGINT])
+    LogicalAggregate(group=[{0}], groups=[[{0}, {}]])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[1:BIGINT])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOrder">
         <Resource name="sql">
             <![CDATA[select empno from emp order by empno, empno desc]]>

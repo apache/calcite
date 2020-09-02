@@ -241,6 +241,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "    group by empno, deptno))\n"
         + "or deptno < 40 + 60";
     checkSubQuery(sql)
+        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .check();
   }
@@ -4488,6 +4489,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "left outer join sales.dept as d on e.empno < d.deptno\n"
         + "group by e.empno,d.deptno";
     sql(sql)
+        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
         .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .checkUnchanged();
@@ -4577,6 +4579,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "join sales.dept as d on e.empno < d.deptno\n"
         + "group by e.empno,d.deptno";
     sql(sql)
+        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
         .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .checkUnchanged();
@@ -5022,6 +5025,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateRemove2() {
     final String sql = "select distinct empno, deptno from sales.emp\n";
     sql(sql)
+        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withRule(CoreRules.AGGREGATE_REMOVE,
             CoreRules.PROJECT_MERGE)
         .check();
@@ -5988,7 +5992,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testWhereInCorrelated() {
     final String sql = "select sal from emp where empno IN (\n"
         + "  select deptno from dept where emp.job = dept.name)";
-    checkSubQuery(sql).withLateDecorrelation(true).check();
+    checkSubQuery(sql).withLateDecorrelation(true)
+        .check();
   }
 
   @Test void testWhereExpressionInCorrelated() {

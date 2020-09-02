@@ -122,13 +122,12 @@ public class PigRelBuilder extends RelBuilder {
 
   public PigRelBuilder group(GroupOption option, Partitioner partitioner,
       int parallel, Iterable<? extends GroupKey> groupKeys) {
-    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
-        ImmutableList.copyOf((Iterable) groupKeys);
+    final List<GroupKey> groupKeyList = ImmutableList.copyOf(groupKeys);
     validateGroupList(groupKeyList);
 
-    final int groupCount = groupKeyList.get(0).nodes.size();
+    final int groupCount = groupKeyList.get(0).groupKeyCount();
     final int n = groupKeyList.size();
-    for (Ord<GroupKeyImpl> groupKey : Ord.reverse(groupKeyList)) {
+    for (Ord<GroupKey> groupKey : Ord.reverse(groupKeyList)) {
       RelNode r = null;
       if (groupKey.i < n - 1) {
         r = build();
@@ -152,13 +151,13 @@ public class PigRelBuilder extends RelBuilder {
     return this;
   }
 
-  protected void validateGroupList(List<GroupKeyImpl> groupKeyList) {
+  protected void validateGroupList(List<GroupKey> groupKeyList) {
     if (groupKeyList.isEmpty()) {
       throw new IllegalArgumentException("must have at least one group");
     }
-    final int groupCount = groupKeyList.get(0).nodes.size();
-    for (GroupKeyImpl groupKey : groupKeyList) {
-      if (groupKey.nodes.size() != groupCount) {
+    final int groupCount = groupKeyList.get(0).groupKeyCount();
+    for (GroupKey groupKey : groupKeyList) {
+      if (groupKey.groupKeyCount() != groupCount) {
         throw new IllegalArgumentException("group key size mismatch");
       }
     }

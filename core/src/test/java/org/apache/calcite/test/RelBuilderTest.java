@@ -1569,6 +1569,44 @@ public class RelBuilderTest {
     }
   }
 
+  @Test void testAggregateOneRow() {
+    final Function<RelBuilder, RelNode> f = builder ->
+        builder.values(new String[] {"a", "b"}, 1, 2)
+            .aggregate(builder.groupKey(1))
+            .build();
+    final String plan = "LogicalProject(b=[$1])\n"
+        + "  LogicalValues(tuples=[[{ 1, 2 }]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(plan));
+
+    final String plan2 = "LogicalAggregate(group=[{1}])\n"
+        + "  LogicalValues(tuples=[[{ 1, 2 }]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withAggregateUnique(true))),
+        hasTree(plan2));
+  }
+
+  /** Tests that we do not convert an Aggregate to a Project if there are
+   * multiple group sets. */
+  @Test void testAggregateGroupingSetsOneRow() {
+    final Function<RelBuilder, RelNode> f = builder -> {
+      final List<Integer> list01 = Arrays.asList(0, 1);
+      final List<Integer> list0 = Collections.singletonList(0);
+      final List<Integer> list1 = Collections.singletonList(1);
+      return builder.values(new String[] {"a", "b"}, 1, 2)
+          .aggregate(
+              builder.groupKey(builder.fields(list01),
+                  ImmutableList.of(builder.fields(list0),
+                      builder.fields(list1),
+                      builder.fields(list01))))
+          .build();
+    };
+    final String plan = ""
+        + "LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]])\n"
+        + "  LogicalValues(tuples=[[{ 1, 2 }]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(plan));
+    assertThat(f.apply(createBuilder(c -> c.withAggregateUnique(true))),
+        hasTree(plan));
+  }
+
   @Test void testDistinct() {
     // Equivalent SQL:
     //   SELECT DISTINCT deptno

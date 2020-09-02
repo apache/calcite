@@ -384,9 +384,8 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   public RelBuilder cogroup(Iterable<? extends GroupKey> groupKeys) {
-    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
-        ImmutableList.copyOf((Iterable) groupKeys);
-    final int groupCount = groupKeyList.get(0).nodes.size();
+    final List<GroupKey> groupKeyList = ImmutableList.copyOf(groupKeys);
+    final int groupCount = groupKeyList.get(0).groupKeyCount();
 
     // Pull out all relations needed for the group
     final int numRels = groupKeyList.size();
