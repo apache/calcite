@@ -187,7 +187,7 @@ public interface RelDataType {
   /**
    * Gets the {@link SqlTypeName} of this type.
    *
-   * @return SqlTypeName, or null if this is not an SQL predefined type
+   * @return SqlTypeName, never null
    */
   SqlTypeName getSqlTypeName();
 
