@@ -186,6 +186,21 @@ public abstract class Bug {
    * Incomplete validation of operands in JSON functions</a> is fixed. */
   public static final boolean CALCITE_3243_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4204">[CALCITE-4204]
+   * Intermittent precision in Druid results when using aggregation functions over columns of type
+   * DOUBLE</a> is fixed. */
+  public static final boolean CALCITE_4204_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4205">[CALCITE-4205]
+   * DruidAdapterIT#testDruidTimeFloorAndTimeParseExpressions2 fails</a> is fixed. */
+  public static final boolean CALCITE_4205_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4213">[CALCITE-4213]
+   * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
+   * fixed. */
+  public static final boolean CALCITE_4213_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
