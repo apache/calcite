@@ -153,6 +153,9 @@ public class SqlBinaryOperator extends SqlOperator {
     if (getName().equals("/")) {
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
+      if (mono0 == null || mono1 == null) {
+        return null;
+      }
       if (mono1 == SqlMonotonicity.CONSTANT) {
         if (call.isOperandLiteral(1, false)) {
           switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {

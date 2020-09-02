@@ -160,7 +160,8 @@ public class SqlSubstringFunction extends SqlFunction {
     // SUBSTRING(x FROM 0 FOR constant) has same monotonicity as x
     if (call.getOperandCount() == 3) {
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
-      if ((mono0 != SqlMonotonicity.NOT_MONOTONIC)
+      if (mono0 != null
+          && mono0 != SqlMonotonicity.NOT_MONOTONIC
           && call.getOperandMonotonicity(1) == SqlMonotonicity.CONSTANT
           && call.getOperandLiteralValue(1, BigDecimal.class)
               .equals(BigDecimal.ZERO)
