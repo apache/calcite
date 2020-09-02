@@ -26,3 +26,9 @@ data/files/*.dat    text eol=lf
 *.cmd    text eol=crlf
 *.csproj text merge=union eol=crlf
 *.sln    text merge=union eol=crlf
+
+# Take the union of the lines during merge
+# It avoids false merge conflicts when different lines are added close to each other
+# However, it might result in duplicate lines if two commits edit the same line differently.
+# If different commits add exactly the same line, then merge produces only one line.
+/core/src/main/resources/org/apache/calcite/runtime/CalciteResource.properties text merge=union
