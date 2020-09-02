@@ -112,17 +112,21 @@ public class RelMdCollation
    */
   public ImmutableList<RelCollation> collations(RelNode rel,
       RelMetadataQuery mq) {
-    return ImmutableList.of();
+    return null;
+  }
+
+  private static <E> ImmutableList<E> copyOf(Collection<? extends E> values) {
+    return values == null ? null : ImmutableList.copyOf(values);
   }
 
   public ImmutableList<RelCollation> collations(Window rel,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(window(mq, rel.getInput(), rel.groups));
+    return copyOf(window(mq, rel.getInput(), rel.groups));
   }
 
   public ImmutableList<RelCollation> collations(Match rel,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         match(mq, rel.getInput(), rel.getRowType(), rel.getPattern(),
             rel.isStrictStart(), rel.isStrictEnd(),
             rel.getPatternDefinitions(), rel.getMeasures(), rel.getAfter(),
@@ -142,14 +146,14 @@ public class RelMdCollation
 
   public ImmutableList<RelCollation> collations(TableScan scan,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(table(scan.getTable()));
+    return copyOf(table(scan.getTable()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableMergeJoin join,
       RelMetadataQuery mq) {
     // In general a join is not sorted. But a merge join preserves the sort
     // order of the left and right sides.
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.mergeJoin(mq, join.getLeft(), join.getRight(),
             join.analyzeCondition().leftKeys, join.analyzeCondition().rightKeys,
             join.getJoinType()));
@@ -157,50 +161,50 @@ public class RelMdCollation
 
   public ImmutableList<RelCollation> collations(EnumerableHashJoin join,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.enumerableHashJoin(mq, join.getLeft(), join.getRight(), join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableNestedLoopJoin join,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.enumerableNestedLoopJoin(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableCorrelate join,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(Sort sort,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.sort(sort.getCollation()));
   }
 
   public ImmutableList<RelCollation> collations(SortExchange sort,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         RelMdCollation.sort(sort.getCollation()));
   }
 
   public ImmutableList<RelCollation> collations(Project project,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         project(mq, project.getInput(), project.getProjects()));
   }
 
   public ImmutableList<RelCollation> collations(Calc calc,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(calc(mq, calc.getInput(), calc.getProgram()));
+    return copyOf(calc(mq, calc.getInput(), calc.getProgram()));
   }
 
   public ImmutableList<RelCollation> collations(Values values,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         values(mq, values.getRowType(), values.getTuples()));
   }
 
@@ -216,7 +220,7 @@ public class RelMdCollation
 
   public ImmutableList<RelCollation> collations(RelSubset rel,
       RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
+    return copyOf(
         Objects.requireNonNull(
             rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
   }
@@ -326,7 +330,7 @@ public class RelMdCollation
       collations.add(RelCollations.of(fieldCollationsForRexCalls));
     }
 
-    return ImmutableList.copyOf(collations);
+    return copyOf(collations);
   }
 
   /** Helper method to determine a
