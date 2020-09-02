@@ -143,16 +143,17 @@ public abstract class RelDataTypeImpl
   }
 
   public List<RelDataTypeField> getFieldList() {
-    assert isStruct();
+    assert fieldList != null : "fieldList must not be null, type = " + this;
     return fieldList;
   }
 
   public List<String> getFieldNames() {
+    assert fieldList != null : "fieldList must not be null, type = " + this;
     return Pair.left(fieldList);
   }
 
   public int getFieldCount() {
-    assert isStruct() : this;
+    assert fieldList != null : "fieldList must not be null, type = " + this;
     return fieldList.size();
   }
 
