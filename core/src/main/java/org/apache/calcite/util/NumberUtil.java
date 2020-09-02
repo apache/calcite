@@ -143,6 +143,14 @@ public class NumberUtil {
     return a + b;
   }
 
+  public static Double subtract(Double a, Double b) {
+    if ((a == null) || (b == null)) {
+      return null;
+    }
+
+    return a - b;
+  }
+
   public static Double divide(Double a, Double b) {
     if ((a == null) || (b == null) || (b == 0D)) {
       return null;

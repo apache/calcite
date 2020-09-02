@@ -599,8 +599,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "right join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
-    checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 4D); // 1 * 4
+    checkRowCount(sql, 4D,
+        0D, 4D);
   }
 
   @Test void testRowCountJoinFiniteEmpty() {
@@ -610,6 +610,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
         0D, 0D); // 7 * 0
   }
+
+  @Test void testRowCountLeftJoinFiniteEmpty() {
+    final String sql = "select * from (select * from emp limit 4) as emp\n"
+        + "left join (select * from dept limit 0) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 4D,
+        0D, 4D);
+  }
+
+  @Test void testRowCountRightJoinFiniteEmpty() {
+    final String sql = "select * from (select * from emp limit 4) as emp\n"
+        + "right join (select * from dept limit 0) as dept\n"
+        + "on emp.deptno = dept.deptno";
+    checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
+        0D, 0D); // 0 * 4
+  }
+
 
   @Test void testRowCountJoinEmptyEmpty() {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
