@@ -145,6 +145,7 @@ public class AggregateCall {
   }
 
   /** Creates an AggregateCall, inferring its type if {@code type} is null. */
+  @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
@@ -189,6 +190,7 @@ public class AggregateCall {
   }
 
   /** Creates an AggregateCall. */
+  @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
@@ -373,6 +375,7 @@ public class AggregateCall {
    * @param args Arguments
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
+  @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> args, int filterArg,
       RelCollation collation) {
     return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
@@ -412,15 +415,134 @@ public class AggregateCall {
             && filterArg == this.filterArg
             ? type
             : null;
-    return create(aggFunction, distinct, approximate, ignoreNulls, argList,
-        filterArg, collation, newGroupKeyCount, input, newType, getName());
+    return builder(this).argList(argList).filterArg(filterArg).
+        groupCount(newGroupKeyCount).input(input).type(newType).build();
   }
 
   /** Creates a copy of this aggregate call, applying a mapping to its
    * arguments. */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
-    return copy(Mappings.apply2((Mapping) mapping, argList),
-        hasFilter() ? Mappings.apply(mapping, filterArg) : -1,
-        RelCollations.permute(collation, mapping));
+    return builder(this).argList(Mappings.apply2((Mapping) mapping, argList))
+        .filterArg(hasFilter() ? Mappings.apply(mapping, filterArg) : -1)
+        .collation(RelCollations.permute(collation, mapping)).build();
+  }
+
+  public static Builder builder(AggregateCall aggCall) {
+    Builder builder = new Builder();
+    builder.aggFunction(aggCall.aggFunction)
+        .approximate(aggCall.approximate)
+        .argList(aggCall.argList)
+        .collation(aggCall.collation)
+        .distinct(aggCall.distinct)
+        .filterArg(aggCall.filterArg)
+        .ignoreNulls(aggCall.ignoreNulls)
+        .name(aggCall.name)
+        .type(aggCall.type);
+    return builder;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /**
+   * Utility for creating aggregate calls.
+   */
+  public static class Builder {
+
+    private SqlAggFunction aggFunction = null;
+
+    private boolean distinct = false;
+
+    private boolean approximate = false;
+
+    private boolean ignoreNulls = false;
+
+    private List<Integer> argList = ImmutableList.of();
+
+    private int filterArg = -1;
+
+    private RelCollation collation = RelCollations.EMPTY;
+
+    private RelDataType type;
+
+    private String name;
+
+    private int groupCount = 0;
+
+    private RelNode input;
+
+    public Builder aggFunction(SqlAggFunction aggFunction) {
+      this.aggFunction = aggFunction;
+      return this;
+    }
+
+    public Builder distinct(boolean distinct) {
+      this.distinct = distinct;
+      return this;
+    }
+
+    public Builder approximate(boolean approximate) {
+      this.approximate = approximate;
+      return this;
+    }
+
+    public Builder ignoreNulls(boolean ignoreNulls) {
+      this.ignoreNulls = ignoreNulls;
+      return this;
+    }
+
+    public Builder argList(List<Integer> argList) {
+      this.argList = argList;
+      return this;
+    }
+
+    public Builder filterArg(int filterArg) {
+      this.filterArg = filterArg;
+      return this;
+    }
+
+    public Builder collation(RelCollation collation) {
+      this.collation = collation;
+      return this;
+    }
+
+    public Builder type(RelDataType type) {
+      this.type = type;
+      return this;
+    }
+
+    public Builder name(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder groupCount(int groupCount) {
+      this.groupCount = groupCount;
+      return this;
+    }
+
+    public Builder input(RelNode input) {
+      this.input = input;
+      return this;
+    }
+
+    public AggregateCall build() {
+      if (type == null) {
+        final RelDataTypeFactory typeFactory =
+            input.getCluster().getTypeFactory();
+        final List<RelDataType> types =
+            SqlTypeUtil.projectTypes(input.getRowType(), argList);
+        final Aggregate.AggCallBinding callBinding =
+            new Aggregate.AggCallBinding(typeFactory, aggFunction, types,
+                groupCount, filterArg >= 0);
+        type = aggFunction.inferReturnType(callBinding);
+      }
+
+      final boolean distinct2 = distinct
+          && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
+      return new AggregateCall(aggFunction, distinct2, approximate, ignoreNulls,
+          argList, filterArg, collation, type, name);
+    }
   }
 }

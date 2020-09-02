@@ -181,10 +181,9 @@ public class AggregateUnionTransposeRule
         aggType = origCall.getType();
       }
       AggregateCall newCall =
-          AggregateCall.create(aggFun, origCall.isDistinct(),
-              origCall.isApproximate(), origCall.ignoreNulls(),
-              ImmutableList.of(groupCount + ord.i), -1, origCall.collation,
-              groupCount, input, aggType, origCall.getName());
+          AggregateCall.builder(origCall).aggFunction(aggFun)
+              .argList(ImmutableList.of(groupCount + ord.i)).filterArg(-1)
+              .groupCount(groupCount).input(input).type(aggType).build();
       newCalls.add(newCall);
     }
     return newCalls;

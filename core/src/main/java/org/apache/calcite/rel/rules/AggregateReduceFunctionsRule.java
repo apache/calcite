@@ -345,15 +345,12 @@ public class AggregateReduceFunctionsRule
         new Aggregate.AggCallBinding(typeFactory, aggFunction,
             ImmutableList.of(operandType), oldAggRel.getGroupCount(),
             filter >= 0);
-    return AggregateCall.create(aggFunction,
-        oldCall.isDistinct(),
-        oldCall.isApproximate(),
-        oldCall.ignoreNulls(),
-        ImmutableIntList.of(argOrdinal),
-        filter,
-        oldCall.collation,
-        aggFunction.inferReturnType(binding),
-        null);
+    return AggregateCall.builder(oldCall)
+        .aggFunction(aggFunction)
+        .argList(ImmutableIntList.of(argOrdinal))
+        .filterArg(filter)
+        .type(aggFunction.inferReturnType(binding))
+        .name(null).build();
   }
 
   private RexNode reduceAvg(
@@ -369,30 +366,18 @@ public class AggregateReduceFunctionsRule
         getFieldType(
             oldAggRel.getInput(),
             iAvgInput);
-    final AggregateCall sumCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            oldCall.getArgList(),
-            oldCall.filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel.getInput(),
-            null,
-            null);
-    final AggregateCall countCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            oldCall.getArgList(),
-            oldCall.filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel.getInput(),
-            null,
-            null);
+    final AggregateCall sumCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.SUM)
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput())
+        .type(null)
+        .name(null).build();
+    final AggregateCall countCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.COUNT)
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput())
+        .type(null)
+        .name(null).build();
 
     // NOTE:  these references are with respect to the output
     // of newAggRel
@@ -431,24 +416,12 @@ public class AggregateReduceFunctionsRule
             oldAggRel.getInput(),
             arg);
 
-    final AggregateCall sumZeroCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
-            oldCall.isApproximate(), oldCall.ignoreNulls(),
-            oldCall.getArgList(), oldCall.filterArg,
-            oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
-            null, oldCall.name);
-    final AggregateCall countCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            oldCall.getArgList(),
-            oldCall.filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel,
-            null,
-            null);
+    final AggregateCall sumZeroCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.SUM0).groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput()).type(null).build();
+    final AggregateCall countCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.COUNT).groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput()).type(null).name(null).build();
 
     // NOTE:  these references are with respect to the output
     // of newAggRel
@@ -526,18 +499,13 @@ public class AggregateReduceFunctionsRule
             aggCallMapping,
             ImmutableList.of(sumArgSquaredAggCall.getType()));
 
-    final AggregateCall sumArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            ImmutableIntList.of(argOrdinal),
-            oldCall.filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel.getInput(),
-            null,
-            null);
+    final AggregateCall sumArgAggCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.SUM)
+        .argList(ImmutableIntList.of(argOrdinal))
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput())
+        .type(null)
+        .name(null).build();
 
     final RexNode sumArg =
         rexBuilder.addAggCall(sumArgAggCall,
@@ -551,17 +519,12 @@ public class AggregateReduceFunctionsRule
             SqlStdOperatorTable.MULTIPLY, sumArgCast, sumArgCast);
 
     final AggregateCall countArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            oldCall.getArgList(),
-            oldCall.filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel,
-            null,
-            null);
+        AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.COUNT)
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel)
+        .type(null)
+        .name(null).build();
 
     final RexNode countArg =
         rexBuilder.addAggCall(countArgAggCall,
@@ -595,18 +558,14 @@ public class AggregateReduceFunctionsRule
       RexBuilder rexBuilder,
       int argOrdinal,
       int filterArg) {
-    final AggregateCall aggregateCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            ImmutableIntList.of(argOrdinal),
-            filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel.getInput(),
-            null,
-            null);
+    final AggregateCall aggregateCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.SUM)
+        .argList(ImmutableIntList.of(argOrdinal))
+        .filterArg(filterArg)
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput())
+        .type(null)
+        .name(null).build();
     return rexBuilder.addAggCall(aggregateCall,
         oldAggRel.getGroupCount(),
         newCalls,
@@ -640,18 +599,14 @@ public class AggregateReduceFunctionsRule
       ImmutableIntList argOrdinals,
       ImmutableList<RelDataType> operandTypes,
       int filterArg) {
-    final AggregateCall countArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.REGR_COUNT,
-            oldCall.isDistinct(),
-            oldCall.isApproximate(),
-            oldCall.ignoreNulls(),
-            argOrdinals,
-            filterArg,
-            oldCall.collation,
-            oldAggRel.getGroupCount(),
-            oldAggRel,
-            null,
-            null);
+    final AggregateCall countArgAggCall = AggregateCall.builder(oldCall)
+        .aggFunction(SqlStdOperatorTable.REGR_COUNT)
+        .argList(argOrdinals)
+        .filterArg(filterArg)
+        .groupCount(oldAggRel.getGroupCount())
+        .input(oldAggRel.getInput())
+        .type(null)
+        .name(null).build();
 
     return oldAggRel.getCluster().getRexBuilder().addAggCall(countArgAggCall,
         oldAggRel.getGroupCount(),

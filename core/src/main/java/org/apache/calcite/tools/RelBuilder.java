@@ -1722,11 +1722,11 @@ public class RelBuilder {
                     collation(orderKey, RelFieldCollation.Direction.ASCENDING,
                         null, Collections.emptyList()))
                 .collect(Collectors.toList()));
-        aggregateCall =
-            AggregateCall.create(aggCall1.aggFunction, aggCall1.distinct,
-                aggCall1.approximate,
-                aggCall1.ignoreNulls, args, filterArg, collation,
-                groupSet.cardinality(), r, null, aggCall1.alias);
+        aggregateCall = AggregateCall.builder().aggFunction(aggCall1.aggFunction)
+            .distinct(aggCall1.distinct).approximate(aggCall1.approximate)
+            .ignoreNulls(aggCall1.ignoreNulls).argList(args).filterArg(filterArg)
+            .collation(collation).groupCount(groupSet.cardinality()).input(r).type(null)
+            .name(aggCall1.alias).build();
       } else {
         aggregateCall = ((AggCallImpl2) aggCall).aggregateCall;
       }

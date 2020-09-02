@@ -132,9 +132,8 @@ public interface SqlSplittableAggFunction {
     }
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false, ImmutableIntList.of(), -1, RelCollations.EMPTY,
-          typeFactory.createSqlType(SqlTypeName.BIGINT), null);
+      return AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+          .type(typeFactory.createSqlType(SqlTypeName.BIGINT)).build();
     }
 
     public AggregateCall topSplit(RexBuilder rexBuilder,
@@ -161,9 +160,9 @@ public interface SqlSplittableAggFunction {
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
-          aggregateCall.type, aggregateCall.name);
+      return AggregateCall.builder().aggFunction(SqlStdOperatorTable.SUM0)
+          .argList(ImmutableList.of(ordinal)).collation(aggregateCall.collation)
+          .type(aggregateCall.type).name(aggregateCall.name).build();
     }
 
     /**
@@ -200,10 +199,7 @@ public interface SqlSplittableAggFunction {
       if (bottom.getAggregation().getKind() == SqlKind.COUNT
           && (top.getAggregation().getKind() == SqlKind.SUM
               || top.getAggregation().getKind() == SqlKind.SUM0)) {
-        return AggregateCall.create(bottom.getAggregation(),
-            bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
-            bottom.getType(), top.getName());
+        return AggregateCall.builder(bottom).ignoreNulls(false).name(top.getName()).build();
       } else {
         return null;
       }
@@ -238,16 +234,13 @@ public interface SqlSplittableAggFunction {
       assert (leftSubTotal >= 0) != (rightSubTotal >= 0);
       assert aggregateCall.collation.getFieldCollations().isEmpty();
       final int arg = leftSubTotal >= 0 ? leftSubTotal : rightSubTotal;
-      return aggregateCall.copy(ImmutableIntList.of(arg), -1,
-          RelCollations.EMPTY);
+      return AggregateCall.builder(aggregateCall).argList(ImmutableIntList.of(arg))
+          .filterArg(-1).collation(RelCollations.EMPTY).build();
     }
 
     public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (top.getAggregation().getKind() == bottom.getAggregation().getKind()) {
-        return AggregateCall.create(bottom.getAggregation(),
-            bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
-            bottom.getType(), top.getName());
+        return AggregateCall.builder(bottom).ignoreNulls(false).name(top.getName()).build();
       } else {
         return null;
       }
@@ -273,11 +266,8 @@ public interface SqlSplittableAggFunction {
     }
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false,
-          ImmutableIntList.of(), -1,
-          RelCollations.EMPTY,
-          typeFactory.createSqlType(SqlTypeName.BIGINT), null);
+      return AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+          .type(typeFactory.createSqlType(SqlTypeName.BIGINT)).build();
     }
 
     public AggregateCall topSplit(RexBuilder rexBuilder,
@@ -306,9 +296,9 @@ public interface SqlSplittableAggFunction {
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
-          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
-          aggregateCall.type, aggregateCall.name);
+      return AggregateCall.builder().aggFunction(getMergeAggFunctionOfTopSplit())
+          .argList(ImmutableList.of(ordinal)).collation(aggregateCall.collation)
+          .type(aggregateCall.type).name(aggregateCall.name).build();
     }
 
     public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
@@ -316,10 +306,7 @@ public interface SqlSplittableAggFunction {
       if (topKind == bottom.getAggregation().getKind()
           && (topKind == SqlKind.SUM
               || topKind == SqlKind.SUM0)) {
-        return AggregateCall.create(bottom.getAggregation(),
-            bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
-            bottom.getType(), top.getName());
+        return AggregateCall.builder(bottom).ignoreNulls(false).name(top.getName()).build();
       } else {
         return null;
       }

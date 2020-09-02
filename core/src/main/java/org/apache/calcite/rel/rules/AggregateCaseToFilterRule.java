@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
@@ -198,10 +197,9 @@ public class AggregateCaseToFilterRule
           && RexLiteral.isNullLiteral(arg2)) {
         newProjects.add(arg1);
         newProjects.add(filter);
-        return AggregateCall.create(SqlStdOperatorTable.COUNT, true, false,
-            false, ImmutableList.of(newProjects.size() - 2),
-            newProjects.size() - 1, RelCollations.EMPTY,
-            aggregateCall.getType(), aggregateCall.getName());
+        return AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT).distinct(true)
+            .argList(ImmutableList.of(newProjects.size() - 2)).filterArg(newProjects.size() - 1)
+            .type(aggregateCall.getType()).name(aggregateCall.getName()).build();
       }
       return null;
     }
@@ -222,10 +220,9 @@ public class AggregateCaseToFilterRule
         && !RexLiteral.isNullLiteral(arg1)
         && RexLiteral.isNullLiteral(arg2)) {
       newProjects.add(filter);
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false, ImmutableList.of(), newProjects.size() - 1,
-          RelCollations.EMPTY, aggregateCall.getType(),
-          aggregateCall.getName());
+      return AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+          .filterArg(newProjects.size() - 1).type(aggregateCall.getType())
+          .name(aggregateCall.getName()).build();
     } else if (kind == SqlKind.SUM // Case B
         && isIntLiteral(arg1) && RexLiteral.intValue(arg1) == 1
         && isIntLiteral(arg2) && RexLiteral.intValue(arg2) == 0) {
@@ -235,9 +232,8 @@ public class AggregateCaseToFilterRule
       final RelDataType dataType =
           typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(SqlTypeName.BIGINT), false);
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false, ImmutableList.of(), newProjects.size() - 1,
-          RelCollations.EMPTY, dataType, aggregateCall.getName());
+      return AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+          .filterArg(newProjects.size() - 1).type(dataType).name(aggregateCall.getName()).build();
     } else if ((RexLiteral.isNullLiteral(arg2) // Case A1
             && aggregateCall.getAggregation().allowsFilter())
         || (kind == SqlKind.SUM // Case A2
@@ -245,10 +241,9 @@ public class AggregateCaseToFilterRule
             && RexLiteral.intValue(arg2) == 0)) {
       newProjects.add(arg1);
       newProjects.add(filter);
-      return AggregateCall.create(aggregateCall.getAggregation(), false,
-          false, false, ImmutableList.of(newProjects.size() - 2),
-          newProjects.size() - 1, RelCollations.EMPTY,
-          aggregateCall.getType(), aggregateCall.getName());
+      return AggregateCall.builder().aggFunction(aggregateCall.getAggregation())
+          .argList(ImmutableList.of(newProjects.size() - 2)).filterArg(newProjects.size() - 1)
+          .type(aggregateCall.getType()).name(aggregateCall.getName()).build();
     } else {
       return null;
     }

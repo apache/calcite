@@ -206,10 +206,9 @@ public class AggregateStarTableRule
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false, aggregateCall.isApproximate(),
-          aggregateCall.ignoreNulls(), ImmutableList.of(offset + i), -1,
-          aggregateCall.collation,
-          groupCount, relBuilder.peek(), null, aggregateCall.name);
+      return AggregateCall.builder().aggFunction(roll).distinct(false)
+          .argList(ImmutableList.of(offset + i)).filterArg(-1).groupCount(groupCount)
+          .input(relBuilder.peek()).type(null).build();
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
@@ -223,10 +222,9 @@ public class AggregateStarTableRule
         }
         newArgs.add(z);
       }
-      return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-          newArgs, -1, aggregateCall.collation,
-          groupCount, relBuilder.peek(), null, aggregateCall.name);
+      return AggregateCall.builder().aggFunction(aggregation).distinct(false)
+          .argList(newArgs).filterArg(-1).groupCount(groupCount).input(relBuilder.peek())
+          .type(null).build();
     }
 
     // No roll up possible.

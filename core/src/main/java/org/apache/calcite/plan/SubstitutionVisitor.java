@@ -1906,12 +1906,8 @@ public class SubstitutionVisitor {
           return null;
         }
         aggregateCalls.add(
-            AggregateCall.create(aggFunction,
-                aggregateCall.isDistinct(), aggregateCall.isApproximate(),
-                aggregateCall.ignoreNulls(),
-                ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.collation, aggregateCall.type,
-                aggregateCall.name));
+            AggregateCall.builder(aggregateCall).aggFunction(aggFunction)
+            .argList(ImmutableList.of(target.groupSet.cardinality() + i)).filterArg(-1).build());
       }
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
         RexProgram compenRexProgram = RexProgram.create(

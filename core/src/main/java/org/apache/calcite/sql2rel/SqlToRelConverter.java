@@ -1167,11 +1167,10 @@ public class SqlToRelConverter {
                 ImmutableBitSet.of(),
                 null,
                 ImmutableList.of(
-                    AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, ImmutableList.of(), -1, RelCollations.EMPTY,
-                        longType, null),
-                    AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, args, -1, RelCollations.EMPTY, longType, null)));
+                    AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+                        .type(longType).build(),
+                    AggregateCall.builder().aggFunction(SqlStdOperatorTable.COUNT)
+                        .argList(args).type(longType).build()));
         LogicalJoin join =
             LogicalJoin.create(bb.root, aggregate, ImmutableList.of(),
                 rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
@@ -5402,16 +5401,16 @@ public class SqlToRelConverter {
                 .collect(Collectors.toList()));
       }
       final AggregateCall aggCall =
-          AggregateCall.create(
-              aggFunction,
-              distinct,
-              approximate,
-              ignoreNulls,
-              args,
-              filterArg,
-              collation,
-              type,
-              nameMap.get(outerCall.toString()));
+          AggregateCall.builder()
+              .aggFunction(aggFunction)
+              .distinct(distinct)
+              .approximate(approximate)
+              .ignoreNulls(ignoreNulls)
+              .argList(args)
+              .filterArg(filterArg)
+              .collation(collation)
+              .type(type)
+              .name(nameMap.get(outerCall.toString())).build();
       RexNode rex =
           rexBuilder.addAggCall(
               aggCall,

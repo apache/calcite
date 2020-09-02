@@ -166,9 +166,9 @@ class TraitPropagationTest {
           .build());
 
       // aggregate on s, count
-      AggregateCall aggCall = AggregateCall.create(SqlStdOperatorTable.COUNT,
-          false, false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
-          sqlBigInt, "cnt");
+      AggregateCall aggCall = AggregateCall.builder()
+          .aggFunction(SqlStdOperatorTable.COUNT).argList(Collections.singletonList(1))
+          .type(sqlBigInt).name("cnt").build();
       RelNode agg = new LogicalAggregate(cluster,
           cluster.traitSetOf(Convention.NONE), ImmutableList.of(), project,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));

@@ -920,9 +920,9 @@ public abstract class RelOptUtil {
 
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
-          AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              false, ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
-              null));
+          AggregateCall.builder()
+              .aggFunction(SqlStdOperatorTable.SINGLE_VALUE)
+              .argList(ImmutableList.of(i)).input(rel).build());
     }
 
     return LogicalAggregate.create(rel, ImmutableList.of(), ImmutableBitSet.of(),
