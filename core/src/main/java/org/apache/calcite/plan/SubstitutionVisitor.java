@@ -1852,29 +1852,98 @@ public class SubstitutionVisitor {
     return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
   }
 
+  private static List<Integer> nullableArgs(List<Integer> argList,
+    RelDataType dataType) {
+    final List<Integer> list = new ArrayList<>();
+    for (Integer argIdx : argList) {
+      if (dataType.getFieldList().get(argIdx).getType().isNullable()) {
+        list.add(argIdx);
+      }
+    }
+    return list;
+  }
+
+  private static RexNode expandAvg(AggregateCall avgAgg, RelDataType relDataType,
+    MutableAggregate target, RexBuilder rexBuilder) {
+
+    AggregateCall sumAgg =
+      AggregateCall.create(SqlStdOperatorTable.SUM,
+        avgAgg.isDistinct(), avgAgg.isApproximate(),
+        avgAgg.ignoreNulls(),
+        avgAgg.getArgList(), avgAgg.filterArg,
+        avgAgg.collation, avgAgg.type,
+        avgAgg.name);
+
+
+    AggregateCall countAgg =
+      AggregateCall.create(SqlStdOperatorTable.COUNT,
+        avgAgg.isDistinct(), avgAgg.isApproximate(),
+        avgAgg.ignoreNulls(),
+        avgAgg.getArgList(), avgAgg.filterArg,
+        avgAgg.collation, avgAgg.type,
+        avgAgg.name);
+
+    ArrayList<RelDataType> argTypes = new ArrayList<>();
+    argTypes.add(countAgg.getType());
+
+    List<Integer> nullableArgs = nullableArgs(countAgg.getArgList(), relDataType);
+    if (!countAgg.isDistinct() && !nullableArgs.equals(avgAgg.getArgList())) {
+      countAgg = countAgg.copy(nullableArgs, countAgg.filterArg,
+        countAgg.collation);
+    }
+
+    if (target.aggCalls.indexOf(sumAgg) < 0
+      || target.aggCalls.indexOf(countAgg) < 0) {
+      return null;
+    } else {
+      int sumIdx = target.aggCalls.indexOf(sumAgg);
+      int countIdx = target.aggCalls.indexOf(countAgg);
+      List<RelDataTypeField> fieldList = target.rowType.getFieldList();
+      RexInputRef sumRef = rexBuilder.makeInputRef(fieldList.get(sumIdx).getType(), sumIdx);
+      RexInputRef countRef = rexBuilder.makeInputRef(fieldList.get(countIdx).getType(), countIdx);
+      return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumRef, countRef);
+    }
+  }
+
   public static MutableRel unifyAggregates(MutableAggregate query,
       RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
     if (query.groupSets.equals(target.groupSets)) {
       // Same level of aggregation. Generate a project.
-      final List<Integer> projects = new ArrayList<>();
-      final int groupCount = query.groupSet.cardinality();
-      for (int i = 0; i < groupCount; i++) {
-        projects.add(i);
-      }
-      for (AggregateCall aggregateCall : query.aggCalls) {
-        int i = target.aggCalls.indexOf(aggregateCall);
-        if (i < 0) {
-          return null;
-        }
-        projects.add(groupCount + i);
+      final RexProgramBuilder builder =
+        new RexProgramBuilder(target.rowType, rexBuilder);
+      if (targetCond != null) {
+        builder.addCondition(targetCond);
       }
 
-      List<RexNode> compenProjs = MutableRels.createProjectExprs(target, projects);
-      RexProgram compenRexProgram = RexProgram.create(
-          target.rowType, compenProjs, targetCond, query.rowType, rexBuilder);
-      result = MutableCalc.of(target, compenRexProgram);
+      final int groupCount = query.groupSet.cardinality();
+      List<String> fieldNames = query.rowType.getFieldNames();
+      for (int i = 0; i < groupCount; i++) {
+        builder.addProject(i, fieldNames.get(i));
+      }
+
+      List<RelDataTypeField> fieldList = target.rowType.getFieldList();
+
+      for (AggregateCall aggregateCall : query.aggCalls) {
+        int i = target.aggCalls.indexOf(aggregateCall);
+        if (i < 0 && aggregateCall.getAggregation() != SqlStdOperatorTable.AVG) {
+          return null;
+        }
+
+        if (aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
+          RexNode expandNode = expandAvg(aggregateCall, query.rowType, target, rexBuilder);
+          if (expandNode == null) {
+            return null;
+          }
+          builder.addProject(expandNode, aggregateCall.getName());
+        } else {
+          RexInputRef rexInputRef = rexBuilder.makeInputRef(fieldList.get(groupCount + i).getType(),
+            groupCount + i);
+          builder.addProject(rexInputRef, aggregateCall.getName());
+        }
+      }
+      result = MutableCalc.of(target, builder.getProgram());
     } else if (target.getGroupType() == Aggregate.Group.SIMPLE) {
       // Query is coarser level of aggregation. Generate an aggregate.
       final Map<Integer, Integer> map = new HashMap<>();
