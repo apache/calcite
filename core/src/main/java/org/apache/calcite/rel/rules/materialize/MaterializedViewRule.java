@@ -716,6 +716,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       // Add edges between tables
       List<RelReferentialConstraint> constraints =
           tRef.getTable().getReferentialConstraints();
+      if (constraints == null) {
+        constraints = ImmutableList.of();
+      }
       for (RelReferentialConstraint constraint : constraints) {
         Collection<RelTableRef> parentTableRefs =
             tableVNameToTableRefs.get(constraint.getTargetQualifiedName());

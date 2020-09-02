@@ -129,10 +129,16 @@ public class ReflectiveSchema
         FieldTable table =
             (FieldTable) tableMap.get(Util.last(rc.getSourceQualifiedName()));
         assert table != null;
+        List<RelReferentialConstraint> referentialConstraints =
+            table.getStatistic().getReferentialConstraints();
+        if (referentialConstraints == null) {
+          // This enables to keep the same Statistics.of below
+          referentialConstraints = ImmutableList.of();
+        }
         table.statistic = Statistics.of(
             ImmutableList.copyOf(
                 Iterables.concat(
-                    table.getStatistic().getReferentialConstraints(),
+                    referentialConstraints,
                     Collections.singleton(rc))));
       }
     }
