@@ -240,6 +240,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       return this; // trait is not enabled; ignore it
     }
     final List<T> traitList = traitSupplier.get();
+    if (traitList == null) {
+      return replace(index, def.getDefault());
+    }
     return replace(index, RelCompositeTrait.of(def, traitList));
   }
 
@@ -250,7 +253,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (index < 0) {
       return this; // trait is not enabled; ignore it
     }
-    final T traitList = traitSupplier.get();
+    T traitList = traitSupplier.get();
+    if (traitList == null) {
+      traitList = def.getDefault();
+    }
     return replace(index, traitList);
   }
 
