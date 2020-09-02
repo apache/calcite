@@ -43,6 +43,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -713,9 +714,11 @@ public class RelMdUtil {
       // semijoin filter and pass it to getSelectivity
       RexNode semiJoinSelectivity =
           RelMdUtil.makeSemiJoinSelectivityRexNode(mq, join);
-
+      Double selectivity = mq.getSelectivity(join.getLeft(), semiJoinSelectivity);
       return NumberUtil.multiply(
-          mq.getSelectivity(join.getLeft(), semiJoinSelectivity),
+          join.getJoinType() == JoinRelType.SEMI
+              ? selectivity
+              : NumberUtil.subtract(1D, selectivity), // ANTI join
           mq.getRowCount(join.getLeft()));
     }
     // Row count estimates of 0 will be rounded up to 1.
@@ -731,19 +734,24 @@ public class RelMdUtil {
         return max;
       }
     }
-    double product = left * right;
 
-    return product * mq.getSelectivity(join, condition);
-  }
-
-  /** Returns an estimate of the number of rows returned by a semi-join. */
-  public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
-      RelNode right, JoinRelType joinType, RexNode condition) {
-    final Double leftCount = mq.getRowCount(left);
-    if (leftCount == null) {
+    Double selectivity = mq.getSelectivity(join, condition);
+    if (selectivity == null) {
       return null;
     }
-    return leftCount * RexUtil.getSelectivity(condition);
+    double innerRowCount = left * right * selectivity;
+    switch (join.getJoinType()) {
+    case INNER:
+      return innerRowCount;
+    case LEFT:
+      return left * (1D - selectivity) + innerRowCount;
+    case RIGHT:
+      return right * (1D - selectivity) + innerRowCount;
+    case FULL:
+      return (left + right) * (1D - selectivity) + innerRowCount;
+    default:
+      throw Util.unexpected(join.getJoinType());
+    }
   }
 
   public static double estimateFilteredRows(RelNode child, RexProgram program,
