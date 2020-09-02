@@ -218,6 +218,12 @@ public abstract class RelDataTypeImpl
     return SCALE_NOT_SPECIFIED;
   }
 
+  /**
+   * Gets the {@link SqlTypeName} of this type.
+   * Sub-classes must override the method to ensure the resulting value is non-nullable.
+   *
+   * @return SqlTypeName, never null
+   */
   public SqlTypeName getSqlTypeName() {
     return null;
   }
