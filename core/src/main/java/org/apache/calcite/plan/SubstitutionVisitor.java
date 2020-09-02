@@ -1853,7 +1853,7 @@ public class SubstitutionVisitor {
   }
 
   private static List<Integer> nullableArgs(List<Integer> argList,
-    RelDataType dataType) {
+      RelDataType dataType) {
     final List<Integer> list = new ArrayList<>();
     for (Integer argIdx : argList) {
       if (dataType.getFieldList().get(argIdx).getType().isNullable()) {
@@ -1864,24 +1864,24 @@ public class SubstitutionVisitor {
   }
 
   private static RexNode expandAvg(AggregateCall avgAgg, RelDataType relDataType,
-    MutableAggregate target, RexBuilder rexBuilder) {
+      MutableAggregate target, RexBuilder rexBuilder) {
 
     AggregateCall sumAgg =
-      AggregateCall.create(SqlStdOperatorTable.SUM,
-        avgAgg.isDistinct(), avgAgg.isApproximate(),
-        avgAgg.ignoreNulls(),
-        avgAgg.getArgList(), avgAgg.filterArg,
-        avgAgg.collation, avgAgg.type,
-        avgAgg.name);
+        AggregateCall.create(SqlStdOperatorTable.SUM,
+          avgAgg.isDistinct(), avgAgg.isApproximate(),
+          avgAgg.ignoreNulls(),
+          avgAgg.getArgList(), avgAgg.filterArg,
+          avgAgg.collation, avgAgg.type,
+          avgAgg.name);
 
 
     AggregateCall countAgg =
-      AggregateCall.create(SqlStdOperatorTable.COUNT,
-        avgAgg.isDistinct(), avgAgg.isApproximate(),
-        avgAgg.ignoreNulls(),
-        avgAgg.getArgList(), avgAgg.filterArg,
-        avgAgg.collation, avgAgg.type,
-        avgAgg.name);
+        AggregateCall.create(SqlStdOperatorTable.COUNT,
+          avgAgg.isDistinct(), avgAgg.isApproximate(),
+          avgAgg.ignoreNulls(),
+          avgAgg.getArgList(), avgAgg.filterArg,
+          avgAgg.collation, avgAgg.type,
+          avgAgg.name);
 
     ArrayList<RelDataType> argTypes = new ArrayList<>();
     argTypes.add(countAgg.getType());
@@ -1893,7 +1893,7 @@ public class SubstitutionVisitor {
     }
 
     if (target.aggCalls.indexOf(sumAgg) < 0
-      || target.aggCalls.indexOf(countAgg) < 0) {
+        || target.aggCalls.indexOf(countAgg) < 0) {
       return null;
     } else {
       int sumIdx = target.aggCalls.indexOf(sumAgg);
@@ -1912,7 +1912,7 @@ public class SubstitutionVisitor {
     if (query.groupSets.equals(target.groupSets)) {
       // Same level of aggregation. Generate a project.
       final RexProgramBuilder builder =
-        new RexProgramBuilder(target.rowType, rexBuilder);
+          new RexProgramBuilder(target.rowType, rexBuilder);
       if (targetCond != null) {
         builder.addCondition(targetCond);
       }
@@ -1939,7 +1939,7 @@ public class SubstitutionVisitor {
           builder.addProject(expandNode, aggregateCall.getName());
         } else {
           RexInputRef rexInputRef = rexBuilder.makeInputRef(fieldList.get(groupCount + i).getType(),
-            groupCount + i);
+              groupCount + i);
           builder.addProject(rexInputRef, aggregateCall.getName());
         }
       }
