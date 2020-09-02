@@ -11684,6 +11684,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "MYFUN\\(<NUMERIC>, <NUMERIC>\\).*");
   }
 
+  @Test void testPositionalAggregateWithExpandedCurrentDateFunction() {
+    SqlConformance defaultPlusOrdinalGroupBy =
+        new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+          @Override public boolean isGroupByOrdinal() {
+            return true;
+          }
+        };
+    sql("SELECT HIREDATE >= CURRENT_DATE, COUNT(*) "
+        + "FROM EMP GROUP BY 1")
+        .withConformance(defaultPlusOrdinalGroupBy)
+        .ok();
+  }
+
   @Test void testValidatorReportsOriginalQueryUsingReader()
       throws Exception {
     final String sql = "select a from b";

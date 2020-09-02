@@ -846,7 +846,7 @@ public class SqlValidatorUtil {
       }
     }
 
-    final int ref = lookupGroupExpr(groupAnalyzer, groupExpr);
+    final int ref = lookupGroupExpr(groupAnalyzer, expandedGroupExpr);
     if (expandedGroupExpr instanceof SqlIdentifier) {
       // SQL 2003 does not allow expressions of column references
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;

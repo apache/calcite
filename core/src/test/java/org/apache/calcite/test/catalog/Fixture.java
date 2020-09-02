@@ -35,7 +35,7 @@ final class Fixture extends AbstractFixture {
   final RelDataType bigintType = sqlType(SqlTypeName.BIGINT);
   final RelDataType decimalType = sqlType(SqlTypeName.DECIMAL);
   final RelDataType varcharType = sqlType(SqlTypeName.VARCHAR);
-  final RelDataType varcharTypeNull = sqlType(SqlTypeName.VARCHAR);
+  final RelDataType varcharTypeNull = nullable(varcharType);
   final RelDataType varchar5Type = sqlType(SqlTypeName.VARCHAR, 5);
   final RelDataType varchar10Type = sqlType(SqlTypeName.VARCHAR, 10);
   final RelDataType varchar10TypeNull = nullable(varchar10Type);
