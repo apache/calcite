@@ -1074,7 +1074,8 @@ public class SqlValidatorUtil {
     for (SqlValidatorNamespace ns : children(scope)) {
       ns = ns.resolve();
       for (String field : ns.getRowType().getFieldNames()) {
-        if (!ns.getMonotonicity(field).mayRepeat()) {
+        SqlMonotonicity monotonicity = ns.getMonotonicity(field);
+        if (monotonicity != null && !monotonicity.mayRepeat()) {
           return true;
         }
       }

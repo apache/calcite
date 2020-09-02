@@ -67,7 +67,8 @@ public class SqlExtractFunction extends SqlFunction {
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     switch (call.getOperandLiteralValue(0, TimeUnitRange.class)) {
     case YEAR:
-      return call.getOperandMonotonicity(1).unstrict();
+      SqlMonotonicity monotonicity = call.getOperandMonotonicity(1);
+      return monotonicity == null ? null : monotonicity.unstrict();
     default:
       return SqlMonotonicity.NOT_MONOTONIC;
     }

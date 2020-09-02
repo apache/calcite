@@ -89,7 +89,8 @@ public class SqlPrefixOperator extends SqlOperator {
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("-")) {
-      return call.getOperandMonotonicity(0).reverse();
+      SqlMonotonicity monotonicity = call.getOperandMonotonicity(0);
+      return monotonicity == null ? null : monotonicity.reverse();
     }
 
     return super.getMonotonicity(call);
