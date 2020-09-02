@@ -57,10 +57,6 @@ public class RelCrossType extends RelDataTypeImpl {
     return false;
   }
 
-  @Override public List<RelDataTypeField> getFieldList() {
-    return fieldList;
-  }
-
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("CrossType(");
     for (Ord<RelDataType> type : Ord.zip(types)) {
