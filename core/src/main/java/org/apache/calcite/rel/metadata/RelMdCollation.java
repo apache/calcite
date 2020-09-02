@@ -519,6 +519,9 @@ public class RelMdCollation
     // (i) join type is INNER or LEFT;
     // (ii) RelCollation always orders nulls last.
     final ImmutableList<RelCollation> leftCollations = mq.collations(left);
+    if (leftCollations == null) {
+      return null;
+    }
     switch (joinType) {
     case SEMI:
     case ANTI:
@@ -530,12 +533,12 @@ public class RelMdCollation
       for (RelCollation collation : leftCollations) {
         for (RelFieldCollation field : collation.getFieldCollations()) {
           if (!(RelFieldCollation.NullDirection.LAST == field.nullDirection)) {
-            return ImmutableList.of();
+            return null;
           }
         }
       }
       return leftCollations;
     }
-    return ImmutableList.of();
+    return null;
   }
 }
