@@ -4048,6 +4048,48 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
+  @Test void testJoinExpandAndDecorrelation() {
+    String sql = ""
+        + "SELECT emp.deptno, emp.sal\n"
+        + "FROM dept\n"
+        + "JOIN emp ON emp.deptno = dept.deptno AND emp.sal < (\n"
+        + "  SELECT AVG(emp.sal)\n"
+        + "  FROM emp\n"
+        + "  WHERE  emp.deptno = dept.deptno\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan_not_extended}");
+  }
+
+  @Test void testImplicitJoinExpandAndDecorrelation() {
+    String sql = ""
+        + "SELECT emp.deptno, emp.sal\n"
+        + "FROM dept, emp "
+        + "WHERE emp.deptno = dept.deptno AND emp.sal < (\n"
+        + "  SELECT AVG(emp.sal)\n"
+        + "  FROM emp\n"
+        + "  WHERE  emp.deptno = dept.deptno\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withDecorrelationEnabled(true)
+            .withExpand(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withDecorrelationEnabled(false)
+            .withExpand(false))
+        .convertsTo("${plan_not_extended}");
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

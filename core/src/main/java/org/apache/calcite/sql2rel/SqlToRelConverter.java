@@ -2154,58 +2154,7 @@ public class SqlToRelConverter {
       return;
 
     case JOIN:
-      final SqlJoin join = (SqlJoin) from;
-      final SqlValidatorScope scope = validator.getJoinScope(from);
-      final Blackboard fromBlackboard = createBlackboard(scope, null, false);
-      SqlNode left = join.getLeft();
-      SqlNode right = join.getRight();
-      final boolean isNatural = join.isNatural();
-      final JoinType joinType = join.getJoinType();
-      final SqlValidatorScope leftScope =
-          Util.first(validator.getJoinScope(left),
-              ((DelegatingScope) bb.scope).getParent());
-      final Blackboard leftBlackboard =
-          createBlackboard(leftScope, null, false);
-      final SqlValidatorScope rightScope =
-          Util.first(validator.getJoinScope(right),
-              ((DelegatingScope) bb.scope).getParent());
-      final Blackboard rightBlackboard =
-          createBlackboard(rightScope, null, false);
-      convertFrom(leftBlackboard, left);
-      RelNode leftRel = leftBlackboard.root;
-      convertFrom(rightBlackboard, right);
-      RelNode rightRel = rightBlackboard.root;
-      JoinRelType convertedJoinType = convertJoinType(joinType);
-      RexNode conditionExp;
-      final SqlValidatorNamespace leftNamespace = validator.getNamespace(left);
-      final SqlValidatorNamespace rightNamespace = validator.getNamespace(right);
-      if (isNatural) {
-        final RelDataType leftRowType = leftNamespace.getRowType();
-        final RelDataType rightRowType = rightNamespace.getRowType();
-        final List<String> columnList =
-            SqlValidatorUtil.deriveNaturalJoinColumnList(
-                catalogReader.nameMatcher(), leftRowType, rightRowType);
-        conditionExp = convertUsing(leftNamespace, rightNamespace, columnList);
-      } else {
-        conditionExp =
-            convertJoinCondition(
-                fromBlackboard,
-                leftNamespace,
-                rightNamespace,
-                join.getCondition(),
-                join.getConditionType(),
-                leftRel,
-                rightRel);
-      }
-
-      final RelNode joinRel =
-          createJoin(
-              fromBlackboard,
-              leftRel,
-              rightRel,
-              conditionExp,
-              convertedJoinType);
-      bb.setRoot(joinRel, false);
+      convertJoin(bb, (SqlJoin) from);
       return;
 
     case SELECT:
@@ -2807,34 +2756,137 @@ public class SqlToRelConverter {
     return Collections.emptyList();
   }
 
-  private RexNode convertJoinCondition(Blackboard bb,
+  private void convertJoin(Blackboard bb, SqlJoin join) {
+    final SqlValidatorScope scope = validator.getJoinScope(join);
+    final Blackboard fromBlackboard = createBlackboard(scope, null, false);
+    SqlNode left = join.getLeft();
+    SqlNode right = join.getRight();
+    final SqlValidatorScope leftScope =
+        Util.first(validator.getJoinScope(left),
+            ((DelegatingScope) bb.scope).getParent());
+    final Blackboard leftBlackboard =
+        createBlackboard(leftScope, null, false);
+    final SqlValidatorScope rightScope =
+        Util.first(validator.getJoinScope(right),
+            ((DelegatingScope) bb.scope).getParent());
+    final Blackboard rightBlackboard =
+        createBlackboard(rightScope, null, false);
+    convertFrom(leftBlackboard, left);
+    final RelNode leftRel = leftBlackboard.root;
+    convertFrom(rightBlackboard, right);
+    final RelNode tempRightRel = rightBlackboard.root;
+
+    final JoinConditionType conditionType = join.getConditionType();
+    final RexNode condition;
+    final RelNode rightRel;
+    if (join.isNatural()) {
+      condition = createNaturalJoinCondition(validator.getNamespace(left),
+          validator.getNamespace(right));
+      rightRel = tempRightRel;
+    } else {
+      switch (conditionType) {
+      case NONE:
+        condition = rexBuilder.makeLiteral(true);
+        rightRel = tempRightRel;
+        break;
+      case USING:
+        condition = createJoinUsingCondition(join,
+            validator.getNamespace(left),
+            validator.getNamespace(right));
+        rightRel = tempRightRel;
+        break;
+      case ON:
+        Pair<RexNode, RelNode> conditionAndRightNode = createJoinOnCondition(fromBlackboard,
+            join,
+            leftRel,
+            tempRightRel);
+        condition = conditionAndRightNode.left;
+        rightRel = conditionAndRightNode.right;
+        break;
+      default:
+        throw Util.unexpected(conditionType);
+      }
+    }
+    final RelNode joinRel = createJoin(
+        fromBlackboard,
+        leftRel,
+        rightRel,
+        condition,
+        convertJoinType(join.getJoinType()));
+    bb.setRoot(joinRel, false);
+  }
+
+  private RexNode createNaturalJoinCondition(SqlValidatorNamespace leftNamespace,
+      SqlValidatorNamespace rightNamespace) {
+    final List<String> columnList =
+        SqlValidatorUtil.deriveNaturalJoinColumnList(
+            catalogReader.nameMatcher(),
+            leftNamespace.getRowType(),
+            rightNamespace.getRowType());
+    return convertUsing(leftNamespace, rightNamespace, columnList);
+  }
+
+  private RexNode createJoinUsingCondition(SqlJoin join,
       SqlValidatorNamespace leftNamespace,
-      SqlValidatorNamespace rightNamespace,
-      SqlNode condition,
-      JoinConditionType conditionType,
+      SqlValidatorNamespace rightNamespace) {
+    SqlNode condition = join.getCondition();
+
+    final SqlNodeList list = (SqlNodeList) condition;
+    final List<String> nameList = new ArrayList<>();
+    for (SqlNode columnName : list) {
+      final SqlIdentifier id = (SqlIdentifier) columnName;
+      String name = id.getSimple();
+      nameList.add(name);
+    }
+    return convertUsing(leftNamespace, rightNamespace, nameList);
+  }
+
+  /**
+   * This currently does not expand correlated full outer joins correctly.  Replaying on the right
+   * side to correctly support left joins multiplicities.
+   *
+   * <code>
+   *   SELECT *
+   *   FROM t1
+   *   LEFT JOIN t2 ON
+   *    EXIST(SELECT t3.c3 WHERE t1.c1 = t3.c1 AND t2.c2 = t3.c2)
+   *    AND NOT (t2.t2 = 2)
+   * </code>
+   * Given the decorrelated query produces:
+   *
+   *  t1.c1 | t2.c2
+   *  ------+------
+   *    1   |  1
+   *    1   |  2
+   *
+   * If correlated query was replayed on the left side, then an extra rows would be emitted for
+   * every {code t1.c1 = 1}, where it failed to join to right side due to {code NOT(t2.t2 = 2)}.
+   * However, if the query is joined on the right, side multiplicity is maintained.
+   */
+  private Pair<RexNode, RelNode> createJoinOnCondition(Blackboard bb,
+      SqlJoin join,
       RelNode leftRel,
       RelNode rightRel) {
-    if (condition == null) {
-      return rexBuilder.makeLiteral(true);
-    }
+    SqlNode condition = join.getCondition();
+
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
-    switch (conditionType) {
-    case ON:
-      bb.setRoot(ImmutableList.of(leftRel, rightRel));
-      return bb.convertExpression(condition);
-    case USING:
-      final SqlNodeList list = (SqlNodeList) condition;
-      final List<String> nameList = new ArrayList<>();
-      for (SqlNode columnName : list) {
-        final SqlIdentifier id = (SqlIdentifier) columnName;
-        String name = id.getSimple();
-        nameList.add(name);
+    final RelNode newRightRel;
+    if (bb.root == null) {
+      newRightRel = rightRel;
+    } else {
+      bb.setRoot(rightRel, false);
+      List<BlackboardRegisterArgs> blackboardRegisterArgsList =
+          bb.blackboardRegisterArgsList;
+      bb.blackboardRegisterArgsList = new ArrayList<>();
+      for (BlackboardRegisterArgs reg: blackboardRegisterArgsList) {
+        bb.register(reg.rel, reg.joinType, reg.leftKeys);
       }
-      return convertUsing(leftNamespace, rightNamespace, nameList);
-    default:
-      throw Util.unexpected(conditionType);
+      newRightRel = bb.root;
     }
+    bb.setRoot(ImmutableList.of(leftRel, newRightRel));
+    RexNode conditionExp =  bb.convertExpression(condition);
+    return Pair.of(conditionExp, newRightRel);
   }
 
   /**
@@ -4216,6 +4268,21 @@ public class SqlToRelConverter {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
+   * A Tuple to remember all calls to Blackboard.register
+   */
+  private static class BlackboardRegisterArgs {
+    final RelNode rel;
+    final JoinRelType joinType;
+    final List<RexNode> leftKeys;
+
+    BlackboardRegisterArgs(RelNode rel, JoinRelType joinType, List<RexNode> leftKeys) {
+      this.rel = rel;
+      this.joinType = joinType;
+      this.leftKeys = leftKeys;
+    }
+  }
+
+  /**
    * Workspace for translating an individual SELECT statement (or sub-SELECT).
    */
   protected class Blackboard implements SqlRexContext, SqlVisitor<RexNode>,
@@ -4230,6 +4297,7 @@ public class SqlToRelConverter {
     private List<RelNode> inputs;
     private final Map<CorrelationId, RexFieldAccess> mapCorrelateToRex =
         new HashMap<>();
+    private List<BlackboardRegisterArgs> blackboardRegisterArgsList = new ArrayList<>();
 
     private boolean isPatternVarRef = false;
 
@@ -4312,6 +4380,7 @@ public class SqlToRelConverter {
         JoinRelType joinType,
         List<RexNode> leftKeys) {
       assert joinType != null;
+      blackboardRegisterArgsList.add(new BlackboardRegisterArgs(rel, joinType, leftKeys));
       if (root == null) {
         assert leftKeys == null;
         setRoot(rel, false);
