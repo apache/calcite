@@ -78,8 +78,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
           register(op);
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
+        throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
   }

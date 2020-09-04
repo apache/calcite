@@ -693,8 +693,7 @@ class DruidConnectionImpl implements DruidConnection {
       final Throwable e = throwableHolder.get();
       if (e != null) {
         throwableHolder.set(null);
-        Util.throwIfUnchecked(e);
-        throw new RuntimeException(e);
+        throw Util.throwAsRuntime(e);
       }
     }
   }

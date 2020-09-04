@@ -187,8 +187,7 @@ public class ReflectiveRelMetadataProvider
                   return handlerMethod.invoke(target, args1);
                 } catch (InvocationTargetException
                     | UndeclaredThrowableException e) {
-                  Util.throwIfUnchecked(e.getCause());
-                  throw new RuntimeException(e.getCause());
+                  throw Util.throwAsRuntime(Util.causeOrSelf(e));
                 } finally {
                   mq.map.remove(rel, key1);
                 }

@@ -134,11 +134,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
             return o;
           }
         } catch (InvocationTargetException e) {
-          if (e.getCause() instanceof CyclicMetadataException) {
-            continue;
-          }
-          Util.throwIfUnchecked(e.getCause());
-          throw new RuntimeException(e.getCause());
+          throw Util.throwAsRuntime(Util.causeOrSelf(e));
         }
       }
       return null;

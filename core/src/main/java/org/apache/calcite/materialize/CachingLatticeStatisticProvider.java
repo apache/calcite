@@ -50,8 +50,7 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
       try {
         counts.add(cache.get(column));
       } catch (UncheckedExecutionException | ExecutionException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
+        throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
     return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);
