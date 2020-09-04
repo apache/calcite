@@ -326,6 +326,33 @@ public abstract class Mappings {
   }
 
   /**
+   * Returns a mapping as a list such that {@code list.get(source)} is
+   * {@code mapping.getTarget(source)} and {@code list.size()} is
+   * {@code mapping.getSourceCount()}.
+   *
+   * <p>The resulting list never contains null elements</p>
+   *
+   * <p>Converse of {@link #target(List, int)}</p>
+   * @see #asList(TargetMapping)
+   */
+  public static List<Integer> asListNonNull(final TargetMapping mapping) {
+    return new AbstractList<Integer>() {
+      public Integer get(int source) {
+        int target = mapping.getTargetOpt(source);
+        if (target < 0) {
+          throw new IllegalArgumentException("Element " + source + " is not found in mapping "
+              + mapping);
+        }
+        return target;
+      }
+
+      public int size() {
+        return mapping.getSourceCount();
+      }
+    };
+  }
+
+  /**
    * Converts a {@link Map} of integers to a {@link TargetMapping}.
    */
   public static TargetMapping target(

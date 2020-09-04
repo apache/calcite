@@ -171,7 +171,10 @@ class MappingTest {
     assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
 
     final List<Integer> integers = Mappings.asList(mapping);
-    assertThat(integers, equalTo(targets));
+    assertThat("Mappings.asList" + mapping + ")", integers, equalTo(targets));
+    assertThat(
+        "Mappings.asListNonNull(" + mapping + ")",
+        Mappings.asListNonNull(mapping), equalTo(targets));
 
     final Mapping inverse = mapping.inverse();
     assertThat(inverse.toString(),
@@ -200,6 +203,14 @@ class MappingTest {
     final List<Integer> integers = Mappings.asList(mapping);
     assertThat(integers,
         equalTo(Arrays.asList(null, 1, null, 0, 2, 3, null, null, 4, null)));
+
+    // Note: exception is thrown on list.get, so it is needed to trigger the exception
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () ->
+            Mappings.asListNonNull(mapping).get(0));
+    assertThat(exception.getMessage(),
+        equalTo("Element 0 is not found in mapping [size=5, sourceCount=10, targetCount=5"
+            + ", elements=[1:1, 3:0, 4:2, 5:3, 8:4]]"));
   }
 
   /** Unit test for {@link Mappings#bijection(List)}. */
