@@ -1244,7 +1244,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return ImmutableList.of(t0, t1, t2, t3, t5, e);
+      return ImmutableNullableList.of(t0, t1, t2, t3, t5, e);
     }
   }
 
