@@ -51,8 +51,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
       return (Double) cache.get(key,
           () -> provider.tableCardinality(table));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 
@@ -69,8 +68,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
           () -> provider.isForeignKey(fromTable, fromColumns, toTable,
               toColumns));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 
@@ -81,8 +79,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
               ImmutableIntList.copyOf(columns));
       return (Boolean) cache.get(key, () -> provider.isKey(table, columns));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 }

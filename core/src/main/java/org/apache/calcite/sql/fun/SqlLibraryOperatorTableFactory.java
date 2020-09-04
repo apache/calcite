@@ -103,8 +103,7 @@ public class SqlLibraryOperatorTableFactory {
               }
             }
           } catch (IllegalArgumentException | IllegalAccessException e) {
-            Util.throwIfUnchecked(e.getCause());
-            throw new RuntimeException(e.getCause());
+            throw Util.throwAsRuntime(Util.causeOrSelf(e));
           }
         }
       }
@@ -152,9 +151,8 @@ public class SqlLibraryOperatorTableFactory {
     try {
       return cache.get(ImmutableSet.copyOf(librarySet));
     } catch (ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException("populating SqlOperatorTable for library "
-          + librarySet, e);
+      throw Util.throwAsRuntime("populating SqlOperatorTable for library "
+          + librarySet, Util.causeOrSelf(e));
     }
   }
 }

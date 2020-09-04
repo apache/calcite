@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+import org.apiguardian.api.API;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -912,6 +913,43 @@ public class Util {
   }
 
   /**
+   * This method rethrows input throwable as is (if its unchecked) or
+   * wraps it with {@link RuntimeException} and throws.
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
+   * is needed so Java compiler knows the execution stops at that line.</p>
+   *
+   * @param throwable input throwable
+   * @return the method never returns, it always throws an unchecked exception
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RuntimeException throwAsRuntime(Throwable throwable) {
+    throwIfUnchecked(throwable);
+    throw new RuntimeException(throwable);
+  }
+
+  /**
+   * This method rethrows input throwable as is (if its unchecked) with an extra message or
+   * wraps it with {@link RuntimeException} and throws.
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
+   * is needed so Java compiler knows the execution stops at that line.</p>
+   *
+   * @param throwable input throwable
+   * @return the method never returns, it always throws an unchecked exception
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RuntimeException throwAsRuntime(String message, Throwable throwable) {
+    if (throwable instanceof RuntimeException) {
+      throwable.addSuppressed(new Throwable(message));
+      throw (RuntimeException) throwable;
+    }
+    if (throwable instanceof Error) {
+      throwable.addSuppressed(new Throwable(message));
+      throw (Error) throwable;
+    }
+    throw new RuntimeException(message, throwable);
+  }
+
+  /**
    * Wraps an exception with {@link RuntimeException} and return it.
    * If the exception is already an instance of RuntimeException,
    * returns it directly.
@@ -921,6 +959,17 @@ public class Util {
       return (RuntimeException) e;
     }
     return new RuntimeException(e);
+  }
+
+  /**
+   * Returns cause of the given throwable if it is non-null or the throwable itself.
+   * @param throwable input throwable
+   * @return cause of the given throwable if it is non-null or the throwable itself
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static Throwable causeOrSelf(Throwable throwable) {
+    Throwable cause = throwable.getCause();
+    return cause != null ? cause : throwable;
   }
 
   /**

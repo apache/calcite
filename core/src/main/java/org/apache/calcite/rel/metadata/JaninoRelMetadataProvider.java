@@ -468,8 +468,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       //noinspection unchecked
       return (H) HANDLERS.get(key);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 

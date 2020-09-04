@@ -1410,8 +1410,7 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
+        throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
 
@@ -1420,8 +1419,7 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
+        throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
 

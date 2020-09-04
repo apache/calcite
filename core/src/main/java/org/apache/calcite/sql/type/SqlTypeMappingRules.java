@@ -74,8 +74,7 @@ public abstract class SqlTypeMappingRules {
       try {
         map.put(fromType, sets.get(toTypes));
       } catch (UncheckedExecutionException | ExecutionException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException("populating SqlTypeAssignmentRules", e);
+        throw Util.throwAsRuntime("populating SqlTypeAssignmentRules", Util.causeOrSelf(e));
       }
     }
 
@@ -84,8 +83,7 @@ public abstract class SqlTypeMappingRules {
       try {
         map.putAll(typeMapping);
       } catch (UncheckedExecutionException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException("populating SqlTypeAssignmentRules", e);
+        throw Util.throwAsRuntime("populating SqlTypeAssignmentRules", Util.causeOrSelf(e));
       }
     }
 

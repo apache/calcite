@@ -64,8 +64,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
       final Metadata apply = cache.get(key).bind(rel, mq);
       return metadataClazz.cast(apply);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 }

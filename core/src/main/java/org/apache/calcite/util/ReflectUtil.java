@@ -263,8 +263,7 @@ public abstract class ReflectUtil {
       // visit methods aren't allowed to have throws clauses,
       // so the only exceptions which should come
       // to us are RuntimeExceptions and Errors
-      Util.throwIfUnchecked(ex.getTargetException());
-      throw new RuntimeException(ex.getTargetException());
+      throw Util.throwAsRuntime(Util.causeOrSelf(ex));
     }
     return true;
   }
