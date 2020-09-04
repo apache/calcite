@@ -426,11 +426,15 @@ public abstract class Mappings {
    *
    * <p>Throws if sources and targets are not one to one. */
   public static Mapping bijection(Map<Integer, Integer> targets) {
-    final List<Integer> targetList = new ArrayList<>();
+    int[] ints = new int[targets.size()];
     for (int i = 0; i < targets.size(); i++) {
-      targetList.add(targets.get(i));
+      Integer value = targets.get(i);
+      if (value == null) {
+        throw new NullPointerException("Index " + i + " is not mapped in " + targets);
+      }
+      ints[i] = value;
     }
-    return new Permutation(Ints.toArray(targetList));
+    return new Permutation(ints);
   }
 
   /**
