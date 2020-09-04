@@ -151,7 +151,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     }
     if ((Class) a.getClass() == Integer[].class) {
       final Integer[] integers = (Integer[]) a;
-      for (int i = 0; i < integers.length; i++) {
+      for (int i = 0; i < size; i++) {
         integers[i] = ints[i];
       }
     } else {
