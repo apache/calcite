@@ -20,7 +20,6 @@ import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
@@ -86,8 +85,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
-    return new Sql(sql, true, tester, false,
-        b -> b.withExpand(true), tester.getConformance());
+    return new Sql(sql, true, tester, false, UnaryOperator.identity(),
+        tester.getConformance());
   }
 
   @Test void testDotLiteralAfterNestedRow() {
@@ -2241,22 +2240,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Trimming method for Filter rel uses wrong traitSet</a>. */
   @Test void testFilterAndSortWithTrim() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(),
-        false, true,
-        true, false, true,
-        null, null) {
-      @Override public RelOptPlanner createPlanner() {
-        return new MockRelOptPlanner(Contexts.empty()) {
-          @Override public List<RelTraitDef> getRelTraitDefs() {
-            return ImmutableList.of(RelCollationTraitDef.INSTANCE);
-          }
-          @Override public RelTraitSet emptyTraitSet() {
-            return RelTraitSet.createEmpty().plus(
-                RelCollationTraitDef.INSTANCE.getDefault());
-          }
-        };
-      }
-    };
+    Tester tester =
+        new TesterImpl(getDiffRepos())
+            .withDecorrelation(false)
+            .withPlannerFactory(context ->
+                new MockRelOptPlanner(Contexts.empty()) {
+                  @Override public List<RelTraitDef> getRelTraitDefs() {
+                    return ImmutableList.of(RelCollationTraitDef.INSTANCE);
+                  }
+                  @Override public RelTraitSet emptyTraitSet() {
+                    return RelTraitSet.createEmpty().plus(
+                        RelCollationTraitDef.INSTANCE.getDefault());
+                  }
+                });
 
     // Run query and save plan after trimming
     final String sql = "select count(a.EMPNO)\n"
@@ -3046,7 +3042,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testCustomColumnResolving5() {
     final String sql = "select count(c1) from struct.t group by f0.c1";
-    sql(sql).ok();
+    sql(sql)
+        .withConfig(c ->
+            // Don't prune the Project. We want to see columns "FO"."C1" & "C1".
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withPruneInputOfAggregate(false)))
+        .ok();
   }
 
   @Test void testCustomColumnResolvingWithSelectStar() {
@@ -3605,9 +3606,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         NullCollation.LOW.name());
     CalciteConnectionConfigImpl connectionConfig =
         new CalciteConnectionConfigImpl(properties);
-    TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false, true,
-        null, null, SqlToRelConverter.Config.DEFAULT,
-        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
+    final TesterImpl tester = new TesterImpl(getDiffRepos())
+        .withDecorrelation(false)
+        .withTrim(false)
+        .withContext(Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
   }
 
@@ -3879,7 +3881,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "FROM emp\n"
         + "where job <> '' or job IN ('810000', '820000')\n"
         + "GROUP by deptno, job";
-    sql(sql).ok();
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withPruneInputOfAggregate(false)))
+        .ok();
   }
 
   /** Test case for
@@ -3900,7 +3906,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select *\n"
         + "from emp as e\n"
         + "join dept as d on e.deptno + 20 = d.deptno / 2";
-    sql(sql).withConfig(b -> b.withPushJoinCondition(false)).ok();
+    sql(sql).withConfig(c ->
+        c.addRelBuilderConfigTransform(b ->
+            b.withPushJoinCondition(false)))
+        .ok();
   }
 
   /** As {@link #testDoNotPushDownJoinCondition()}. */
@@ -4051,18 +4060,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     private final boolean decorrelate;
     private final Tester tester;
     private final boolean trim;
-    private final UnaryOperator<SqlToRelConverter.ConfigBuilder> config;
+    private final UnaryOperator<SqlToRelConverter.Config> config;
     private final SqlConformance conformance;
 
-    Sql(String sql, boolean decorrelate, Tester tester,
-        boolean trim, UnaryOperator<SqlToRelConverter.ConfigBuilder> config,
+    Sql(String sql, boolean decorrelate, Tester tester, boolean trim,
+        UnaryOperator<SqlToRelConverter.Config> config,
         SqlConformance conformance) {
-      this.sql = sql;
+      this.sql = Objects.requireNonNull(sql);
       this.decorrelate = decorrelate;
-      this.tester = tester;
+      this.tester = Objects.requireNonNull(tester);
       this.trim = trim;
-      this.config = config;
-      this.conformance = conformance;
+      this.config = Objects.requireNonNull(config);
+      this.conformance = Objects.requireNonNull(conformance);
     }
 
     public void ok() {
@@ -4070,19 +4079,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }
 
     public void convertsTo(String plan) {
-      final SqlToRelConverter.ConfigBuilder configBuilder =
-          SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
       tester.withDecorrelation(decorrelate)
           .withConformance(conformance)
-          .withConfig(config.apply(configBuilder).build())
+          .withConfig(config)
+          .withConfig(c -> c.withTrimUnusedFields(true))
           .assertConvertsTo(sql, plan, trim);
     }
 
-    public Sql withConfig(
-        UnaryOperator<SqlToRelConverter.ConfigBuilder> config) {
-      Objects.requireNonNull(config);
-      return new Sql(sql, decorrelate, tester, trim,
-          b -> config.apply(this.config.apply(b)), conformance);
+    public Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
+      final UnaryOperator<SqlToRelConverter.Config> config2 =
+          this.config.andThen(Objects.requireNonNull(config))::apply;
+      return new Sql(sql, decorrelate, tester, trim, config2, conformance);
     }
 
     public Sql expand(boolean expand) {
@@ -4090,23 +4097,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }
 
     public Sql decorrelate(boolean decorrelate) {
-      return new Sql(sql, decorrelate, tester, trim, config,
-          conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance);
     }
 
     public Sql with(Tester tester) {
-      return new Sql(sql, decorrelate, tester, trim, config,
-          conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance);
     }
 
     public Sql trim(boolean trim) {
-      return new Sql(sql, decorrelate, tester, trim, config,
-          conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance);
     }
 
     public Sql conformance(SqlConformance conformance) {
-      return new Sql(sql, decorrelate, tester, trim, config,
-          conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance);
     }
   }
 }

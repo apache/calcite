@@ -37,6 +37,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
 
@@ -46,6 +47,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -141,8 +143,9 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   Sql sql(String sql) {
-    return new Sql(tester, sql, null, null,
-        ImmutableMap.of(), ImmutableList.of());
+    final Sql s =
+        new Sql(tester, sql, null, null, ImmutableMap.of(), ImmutableList.of());
+    return s.withRelBuilderConfig(b -> b.withPruneInputOfAggregate(false));
   }
 
   /** Allows fluent testing. */
@@ -157,16 +160,17 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     Sql(Tester tester, String sql, HepProgram preProgram, RelOptPlanner planner,
         ImmutableMap<Hook, Consumer> hooks,
         ImmutableList<Function<Tester, Tester>> transforms) {
-      this.tester = tester;
-      this.sql = sql;
+      this.tester = Objects.requireNonNull(tester);
+      this.sql = Objects.requireNonNull(sql);
       this.preProgram = preProgram;
       this.planner = planner;
-      this.hooks = hooks;
-      this.transforms = transforms;
+      this.hooks = Objects.requireNonNull(hooks);
+      this.transforms = Objects.requireNonNull(transforms);
     }
 
     public Sql withTester(UnaryOperator<Tester> transform) {
-      return new Sql(transform.apply(tester), sql, preProgram, planner, hooks, transforms);
+      final Tester tester2 = transform.apply(tester);
+      return new Sql(tester2, sql, preProgram, planner, hooks, transforms);
     }
 
     public Sql withPre(HepProgram preProgram) {
@@ -186,8 +190,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
 
     public Sql with(HepProgram program) {
-      return new Sql(tester, sql, preProgram, new HepPlanner(program), hooks,
-          transforms);
+      final HepPlanner hepPlanner = new HepPlanner(program);
+      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms);
     }
 
     public Sql withRule(RelOptRule... rules) {
@@ -201,16 +205,18 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     /** Adds a transform that will be applied to {@link #tester}
      * just before running the query. */
     private Sql withTransform(Function<Tester, Tester> transform) {
-      return new Sql(tester, sql, preProgram, planner, hooks,
-          FlatLists.append(transforms, transform));
+      final ImmutableList<Function<Tester, Tester>> transforms =
+          FlatLists.append(this.transforms, transform);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
     }
 
     /** Adds a hook and a handler for that hook. Calcite will create a thread
      * hook (by calling {@link Hook#addThread(Consumer)})
      * just before running the query, and remove the hook afterwards. */
     public <T> Sql withHook(Hook hook, Consumer<T> handler) {
-      return new Sql(tester, sql, preProgram, planner,
-          FlatLists.append(hooks, hook, handler), transforms);
+      final ImmutableMap<Hook, Consumer> hooks =
+          FlatLists.append(this.hooks, hook, handler);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
     }
 
     // CHECKSTYLE: IGNORE 1
@@ -227,7 +233,16 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
 
     public Sql expand(final boolean b) {
-      return withTransform(tester -> tester.withExpand(b));
+      return withConfig(c -> c.withExpand(b));
+    }
+
+    public Sql withConfig(UnaryOperator<SqlToRelConverter.Config> transform) {
+      return withTransform(tester -> tester.withConfig(transform));
+    }
+
+    public Sql withRelBuilderConfig(
+        UnaryOperator<RelBuilder.Config> transform) {
+      return withConfig(c -> c.addRelBuilderConfigTransform(transform));
     }
 
     public Sql withLateDecorrelation(final boolean b) {

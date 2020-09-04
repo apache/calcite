@@ -3215,9 +3215,8 @@ public class RelBuilder {
     /** Sets {@link #pruneInputOfAggregate}. */
     Config withPruneInputOfAggregate(boolean pruneInputOfAggregate);
 
-    /** Whether to push down join conditions; default false (but see
-     * {@link SqlToRelConverter.ConfigBuilder#withPushJoinCondition(boolean)},
-     * default true). */
+    /** Whether to push down join conditions; default false (but
+     * {@link SqlToRelConverter#config()} by default sets this to true). */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     boolean pushJoinCondition();

@@ -184,11 +184,10 @@ public abstract class AbstractMaterializedViewTest {
     final SqlValidator validator = new ValidatorForTest(SqlStdOperatorTable.instance(),
         catalogReader, new JavaTypeFactoryImpl(), SqlConformanceEnum.DEFAULT);
     final SqlNode validated = validator.validate(parsed);
-    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+    final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(true)
         .withExpand(true)
-        .withDecorrelationEnabled(true)
-        .build();
+        .withDecorrelationEnabled(true);
     final SqlToRelConverter converter = new SqlToRelConverter(
         (rowType, queryString, schemaPath, viewPath) -> {
           throw new UnsupportedOperationException("cannot expand view");

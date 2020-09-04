@@ -59,7 +59,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
@@ -211,11 +210,9 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     // Change the error handler to validate again.
     sql(sql2).withTester(
         tester -> tester.withConfig(
-        SqlToRelConverter.configBuilder()
-            .withHintStrategyTable(
+            c -> c.withHintStrategyTable(
                 HintTools.createHintStrategies(
-                HintStrategyTable.builder().errorHandler(Litmus.THROW)))
-            .build()))
+                    HintStrategyTable.builder().errorHandler(Litmus.THROW)))))
         .fails(error2);
   }
 
@@ -463,10 +460,8 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
 
   @Override protected Tester createTester() {
     return super.createTester()
-        .withConfig(SqlToRelConverter
-          .configBuilder()
-          .withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE)
-          .build());
+        .withConfig(c ->
+            c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE));
   }
 
   /** Sets the SQL statement for a test. */

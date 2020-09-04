@@ -818,7 +818,9 @@ class Query extends RelOptTestBase {
     SqlToRelTestBase.Tester tester = createTester().withDecorrelation(true)
         .withClusterFactory(cluster -> RelOptCluster.create(planner, cluster.getRexBuilder()));
 
-    new Sql(tester, sql, null, planner,
-        ImmutableMap.of(), ImmutableList.of()).check();
+    final Sql sql =
+        new Sql(tester, this.sql, null, planner, ImmutableMap.of(),
+            ImmutableList.of());
+    sql.check();
   }
 }

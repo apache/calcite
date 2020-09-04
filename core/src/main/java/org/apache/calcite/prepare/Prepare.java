@@ -221,13 +221,13 @@ public abstract class Prepare {
       boolean needsValidation) {
     init(runtimeContextClass);
 
-    final SqlToRelConverter.ConfigBuilder builder =
-        SqlToRelConverter.configBuilder()
+    final SqlToRelConverter.Config config =
+        SqlToRelConverter.config()
             .withTrimUnusedFields(true)
             .withExpand(THREAD_EXPAND.get())
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final SqlToRelConverter sqlToRelConverter =
-        getSqlToRelConverter(validator, catalogReader, builder.build());
+        getSqlToRelConverter(validator, catalogReader, config);
 
     SqlExplain sqlExplain = null;
     if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
@@ -358,10 +358,9 @@ public abstract class Prepare {
    * @return Trimmed relational expression
    */
   protected RelRoot trimUnusedFields(RelRoot root) {
-    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+    final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(THREAD_EXPAND.get())
-        .build();
+        .withExpand(THREAD_EXPAND.get());
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();

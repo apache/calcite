@@ -216,16 +216,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
-    final SqlToRelConverter.ConfigBuilder configBuilder =
-        SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
+    final SqlToRelConverter.Config config =
+        SqlToRelConverter.config().withTrimUnusedFields(true);
 
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), null, createCluster(planner, new RexBuilder(typeFactory)),
+            context.getRootSchema(), null,
+            createCluster(planner, new RexBuilder(typeFactory)),
             resultConvention, createConvertletTable());
     final SqlToRelConverter converter =
-        preparingStmt.getSqlToRelConverter(validator, catalogReader,
-            configBuilder.build());
+        preparingStmt.getSqlToRelConverter(validator, catalogReader, config);
 
     final RelRoot root = converter.convertQuery(sqlNode1, false, true);
     if (analyze) {
@@ -1053,8 +1053,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final CatalogReader catalogReader =
           this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator = createSqlValidator(catalogReader);
-      final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-              .withTrimUnusedFields(true).build();
+      final SqlToRelConverter.Config config =
+          SqlToRelConverter.config().withTrimUnusedFields(true);
       SqlToRelConverter sqlToRelConverter =
           getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =

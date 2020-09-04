@@ -238,10 +238,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-        .withConfig(sqlToRelConverterConfig)
-        .withTrimUnusedFields(false)
-        .build();
+    final SqlToRelConverter.Config config =
+        sqlToRelConverterConfig.withTrimUnusedFields(false);
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(this, validator,
             createCatalogReader(), cluster, convertletTable, config);
@@ -290,11 +288,8 @@ public class PlannerImpl implements Planner, ViewExpander {
 
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-    final SqlToRelConverter.Config config = SqlToRelConverter
-        .configBuilder()
-        .withConfig(sqlToRelConverterConfig)
-        .withTrimUnusedFields(false)
-        .build();
+    final SqlToRelConverter.Config config =
+        sqlToRelConverterConfig.withTrimUnusedFields(false);
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(this, validator,
             catalogReader, cluster, convertletTable, config);

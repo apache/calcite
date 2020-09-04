@@ -75,9 +75,7 @@ class ToLogicalConverterTest {
           EnumerableRules.TO_INTERPRETER);
 
   private static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
-      SqlToRelConverter.configBuilder()
-          .withTrimUnusedFields(false)
-          .build();
+      SqlToRelConverter.config().withTrimUnusedFields(false);
 
   private static FrameworkConfig frameworkConfig() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);

@@ -98,15 +98,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RelToSqlConverterTest {
   static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
-      SqlToRelConverter.configBuilder()
-          .withTrimUnusedFields(false)
-          .build();
+      SqlToRelConverter.config()
+          .withTrimUnusedFields(false);
 
   static final SqlToRelConverter.Config NO_EXPAND_CONFIG =
-      SqlToRelConverter.configBuilder()
+      SqlToRelConverter.config()
           .withTrimUnusedFields(false)
-          .withExpand(false)
-          .build();
+          .withExpand(false);
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {

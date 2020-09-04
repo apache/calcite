@@ -17,13 +17,15 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -1043,12 +1045,11 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test if limit and sort are replaced by a limit sort.
-   * Test case for
+  /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
+   * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]
-   * Improve ORDER BY computation in Enumerable convention by exploiting LIMIT</a>.
-   */
+   * Improve ORDER BY computation in Enumerable convention by exploiting
+   * LIMIT</a>. */
   @Test void testLimitSort() {
     final String sql = "select mgr from sales.emp\n"
         + "union select mgr from sales.emp\n"
@@ -1076,8 +1077,7 @@ class RelOptRulesTest extends RelOptTestBase {
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_UNION_RULE,
-            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE
-        );
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
     Program program = Programs.of(ruleSet);
 
     RelTraitSet toTraits =
@@ -1099,6 +1099,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withDecorrelation(true)
         .withTrim(true)
+        .withRelBuilderConfig(b -> b.withPruneInputOfAggregate(true))
         .withPreRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
             CoreRules.FILTER_INTO_JOIN,
             CoreRules.PROJECT_MERGE)
@@ -1217,8 +1218,7 @@ class RelOptRulesTest extends RelOptTestBase {
         t.createSqlToRelConverter(
             validator,
             catalogReader,
-            typeFactory,
-            SqlToRelConverter.Config.DEFAULT);
+            typeFactory, SqlToRelConverter.config());
 
     final SqlNode sqlQuery = t.parseQuery(sql);
     final SqlNode validatedQuery = validator.validate(sqlQuery);
@@ -1241,7 +1241,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String planBefore = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     converter = t.createSqlToRelConverter(validator, catalogReader, typeFactory,
-        SqlToRelConverter.configBuilder().withTrimUnusedFields(true).build());
+        SqlToRelConverter.config().withTrimUnusedFields(true));
     root = root.withRel(converter.trimUnusedFields(false, root.rel));
     String planAfter = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
@@ -5436,10 +5436,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test void testSortJoinTranspose4() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
-        true, null, null) {
-      @Override public RelOptPlanner createPlanner() {
-        return new MockRelOptPlanner(Contexts.empty()) {
+    Tester tester = new TesterImpl(getDiffRepos())
+        .withPlannerFactory(context -> new MockRelOptPlanner(Contexts.empty()) {
           @Override public List<RelTraitDef> getRelTraitDefs() {
             return ImmutableList.of(RelCollationTraitDef.INSTANCE);
           }
@@ -5447,9 +5445,7 @@ class RelOptRulesTest extends RelOptTestBase {
             return RelTraitSet.createEmpty().plus(
                 RelCollationTraitDef.INSTANCE.getDefault());
           }
-        };
-      }
-    };
+        });
 
     final String sql = "select * from sales.emp e right join (\n"
         + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
