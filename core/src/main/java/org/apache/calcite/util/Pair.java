@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +40,11 @@ import javax.annotation.Nonnull;
  */
 public class Pair<T1, T2>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private static final Comparator NULLS_FIRST_COMPARATOR =
+      Comparator.nullsFirst((Comparator) Comparator.naturalOrder());
+
   //~ Instance fields --------------------------------------------------------
 
   public final T1 left;
@@ -100,10 +106,10 @@ public class Pair<T1, T2>
 
   public int compareTo(@Nonnull Pair<T1, T2> that) {
     //noinspection unchecked
-    int c = compare((Comparable) this.left, (Comparable) that.left);
+    int c = NULLS_FIRST_COMPARATOR.compare(this.left, that.left);
     if (c == 0) {
       //noinspection unchecked
-      c = compare((Comparable) this.right, (Comparable) that.right);
+      c = NULLS_FIRST_COMPARATOR.compare(this.right, that.right);
     }
     return c;
   }
@@ -122,29 +128,6 @@ public class Pair<T1, T2>
 
   public T2 setValue(T2 value) {
     throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Compares a pair of comparable values of the same type. Null collates
-   * less than everything else, but equal to itself.
-   *
-   * @param c1 First value
-   * @param c2 Second value
-   * @return a negative integer, zero, or a positive integer if c1
-   * is less than, equal to, or greater than c2.
-   */
-  private static <C extends Comparable<C>> int compare(C c1, C c2) {
-    if (c1 == null) {
-      if (c2 == null) {
-        return 0;
-      } else {
-        return -1;
-      }
-    } else if (c2 == null) {
-      return 1;
-    } else {
-      return c1.compareTo(c2);
-    }
   }
 
   /**
