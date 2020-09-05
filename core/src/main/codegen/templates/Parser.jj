@@ -1166,7 +1166,7 @@ SqlNodeList ParenthesizedLiteralOptionCommaList() :
     }
 }
 
-void CommaSepatatedSqlHints(List<SqlNode> hints) :
+void CommaSeparatedSqlHints(List<SqlNode> hints) :
 {
     SqlIdentifier hintName;
     SqlNodeList hintOptions;
@@ -1244,11 +1244,11 @@ SqlNode TableRefWithHintsOpt() :
 }
 {
     { s = span(); }
-    tableRef = CompoundIdentifier()
+    tableRef = CompoundTableIdentifier()
     [
         LOOKAHEAD(2)
         <HINT_BEG>
-        CommaSepatatedSqlHints(hints)
+        CommaSeparatedSqlHints(hints)
         <COMMENT_END>
         {
             hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
@@ -1284,7 +1284,7 @@ SqlSelect SqlSelect() :
     }
     [
         <HINT_BEG>
-        CommaSepatatedSqlHints(hints)
+        CommaSeparatedSqlHints(hints)
         <COMMENT_END>
     ]
     SqlSelectKeywords(keywords)
@@ -4781,6 +4781,35 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
     }
 }
 
+/** As {@link #IdentifierSegment} but part of a table name (for example,
+ * following {@code FROM}, {@code INSERT} or {@code UPDATE}).
+ *
+ * <p>In some dialects the lexical rules for table names are different from
+ * for other identifiers. For example, in BigQuery, table names may contain
+ * hyphens. */
+void TableIdentifierSegment(List<String> names, List<SqlParserPos> positions) :
+{
+    final int i = names.size();
+}
+{
+    IdentifierSegment(names, positions) {
+        final int n = names.size();
+        if (n > 0
+                && positions.size() == n
+                && names.get(n - 1).contains(".")
+                && positions.get(n - 1).isQuoted()
+                && this.conformance.splitQuotedTableName()) {
+            final String name = names.remove(n - 1);
+            final SqlParserPos pos = positions.remove(n - 1);
+            final String[] splitNames = name.split("\\.");
+            for (String splitName : splitNames) {
+                names.add(splitName);
+                positions.add(pos);
+            }
+        }
+    }
+}
+
 /**
  * Parses a simple identifier as a String.
  */
@@ -4889,6 +4918,27 @@ SqlIdentifier CompoundIdentifier() :
         if (star) {
             return SqlIdentifier.star(nameList, pos, posList);
         }
+        return new SqlIdentifier(nameList, null, pos, posList);
+    }
+}
+
+/**
+ * Parses a compound identifier in the FROM clause.
+ */
+SqlIdentifier CompoundTableIdentifier() :
+{
+    final List<String> nameList = new ArrayList<String>();
+    final List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
+}
+{
+    TableIdentifierSegment(nameList, posList)
+    (
+        LOOKAHEAD(2)
+        <DOT>
+        TableIdentifierSegment(nameList, posList)
+    )*
+    {
+        SqlParserPos pos = SqlParserPos.sum(posList);
         return new SqlIdentifier(nameList, null, pos, posList);
     }
 }

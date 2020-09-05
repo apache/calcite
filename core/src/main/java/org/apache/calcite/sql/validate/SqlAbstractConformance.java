@@ -59,6 +59,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isFromRequired();
   }
 
+  public boolean splitQuotedTableName() {
+    return SqlConformanceEnum.DEFAULT.splitQuotedTableName();
+  }
+
   public boolean isBangEqualAllowed() {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }

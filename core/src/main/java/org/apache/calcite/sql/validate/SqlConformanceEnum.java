@@ -191,6 +191,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean splitQuotedTableName() {
+    switch (this) {
+    case BIG_QUERY:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   public boolean isBangEqualAllowed() {
     switch (this) {
     case LENIENT:

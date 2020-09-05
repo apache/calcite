@@ -4877,18 +4877,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
-   * Parser allows "*" in FROM clause because "*" can occur in any identifier.
-   * But validator must not.
+   * Parser does not allow "*" in FROM clause.
+   * Parser allows "*" in column expressions, but throws if they are outside
+   * of the SELECT clause.
    *
    * @see #testStarIdentifier()
    */
   @Test void testStarInFromFails() {
-    sql("select emp.empno AS x from ^sales.*^")
-        .fails("Object '\\*' not found within 'SALES'");
-    sql("select * from ^emp.*^")
-        .fails("Object '\\*' not found within 'SALES.EMP'");
-    sql("select emp.empno AS x from ^emp.*^")
-        .fails("Object '\\*' not found within 'SALES.EMP'");
+    sql("select emp.empno AS x from sales^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select * from emp^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select emp.empno AS x from emp^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
     sql("select emp.empno from emp where emp.^*^ is not null")
         .fails("Unknown field '\\*'");
   }

@@ -748,6 +748,19 @@ public class SqlParserTest {
             + "FROM `EMP`");
   }
 
+  @Test void testFromStarFails() {
+    sql("select * from sales^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select emp.empno AS x from sales^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select * from emp^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select emp.empno AS x from emp^.^*")
+        .fails("(?s)Encountered \"\\. \\*\" at .*");
+    sql("select emp.empno AS x from ^*^")
+        .fails("(?s)Encountered \"\\*\" at .*");
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"
@@ -8854,11 +8867,43 @@ public class SqlParserTest {
         .withDialect(REDSHIFT)
         .ok("SELECT \"unquotedcolumn\"\n"
             + "FROM \"doublequotedtable\"");
-    // BigQuery leaves quoted and unquoted identifers unchanged
+    // BigQuery leaves quoted and unquoted identifiers unchanged
     sql("select unquotedColumn from `doubleQuotedTable`")
         .withDialect(BIG_QUERY)
         .ok("SELECT unquotedColumn\n"
             + "FROM doubleQuotedTable");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4230">[CALCITE-4230]
+   * In Babel for BigQuery, split quoted table names that contain dots</a>. */
+  @Test void testSplitIdentifier() {
+    final String sql = "select *\n"
+        + "from `bigquery-public-data.samples.natality`";
+    final String sql2 = "select *\n"
+        + "from `bigquery-public-data`.`samples`.`natality`";
+    final String expectedSplit = "SELECT *\n"
+        + "FROM `bigquery-public-data`.samples.natality";
+    final String expectedNoSplit = "SELECT *\n"
+        + "FROM `bigquery-public-data.samples.natality`";
+    final String expectedSplitMysql = "SELECT *\n"
+        + "FROM `bigquery-public-data`.`samples`.`natality`";
+    // In BigQuery, an identifier containing dots is split into sub-identifiers.
+    sql(sql)
+        .withDialect(BIG_QUERY)
+        .ok(expectedSplit);
+    // In MySQL, identifiers are not split.
+    sql(sql)
+        .withDialect(MYSQL)
+        .ok(expectedNoSplit);
+    // Query with split identifiers produces split AST. No surprise there.
+    sql(sql2)
+        .withDialect(BIG_QUERY)
+        .ok(expectedSplit);
+    // Similar to previous; we just quote simple identifiers on unparse.
+    sql(sql2)
+        .withDialect(MYSQL)
+        .ok(expectedSplitMysql);
   }
 
   @Test void testParenthesizedSubQueries() {

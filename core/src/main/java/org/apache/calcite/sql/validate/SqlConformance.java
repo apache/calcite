@@ -186,6 +186,16 @@ public interface SqlConformance {
   boolean isFromRequired();
 
   /**
+   * Whether to split a quoted table name. If true, {@code `x.y.z`} is parsed as
+   * if the user had written {@code `x`.`y`.`z`}.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * false otherwise.
+   */
+  boolean splitQuotedTableName();
+
+  /**
    * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
    * the parser.
    *
