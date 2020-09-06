@@ -2585,7 +2585,16 @@ public class RexSimplify {
       if (negate) {
         kind = kind.negateNullSafe();
       }
+      if (kind == SqlKind.IS_NULL) {
+        if (negate) {
+          throw new AssertionError("negate is not supported for IS_NULL kind");
+        }
+        b.containsNull = true;
+        b.types.add(literal.getType());
+        return true;
+      }
       final Comparable value = literal.getValueAs(Comparable.class);
+      assert value != null : "value must not be null, kind=" + kind;
       switch (kind) {
       case LESS_THAN:
         b.addRange(Range.lessThan(value), literal.getType());
@@ -2609,12 +2618,6 @@ public class RexSimplify {
       case SEARCH:
         final Sarg sarg = literal.getValueAs(Sarg.class);
         b.addSarg(sarg, negate, literal.getType());
-        return true;
-      case IS_NULL:
-        if (negate) {
-          throw new AssertionError();
-        }
-        b.containsNull = true;
         return true;
       default:
         throw new AssertionError("unexpected " + kind);
@@ -2690,7 +2693,14 @@ public class RexSimplify {
     }
 
     @Override public RelDataType getType() {
-      return rexBuilder.typeFactory.leastRestrictive(Util.distinctList(types));
+      List<RelDataType> distinctTypes = Util.distinctList(this.types);
+      assert distinctTypes.size() >= 1 : "at least one type expected";
+      if (distinctTypes.size() == 1) {
+        return distinctTypes.get(0);
+      }
+      RelDataType type = rexBuilder.typeFactory.leastRestrictive(distinctTypes);
+      assert type != null : "Can't find leastRestrictive type among " + distinctTypes;
+      return type;
     }
 
     @Override public <R> R accept(RexVisitor<R> visitor) {
