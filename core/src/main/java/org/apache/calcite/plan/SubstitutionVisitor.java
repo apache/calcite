@@ -1931,7 +1931,7 @@ public class SubstitutionVisitor {
           return null;
         }
 
-        if (aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
+        if (i < 0 && aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
           RexNode expandNode = expandAvg(aggregateCall, query.rowType, target, rexBuilder);
           if (expandNode == null) {
             return null;

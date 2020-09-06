@@ -1451,6 +1451,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
       .ok();
   }
 
+  @Test void testAvgMvMatch2() {
+    sql(
+      "select \"empid\", avg(\"salary\"), sum(\"salary\"), count(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"",
+      "select \"empid\", avg(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"")
+      .ok();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
