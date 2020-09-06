@@ -2543,8 +2543,9 @@ public class RexSimplify {
         if (negate) {
           return false;
         }
-        return accept1(((RexCall) e).operands.get(0), e.getKind(),
-            rexBuilder.makeNullLiteral(e.getType()), newTerms);
+        RexNode op = ((RexCall) e).operands.get(0);
+        return accept1(op, e.getKind(),
+            rexBuilder.makeNullLiteral(op.getType()), newTerms);
       default:
         return false;
       }
