@@ -199,10 +199,11 @@ public class ${parser.class} extends SqlAbstractParserImpl
         jj_input_stream.setTabSize(tabSize);
     }
 
-    public void switchTo(String stateName) {
-        int state = Arrays.asList(${parser.class}TokenManager.lexStateNames)
-            .indexOf(stateName);
-        token_source.SwitchTo(state);
+    public void switchTo(SqlAbstractParserImpl.LexicalState state) {
+        final int stateOrdinal =
+            Arrays.asList(${parser.class}TokenManager.lexStateNames)
+                .indexOf(state.name());
+        token_source.SwitchTo(stateOrdinal);
     }
 
     public void setQuotedCasing(Casing quotedCasing) {
@@ -1469,7 +1470,8 @@ SqlNode SqlDescribe() :
     |
         // Use syntactic lookahead to determine whether a table name is coming.
         // We do not allow SimpleIdentifier() because that includes <STATEMENT>.
-        LOOKAHEAD( <TABLE> | <IDENTIFIER> | <QUOTED_IDENTIFIER>
+        LOOKAHEAD( <TABLE> | <IDENTIFIER>
+           | <HYPHENATED_IDENTIFIER> | <QUOTED_IDENTIFIER>
            | <BACK_QUOTED_IDENTIFIER> | <BRACKET_QUOTED_IDENTIFIER> )
         (<TABLE>)?
         table = CompoundIdentifier()
@@ -4728,6 +4730,11 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
             pos = getPos();
         }
     |
+        <HYPHENATED_IDENTIFIER> {
+            id = unquotedIdentifier();
+            pos = getPos();
+        }
+    |
         <QUOTED_IDENTIFIER> {
             id = SqlParserUtil.strip(getToken(0).image, DQ, DQ, DQDQ,
                 quotedCasing);
@@ -4789,10 +4796,10 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
  * hyphens. */
 void TableIdentifierSegment(List<String> names, List<SqlParserPos> positions) :
 {
-    final int i = names.size();
 }
 {
-    IdentifierSegment(names, positions) {
+    IdentifierSegment(names, positions)
+    {
         final int n = names.size();
         if (n > 0
                 && positions.size() == n
@@ -6957,7 +6964,7 @@ SqlPostfixOperator PostfixRowOperator() :
 /* KEYWORDS:  anything in this list is a reserved word unless it appears
    in the NonReservedKeyWord() production. */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < A: "A" >
 |   < ABS: "ABS" >
@@ -7106,13 +7113,13 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DEFINED: "DEFINED" >
 |   < DEFINER: "DEFINER" >
 |   < DEGREE: "DEGREE" >
-|   < DELETE: "DELETE" >
+|   < DELETE: "DELETE" > { beforeTableName(); }
 |   < DENSE_RANK: "DENSE_RANK" >
 |   < DEPTH: "DEPTH" >
 |   < DEREF: "DEREF" >
 |   < DERIVED: "DERIVED" >
 |   < DESC: "DESC" >
-|   < DESCRIBE: "DESCRIBE" >
+|   < DESCRIBE: "DESCRIBE" > { beforeTableName(); }
 |   < DESCRIPTION: "DESCRIPTION" >
 |   < DESCRIPTOR: "DESCRIPTOR" >
 |   < DETERMINISTIC: "DETERMINISTIC" >
@@ -7172,7 +7179,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FRAC_SECOND: "FRAC_SECOND" >
 |   < FRAME_ROW: "FRAME_ROW" >
 |   < FREE: "FREE" >
-|   < FROM: "FROM" >
+|   < FROM: "FROM" > { beforeTableName(); }
 |   < FULL: "FULL" >
 |   < FUNCTION: "FUNCTION" >
 |   < FUSION: "FUSION" >
@@ -7211,7 +7218,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < INOUT: "INOUT" >
 |   < INPUT: "INPUT" >
 |   < INSENSITIVE: "INSENSITIVE" >
-|   < INSERT: "INSERT" >
+|   < INSERT: "INSERT" > { beforeTableName(); }
 |   < INSTANCE: "INSTANCE" >
 |   < INSTANTIABLE: "INSTANTIABLE" >
 |   < INT: "INT" >
@@ -7226,7 +7233,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ISOYEAR: "ISOYEAR" >
 |   < ISOLATION: "ISOLATION" >
 |   < JAVA: "JAVA" >
-|   < JOIN: "JOIN" >
+|   < JOIN: "JOIN" > { beforeTableName(); }
 |   < JSON: "JSON" >
 |   < JSON_ARRAY: "JSON_ARRAY">
 |   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
@@ -7272,7 +7279,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MAXVALUE: "MAXVALUE" >
 |   < MEASURES: "MEASURES" >
 |   < MEMBER: "MEMBER" >
-|   < MERGE: "MERGE" >
+|   < MERGE: "MERGE" > { beforeTableName(); }
 |   < MESSAGE_LENGTH: "MESSAGE_LENGTH" >
 |   < MESSAGE_OCTET_LENGTH: "MESSAGE_OCTET_LENGTH" >
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
@@ -7447,7 +7454,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SECTION: "SECTION" >
 |   < SECURITY: "SECURITY" >
 |   < SEEK: "SEEK" >
-|   < SELECT: "SELECT" >
+|   < SELECT: "SELECT" > { afterTableName(); }
 |   < SELF: "SELF" >
 |   < SENSITIVE: "SENSITIVE" >
 |   < SEQUENCE: "SEQUENCE" >
@@ -7456,7 +7463,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SERVER_NAME: "SERVER_NAME" >
 |   < SESSION: "SESSION" >
 |   < SESSION_USER: "SESSION_USER" >
-|   < SET: "SET" >
+|   < SET: "SET" > { afterTableName(); }
 |   < SETS: "SETS" >
 |   < SET_MINUS: "MINUS">
 |   < SHOW: "SHOW" >
@@ -7546,7 +7553,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SYSTEM: "SYSTEM" >
 |   < SYSTEM_TIME: "SYSTEM_TIME" >
 |   < SYSTEM_USER: "SYSTEM_USER" >
-|   < TABLE: "TABLE" >
+|   < TABLE: "TABLE" > { beforeTableName(); }
 |   < TABLE_NAME: "TABLE_NAME" >
 |   < TABLESAMPLE: "TABLESAMPLE" >
 |   < TEMPORARY: "TEMPORARY" >
@@ -7592,7 +7599,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UNKNOWN: "UNKNOWN" >
 |   < UNNAMED: "UNNAMED" >
 |   < UNNEST: "UNNEST" >
-|   < UPDATE: "UPDATE" >
+|   < UPDATE: "UPDATE" > { beforeTableName(); }
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >
 |   < USAGE: "USAGE" >
@@ -7606,7 +7613,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UTF16: "UTF16" >
 |   < UTF32: "UTF32" >
 |   < VALUE: "VALUE" >
-|   < VALUES: "VALUES" >
+|   < VALUES: "VALUES" > { afterTableName(); }
 |   < VALUE_OF: "VALUE_OF" >
 |   < VAR_POP: "VAR_POP" >
 |   < VAR_SAMP: "VAR_SAMP" >
@@ -7716,7 +7723,7 @@ void NonReservedKeyWord2of3() :
 
 /* LITERALS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < UNSIGNED_INTEGER_LITERAL: (["0"-"9"])+ >
 |
@@ -7751,7 +7758,7 @@ void NonReservedKeyWord2of3() :
     >
 }
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < UNICODE_QUOTED_ESCAPE_CHAR:
     <QUOTE>
@@ -7762,7 +7769,7 @@ void NonReservedKeyWord2of3() :
 
 /* SEPARATORS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < LPAREN: "(">
 |   < RPAREN: ")">
@@ -7785,7 +7792,7 @@ void NonReservedKeyWord2of3() :
 
 /* OPERATORS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < EQ: "=" >
 |   < GT: ">" >
@@ -7820,7 +7827,7 @@ void NonReservedKeyWord2of3() :
  *****************************************/
 
 TOKEN_MGR_DECLS : {
-    List<Integer> lexicalStateStack = new ArrayList<Integer>();
+    final List<Integer> lexicalStateStack = new ArrayList<Integer>();
 
     void pushState() {
       lexicalStateStack.add(curLexState);
@@ -7828,6 +7835,19 @@ TOKEN_MGR_DECLS : {
 
     void popState() {
       SwitchTo(lexicalStateStack.remove(lexicalStateStack.size() - 1));
+    }
+
+    void beforeTableName() {
+      if (curLexState == BQID) {
+        pushState();
+        SwitchTo(BQHID);
+      }
+    }
+
+    void afterTableName() {
+      if (curLexState == BQHID) {
+        popState();
+      }
     }
 
 <#if parser.includeAdditionalDeclarations>
@@ -7841,12 +7861,22 @@ Lexical states:
 DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
 DQID:    Identifiers are double-quoted, e.g. "My Identifier"
 BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+BQID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`,
+         and with the potential to shift into BQHID in contexts where table
+         names are expected, and thus allow hyphen-separated identifiers as
+         part of table names
+BQHID:   Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+         and unquoted identifiers may contain hyphens, e.g. foo-bar
 IN_SINGLE_LINE_COMMENT:
 IN_FORMAL_COMMENT:
 IN_MULTI_LINE_COMMENT:
 
-DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
-for how quoted identifiers are recognized.
+DEFAULT, DQID, BTID, BQID are the 4 'normal states'. Behavior is identical
+except for how quoted identifiers are recognized.
+
+The BQHID state exists only at the start of a table name (e.g. immediately after
+FROM or INSERT INTO). As soon as an identifier is seen, the state shifts back
+to BTID.
 
 After a comment has completed, the lexer returns to the previous state, one
 of the 'normal states'.
@@ -7854,7 +7884,7 @@ of the 'normal states'.
 
 /* WHITE SPACE */
 
-<DEFAULT, DQID, BTID> SKIP :
+<DEFAULT, DQID, BTID, BQID, BQHID> SKIP :
 {
     " "
 |   "\t"
@@ -7865,23 +7895,23 @@ of the 'normal states'.
 
 /* COMMENTS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < HINT_BEG: "/*+">
 |   < COMMENT_END: "*/" >
 }
 
-<DEFAULT, DQID, BTID> MORE :
+<DEFAULT, DQID, BTID, BQID, BQHID> MORE :
 {
     <"/**" ~["/"]> { pushState(); } : IN_FORMAL_COMMENT
 }
 
-<DEFAULT, DQID, BTID> MORE :
+<DEFAULT, DQID, BTID, BQID, BQHID> MORE :
 {
     "/*" { pushState(); } : IN_MULTI_LINE_COMMENT
 }
 
-<DEFAULT, DQID, BTID> SKIP :
+<DEFAULT, DQID, BTID, BQID, BQHID> SKIP :
 {
     <SINGLE_LINE_COMMENT: ("//"|"--")(~["\n","\r"])* ("\n"|"\r"|"\r\n")? >
 }
@@ -7933,7 +7963,7 @@ MORE :
     >
 }
 
-<BTID>  TOKEN :
+<BTID, BQID, BQHID> TOKEN :
 {
     < BACK_QUOTED_IDENTIFIER:
     "`"
@@ -7946,7 +7976,20 @@ MORE :
     >
 }
 
-<DEFAULT, DQID, BTID> TOKEN :
+<BQHID> TOKEN :
+{
+    // Per BigQuery: "Project IDs must contain 6-63 lowercase letters, digits,
+    // or dashes. IDs must start with a letter and may not end with a dash."
+    // We do not restrict length, or prevent identifiers from ending in a dash.
+    < HYPHENATED_IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>|"-")* > { popState(); }
+}
+
+<DEFAULT, DQID, BTID, BQID> TOKEN :
+{
+    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+}
+
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < COLLATION_ID:
     (<LETTER>|<DIGIT>)+ (<LETTER>|<DIGIT>|":"|"."|"-"|"_")*
@@ -7954,8 +7997,6 @@ MORE :
     (<LETTER>|"_")+
     ("$" (<LETTER>|<DIGIT>|"_")+)?
     >
-|
-    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
 |
     < UNICODE_QUOTED_IDENTIFIER: "U" "&" <QUOTED_IDENTIFIER> >
 |
@@ -8001,7 +8042,7 @@ MORE :
 /* Special token to throw a wrench in the works. It is never valid in SQL,
    and so when it occurs, it causes the parser to print which tokens would
    have been valid at that point. Used by SqlAdvisor. */
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
     < BEL:
     [

@@ -196,6 +196,18 @@ public interface SqlConformance {
   boolean splitQuotedTableName();
 
   /**
+   * Whether to allow hyphens in an unquoted table name.
+   *
+   * <p>If true, {@code SELECT * FROM foo-bar.baz-buzz} is valid, and is parsed
+   * as if the user had written {@code SELECT * FROM `foo-bar`.`baz-buzz`}.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * false otherwise.
+   */
+  boolean allowHyphenInUnquotedTableName();
+
+  /**
    * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
    * the parser.
    *

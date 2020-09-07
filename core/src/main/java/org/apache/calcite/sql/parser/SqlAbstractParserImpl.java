@@ -503,11 +503,54 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Change parser state.
    *
-   * @param stateName new state.
+   * @param state New state
    */
-  public abstract void switchTo(String stateName);
+  public abstract void switchTo(LexicalState state);
 
   //~ Inner Interfaces -------------------------------------------------------
+
+  /** Valid starting states of the parser.
+   *
+   * <p>(There are other states that the parser enters during parsing, such as
+   * being inside a multi-line comment.)
+   *
+   * <p>The starting states generally control the syntax of quoted
+   * identifiers. */
+  public enum LexicalState {
+    /** Starting state where quoted identifiers use brackets, like Microsoft SQL
+     * Server. */
+    DEFAULT,
+
+    /** Starting state where quoted identifiers use double-quotes, like
+     * Oracle and PostgreSQL. */
+    DQID,
+
+    /** Starting state where quoted identifiers use back-ticks, like MySQL. */
+    BTID,
+
+    /** Starting state where quoted identifiers use back-ticks,
+     * unquoted identifiers that are part of table names may contain hyphens,
+     * like BigQuery. */
+    BQID;
+
+    /** Returns the corresponding parser state with the given configuration
+     * (in particular, quoting style). */
+    public static LexicalState forConfig(SqlParser.Config config) {
+      switch (config.quoting()) {
+      case DOUBLE_QUOTE:
+        return DQID;
+      case BACK_TICK:
+        if (config.conformance().allowHyphenInUnquotedTableName()) {
+          return BQID;
+        }
+        return BTID;
+      case BRACKET:
+        return DEFAULT;
+      default:
+        throw new AssertionError(config);
+      }
+    }
+  }
 
   /**
    * Metadata about the parser. For example:

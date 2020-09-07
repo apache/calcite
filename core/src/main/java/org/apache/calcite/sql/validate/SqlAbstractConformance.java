@@ -63,6 +63,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.splitQuotedTableName();
   }
 
+  public boolean allowHyphenInUnquotedTableName() {
+    return SqlConformanceEnum.DEFAULT.allowHyphenInUnquotedTableName();
+  }
+
   public boolean isBangEqualAllowed() {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }

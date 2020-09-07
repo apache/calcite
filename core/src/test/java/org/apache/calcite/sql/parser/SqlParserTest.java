@@ -761,6 +761,117 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+  @Test void testHyphenatedTableName() {
+    sql("select * from bigquery^-^foo-bar.baz")
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT *\n"
+            + "FROM `bigquery-foo-bar`.baz");
+
+    // Like BigQuery, MySQL allows back-ticks.
+    sql("select `baz`.`buzz` from foo.`baz`")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT baz.buzz\n"
+            + "FROM foo.baz")
+        .withDialect(MYSQL)
+        .ok("SELECT `baz`.`buzz`\n"
+            + "FROM `foo`.`baz`");
+
+    // Unlike BigQuery, MySQL does not allow hyphenated identifiers.
+    sql("select `baz`.`buzz` from foo^-^bar.`baz`")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT baz.buzz\n"
+            + "FROM `foo-bar`.baz")
+        .withDialect(MYSQL)
+        .fails("(?s)Encountered \"-\" at .*");
+
+    // No hyphenated identifiers as table aliases.
+    sql("select * from foo.baz as hyphenated^-^alias-not-allowed")
+        .withDialect(BIG_QUERY)
+        .fails("(?s)Encountered \"-\" at .*");
+
+    sql("select * from foo.baz as `hyphenated-alias-allowed-if-quoted`")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT *\n"
+            + "FROM foo.baz AS `hyphenated-alias-allowed-if-quoted`");
+
+    // No hyphenated identifiers as column names.
+    sql("select * from foo-bar.baz cross join (select alpha-omega from t) as t")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT *\n"
+            + "FROM `foo-bar`.baz\n"
+            + "CROSS JOIN (SELECT (alpha - omega)\n"
+            + "FROM t) AS t");
+
+    sql("select * from bigquery-foo-bar.baz as hyphenated^-^alias-not-allowed")
+        .withDialect(BIG_QUERY)
+        .fails("(?s)Encountered \"-\" at .*");
+
+    sql("insert into bigquery^-^public-data.foo values (1)")
+        .fails("Non-query expression encountered in illegal context")
+        .withDialect(BIG_QUERY)
+        .ok("INSERT INTO `bigquery-public-data`.foo\n"
+            + "VALUES (1)");
+
+    sql("update bigquery^-^public-data.foo set a = b")
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(BIG_QUERY)
+        .ok("UPDATE `bigquery-public-data`.foo SET a = b");
+
+    sql("delete from bigquery^-^public-data.foo where a = 5")
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(BIG_QUERY)
+        .ok("DELETE FROM `bigquery-public-data`.foo\n"
+            + "WHERE (a = 5)");
+
+    final String mergeSql = "merge into bigquery^-^public-data.emps e\n"
+        + "using (\n"
+        + "  select *\n"
+        + "  from bigquery-public-data.tempemps\n"
+        + "  where deptno is null) t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then\n"
+        + "  update set name = t.name, deptno = t.deptno,\n"
+        + "    salary = t.salary * .1\n"
+        + "when not matched then\n"
+        + "    insert (name, dept, salary)\n"
+        + "    values(t.name, 10, t.salary * .15)";
+    final String mergeExpected = "MERGE INTO `bigquery-public-data`.emps AS e\n"
+        + "USING (SELECT *\n"
+        + "FROM `bigquery-public-data`.tempemps\n"
+        + "WHERE (deptno IS NULL)) AS t\n"
+        + "ON (e.empno = t.empno)\n"
+        + "WHEN MATCHED THEN"
+        + " UPDATE SET name = t.name, deptno = t.deptno,"
+        + " salary = (t.salary * 0.1)\n"
+        + "WHEN NOT MATCHED THEN"
+        + " INSERT (name, dept, salary)"
+        + " (VALUES (t.name, 10, (t.salary * 0.15)))";
+    sql(mergeSql)
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(BIG_QUERY)
+        .ok(mergeExpected);
+
+    // Hyphenated identifiers may not contain spaces, even in BigQuery.
+    sql("select * from bigquery ^-^ foo - bar as t where x < y")
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(BIG_QUERY)
+        .fails("(?s)Encountered \"-\" at .*");
+  }
+
+  @Test void testHyphenatedColumnName() {
+    // While BigQuery allows hyphenated table names, no dialect allows
+    // hyphenated column names; they are parsed as arithmetic minus.
+    final String expected = "SELECT (`FOO` - `BAR`)\n"
+        + "FROM `EMP`";
+    final String expectedBigQuery = "SELECT (foo - bar)\n"
+        + "FROM emp";
+    sql("select foo-bar from emp")
+        .ok(expected)
+        .withDialect(BIG_QUERY)
+        .ok(expectedBigQuery);
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"
@@ -3496,6 +3607,7 @@ public class SqlParserTest {
             + "    \"TABLE\" \\.\\.\\.\n"
             + "    \"UNNEST\" \\.\\.\\.\n"
             + "    <IDENTIFIER> \\.\\.\\.\n"
+            + "    <HYPHENATED_IDENTIFIER> \\.\\.\\.\n"
             + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
@@ -3803,6 +3915,15 @@ public class SqlParserTest {
         .ok("DESCRIBE TABLE `DB`.`C`.`S`.`EMPS`");
     sql("describe emps col1")
         .ok("DESCRIBE TABLE `EMPS` `COL1`");
+
+    // BigQuery allows hyphens in schema (project) names
+    sql("describe foo-bar.baz")
+        .withDialect(BIG_QUERY)
+        .ok("DESCRIBE TABLE `foo-bar`.baz");
+    sql("describe table foo-bar.baz")
+        .withDialect(BIG_QUERY)
+        .ok("DESCRIBE TABLE `foo-bar`.baz");
+
     // table keyword is OK
     sql("describe table emps col1")
         .ok("DESCRIBE TABLE `EMPS` `COL1`");
