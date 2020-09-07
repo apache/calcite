@@ -1460,13 +1460,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
 
   @Test void testAvgMvMatch2() {
     String mv = ""
-      + "select \"deptno\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
-      + "from \"emps\" \n"
-      + "group by \"deptno\", \"commission\"";
+        + "select \"deptno\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
+        + "from \"emps\" \n"
+        + "group by \"deptno\", \"commission\"";
     String query = ""
-      + "select \"deptno\", avg(\"salary\")\n"
-      + "from \"emps\"\n"
-      + "group by \"deptno\"";
+        + "select \"deptno\", avg(\"salary\")\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\"";
 
     sql(mv, query).ok();
   }
@@ -1476,31 +1476,31 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   @Disabled
   @Test void testAvgMvMatch3() {
     String mv = ""
-      + "select \"deptno\" + \"commission\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
-      + "from \"emps\"\n"
-      + "group by \"deptno\" + \"commission\", \"commission\"";
+        + "select \"deptno\" + \"commission\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\" + \"commission\", \"commission\"";
     String query = ""
-      + "select \"commission\", avg(\"salary\")\n"
-      + "from \"emps\"\n"
-      + "where \"commission\" * (\"deptno\" + \"commission\") = 100\n"
-      + "group by \"commission\"";
+        + "select \"commission\", avg(\"salary\")\n"
+        + "from \"emps\"\n"
+        + "where \"commission\" * (\"deptno\" + \"commission\") = 100\n"
+        + "group by \"commission\"";
     sql(mv, query).ok();
   }
 
   @Test void testAvgMvMatch4() {
     String mv = ""
-      + "select * from\n"
-      + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", count(\"salary\") \"count_salary\", sum(\"commission\")\n"
-      + "from \"emps\"\n"
-      + "group by \"deptno\")\n"
-      + "where \"sum_salary\" > 10";
+        + "select * from\n"
+        + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", count(\"salary\") \"count_salary\", sum(\"commission\")\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\")\n"
+        + "where \"sum_salary\" > 10";
     String query = ""
-      + "select * from\n"
-      + "(select \"deptno\", avg(\"salary\") as \"sum_salary\"\n"
-      + "from \"emps\"\n"
-      + "where \"salary\" > 1000\n"
-      + "group by \"deptno\")\n"
-      + "where \"sum_salary\" > 10";
+        + "select * from\n"
+        + "(select \"deptno\", avg(\"salary\") as \"sum_salary\"\n"
+        + "from \"emps\"\n"
+        + "where \"salary\" > 1000\n"
+        + "group by \"deptno\")\n"
+        + "where \"sum_salary\" > 10";
     sql(mv, query).noMat();
   }
 
@@ -1513,19 +1513,6 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "from \"emps\" group by rollup(\"empid\",\"deptno\")")
       .noMat();
   }
-
-  @Test void testAggregateRollUpWithAvgMvMatch0() {
-    final String mv = ""
-      + "select \"empid\", stddev_pop(\"deptno\") "
-      + "from \"emps\" "
-      + "group by \"empid\", \"deptno\"";
-    final String query = ""
-      + "select \"empid\", stddev_pop(\"deptno\") "
-      + "from \"emps\" "
-      + "group by \"empid\"";
-    sql(mv, query).noMat();
-  }
-
 
 
   final JavaTypeFactoryImpl typeFactory =
