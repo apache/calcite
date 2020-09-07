@@ -1444,19 +1444,89 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         .ok();
   }
 
-  @Test void testAvgMvMatch() {
+  @Test void testAvgMvMatch0() {
     sql(
       "select \"empid\", sum(\"salary\"), count(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"",
       "select \"empid\", avg(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"")
       .ok();
   }
 
-  @Test void testAvgMvMatch2() {
+  @Test void testAvgMvMatch1() {
     sql(
       "select \"empid\", avg(\"salary\"), sum(\"salary\"), count(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"",
       "select \"empid\", avg(\"salary\") from \"emps\" where \"empid\" > 10 group by \"empid\"")
       .ok();
   }
+
+  @Test void testAvgMvMatch2() {
+    String mv = ""
+      + "select \"deptno\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
+      + "from \"emps\" \n"
+      + "group by \"deptno\", \"commission\"";
+    String query = ""
+      + "select \"deptno\", avg(\"salary\")\n"
+      + "from \"emps\"\n"
+      + "group by \"deptno\"";
+
+    sql(mv, query).ok();
+  }
+
+
+  //TODO: support later
+  @Disabled
+  @Test void testAvgMvMatch3() {
+    String mv = ""
+      + "select \"deptno\" + \"commission\", \"commission\", sum(\"salary\"), count(\"salary\")\n"
+      + "from \"emps\"\n"
+      + "group by \"deptno\" + \"commission\", \"commission\"";
+    String query = ""
+      + "select \"commission\", avg(\"salary\")\n"
+      + "from \"emps\"\n"
+      + "where \"commission\" * (\"deptno\" + \"commission\") = 100\n"
+      + "group by \"commission\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testAvgMvMatch4() {
+    String mv = ""
+      + "select * from\n"
+      + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", count(\"salary\") \"count_salary\", sum(\"commission\")\n"
+      + "from \"emps\"\n"
+      + "group by \"deptno\")\n"
+      + "where \"sum_salary\" > 10";
+    String query = ""
+      + "select * from\n"
+      + "(select \"deptno\", avg(\"salary\") as \"sum_salary\"\n"
+      + "from \"emps\"\n"
+      + "where \"salary\" > 1000\n"
+      + "group by \"deptno\")\n"
+      + "where \"sum_salary\" > 10";
+    sql(mv, query).noMat();
+  }
+
+
+
+  @Test void testAggregateGroupSetsWithAvgMvMatch0() {
+    sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s\n"
+        + "from \"emps\" group by cube(\"empid\",\"deptno\")",
+      "select avg(\"salary\") + 1 as c, \"deptno\"\n"
+        + "from \"emps\" group by rollup(\"empid\",\"deptno\")")
+      .noMat();
+  }
+
+  @Test void testAggregateRollUpWithAvgMvMatch0() {
+    final String mv = ""
+      + "select \"empid\", stddev_pop(\"deptno\") "
+      + "from \"emps\" "
+      + "group by \"empid\", \"deptno\"";
+    final String query = ""
+      + "select \"empid\", stddev_pop(\"deptno\") "
+      + "from \"emps\" "
+      + "group by \"empid\"";
+    sql(mv, query).noMat();
+  }
+
+
 
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

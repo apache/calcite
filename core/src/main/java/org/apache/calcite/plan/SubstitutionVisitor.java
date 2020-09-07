@@ -56,6 +56,8 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ControlFlowException;
@@ -1863,8 +1865,8 @@ public class SubstitutionVisitor {
     return list;
   }
 
-  private static RexNode expandAvg(AggregateCall avgAgg, RelDataType relDataType,
-      MutableAggregate target, RexBuilder rexBuilder) {
+  private static Pair<Integer, Integer> expandAvg(AggregateCall avgAgg, RelDataType relDataType,
+      MutableAggregate target) {
 
     AggregateCall sumAgg =
         AggregateCall.create(SqlStdOperatorTable.SUM,
@@ -1883,26 +1885,19 @@ public class SubstitutionVisitor {
           avgAgg.collation, avgAgg.type,
           avgAgg.name);
 
-    ArrayList<RelDataType> argTypes = new ArrayList<>();
-    argTypes.add(countAgg.getType());
-
     List<Integer> nullableArgs = nullableArgs(countAgg.getArgList(), relDataType);
     if (!countAgg.isDistinct() && !nullableArgs.equals(avgAgg.getArgList())) {
       countAgg = countAgg.copy(nullableArgs, countAgg.filterArg,
         countAgg.collation);
     }
 
-    if (target.aggCalls.indexOf(sumAgg) < 0
-        || target.aggCalls.indexOf(countAgg) < 0) {
+    int sumIdx = target.aggCalls.indexOf(sumAgg);
+    int countIdx = target.aggCalls.indexOf(countAgg);
+    if (sumIdx < 0 || countIdx < 0) {
       return null;
-    } else {
-      int sumIdx = target.aggCalls.indexOf(sumAgg);
-      int countIdx = target.aggCalls.indexOf(countAgg);
-      List<RelDataTypeField> fieldList = target.rowType.getFieldList();
-      RexInputRef sumRef = rexBuilder.makeInputRef(fieldList.get(sumIdx).getType(), sumIdx);
-      RexInputRef countRef = rexBuilder.makeInputRef(fieldList.get(countIdx).getType(), countIdx);
-      return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumRef, countRef);
     }
+
+    return Pair.of(sumIdx, countIdx);
   }
 
   public static MutableRel unifyAggregates(MutableAggregate query,
@@ -1932,10 +1927,16 @@ public class SubstitutionVisitor {
         }
 
         if (i < 0 && aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
-          RexNode expandNode = expandAvg(aggregateCall, query.rowType, target, rexBuilder);
-          if (expandNode == null) {
+          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall, query.rowType, target);
+          if (expandPair == null) {
             return null;
           }
+
+          RexInputRef sumRef = rexBuilder.makeInputRef(
+              fieldList.get(expandPair.getKey()).getType(), expandPair.getKey());
+          RexInputRef countRef = rexBuilder.makeInputRef(
+              fieldList.get(expandPair.getValue()).getType(), expandPair.getValue());
+          RexNode expandNode = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumRef, countRef);
           builder.addProject(expandNode, aggregateCall.getName());
         } else {
           RexInputRef rexInputRef = rexBuilder.makeInputRef(fieldList.get(groupCount + i).getType(),
@@ -1959,29 +1960,63 @@ public class SubstitutionVisitor {
         groupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
             ImmutableBitSet.permute(query.groupSets, map));
       }
+
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
+      final ImmutableList.Builder<Integer> avgIndexSetBuilder = ImmutableList.builder();
       for (AggregateCall aggregateCall : query.aggCalls) {
         if (aggregateCall.isDistinct()) {
           return null;
         }
         int i = target.aggCalls.indexOf(aggregateCall);
-        if (i < 0) {
+        if (i < 0 && aggregateCall.getAggregation() != SqlStdOperatorTable.AVG) {
           return null;
         }
         // When an SqlAggFunction does not support roll up, it will return null, which means that
         // it cannot do secondary aggregation and the materialization recognition will fail.
+        //TODO: later we will alter return type of method getRollup when we have idea about
+        //AggregateStarTableRule and AggregateFilterTransposeRule
         final SqlAggFunction aggFunction = getRollup(aggregateCall.getAggregation());
-        if (aggFunction == null) {
+        if (aggFunction == null && aggregateCall.getAggregation() != SqlStdOperatorTable.AVG) {
           return null;
         }
-        aggregateCalls.add(
-            AggregateCall.create(aggFunction,
+
+        if (i < 0 && aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
+          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall, query.rowType, target);
+          if (expandPair == null) {
+            return null;
+          }
+
+          AggregateCall sumRollUpAgg = AggregateCall.create(SqlStdOperatorTable.SUM,
+              aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+              aggregateCall.ignoreNulls(),
+              ImmutableList.of(target.groupSet.cardinality() + expandPair.getKey()), -1,
+              aggregateCall.collation, aggregateCall.type,
+              aggregateCall.name);
+
+          //here we convert type of count result to BIGINT coercively for returnType of sum0
+          AggregateCall countRollUpAgg = AggregateCall.create(SqlStdOperatorTable.SUM0,
+              aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+              aggregateCall.ignoreNulls(),
+              ImmutableList.of(target.groupSet.cardinality() + expandPair.getValue()), -1,
+              aggregateCall.collation, new BasicSqlType(rexBuilder.getTypeFactory().getTypeSystem(),
+                SqlTypeName.BIGINT),
+              aggregateCall.name);
+
+          avgIndexSetBuilder.add(aggregateCalls.size());
+          aggregateCalls.add(sumRollUpAgg);
+          aggregateCalls.add(countRollUpAgg);
+        } else {
+          aggregateCalls.add(
+              AggregateCall.create(aggFunction,
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 aggregateCall.ignoreNulls(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
                 aggregateCall.collation, aggregateCall.type,
                 aggregateCall.name));
+        }
       }
+
+      ImmutableList<Integer> avgIndexSet = avgIndexSetBuilder.build();
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
         RexProgram compenRexProgram = RexProgram.create(
             target.rowType, rexBuilder.identityProjects(target.rowType),
@@ -1993,6 +2028,34 @@ public class SubstitutionVisitor {
       } else {
         result = MutableAggregate.of(
             target, groupSet, groupSets, aggregateCalls);
+      }
+
+      if (!avgIndexSet.isEmpty()) {
+        MutableAggregate aggregate = (MutableAggregate) result;
+        final RexProgramBuilder builder = new RexProgramBuilder(aggregate.rowType, rexBuilder);
+        int groupCount = aggregate.groupSet.cardinality();
+        List<String> fieldNames = query.rowType.getFieldNames();
+        for (int i = 0; i < groupCount; i++) {
+          builder.addProject(i, fieldNames.get(i));
+        }
+
+        List<RelDataTypeField> fieldList = aggregate.rowType.getFieldList();
+        List<AggregateCall> aggCalls = aggregate.aggCalls;
+        for (int i = 0; i < aggCalls.size(); i++) {
+          AggregateCall aggregateCall = aggCalls.get(i);
+          if (avgIndexSet.contains(i)) {
+            RexInputRef sumRollUp = rexBuilder.makeInputRef(fieldList.get(i).getType(), i++);
+            RexInputRef sum0RollUp = rexBuilder.makeInputRef(fieldList.get(i).getType(), i);
+            RexNode avgNode = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE,
+                sumRollUp, sum0RollUp);
+            builder.addProject(avgNode, aggregateCall.getName());
+            continue;
+          }
+
+          builder.addProject(i, aggregateCall.getName());
+        }
+
+        result = MutableCalc.of(result, builder.getProgram());
       }
     } else {
       return null;
