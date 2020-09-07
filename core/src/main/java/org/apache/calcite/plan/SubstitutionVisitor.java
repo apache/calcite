@@ -1927,7 +1927,8 @@ public class SubstitutionVisitor {
         }
 
         if (i < 0 && aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
-          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall, query.getInput().rowType, target);
+          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall,
+            query.getInput().rowType, target);
           if (expandPair == null) {
             return null;
           }
@@ -1981,7 +1982,8 @@ public class SubstitutionVisitor {
         }
 
         if (i < 0 && aggregateCall.getAggregation() == SqlStdOperatorTable.AVG) {
-          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall, query.getInput().rowType, target);
+          Pair<Integer, Integer> expandPair = expandAvg(aggregateCall,
+            query.getInput().rowType, target);
           if (expandPair == null) {
             return null;
           }
