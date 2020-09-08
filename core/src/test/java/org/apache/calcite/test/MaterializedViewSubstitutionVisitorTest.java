@@ -1430,18 +1430,34 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   @Disabled
   @Test void testMaterializationReferencesTableInOtherSchema() {}
 
-  @Disabled
   @Test void testOrderByQueryOnProjectView() {
     sql("select \"deptno\", \"empid\" from \"emps\"",
         "select \"empid\" from \"emps\" order by \"deptno\"")
         .ok();
   }
 
-  @Disabled
-  @Test void testOrderByQueryOnOrderByView() {
+  @Test void testOrderByQueryOnOrderByView0() {
     sql("select \"deptno\", \"empid\" from \"emps\" order by \"deptno\"",
         "select \"empid\" from \"emps\" order by \"deptno\"")
         .ok();
+  }
+
+  @Test void testOrderByQueryOnOrderByView1() {
+    sql("select \"deptno\", \"empid\" from \"emps\" order by \"deptno\", \"empid\"",
+      "select \"empid\" from \"emps\" order by \"deptno\"")
+      .ok();
+  }
+
+  @Test void testOrderByQueryOnOrderByView2() {
+    sql("select \"deptno\", \"empid\" from \"emps\" order by \"deptno\"",
+      "select \"empid\" from \"emps\" order by \"deptno\", \"empid\"")
+      .ok();
+  }
+
+  @Test void testOrderByQueryOnOrderByView3() {
+    sql("select \"deptno\", \"empid\" from \"emps\" where \"empid\" > 10 order by \"deptno\"",
+      "select \"empid\" from \"emps\" order by \"deptno\", \"empid\"")
+      .noMat();
   }
 
   final JavaTypeFactoryImpl typeFactory =
