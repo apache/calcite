@@ -1472,8 +1472,6 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   }
 
 
-  //TODO: support later
-  @Disabled
   @Test void testAvgMvMatch3() {
     String mv = ""
         + "select \"deptno\" + \"commission\", \"commission\", sum(\"salary\"), count(\"salary\")\n"

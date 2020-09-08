@@ -2048,8 +2048,9 @@ public class SubstitutionVisitor {
           if (avgIndexSet.contains(i)) {
             RexInputRef sumRollUp = rexBuilder.makeInputRef(fieldList.get(i).getType(), i++);
             RexInputRef sum0RollUp = rexBuilder.makeInputRef(fieldList.get(i).getType(), i);
-            RexNode avgNode = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE,
+            RexNode rexNode = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE,
                 sumRollUp, sum0RollUp);
+            RexNode avgNode = rexBuilder.makeCast(fieldList.get(i).getType(), rexNode);
             builder.addProject(avgNode, aggregateCall.getName());
             continue;
           }
