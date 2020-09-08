@@ -1574,6 +1574,12 @@ public class SubstitutionVisitor {
     }
   }
 
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableSort}
+   * which has {@link MutableCalc} as child to a {@link MutableAggregate}.
+   * We try to pull up the {@link MutableCalc} to top of {@link MutableSort},
+   * then match the {@link MutableSort} in query to {@link MutableSort} in target.
+   */
   private static class SortOnCalcToSortUnifyRule extends AbstractUnifyRule {
 
     public static final SortOnCalcToSortUnifyRule INSTANCE =
