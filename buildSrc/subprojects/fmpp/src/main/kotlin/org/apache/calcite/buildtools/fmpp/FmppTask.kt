@@ -62,7 +62,9 @@ open class FmppTask @Inject constructor(
             "fmpp"(
                 "configuration" to config.get(),
                 "sourceRoot" to templates.get().asFile,
-                "outputRoot" to output.get().asFile
+                "outputRoot" to output.get().asFile,
+                "data" to "tdd(" + config.get() + "), " +
+                    "default: tdd(" + templates.get().asFile + "/../default_config.fmpp)"
             )
         }
     }
