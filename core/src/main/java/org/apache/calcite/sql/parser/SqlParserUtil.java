@@ -412,7 +412,11 @@ public final class SqlParserUtil {
       return new StringAndPos(sql, -1, null);
     }
     int secondCaret = sql.indexOf('^', firstCaret + 1);
-    if (secondCaret < 0) {
+    if (secondCaret == firstCaret + 1) {
+      // If SQL contains "^^", it does not contain error positions; convert each
+      // "^^" to a single "^".
+      return new StringAndPos(sql.replace("^^", "^"), -1, null);
+    } else if (secondCaret < 0) {
       String sqlSansCaret =
           sql.substring(0, firstCaret)
               + sql.substring(firstCaret + 1);

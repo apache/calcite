@@ -227,7 +227,8 @@ class BabelParserTest extends SqlParserTest {
         return false;
       }
 
-      private void checkExNotNull(SqlParserUtil.StringAndPos sap, Throwable thrown) {
+      private void checkExNotNull(SqlParserUtil.StringAndPos sap,
+          Throwable thrown) {
         if (thrown == null) {
           throw new AssertionError("Expected query to throw exception, "
               + "but it did not; query [" + sap.sql
