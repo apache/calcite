@@ -203,6 +203,11 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
+  role: PMC
+- name: Rui Wang
+  apacheId: amaliujia
+  githubId: amaliujia
+  org: Google
   role: Committer
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
