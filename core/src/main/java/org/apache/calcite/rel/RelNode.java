@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.Metadata;
@@ -221,6 +222,22 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @param pw Plan writer
    */
   void explain(RelWriter pw);
+
+  /**
+   * Returns a relational expression string of this {@code RelNode}.
+   * The string returned is the same as
+   * {@link RelOptUtil#toString(org.apache.calcite.rel.RelNode)}.
+   *
+   * This method is intended mainly for use while debugging in an IDE,
+   * as a convenient short-hand for RelOptUtil.toString.
+   * We recommend that classes implementing this interface
+   * do not override this method.
+   *
+   * @return Relational expression string of this {@code RelNode}
+   */
+  default String explain() {
+    return RelOptUtil.toString(this);
+  }
 
   /**
    * Receives notification that this expression is about to be registered. The
