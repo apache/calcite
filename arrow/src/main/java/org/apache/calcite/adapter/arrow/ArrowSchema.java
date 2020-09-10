@@ -22,9 +22,12 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.util.Sources;
 
 import java.io.File;
@@ -83,9 +86,9 @@ class ArrowSchema extends AbstractSchema {
         System.out.println("directory " + baseDirectory + " not found");
         files = new File[0];
       }
-      for (File file : files) {
 
-          File arrowFile = new File(Sources.of(file).path());
+      for (File file : files) {
+        File arrowFile = new File(Sources.of(file).path());
         FileInputStream fileInputStream = null;
         try {
           fileInputStream = new FileInputStream(arrowFile);
@@ -93,18 +96,16 @@ class ArrowSchema extends AbstractSchema {
           e.printStackTrace();
         }
         SeekableReadChannel seekableReadChannel = new SeekableReadChannel(fileInputStream.getChannel());
-          RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
-          ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
-        try {
-          arrowFileReader.initialize();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+        ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
 
         List<VectorSchemaRoot> list = null;
         try {
           list = arrowFileReader.getRecordBlocks().stream().map(block -> {
             try {
+              if (!arrowFileReader.loadRecordBatch(block)) {
+                throw new IllegalStateException("Failed to load RecordBatch");
+              }
               return arrowFileReader.getVectorSchemaRoot();
             } catch (IOException e) {
               throw new IllegalStateException();
