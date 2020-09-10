@@ -1198,6 +1198,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableSet.of(ImmutableBitSet.of(0)));
   }
 
+  @Test void testGroupingSets() {
+    checkGetUniqueKeys("select deptno, sal, count(*) from emp\n"
+            + "group by GROUPING SETS (deptno, sal)",
+        ImmutableSet.of());
+  }
+
   @Test void testUnion() {
     checkGetUniqueKeys("select deptno from emp\n"
         + "union\n"
