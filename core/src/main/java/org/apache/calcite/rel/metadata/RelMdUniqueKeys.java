@@ -246,8 +246,14 @@ public class RelMdUniqueKeys
 
   public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
-    // group by keys form a unique key
-    return ImmutableSet.of(rel.getGroupSet());
+    if (Aggregate.isSimple(rel) || ignoreNulls) {
+      // group by keys form a unique key
+      return ImmutableSet.of(rel.getGroupSet());
+    } else {
+      // If the aggregate has grouping sets, all group by keys might be null which means group by
+      // keys do not form a unique key.
+      return ImmutableSet.of();
+    }
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(Union rel, RelMetadataQuery mq,

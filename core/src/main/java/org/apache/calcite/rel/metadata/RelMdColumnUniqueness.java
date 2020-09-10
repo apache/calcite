@@ -348,10 +348,13 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    // group by keys form a unique key
-    ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
-    return columns.contains(groupKey);
+    if (Aggregate.isSimple(rel) || ignoreNulls) {
+      columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
+      // group by keys form a unique key
+      ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+      return columns.contains(groupKey);
+    }
+    return null;
   }
 
   public Boolean areColumnsUnique(Values rel, RelMetadataQuery mq,
