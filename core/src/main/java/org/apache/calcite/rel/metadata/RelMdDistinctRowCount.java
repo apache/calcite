@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Bug;
@@ -36,8 +37,12 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * RelMdDistinctRowCount supplies a default implementation of
@@ -192,11 +197,26 @@ public class RelMdDistinctRowCount
         return 1D;
       }
     }
-    double selectivity = RelMdUtil.guessSelectivity(predicate);
 
-    // assume half the rows are duplicates
-    double nRows = rel.estimateRowCount(mq) / 2;
-    return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
+    final Set<List<Comparable>> set = new HashSet<>();
+    final List<Comparable> values = new ArrayList<>(groupKey.cardinality());
+    for (ImmutableList<RexLiteral> tuple : rel.tuples) {
+      for (int column : groupKey) {
+        final RexLiteral literal = tuple.get(column);
+        values.add(literal.isNull()
+            ? NullSentinel.INSTANCE
+            : literal.getValueAs(Comparable.class));
+      }
+      set.add(ImmutableList.copyOf(values));
+      values.clear();
+    }
+    double nRows = set.size();
+    if ((predicate == null) || predicate.isAlwaysTrue()) {
+      return nRows;
+    } else {
+      double selectivity = RelMdUtil.guessSelectivity(predicate);
+      return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
+    }
   }
 
   public Double getDistinctRowCount(Project rel, RelMetadataQuery mq,

@@ -232,10 +232,7 @@ public class RelMdUtil {
   public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
       RelMetadataQuery mq, RelNode rel, ImmutableBitSet colMask) {
     Boolean b = mq.areColumnsUnique(rel, colMask, true);
-    if (b == null) {
-      return false;
-    }
-    return b;
+    return b != null && b;
   }
 
   public static Boolean areColumnsUniqueWhenNullsFiltered(RelMetadataQuery mq,
@@ -252,10 +249,7 @@ public class RelMdUtil {
   public static boolean areColumnsDefinitelyUniqueWhenNullsFiltered(
       RelMetadataQuery mq, RelNode rel, List<RexInputRef> columnRefs) {
     Boolean b = areColumnsUniqueWhenNullsFiltered(mq, rel, columnRefs);
-    if (b == null) {
-      return false;
-    }
-    return b;
+    return b != null && b;
   }
 
   /**

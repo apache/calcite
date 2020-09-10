@@ -364,7 +364,7 @@ public class RelMdColumnUniqueness
       return true;
     }
     final Set<List<Comparable>> set = new HashSet<>();
-    final List<Comparable> values = new ArrayList<>();
+    final List<Comparable> values = new ArrayList<>(columns.cardinality());
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
       for (int column : columns) {
         final RexLiteral literal = tuple.get(column);
@@ -395,7 +395,6 @@ public class RelMdColumnUniqueness
   public Boolean areColumnsUnique(RelSubset rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    int nullCount = 0;
     for (RelNode rel2 : rel.getRels()) {
       if (rel2 instanceof Aggregate
           || rel2 instanceof Filter
@@ -410,7 +409,7 @@ public class RelMdColumnUniqueness
               return true;
             }
           } else {
-            ++nullCount;
+            return null;
           }
         } catch (CyclicMetadataException e) {
           // Ignore this relational expression; there will be non-cyclic ones
@@ -418,7 +417,7 @@ public class RelMdColumnUniqueness
         }
       }
     }
-    return nullCount == 0 ? false : null;
+    return false;
   }
 
   private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {

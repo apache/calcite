@@ -918,6 +918,36 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Test void testDistinctRowCountTable() {
     // no unique key information is available so return null
+    RelNode rel = convertSql("select * from (values "
+        + "(1, 2, 3, null), "
+        + "(3, 4, 5, 6), "
+        + "(3, 4, null, 6), "
+        + "(8, 4, 5, null) "
+        + ") t(c1, c2, c3, c4)");
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    ImmutableBitSet groupKey = ImmutableBitSet.of(0, 1, 2, 3);
+    Double result = mq.getDistinctRowCount(rel, groupKey, null);
+    // all rows are different
+    assertThat(result, is(4D));
+
+    groupKey = ImmutableBitSet.of(1, 2);
+    result = mq.getDistinctRowCount(rel, groupKey, null);
+    // rows 2 and 4 are the same in the specified columns
+    assertThat(result, is(3D));
+
+    groupKey = ImmutableBitSet.of(0);
+    result = mq.getDistinctRowCount(rel, groupKey, null);
+    // rows 2 and 3 are the same in the specified columns
+    assertThat(result, is(3D));
+
+    groupKey = ImmutableBitSet.of(3);
+    result = mq.getDistinctRowCount(rel, groupKey, null);
+    // the last column has 2 distinct values: 6 and null
+    assertThat(result, is(2D));
+  }
+
+  @Test void testDistinctRowCountValues() {
     RelNode rel = convertSql("select * from emp where deptno = 10");
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     ImmutableBitSet groupKey =
