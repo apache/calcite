@@ -574,7 +574,7 @@ class RelOptUtilTest {
                 RexInputRef.of(2, agg.getRowType()),
                 true))
         .build();
-    assertThat(RelOptUtil.toString(castNode), is(RelOptUtil.toString(expectNode)));
+    assertThat(castNode.explain(), is(expectNode.explain()));
 
     // Cast with row type(change field name):
     // RecordType(SMALLINT NOT NULL EMPNO, VARCHAR(10) ENAME, BIGINT NOT NULL JOB_CNT) NOT NULL
@@ -598,7 +598,7 @@ class RelOptUtilTest {
                 fieldEmpno.getName(),
                 fieldEname.getName(),
                 "JOB_CNT"));
-    assertThat(RelOptUtil.toString(castNode1), is(RelOptUtil.toString(expectNode1)));
+    assertThat(castNode1.explain(), is(expectNode1.explain()));
     // Change the field JOB_CNT field name again.
     // The projection expect to be merged.
     final RelDataType castRowType2 = typeFactory
@@ -621,7 +621,7 @@ class RelOptUtilTest {
                 fieldEmpno.getName(),
                 fieldEname.getName(),
                 "JOB_CNT2"));
-    assertThat(RelOptUtil.toString(castNode2), is(RelOptUtil.toString(expectNode2)));
+    assertThat(castNode2.explain(), is(expectNode2.explain()));
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions
