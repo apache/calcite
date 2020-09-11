@@ -35,8 +35,10 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
@@ -44,6 +46,8 @@ import org.apache.calcite.util.Pair;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -127,6 +131,38 @@ class VolcanoPlannerTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     assertTrue(result instanceof PhysSingleRel);
+  }
+
+  @Test void testPlanToDot() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel =
+        new NoneLeafRel(
+            cluster,
+            "a");
+    NoneSingleRel singleRel =
+        new NoneSingleRel(
+            cluster,
+            leafRel);
+    RelNode convertedRel =
+        planner.changeTraits(
+            singleRel,
+            cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    planner.setRoot(convertedRel);
+
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+
+    RelDotWriter planWriter = new RelDotWriter(pw, SqlExplainLevel.NO_ATTRIBUTES, false);
+    planner.getRoot().explain(planWriter);
+    String planStr = sw.toString();
+
+    assertThat(
+        planStr, isLinux("digraph {\n"
+            + "\"NoneLeafRel\\n\" -> \"NoneSingleRel\\n\" [label=\"0\"]\n"
+            + "}\n"));
   }
 
   /** Test case for

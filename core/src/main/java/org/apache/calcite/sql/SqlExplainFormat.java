@@ -27,5 +27,8 @@ public enum SqlExplainFormat implements Symbolizable {
   XML,
 
   /** Indicates that the plan should be output in JSON format. */
-  JSON
+  JSON,
+
+  /** Indicates that the plan should be output in dot format. */
+  DOT
 }

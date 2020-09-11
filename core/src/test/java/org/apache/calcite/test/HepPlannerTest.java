@@ -24,14 +24,21 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.sql.SqlExplainLevel;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -153,6 +160,28 @@ class HepPlannerTest extends RelOptTestBase {
         best.toString(), "LogicalUnion");
     assertIncludesExactlyOnce("best.getDigest()",
         best.getDigest(), "LogicalUnion");
+  }
+
+  @Test void testPlanToDot() {
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    HepPlanner planner =
+        new HepPlanner(
+            programBuilder.build());
+    RelRoot root = tester.convertSqlToRel("select name from sales.dept");
+    planner.setRoot(root.rel);
+
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+
+    RelDotWriter planWriter = new RelDotWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, false);
+    planner.getRoot().explain(planWriter);
+    String planStr = sw.toString();
+
+    assertThat(
+        planStr, isLinux("digraph {\n"
+            + "\"LogicalTableScan\\ntable = [CATALOG, SA\\nLES, DEPT]\\n\" -> "
+            + "\"LogicalProject\\nNAME = $1\\n\" [label=\"0\"]\n"
+            + "}\n"));
   }
 
   private void assertIncludesExactlyOnce(String message, String digest, String substring) {
