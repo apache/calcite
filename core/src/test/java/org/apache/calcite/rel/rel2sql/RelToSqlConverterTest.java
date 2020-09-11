@@ -5366,8 +5366,7 @@ class RelToSqlConverterTest {
     // Parse the input SQL with PostgreSQL dialect,
     // in which "isHavingAlias" is false.
     final SqlParser.Config parserConfig =
-        PostgresqlSqlDialect.DEFAULT.configureParser(SqlParser.configBuilder())
-            .build();
+        PostgresqlSqlDialect.DEFAULT.configureParser(SqlParser.config());
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.

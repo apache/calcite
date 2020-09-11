@@ -333,12 +333,12 @@ public class CassandraSchema extends AbstractSchema {
 
       // Parse and unparse the view query to get properly quoted field names
       String query = queryBuilder.toString();
-      SqlParser.ConfigBuilder configBuilder = SqlParser.configBuilder();
-      configBuilder.setUnquotedCasing(Casing.UNCHANGED);
+      SqlParser.Config parserConfig = SqlParser.config()
+          .withUnquotedCasing(Casing.UNCHANGED);
 
       SqlSelect parsedQuery;
       try {
-        parsedQuery = (SqlSelect) SqlParser.create(query, configBuilder.build()).parseQuery();
+        parsedQuery = (SqlSelect) SqlParser.create(query, parserConfig).parseQuery();
       } catch (SqlParseException e) {
         LOGGER.warn("Could not parse query {} for CQL view {}.{}",
             query, keyspace, view.getName());

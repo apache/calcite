@@ -475,13 +475,12 @@ abstract class CalciteConnectionImpl
               typeFactory, SqlValidator.Config.DEFAULT);
       final CalciteConnectionConfig config = con.config();
       // This duplicates org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_
-      final SqlParser.Config parserConfig = SqlParser.configBuilder()
-          .setQuotedCasing(config.quotedCasing())
-          .setUnquotedCasing(config.unquotedCasing())
-          .setQuoting(config.quoting())
-          .setConformance(config.conformance())
-          .setCaseSensitive(config.caseSensitive())
-          .build();
+      final SqlParser.Config parserConfig = SqlParser.config()
+          .withQuotedCasing(config.quotedCasing())
+          .withUnquotedCasing(config.unquotedCasing())
+          .withQuoting(config.quoting())
+          .withConformance(config.conformance())
+          .withCaseSensitive(config.caseSensitive());
       return new SqlAdvisor(validator, parserConfig);
     }
 

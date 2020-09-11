@@ -78,7 +78,7 @@ class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
   private RelNode convertSqlToRel(String sql, boolean simplifyRex) {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
             .defaultSchema(CalciteSchema.createRootSchema(false).plus())
-            .parserConfig(SqlParser.configBuilder().build())
+            .parserConfig(SqlParser.config())
             .build();
     final Planner planner = Frameworks.getPlanner(config);
     try (Closer closer = new Closer()) {

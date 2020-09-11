@@ -119,13 +119,12 @@ public class SqlTestFactory {
   }
 
   public static SqlParser.Config createParserConfig(ImmutableMap<String, Object> options) {
-    return SqlParser.configBuilder()
-        .setQuoting((Quoting) options.get("quoting"))
-        .setUnquotedCasing((Casing) options.get("unquotedCasing"))
-        .setQuotedCasing((Casing) options.get("quotedCasing"))
-        .setConformance((SqlConformance) options.get("conformance"))
-        .setCaseSensitive((boolean) options.get("caseSensitive"))
-        .build();
+    return SqlParser.config()
+        .withQuoting((Quoting) options.get("quoting"))
+        .withUnquotedCasing((Casing) options.get("unquotedCasing"))
+        .withQuotedCasing((Casing) options.get("quotedCasing"))
+        .withConformance((SqlConformance) options.get("conformance"))
+        .withCaseSensitive((boolean) options.get("caseSensitive"));
   }
 
   public SqlValidator getValidator() {

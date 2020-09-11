@@ -392,9 +392,8 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-        SqlParser.configBuilder(SqlParser.Config.DEFAULT)
-            .setCaseSensitive(false)
-            .build();
+        SqlParser.Config.DEFAULT
+            .withCaseSensitive(false);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -425,9 +424,8 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-        SqlParser.configBuilder(SqlParser.Config.DEFAULT)
-            .setCaseSensitive(false)
-            .build();
+        SqlParser.Config.DEFAULT
+            .withCaseSensitive(false);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)

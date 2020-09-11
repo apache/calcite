@@ -1084,21 +1084,26 @@ public class SqlDialect {
    *   <li>{@link #getConformance()}
    * </ul>
    *
-   * @param configBuilder Parser configuration builder
+   * @param config Parser configuration builder
    *
    * @return The configuration builder
    */
-  public @Nonnull SqlParser.ConfigBuilder configureParser(
-      SqlParser.ConfigBuilder configBuilder) {
+  public @Nonnull SqlParser.Config configureParser(SqlParser.Config config) {
     final Quoting quoting = getQuoting();
     if (quoting != null) {
-      configBuilder.setQuoting(quoting);
+      config = config.withQuoting(quoting);
     }
-    configBuilder.setQuotedCasing(getQuotedCasing());
-    configBuilder.setUnquotedCasing(getUnquotedCasing());
-    configBuilder.setCaseSensitive(isCaseSensitive());
-    configBuilder.setConformance(getConformance());
-    return configBuilder;
+    return config.withQuotedCasing(getQuotedCasing())
+        .withUnquotedCasing(getUnquotedCasing())
+        .withCaseSensitive(isCaseSensitive())
+        .withConformance(getConformance());
+  }
+
+  @Deprecated // to be removed before 2.0
+  public @Nonnull SqlParser.ConfigBuilder configureParser(
+      SqlParser.ConfigBuilder configBuilder) {
+    return SqlParser.configBuilder(
+        configureParser(configBuilder.build()));
   }
 
   /** Returns the {@link SqlConformance} that matches this dialect.

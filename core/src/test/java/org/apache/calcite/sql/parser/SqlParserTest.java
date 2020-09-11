@@ -632,20 +632,19 @@ public class SqlParserTest {
   }
 
   protected SqlParser getSqlParser(Reader source,
-      UnaryOperator<SqlParser.ConfigBuilder> transform) {
-    final SqlParser.ConfigBuilder configBuilder =
-        SqlParser.configBuilder()
-            .setParserFactory(parserImplFactory())
-            .setQuoting(quoting)
-            .setUnquotedCasing(unquotedCasing)
-            .setQuotedCasing(quotedCasing)
-            .setConformance(conformance);
-    final SqlParser.Config config =
-        transform.apply(configBuilder).build();
+      UnaryOperator<SqlParser.Config> transform) {
+    final SqlParser.Config configBuilder =
+        SqlParser.config()
+            .withParserFactory(parserImplFactory())
+            .withQuoting(quoting)
+            .withUnquotedCasing(unquotedCasing)
+            .withQuotedCasing(quotedCasing)
+            .withConformance(conformance);
+    final SqlParser.Config config = transform.apply(configBuilder);
     return SqlParser.create(source, config);
   }
 
-  private static UnaryOperator<SqlParser.ConfigBuilder> getTransform(
+  private static UnaryOperator<SqlParser.Config> getTransform(
       SqlDialect dialect) {
     return dialect == null ? UnaryOperator.identity()
         : dialect::configureParser;
@@ -9115,15 +9114,14 @@ public class SqlParserTest {
 
     public void check(StringAndPos sap, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.ConfigBuilder> transform =
-          getTransform(dialect);
+      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       final SqlNode sqlNode =
           parseStmtAndHandleEx(sap.sql, transform, parserChecker);
       check(sqlNode, dialect, expected);
     }
 
     protected SqlNode parseStmtAndHandleEx(String sql,
-        UnaryOperator<SqlParser.ConfigBuilder> transform,
+        UnaryOperator<SqlParser.Config> transform,
         Consumer<SqlParser> parserChecker) {
       final Reader reader = new SourceStringReader(sql);
       final SqlParser parser = getSqlParser(reader, transform);
@@ -9150,8 +9148,7 @@ public class SqlParserTest {
 
     public void checkExp(StringAndPos sap, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.ConfigBuilder> transform =
-          getTransform(dialect);
+      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       final SqlNode sqlNode =
           parseExpressionAndHandleEx(sap.sql, transform, parserChecker);
       final String actual = sqlNode.toSqlString(null, true).getSql();
@@ -9159,7 +9156,7 @@ public class SqlParserTest {
     }
 
     protected SqlNode parseExpressionAndHandleEx(String sql,
-        UnaryOperator<SqlParser.ConfigBuilder> transform,
+        UnaryOperator<SqlParser.Config> transform,
         Consumer<SqlParser> parserChecker) {
       final SqlNode sqlNode;
       try {
@@ -9178,7 +9175,7 @@ public class SqlParserTest {
       Throwable thrown = null;
       try {
         final SqlNode sqlNode;
-        final UnaryOperator<SqlParser.ConfigBuilder> transform =
+        final UnaryOperator<SqlParser.Config> transform =
             getTransform(dialect);
         final Reader reader = new SourceStringReader(sap.sql);
         final SqlParser parser = getSqlParser(reader, transform);
@@ -9198,8 +9195,7 @@ public class SqlParserTest {
     @Override public void checkNode(StringAndPos sap, SqlDialect dialect,
         Matcher<SqlNode> matcher) {
       try {
-        final UnaryOperator<SqlParser.ConfigBuilder> transform =
-            getTransform(dialect);
+        final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
         final Reader reader = new SourceStringReader(sap.sql);
         final SqlParser parser = getSqlParser(reader, transform);
         final SqlNode sqlNode = parser.parseStmt();
@@ -9217,8 +9213,7 @@ public class SqlParserTest {
         String expectedMsgPattern) {
       Throwable thrown = null;
       try {
-        final UnaryOperator<SqlParser.ConfigBuilder> transform =
-            getTransform(dialect);
+        final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
         final Reader reader = new SourceStringReader(sap.sql);
         final SqlParser parser = getSqlParser(reader, transform);
         final SqlNode sqlNode = parser.parseExpression();
@@ -9343,8 +9338,7 @@ public class SqlParserTest {
 
     @Override public void check(StringAndPos sap, SqlDialect dialect,
         String expected, Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.ConfigBuilder> transform =
-          getTransform(dialect);
+      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       SqlNode sqlNode = parseStmtAndHandleEx(sap.sql, transform, parserChecker);
 
       // Unparse with the given dialect, always parenthesize.
@@ -9396,8 +9390,7 @@ public class SqlParserTest {
 
     @Override public void checkExp(StringAndPos sap, SqlDialect dialect,
         String expected, Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.ConfigBuilder> transform =
-          getTransform(dialect);
+      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       SqlNode sqlNode =
           parseExpressionAndHandleEx(sap.sql, transform, parserChecker);
 

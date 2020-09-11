@@ -134,7 +134,7 @@ class PlannerTest {
 
   @Test void testParseIdentifierMaxLengthWithDefault() {
     Assertions.assertThrows(SqlParseException.class, () -> {
-      Planner planner = getPlanner(null, SqlParser.configBuilder().build());
+      Planner planner = getPlanner(null, SqlParser.config());
       planner.parse("select name as "
           + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
     });
@@ -142,7 +142,7 @@ class PlannerTest {
 
   @Test void testParseIdentifierMaxLengthWithIncreased() throws Exception {
     Planner planner = getPlanner(null,
-        SqlParser.configBuilder().setIdentifierMaxLength(512).build());
+        SqlParser.config().withIdentifierMaxLength(512));
     planner.parse("select name as "
         + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
   }
@@ -686,9 +686,9 @@ class PlannerTest {
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_WINDOW_RULE,
-            EnumerableRules.ENUMERABLE_SORT_RULE, CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-    Planner planner = getPlanner(null,
-        SqlParser.configBuilder().setLex(Lex.JAVA).build(),
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    Planner planner = getPlanner(null, SqlParser.config().withLex(Lex.JAVA),
         Programs.of(ruleSet));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
@@ -1344,7 +1344,7 @@ class PlannerTest {
             new ReflectiveSchema(new TpchSchema()));
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.configBuilder().setLex(Lex.MYSQL).build())
+        .parserConfig(SqlParser.config().withLex(Lex.MYSQL))
         .defaultSchema(schema)
         .programs(Programs.ofRules(Programs.RULE_SET))
         .build();
@@ -1402,8 +1402,7 @@ class PlannerTest {
     List<RelTraitDef> traitDefs = new ArrayList<>();
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelCollationTraitDef.INSTANCE);
-    final SqlParser.Config parserConfig =
-        SqlParser.configBuilder().setLex(Lex.MYSQL).build();
+    final SqlParser.Config parserConfig = SqlParser.config().withLex(Lex.MYSQL);
     FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)

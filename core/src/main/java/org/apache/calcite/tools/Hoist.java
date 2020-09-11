@@ -67,7 +67,7 @@ public class Hoist {
   /** Creates a Config. */
   public static Config config() {
     return ImmutableBeans.create(Config.class)
-        .withParserConfig(SqlParser.configBuilder().build());
+        .withParserConfig(SqlParser.config());
   }
 
   /** Creates a Hoist. */

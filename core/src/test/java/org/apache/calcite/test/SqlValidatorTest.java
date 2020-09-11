@@ -79,8 +79,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import static org.apache.calcite.sql.parser.SqlParser.configBuilder;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -11688,7 +11686,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testValidatorReportsOriginalQueryUsingReader()
       throws Exception {
     final String sql = "select a from b";
-    final SqlParser.Config config = configBuilder().build();
+    final SqlParser.Config config = SqlParser.config();
     final String messagePassingSqlString;
     try {
       final SqlParser sqlParserReader = SqlParser.create(sql, config);
@@ -11723,7 +11721,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testValidateParameterizedExpression() throws SqlParseException {
-    final SqlParser.Config config = configBuilder().build();
+    final SqlParser.Config config = SqlParser.config();
     final SqlValidator validator = tester.getValidator();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);

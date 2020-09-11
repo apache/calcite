@@ -65,7 +65,7 @@ class LexCaseSensitiveTest {
 
   private static void runProjectQueryWithLex(Lex lex, String sql)
       throws SqlParseException, ValidationException, RelConversionException {
-    Config javaLex = SqlParser.configBuilder().setLex(lex).build();
+    Config javaLex = SqlParser.config().withLex(lex);
     Planner planner = getPlanner(null, javaLex, Programs.ofRules(Programs.RULE_SET));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);

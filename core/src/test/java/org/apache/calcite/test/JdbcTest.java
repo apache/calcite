@@ -8046,8 +8046,8 @@ public class JdbcTest {
       return new Function0<CalcitePrepare>() {
         @Override public CalcitePrepare apply() {
           return new CalcitePrepareImpl() {
-            @Override protected SqlParser.ConfigBuilder createParserConfig() {
-              return super.createParserConfig().setParserFactory(stream ->
+            @Override protected SqlParser.Config parserConfig() {
+              return super.parserConfig().withParserFactory(stream ->
                   new SqlParserImpl(stream) {
                     @Override public SqlNode parseSqlStmtEof() {
                       return new SqlCall(SqlParserPos.ZERO) {

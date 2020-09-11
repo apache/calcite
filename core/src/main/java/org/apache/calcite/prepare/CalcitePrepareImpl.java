@@ -370,12 +370,22 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   /** Factory method for SQL parser with a given configuration. */
+  protected SqlParser createParser(String sql, SqlParser.Config parserConfig) {
+    return SqlParser.create(sql, parserConfig);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected SqlParser createParser(String sql,
       SqlParser.ConfigBuilder parserConfig) {
-    return SqlParser.create(sql, parserConfig.build());
+    return createParser(sql, parserConfig.build());
   }
 
   /** Factory method for SQL parser configuration. */
+  protected SqlParser.Config parserConfig() {
+    return SqlParser.config();
+  }
+
+  @Deprecated // to be removed before 2.0
   protected SqlParser.ConfigBuilder createParserConfig() {
     return SqlParser.configBuilder();
   }
@@ -592,16 +602,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final Meta.StatementType statementType;
     if (query.sql != null) {
       final CalciteConnectionConfig config = context.config();
-      final SqlParser.ConfigBuilder parserConfig = createParserConfig()
-          .setQuotedCasing(config.quotedCasing())
-          .setUnquotedCasing(config.unquotedCasing())
-          .setQuoting(config.quoting())
-          .setConformance(config.conformance())
-          .setCaseSensitive(config.caseSensitive());
+      SqlParser.Config parserConfig = parserConfig()
+          .withQuotedCasing(config.quotedCasing())
+          .withUnquotedCasing(config.unquotedCasing())
+          .withQuoting(config.quoting())
+          .withConformance(config.conformance())
+          .withCaseSensitive(config.caseSensitive());
       final SqlParserImplFactory parserFactory =
           config.parserFactory(SqlParserImplFactory.class, null);
       if (parserFactory != null) {
-        parserConfig.setParserFactory(parserFactory);
+        parserConfig = parserConfig.withParserFactory(parserFactory);
       }
       SqlParser parser = createParser(query.sql,  parserConfig);
       SqlNode sqlNode;

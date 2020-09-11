@@ -300,9 +300,8 @@ class BabelParserTest extends SqlParserTest {
     final Hoist.Hoisted hoisted =
         Hoist.create(Hoist.config()
             .withParserConfig(
-                dialect.configureParser(SqlParser.configBuilder())
-                    .setParserFactory(SqlBabelParserImpl::new)
-                    .build()))
+                dialect.configureParser(SqlParser.config())
+                    .withParserFactory(SqlBabelParserImpl::new)))
             .hoist(sql);
 
     // Simple toString converts each variable to '?N'
