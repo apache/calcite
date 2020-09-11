@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -2207,6 +2208,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             + "\t\t</RelNode>\n"
             + "\t</Inputs>\n"
             + "</RelNode>\n",
+        Util.toLinux(sw.toString()));
+  }
+
+  @Test void testExplainAsDot() {
+    String sql = "select 1 + 2, 3 from (values (true))";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    RelDotWriter planWriter =
+        new RelDotWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, false);
+    rel.explain(planWriter);
+    pw.flush();
+    TestUtil.assertEqualsVerbose(
+        "digraph {\n"
+            + "\"LogicalValues\\ntuples = [{ true }]\\n\" -> \"LogicalProject\\nEXPR$0 = +(1, 2)"
+            + "\\nEXPR$1 = 3\\n\" [label=\"0\"]\n"
+            + "}\n",
         Util.toLinux(sw.toString()));
   }
 

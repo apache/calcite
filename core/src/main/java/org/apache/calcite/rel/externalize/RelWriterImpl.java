@@ -37,8 +37,8 @@ public class RelWriterImpl implements RelWriter {
   //~ Instance fields --------------------------------------------------------
 
   protected final PrintWriter pw;
-  private final SqlExplainLevel detailLevel;
-  private final boolean withIdPrefix;
+  protected final SqlExplainLevel detailLevel;
+  protected final boolean withIdPrefix;
   protected final Spacer spacer = new Spacer();
   private final List<Pair<String, Object>> values = new ArrayList<>();
 
