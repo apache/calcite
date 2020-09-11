@@ -6529,6 +6529,36 @@ public class JdbcTest {
         });
   }
 
+  /** Tests metadata for the BigQuery lexical scheme. */
+  @Test void testLexBigQuery() throws Exception {
+    CalciteAssert.that()
+        .with(Lex.BIG_QUERY)
+        .doWithConnection(connection -> {
+          try {
+            DatabaseMetaData metaData = connection.getMetaData();
+            assertThat(metaData.getIdentifierQuoteString(), equalTo("`"));
+            assertThat(metaData.supportsMixedCaseIdentifiers(),
+                equalTo(true));
+            assertThat(metaData.storesMixedCaseIdentifiers(),
+                equalTo(false));
+            assertThat(metaData.storesUpperCaseIdentifiers(),
+                equalTo(false));
+            assertThat(metaData.storesLowerCaseIdentifiers(),
+                equalTo(false));
+            assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                equalTo(true));
+            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                equalTo(false));
+            assertThat(metaData.storesUpperCaseIdentifiers(),
+                equalTo(false));
+            assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                equalTo(false));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
   /** Tests case-insensitive resolution of schema and table names. */
   @Test void testLexCaseInsensitive() {
     final CalciteAssert.AssertThat with =

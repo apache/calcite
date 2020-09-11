@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
@@ -32,6 +33,7 @@ import org.apache.calcite.util.SourceStringReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A <code>SqlParser</code> parses a SQL statement.
@@ -243,15 +245,13 @@ public class SqlParser {
   public interface Config {
     /** Default configuration. */
     Config DEFAULT = ImmutableBeans.create(Config.class)
-        .withQuotedCasing(Lex.ORACLE.quotedCasing)
-        .withUnquotedCasing(Lex.ORACLE.unquotedCasing)
-        .withQuoting(Lex.ORACLE.quoting)
+        .withLex(Lex.ORACLE)
         .withIdentifierMaxLength(DEFAULT_IDENTIFIER_MAX_LENGTH)
-        .withCaseSensitive(Lex.ORACLE.caseSensitive)
         .withConformance(SqlConformanceEnum.DEFAULT)
         .withParserFactory(SqlParserImpl.FACTORY);
 
     @ImmutableBeans.Property()
+    @ImmutableBeans.IntDefault(DEFAULT_IDENTIFIER_MAX_LENGTH)
     int identifierMaxLength();
 
     /** Sets {@link #identifierMaxLength()}. */
@@ -276,6 +276,7 @@ public class SqlParser {
     Config withQuoting(Quoting quoting);
 
     @ImmutableBeans.Property()
+    @ImmutableBeans.BooleanDefault(true)
     boolean caseSensitive();
 
     /** Sets {@link #caseSensitive()}. */
@@ -290,6 +291,13 @@ public class SqlParser {
     @Deprecated // to be removed before 2.0
     boolean allowBangEqual();
 
+    /** Returns which character literal styles are supported. */
+    @ImmutableBeans.Property(required = true)
+    Set<CharLiteralStyle> charLiteralStyles();
+
+    /** Sets {@link #charLiteralStyles()}. */
+    Config withCharLiteralStyles(Set<CharLiteralStyle> charLiteralStyles);
+
     @ImmutableBeans.Property(required = true)
     SqlParserImplFactory parserFactory();
 
@@ -300,7 +308,8 @@ public class SqlParser {
       return withCaseSensitive(lex.caseSensitive)
           .withUnquotedCasing(lex.unquotedCasing)
           .withQuotedCasing(lex.quotedCasing)
-          .withQuoting(lex.quoting);
+          .withQuoting(lex.quoting)
+          .withCharLiteralStyles(lex.charLiteralStyles);
     }
   }
 
@@ -311,7 +320,7 @@ public class SqlParser {
 
     private ConfigBuilder() {}
 
-    /** Sets configuration identical to a given {@link Config}. */
+    /** Sets configuration to a given {@link Config}. */
     public ConfigBuilder setConfig(Config config) {
       this.config = config;
       return this;
@@ -353,6 +362,11 @@ public class SqlParser {
 
     public ConfigBuilder setConformance(SqlConformance conformance) {
       return setConfig(config.withConformance(conformance));
+    }
+
+    public ConfigBuilder setCharLiteralStyles(
+        Set<CharLiteralStyle> charLiteralStyles) {
+      return setConfig(config.withCharLiteralStyles(charLiteralStyles));
     }
 
     public ConfigBuilder setParserFactory(SqlParserImplFactory factory) {

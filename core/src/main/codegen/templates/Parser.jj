@@ -4140,6 +4140,8 @@ SqlNode StringLiteral() :
     int nfrags = 0;
     List<SqlLiteral> frags = null;
     char unicodeEscapeChar = 0;
+    String charSet = null;
+    SqlCharStringLiteral literal;
 }
 {
     // A continued string literal consists of a head fragment and one or more
@@ -4187,10 +4189,7 @@ SqlNode StringLiteral() :
             return SqlStdOperatorTable.LITERAL_CHAIN.createCall(pos2, frags);
         }
     }
-    |
-    {
-        String charSet = null;
-    }
+|
     (
         <PREFIXED_STRING_LITERAL>
         { charSet = SqlParserUtil.getCharacterSet(token.image); }
@@ -4204,7 +4203,6 @@ SqlNode StringLiteral() :
     )
     {
         p = SqlParserUtil.parseString(token.image);
-        SqlCharStringLiteral literal;
         try {
             literal = SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
@@ -4259,6 +4257,28 @@ SqlNode StringLiteral() :
             }
             SqlParserPos pos2 = SqlParserPos.sum(rands);
             return SqlStdOperatorTable.LITERAL_CHAIN.createCall(pos2, rands);
+        }
+    }
+|
+    <BIG_QUERY_DOUBLE_QUOTED_STRING>
+    {
+        p = SqlParserUtil.strip(getToken(0).image, DQ, DQ, "\\\"", Casing.UNCHANGED);
+        try {
+            return SqlLiteral.createCharString(p, charSet, getPos());
+        } catch (java.nio.charset.UnsupportedCharsetException e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unknownCharacterSet(charSet));
+        }
+    }
+|
+    <BIG_QUERY_QUOTED_STRING>
+    {
+        p = SqlParserUtil.strip(getToken(0).image, "'", "'", "\\'", Casing.UNCHANGED);
+        try {
+            return SqlLiteral.createCharString(p, charSet, getPos());
+        } catch (java.nio.charset.UnsupportedCharsetException e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unknownCharacterSet(charSet));
         }
     }
 }
@@ -7746,7 +7766,12 @@ void NonReservedKeyWord2of3() :
     /* To improve error reporting, we allow all kinds of characters,
      * not just hexits, in a binary string literal. */
     < BINARY_STRING_LITERAL: ["x","X"] <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
-|
+}
+
+// All databases except BigQuery support standard single-quoted literals,
+// which use single-quote as the escape character.
+<DEFAULT, DQID, BTID> TOKEN :
+{
     < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
 |
     < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >
@@ -7755,6 +7780,21 @@ void NonReservedKeyWord2of3() :
 |
     < #CHARSETNAME: (["a"-"z","A"-"Z","0"-"9"])
     (["a"-"z","A"-"Z","0"-"9",":",".","-","_"])*
+    >
+}
+
+// BigQuery supports single- and double-quoted literals with back-slash
+// as the escape character.
+<BQID, BQHID> TOKEN :
+{
+    // BigQuery-style double-quoted string, escaped using backslash
+    < BIG_QUERY_DOUBLE_QUOTED_STRING:
+      <DOUBLE_QUOTE> ( (~["\\", "\""]) | ("\\" ~[]) )* <DOUBLE_QUOTE>
+    >
+|
+    // BigQuery-style single-quoted string, escaped using backslash
+    < BIG_QUERY_QUOTED_STRING:
+      <QUOTE> ( (~["\\", "'"]) | ("\\" ~[]) )* <QUOTE>
     >
 }
 

@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
@@ -4361,6 +4362,52 @@ public class SqlParserTest {
     // parser, should fail in validator.
     expr("   'foo' 'bar'")
         .ok(fooBar);
+  }
+
+  @Test void testStringLiteralDoubleQuoted() {
+    sql("select `deptno` as d, ^\"^deptno\" as d2 from emp")
+        .withDialect(MYSQL)
+        .fails("(?s)Encountered \"\\\\\"\" at .*")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT deptno AS d, 'deptno' AS d2\n"
+            + "FROM emp");
+
+    // MySQL uses single-quotes as escapes; BigQuery uses backslashes
+    sql("select 'Let''s call him \"Elvis\"!'")
+        .withDialect(MYSQL)
+        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+
+    sql("select 'Let\\'\\'s call him \"Elvis\"!'")
+        .withDialect(BIG_QUERY)
+        .node(isCharLiteral("Let''s call him \"Elvis\"!"));
+
+    sql("select 'Let\\'s ^call^ him \"Elvis\"!'")
+        .withDialect(MYSQL)
+        .fails("(?s)Encountered \"call\" at .*")
+        .withDialect(BIG_QUERY)
+        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+
+    // Oracle uses double-quotes as escapes in identifiers;
+    // BigQuery uses backslashes as escapes in double-quoted character literals.
+    sql("select \"Let's call him \\\"Elvis^\\^\"!\"")
+        .withDialect(ORACLE)
+        .fails("(?s)Lexical error at line 1, column 31\\.  "
+            + "Encountered: \"\\\\\\\\\" \\(92\\), after : \"\".*")
+        .withDialect(BIG_QUERY)
+        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+  }
+
+  private static Matcher<SqlNode> isCharLiteral(String s) {
+    return new CustomTypeSafeMatcher<SqlNode>(s) {
+      @Override protected boolean matchesSafely(SqlNode item) {
+        final SqlNodeList selectList;
+        return item instanceof SqlSelect
+            && (selectList = ((SqlSelect) item).getSelectList()).size() == 1
+            && selectList.get(0) instanceof SqlLiteral
+            && ((SqlLiteral) selectList.get(0)).getValueAs(String.class)
+            .equals(s);
+      }
+    };
   }
 
   @Test public void testCaseExpression() {

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -38,6 +39,7 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -530,6 +532,7 @@ public abstract class SqlAbstractParserImpl {
 
     /** Starting state where quoted identifiers use back-ticks,
      * unquoted identifiers that are part of table names may contain hyphens,
+     * and character literals may be enclosed in single- or double-quotes,
      * like BigQuery. */
     BQID;
 
@@ -537,15 +540,23 @@ public abstract class SqlAbstractParserImpl {
      * (in particular, quoting style). */
     public static LexicalState forConfig(SqlParser.Config config) {
       switch (config.quoting()) {
+      case BRACKET:
+        return DEFAULT;
       case DOUBLE_QUOTE:
         return DQID;
       case BACK_TICK:
-        if (config.conformance().allowHyphenInUnquotedTableName()) {
+        if (config.conformance().allowHyphenInUnquotedTableName()
+            && config.charLiteralStyles().equals(
+                EnumSet.of(CharLiteralStyle.BQ_SINGLE,
+                    CharLiteralStyle.BQ_DOUBLE))) {
           return BQID;
         }
-        return BTID;
-      case BRACKET:
-        return DEFAULT;
+        if (!config.conformance().allowHyphenInUnquotedTableName()
+            && config.charLiteralStyles().equals(
+                EnumSet.of(CharLiteralStyle.STANDARD))) {
+          return BTID;
+        }
+        // fall through
       default:
         throw new AssertionError(config);
       }
