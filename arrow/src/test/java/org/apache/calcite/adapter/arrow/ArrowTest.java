@@ -17,22 +17,31 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.Source;
 
 import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.Map;
 
 public class ArrowTest {
 
+  /**
+   * Test to read Arrow file and check it's field name and type
+   */
   @Test void testArrowSchema() {
     Source source = Sources.of(ArrowTest.class.getResource("/files"));
     ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
     Map<String, Table> tableMap = arrowSchema.getTableMap();
+    RelDataType relDataType = tableMap.get("TEST").getRowType(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+    Assertions.assertEquals(relDataType.getFieldNames().get(0), "column1");
+    Assertions.assertEquals(relDataType.getFieldList().get(0).getType().toString(), "INTEGER");
   }
 }
