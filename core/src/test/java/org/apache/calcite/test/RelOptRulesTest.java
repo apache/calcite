@@ -127,11 +127,8 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Predicate;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -6767,27 +6764,5 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTester(t -> createDynamicTester())
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4192">[CALCITE-4192]
-   * fix aggregate column origins searching by RelMdColumnOrigins</a>. */
-  @Test void testColumnOriginAfterAggProjectMergeRule() {
-    final String sql = "select count(ename), SAL from emp group by SAL";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
-    final HepProgramBuilder programBuilder = HepProgram.builder();
-    programBuilder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
-    final HepPlanner planner = new HepPlanner(programBuilder.build());
-    planner.setRoot(rel);
-    final RelNode optimizedRel = planner.findBestExp();
-
-    Set<RelColumnOrigin> origins = RelMetadataQuery.instance()
-        .getColumnOrigins(optimizedRel, 1);
-    assertThat(origins.size(), equalTo(1));
-
-    RelColumnOrigin columnOrigin = origins.iterator().next();
-    assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
-    assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
-        equalTo("SAL"));
   }
 }
