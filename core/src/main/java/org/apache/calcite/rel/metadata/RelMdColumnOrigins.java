@@ -65,8 +65,8 @@ public class RelMdColumnOrigins
   public Set<RelColumnOrigin> getColumnOrigins(Aggregate rel,
       RelMetadataQuery mq, int iOutputColumn) {
     if (iOutputColumn < rel.getGroupCount()) {
-      // Group columns pass through directly.
-      return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+      // Group columns in Aggregate groupSet
+      return mq.getColumnOrigins(rel.getInput(), rel.getGroupSet().asList().get(iOutputColumn));
     }
 
     // Aggregate columns are derived from input columns

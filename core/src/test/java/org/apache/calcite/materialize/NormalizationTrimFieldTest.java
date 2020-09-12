@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -48,6 +50,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Tests trimming unused fields before materialized view matching. */
 public class NormalizationTrimFieldTest extends SqlToRelTestBase {
@@ -105,4 +108,25 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
     final String relOptimizedStr = RelOptUtil.toString(relOptimized.get(0).getKey());
     assertThat(isLinux(optimized).matches(relOptimizedStr), is(true));
   }
+
+  @Test void testAggregateRelMdColumnOrigins() {
+    final RelBuilder relBuilder = RelBuilder.create(config().build());
+    final LogicalProject project = (LogicalProject) relBuilder.scan("EMP")
+        .project(relBuilder.field("EMPNO"),
+            relBuilder.field("ENAME"),
+            relBuilder.field("JOB"),
+            relBuilder.field("SAL"),
+            relBuilder.field("DEPTNO")).build();
+    final LogicalAggregate aggregate = (LogicalAggregate) relBuilder.push(project)
+        .aggregate(
+            relBuilder.groupKey(relBuilder.field(1, 0, "DEPTNO")),
+            relBuilder.count(relBuilder.field(1, 0, "SAL")))
+        .build();
+    RelMetadataQuery mq = aggregate.getCluster().getMetadataQuery();
+    final RelColumnOrigin nameColumn = mq.getColumnOrigin(aggregate, 0);
+    assertEquals(nameColumn.getOriginTable().getRowType().
+        getFieldNames().get(7), "DEPTNO");
+    assertEquals(nameColumn.getOriginColumnOrdinal(), 7);
+  }
+
 }
