@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.RelHint;
@@ -127,6 +128,11 @@ public final class LogicalCalc extends Calc {
   @Override public LogicalCalc copy(RelTraitSet traitSet, RelNode child,
       RexProgram program) {
     return new LogicalCalc(getCluster(), traitSet, hints, child, program);
+  }
+
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 
   @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
