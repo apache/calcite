@@ -36,7 +36,9 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -102,6 +104,7 @@ public class ImmutableBeans {
     final ImmutableMap.Builder<Method, Handler<T>> handlers =
         ImmutableMap.builder();
     final Set<String> requiredPropertyNames = new HashSet<>();
+    final Set<String> copyPropertyNames = new HashSet<>();
 
     // First pass, add "get" methods and build a list of properties.
     for (Method method : beanClass.getMethods()) {
@@ -141,6 +144,12 @@ public class ImmutableBeans {
       if (required) {
         requiredPropertyNames.add(propertyName);
       }
+      final boolean copy = property.makeImmutable()
+          && (ReflectUtil.mightBeAssignableFrom(propertyType, Collection.class)
+              || ReflectUtil.mightBeAssignableFrom(propertyType, Map.class));
+      if (copy) {
+        copyPropertyNames.add(propertyName);
+      }
       propertyNameBuilder.put(propertyName, propertyType);
       final Object defaultValue2 =
           convertDefault(defaultValue, propertyName, propertyType);
@@ -170,12 +179,18 @@ public class ImmutableBeans {
           || method.isDefault()) {
         continue;
       }
+      final Property property = method.getAnnotation(Property.class);
       final Mode mode;
       final String propertyName;
       final String methodName = method.getName();
       if (methodName.startsWith("get")) {
         continue;
       } else if (methodName.startsWith("is")) {
+        continue;
+      } else if (property != null) {
+        // If there is a property annotation, treat this as a getter. For
+        // example, there could be a property "set", with getter method
+        // "Set<String> set()" and setter method "Bean withSet(Set<String>)".
         continue;
       } else if (methodName.startsWith("with")) {
         propertyName = methodName.substring("with".length());
@@ -220,6 +235,7 @@ public class ImmutableBeans {
             + ", actually has " + method.getParameterTypes()[0]);
       }
       final boolean required = requiredPropertyNames.contains(propertyName);
+      final boolean copy = copyPropertyNames.contains(propertyName);
       handlers.put(method, (bean, args) -> {
         switch (mode) {
         case WITH:
@@ -243,7 +259,7 @@ public class ImmutableBeans {
                 .putAll(bean.map);
           }
           if (args[0] != null) {
-            mapBuilder.put(propertyName, args[0]);
+            mapBuilder.put(propertyName, value(copy, args[0]));
           } else {
             if (required) {
               throw new IllegalArgumentException("cannot set required "
@@ -297,6 +313,22 @@ public class ImmutableBeans {
             || args[0] instanceof Map
             && bean.map.equals(args[0]));
     return new Def<>(beanClass, handlers.build());
+  }
+
+  /** Returns the value to be stored, optionally copying. */
+  private static Object value(boolean copy, Object o) {
+    if (copy) {
+      if (o instanceof List) {
+        return ImmutableNullableList.copyOf((List) o);
+      }
+      if (o instanceof Set) {
+        return ImmutableNullableSet.copyOf((Set) o);
+      }
+      if (o instanceof Map) {
+        return ImmutableNullableMap.copyOf((Map) o);
+      }
+    }
+    return o;
   }
 
   /** Looks for an annotation by class name.
@@ -388,6 +420,9 @@ public class ImmutableBeans {
      * If it has no default value, calling "get" will give a runtime exception.
      */
     boolean required() default false;
+
+    /** Whether to make immutable copies of property values. */
+    boolean makeImmutable() default true;
   }
 
   /** Default value of an int property. */

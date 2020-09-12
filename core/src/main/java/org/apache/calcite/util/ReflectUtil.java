@@ -17,12 +17,14 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.linq4j.tree.Primitive;
 
 import com.google.common.collect.ImmutableList;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -578,6 +580,61 @@ public abstract class ReflectUtil {
       }
     }
     return false;
+  }
+
+  /** Returns whether a parameter of a given type could possibly have an
+   * argument of a given type.
+   *
+   * <p>For example, consider method
+   *
+   * <blockquote>
+   *   {@code foo(Object o, String s, int i, Number n, BigDecimal d}
+   * </blockquote>
+   *
+   * <p>To which which of those parameters could I pass a value that is an
+   * instance of {@link java.util.HashMap}? The answer:
+   *
+   * <ul>
+   *   <li>{@code o} yes,
+   *   <li>{@code s} no ({@code String} is a final class),
+   *   <li>{@code i} no,
+   *   <li>{@code n} yes ({@code Number} is an interface, and {@code HashMap} is
+   *       a non-final class, so I could create a sub-class of {@code HashMap}
+   *       that implements {@code Number},
+   *   <li>{@code d} yes ({@code BigDecimal} is a non-final class).
+   * </ul>
+   */
+  public static boolean mightBeAssignableFrom(Class<?> parameterType,
+      Class<?> argumentType) {
+    // TODO: think about arrays (e.g. int[] and String[])
+    if (parameterType == argumentType) {
+      return true;
+    }
+    if (Primitive.is(argumentType)) {
+      return false;
+    }
+    if (!parameterType.isInterface()
+        && Modifier.isFinal(parameterType.getModifiers())) {
+      // parameter is a final class
+      // e.g. parameter String, argument Serializable
+      // e.g. parameter String, argument Map
+      // e.g. parameter String, argument Object
+      // e.g. parameter String, argument HashMap
+      return argumentType.isAssignableFrom(parameterType);
+    } else {
+      // parameter is an interface or non-final class
+      if (!argumentType.isInterface()
+          && Modifier.isFinal(argumentType.getModifiers())) {
+        // argument is a final class
+        // e.g. parameter Object, argument String
+        // e.g. parameter Serializable, argument String
+        return parameterType.isAssignableFrom(argumentType);
+      } else {
+        // argument is an interface or non-final class
+        // e.g. parameter Map, argument Number
+        return true;
+      }
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

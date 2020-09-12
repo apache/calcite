@@ -740,7 +740,7 @@ class VolcanoPlannerTest {
         return new SubsetRule(this);
       }
 
-      @ImmutableBeans.Property
+      @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */
@@ -782,7 +782,7 @@ class VolcanoPlannerTest {
         return new PhysSingleSubsetRule(this);
       }
 
-      @ImmutableBeans.Property
+      @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */
