@@ -2515,6 +2515,28 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     assertThat(rels.get(0), isA(LogicalCalc.class));
   }
 
+  @Test void testRelShuttleForLogicalCalcShuttle() {
+    final String sql = "select count(ename) from emp";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode calc = planner.findBestExp();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalCalc calc) {
+        RelNode visitedRel = super.visit(calc);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    visitor.visit(calc);
+    /** `calc` contains only one Calc operator which can be visited by RelShuttle.*/
+    assertThat(rels.size(), is(1));
+    assertThat(rels.get(0), isA(LogicalCalc.class));
+  }
+
   @Test void testRelShuttleForLogicalTableModify() {
     final String sql = "insert into emp select * from emp";
     final LogicalTableModify rel = (LogicalTableModify) tester.convertSqlToRel(sql).rel;

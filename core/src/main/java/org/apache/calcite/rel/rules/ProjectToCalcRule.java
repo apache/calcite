@@ -66,7 +66,7 @@ public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
             project.getRowType(),
             project.getCluster().getRexBuilder());
     final LogicalCalc calc = LogicalCalc.create(input, program);
-    call.transformTo(calc);
+    call.transformTo(calc.withHints(project.getHints()));
   }
 
   /** Rule configuration. */
