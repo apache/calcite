@@ -51,7 +51,6 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -66,6 +65,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -128,6 +128,21 @@ public abstract class SqlImplementor {
   protected final Set<String> aliasSet = new LinkedHashSet<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
+
+  /** Private RexBuilder for short-lived expressions. It has its own
+   * dedicated type factory, so don't trust the types to be canonized. */
+  final RexBuilder rexBuilder =
+      new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+
+  /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
+   * applied to that kind. */
+  private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
+      ImmutableMap.<SqlKind, SqlOperator>builder()
+          .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
+          .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
+          .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
+          .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
+          .build();
 
   protected SqlImplementor(SqlDialect dialect) {
     this.dialect = Objects.requireNonNull(dialect);
@@ -284,21 +299,27 @@ public abstract class SqlImplementor {
     final SqlOperator op;
     final Context joinContext;
     switch (node.getKind()) {
+    case NOT:
+      final RexNode operand0 = ((RexCall) node).getOperands().get(0);
+      final SqlOperator notOperator = NOT_KIND_OPERATORS.get(operand0.getKind());
+      if (notOperator != null) {
+        return convertConditionToSqlNode(
+            leftContext.implementor().rexBuilder.makeCall(notOperator,
+                ((RexCall) operand0).operands), leftContext, rightContext,
+            leftFieldCount, dialect);
+      }
+      // fall through
     case AND:
     case OR:
       operands = ((RexCall) node).getOperands();
       op = ((RexCall) node).getOperator();
-      SqlNode sqlCondition = null;
+      final List<SqlNode> sqlOperands = new ArrayList<>();
       for (RexNode operand : operands) {
-        SqlNode x = convertConditionToSqlNode(operand, leftContext,
-            rightContext, leftFieldCount, dialect);
-        if (sqlCondition == null) {
-          sqlCondition = x;
-        } else {
-          sqlCondition = op.createCall(POS, sqlCondition, x);
-        }
+        sqlOperands.add(
+            convertConditionToSqlNode(operand, leftContext,
+                rightContext, leftFieldCount, dialect));
       }
-      return sqlCondition;
+      return SqlUtil.createCall(op, POS, sqlOperands);
 
     case EQUALS:
     case IS_DISTINCT_FROM:
@@ -774,19 +795,16 @@ public abstract class SqlImplementor {
       case NOT:
         RexNode operand = ((RexCall) rex).operands.get(0);
         final SqlNode node = toSql(program, operand);
-        switch (operand.getKind()) {
-        case IN:
-          assert operand instanceof RexSubQuery
-              : "scalar IN is no longer allowed in RexCall: " + rex;
-          return SqlStdOperatorTable.NOT_IN
-              .createCall(POS, ((SqlCall) node).getOperandList());
-        case LIKE:
-          return SqlStdOperatorTable.NOT_LIKE
-              .createCall(POS, ((SqlCall) node).getOperandList());
-        case SIMILAR:
-          return SqlStdOperatorTable.NOT_SIMILAR_TO
-              .createCall(POS, ((SqlCall) node).getOperandList());
-        default:
+        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
+        if (inverseOperator != null) {
+          switch (operand.getKind()) {
+          case IN:
+            assert operand instanceof RexSubQuery
+                : "scalar IN is no longer allowed in RexCall: " + rex;
+          }
+          return inverseOperator.createCall(POS,
+              ((SqlCall) node).getOperandList());
+        } else {
           return SqlStdOperatorTable.NOT.createCall(POS, node);
         }
 
@@ -821,17 +839,7 @@ public abstract class SqlImplementor {
             nodeList.add(dialect.getCastSpec(call.getType()));
           }
         }
-        if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
-          // In RexNode trees, OR and AND have any number of children;
-          // SqlCall requires exactly 2. So, convert to a balanced binary
-          // tree for OR/AND, left-deep binary tree for others.
-          if (op.kind == SqlKind.OR || op.kind == SqlKind.AND) {
-            return createBalancedCall(op, nodeList, 0, nodeList.size());
-          } else {
-            return createLeftCall(op, nodeList);
-          }
-        }
-        return op.createCall(new SqlNodeList(nodeList, POS));
+        return SqlUtil.createCall(op, POS, nodeList);
       }
     }
 
@@ -841,9 +849,6 @@ public abstract class SqlImplementor {
     private <C extends Comparable<C>> SqlNode toSql(RexProgram program,
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
-      final RexBuilder rexBuilder =
-          new RexBuilder(
-              new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
       final SqlNode operandSql = toSql(program, operand);
       if (sarg.containsNull) {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
@@ -852,8 +857,8 @@ public abstract class SqlImplementor {
         final SqlNodeList list = sarg.rangeSet.asRanges().stream()
             .map(range ->
                 toSql(program,
-                    rexBuilder.makeLiteral(range.lowerEndpoint(), type, true,
-                        true)))
+                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
+                        type, true, true)))
             .collect(SqlNode.toList());
         switch (list.size()) {
         case 1:
@@ -867,17 +872,11 @@ public abstract class SqlImplementor {
       } else {
         final RangeSets.Consumer<C> consumer =
             new RangeToSql<>(operandSql, orList, v ->
-                toSql(program, rexBuilder.makeLiteral(v, type, false)));
+                toSql(program,
+                    implementor().rexBuilder.makeLiteral(v, type, false)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
-      switch (orList.size()) {
-      case 0:
-        return SqlLiteral.createBoolean(false, POS);
-      case 1:
-        return orList.get(0);
-      default:
-        return SqlStdOperatorTable.OR.createCall(POS, orList);
-      }
+      return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
     }
 
     /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}
@@ -1058,30 +1057,6 @@ public abstract class SqlImplementor {
           + rexWindowBound);
     }
 
-    private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
-      SqlNode node = op.createCall(new SqlNodeList(nodeList.subList(0, 2), POS));
-      for (int i = 2; i < nodeList.size(); i++) {
-        node = op.createCall(new SqlNodeList(ImmutableList.of(node, nodeList.get(i)), POS));
-      }
-      return node;
-    }
-
-    /**
-     * Create a balanced binary call from sql node list,
-     * start inclusive, end exclusive.
-     */
-    private SqlNode createBalancedCall(SqlOperator op,
-        List<SqlNode> nodeList, int start, int end) {
-      assert start < end && end <= nodeList.size();
-      if (start + 1 == end) {
-        return nodeList.get(start);
-      }
-      int mid = (end - start) / 2 + start;
-      SqlNode leftNode = createBalancedCall(op, nodeList, start, mid);
-      SqlNode rightNode = createBalancedCall(op, nodeList, mid, end);
-      return op.createCall(new SqlNodeList(ImmutableList.of(leftNode, rightNode), POS));
-    }
-
     private List<SqlNode> toSql(RexProgram program, List<RexNode> operandList) {
       final List<SqlNode> list = new ArrayList<>();
       for (RexNode rex : operandList) {
@@ -1230,7 +1205,9 @@ public abstract class SqlImplementor {
       }
 
       private void addAnd(SqlNode... nodes) {
-        list.add(SqlStdOperatorTable.AND.createCall(POS, nodes));
+        list.add(
+            SqlUtil.createCall(SqlStdOperatorTable.AND, POS,
+                ImmutableList.copyOf(nodes)));
       }
 
       private SqlNode op(SqlOperator op, C value) {

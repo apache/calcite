@@ -219,6 +219,16 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testSelectWhereNotEqualsOrNull() {
+    String query = "select \"product_id\", \"shelf_width\"\n"
+        + "from \"product\"\n"
+        + "where \"net_weight\" <> 10 or \"net_weight\" is null";
+    final String expected = "SELECT \"product_id\", \"shelf_width\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"net_weight\" <> 10 OR \"net_weight\" IS NULL";
+    sql(query).ok(expected);
+  }
+
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
     String query = "select * from \"product\" "
         + "where (\"product_id\" = 10 OR \"product_id\" <= 5) "
@@ -2420,6 +2430,30 @@ class RelToSqlConverterTest {
         + "join emp on (emp.deptno = emps.empno and manager)";
     final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
     assertThat(s, notNullValue()); // sufficient that conversion did not throw
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4249">[CALCITE-4249]
+   * JDBC adapter cannot translate NOT LIKE in join condition</a>. */
+  @Test void testJoinOnNotLike() {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .scan("DEPT")
+            .join(JoinRelType.LEFT,
+                b.and(
+                    b.equals(b.field(2, 0, "DEPTNO"),
+                        b.field(2, 1, "DEPTNO")),
+                    b.not(
+                        b.call(SqlStdOperatorTable.LIKE,
+                            b.field(2, 1, "DNAME"),
+                            b.literal("ACCOUNTING")))))
+            .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "LEFT JOIN \"scott\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\" "
+        + "AND \"DEPT\".\"DNAME\" NOT LIKE 'ACCOUNTING'";
+    relFn(relFn).ok(expectedSql);
   }
 
   @Test void testCartesianProductWithInnerJoinSyntax() {
