@@ -3731,7 +3731,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[SEARCH($0, Sarg[(-∞‥0], [3‥+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6795,7 +6795,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞‥0], [3‥+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

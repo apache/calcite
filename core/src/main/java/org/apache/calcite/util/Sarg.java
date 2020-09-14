@@ -17,14 +17,21 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
+import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /** Set of values (or ranges) that are the target of a search.
  *
@@ -64,17 +71,176 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final boolean containsNull;
   public final int pointCount;
+  public final RelDataType type;
 
-  private Sarg(ImmutableRangeSet<C> rangeSet, boolean containsNull) {
-    this.rangeSet = Objects.requireNonNull(rangeSet);
+  /**
+   * Handler to transform long ranges back to ranges with the original type.
+   *
+   * <p>
+   * Some special processing is applied to the lower bound,
+   * because negative infinity could be replaced with Long.MIN_VALUE when canonizing
+   * the range boundaries. This problem does not exist for the positive infinity,
+   * because the Guava library gives different implementations for
+   * Cut#BelowAll#canonical and Cut#AboveAll#canonical methods.
+   * </p>
+   */
+  private final RangeSets.CopyingHandler<Long, C>
+      fromLongHandler = new RangeSets.CopyingHandler<Long, C>() {
+        @Override C convert(Long value) {
+          return (C) BigDecimal.valueOf(value);
+        }
+
+        @Override public Range<C> atLeast(Long lower) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return Range.all();
+          }
+          return super.atLeast(lower);
+        }
+
+        @Override public Range<C> greaterThan(Long lower) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return Range.all();
+          }
+          return super.greaterThan(lower);
+        }
+
+        @Override public Range<C> closed(Long lower, Long upper) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return (Range<C>) Range.atMost(BigDecimal.valueOf(upper));
+          }
+          return super.closed(lower, upper);
+        }
+
+        @Override public Range<C> closedOpen(Long lower, Long upper) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return (Range<C>) Range.lessThan(BigDecimal.valueOf(upper));
+          }
+          return super.closedOpen(lower, upper);
+        }
+
+        @Override public Range<C> openClosed(Long lower, Long upper) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return (Range<C>) Range.atMost(BigDecimal.valueOf(upper));
+          }
+          return super.openClosed(lower, upper);
+        }
+
+        @Override public Range<C> open(Long lower, Long upper) {
+          if (lower.equals(DiscreteDomain.longs().minValue())) {
+            return (Range<C>) Range.lessThan(BigDecimal.valueOf(upper));
+          }
+          return super.open(lower, upper);
+        }
+      };
+
+  static final Range<Long> EMPTY_RANGE = Range.closedOpen(0L, 0L);
+
+  /**
+   * Transform a range to one with closed boundaries.
+   * This normalizes the range, making subsequent operations easier.
+   */
+  private final RangeSets.CopyingHandler<Long, Long>
+      closeRangeHandler = new RangeSets.CopyingHandler<Long, Long>() {
+
+        @Override Long convert(Long value) {
+          return value;
+        }
+
+        @Override public Range<Long> greaterThan(Long lower) {
+          return Range.atLeast(lower + 1);
+        }
+
+        @Override public Range<Long> lessThan(Long upper) {
+          return Range.atMost(upper - 1);
+        }
+
+        @Override public Range<Long> closedOpen(Long lower, Long upper) {
+          if (lower > upper - 1) {
+            return EMPTY_RANGE;
+          }
+          return Range.closed(lower, upper - 1);
+        }
+
+        @Override public Range<Long> openClosed(Long lower, Long upper) {
+          if (lower + 1 > upper) {
+            return EMPTY_RANGE;
+          }
+          return Range.closed(lower + 1, upper);
+        }
+
+        @Override public Range<Long> open(Long lower, Long upper) {
+          if (lower + 1 > upper - 1) {
+            return EMPTY_RANGE;
+          }
+          return Range.closed(lower + 1, upper - 1);
+        }
+      };
+
+  private Sarg(ImmutableRangeSet<C> rangeSet, boolean containsNull, RelDataType type) {
+    this.type = type;
+    this.rangeSet = simplifyRangeSet(Objects.requireNonNull(rangeSet));
     this.containsNull = containsNull;
     this.pointCount = RangeSets.countPoints(rangeSet);
   }
 
-  /** Creates a search argument. */
+  /**
+   * Creates a search argument.
+   * <p>
+   *   Please note that we need a type argument here,
+   *   because for some discrete types, we can simplify the Sarg by
+   *   merging the underling ranges.
+   * </p>
+   */
   public static <C extends Comparable<C>> Sarg<C> of(boolean containsNull,
-      RangeSet<C> rangeSet) {
-    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), containsNull);
+      RangeSet<C> rangeSet, RelDataType type) {
+    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), containsNull, type);
+  }
+
+  RangeSet<C> simplifyRangeSet(RangeSet<C> rangeSet) {
+    if (!isDiscreteType(type)) {
+      // nothing to do for non-discrete types.
+      return rangeSet;
+    }
+
+    // transform to long ranges, so range merging can be performed
+    List<Range<Long>> longRanges =  rangeSet.asRanges().stream()
+        .map(r -> RangeSets.copy(r, v -> ((BigDecimal) v).longValue()))
+        .map(r -> RangeSets.map(r, closeRangeHandler)).collect(Collectors.toList());
+
+    // calculate cost of the original range set.
+    SargCost sc = new SargCost();
+    double originalCost = sc.getCost(longRanges);
+
+    // perform range merging
+    RangeSet<Long> longRangeSet = TreeRangeSet.create();
+    longRanges.forEach(r -> longRangeSet.add(r.canonical(DiscreteDomain.longs())));
+
+    // calculate the cost of the new range set.
+    List<Range<Long>> newLongRanges = longRangeSet.asRanges().stream()
+        .map(r -> RangeSets.map(r, closeRangeHandler)).collect(Collectors.toList());
+    double newCost = sc.getCost(newLongRanges);
+
+    if (originalCost <= newCost) {
+      // the new range set is more expensive
+      return rangeSet;
+    }
+
+    // transform back to ranges of the original type.
+    RangeSet<C> newRangeSet = TreeRangeSet.create();
+    newLongRanges.forEach(r -> newRangeSet.add(RangeSets.map(r, fromLongHandler)));
+    return newRangeSet;
+  }
+
+  boolean isDiscreteType(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case TINYINT:
+    case SMALLINT:
+    case INTEGER:
+    case BIGINT:
+      return true;
+    default:
+      return false;
+    }
   }
 
   /**
@@ -148,5 +314,41 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return rangeSet.span().encloses(Range.all())
         && rangeSet.complement().asRanges().stream()
             .allMatch(RangeSets::isPoint);
+  }
+
+  /**
+   * Utility for evaluating the cost of a Sarg.
+   */
+  class SargCost {
+    /**
+     * Cost for a comparison option.
+     */
+    static final double COMPARISON_COST = 1.0;
+
+    /**
+     * Cost of a logical option.
+     */
+    static final double LOGICAL_OP_COST = 0.2;
+
+    /**
+     * Gets the cost of a list of range evaluations combined by logical or.
+     */
+    double getCost(Collection<Range<Long>> ranges) {
+      return (ranges.size() - 1) * LOGICAL_OP_COST
+          + ranges.stream().mapToDouble(r -> getCost(r)).sum();
+    }
+
+    /**
+     * Gets the cost for evaluating a single range.
+     */
+    double getCost(Range<Long> range) {
+      if (range == EMPTY_RANGE) {
+        return 0;
+      } else if (RangeSets.isPoint(range)) {
+        return COMPARISON_COST;
+      } else {
+        return 2 * COMPARISON_COST + LOGICAL_OP_COST;
+      }
+    }
   }
 }

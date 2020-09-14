@@ -2953,4 +2953,60 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testSimplifyVarbinary() {
     checkSimplifyUnchanged(cast(cast(vInt(), tVarchar(true, 100)), tVarbinary(true)));
   }
+
+  @Test void testSimplifyInValues() {
+    RexNode a = vIntNotNull(1);
+    RexNode n1 = literal(1);
+    RexNode n2 = literal(2);
+    RexNode n3 = literal(3);
+    RexNode n4 = literal(4);
+    RexNode n5 = literal(5);
+    RexNode n6 = literal(6);
+
+    // range merging performed
+    checkDigest(in(a, n1, n2, n3, n4, n5),
+        "SEARCH(?0.notNullInt1, Sarg[[1‥5]])");
+
+    // range merging performed when values are in a different order
+    checkDigest(in(a, n2, n3, n5, n4, n1),
+        "SEARCH(?0.notNullInt1, Sarg[[1‥5]])");
+
+    // range merging not performed because the merged expr has higher cost
+    checkDigest(in(a, n1, n2, n4, n5),
+        "SEARCH(?0.notNullInt1, Sarg[1, 2, 4, 5])");
+
+    // range merging performed because this time, the simplified expr is cheaper
+    checkDigest(in(a, n1, n2, n4, n5, n6),
+        "SEARCH(?0.notNullInt1, Sarg[[1‥2], [4‥6]])");
+
+    RexNode b = vDecimalNotNull(1);
+
+    // range merging not performed, because we only support discrete types
+    checkDigest(in(b, n1, n2, n3, n4, n5),
+        "SEARCH(?0.notNullDecimal1, Sarg[1, 2, 3, 4, 5])");
+  }
+
+  @Test void testSimplifyDiscreteOrs() {
+    RexNode a = vIntNotNull(1);
+    RexNode n1 = literal(1);
+    RexNode n2 = literal(2);
+    RexNode n3 = literal(3);
+    RexNode n4 = literal(4);
+    RexNode n5 = literal(5);
+    RexNode n6 = literal(6);
+
+    // input: a = 1 or a = 2 or a = 3 or a = 4 or a = 5
+    // simplified: a >= 1 and a <= 5
+    checkSimplify(or(eq(a, n1), eq(a, n2), eq(a, n3), eq(a, n4), eq(a, n5)),
+        "SEARCH(?0.notNullInt1, Sarg[[1‥5]])");
+
+    RexNode b = vIntNotNull(1);
+    RexNode c = vIntNotNull(2);
+
+    // input: (b = 1 or b = 2 or b = 3) or (c = 4 or c = 5 or c = 6)
+    // simplified: (b >= 1 and b <= 3) or (c >=4 and c <= 6)
+    checkSimplify(
+        or(eq(b, n1), eq(b, n2), eq(b, n3), eq(c, n4), eq(c, n5), eq(c, n6)),
+        "OR(SEARCH(?0.notNullInt1, Sarg[[1‥3]]), SEARCH(?0.notNullInt2, Sarg[[4‥6]]))");
+  }
 }

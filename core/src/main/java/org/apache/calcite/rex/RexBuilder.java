@@ -1307,7 +1307,7 @@ public class RexBuilder {
    * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
   public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
     if (areAssignable(arg, ranges)) {
-      final Sarg sarg = toSarg(Comparable.class, ranges, false);
+      final Sarg sarg = toSarg(Comparable.class, arg.getType(), ranges, false);
       if (sarg != null) {
         final RexNode range0 = ranges.get(0);
         return makeCall(SqlStdOperatorTable.SEARCH,
@@ -1347,7 +1347,7 @@ public class RexBuilder {
       final Sarg sarg =
           Sarg.of(false,
               ImmutableRangeSet.<Comparable>of(
-                  Range.closed(lowerValue, upperValue)));
+                  Range.closed(lowerValue, upperValue)), arg.getType());
       return makeCall(SqlStdOperatorTable.SEARCH, arg,
           makeSearchArgumentLiteral(sarg, lower.getType()));
     }
@@ -1359,7 +1359,7 @@ public class RexBuilder {
   /** Converts a list of expressions to a search argument, or returns null if
    * not possible. */
   private static <C extends Comparable<C>> Sarg<C> toSarg(Class<C> clazz,
-      List<? extends RexNode> ranges, boolean containsNull) {
+      RelDataType type, List<? extends RexNode> ranges, boolean containsNull) {
     if (ranges.isEmpty()) {
       // Cannot convert an empty list to a Sarg (by this interface, at least)
       // because we use the type of the first element.
@@ -1373,7 +1373,7 @@ public class RexBuilder {
       }
       b.add(Range.singleton(value));
     }
-    return Sarg.of(containsNull, b.build());
+    return Sarg.of(containsNull, b.build(), type);
   }
 
   private static <C extends Comparable<C>> C toComparable(Class<C> clazz,
