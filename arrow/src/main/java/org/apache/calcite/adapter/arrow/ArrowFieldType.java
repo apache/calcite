@@ -26,24 +26,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 enum ArrowFieldType {
-  INT(Primitive.INT);
+  INT(Primitive.INT),
+  BOOLEAN(Primitive.BOOLEAN),
+  STRING(String.class, null),
+  FLOAT(Primitive.FLOAT);
 
   private final Class clazz;
-  private final String simpleName;
+  private final Primitive primitive;
 
   private static final Map<Class<? extends ArrowType>, ArrowFieldType> MAP = new HashMap<>();
 
   static {
     MAP.put(ArrowType.Int.class, INT);
+    MAP.put(ArrowType.Bool.class, BOOLEAN);
+    MAP.put(ArrowType.Utf8.class, STRING);
+    MAP.put(ArrowType.FloatingPoint.class, FLOAT);
   }
 
   ArrowFieldType(Primitive primitive) {
-    this(primitive.boxClass, primitive.primitiveClass.getSimpleName());
+    this(primitive.boxClass, primitive);
   }
 
-  ArrowFieldType(Class clazz, String simpleName) {
+  ArrowFieldType(Class clazz, Primitive primitive) {
     this.clazz = clazz;
-    this.simpleName = simpleName;
+    this.primitive = primitive;
   }
 
   public RelDataType toType(JavaTypeFactory typeFactory) {
