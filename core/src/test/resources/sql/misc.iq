@@ -64,6 +64,28 @@ group by "hr"."emps"."empid";
 
 !ok
 
+# [CALCITE-4258] SqlToRelConverter: SELECT 1 IS [NOT] DISTINCT FROM NULL fails with AssertionError
+SELECT 1 IS DISTINCT FROM NULL;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-4258] SqlToRelConverter: SELECT 1 IS [NOT] DISTINCT FROM NULL fails with AssertionError
+SELECT 1 IS NOT DISTINCT FROM NULL;
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
 # Case-sensitive errors
 select empid from "hr"."emps";
 Column 'EMPID' not found in any table; did you mean 'empid'?
