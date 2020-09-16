@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -170,6 +171,15 @@ class PredicateAnalyzer {
           return false;
         }
       case FUNCTION:
+      case INTERNAL:
+        if (call.getOperator() instanceof SqlInternalOperator) {
+          switch (call.getKind()) {
+          case SEARCH:
+            return canBeTranslatedToTermsQuery(call);
+          default:
+            return false;
+          }
+        }
         return true;
       case POSTFIX:
         switch (call.getKind()) {
@@ -183,13 +193,6 @@ class PredicateAnalyzer {
         switch (call.getKind()) {
         case NOT:
           return true;
-        default:
-          return false;
-        }
-      case INTERNAL:
-        switch (call.getKind()) {
-        case SEARCH:
-          return canBeTranslatedToTermsQuery(call);
         default:
           return false;
         }
@@ -245,8 +248,6 @@ class PredicateAnalyzer {
         return postfix(call);
       case PREFIX:
         return prefix(call);
-      case INTERNAL:
-        return binary(call);
       case SPECIAL:
         switch (call.getKind()) {
         case CAST:
@@ -264,6 +265,10 @@ class PredicateAnalyzer {
           throw new PredicateAnalyzerException(message);
         }
       case FUNCTION:
+      case INTERNAL:
+        if (call.getOperator() instanceof SqlInternalOperator) {
+          return binary(call);
+        }
         if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
           List<Expression> operands = visitList(call.getOperands());
           String query = convertQueryString(operands.subList(0, operands.size() - 1),
