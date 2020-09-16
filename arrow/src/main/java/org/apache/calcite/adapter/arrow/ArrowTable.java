@@ -21,37 +21,33 @@ import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.*;
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
 
-import javax.lang.model.util.Elements;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class ArrowTable extends AbstractTable
-{
+public class ArrowTable extends AbstractTable implements TranslatableTable, QueryableTable {
 
   private final RelProtoDataType protoRowType;
   private VectorSchemaRoot[] vectorSchemaRoots;
-  private UInt4Vector selectionVector;
 
   public ArrowTable(VectorSchemaRoot[] vectorSchemaRoots, UInt4Vector intVector, RelProtoDataType protoRowType) {
     this.vectorSchemaRoots = vectorSchemaRoots;
-    this.selectionVector = intVector;
     this.protoRowType = protoRowType;
   }
 
@@ -62,9 +58,29 @@ public class ArrowTable extends AbstractTable
     return deduceRowType(this.vectorSchemaRoots[0], (JavaTypeFactory) typeFactory);
   }
 
+  public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
+    return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
+  }
+
   public Enumerable<Object> project(final DataContext root, final int[] fields) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return null;
+  }
+
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+                                      SchemaPlus schema, String tableName) {
+    throw new UnsupportedOperationException();
+
+  }
+
+  public Type getElementType() {
+    return Object[].class;
+  }
+
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    final int fieldCount = relOptTable.getRowType().getFieldCount();
+    final int[] fields = ArrowEnumerator.identityList(fieldCount);
+    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields);
   }
 
   private RelDataType deduceRowType(VectorSchemaRoot vectorSchemaRoot, JavaTypeFactory typeFactory) {
@@ -72,13 +88,6 @@ public class ArrowTable extends AbstractTable
       RelDataType relDataType = ArrowFieldType.of(fieldVector.getField().getType()).toType(typeFactory);
       return new Pair<>(fieldVector.getField().getName(), relDataType);
     }).collect(Collectors.toList());
-    System.out.println(typeFactory.createStructType(ret));
     return typeFactory.createStructType(ret);
   }
-
-   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-     final int fieldCount = relOptTable.getRowType().getFieldCount();
-     final int[] fields = EnumerableUtils.identityList(fieldCount);
-     return new ArrowTableScan(context.getCluster(), relOptTable, this, fields);
-   }
 }
