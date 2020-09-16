@@ -217,10 +217,11 @@ public class RelOptPredicateList {
       }
     }
     if (SqlKind.COMPARISON.contains(e.getKind())) {
-      // A comparison with a literal, such as 'ref < 10', is not null if 'ref'
+      // A comparison with a (non-null) literal, such as 'ref < 10', is not null if 'ref'
       // is not null.
       RexCall call = (RexCall) e;
-      if (call.getOperands().get(1) instanceof RexLiteral) {
+      if (call.getOperands().get(1) instanceof RexLiteral
+          && !((RexLiteral) call.getOperands().get(1)).isNull()) {
         return isEffectivelyNotNull(call.getOperands().get(0));
       }
     }
