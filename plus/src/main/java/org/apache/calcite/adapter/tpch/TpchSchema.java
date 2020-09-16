@@ -30,9 +30,9 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableMap;
 
-import io.airlift.tpch.TpchColumn;
-import io.airlift.tpch.TpchEntity;
-import io.airlift.tpch.TpchTable;
+import io.prestosql.tpch.TpchColumn;
+import io.prestosql.tpch.TpchEntity;
+import io.prestosql.tpch.TpchTable;
 
 import java.sql.Date;
 import java.util.List;
@@ -119,8 +119,12 @@ public class TpchSchema extends AbstractSchema {
                 return tpchColumn.getDouble(current);
               } else if (type == Date.class) {
                 return Date.valueOf(tpchColumn.getString(current));
+              } else if (type == Integer.class) {
+                return tpchColumn.getInteger(current);
+              } else if (type == Long.class) {
+                return tpchColumn.getIdentifier(current);
               } else {
-                return tpchColumn.getLong(current);
+                throw new AssertionError(type);
               }
             }
 
@@ -159,7 +163,20 @@ public class TpchSchema extends AbstractSchema {
       if (column.getColumnName().endsWith("date")) {
         return java.sql.Date.class;
       }
-      return column.getType();
+      switch (column.getType().getBase()) {
+      case DATE:
+        return java.sql.Date.class;
+      case DOUBLE:
+        return Double.class;
+      case INTEGER:
+        return Integer.class;
+      case IDENTIFIER:
+        return Long.class;
+      case VARCHAR:
+        return String.class;
+      default:
+        throw new AssertionError(column.getType());
+      }
     }
   }
 }

@@ -24,7 +24,6 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -41,7 +40,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * <p>Because the TPC-H data generator takes time and memory to instantiate,
  * tests only run as part of slow tests.</p>
  */
-@Tag("slow")
 class TpchTest {
   public static final boolean ENABLE = TestUtil.getJavaMajorVersion() >= 7;
 
@@ -51,7 +49,7 @@ class TpchTest {
         + "       name: '" + name + "',\n"
         + "       factory: 'org.apache.calcite.adapter.tpch.TpchSchemaFactory',\n"
         + "       operand: {\n"
-        + "         columnPrefix: true,\n"
+        + "         columnPrefix: false,\n"
         + "         scale: " + scaleFactor + "\n"
         + "       }\n"
         + "     }";
