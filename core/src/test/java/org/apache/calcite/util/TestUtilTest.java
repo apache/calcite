@@ -88,4 +88,9 @@ class TestUtilTest {
         versionString);
   }
 
+  @Test void testGuavaMajorVersion() {
+    int majorVersion = TestUtil.getGuavaMajorVersion();
+    assertTrue(majorVersion >= 2,
+        "current GuavaMajorVersion is " + majorVersion + "; should exceed 2");
+  }
 }

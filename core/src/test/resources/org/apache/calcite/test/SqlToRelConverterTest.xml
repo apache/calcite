@@ -3731,7 +3731,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[SEARCH($0, Sarg[(-∞..1), (1..2), (2..+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6795,7 +6795,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
-  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞‥1), (1‥2), (2‥+∞)])])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞..1), (1..2), (2..+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -7014,12 +7014,10 @@ LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORD
     </TestCase>
     <TestCase name="testTrimUnionAll">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 union all
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7033,12 +7031,10 @@ LogicalUnion(all=[true])
     </TestCase>
     <TestCase name="testTrimUnionDistinct">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 union
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7053,12 +7049,10 @@ LogicalProject(DEPTNO=[$1])
     </TestCase>
     <TestCase name="testTrimIntersectAll">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 intersect all
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7073,12 +7067,10 @@ LogicalProject(DEPTNO=[$1])
     </TestCase>
     <TestCase name="testTrimIntersectDistinct">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 intersect
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7093,12 +7085,10 @@ LogicalProject(DEPTNO=[$1])
     </TestCase>
     <TestCase name="testTrimExceptAll">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 except all
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7113,12 +7103,10 @@ LogicalProject(DEPTNO=[$1])
     </TestCase>
     <TestCase name="testTrimExceptDistinct">
         <Resource name="sql">
-            <![CDATA[
-select deptno from
+            <![CDATA[select deptno from
 (select ename, deptno from emp
 except
-select name, deptno from dept)
-]]>
+select name, deptno from dept)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -7206,23 +7194,23 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
 ]]>
         </Resource>
     </TestCase>
-  <TestCase name="testSortInSubQuery">
-    <Resource name="sql">
-      <![CDATA[select * from (select empno from emp order by empno)]]>
-    </Resource>
-    <Resource name="planRemoveSort">
-      <![CDATA[
+    <TestCase name="testSortInSubQuery">
+        <Resource name="sql">
+            <![CDATA[select * from (select empno from emp order by empno)]]>
+        </Resource>
+        <Resource name="planRemoveSort">
+            <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planKeepSort">
-      <![CDATA[
+        </Resource>
+        <Resource name="planKeepSort">
+            <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalSort(sort0=[$0], dir0=[ASC])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
+        </Resource>
+    </TestCase>
 </Root>

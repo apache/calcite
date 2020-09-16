@@ -162,6 +162,9 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         ImmutableList<Function<Tester, Tester>> transforms) {
       this.tester = Objects.requireNonNull(tester);
       this.sql = Objects.requireNonNull(sql);
+      if (sql.contains(" \n")) {
+        throw new AssertionError("trailing whitespace");
+      }
       this.preProgram = preProgram;
       this.planner = planner;
       this.hooks = Objects.requireNonNull(hooks);

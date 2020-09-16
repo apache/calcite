@@ -28,10 +28,20 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.26.0">1.26.0</a> / 2020-xx-xx
+{: #v1-26-0}
+
+Under development.
+
+Compatibility: This release is tested on Linux, MacOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 15;
+Guava versions 19.0 to 29.0-jre;
+other software versions as specified in gradle.properties.
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.25.0">1.25.0</a> / 2020-08-08
 {: #v1-25-0}
 
-This release comes shortly after [1.24.0](#v1-24-0) and removes methods 
+This release comes shortly after [1.24.0](#v1-24-0) and removes methods
 which were deprecated in the previous version. It also introduces other breaking changes so
 make sure to consult corresponding section. Notable improvements in this release are:
 

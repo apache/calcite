@@ -121,7 +121,8 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
     boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
     Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
     boolean compatibleJdk = TestUtil.getJavaMajorVersion() < 11;
-    if (enabled && compatibleJdk) {
+    boolean compatibleGuava = TestUtil.getGuavaMajorVersion() < 26;
+    if (enabled && compatibleJdk && compatibleGuava) {
       return ConditionEvaluationResult.enabled("Cassandra enabled");
     }
     return ConditionEvaluationResult.disabled("Cassandra tests disabled");

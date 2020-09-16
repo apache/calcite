@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 
 import org.junit.jupiter.api.Assertions;
 
@@ -24,6 +25,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +45,9 @@ public abstract class TestUtil {
 
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
+
+  private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
+      Suppliers.memoize(TestUtil::computeGuavaMajorVersion)::get;
 
   /** This is to be used by {@link #rethrow(Throwable, String)} to add extra information via
    * {@link Throwable#addSuppressed(Throwable)}. */
@@ -226,6 +231,26 @@ public abstract class TestUtil {
     return Integer.parseInt(matcher.group());
   }
 
+  /** Returns the Guava major version. */
+  public static int getGuavaMajorVersion() {
+    return GUAVA_MAJOR_VERSION.get();
+  }
+
+  /** Computes the Guava major version. */
+  private static int computeGuavaMajorVersion() {
+    // A list of classes and the Guava version that they were introduced.
+    // The list should not contain any classes that are removed in future
+    // versions of Guava.
+    return new VersionChecker()
+        .tryClass(2, "com.google.common.collect.ImmutableList")
+        .tryClass(14, "com.google.common.reflect.Parameter")
+        .tryClass(17, "com.google.common.base.VerifyException")
+        .tryClass(21, "com.google.common.io.RecursiveDeleteOption")
+        .tryClass(23, "com.google.common.util.concurrent.FluentFuture")
+        .tryClass(26, "com.google.common.util.concurrent.ExecutionSequencer")
+        .bestVersion;
+  }
+
   /** Checks if exceptions have give substring. That is handy to prevent logging SQL text twice */
   public static boolean hasMessage(Throwable t, String substring) {
     while (t != null) {
@@ -262,4 +287,18 @@ public abstract class TestUtil {
     return sw.toString();
   }
 
+  /** Checks whether a given class exists, and updates a version if it does. */
+  private static class VersionChecker {
+    int bestVersion = -1;
+
+    VersionChecker tryClass(int version, String className) {
+      try {
+        Class.forName(className);
+        bestVersion = Math.max(version, bestVersion);
+      } catch (ClassNotFoundException e) {
+        // ignore
+      }
+      return this;
+    }
+  }
 }

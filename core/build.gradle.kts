@@ -72,9 +72,6 @@ dependencies {
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.calcite.avatica:avatica-server")
     testImplementation("org.apache.commons:commons-pool2")
-    testImplementation("log4j:log4j") {
-        because("SqlHintsConverterTest needs to implement a MockAppender")
-    }
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
     testImplementation("sqlline:sqlline")
