@@ -17,11 +17,16 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.JavaRelImplementor;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
 
 import org.apache.calcite.util.Sources;
@@ -41,7 +46,14 @@ public class ArrowTest {
     ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataType relDataType = tableMap.get("TEST").getRowType(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
-    Assertions.assertEquals(relDataType.getFieldNames().get(0), "column1");
+
+    Assertions.assertEquals(relDataType.getFieldNames().get(0), "one");
     Assertions.assertEquals(relDataType.getFieldList().get(0).getType().toString(), "INTEGER");
+    Assertions.assertEquals(relDataType.getFieldNames().get(1), "two");
+    Assertions.assertEquals(relDataType.getFieldList().get(1).getType().toString(), "INTEGER");
+    Assertions.assertEquals(relDataType.getFieldNames().get(2), "three");
+    Assertions.assertEquals(relDataType.getFieldList().get(2).getType().toString(), "VARCHAR");
+    Assertions.assertEquals(relDataType.getFieldNames().get(3), "four");
+    Assertions.assertEquals(relDataType.getFieldList().get(3).getType().toString(), "REAL");
   }
 }
