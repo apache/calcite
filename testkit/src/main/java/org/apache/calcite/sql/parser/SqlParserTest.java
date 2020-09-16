@@ -9016,15 +9016,15 @@ public class SqlParserTest {
 
   @Test void testJsonType() {
     expr("json_type('11.56')")
-        .ok("JSON_TYPE('11.56')");
+        .ok("`JSON_TYPE`('11.56')");
     expr("json_type('{}')")
-        .ok("JSON_TYPE('{}')");
+        .ok("`JSON_TYPE`('{}')");
     expr("json_type(null)")
-        .ok("JSON_TYPE(NULL)");
+        .ok("`JSON_TYPE`(NULL)");
     expr("json_type('[\"foo\",null]')")
-        .ok("JSON_TYPE('[\"foo\",null]')");
+        .ok("`JSON_TYPE`('[\"foo\",null]')");
     expr("json_type('{\"foo\": \"100\"}')")
-        .ok("JSON_TYPE('{\"foo\": \"100\"}')");
+        .ok("`JSON_TYPE`('{\"foo\": \"100\"}')");
   }
 
   @Test void testJsonDepth() {
