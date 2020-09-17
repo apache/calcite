@@ -24,7 +24,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility functions regarding {@link Statistic}.
@@ -82,12 +84,25 @@ public class Statistics {
     return of(rowCount, keys, ImmutableList.of(), collations);
   }
 
+  /** Returns a statistic with a given row count and colStatistics. */
+  public static Statistic of(final double rowCount, Map<String, ColStatistics> colStatistics) {
+    return of(rowCount, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), colStatistics);
+  }
+
   /** Returns a statistic with a given row count, set of unique keys,
    * referential constraints, and collations. */
   public static Statistic of(final Double rowCount,
       final List<ImmutableBitSet> keys,
       final List<RelReferentialConstraint> referentialConstraints,
       final List<RelCollation> collations) {
+    return of(rowCount, keys, referentialConstraints, collations, new HashMap<>());
+  }
+
+  public static Statistic of(final Double rowCount,
+      final List<ImmutableBitSet> keys,
+      final List<RelReferentialConstraint> referentialConstraints,
+      final List<RelCollation> collations,
+      final Map<String, ColStatistics> colStatistics) {
     return new Statistic() {
       public Double getRowCount() {
         return rowCount;
@@ -116,6 +131,10 @@ public class Statistics {
 
       public RelDistribution getDistribution() {
         return RelDistributionTraitDef.INSTANCE.getDefault();
+      }
+
+      public ColStatistics getColumnStats(String colName) {
+        return colStatistics.get(colName);
       }
     };
   }

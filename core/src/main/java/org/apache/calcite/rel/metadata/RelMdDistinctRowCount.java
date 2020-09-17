@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
@@ -26,11 +27,13 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.ColStatistics;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -77,6 +80,37 @@ public class RelMdDistinctRowCount
           mq.getSelectivity(rel, predicate));
     }
     return null;
+  }
+
+  public Double getDistinctRowCount(TableScan rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, RexNode predicate) {
+    final double selectivity = predicate == null ? 1D : mq.getSelectivity(rel, predicate);
+    final boolean uniq = RelMdUtil.areColumnsDefinitelyUnique(mq, rel, groupKey);
+    if (uniq) {
+      return NumberUtil.multiply(mq.getRowCount(rel), selectivity);
+    } else if (groupKey.isEmpty()) {
+      return null;
+    } else {
+      final List<String> fieldNames = rel.getRowType().getFieldNames();
+      final RelOptTable relOptTable = rel.getTable();
+
+      double ndv = 1D;
+      for (Integer index : groupKey) {
+        final ColStatistics statistics = relOptTable.getColumnStatistics(fieldNames.get(index));
+        if (statistics == null) {
+          return null;
+        }
+
+        final Long cnt = statistics.getCountDistinct();
+        if (cnt == null) {
+          return null;
+        } else {
+          ndv *= cnt;
+        }
+      }
+      final Double rowCount = mq.getRowCount(rel);
+      return (rowCount == null ? ndv : Math.min(ndv, mq.getRowCount(rel))) * selectivity;
+    }
   }
 
   public Double getDistinctRowCount(Union rel, RelMetadataQuery mq,

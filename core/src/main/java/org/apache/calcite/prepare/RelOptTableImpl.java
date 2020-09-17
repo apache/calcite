@@ -33,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.schema.ColStatistics;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
@@ -330,6 +331,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     default:
       return !(table instanceof StreamableTable);
     }
+  }
+
+  public ColStatistics getColumnStatistics(String colName) {
+    return table.getStatistic().getColumnStats(colName);
   }
 
   @Override public boolean isTemporal() {

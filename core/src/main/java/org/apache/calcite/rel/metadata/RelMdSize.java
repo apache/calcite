@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ColStatistics;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
@@ -173,8 +174,11 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
   public List<Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final ImmutableList.Builder<Double> list = ImmutableList.builder();
+
     for (RelDataTypeField field : fields) {
-      list.add(averageTypeValueSize(field.getType()));
+      final ColStatistics colStatistics = rel.getTable().getColumnStatistics(field.getName());
+      final Double avgColLen = colStatistics == null ? null : colStatistics.getAvgColLen();
+      list.add(avgColLen == null ? averageTypeValueSize(field.getType()) : avgColLen);
     }
     return list.build();
   }

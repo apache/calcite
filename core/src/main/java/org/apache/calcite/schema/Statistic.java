@@ -51,4 +51,9 @@ public interface Statistic {
 
   /** Returns the distribution of the data in this table. */
   RelDistribution getDistribution();
+
+  /** Returns the column statistic of the column in this table. */
+  default ColStatistics getColumnStats(String colName) {
+    return null;
+  }
 }

@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -90,6 +91,11 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.ColStatistics;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -3100,6 +3106,69 @@ public class RelMetadataTest extends SqlToRelTestBase {
             .get(0)
             .toString(),
         is("=($0, $1)"));
+  }
+
+  @Test void testColumnStatistics() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelOptCluster cluster = builder.getCluster();
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+
+    final RelDataType stringType = typeFactory.createJavaType(String.class);
+    final RelDataType integerType = typeFactory.createJavaType(Integer.class);
+
+    final Map<String, ColStatistics> colStatistics = new HashMap<>();
+    final String col1 = "key";
+    final String col2 = "count";
+
+    final ColStatistics colStats = new ColStatistics() {
+      @Override public Long getCountDistinct() {
+        return 5L;
+      }
+
+      @Override public Double getAvgColLen() {
+        return 2D;
+      }
+
+      @Override public Long getNumNulls() {
+        return null;
+      }
+
+      @Override public <C> C unwrap(Class<C> aClass) {
+        return null;
+      }
+    };
+
+    colStatistics.put(col1, colStats);
+    final Table table = new AbstractTable() {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add(col1, stringType)
+            .add(col2, integerType).build();
+      }
+
+      @Override public Statistic getStatistic() {
+        return Statistics.of(100d, colStatistics);
+      }
+    };
+
+    final RelOptAbstractTable t1 = new RelOptAbstractTable(null,
+        "t1", table.getRowType(typeFactory)) {
+      @Override public ColStatistics getColumnStatistics(String colName) {
+        return table.getStatistic().getColumnStats(colName);
+      }
+    };
+
+    final RelNode rel = LogicalTableScan.create(cluster, t1, ImmutableList.of());
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    ImmutableBitSet groupKey =
+        ImmutableBitSet.of(rel.getRowType().getFieldNames().indexOf(col1));
+    Double ndv = mq.getDistinctRowCount(rel, groupKey, null);
+    assertThat(ndv.intValue(), is(5));
+
+    Double size = mq.getAverageRowSize(rel);
+    assertThat(size.intValue(), is(6));
   }
 
   /**
