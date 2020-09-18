@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -215,6 +216,29 @@ class EnumerableBatchNestedLoopJoinTest {
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
         .returnsUnordered("EXPR$0=1");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4261">[CALCITE-4261]
+   * Join with three tables causes IllegalArgumentException
+   * in EnumerableBatchNestedLoopJoinRule</a>. */
+  @Test void doubleInnerBatchJoinTestSQL() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("select e.name, d.name as dept, l.name as location "
+            + "from emps e join depts d on d.deptno <> e.salary "
+            + "join locations l on e.empid <> l.empid and d.deptno = l.empid")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+          // Use a small batch size, otherwise we will run into Janino's
+          // "InternalCompilerException: Code of method grows beyond 64 KB".
+          planner.addRule(
+              EnumerableBatchNestedLoopJoinRule.Config.DEFAULT.withBatchSize(10).toRule());
+        })
+        .explainContains("EnumerableBatchNestedLoopJoin")
+        .returnsUnordered("name=Bill; dept=Sales; location=San Francisco",
+            "name=Eric; dept=Sales; location=San Francisco",
+            "name=Sebastian; dept=Sales; location=San Francisco",
+            "name=Theodore; dept=Sales; location=San Francisco");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
