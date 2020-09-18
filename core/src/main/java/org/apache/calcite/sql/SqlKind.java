@@ -218,6 +218,9 @@ public enum SqlKind {
   /** TABLESAMPLE relational operator. */
   TABLESAMPLE,
 
+  /** PIVOT clause. */
+  PIVOT,
+
   /** MATCH_RECOGNIZE clause. */
   MATCH_RECOGNIZE,
 

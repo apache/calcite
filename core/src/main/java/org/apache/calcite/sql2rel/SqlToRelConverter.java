@@ -120,6 +120,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -2079,10 +2080,6 @@ public class SqlToRelConverter {
     final SqlCall call;
     final SqlNode[] operands;
     switch (from.getKind()) {
-    case MATCH_RECOGNIZE:
-      convertMatchRecognize(bb, (SqlCall) from);
-      return;
-
     case AS:
       call = (SqlCall) from;
       SqlNode firstOperand = call.operand(0);
@@ -2094,6 +2091,14 @@ public class SqlToRelConverter {
 
       }
       convertFrom(bb, firstOperand, fieldNameList);
+      return;
+
+    case MATCH_RECOGNIZE:
+      convertMatchRecognize(bb, (SqlMatchRecognize) from);
+      return;
+
+    case PIVOT:
+      convertPivot(bb, (SqlPivot) from);
       return;
 
     case WITH_ITEM:
@@ -2222,8 +2227,8 @@ public class SqlToRelConverter {
     bb.setRoot(uncollect, true);
   }
 
-  protected void convertMatchRecognize(Blackboard bb, SqlCall call) {
-    final SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
+  protected void convertMatchRecognize(Blackboard bb,
+      SqlMatchRecognize matchRecognize) {
     final SqlValidatorNamespace ns = validator.getNamespace(matchRecognize);
     final SqlValidatorScope scope = validator.getMatchRecognizeScope(matchRecognize);
 
@@ -2383,6 +2388,91 @@ public class SqlToRelConverter {
             definitionNodes.build(), measureNodes.build(), after, subsetMap,
             allRows, partitionKeys.build(), orders, intervalNode);
     bb.setRoot(rel, false);
+  }
+
+  protected void convertPivot(Blackboard bb, SqlPivot pivot) {
+    final SqlValidatorNamespace ns = validator.getNamespace(pivot);
+    final SqlValidatorScope scope = validator.getJoinScope(pivot);
+
+    final Blackboard pivotBb = createBlackboard(scope, null, false);
+
+    // Convert input
+    convertFrom(pivotBb, pivot.query);
+    final RelNode input = pivotBb.root;
+
+    final RelDataType inputRowType = input.getRowType();
+    relBuilder.push(input);
+
+    // Gather fields.
+    final AggConverter aggConverter =
+        new AggConverter(pivotBb, (AggregatingSelectScope) null);
+    final Set<String> usedColumnNames = pivot.usedColumnNames();
+
+    // 1. Gather group keys.
+    inputRowType.getFieldList().stream()
+        .filter(field -> !usedColumnNames.contains(field.getName()))
+        .forEach(field ->
+            aggConverter.addGroupExpr(
+                new SqlIdentifier(field.getName(), SqlParserPos.ZERO)));
+
+    // 2. Gather axes.
+    pivot.axisList.forEach(aggConverter::addGroupExpr);
+
+    // 3. Gather columns used as arguments to aggregate functions.
+    pivotBb.agg = aggConverter;
+    final List<String> aggAliasList = new ArrayList<>();
+    assert aggConverter.aggCalls.size() == 0;
+    pivot.forEachAgg((alias, call) -> {
+      call.accept(aggConverter);
+      aggAliasList.add(alias);
+      assert aggConverter.aggCalls.size() == aggAliasList.size();
+    });
+    pivotBb.agg = null;
+
+    // Project the fields that we will need.
+    relBuilder
+        .project(Pair.left(aggConverter.getPreExprs()),
+            Pair.right(aggConverter.getPreExprs()));
+
+    // Build expressions.
+
+    // 1. Build group key
+    final RelBuilder.GroupKey groupKey =
+        relBuilder.groupKey(
+            inputRowType.getFieldList().stream()
+                .filter(field -> !usedColumnNames.contains(field.getName()))
+                .map(field ->
+                    aggConverter.addGroupExpr(
+                        new SqlIdentifier(field.getName(), SqlParserPos.ZERO)))
+                .collect(ImmutableBitSet.toImmutableBitSet()));
+
+    // 2. Build axes, for example
+    // FOR (axis1, axis2 ...) IN ...
+    final List<RexNode> axes = new ArrayList<>();
+    for (SqlNode axis : pivot.axisList) {
+      axes.add(relBuilder.field(aggConverter.addGroupExpr(axis)));
+    }
+
+    // 3. Build aggregate expressions, for example
+    // PIVOT (sum(a) AS alias1, min(b) AS alias2, ... FOR ... IN ...)
+    final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
+    Pair.forEach(aggAliasList, aggConverter.aggCalls, (alias, aggregateCall) ->
+        aggCalls.add(relBuilder.aggregateCall(aggregateCall).as(alias)));
+
+    // 4. Build values, for example
+    // IN ((v11, v12, ...) AS label1, (v21, v22, ...) AS label2, ...)
+    final ImmutableList.Builder<Pair<String, List<RexNode>>> valueList =
+        ImmutableList.builder();
+    pivot.forEachNameValues((alias, nodeList) ->
+        valueList.add(
+            Pair.of(alias,
+                nodeList.getList().stream().map(bb::convertExpression)
+                    .collect(Util.toImmutableList()))));
+
+    final RelNode rel =
+        relBuilder.pivot(groupKey, aggCalls, axes, valueList.build())
+            .build();
+    bb.setRoot(rel, true);
   }
 
   private void convertIdentifier(Blackboard bb, SqlIdentifier id,
@@ -5137,6 +5227,11 @@ public class SqlToRelConverter {
     /** Whether we are directly inside a windowed aggregate. */
     private boolean inOver = false;
 
+    AggConverter(Blackboard bb, AggregatingSelectScope aggregatingSelectScope) {
+      this.bb = bb;
+      this.aggregatingSelectScope = aggregatingSelectScope;
+    }
+
     /**
      * Creates an AggConverter.
      *
@@ -5147,9 +5242,8 @@ public class SqlToRelConverter {
      * @param select Query being translated; provides context to give
      */
     public AggConverter(Blackboard bb, SqlSelect select) {
-      this.bb = bb;
-      this.aggregatingSelectScope =
-          (AggregatingSelectScope) bb.getValidator().getSelectScope(select);
+      this(bb,
+          (AggregatingSelectScope) bb.getValidator().getSelectScope(select));
 
       // Collect all expressions used in the select list so that aggregate
       // calls can be named correctly.

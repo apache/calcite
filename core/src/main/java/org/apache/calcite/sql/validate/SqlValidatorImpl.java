@@ -66,6 +66,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -83,7 +84,9 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -2007,6 +2010,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new MatchRecognizeNamespace(this, call, enclosingNode);
   }
 
+  private void registerPivot(
+      SqlValidatorScope parentScope,
+      SqlValidatorScope usingScope,
+      SqlPivot call,
+      SqlNode enclosingNode,
+      String alias,
+      boolean forceNullable) {
+    final PivotNamespace namespace =
+        createPivotNameSpace(call, enclosingNode);
+    registerNamespace(usingScope, alias, namespace, forceNullable);
+
+    final SqlValidatorScope scope =
+        new PivotScope(parentScope, call);
+    scopes.put(call, scope);
+
+    // parse input query
+    SqlNode expr = call.query;
+    SqlNode newExpr = registerFrom(scope, scope, true, expr,
+        expr, null, null, forceNullable, false);
+    if (expr != newExpr) {
+      call.setOperand(0, newExpr);
+    }
+  }
+
+  protected PivotNamespace createPivotNameSpace(SqlPivot call,
+      SqlNode enclosingNode) {
+    return new PivotNamespace(this, call, enclosingNode);
+  }
+
   /**
    * Registers a new namespace, and adds it as a child of its parent scope.
    * Derived class can override this method to tinker with namespaces as they
@@ -2098,6 +2130,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case UNNEST:
       case OTHER_FUNCTION:
       case COLLECTION_TABLE:
+      case PIVOT:
       case MATCH_RECOGNIZE:
 
         // give this anonymous construct a name since later
@@ -2166,10 +2199,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             forceNullable);
       }
       return node;
+
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
           (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
       return node;
+
+    case PIVOT:
+      registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,
+          alias, forceNullable);
+      return node;
+
     case TABLESAMPLE:
       call = (SqlCall) node;
       expr = call.operand(0);
@@ -5342,6 +5382,82 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateExpr(node, scope);
     }
     mr.setOperand(SqlMatchRecognize.OPERAND_PATTERN_DEFINES, list);
+  }
+
+  public void validatePivot(SqlPivot pivot) {
+    final PivotScope scope = (PivotScope) getJoinScope(pivot);
+
+    final PivotNamespace ns =
+        getNamespace(pivot).unwrap(PivotNamespace.class);
+    assert ns.rowType == null;
+
+    // Given
+    //   query PIVOT (agg1 AS a, agg2 AS b, ...
+    //   FOR (axis1, ..., axisN)
+    //   IN ((v11, ..., v1N) AS label1,
+    //       (v21, ..., v2N) AS label2, ...))
+    // the type is
+    //   k1, ... kN, a_label1, b_label1, ..., a_label2, b_label2, ...
+    // where k1, ... kN are columns that are not referenced as an argument to
+    // an aggregate or as an axis.
+
+    // Aggregates, e.g. "PIVOT (sum(x) AS sum_x, count(*) AS c)"
+    final List<Pair<String, RelDataType>> aggNames = new ArrayList<>();
+    pivot.forEachAgg((alias, call) -> {
+      call.validate(this, scope);
+      final RelDataType type = deriveType(scope, call);
+      aggNames.add(Pair.of(alias, type));
+      if (!(call instanceof SqlCall)
+          || !(((SqlCall) call).getOperator() instanceof SqlAggFunction)) {
+        throw newValidationError(call, RESOURCE.pivotAggMalformed());
+      }
+    });
+
+    // Axes, e.g. "FOR (JOB, DEPTNO)"
+    final List<RelDataType> axisTypes = new ArrayList<>();
+    final List<SqlIdentifier> axisIdentifiers = new ArrayList<>();
+    for (SqlNode axis : pivot.axisList) {
+      SqlIdentifier identifier = (SqlIdentifier) axis;
+      identifier.validate(this, scope);
+      final RelDataType type = deriveType(scope, identifier);
+      axisTypes.add(type);
+      axisIdentifiers.add(identifier);
+    }
+
+    // Columns that have been seen as arguments to aggregates or as axes
+    // do not appear in the output.
+    final Set<String> columnNames = pivot.usedColumnNames();
+    final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
+    scope.getChild().getRowType().getFieldList().forEach(field -> {
+      if (!columnNames.contains(field.getName())) {
+        typeBuilder.add(field);
+      }
+    });
+
+    // Values, e.g. "IN (('CLERK', 10) AS c10, ('MANAGER, 20) AS m20)"
+    pivot.forEachNameValues((alias, nodeList) -> {
+      if (nodeList.size() != axisTypes.size()) {
+        throw newValidationError(nodeList,
+            RESOURCE.pivotValueArityMismatch(nodeList.size(),
+                axisTypes.size()));
+      }
+      final SqlOperandTypeChecker typeChecker =
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED;
+      Pair.forEach(axisIdentifiers, nodeList, (identifier, subNode) -> {
+        subNode.validate(this, scope);
+        typeChecker.checkOperandTypes(
+            new SqlCallBinding(this, scope,
+                SqlStdOperatorTable.EQUALS.createCall(
+                    subNode.getParserPosition(), identifier, subNode)),
+            true);
+      });
+      Pair.forEach(aggNames, (aggAlias, aggType) ->
+          typeBuilder.add(aggAlias == null ? alias : alias + "_" + aggAlias,
+              aggType));
+    });
+
+    final RelDataType rowType = typeBuilder.build();
+    ns.setType(rowType);
   }
 
   /** Returns the alias of a "expr AS alias" expression. */

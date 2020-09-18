@@ -3454,6 +3454,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testPivot() {
+    final String sql = "SELECT *\n"
+        + "FROM (SELECT mgr, deptno, job, sal FROM emp)\n"
+        + "PIVOT (SUM(sal) AS ss, COUNT(*)\n"
+        + "    FOR (job, deptno)\n"
+        + "    IN (('CLERK', 10) AS c10, ('MANAGER', 20) AS m20))";
+    sql(sql).ok();
+  }
+
+  @Test void testPivot2() {
+    final String sql = "SELECT *\n"
+        + "FROM   (SELECT deptno, job, sal\n"
+        + "        FROM   emp)\n"
+        + "PIVOT  (SUM(sal) AS sum_sal, COUNT(*) AS \"COUNT\"\n"
+        + "        FOR (job) IN ('CLERK', 'MANAGER' mgr, 'ANALYST' AS \"a\"))\n"
+        + "ORDER BY deptno";
+    sql(sql).ok();
+  }
+
   @Test void testMatchRecognize1() {
     final String sql = "select *\n"
         + "  from emp match_recognize\n"

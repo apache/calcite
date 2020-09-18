@@ -332,6 +332,7 @@ return the `RelBuilder`.
 | `convert(rowType [, rename])` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html) that converts the fields to the given types, optionally also renaming them.
 | `aggregate(groupKey, aggCall...)`<br/>`aggregate(groupKey, aggCallList)` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html).
 | `distinct()` | Creates an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html) that eliminates duplicate records.
+| `pivot(groupKey, aggCalls, axes, values)` | Adds a pivot operation, implemented by generating an [Aggregate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Aggregate.html) with a column for each combination of measures and values
 | `sort(fieldOrdinal...)`<br/>`sort(expr...)`<br/>`sort(exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html).<br/><br/>In the first form, field ordinals are 0-based, and a negative ordinal indicates descending; for example, -2 means field 1 descending.<br/><br/>In the other forms, you can wrap expressions in `as`, `nullsFirst` or `nullsLast`.
 | `sortLimit(offset, fetch, expr...)`<br/>`sortLimit(offset, fetch, exprList)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) with offset and limit.
 | `limit(offset, fetch)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) that does not sort, only applies with offset and limit.

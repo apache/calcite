@@ -84,6 +84,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
@@ -2176,6 +2177,9 @@ SqlNode TableRef2(boolean lateral) :
         tableRef = ExtendedTableRef()
     )
     [
+        tableRef = Pivot(tableRef)
+    ]
+    [
         [ <AS> ] alias = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
@@ -2382,24 +2386,23 @@ SqlNode ExplicitTable(SqlParserPos pos) :
  */
 SqlNode TableConstructor() :
 {
-    SqlNodeList rowConstructorList;
+    final List<SqlNode> rowConstructorList = new ArrayList<SqlNode>();
     final Span s;
 }
 {
     <VALUES> { s = span(); }
-    rowConstructorList = RowConstructorList(s)
+    RowConstructorList(rowConstructorList)
     {
         return SqlStdOperatorTable.VALUES.createCall(
-            s.end(this), rowConstructorList.toArray());
+            s.end(this), rowConstructorList);
     }
 }
 
 /**
  * Parses one or more rows in a VALUES expression.
  */
-SqlNodeList RowConstructorList(Span s) :
+void RowConstructorList(List<SqlNode> list) :
 {
-    List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode rowConstructor;
 }
 {
@@ -2408,9 +2411,6 @@ SqlNodeList RowConstructorList(Span s) :
         LOOKAHEAD(2)
         <COMMA> rowConstructor = RowConstructor() { list.add(rowConstructor); }
     )*
-    {
-        return new SqlNodeList(list, s.end(this));
-    }
 }
 
 /**
@@ -2557,26 +2557,32 @@ SqlNodeList ExpressionCommaList(
     final Span s,
     ExprContext exprContext) :
 {
-    List<SqlNode> list;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    ExpressionCommaList2(list, exprContext) {
+        return new SqlNodeList(list, s.addAll(list).pos());
+    }
+}
+
+/**
+ * Parses a list of expressions separated by commas,
+ * appending expressions to a given list.
+ */
+void ExpressionCommaList2(List<SqlNode> list, ExprContext exprContext) :
+{
     SqlNode e;
 }
 {
-    e = Expression(exprContext)
-    {
-        list = startList(e);
-    }
+    e = Expression(exprContext) { list.add(e); }
     (
         // NOTE jvs 6-Feb-2004:  See comments at top of file for why
         // hint is necessary here.
         LOOKAHEAD(2)
-        <COMMA> e = Expression(ExprContext.ACCEPT_SUB_QUERY)
-        {
+        <COMMA> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
             list.add(e);
         }
     )*
-    {
-        return new SqlNodeList(list, s.addAll(list).pos());
-    }
 }
 
 /**
@@ -2809,6 +2815,71 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     e = Expression(ExprContext.ACCEPT_NON_QUERY) {
         return new SqlSnapshot(s.end(this), tableRef, e);
     }
+}
+
+/** Parses a PIVOT clause following a table expression. */
+SqlNode Pivot(SqlNode tableRef) :
+{
+    final Span s;
+    final Span s2;
+    final List<SqlNode> aggList = new ArrayList<SqlNode>();
+    final List<SqlNode> valueList = new ArrayList<SqlNode>();
+    final SqlNodeList axisList;
+    final SqlNodeList inList;
+}
+{
+    <PIVOT> { s = span(); }
+    <LPAREN>
+    PivotAgg(aggList) ( <COMMA> PivotAgg(aggList) )*
+    <FOR> axisList = SimpleIdentifierOrList()
+    <IN> <LPAREN> { s2 = span(); }
+    [ PivotValue(valueList) ( <COMMA> PivotValue(valueList) )* ]
+    <RPAREN> {
+        inList = new SqlNodeList(valueList, s2.end(this));
+    }
+    <RPAREN>
+    {
+        return new SqlPivot(s.end(this), tableRef,
+            new SqlNodeList(aggList, SqlParserPos.sum(aggList)),
+            axisList, inList);
+    }
+}
+
+void PivotAgg(List<SqlNode> list) :
+{
+    final SqlNode e;
+    final SqlIdentifier alias;
+}
+{
+    e = NamedFunctionCall()
+    (
+        [ <AS> ] alias = SimpleIdentifier() {
+            list.add(
+                SqlStdOperatorTable.AS.createCall(Span.of(e).end(this), e,
+                    alias));
+        }
+    |
+        { list.add(e); }
+    )
+}
+
+void PivotValue(List<SqlNode> list) :
+{
+    final SqlNode e;
+    final SqlNodeList tuple;
+    final SqlIdentifier alias;
+}
+{
+    e = RowConstructor() { tuple = SqlParserUtil.stripRow(e); }
+    (
+        [ <AS> ] alias = SimpleIdentifier() {
+            list.add(
+                SqlStdOperatorTable.AS.createCall(Span.of(tuple).end(this),
+                    tuple, alias));
+        }
+    |
+        { list.add(tuple); }
+    )
 }
 
 /**
@@ -4911,6 +4982,28 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
     SimpleIdentifierCommaList(list)
     <RPAREN> {
         return new SqlNodeList(list, s.end(this));
+    }
+}
+
+/** List of simple identifiers in parentheses or one simple identifier.
+ *
+ * <ul>Examples:
+ * <li>{@code DEPTNO}
+ * <li>{@code (EMPNO, DEPTNO)}
+ * </ul>
+ */
+SqlNodeList SimpleIdentifierOrList() :
+{
+    SqlIdentifier id;
+    SqlNodeList list;
+}
+{
+    id = SimpleIdentifier() {
+        return new SqlNodeList(Collections.singletonList(id), id.getParserPosition());
+    }
+|
+    list = ParenthesizedSimpleIdentifierList() {
+        return list;
     }
 }
 
@@ -7391,6 +7484,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < PERCENT_RANK: "PERCENT_RANK" >
 |   < PERIOD: "PERIOD" >
 |   < PERMUTE: "PERMUTE" >
+|   < PIVOT: "PIVOT" >
 |   < PLACING: "PLACING" >
 |   < PLAN: "PLAN" >
 |   < PLI: "PLI" >

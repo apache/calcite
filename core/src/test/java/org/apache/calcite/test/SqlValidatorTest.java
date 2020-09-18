@@ -1747,6 +1747,135 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "'CARDINALITY\\(<MAP>\\)'");
   }
 
+  @Test void testPivot() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(sal) AS ss FOR job in ('CLERK' AS c, 'MANAGER' AS m))";
+    sql(sql).type("RecordType(INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(20) NOT NULL ENAME, INTEGER MGR,"
+        + " TIMESTAMP(0) NOT NULL HIREDATE, INTEGER NOT NULL COMM,"
+        + " INTEGER NOT NULL DEPTNO, BOOLEAN NOT NULL SLACKER,"
+        + " INTEGER C_SS, INTEGER M_SS) NOT NULL");
+  }
+
+  @Test void testPivot2() {
+    final String sql = "SELECT *\n"
+        + "FROM   (SELECT deptno, job, sal\n"
+        + "        FROM   emp)\n"
+        + "PIVOT  (SUM(sal) AS sum_sal, COUNT(*) AS \"COUNT\"\n"
+        + "        FOR (job) IN ('CLERK', 'MANAGER' mgr, 'ANALYST' AS \"a\"))\n"
+        + "ORDER BY deptno";
+    final String type = "RecordType(INTEGER NOT NULL DEPTNO, "
+        + "INTEGER 'CLERK'_SUM_SAL, BIGINT NOT NULL 'CLERK'_COUNT, "
+        + "INTEGER MGR_SUM_SAL, BIGINT NOT NULL MGR_COUNT, INTEGER a_SUM_SAL, "
+        + "BIGINT NOT NULL a_COUNT) NOT NULL";
+    sql(sql).type(type);
+  }
+
+  @Test void testPivotAliases() {
+    final String sql = "SELECT *\n"
+        + "FROM (\n"
+        + "    SELECT deptno, job, sal FROM   emp)\n"
+        + "PIVOT (SUM(sal) AS ss\n"
+        + "    FOR (job, deptno)\n"
+        + "    IN (('A B'/*C*/||' D', 10),\n"
+        + "        ('MANAGER', null) mgr,\n"
+        + "        ('ANALYST', 30) AS \"a\"))";
+    // Oracle uses parse tree without spaces around '||',
+    //   'A B'||' D'_10_SUM_SAL
+    // but close enough.
+    final String type = "RecordType(INTEGER 'A B' || ' D'_10_SS, "
+        + "INTEGER MGR_SS, INTEGER a_SS) NOT NULL";
+    sql(sql).type(type);
+  }
+
+  @Test void testPivotAggAliases() {
+    final String sql = "SELECT *\n"
+        + "FROM (SELECT deptno, job, sal FROM emp)\n"
+        + "PIVOT (SUM(sal) AS ss, MIN(job)\n"
+        + "    FOR deptno IN (10 AS ten, 20))";
+    final String type = "RecordType(INTEGER TEN_SS, VARCHAR(10) TEN, "
+        + "INTEGER 20_SS, VARCHAR(10) 20) NOT NULL";
+    sql(sql).type(type);
+  }
+
+  @Test void testPivotNoValues() {
+    final String sql = "SELECT *\n"
+        + "FROM (SELECT deptno, sal, job FROM emp)\n"
+        + "PIVOT (sum(sal) AS sum_sal FOR job in ())";
+    sql(sql).type("RecordType(INTEGER NOT NULL DEPTNO) NOT NULL");
+  }
+
+  /** Output only includes columns not referenced in an aggregate or axis. */
+  @Test void testPivotRemoveColumns() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(sal) AS sum_sal, count(comm) AS count_comm,\n"
+        + "      min(hiredate) AS min_hiredate, max(hiredate) AS max_hiredate\n"
+        + "  FOR (job, deptno, slacker, mgr, ename)\n"
+        + "  IN (('CLERK', 10, false, null, ename) AS c10))";
+    sql(sql).type("RecordType(INTEGER NOT NULL EMPNO,"
+        + " INTEGER C10_SUM_SAL, BIGINT NOT NULL C10_COUNT_COMM,"
+        + " TIMESTAMP(0) C10_MIN_HIREDATE,"
+        + " TIMESTAMP(0) C10_MAX_HIREDATE) NOT NULL");
+  }
+
+  @Test void testPivotInvalidCol() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(^invalid^) AS sal FOR job in ('CLERK' AS c, 'MANAGER'))";
+    sql(sql).fails("Column 'INVALID' not found in any table");
+  }
+
+  @Test void testPivotInvalidCol2() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(sal) AS sal FOR (job, ^invalid^) in (('CLERK', 'x') AS c))";
+    sql(sql).fails("Column 'INVALID' not found in any table");
+  }
+
+  @Test void testPivotMeasureMustBeAgg() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sal ^+^ 1 AS sal1 FOR job in ('CLERK' AS c, 'MANAGER'))";
+    sql(sql).fails("(?s).*Encountered \"\\+\" at .*");
+
+    final String sql2 = "SELECT * FROM emp\n"
+        + "PIVOT (^log10(sal)^ AS logSal FOR job in ('CLERK' AS c, 'MANAGER'))";
+    sql(sql2).fails("Measure expression in PIVOT must use aggregate function");
+
+    final String sql3 = "SELECT * FROM emp\n"
+        + "PIVOT (^123^ AS logSal FOR job in ('CLERK' AS c, 'MANAGER'))";
+    sql(sql3).fails("(?s).*Encountered \"123\" at .*");
+  }
+
+  /** Tests an expression as argument to an aggregate function in a PIVOT.
+   * Both of the columns referenced ({@code sum} and {@code deptno}) are removed
+   * from the implicit GROUP BY. */
+  @Test void testPivotAggExpression() {
+    final String sql = "SELECT * FROM (SELECT sal, deptno, job, mgr FROM Emp)\n"
+        + "PIVOT (sum(sal + deptno + 1)\n"
+        + "   FOR job in ('CLERK' AS c, 'ANALYST' AS a))";
+    sql(sql).type("RecordType(INTEGER MGR, INTEGER C, INTEGER A) NOT NULL");
+  }
+
+  @Test void testPivotValueMismatch() {
+    final String sql = "SELECT * FROM Emp\n"
+        + "PIVOT (SUM(sal) FOR job IN (^('A', 'B')^, ('C', 'D')))";
+    sql(sql).fails("Value count in PIVOT \\(2\\) must match number of "
+        + "FOR columns \\(1\\)");
+
+    final String sql2 = "SELECT * FROM Emp\n"
+        + "PIVOT (SUM(sal) FOR job IN (^('A', 'B')^ AS x, ('C', 'D')))";
+    sql(sql2).fails("Value count in PIVOT \\(2\\) must match number of "
+        + "FOR columns \\(1\\)");
+
+    final String sql3 = "SELECT * FROM Emp\n"
+        + "PIVOT (SUM(sal) FOR (job) IN (^('A', 'B')^))";
+    sql(sql3).fails("Value count in PIVOT \\(2\\) must match number of "
+        + "FOR columns \\(1\\)");
+
+    final String sql4 = "SELECT * FROM Emp\n"
+        + "PIVOT (SUM(sal) FOR (job, deptno) IN (^'CLERK'^, 10))";
+    sql(sql4).fails("Value count in PIVOT \\(1\\) must match number of "
+        + "FOR columns \\(2\\)");
+  }
+
   @Test void testMatchRecognizeWithDistinctAggregation() {
     final String sql = "SELECT *\n"
         + "FROM emp\n"

@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -46,6 +47,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
 
@@ -542,6 +544,20 @@ public final class SqlParserUtil {
 
   public static SqlNode[] toNodeArray(SqlNodeList list) {
     return list.toArray();
+  }
+
+  /** Converts "ROW (1, 2)" to "(1, 2)"
+   * and "3" to "(3)". */
+  public static SqlNodeList stripRow(SqlNode n) {
+    final List<SqlNode> list;
+    switch (n.getKind()) {
+    case ROW:
+      list = ((SqlCall) n).getOperandList();
+      break;
+    default:
+      list = ImmutableList.of(n);
+    }
+    return new SqlNodeList(list, n.getParserPosition());
   }
 
   @Deprecated // to be removed before 2.0

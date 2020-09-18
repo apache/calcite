@@ -2793,6 +2793,88 @@ public class RelBuilder {
     return this;
   }
 
+  /** Creates a Pivot.
+   *
+   * <p>To achieve the same effect as the SQL
+   *
+   * <blockquote><pre>{@code
+   * SELECT *
+   * FROM (SELECT mgr, deptno, job, sal FROM emp)
+   * PIVOT (SUM(sal) AS ss, COUNT(*) AS c
+   *     FOR (job, deptno)
+   *     IN (('CLERK', 10) AS c10, ('MANAGER', 20) AS m20))
+   * }</pre></blockquote>
+   *
+   * <p>use the builder as follows:
+   *
+   * <blockquote><pre>{@code
+   * RelBuilder b;
+   * b.scan("EMP");
+   * final RelBuilder.GroupKey groupKey = b.groupKey("MGR");
+   * final List<RelBuilder.AggCall> aggCalls =
+   *     Arrays.asList(b.sum(b.field("SAL")).as("SS"),
+   *         b.count().as("C"));
+   * final List<RexNode> axes =
+   *     Arrays.asList(b.field("JOB"),
+   *         b.field("DEPTNO"));
+   * final ImmutableMap.Builder<String, List<RexNode>> valueMap =
+   *     ImmutableMap.builder();
+   * valueMap.put("C10",
+   *     Arrays.asList(b.literal("CLERK"), b.literal(10)));
+   * valueMap.put("M20",
+   *     Arrays.asList(b.literal("MANAGER"), b.literal(20)));
+   * b.pivot(groupKey, aggCalls, axes, valueMap.build().entrySet());
+   * }</pre></blockquote>
+   *
+   * <p>Note that the SQL uses a sub-query to project away columns (e.g.
+   * {@code HIREDATE}) that it does not reference, so that they do not appear in
+   * the {@code GROUP BY}. You do not need to do that in this API, because the
+   * {@code groupKey} parameter specifies the keys.
+   *
+   * <p>Pivot is implemented by desugaring. The above example becomes the
+   * following:
+   *
+   * <blockquote><pre>{@code
+   * SELECT mgr,
+   *     SUM(sal) FILTER (WHERE job = 'CLERK' AND deptno = 10) AS c10_ss,
+   *     COUNT(*) FILTER (WHERE job = 'CLERK' AND deptno = 10) AS c10_c,
+   *     SUM(sal) FILTER (WHERE job = 'MANAGER' AND deptno = 20) AS m20_ss,
+   *      COUNT(*) FILTER (WHERE job = 'MANAGER' AND deptno = 20) AS m20_c
+   * FROM emp
+   * GROUP BY mgr
+   * }</pre></blockquote>
+   *
+   * @param groupKey Key columns
+   * @param aggCalls Aggregate expressions to compute for each value
+   * @param axes Columns to pivot
+   * @param values Values to pivot, and the alias for each column group
+   *
+   * @return this RelBuilder
+   */
+  public RelBuilder pivot(GroupKey groupKey,
+      Iterable<? extends AggCall> aggCalls,
+      Iterable<? extends RexNode> axes,
+      Iterable<? extends Map.Entry<String,
+          ? extends Iterable<? extends RexNode>>> values) {
+    final List<RexNode> axisList = ImmutableList.copyOf(axes);
+    final List<AggCall> multipliedAggCalls = new ArrayList<>();
+    Pair.forEach(values, (alias, expressions) -> {
+      final List<RexNode> expressionList = ImmutableList.copyOf(expressions);
+      if (expressionList.size() != axisList.size()) {
+        throw new IllegalArgumentException("value count must match axis count ["
+            + expressionList + "], [" + axisList + "]");
+      }
+      aggCalls.forEach(aggCall -> {
+        final String alias2 = alias + "_" + ((AggCallPlus) aggCall).alias();
+        final List<RexNode> filters = new ArrayList<>();
+        Pair.forEach(axisList, expressionList, (axis, expression) ->
+            filters.add(equals(axis, expression)));
+        multipliedAggCalls.add(aggCall.filter(and(filters)).as(alias2));
+      });
+    });
+    return aggregate(groupKey, multipliedAggCalls);
+  }
+
   /**
    * Attaches an array of hints to the stack top relational expression.
    *
@@ -2878,6 +2960,9 @@ public class RelBuilder {
   private interface AggCallPlus extends AggCall {
     /** Returns the aggregate function. */
     SqlAggFunction op();
+
+    /** Returns the alias. */
+    String alias();
 
     /** Returns an {@link AggregateCall} that is approximately equivalent
      * to this {@code AggCall} and is good for certain things, such as deriving
@@ -2999,6 +3084,10 @@ public class RelBuilder {
       return aggFunction;
     }
 
+    @Override public String alias() {
+      return alias;
+    }
+
     @Override public AggregateCall aggregateCall() {
       return AggregateCall.create(aggFunction, distinct, approximate,
           ignoreNulls, ImmutableList.of(), -1, null, null, alias);
@@ -3103,6 +3192,10 @@ public class RelBuilder {
 
     @Override public SqlAggFunction op() {
       return aggregateCall.getAggregation();
+    }
+
+    @Override public String alias() {
+      return aggregateCall.name;
     }
 
     @Override public AggregateCall aggregateCall() {

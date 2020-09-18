@@ -4820,6 +4820,42 @@ LogicalProject(C1=[COUNT() OVER (ORDER BY $7)], C2=[COUNT() OVER (ORDER BY $7)],
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPivot">
+        <Resource name="sql">
+            <![CDATA[SELECT *
+FROM (SELECT mgr, deptno, job, sal FROM emp)
+PIVOT (SUM(sal) AS ss, COUNT(*)
+    FOR (job, deptno)
+    IN (('CLERK', 10) AS c10, ('MANAGER', 20) AS m20))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(MGR=[$0], C10_SS=[$1], C10=[$2], M20_SS=[$3], M20=[$4])
+  LogicalAggregate(group=[{0}], C10_SS=[SUM($3) FILTER $4], C10_null=[COUNT() FILTER $4], M20_SS=[SUM($3) FILTER $5], M20_null=[COUNT() FILTER $5])
+    LogicalProject(MGR=[$3], JOB=[$2], DEPTNO=[$7], SAL=[$5], $f4=[AND(=($2, 'CLERK'), =($7, 10))], $f5=[AND(=($2, 'MANAGER'), =($7, 20))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPivot2">
+        <Resource name="sql">
+            <![CDATA[SELECT *
+FROM   (SELECT deptno, job, sal
+        FROM   emp)
+PIVOT  (SUM(sal) AS sum_sal, COUNT(*) AS "COUNT"
+        FOR (job) IN ('CLERK', 'MANAGER' mgr, 'ANALYST' AS "a"))
+ORDER BY deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(DEPTNO=[$0], 'CLERK'_SUM_SAL=[$1], 'CLERK'_COUNT=[$2], MGR_SUM_SAL=[$3], MGR_COUNT=[$4], a_SUM_SAL=[$5], a_COUNT=[$6])
+    LogicalAggregate(group=[{0}], 'CLERK'_SUM_SAL=[SUM($2) FILTER $3], 'CLERK'_COUNT=[COUNT() FILTER $3], MGR_SUM_SAL=[SUM($2) FILTER $4], MGR_COUNT=[COUNT() FILTER $4], a_SUM_SAL=[SUM($2) FILTER $5], a_COUNT=[COUNT() FILTER $5])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], $f3=[=($2, 'CLERK')], $f4=[=($2, 'MANAGER')], $f5=[=($2, 'ANALYST')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushDownJoinCondition">
         <Resource name="sql">
             <![CDATA[select *

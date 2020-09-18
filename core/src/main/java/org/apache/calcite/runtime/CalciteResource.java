@@ -723,6 +723,12 @@ public interface CalciteResource {
   @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
   ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
 
+  @BaseMessage("Measure expression in PIVOT must use aggregate function")
+  ExInst<SqlValidatorException> pivotAggMalformed();
+
+  @BaseMessage("Value count in PIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  ExInst<SqlValidatorException> pivotValueArityMismatch(int valueCount, int forCount);
+
   @BaseMessage("Pattern variable ''{0}'' has already been defined")
   ExInst<SqlValidatorException> patternVarAlreadyDefined(String varName);
 

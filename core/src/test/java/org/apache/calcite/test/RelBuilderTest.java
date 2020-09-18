@@ -3100,6 +3100,49 @@ public class RelBuilderTest {
     }
   }
 
+  @Test void testPivot() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM (SELECT mgr, deptno, job, sal FROM emp)
+    //   PIVOT (SUM(sal) AS ss, COUNT(*) AS c
+    //       FOR (job, deptno)
+    //       IN (('CLERK', 10) AS c10, ('MANAGER', 20) AS m20))
+    //
+    // translates to
+    //   SELECT mgr,
+    //     SUM(sal) FILTER (WHERE job = 'CLERK' AND deptno = 10) AS c10_ss,
+    //     COUNT(*) FILTER (WHERE job = 'CLERK' AND deptno = 10) AS c10_c,
+    //     SUM(sal) FILTER (WHERE job = 'MANAGER' AND deptno = 20) AS m20_ss,
+    //     COUNT(*) FILTER (WHERE job = 'MANAGER' AND deptno = 20) AS m20_c
+    //   FROM emp
+    //   GROUP BY mgr
+    //
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .pivot(b.groupKey("MGR"),
+                Arrays.asList(
+                    b.sum(b.field("SAL")).as("SS"),
+                    b.count().as("C")),
+                b.fields(Arrays.asList("JOB", "DEPTNO")),
+                ImmutableMap.<String, List<RexNode>>builder()
+                    .put("C10",
+                        Arrays.asList(b.literal("CLERK"), b.literal(10)))
+                    .put("M20",
+                        Arrays.asList(b.literal("MANAGER"), b.literal(20)))
+                    .build()
+                    .entrySet())
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{0}], C10_SS=[SUM($1) FILTER $2], "
+        + "C10_C=[COUNT() FILTER $2], M20_SS=[SUM($1) FILTER $3], "
+        + "M20_C=[COUNT() FILTER $3])\n"
+        + "  LogicalProject(MGR=[$3], SAL=[$5], "
+        + "$f8=[IS TRUE(AND(=($2, 'CLERK'), =($7, 10)))], "
+        + "$f9=[IS TRUE(AND(=($2, 'MANAGER'), =($7, 20)))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testMatchRecognize() {
     // Equivalent SQL:
     //   SELECT *
