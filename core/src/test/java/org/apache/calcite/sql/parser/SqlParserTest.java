@@ -3857,6 +3857,15 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testExplainAsDot() {
+    final String sql = "explain plan as dot for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS DOT FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testExplainAsJson() {
     final String sql = "explain plan as json for select * from emps";
     final String expected = "EXPLAIN PLAN"

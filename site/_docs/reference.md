@@ -140,7 +140,7 @@ explain:
       EXPLAIN PLAN
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
-      [ AS JSON | AS XML ]
+      [ AS JSON | AS XML | AS DOT ]
       FOR ( query | insert | update | merge | delete )
 
 describe:
@@ -532,6 +532,7 @@ DIAGNOSTICS,
 DISPATCH,
 **DISTINCT**,
 DOMAIN,
+DOT,
 **DOUBLE**,
 DOW,
 DOY,
