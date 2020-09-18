@@ -101,6 +101,7 @@ parser: {
     "DOMAIN"
     "DOW"
     "DOY"
+    "DOT_FORMAT"
     "DYNAMIC_FUNCTION"
     "DYNAMIC_FUNCTION_CODE"
     "ENCODING"

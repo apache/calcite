@@ -104,6 +104,8 @@ import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -255,6 +257,10 @@ public class JdbcTest {
 
   public static List<Pair<String, String>> getFoodmartQueries() {
     return FOODMART_QUERIES;
+  }
+
+  static Stream<String> explainFormats() {
+    return Stream.of("text", "dot");
   }
 
   /** Tests a modifiable view. */
@@ -2791,16 +2797,40 @@ public class JdbcTest {
    * Tests that even though trivial "rename columns" projection is removed,
    * the query still returns proper column names.
    */
-  @Test void testUnionWithSameColumnNames() {
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testUnionWithSameColumnNames(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableCalc\\nexpr#0..3 = {inputs}\\ndeptno = $t0\\ndeptno0 = $t0\\n\" -> "
+          + "\"EnumerableUnion\\nall = false\\n\" [label=\"0\"]\n"
+          +  "\"EnumerableCalc\\nexpr#0..4 = {inputs}\\ndeptno = $t1\\nempid = $t0\\n\" -> "
+          + "\"EnumerableUnion\\nall = false\\n\" [label=\"1\"]\n"
+          + "\"EnumerableTableScan\\ntable = [hr, depts]\\n\" -> \"EnumerableCalc\\nexpr#0..3 = "
+          + "{inputs}\\ndeptno = $t0\\ndeptno0 = $t0\\n\" [label=\"0\"]\n"
+          + "\"EnumerableTableScan\\ntable = [hr, emps]\\n\" -> \"EnumerableCalc\\nexpr#0..4 = "
+          + "{inputs}\\ndeptno = $t1\\nempid = $t0\\n\" [label=\"0\"]\n"
+          + "}\n"
+          + "\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = ""
+          + "PLAN=EnumerableUnion(all=[false])\n"
+          + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
+          + "    EnumerableTableScan(table=[[hr, depts]])\n"
+          + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], empid=[$t0])\n"
+          + "    EnumerableTableScan(table=[[hr, emps]])\n";
+      extra = "";
+      break;
+    }
     CalciteAssert.hr()
         .query(
             "select \"deptno\", \"deptno\" from \"hr\".\"depts\" union select \"deptno\", \"empid\" from \"hr\".\"emps\"")
-        .explainContains(""
-            + "PLAN=EnumerableUnion(all=[false])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
-            + "    EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], empid=[$t0])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])\n")
+        .explainMatches(extra, CalciteAssert.checkResultContains(expected))
         .returnsUnordered(
             "deptno=10; deptno=110",
             "deptno=10; deptno=10",
@@ -2812,17 +2842,46 @@ public class JdbcTest {
   }
 
   /** Tests inner join to an inline table ({@code VALUES} clause). */
-  @Test void testInnerJoinValues() {
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testInnerJoinValues(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "text":
+      expected = "EnumerableAggregate(group=[{0, 3}])\n"
+          + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
+          + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
+          + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+          + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n";
+      extra = "";
+      break;
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
+          + "\\njoinType = inner\\n\" -> \"EnumerableAggregate\\ngroup = {0, 3}\\n\" "
+          + "[label=\"0\"]\n"
+          + "\"EnumerableTableScan\\ntable = [SALES, EMPS\\n]\\n\" -> "
+          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
+          + "\\njoinType = inner\\n\" [label=\"0\"]\n"
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'SameName'\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> "
+          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
+          + "\\njoinType = inner\\n\" [label=\"1\"]\n"
+          + "\"EnumerableValues\\ntuples = [{ 10, 'Sam\\neName' }]\\n\" -> "
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'SameName'\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "}\n"
+          + "\n";
+      extra = " as dot ";
+      break;
+    }
     CalciteAssert.that()
         .with(CalciteAssert.Config.LINGUAL)
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .explainContains("EnumerableAggregate(group=[{0, 3}])\n"
-            + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
-            + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
-            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
+        .explainMatches(extra, CalciteAssert.checkResultContains(expected))
         .returns("EMPNO=1; DESC=SameName\n");
   }
 
@@ -3680,7 +3739,28 @@ public class JdbcTest {
   }
 
   /** Tests sorting by a column that is already sorted. */
-  @Test void testOrderByOnSortedTable2() {
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testOrderByOnSortedTable2(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "text":
+      expected = ""
+          + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
+          + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n";
+      extra = "";
+      break;
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableTableScan\\ntable = [foodmart2, \\ntime_by_day]\\n\" -> "
+          + "\"EnumerableCalc\\nexpr#0..9 = {inputs}\\nexpr#10 = 370\\nexpr#11 = <($t0, $t1\\n0)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t11\" [label=\"0\"]\n"
+          + "}\n"
+          + "\n";
+      extra = " as dot ";
+      break;
+    }
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"time_id\", \"the_date\" from \"time_by_day\"\n"
@@ -3689,9 +3769,7 @@ public class JdbcTest {
         .returns("time_id=367; the_date=1997-01-01 00:00:00\n"
             + "time_id=368; the_date=1997-01-02 00:00:00\n"
             + "time_id=369; the_date=1997-01-03 00:00:00\n")
-        .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
-            + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n");
+        .explainMatches(extra, CalciteAssert.checkResultContains(expected));
   }
 
   @Test void testWithInsideWhereExists() {

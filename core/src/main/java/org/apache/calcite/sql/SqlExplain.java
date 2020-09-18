@@ -202,6 +202,9 @@ public class SqlExplain extends SqlCall {
     case JSON:
       writer.keyword("AS JSON");
       break;
+    case DOT:
+      writer.keyword("AS DOT");
+      break;
     default:
     }
     writer.keyword("FOR");

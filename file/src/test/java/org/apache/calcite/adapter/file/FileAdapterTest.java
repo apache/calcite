@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -40,6 +42,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
 
@@ -55,6 +58,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @ExtendWith(RequiresNetworkExtension.class)
 class FileAdapterTest {
+
+  static Stream<String> explainFormats() {
+    return Stream.of("text", "dot");
+  }
+
   /** Reads from a local file and checks the result. */
   @Test void testFileSelect() {
     final String sql = "select H1 from T1 where H0 = 'R1C0'";
@@ -344,38 +352,92 @@ class FileAdapterTest {
         .ok();
   }
 
-  @Test void testPushDownProjectAggregate() {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregate(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [3]\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {0}\\nEXPR$1 = COUNT()\\n\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+          + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + " for\n"
         + "select gender, count(*) from EMPS group by gender";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
-        + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test void testPushDownProjectAggregateWithFilter() {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregateWithFilter(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> \"EnumerableAggregate\\ngroup = "
+          + "{}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\n\" -> "
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
+          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
+          + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + " for\n"
         + "select max(empno) from EMPS where gender='F'";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
-        + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test void testPushDownProjectAggregateNested() {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregateNested(String format) {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {1}\\nEXPR$1 = MAX($2)\\n\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [1, 3]\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
+          + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
+          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + " for\n"
         + "select gender, max(qty)\n"
         + "from (\n"
         + "  select name, gender, count(*) qty\n"
         + "  from EMPS\n"
         + "  group by name, gender) t\n"
         + "group by gender";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
-        + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
-        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
