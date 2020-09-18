@@ -1184,9 +1184,7 @@ public abstract class SqlImplementor {
       return node;
     }
 
-    public SqlImplementor implementor() {
-      throw new UnsupportedOperationException();
-    }
+    public abstract SqlImplementor implementor();
 
     /** Converts a {@link Range} to a SQL expression.
      *
@@ -1355,6 +1353,10 @@ public abstract class SqlImplementor {
     public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field) {
       super(dialect, 0, false);
       this.field = field;
+    }
+
+    @Override public SqlImplementor implementor() {
+      throw new UnsupportedOperationException();
     }
 
     public SqlNode field(int ordinal) {
@@ -1588,7 +1590,11 @@ public abstract class SqlImplementor {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias();
         newContext = new Context(dialect, selectList.size()) {
-          public SqlNode field(int ordinal) {
+          @Override public SqlImplementor implementor() {
+            return SqlImplementor.this;
+          }
+
+          @Override public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:

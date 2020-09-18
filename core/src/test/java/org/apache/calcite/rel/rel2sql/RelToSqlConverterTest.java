@@ -2474,6 +2474,21 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testCaseOnSubQuery() {
+    String query = "SELECT CASE WHEN v.g IN (0, 1) THEN 0 ELSE 1 END\n"
+        + "FROM (SELECT * FROM \"foodmart\".\"customer\") AS c,\n"
+        + "  (SELECT 0 AS g) AS v\n"
+        + "GROUP BY v.g";
+    final String expected = "SELECT"
+        + " CASE WHEN \"t1\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t\",\n"
+        + "(SELECT 0 AS \"G\"\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")) AS \"t1\"\n"
+        + "GROUP BY \"t1\".\"G\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testSimpleIn() {
     String query = "select * from \"department\" where \"department_id\" in (\n"
         + "  select \"department_id\" from \"employee\"\n"
