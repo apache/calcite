@@ -92,16 +92,17 @@ public class EnumerableBatchNestedLoopJoinRule
     final RelBuilder relBuilder = call.builder();
 
     final Set<CorrelationId> correlationIds = new HashSet<>();
-    final ArrayList<RexNode> corrVar = new ArrayList<>();
+    final List<RexNode> corrVarList = new ArrayList<>();
 
     final int batchSize = config.batchSize();
     for (int i = 0; i < batchSize; i++) {
       CorrelationId correlationId = cluster.createCorrel();
       correlationIds.add(correlationId);
-      corrVar.add(
+      corrVarList.add(
           rexBuilder.makeCorrel(join.getLeft().getRowType(),
               correlationId));
     }
+    final RexNode corrVar0 = corrVarList.get(0);
 
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
 
@@ -114,11 +115,11 @@ public class EnumerableBatchNestedLoopJoinRule
               input.getIndex() - leftFieldCount);
         }
         requiredColumns.set(field);
-        return rexBuilder.makeFieldAccess(corrVar.get(0), field);
+        return rexBuilder.makeFieldAccess(corrVar0, field);
       }
     });
 
-    List<RexNode> conditionList = new ArrayList<>();
+    final List<RexNode> conditionList = new ArrayList<>();
     conditionList.add(condition);
 
     // Add batchSize-1 other conditions
@@ -126,7 +127,7 @@ public class EnumerableBatchNestedLoopJoinRule
       final int corrIndex = i;
       final RexNode condition2 = condition.accept(new RexShuttle() {
         @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
-          return corrVar.get(corrIndex);
+          return variable.equals(corrVar0) ? corrVarList.get(corrIndex) : variable;
         }
       });
       conditionList.add(condition2);
@@ -134,9 +135,8 @@ public class EnumerableBatchNestedLoopJoinRule
 
     // Push a filter with batchSize disjunctions
     relBuilder.push(join.getRight()).filter(relBuilder.or(conditionList));
-    RelNode right = relBuilder.build();
+    final RelNode right = relBuilder.build();
 
-    JoinRelType joinType = join.getJoinType();
     call.transformTo(
         EnumerableBatchNestedLoopJoin.create(
             convert(join.getLeft(), join.getLeft().getTraitSet()
@@ -146,7 +146,7 @@ public class EnumerableBatchNestedLoopJoinRule
             join.getCondition(),
             requiredColumns.build(),
             correlationIds,
-            joinType));
+            join.getJoinType()));
   }
 
   /** Rule configuration. */
