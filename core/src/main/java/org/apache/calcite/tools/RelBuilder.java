@@ -2617,7 +2617,7 @@ public class RelBuilder {
 
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
-    if (offsetNode == null && fetch == 0) {
+    if (offsetNode == null && fetch == 0 && config.simplifyLimit()) {
       return empty();
     }
     if (offsetNode == null && fetchNode == null && fieldCollations.isEmpty()) {
@@ -3386,6 +3386,14 @@ public class RelBuilder {
 
     /** Sets {@link #simplify}. */
     Config withSimplify(boolean simplify);
+
+    /** Whether to simplify LIMIT 0 to an empty relation; default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean simplifyLimit();
+
+    /** Sets {@link #simplifyLimit()}. */
+    Config withSimplifyLimit(boolean simplifyLimit);
 
     /** Whether to create an Aggregate even if we know that the input is
      * already unique; default false. */
