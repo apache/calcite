@@ -2938,13 +2938,19 @@ public class RelBuilderTest {
     //   SELECT *
     //   FROM emp
     //   ORDER BY deptno DESC FETCH 0
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .sortLimit(-1, 0, builder.desc(builder.field("DEPTNO")))
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .sortLimit(-1, 0, b.desc(b.field("DEPTNO")))
             .build();
     final String expected = "LogicalValues(tuples=[[]])\n";
-    assertThat(root, hasTree(expected));
+    final String expectedNoSimplify = ""
+        + "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplifyLimit(true))),
+        hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplifyLimit(false))),
+        hasTree(expectedNoSimplify));
   }
 
   /** Test case for
