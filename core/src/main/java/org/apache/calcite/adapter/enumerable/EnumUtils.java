@@ -61,10 +61,11 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -856,7 +857,7 @@ public class EnumUtils {
     private final int indexOfWatermarkedColumn;
     private final int indexOfKeyColumn;
     private final long gap;
-    private LinkedList<Object[]> list;
+    private final Deque<Object[]> list;
     private boolean initialized;
 
     /**
@@ -874,7 +875,7 @@ public class EnumUtils {
       this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
       this.indexOfKeyColumn = indexOfKeyColumn;
       this.gap = gap;
-      list = new LinkedList<>();
+      list = new ArrayDeque<>();
       initialized = false;
     }
 
@@ -998,7 +999,7 @@ public class EnumUtils {
     private final long emitFrequency;
     private final long windowSize;
     private final long offset;
-    private LinkedList<Object[]> list;
+    private final Deque<Object[]> list;
 
     /**
      * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
@@ -1016,7 +1017,7 @@ public class EnumUtils {
       this.emitFrequency = slide;
       this.windowSize = windowSize;
       this.offset = offset;
-      list = new LinkedList<>();
+      list = new ArrayDeque<>();
     }
 
     public Object[] current() {
