@@ -56,6 +56,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -1358,6 +1360,7 @@ public class RexBuilder {
 
   /** Converts a list of expressions to a search argument, or returns null if
    * not possible. */
+  @SuppressWarnings("UnstableApiUsage")
   private static <C extends Comparable<C>> Sarg<C> toSarg(Class<C> clazz,
       List<? extends RexNode> ranges, boolean containsNull) {
     if (ranges.isEmpty()) {
@@ -1365,15 +1368,15 @@ public class RexBuilder {
       // because we use the type of the first element.
       return null;
     }
-    final ImmutableRangeSet.Builder<C> b = ImmutableRangeSet.builder();
+    final RangeSet<C> rangeSet = TreeRangeSet.create();
     for (RexNode range : ranges) {
       final C value = toComparable(clazz, range);
       if (value == null) {
         return null;
       }
-      b.add(Range.singleton(value));
+      rangeSet.add(Range.singleton(value));
     }
-    return Sarg.of(containsNull, b.build());
+    return Sarg.of(containsNull, rangeSet);
   }
 
   private static <C extends Comparable<C>> C toComparable(Class<C> clazz,
