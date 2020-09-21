@@ -184,6 +184,12 @@ class SqlTypeUtilTest {
     assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
   }
 
+  @Test public void testGetMaxPrecisionScaleDecimal() {
+    RelDataType decimal = SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory);
+    assertThat(decimal, is(f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 9)));
+  }
+
+
   private RelDataType struct(RelDataType...relDataTypes) {
     final RelDataTypeFactory.Builder builder = f.typeFactory.builder();
     for (int i = 0; i < relDataTypes.length; i++) {
