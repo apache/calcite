@@ -20,7 +20,6 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.*;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -38,13 +37,12 @@ import org.apache.calcite.util.Pair;
 
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class ArrowTable extends AbstractTable implements TranslatableTable, QueryableTable {
 
   private final RelProtoDataType protoRowType;
-  private VectorSchemaRoot[] vectorSchemaRoots;
+  private final VectorSchemaRoot[] vectorSchemaRoots;
 
   public ArrowTable(VectorSchemaRoot[] vectorSchemaRoots, UInt4Vector intVector, RelProtoDataType protoRowType) {
     this.vectorSchemaRoots = vectorSchemaRoots;
@@ -62,15 +60,13 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> project(final DataContext root, final int[] fields) {
-    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return null;
+  public ArrowEnumerator project(final int[] fields) {
+    return new ArrowEnumerator(this.vectorSchemaRoots, fields);
   }
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
                                       SchemaPlus schema, String tableName) {
     throw new UnsupportedOperationException();
-
   }
 
   public Type getElementType() {
