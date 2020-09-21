@@ -191,10 +191,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
-  static {
-    System.setProperty("calcite.enable.regenerate.metadata.handler", "false");
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   // ----------------------------------------------------------------------
@@ -3138,13 +3134,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
         is("=($0, $1)"));
   }
 
+
+  /**
+   * Custom rel node for testing.
+   */
   static class CustomRel extends AbstractRelNode {
     CustomRel(RelOptCluster cluster, RelTraitSet traits) {
       super(cluster, traits);
     }
   }
 
+  @Disabled("This test must be run alone (e.g. in an IDE), as it may change some global"
+      + " settings which causes other tests to fail.")
   @Test void testRegenerateHandler() {
+    // disable the regeneration flag
+    JaninoRelMetadataProvider.MetadataHandlerRegeneration.enableHandlerRegeneration(false);
+
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     RelNode filter = builder
@@ -3159,12 +3164,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode customRel = new CustomRel(filter.getCluster(), filter.getTraitSet());
 
     // get row size for an unknown type of rel node, exception will be thrown
-    if (!CalciteSystemProperty.ENABLE_REGENERATE_METADATA_HANDLER.value()) {
-      IllegalArgumentException exp = assertThrows(IllegalArgumentException.class,
-          () -> mq.getAverageRowSize(customRel));
+    IllegalArgumentException exp = assertThrows(IllegalArgumentException.class,
+        () -> mq.getAverageRowSize(customRel));
 
-      assertEquals("Metadata handler already exists for Size", exp.getMessage());
-    }
+    assertEquals("Metadata handler already exists for Size", exp.getMessage());
+
+    // set the flag more than once will cause an exception
+    IllegalStateException exp1 = assertThrows(IllegalStateException.class,
+        () -> JaninoRelMetadataProvider
+            .MetadataHandlerRegeneration.enableHandlerRegeneration(true));
+    assertEquals("The flag of metadata handler regeneration has been set", exp1.getMessage());
   }
 
   /**

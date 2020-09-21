@@ -196,11 +196,10 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private static <M extends Metadata> MetadataHandler<M> checkAndLoad(
       MetadataDef<M> def, Multimap<Method, MetadataHandler<M>> map,
       ImmutableList<Class<? extends RelNode>> relClasses) {
-    boolean enableRegenerateHandler =
-        CalciteSystemProperty.ENABLE_REGENERATE_METADATA_HANDLER.value();
     String handlerName = def.metadataClass.getSimpleName();
     synchronized (HANDLERS_GENERATED) {
-      if (!enableRegenerateHandler && !HANDLERS_GENERATED.add(handlerName)) {
+      if (!MetadataHandlerRegeneration.enableHandlerRegeneration()
+          && !HANDLERS_GENERATED.add(handlerName)) {
         throw new IllegalArgumentException("Metadata handler already exists for " + handlerName);
       }
       return load3(def, map, relClasses);
@@ -555,6 +554,44 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           && ((Key) obj).def.equals(def)
           && ((Key) obj).provider.equals(provider)
           && ((Key) obj).relClasses.equals(relClasses);
+    }
+  }
+
+  /**
+   * The purpose of this class is to hold a flag that determines if
+   * it is allowed to regenerate metadata handlers.
+   */
+  public static class MetadataHandlerRegeneration {
+
+    private static Boolean enableHandlerRegeneration = null;
+
+    /**
+     * Sets the flag that determines if it is allowed to
+     * regenerate metadata handlers.
+     *
+     * <p>
+     *   Note that this method can be called at most once, calling it more than once
+     *   will cause an exception. After a {@link JaninoRelMetadataProvider} object is created,
+     *   calling this method will have no effect on the behavior of that object.
+     * </p>
+     * @param value the flag value.
+     */
+    public static void enableHandlerRegeneration(boolean value) {
+      if (enableHandlerRegeneration != null) {
+        throw new IllegalStateException("The flag of metadata handler regeneration has been set");
+      }
+      enableHandlerRegeneration = value;
+    }
+
+    /**
+     * Checks if it is allowed to regenerate metadata handlers.
+     * The default value is true.
+     */
+    public static boolean enableHandlerRegeneration() {
+      if (enableHandlerRegeneration == null) {
+        enableHandlerRegeneration = true;
+      }
+      return enableHandlerRegeneration.booleanValue();
     }
   }
 }
