@@ -826,7 +826,8 @@ class RelToSqlConverterTest {
         .build();
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" IN (0, 1, 2, 3) AND \"DEPTNO\" IN (5, 6, 7)";
+        + "WHERE \"EMPNO\" >= 0 AND \"EMPNO\" <= 3 AND (\"DEPTNO\" >= 5 AND "
+        + "\"DEPTNO\" <= 7)";
     relFn(relFn).ok(expected);
   }
 

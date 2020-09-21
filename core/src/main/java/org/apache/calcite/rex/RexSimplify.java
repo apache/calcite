@@ -1902,7 +1902,7 @@ public class RexSimplify {
         final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
         if (simplified != null
             && simplified.isAlwaysFalse()) {
-          final Sarg sarg2 = Sarg.of(false, sarg.rangeSet);
+          final Sarg sarg2 = Sarg.of(false, sarg.rangeSet, a.getType());
           final RexLiteral literal2 =
               rexBuilder.makeLiteral(sarg2, literal.getType(),
                   literal.getTypeName());
@@ -2687,7 +2687,7 @@ public class RexSimplify {
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
       final RangeSet rangeSet =
           negate ? this.rangeSet.complement() : this.rangeSet;
-      return Sarg.of(containsNull, rangeSet);
+      return Sarg.of(containsNull, rangeSet, ref.getType());
     }
 
     @Override public RelDataType getType() {

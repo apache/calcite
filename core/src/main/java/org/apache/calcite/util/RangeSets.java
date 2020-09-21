@@ -307,7 +307,7 @@ public class RangeSets {
    *
    * @param <C> Value type
    * @param <C2> Output value type */
-  private abstract static
+  abstract static
       class CopyingHandler<C extends Comparable<C>, C2 extends Comparable<C2>>
       implements RangeSets.Handler<C, Range<C2>> {
     abstract C2 convert(C c);
