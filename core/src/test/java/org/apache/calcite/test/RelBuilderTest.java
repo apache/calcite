@@ -3221,6 +3221,42 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests {@link RelBuilder#in} with duplicate values. */
+  @Test void testFilterIn() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.in(b.field("DEPTNO"), b.literal(10), b.literal(20),
+                    b.literal(10)))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[SEARCH($7, Sarg[10, 20])])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
+        hasTree(expected));
+  }
+
+  @Test void testFilterOrIn() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.or(
+                    b.call(SqlStdOperatorTable.GREATER_THAN, b.field("DEPTNO"),
+                        b.literal(15)),
+                    b.in(b.field("JOB"), b.literal("CLERK")),
+                    b.in(b.field("DEPTNO"), b.literal(10), b.literal(20),
+                        b.literal(11), b.literal(10))))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15‥+∞)]), "
+        + "SEARCH($2, Sarg['CLERK']:CHAR(5)))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
+        hasTree(expected));
+  }
+
   /** Tests filter builder with correlation variables. */
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());
