@@ -5635,7 +5635,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*");
     sql("select sum(ename), deptno from emp group by deptno")
-        .type("RecordType(DECIMAL(19, 19) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
+        .type("RecordType(DECIMAL(19, 9) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
   }
 
   @Test void testSumTooManyArgs() {

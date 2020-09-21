@@ -183,11 +183,11 @@ join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
       <![CDATA[
 LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
   LogicalJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 19) NOT NULL])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
       LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
         LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 19) NOT NULL])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
@@ -196,12 +196,12 @@ LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$
 EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
   EnumerableMergeJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
     EnumerableSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 19) NOT NULL])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
         EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
           EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
     EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 19) NOT NULL])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>

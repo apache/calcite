@@ -520,7 +520,7 @@ class TypeCoercionTest extends SqlValidatorTestCase {
             + "INTEGER NOT NULL EXPR$1, "
             + "INTEGER NOT NULL EXPR$2, "
             + "INTEGER NOT NULL EXPR$3, "
-            + "DECIMAL(19, 19) "
+            + "DECIMAL(19, 9) "
             + "NOT NULL EXPR$4) NOT NULL");
     expr("select abs(t1_varchar20) from t1").ok();
     expr("select sum(t1_varchar20) from t1").ok();
@@ -545,16 +545,16 @@ class TypeCoercionTest extends SqlValidatorTestCase {
     expr("'12.3'/cast(5 as double)")
         .columnType("DOUBLE NOT NULL");
     expr("'12.3'/5.1")
-        .columnType("DECIMAL(19, 18) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     expr("12.3/'5.1'")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     // test binary arithmetic with two strings.
     expr("'12.3' + '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 9) NOT NULL");
     expr("'12.3' - '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 9) NOT NULL");
     expr("'12.3' * '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 18) NOT NULL");
     expr("'12.3' / '5'")
         .columnType("DECIMAL(19, 0) NOT NULL");
   }

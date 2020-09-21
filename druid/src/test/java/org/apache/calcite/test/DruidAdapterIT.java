@@ -3904,10 +3904,9 @@ public class DruidAdapterIT {
     sql(sql, FOODMART).runs().queryContains(
         new DruidChecker(
             false,
-            "\"filter\":{"
-                + "\"type\":\"expression\","
-                + "\"expression\":\"(CAST(\\\"product_id\\\", 'DOUBLE') == 16.0)\""
-                + "}"));
+            "\"filter\":{\"type\":\"bound\",\"dimension\":\"product_id\",\"lower\":\"16.0\","
+                + "\"lowerStrict\":false,\"upper\":\"16.0\","
+                + "\"upperStrict\":false,\"ordering\":\"numeric\"}"));
   }
 
   @Test void testTrigonometryMathFunctions() {
