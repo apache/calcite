@@ -2507,6 +2507,27 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(r);
   }
 
+  @Test void testExpressionLineageCalc() {
+    final RelNode rel = convertSql("select sal from (\n"
+        + " select deptno, empno, sal + 1 as sal, job from emp) "
+        + "where deptno = 10");
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.FILTER_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.CALC_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode optimizedRel = planner.findBestExp();
+    final RelMetadataQuery mq = optimizedRel.getCluster().getMetadataQuery();
+
+    final RexNode ref = RexInputRef.of(0, optimizedRel.getRowType().getFieldList());
+    final Set<RexNode> r = mq.getExpressionLineage(optimizedRel, ref);
+
+    assertThat(r.size(), is(1));
+    final String resultString = r.iterator().next().toString();
+    assertThat(resultString, is("+([CATALOG, SALES, EMP].#0.$5, 1)"));
+  }
+
   @Test void testAllPredicates() {
     final Project rel = (Project) convertSql("select * from emp, dept");
     final Join join = (Join) rel.getInput();

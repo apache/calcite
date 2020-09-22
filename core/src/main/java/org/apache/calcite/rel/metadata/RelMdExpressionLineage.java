@@ -21,6 +21,7 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -42,6 +43,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -404,6 +406,35 @@ public class RelMdExpressionLineage
   public Set<RexNode> getExpressionLineage(Exchange rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from Calc.
+   */
+  public Set<RexNode> getExpressionLineage(Calc calc,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    final RelNode input = calc.getInput();
+    final RexBuilder rexBuilder = calc.getCluster().getRexBuilder();
+    // Extract input fields referenced by expression
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
+
+    // Infer column origin expressions for given references
+    final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
+    Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> calcProjectsAndFilter =
+        calc.getProgram().split();
+    for (int idx : inputFieldsUsed) {
+      final RexNode inputExpr = calcProjectsAndFilter.getKey().get(idx);
+      final Set<RexNode> originalExprs = mq.getExpressionLineage(input, inputExpr);
+      if (originalExprs == null) {
+        // Bail out
+        return null;
+      }
+      final RexInputRef ref = RexInputRef.of(idx, calc.getRowType().getFieldList());
+      mapping.put(ref, originalExprs);
+    }
+
+    // Return result
+    return createAllPossibleExpressions(rexBuilder, outputExpression, mapping);
   }
 
   /**
