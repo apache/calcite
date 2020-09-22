@@ -145,7 +145,7 @@ Calcite's core module (`calcite-core`) supports SQL queries (`SELECT`) and DML
 operations  (`INSERT`, `UPDATE`, `DELETE`, `MERGE`)
 but does not support DDL operations such as `CREATE SCHEMA` or `CREATE TABLE`.
 As we shall see, DDL complicates the state model of the repository and makes
-the parser more difficult to extend, so we left DDL out of core.
+the parser more difficult to extend, so we left DDL out of the core.
 
 The server module (`calcite-server`) adds DDL support to Calcite.
 It extends the SQL parser,
@@ -221,7 +221,7 @@ runnable as a service), repository persistence, authorization and security.
 
 There are many other APIs that allow you to extend Calcite's capabilities.
 
-In this section, we briefly describe those APIs, to give you an idea what is
+In this section, we briefly describe those APIs, to give you an idea of what is
 possible. To fully use these APIs you will need to read other documentation
 such as the javadoc for the interfaces, and possibly seek out the tests that
 we have written for them.
@@ -303,7 +303,7 @@ appear in more than one window. For example, 10:37 appears in both the
 
 Window functions are computed incrementally: when the clock ticks from
 10:14 to 10:15, two rows might enter the window and three rows leave.
-For this, window functions have have an extra life-cycle operation:
+For this, window functions have an extra life-cycle operation:
 
 * `remove` removes a value from an accumulator.
 
@@ -352,7 +352,7 @@ SELECT * FROM TABLE(Ramp(3, 4))
 {% endhighlight %}
 
 *User-defined table macros* use the same SQL syntax as table functions,
-but are defined differently. Rather than generating data, they generate an
+but are defined differently. Rather than generating data, they generate a
 relational expression.
 Table macros are invoked during query preparation and the relational expression
 they produce can then be optimized.
@@ -579,7 +579,7 @@ a fall-back.
 
 ### Statistics and cost
 
-Calcite has a metadata system that allow you to define cost functions and
+Calcite has a metadata system that allows you to define cost functions and
 statistics about relational operators, collectively referred to as *metadata*.
 Each kind of metadata has an interface with (usually) one method.
 For example, selectivity is defined by
