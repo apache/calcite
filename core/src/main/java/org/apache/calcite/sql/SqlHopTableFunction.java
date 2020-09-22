@@ -48,6 +48,9 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
       if (!checkTableAndDescriptorOperands(callBinding, 1)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }
+      if (!checkTimeColumnDescriptorOperand(callBinding, 1)) {
+        return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
       if (!checkIntervalOperands(callBinding, 2)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }

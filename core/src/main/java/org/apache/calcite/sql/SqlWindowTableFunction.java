@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
@@ -186,6 +187,29 @@ public class SqlWindowTableFunction extends SqlFunction
             ((SqlCall) operand).getOperandList());
       }
       return true;
+    }
+
+    /**
+     * Checks whether the type that the operand of time col descriptor refers to is valid.
+     *
+     * @param callBinding The call binding
+     * @param pos The position of the descriptor at the operands of the call
+     * @return true if validation passes, false otherwise
+     */
+    boolean checkTimeColumnDescriptorOperand(SqlCallBinding callBinding, int pos) {
+      SqlValidator validator = callBinding.getValidator();
+      SqlNode operand0 = callBinding.operand(0);
+      RelDataType type = validator.getValidatedNodeType(operand0);
+      List<SqlNode> operands = ((SqlCall) callBinding.operand(pos)).getOperandList();
+      SqlIdentifier identifier = (SqlIdentifier) operands.get(0);
+      String columnName = identifier.getSimple();
+      SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
+      for (RelDataTypeField field : type.getFieldList()) {
+        if (matcher.matches(field.getName(), columnName)) {
+          return SqlTypeUtil.isTimestamp(field.getType());
+        }
+      }
+      return false;
     }
 
     /**
