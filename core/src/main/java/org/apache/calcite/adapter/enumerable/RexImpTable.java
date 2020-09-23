@@ -3495,7 +3495,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for bitwise  scalar function. */
+  /** Implementor for bitwise scalar function. */
   private static class BitWiseImplementor extends AbstractRexCallImplementor {
 
     protected final String methodName;
