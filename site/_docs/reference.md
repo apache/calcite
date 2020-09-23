@@ -2458,7 +2458,6 @@ semantics.
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
 | o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied XML
-| o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
 | s | BITAND(value0, value1)                         | Returns bitwise and of input values
 
 Note:

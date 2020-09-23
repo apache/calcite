@@ -55,7 +55,7 @@ public enum SqlLibrary {
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
   POSTGRESQL("p", "postgresql"),
-  /** A collection of operators that are in PostgreSQL but not in standard
+  /** A collection of operators that are in Snowflake but not in standard
    * SQL. */
   SNOWFLAKE("s", "snowflake");
 

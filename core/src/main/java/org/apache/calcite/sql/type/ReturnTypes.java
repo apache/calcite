@@ -442,7 +442,6 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference INTEGER_QUOTIENT_NULLABLE =
       ARG0_INTERVAL_NULLABLE.orElse(LEAST_RESTRICTIVE);
 
-
   /**
    * Type-inference strategy for a call where the first argument is a decimal.
    * The result type of a call is a decimal with a scale of 0, and the same
