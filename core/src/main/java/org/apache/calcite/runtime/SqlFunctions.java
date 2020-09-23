@@ -1192,11 +1192,10 @@ public class SqlFunctions {
       ByteString b0, long b1, BinaryOperator<Byte> bitOp) {
     final byte[] bytes0 = b0.getBytes();
 
-    final byte[] result = new byte[bytes0.length];
     for (int i = 0; i < bytes0.length; i++) {
-      result[i] = bitOp.apply((byte) (b1 >> 8 * (bytes0.length - i - 1)), bytes0[i]);
+      bytes0[i] = bitOp.apply((byte) (b1 >> 8 * (bytes0.length - i - 1)), bytes0[i]);
     }
-    return new ByteString(result);
+    return new ByteString(bytes0);
   }
 
   // EXP
