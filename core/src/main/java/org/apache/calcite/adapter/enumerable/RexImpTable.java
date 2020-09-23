@@ -3505,12 +3505,11 @@ public class RexImpTable {
       this.methodName = methodName;
     }
 
-    @Override
-    String getVariableName() {
+    @Override String getVariableName() {
       return methodName;
     }
 
-    public Expression implementSafe(
+    @Override public Expression implementSafe(
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
@@ -3531,7 +3530,6 @@ public class RexImpTable {
           EnumUtils.call(SqlFunctions.class, methodName, operandsExps),
           returnType);
     }
-
   }
 
 }

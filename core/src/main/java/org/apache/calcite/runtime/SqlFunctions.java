@@ -75,7 +75,6 @@ import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1126,7 +1125,7 @@ public class SqlFunctions {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
   }
 
-  /** SQL <code>BITAND</code> operator applied to ByteString and long values */
+  /** Bitwise function <code>BIT_AND</code> applied to binary and long values. */
   public static ByteString bitAnd(ByteString b0,  long b1) {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
   }

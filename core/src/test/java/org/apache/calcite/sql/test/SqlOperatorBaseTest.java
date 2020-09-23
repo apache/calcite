@@ -9191,7 +9191,7 @@ public abstract class SqlOperatorBaseTest {
         "bitand(CAST(null AS TINYINT), 1)");
     tester1.checkFails(
         "bitand(CAST(x'03' AS BINARY(1)), CAST(x'ABCDEF12' AS BINARY(4)))",
-        "Invalid length for bitwise operator of input binary value",
+        "Different length for bitwise operands: the first: 1, the second: 4",
         true);
   }
 
