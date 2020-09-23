@@ -129,3 +129,43 @@ jobs:
         with:
           job-id: jdk8
           arguments: --scan --no-parallel --no-daemon testSlow
+  linux-druid:
+    if: github.event.action != 'labeled'
+    name: 'Linux (JDK 8) Druid Tests'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: 'Checkout Druid dataset'
+      uses: actions/checkout@master
+      with:
+        repository: zabetak/calcite-druid-dataset
+        fetch-depth: 1
+        path: druid-dataset
+    - name: 'Start Druid containers'
+      working-directory: ./druid-dataset
+      run: |
+        chmod -R 777 storage
+        docker-compose up -d
+    - name: 'Wait Druid nodes to startup'
+      run: |
+        until docker logs coordinator | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+        until docker logs router | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+        until docker logs historical | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+        until docker logs middlemanager | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+        until docker logs broker | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+    - name: 'Index Foodmart/Wikipedia datasets'
+      working-directory: ./druid-dataset
+      run: ./index.sh 30s
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+        path: calcite
+    - uses: burrunan/gradle-cache-action@v1
+      name: 'Run Druid tests'
+      with:
+        build-root-directory: ./calcite
+        job-id: Druid8
+        arguments: --scan --no-parallel --no-daemon :druid:test -Dcalcite.test.druid=true
