@@ -72,6 +72,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
+    assert getConvention() instanceof EnumerableConvention;
     final List<RelCollation> leftCollations =
         left.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
     final List<RelCollation> rightCollations =
@@ -362,7 +363,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType) {
     final RelOptCluster cluster = right.getCluster();
-    RelTraitSet traitSet = cluster.traitSet();
+    RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE);
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
