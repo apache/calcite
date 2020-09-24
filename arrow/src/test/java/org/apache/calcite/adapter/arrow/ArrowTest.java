@@ -61,9 +61,6 @@ public class ArrowTest {
     Assertions.assertEquals(relDataType.getFieldNames().get(3), "four");
     Assertions.assertEquals(relDataType.getFieldList().get(3).getType().toString(), "REAL");
 
-    int[] testFields = {1, 3};
-    ArrowEnumerator arrowEnumerator = ((ArrowTable)tableMap.get("TEST")).project(testFields);
-    VectorSchemaRoot[] vectorSchemaRoots = arrowEnumerator.getVectorSchemaRoots();
   }
 
   private String resourcePath(String path) {
