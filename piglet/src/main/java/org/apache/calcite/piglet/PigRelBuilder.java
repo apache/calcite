@@ -35,7 +35,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -369,11 +368,6 @@ public class PigRelBuilder extends RelBuilder {
       }
     }
     return projectionExprs;
-  }
-
-  public AggCall aggregateCall(SqlAggFunction aggFunction, String alias, RexNode... operands) {
-    return aggregateCall(aggFunction, false, false, false, null,
-        ImmutableList.of(), alias, ImmutableList.copyOf(operands));
   }
 
   /**

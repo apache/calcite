@@ -23,7 +23,7 @@ import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction2;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 
 import org.junit.jupiter.api.Test;
 
@@ -69,7 +69,7 @@ class SqlAdvisorJdbcTest {
     }
 
     PreparedStatement ps = connection.prepareStatement(getHintsSql);
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+    StringAndPos sap = StringAndPos.of(sql);
     ps.setString(1, sap.sql);
     ps.setInt(2, sap.cursor);
     final ResultSet resultSet = ps.executeQuery();

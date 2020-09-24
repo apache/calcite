@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
@@ -96,12 +97,12 @@ public class SqlValidatorTestCase {
 
   /** Creates a test context with a SQL query. */
   public final Sql sql(String sql) {
-    return new Sql(tester, sql, true, false);
+    return new Sql(tester, StringAndPos.of(sql), true, false);
   }
 
   /** Creates a test context with a SQL expression. */
   public final Sql expr(String sql) {
-    return new Sql(tester, sql, false, false);
+    return new Sql(tester, StringAndPos.of(sql), false, false);
   }
 
   /** Creates a test context with a SQL expression.
@@ -150,15 +151,13 @@ public class SqlValidatorTestCase {
      * <p>If <code>expectedMsgPattern</code> is not null, the query must
      * fail, and give an error location of (expectedLine, expectedColumn)
      * through (expectedEndLine, expectedEndColumn).
-     *
-     * @param sql                SQL statement
+     *  @param sap                SQL statement
      * @param expectedMsgPattern If this parameter is null the query must be
      *                           valid for the test to pass; If this parameter
      *                           is not null the query must be malformed and the
-     *                           message given must match the pattern
      */
     void assertExceptionIsThrown(
-        String sql,
+        StringAndPos sap,
         String expectedMsgPattern);
 
     /**
@@ -250,42 +249,45 @@ public class SqlValidatorTestCase {
   /** Fluent testing API. */
   static class Sql {
     private final SqlTester tester;
-    private final String sql;
+    private final StringAndPos sap;
     private final boolean query;
     private final boolean whole;
 
     /** Creates a Sql.
      *
      * @param tester Tester
-     * @param sql SQL query or expression
+     * @param sap SQL query or expression
      * @param query True if {@code sql} is a query, false if it is an expression
      * @param whole Whether the failure location is the whole query or
      *              expression
      */
-    Sql(SqlTester tester, String sql, boolean query, boolean whole) {
+    Sql(SqlTester tester, StringAndPos sap, boolean query,
+        boolean whole) {
       this.tester = tester;
       this.query = query;
-      this.sql = sql;
+      this.sap = sap;
       this.whole = whole;
     }
 
     Sql withTester(UnaryOperator<SqlTester> transform) {
-      return new Sql(transform.apply(tester), sql, query, whole);
+      return new Sql(transform.apply(tester), sap, query, whole);
     }
 
     public Sql sql(String sql) {
-      return new Sql(tester, sql, true, false);
+      return new Sql(tester, StringAndPos.of(sql), true, false);
     }
 
     public Sql expr(String sql) {
-      return new Sql(tester, sql, false, false);
+      return new Sql(tester, StringAndPos.of(sql), false, false);
     }
 
-    public String toSql(boolean withCaret) {
-      final String sql2 = withCaret
-          ? (whole ? ("^" + sql + "^") : sql)
-          : (whole ? sql : sql.replace("^", ""));
-      return query ? sql2 : AbstractSqlTester.buildQuery(sql2);
+    public StringAndPos toSql(boolean withCaret) {
+      final String sql2 = withCaret && sap.cursor >= 0
+          ? sap.sql.substring(0, sap.cursor)
+          + "^" + sap.sql.substring(sap.cursor)
+          : sap.sql;
+      return query ? sap
+          : StringAndPos.of(AbstractSqlTester.buildQuery(sap.addCarets()));
     }
 
     Sql withExtendedCatalog() {
@@ -309,8 +311,9 @@ public class SqlValidatorTestCase {
     }
 
     Sql withWhole(boolean whole) {
-      Preconditions.checkArgument(sql.indexOf('^') < 0);
-      return new Sql(tester, sql, query, whole);
+      Preconditions.checkArgument(sap.cursor < 0);
+      return new Sql(tester, StringAndPos.of("^" + sap.sql + "^"),
+          query, whole);
     }
 
     Sql ok() {
@@ -351,7 +354,7 @@ public class SqlValidatorTestCase {
      * @param expectedType Expected row type
      */
     public Sql type(String expectedType) {
-      tester.checkResultType(sql, expectedType);
+      tester.checkResultType(sap.sql, expectedType);
       return this;
     }
 
@@ -366,36 +369,29 @@ public class SqlValidatorTestCase {
      * @param expectedType Expected type, including nullability
      */
     public Sql columnType(String expectedType) {
-      tester.checkColumnType(toSql(false), expectedType);
+      tester.checkColumnType(toSql(false).sql, expectedType);
       return this;
     }
 
     public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
-      tester.checkMonotonic(toSql(false), expectedMonotonicity);
+      tester.checkMonotonic(toSql(false).sql, expectedMonotonicity);
       return this;
     }
 
     public Sql bindType(final String bindType) {
-      tester.check(sql, null, parameterRowType ->
+      tester.check(sap.sql, null, parameterRowType ->
           assertThat(parameterRowType.toString(), is(bindType)),
           result -> { });
       return this;
     }
 
-    /** Removes the carets from the SQL string. Useful if you want to run
-     * a test once at a conformance level where it fails, then run it again
-     * at a conformance level where it succeeds. */
-    public Sql sansCarets() {
-      return new Sql(tester, sql.replace("^", ""), true, false);
-    }
-
     public void charset(Charset expectedCharset) {
-      tester.checkCharset(sql, expectedCharset);
+      tester.checkCharset(sap.sql, expectedCharset);
     }
 
     public void collation(String expectedCollationName,
         SqlCollation.Coercibility expectedCoercibility) {
-      tester.checkCollation(sql, expectedCollationName, expectedCoercibility);
+      tester.checkCollation(sap.sql, expectedCollationName, expectedCoercibility);
     }
 
     /**
@@ -407,7 +403,7 @@ public class SqlValidatorTestCase {
      * </blockquote>
      */
     public void intervalConv(String expected) {
-      tester.checkIntervalConv(toSql(false), expected);
+      tester.checkIntervalConv(toSql(false).sql, expected);
     }
 
     public Sql withCaseSensitive(boolean caseSensitive) {
@@ -446,7 +442,7 @@ public class SqlValidatorTestCase {
     }
 
     public Sql rewritesTo(String expected) {
-      tester.checkRewrite(toSql(false), expected);
+      tester.checkRewrite(toSql(false).sql, expected);
       return this;
     }
   }

@@ -30,7 +30,6 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
-import org.apache.calcite.sql.parser.SqlParserUtil.StringAndPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTests;
@@ -607,11 +606,11 @@ public class SqlParserTest {
   }
 
   protected Sql sql(String sql) {
-    return new Sql(SqlParserUtil.findPos(sql), false, null, parser -> { });
+    return new Sql(StringAndPos.of(sql), false, null, parser -> { });
   }
 
   protected Sql expr(String sql) {
-    return new Sql(SqlParserUtil.findPos(sql), true, null, parser -> { });
+    return new Sql(StringAndPos.of(sql), true, null, parser -> { });
   }
 
   /** Creates an instance of helper class {@link SqlList} to test parsing a
@@ -9727,7 +9726,7 @@ public class SqlParserTest {
     private final StringAndPos sap;
 
     SqlList(String sql) {
-      this.sap = SqlParserUtil.findPos(sql);
+      this.sap = StringAndPos.of(sql);
     }
 
     public SqlList ok(String... expected) {

@@ -38,6 +38,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -111,15 +112,15 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     return factory.getValidator();
   }
 
-  public void assertExceptionIsThrown(String sql, String expectedMsgPattern) {
+  public void assertExceptionIsThrown(StringAndPos sap,
+      String expectedMsgPattern) {
     final SqlValidator validator;
     final SqlNode sqlNode;
-    final SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     try {
       sqlNode = parseQuery(sap.sql);
       validator = getValidator();
     } catch (Throwable e) {
-      checkParseEx(e, expectedMsgPattern, sap.sql);
+      SqlTests.checkEx(e, expectedMsgPattern, sap, SqlTests.Stage.PARSE);
       return;
     }
 
@@ -133,21 +134,22 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
-  protected void checkParseEx(Throwable e, String expectedMsgPattern, String sql) {
+  protected void checkParseEx(Throwable e, String expectedMsgPattern,
+      StringAndPos sap) {
     try {
       throw e;
     } catch (SqlParseException spe) {
       String errMessage = spe.getMessage();
       if (expectedMsgPattern == null) {
-        throw new RuntimeException("Error while parsing query:" + sql, spe);
+        throw new RuntimeException("Error while parsing query:" + sap, spe);
       } else if (errMessage == null
           || !errMessage.matches(expectedMsgPattern)) {
         throw new RuntimeException("Error did not match expected ["
             + expectedMsgPattern + "] while parsing query ["
-            + sql + "]", spe);
+            + sap + "]", spe);
       }
     } catch (Throwable t) {
-      throw new RuntimeException("Error while parsing query: " + sql, t);
+      throw new RuntimeException("Error while parsing query: " + sap, t);
     }
   }
 
@@ -506,24 +508,23 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     TestUtil.assertEqualsVerbose(expectedRewrite, Util.toLinux(actualRewrite));
   }
 
-  public void checkFails(
-      String expression,
-      String expectedError,
+  @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
       SqlValidator validator = getValidator();
-      final String sql = buildQuery(expression);
+      final String sql = buildQuery(sap.addCarets());
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
     } else {
-      checkQueryFails(buildQuery(expression), expectedError);
+      checkQueryFails(StringAndPos.of(buildQuery(sap.addCarets())),
+          expectedError);
     }
   }
 
-  public void checkQueryFails(String sql, String expectedError) {
-    assertExceptionIsThrown(sql, expectedError);
+  public void checkQueryFails(StringAndPos sap, String expectedError) {
+    assertExceptionIsThrown(sap, expectedError);
   }
 
   @Override public void checkAggFails(
@@ -538,12 +539,12 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
     } else {
-      checkQueryFails(sql, expectedError);
+      checkQueryFails(StringAndPos.of(sql), expectedError);
     }
   }
 
   public void checkQuery(String sql) {
-    assertExceptionIsThrown(sql, null);
+    assertExceptionIsThrown(StringAndPos.of(sql), null);
   }
 
   public SqlMonotonicity getMonotonicity(String sql) {

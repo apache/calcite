@@ -70,7 +70,7 @@ public class SqlDataTypeSpec extends SqlNode {
    * <p>Nullable is nullable! Null means "not specified". E.g.
    * {@code CAST(x AS INTEGER)} preserves the same nullability as {@code x}.
    */
-  private Boolean nullable;
+  private final Boolean nullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -156,10 +156,19 @@ public class SqlDataTypeSpec extends SqlNode {
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (Objects.equals(nullable, this.nullable)) {
+    return withNullable(nullable, SqlParserPos.ZERO);
+  }
+
+  /** Returns a copy of this data type specification with a given
+   * nullability, extending the parser position. */
+  public SqlDataTypeSpec withNullable(Boolean nullable, SqlParserPos pos) {
+    final SqlParserPos newPos = pos == SqlParserPos.ZERO ? this.pos
+        : this.pos.plus(pos);
+    if (Objects.equals(nullable, this.nullable)
+        && newPos.equals(this.pos)) {
       return this;
     }
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, getParserPosition());
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, newPos);
   }
 
   /**

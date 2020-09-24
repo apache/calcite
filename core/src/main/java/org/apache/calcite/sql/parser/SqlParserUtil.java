@@ -392,57 +392,9 @@ public final class SqlParserUtil {
     return s.substring(start, stop);
   }
 
-  /**
-   * Looks for one or two carets in a SQL string, and if present, converts
-   * them into a parser position.
-   *
-   * <p>Examples:
-   *
-   * <ul>
-   * <li>findPos("xxx^yyy") yields {"xxxyyy", position 3, line 1 column 4}
-   * <li>findPos("xxxyyy") yields {"xxxyyy", null}
-   * <li>findPos("xxx^yy^y") yields {"xxxyyy", position 3, line 4 column 4
-   * through line 1 column 6}
-   * </ul>
-   */
+  @Deprecated // to be removed before 2.0
   public static StringAndPos findPos(String sql) {
-    int firstCaret = sql.indexOf('^');
-    if (firstCaret < 0) {
-      return new StringAndPos(sql, -1, null);
-    }
-    int secondCaret = sql.indexOf('^', firstCaret + 1);
-    if (secondCaret == firstCaret + 1) {
-      // If SQL contains "^^", it does not contain error positions; convert each
-      // "^^" to a single "^".
-      return new StringAndPos(sql.replace("^^", "^"), -1, null);
-    } else if (secondCaret < 0) {
-      String sqlSansCaret =
-          sql.substring(0, firstCaret)
-              + sql.substring(firstCaret + 1);
-      int[] start = indexToLineCol(sql, firstCaret);
-      SqlParserPos pos = new SqlParserPos(start[0], start[1]);
-      return new StringAndPos(sqlSansCaret, firstCaret, pos);
-    } else {
-      String sqlSansCaret =
-          sql.substring(0, firstCaret)
-              + sql.substring(firstCaret + 1, secondCaret)
-              + sql.substring(secondCaret + 1);
-      int[] start = indexToLineCol(sql, firstCaret);
-
-      // subtract 1 because the col position needs to be inclusive
-      --secondCaret;
-      int[] end = indexToLineCol(sql, secondCaret);
-
-      // if second caret is on same line as first, decrement its column,
-      // because first caret pushed the string out
-      if (start[0] == end[0]) {
-        --end[1];
-      }
-
-      SqlParserPos pos =
-          new SqlParserPos(start[0], start[1], end[0], end[1]);
-      return new StringAndPos(sqlSansCaret, firstCaret, pos);
-    }
+    return StringAndPos.of(sql);
   }
 
   /**
@@ -513,7 +465,9 @@ public final class SqlParserUtil {
         + sql.substring(cut);
     if ((col != endCol) || (line != endLine)) {
       cut = lineColToIndex(sqlWithCarets, endLine, endCol);
-      ++cut; // for caret
+      if (line == endLine) {
+        ++cut; // for caret
+      }
       if (cut < sqlWithCarets.length()) {
         sqlWithCarets =
             sqlWithCarets.substring(0, cut)
@@ -811,22 +765,6 @@ public final class SqlParserUtil {
 
     public SqlParserPos getPos() {
       return pos;
-    }
-  }
-
-  /**
-   * Contains a string, the offset of a token within the string, and a parser
-   * position containing the beginning and end line number.
-   */
-  public static class StringAndPos {
-    public final String sql;
-    public final int cursor;
-    public final SqlParserPos pos;
-
-    StringAndPos(String sql, int cursor, SqlParserPos pos) {
-      this.sql = sql;
-      this.cursor = cursor;
-      this.pos = pos;
     }
   }
 

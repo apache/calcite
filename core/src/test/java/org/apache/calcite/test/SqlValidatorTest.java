@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -1240,9 +1241,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testGeometry() {
     final String err =
         "Geo-spatial extensions and the GEOMETRY data type are not enabled";
-    sql("select cast(null as geometry) as g from emp")
+    sql("select cast(null as ^geometry^) as g from emp")
         .withConformance(SqlConformanceEnum.STRICT_2003).fails(err)
-        .withConformance(SqlConformanceEnum.LENIENT).sansCarets().ok();
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
   @Test void testDateTime() {
@@ -1574,7 +1575,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       expr("\"SUBSTRING\"('a' from 1)").ok();
       expr("\"TRIM\"('b')").ok();
     } else {
-      expr("^\"TRIM\"('b' FROM 'a')^")
+      expr("\"TRIM\"('b' ^FROM^ 'a')")
           .fails("(?s).*Encountered \"FROM\" at .*");
 
       // Without the "FROM" noise word, TRIM is parsed as a regular
@@ -3730,9 +3731,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("timestampdiff(SQL_TSI_WEEK, cast(null as timestamp), current_timestamp)")
         .columnType("INTEGER");
 
-    wholeExpr("timestampadd(incorrect, 1, current_timestamp)")
+    expr("timestampadd(^incorrect^, 1, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
-    wholeExpr("timestampdiff(incorrect, current_timestamp, current_timestamp)")
+    expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
   }
 
@@ -4901,7 +4902,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select emp.^*^.foo from emp")
         .fails("(?s).*Unknown field '\\*'");
     // Parser does not allow star dot identifier.
-    sql("select ^*^.foo from emp")
+    sql("select *^.^foo from emp")
         .fails("(?s).*Encountered \".\" at .*");
   }
 
@@ -6245,7 +6246,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("SELECT must have a FROM clause");
 
     // Our conformance behaves like ORACLE_10 for "!=" operator.
-    sql("select * from (values 1) where 1 != 2")
+    sql("select * from (values 1) where 1 ^!=^ 2")
         .withConformance(custom)
         .ok()
         .withConformance(SqlConformanceEnum.DEFAULT)
@@ -6253,7 +6254,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(SqlConformanceEnum.ORACLE_10)
         .ok();
 
-    sql("select * from (values 1) where 1 != any (2, 3)")
+    sql("select * from (values 1) where 1 ^!=^ any (2, 3)")
         .withConformance(custom)
         .ok()
         .withConformance(SqlConformanceEnum.DEFAULT)
@@ -6507,29 +6508,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Group by
     sql("select empno as e from emp group by ^e^")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select empno as e from emp group by ^e^")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select emp.empno as e from emp group by ^e^")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select e.empno from emp as e group by e.empno")
         .withConformance(strict).ok()
         .withConformance(lenient).ok();
     sql("select e.empno as eno from emp as e group by ^eno^")
         .withConformance(strict).fails("Column 'ENO' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select deptno as dno from emp group by cube(^dno^)")
         .withConformance(strict).fails("Column 'DNO' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
         + "group by grouping sets ((^dno^), (name, deptno))")
         .withConformance(strict).fails("Column 'DNO' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ename as deptno from emp as e join dept as d on "
         + "e.deptno = d.deptno group by ^deptno^")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select t.e, count(*) from (select empno as e from emp) t group by e")
         .withConformance(strict).ok()
         .withConformance(lenient).ok();
@@ -6548,12 +6549,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select t.e, e + ^count(*)^ as c from "
         + " (select empno as e from emp) t group by e,2")
         .withConformance(lenient).fails(ERR_AGG_IN_GROUP_BY)
-        .withConformance(strict).sansCarets().ok();
+        .withConformance(strict).ok();
 
     sql("select deptno,(select empno + 1 from emp) eno\n"
         + "from dept group by deptno,^eno^")
         .withConformance(strict).fails("Column 'ENO' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select empno as e, deptno as e\n"
         + "from emp group by ^e^")
         .withConformance(lenient).fails("Column 'E' is ambiguous");
@@ -6561,18 +6562,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).fails(ERR_AGG_IN_GROUP_BY);
     sql("select deptno + empno as d, deptno + empno + mgr from emp"
         + " group by d,mgr")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     // When alias is equal to one or more columns in the query then giving
     // priority to alias. But Postgres may throw ambiguous column error or give
     // priority to column name.
     sql("select count(*) from (\n"
         + "  select ename AS deptno FROM emp GROUP BY deptno) t")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select count(*) from "
         + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select empno + deptno AS \"z\" FROM emp GROUP BY \"Z\"")
-        .withConformance(lenient).withCaseSensitive(false).sansCarets().ok();
+        .withConformance(lenient).withCaseSensitive(false).ok();
     sql("select empno + deptno as c, ^c^ + mgr as d from emp group by c, d")
         .withConformance(lenient).fails("Column 'C' not found in any table");
     // Group by alias with strict conformance should fail.
@@ -6591,58 +6592,58 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select ^empno^,deptno from emp group by 1, deptno")
         .withConformance(strict).fails("Expression 'EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^emp.empno^ as e from emp group by 1")
         .withConformance(strict).fails("Expression 'EMP.EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select 2 + ^emp.empno^ + 3 as e from emp group by 1")
         .withConformance(strict).fails("Expression 'EMP.EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^e.empno^ from emp as e group by 1")
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select e.empno from emp as e group by 1, empno")
         .withConformance(strict).ok()
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^e.empno^ as eno from emp as e group by 1")
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^deptno^ as dno from emp group by cube(1)")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select 1 as dno from emp group by cube(1)")
         .withConformance(strict).ok()
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
         + "group by grouping sets ((1), (^name^, deptno))")
         .withConformance(strict).fails("Column 'NAME' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^e.deptno^ from emp as e\n"
         + "join dept as d on e.deptno = d.deptno group by 1")
         .withConformance(strict).fails("Expression 'E.DEPTNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^deptno^,(select empno from emp) eno from dept"
         + " group by 1,2")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^empno^, count(*) from emp group by 1 order by 1")
         .withConformance(strict).fails("Expression 'EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select ^empno^ eno, count(*) from emp group by 1 order by 1")
         .withConformance(strict).fails("Expression 'EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select count(*) from (select 1 from emp"
         + " group by substring(ename from 2 for 3))")
         .withConformance(strict).ok()
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select deptno from emp group by deptno, ^100^")
         .withConformance(lenient).fails("Ordinal out of range")
-        .withConformance(strict).sansCarets().ok();
+        .withConformance(strict).ok();
     // Calcite considers integers in GROUP BY to be constants, so test passes.
     // Postgres considers them ordinals and throws out of range position error.
     sql("select deptno from emp group by ^100^, deptno")
         .withConformance(lenient).fails("Ordinal out of range")
-        .withConformance(strict).sansCarets().ok();
+        .withConformance(strict).ok();
   }
 
   /**
@@ -6656,29 +6657,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select count(empno) as e from emp having ^e^ > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select emp.empno as e from emp group by ^e^ having e > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select emp.empno as e from emp group by empno having ^e^ > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     sql("select e.empno from emp as e group by 1 having ^e.empno^ > 10")
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     // When alias is equal to one or more columns in the query then giving
     // priority to alias, but PostgreSQL throws ambiguous column error or gives
     // priority to column name.
     sql("select count(empno) as deptno from emp having ^deptno^ > 10")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
     // Alias in aggregate is not allowed.
     sql("select empno as e from emp having max(^e^) > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
         .withConformance(lenient).fails("Column 'E' not found in any table");
     sql("select count(empno) as e from emp having ^e^ > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
-        .withConformance(lenient).sansCarets().ok();
+        .withConformance(lenient).ok();
   }
 
   /**
@@ -7900,9 +7901,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'GENDER' not found in any table");
     sql("select count(ename, 1, deptno) from emp").ok();
     sql("select count(distinct ename, 1, deptno) from emp").ok();
-    sql("select count(deptno, *) from emp")
+    sql("select count(deptno, ^*^) from emp")
         .fails("(?s).*Encountered \"\\*\" at .*");
-    sql("select count(*, deptno) from emp")
+    sql("select count(*^,^ deptno) from emp")
         .fails("(?s).*Encountered \",\" at .*");
   }
 
@@ -8087,10 +8088,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(ramp('3'))")
         .type("RecordType(INTEGER NOT NULL I) NOT NULL");
 
-    sql("select * from table(abs(-1))")
+    sql("select * from table(^abs^(-1))")
         .fails("(?s)Encountered \"abs\" at .*");
 
-    sql("select * from table(1 + 2)")
+    sql("select * from table(^1^ + 2)")
         .fails("(?s)Encountered \"1\" at .*");
 
     sql("select * from table(^nonExistentRamp('3')^)")
@@ -8563,7 +8564,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "GROUP BY `DEPT`.`DEPTNO`\n"
         + "HAVING SUM(`DEPT`.`DEPTNO`) > 0\n"
         + "ORDER BY `DEPT`.`DEPTNO`";
-    new Sql(sqlValidatorTester, sql, true, false)
+    new Sql(sqlValidatorTester, StringAndPos.of(sql), true, false)
         .withValidatorIdentifierExpansion(true)
         .withValidatorColumnReferenceExpansion(true)
         .withConformance(SqlConformanceEnum.LENIENT)
@@ -8642,7 +8643,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  select [e].EMPNO as [x ] from [EMP] as [e])")
         .fails("Column 'X' not found in any table");
 
-    s.sql("select EMP.^\"x\"^ from EMP")
+    s.sql("select EMP^.^\"x\" from EMP")
         .fails("(?s).*Encountered \"\\. \\\\\"\" at line .*");
 
     s.sql("select [x[y]] z ] from (\n"
@@ -8670,7 +8671,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'x' not found in any table");
 
     // double-quotes are not valid in this lexical convention
-    s.sql("select EMP.^\"x\"^ from EMP")
+    s.sql("select EMP^.^\"x\" from EMP")
         .fails("(?s).*Encountered \"\\. \\\\\"\" at line .*");
 
     // in Java mode, creating identifiers with spaces is not encouraged, but you
@@ -9429,7 +9430,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testInsertWithExtendedColumns() {
     final String sql0 = "insert into empnullables\n"
-        + " (empno, ename, \"f.dc\" varchar(10))\n"
+        + " (empno, ename, \"f.dc\" ^varchar(10)^)\n"
         + "values (?, ?, ?)";
     sql(sql0).withExtendedCatalog()
         .withConformance(SqlConformanceEnum.LENIENT)
@@ -9440,7 +9441,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "the current SQL conformance level");
 
     final String sql1 = "insert into empnullables\n"
-        + " (empno, ename, dynamic_column double not null)\n"
+        + " (empno, ename, dynamic_column ^double^ not null)\n"
         + "values (?, ?, ?)";
     sql(sql1)
         .withExtendedCatalog()
@@ -9452,7 +9453,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "the current SQL conformance level");
 
     final String sql2 = "insert into struct.t_extend\n"
-        + " (f0.c0, f1.c1, \"F2\".\"C2\" varchar(20) not null)\n"
+        + " (f0.c0, f1.c1, \"F2\".\"C2\" ^varchar(20)^ not null)\n"
         + "values (?, ?, ?)";
     sql(sql2)
         .withExtendedCatalog()
@@ -10204,8 +10205,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testDummy() {
     // (To debug individual statements, paste them into this method.)
-    final Sql s = sql("?").withTester(t -> t.withLenientOperatorLookup(true));
-    s.sql("select count() from emp").ok();
+    expr("true\n"
+        + "or ^(date '1-2-3', date '1-2-3', date '1-2-3')\n"
+        + "   overlaps (date '1-2-3', date '1-2-3')^\n"
+        + "or false")
+        .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
   }
 
   @Test void testCustomColumnResolving() {

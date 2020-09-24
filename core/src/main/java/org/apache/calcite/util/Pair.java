@@ -277,6 +277,24 @@ public class Pair<T1, T2>
     }
   }
 
+  /** Applies an action to every element of an iterable of pairs.
+   *
+   * @see Map#forEach(java.util.function.BiConsumer)
+   *
+   * @param entries Pairs
+   * @param consumer The action to be performed for each element
+   *
+   * @param <K> Left type
+   * @param <V> Right type
+   */
+  public static <K, V> void forEach(
+      final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries,
+      BiConsumer<K, V> consumer) {
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      consumer.accept(entry.getKey(), entry.getValue());
+    }
+  }
+
   /**
    * Returns an iterable over the left slice of an iterable.
    *

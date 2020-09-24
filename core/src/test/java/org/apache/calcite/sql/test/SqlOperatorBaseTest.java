@@ -3328,8 +3328,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("'a'<>cast(null as varchar(1))");
 
     // "!=" is not an acceptable alternative to "<>" under default SQL conformance level
-    tester.checkFails(
-        "1 != 1",
+    tester.checkFails("1 ^!=^ 1",
         "Bang equal '!=' is not allowed under the current SQL conformance level",
         false);
     // "!=" is allowed under ORACLE_10 SQL conformance level
@@ -8059,9 +8058,9 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     tester.checkFails("^floor('abcde' to minute)^",
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
-    tester.checkFails("^floor(timestamp '2015-02-19 12:34:56.78' to microsecond)^",
+    tester.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
             "(?s)Encountered \"microsecond\" at .*", false);
-    tester.checkFails("^floor(timestamp '2015-02-19 12:34:56.78' to nanosecond)^",
+    tester.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
             "(?s)Encountered \"nanosecond\" at .*", false);
     tester.checkScalar(
         "floor(time '12:34:56' to minute)", "12:34:00", "TIME(0) NOT NULL");
@@ -8096,10 +8095,10 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
     tester.checkFails("^ceil('abcde' to minute)^",
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
-    tester.checkFails("^ceil(timestamp '2015-02-19 12:34:56.78' to microsecond)^",
-            "(?s)Encountered \"microsecond\" at .*", false);
-    tester.checkFails("^ceil(timestamp '2015-02-19 12:34:56.78' to nanosecond)^",
-            "(?s)Encountered \"nanosecond\" at .*", false);
+    tester.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
+        "(?s)Encountered \"microsecond\" at .*", false);
+    tester.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
+        "(?s)Encountered \"nanosecond\" at .*", false);
     tester.checkScalar("ceil(time '12:34:56' to minute)",
         "12:35:00", "TIME(0) NOT NULL");
     tester.checkScalar("ceil(time '12:59:56' to minute)",
@@ -8349,7 +8348,7 @@ public abstract class SqlOperatorBaseTest {
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",
         "8", "INTEGER NOT NULL");
-    tester.checkFails("timestampdiff(CENTURY, "
+    tester.checkFails("timestampdiff(^CENTURY^, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2614-02-24 12:42:25')",
         "(?s)Encountered \"CENTURY\" at .*", false);

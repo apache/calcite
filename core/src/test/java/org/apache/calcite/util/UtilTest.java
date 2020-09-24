@@ -39,6 +39,7 @@ import org.apache.calcite.test.Matchers;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -974,6 +975,10 @@ class UtilTest {
     List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
     List<Integer> integers = Arrays.asList(1942, 1943, 1940);
 
+    final List<Pair<String, Integer>> pairs =
+        Pair.zip(strings, integers, false);
+    final Map<String, Integer> map = ImmutableMap.copyOf(pairs);
+
     // shorter list on the right
     final AtomicInteger size = new AtomicInteger();
     Pair.forEach(strings, integers, (s, i) -> size.incrementAndGet());
@@ -988,6 +993,16 @@ class UtilTest {
     size.set(0);
     Pair.forEach(strings, strings, (s1, s2) -> size.incrementAndGet());
     assertThat(size.get(), is(4));
+
+    // same, using a list of pairs
+    size.set(0);
+    Pair.forEach(pairs, (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(3));
+
+    // same, using a map
+    size.set(0);
+    map.forEach((s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(3));
 
     // empty on left
     size.set(0);
@@ -1011,11 +1026,33 @@ class UtilTest {
         (s, i) -> size.incrementAndGet());
     assertThat(size.get(), is(0));
 
+    // empty list of pairs
+    size.set(0);
+    Pair.forEach(Util.first(pairs, 0), (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
+    // empty map
+    size.set(0);
+    ImmutableMap.of().forEach((s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
     // build a string
     final StringBuilder b = new StringBuilder();
     Pair.forEach(strings, integers,
         (s, i) -> b.append(s).append(":").append(i).append(";"));
-    assertThat(b.toString(), is("paul:1942;george:1943;john:1940;"));
+    final String expected = "paul:1942;george:1943;john:1940;";
+    assertThat(b.toString(), is(expected));
+
+    // same, using list of pairs
+    b.setLength(0);
+    Pair.forEach(pairs,
+        (s, i) -> b.append(s).append(":").append(i).append(";"));
+    assertThat(b.toString(), is(expected));
+
+    // same, using map
+    b.setLength(0);
+    map.forEach((s, i) -> b.append(s).append(":").append(i).append(";"));
+    assertThat(b.toString(), is(expected));
   }
 
   /**

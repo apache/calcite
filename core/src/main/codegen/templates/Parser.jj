@@ -2292,7 +2292,7 @@ void ColumnType(List<SqlNode> list) :
     ]
     {
         list.add(name);
-        list.add(type.withNullable(nullable));
+        list.add(type.withNullable(nullable, getPos()));
     }
 }
 
@@ -2308,11 +2308,7 @@ void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
 {
     name = CompoundIdentifier()
     [
-        type = DataType() {
-            if (!this.conformance.allowExtend()) {
-                throw SqlUtil.newContextException(getPos(), RESOURCE.extendNotAllowed());
-            }
-        }
+        type = DataType()
         [
             <NOT> <NULL> {
                 nullable = false;
@@ -2320,11 +2316,15 @@ void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
         ]
     ]
     {
-       if (type != null) {
-           extendList.add(name);
-           extendList.add(type.withNullable(nullable));
-       }
-       list.add(name);
+        if (type != null) {
+            if (!this.conformance.allowExtend()) {
+                throw SqlUtil.newContextException(type.getParserPosition(),
+                    RESOURCE.extendNotAllowed());
+            }
+            extendList.add(name);
+            extendList.add(type.withNullable(nullable, getPos()));
+        }
+        list.add(name);
     }
 }
 
@@ -5073,15 +5073,13 @@ SqlDataTypeSpec DataType() :
 }
 {
     typeName = TypeName() {
-        s = span();
+        s = Span.of(typeName.getParserPos());
     }
     (
         typeName = CollectionsTypeName(typeName)
     )*
     {
-        return new SqlDataTypeSpec(
-            typeName,
-            s.end(this));
+        return new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());
     }
 }
 
@@ -5150,25 +5148,26 @@ SqlTypeNameSpec SqlTypeName1(Span s) :
             if (!this.conformance.allowGeometry()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.geometryDisabled());
             }
+            s.add(this);
             sqlTypeName = SqlTypeName.GEOMETRY;
         }
     |
-        <BOOLEAN> { sqlTypeName = SqlTypeName.BOOLEAN; }
+        <BOOLEAN> { s.add(this); sqlTypeName = SqlTypeName.BOOLEAN; }
     |
-        ( <INTEGER> | <INT> ) { sqlTypeName = SqlTypeName.INTEGER; }
+        ( <INTEGER> | <INT> ) { s.add(this); sqlTypeName = SqlTypeName.INTEGER; }
     |
-        <TINYINT> { sqlTypeName = SqlTypeName.TINYINT; }
+        <TINYINT> { s.add(this); sqlTypeName = SqlTypeName.TINYINT; }
     |
-        <SMALLINT> { sqlTypeName = SqlTypeName.SMALLINT; }
+        <SMALLINT> { s.add(this); sqlTypeName = SqlTypeName.SMALLINT; }
     |
-        <BIGINT> { sqlTypeName = SqlTypeName.BIGINT; }
+        <BIGINT> { s.add(this); sqlTypeName = SqlTypeName.BIGINT; }
     |
-        <REAL> { sqlTypeName = SqlTypeName.REAL; }
+        <REAL> { s.add(this); sqlTypeName = SqlTypeName.REAL; }
     |
         <DOUBLE> { s.add(this); }
         [ <PRECISION> ] { sqlTypeName = SqlTypeName.DOUBLE; }
     |
-        <FLOAT> { sqlTypeName = SqlTypeName.FLOAT; }
+        <FLOAT> { s.add(this); sqlTypeName = SqlTypeName.FLOAT; }
     )
     {
         return new SqlBasicTypeNameSpec(sqlTypeName, s.end(this));
@@ -5190,7 +5189,7 @@ SqlTypeNameSpec SqlTypeName2(Span s) :
             { sqlTypeName = SqlTypeName.BINARY; }
         )
     |
-        <VARBINARY> { sqlTypeName = SqlTypeName.VARBINARY; }
+        <VARBINARY> { s.add(this); sqlTypeName = SqlTypeName.VARBINARY; }
     )
     precision = PrecisionOpt()
     {
@@ -5207,9 +5206,9 @@ SqlTypeNameSpec SqlTypeName3(Span s) :
 }
 {
     (
-        (<DECIMAL> | <DEC> | <NUMERIC>) { sqlTypeName = SqlTypeName.DECIMAL; }
+        (<DECIMAL> | <DEC> | <NUMERIC>) { s.add(this); sqlTypeName = SqlTypeName.DECIMAL; }
     |
-        <ANY> { sqlTypeName = SqlTypeName.ANY; }
+        <ANY> { s.add(this); sqlTypeName = SqlTypeName.ANY; }
     )
     [
         <LPAREN>
@@ -5338,7 +5337,7 @@ void FieldNameTypeCommaList(
     nullable = NullableOptDefaultFalse()
     {
         fieldNames.add(fName);
-        fieldTypes.add(fType.withNullable(nullable));
+        fieldTypes.add(fType.withNullable(nullable, getPos()));
     }
     (
         <COMMA>
@@ -5347,7 +5346,7 @@ void FieldNameTypeCommaList(
         nullable = NullableOptDefaultFalse()
         {
             fieldNames.add(fName);
-            fieldTypes.add(fType.withNullable(nullable));
+            fieldTypes.add(fType.withNullable(nullable, getPos()));
         }
     )*
 }
@@ -5388,7 +5387,7 @@ SqlTypeNameSpec CharacterTypeName(Span s) :
             { sqlTypeName = SqlTypeName.CHAR; }
         )
     |
-        <VARCHAR> { sqlTypeName = SqlTypeName.VARCHAR; }
+        <VARCHAR> { s.add(this); sqlTypeName = SqlTypeName.VARCHAR; }
     )
     precision = PrecisionOpt()
     [
@@ -5408,6 +5407,7 @@ SqlTypeNameSpec DateTimeTypeName() :
     int precision = -1;
     SqlTypeName typeName;
     boolean withLocalTimeZone = false;
+    final Span s;
 }
 {
     <DATE> {
@@ -5416,7 +5416,7 @@ SqlTypeNameSpec DateTimeTypeName() :
     }
 |
     LOOKAHEAD(2)
-    <TIME>
+    <TIME> { s = span(); }
     precision = PrecisionOpt()
     withLocalTimeZone = TimeZoneOpt()
     {
@@ -5425,10 +5425,10 @@ SqlTypeNameSpec DateTimeTypeName() :
         } else {
             typeName = SqlTypeName.TIME;
         }
-        return new SqlBasicTypeNameSpec(typeName, precision, getPos());
+        return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 |
-    <TIMESTAMP>
+    <TIMESTAMP> { s = span(); }
     precision = PrecisionOpt()
     withLocalTimeZone = TimeZoneOpt()
     {
@@ -5437,7 +5437,7 @@ SqlTypeNameSpec DateTimeTypeName() :
         } else {
             typeName = SqlTypeName.TIMESTAMP;
         }
-        return new SqlBasicTypeNameSpec(typeName, precision, getPos());
+        return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 }
 

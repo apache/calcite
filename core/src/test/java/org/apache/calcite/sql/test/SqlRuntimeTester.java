@@ -17,7 +17,7 @@
 package org.apache.calcite.sql.test;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.function.UnaryOperator;
@@ -43,11 +43,12 @@ class SqlRuntimeTester extends AbstractSqlTester {
         transform.apply(validatorTransform));
   }
 
-  @Override public void checkFails(String expression, String expectedError,
+  @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
-    final String sql =
-        runtime ? buildQuery2(expression) : buildQuery(expression);
-    assertExceptionIsThrown(sql, expectedError, runtime);
+    final StringAndPos sap2 =
+        StringAndPos.of(runtime ? buildQuery2(sap.addCarets())
+            : buildQuery(sap.addCarets()));
+    assertExceptionIsThrown(sap2, expectedError, runtime);
   }
 
   @Override public void checkAggFails(
@@ -57,23 +58,23 @@ class SqlRuntimeTester extends AbstractSqlTester {
       boolean runtime) {
     String query =
         SqlTests.generateAggQuery(expr, inputValues);
-    assertExceptionIsThrown(query, expectedError, runtime);
+    final StringAndPos sap = StringAndPos.of(query);
+    assertExceptionIsThrown(sap, expectedError, runtime);
   }
 
   public void assertExceptionIsThrown(
-      String sql,
+      StringAndPos sap,
       String expectedMsgPattern) {
-    assertExceptionIsThrown(sql, expectedMsgPattern, false);
+    assertExceptionIsThrown(sap, expectedMsgPattern, false);
   }
 
-  public void assertExceptionIsThrown(String sql, String expectedMsgPattern,
-      boolean runtime) {
+  public void assertExceptionIsThrown(StringAndPos sap,
+      String expectedMsgPattern, boolean runtime) {
     final SqlNode sqlNode;
-    final SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     try {
       sqlNode = parseQuery(sap.sql);
     } catch (Throwable e) {
-      checkParseEx(e, expectedMsgPattern, sap.sql);
+      checkParseEx(e, expectedMsgPattern, sap);
       return;
     }
 

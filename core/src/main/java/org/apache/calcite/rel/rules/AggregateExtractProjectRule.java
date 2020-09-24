@@ -33,8 +33,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,25 +110,14 @@ public class AggregateExtractProjectRule
 
     final ImmutableBitSet newGroupSet =
         Mappings.apply(mapping, aggregate.getGroupSet());
-
-    final Iterable<ImmutableBitSet> newGroupSets =
-        Util.transform(aggregate.getGroupSets(),
-            bitSet -> Mappings.apply(mapping, bitSet));
-    final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
-    for (AggregateCall aggCall : aggregate.getAggCallList()) {
-      final ImmutableList<RexNode> args =
-          relBuilder.fields(
-              Mappings.apply2(mapping, aggCall.getArgList()));
-      final RexNode filterArg = aggCall.filterArg < 0 ? null
-          : relBuilder.field(Mappings.apply(mapping, aggCall.filterArg));
-      newAggCallList.add(
-          relBuilder.aggregateCall(aggCall.getAggregation(), args)
-              .distinct(aggCall.isDistinct())
-              .filter(filterArg)
-              .approximate(aggCall.isApproximate())
-              .sort(relBuilder.fields(aggCall.collation))
-              .as(aggCall.name));
-    }
+    final List<ImmutableBitSet> newGroupSets =
+        aggregate.getGroupSets().stream()
+            .map(bitSet -> Mappings.apply(mapping, bitSet))
+            .collect(Util.toImmutableList());
+    final List<RelBuilder.AggCall> newAggCallList =
+        aggregate.getAggCallList().stream()
+            .map(aggCall -> relBuilder.aggregateCall(aggCall, mapping))
+            .collect(Util.toImmutableList());
 
     final RelBuilder.GroupKey groupKey =
         relBuilder.groupKey(newGroupSet, newGroupSets);

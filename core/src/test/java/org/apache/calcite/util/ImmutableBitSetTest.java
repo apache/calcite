@@ -20,10 +20,12 @@ import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Ints;
 
 import org.junit.jupiter.api.Test;
 
 import java.nio.LongBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -589,5 +592,24 @@ class ImmutableBitSetTest {
     assertTrue(ImmutableBitSet.allContain(collection2, 2));
     assertTrue(ImmutableBitSet.allContain(collection2, 3));
     assertFalse(ImmutableBitSet.allContain(collection2, 4));
+  }
+
+  /** Test case for
+   * {@link org.apache.calcite.util.ImmutableBitSet#toImmutableBitSet()}. */
+  @Test void testCollector() {
+    checkCollector(0, 20);
+    checkCollector();
+    checkCollector(1, 63);
+    checkCollector(1, 63, 1);
+    checkCollector(0, 257);
+    checkCollector(1024, 257);
+  }
+
+  private void checkCollector(int... integers) {
+    final List<Integer> list = Ints.asList(integers);
+    final List<Integer> sortedUniqueList = new ArrayList<>(new TreeSet<>(list));
+    final ImmutableBitSet bitSet =
+        list.stream().collect(ImmutableBitSet.toImmutableBitSet());
+    assertThat(bitSet.asList(), is(sortedUniqueList));
   }
 }

@@ -21,7 +21,7 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.advise.SqlSimpleParser;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.test.SqlValidatorTestCase;
@@ -434,7 +434,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
       String expectedResults) throws Exception {
     SqlAdvisor advisor = tester.getFactory().createAdvisor();
 
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+    StringAndPos sap = StringAndPos.of(sql);
 
     List<SqlMoniker> results =
         advisor.getCompletionHints(
@@ -455,7 +455,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
   protected void assertSimplify(String sql, String expected) {
     SqlAdvisor advisor = tester.getFactory().createAdvisor();
 
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+    StringAndPos sap = StringAndPos.of(sql);
     String actual = advisor.simplifySql(sap.sql, sap.cursor);
     Assertions.assertEquals(expected, actual);
   }
@@ -498,7 +498,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
       Map<String, String> replacements) {
     SqlAdvisor advisor = tester.getFactory().createAdvisor();
 
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+    StringAndPos sap = StringAndPos.of(sql);
     final String[] replaced = {null};
     List<SqlMoniker> results =
         advisor.getCompletionHints(sap.sql, sap.cursor, replaced);

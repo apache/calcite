@@ -22,7 +22,7 @@ import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.tools.Hoist;
 
@@ -207,7 +207,7 @@ class BabelParserTest extends SqlParserTest {
   @Override protected Tester getTester() {
     return new TesterImpl() {
       @Override protected void checkEx(String expectedMsgPattern,
-          SqlParserUtil.StringAndPos sap, Throwable thrown) {
+          StringAndPos sap, Throwable thrown) {
         if (thrownByBabelTest(thrown)) {
           super.checkEx(expectedMsgPattern, sap, thrown);
         } else {
@@ -227,7 +227,7 @@ class BabelParserTest extends SqlParserTest {
         return false;
       }
 
-      private void checkExNotNull(SqlParserUtil.StringAndPos sap,
+      private void checkExNotNull(StringAndPos sap,
           Throwable thrown) {
         if (thrown == null) {
           throw new AssertionError("Expected query to throw exception, "

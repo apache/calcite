@@ -178,8 +178,8 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
             """
             select *
               from emp match_recognize (
-                after match skip to ^no_exists^
-                measures
+                after match skip to no_exists
+                ^measures^
                   STRT.sal as start_sal,
                   LAST(up.ts) as end_sal
                 pattern (strt down+ up+)
@@ -228,7 +228,6 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
             """.trimIndent()
         ).fails("Unknown pattern 'strt'")
             .withCaseSensitive(false)
-            .sansCarets()
             .ok()
     }
 

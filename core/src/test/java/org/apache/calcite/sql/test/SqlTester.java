@@ -22,6 +22,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -394,20 +395,27 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    *                      validate time
    */
   void checkFails(
-      String expression,
+      StringAndPos expression,
       String expectedError,
       boolean runtime);
+
+  /** As {@link #checkFails(StringAndPos, String, boolean)}, but with a string
+   * that contains carets. */
+  default void checkFails(
+      String expression,
+      String expectedError,
+      boolean runtime) {
+    checkFails(StringAndPos.of(expression), expectedError, runtime);
+  }
 
   /**
    * Tests that a SQL query fails at prepare time.
    *
-   * @param sql           SQL query
+   * @param sap           SQL query and error position
    * @param expectedError Pattern for expected error. Must
    *                      include an error location.
    */
-  void checkQueryFails(
-      String sql,
-      String expectedError);
+  void checkQueryFails(StringAndPos sap, String expectedError);
 
   /**
    * Tests that a SQL query succeeds at prepare time.

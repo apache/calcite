@@ -2050,12 +2050,25 @@ public class Util {
     return v0 != null ? v0 : ImmutableList.of();
   }
 
+  /** Returns the first element of a list.
+   *
+   * @throws java.lang.IndexOutOfBoundsException if the list is empty
+   */
+  public <E> E first(List<E> list) {
+    return list.get(0);
+  }
+
   /** Returns the last element of a list.
    *
    * @throws java.lang.IndexOutOfBoundsException if the list is empty
    */
   public static <E> E last(List<E> list) {
     return list.get(list.size() - 1);
+  }
+
+  /** Returns the first {@code n} elements of a list. */
+  public static <E> List<E> first(List<E> list, int n) {
+    return list.subList(0, n);
   }
 
   /** Returns every element of a list but its last element. */

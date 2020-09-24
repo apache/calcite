@@ -891,6 +891,24 @@ public class RelBuilder {
         null, ImmutableList.copyOf(operands));
   }
 
+  /** Creates a call to an aggregate function as a copy of an
+   * {@link AggregateCall}. */
+  public AggCall aggregateCall(AggregateCall a) {
+    return aggregateCall(a.getAggregation(), a.isDistinct(), a.isApproximate(),
+        a.ignoreNulls(), a.filterArg < 0 ? null : field(a.filterArg),
+        fields(a.collation), a.name, fields(a.getArgList()));
+  }
+
+  /** Creates a call to an aggregate function as a copy of an
+   * {@link AggregateCall}, applying a mapping. */
+  public AggCall aggregateCall(AggregateCall a, Mapping mapping) {
+    return aggregateCall(a.getAggregation(), a.isDistinct(), a.isApproximate(),
+        a.ignoreNulls(),
+        a.filterArg < 0 ? null : field(Mappings.apply(mapping, a.filterArg)),
+        fields(RexUtil.apply(mapping, a.collation)), a.name,
+        fields(Mappings.apply2(mapping, a.getArgList())));
+  }
+
   /** Creates a call to an aggregate function with all applicable operands. */
   protected AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls, RexNode filter, ImmutableList<RexNode> orderKeys,
