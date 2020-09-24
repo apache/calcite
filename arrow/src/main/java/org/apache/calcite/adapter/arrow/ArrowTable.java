@@ -20,6 +20,7 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.*;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -60,8 +61,16 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public ArrowEnumerator project(final int[] fields) {
-    return new ArrowEnumerator(this.vectorSchemaRoots, fields);
+  public Enumerable<Object> project(DataContext root, final int[] fields) {
+    return new AbstractEnumerable<Object>() {
+      public Enumerator<Object> enumerator() {
+        try {
+          return new ArrowEnumerator(vectorSchemaRoots, fields);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
   }
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
