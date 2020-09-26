@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -76,12 +77,11 @@ public class InnodbRules {
   public static final InnodbSortTableScanRule SORT_SCAN =
       InnodbSortTableScanRule.Config.DEFAULT.toRule();
 
-  public static final RelOptRule[] RULES = {
-      PROJECT,
-      FILTER,
-      SORT_FILTER,
-      SORT_SCAN
-  };
+  public static final List<RelOptRule> RULES =
+      ImmutableList.of(PROJECT,
+          FILTER,
+          SORT_FILTER,
+          SORT_SCAN);
 
   static List<String> innodbFieldNames(final RelDataType rowType) {
     return SqlValidatorUtil.uniquify(rowType.getFieldNames(),

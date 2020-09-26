@@ -22,6 +22,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
 
@@ -1162,7 +1163,8 @@ public class InnodbAdapterTest {
   @BeforeEach
   public void before() {
     this.closeable =
-        Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.addThread(InnodbAdapterTest::foo);
+        Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.addThread(
+            InnodbAdapterTest::assignHints);
   }
 
   @AfterEach
@@ -1173,11 +1175,11 @@ public class InnodbAdapterTest {
     }
   }
 
-  public static void foo(SqlToRelConverter.ConfigBuilder builder) {
+  static void assignHints(Holder<SqlToRelConverter.Config> configHolder) {
     HintStrategyTable strategies = HintStrategyTable.builder()
         .hintStrategy("index", HintPredicates.TABLE_SCAN)
         .build();
-    builder.withHintStrategyTable(strategies);
+    configHolder.accept(config -> config.withHintStrategyTable(strategies));
   }
 
   private static String expectedLocalTime(String dateTime) {
