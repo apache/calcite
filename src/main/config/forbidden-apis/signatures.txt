@@ -84,6 +84,12 @@ com.google.common.base.Joiner
 @defaultMessage Use "new ArrayList<>()"
 com.google.common.collect.Lists#newArrayList()
 
+@defaultMessage Use "org.apache.calcite.util.Util#transform(List, Function)"
+com.google.common.collect.Lists#transform(java.util.List, com.google.common.base.Function)
+
+@defaultMessage Use "org.apache.calcite.util.Util#transform(Iterable, Function)"
+com.google.common.collect.Iterables#transform(java.lang.Iterable, com.google.common.base.Function)
+
 @defaultMessage Use "new HashMap<>()"
 com.google.common.collect.Maps#newHashMap()
 
@@ -95,5 +101,3 @@ com.google.common.collect.Maps#newTreeMap()
 
 @defaultMessage Use "new HashSet<>()"
 com.google.common.collect.Sets#newHashSet()
-
-# End signatures.txt

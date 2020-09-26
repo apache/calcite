@@ -62,7 +62,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
@@ -391,12 +390,12 @@ public class Lattice {
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
-    return Lists.transform(aggCallList, this::toMeasure);
+    return Util.transform(aggCallList, this::toMeasure);
   }
 
   private Measure toMeasure(AggregateCall aggCall) {
     return new Measure(aggCall.getAggregation(), aggCall.isDistinct(),
-        aggCall.name, Lists.transform(aggCall.getArgList(), columns::get));
+        aggCall.name, Util.transform(aggCall.getArgList(), columns::get));
   }
 
   public Iterable<? extends Tile> computeTiles() {
@@ -451,7 +450,7 @@ public class Lattice {
   }
 
   public List<String> uniqueColumnNames() {
-    return Lists.transform(columns, column -> column.alias);
+    return Util.transform(columns, column -> column.alias);
   }
 
   Pair<Path, Integer> columnToPathOffset(BaseColumn c) {
@@ -610,7 +609,7 @@ public class Lattice {
 
     /** Returns a list of argument ordinals. */
     public List<Integer> argOrdinals() {
-      return Lists.transform(args, column -> column.ordinal);
+      return Util.transform(args, column -> column.ordinal);
     }
 
     private static int compare(List<Column> list0, List<Column> list1) {

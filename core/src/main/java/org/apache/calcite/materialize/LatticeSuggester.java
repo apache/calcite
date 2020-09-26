@@ -51,7 +51,6 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
@@ -231,7 +230,7 @@ public class LatticeSuggester {
         latticeBuilder.addMeasure(
             new Lattice.Measure(measure.aggregate, measure.distinct,
                 measure.name,
-                Lists.transform(measure.arguments, colRef -> {
+                Util.transform(measure.arguments, colRef -> {
                   final Lattice.Column column;
                   if (colRef instanceof BaseColRef) {
                     final BaseColRef baseColRef = (BaseColRef) colRef;

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
@@ -34,7 +35,6 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
@@ -102,7 +102,7 @@ public abstract class RelOptMaterializations {
     final List<Pair<RelNode, RelOptLattice>> latticeUses = new ArrayList<>();
     final Set<List<String>> queryTableNames =
         Sets.newHashSet(
-            Iterables.transform(queryTables, RelOptTable::getQualifiedName));
+            Util.transform(queryTables, RelOptTable::getQualifiedName));
     // Remember leaf-join form of root so we convert at most once.
     final Supplier<RelNode> leafJoinRoot =
         Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel))::get;

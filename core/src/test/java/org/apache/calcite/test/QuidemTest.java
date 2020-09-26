@@ -33,7 +33,6 @@ import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
 import com.google.common.io.PatternFilenameFilter;
 
 import net.hydromatic.quidem.CommandHandler;
@@ -111,7 +110,7 @@ public abstract class QuidemTest {
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       paths.add(f.getAbsolutePath().substring(commonPrefixLength));
     }
-    return Lists.transform(paths, path -> new Object[] {path});
+    return Util.transform(paths, path -> new Object[] {path});
   }
 
   protected void checkRun(String path) throws Exception {

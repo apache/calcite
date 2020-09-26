@@ -34,7 +34,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
@@ -80,7 +79,7 @@ public class DruidDateTimeUtils {
 
   protected static List<Interval> toInterval(
       List<Range<Long>> ranges) {
-    List<Interval> intervals = Lists.transform(ranges, range -> {
+    List<Interval> intervals = Util.transform(ranges, range -> {
       if (!range.hasLowerBound() && !range.hasUpperBound()) {
         return DruidTable.DEFAULT_INTERVAL;
       }

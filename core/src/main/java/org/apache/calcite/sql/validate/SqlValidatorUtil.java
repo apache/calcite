@@ -62,7 +62,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -227,8 +226,7 @@ public class SqlValidatorUtil {
       RelDataType sourceRowType,
       Map<Integer, RelDataTypeField> indexToField) {
     ImmutableBitSet source = ImmutableBitSet.of(
-        Lists.transform(sourceRowType.getFieldList(),
-            RelDataTypeField::getIndex));
+        Util.transform(sourceRowType.getFieldList(), RelDataTypeField::getIndex));
     ImmutableBitSet target =
         ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
@@ -275,8 +273,7 @@ public class SqlValidatorUtil {
    */
   static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
-    final List<List<String>> names = Lists.transform(columnList,
-        o -> ((SqlIdentifier) o).names);
+    final List<List<String>> names = Util.transform(columnList, o -> ((SqlIdentifier) o).names);
     final int i = Util.firstDuplicate(names);
     if (i >= 0) {
       throw validationErrorFunction.apply(columnList.get(i),

@@ -433,7 +433,7 @@ public class ProfilerImpl implements Profiler {
 
     private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
       return ImmutableSortedSet.copyOf(
-          Iterables.transform(ordinals, columns::get));
+          Util.transform(ordinals, columns::get));
     }
   }
 

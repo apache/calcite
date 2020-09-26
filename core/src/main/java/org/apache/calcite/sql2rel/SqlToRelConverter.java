@@ -1522,7 +1522,7 @@ public class SqlToRelConverter {
             && call.operandCount() == leftKeys.size();
         rexComparison =
             RexUtil.composeConjunction(rexBuilder,
-                Iterables.transform(
+                Util.transform(
                     Pair.zip(leftKeys, call.getOperandList()),
                     pair -> rexBuilder.makeCall(comparisonOp, pair.left,
                         ensureSqlType(pair.left.getType(),

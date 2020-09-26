@@ -60,8 +60,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.Lists;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -319,7 +317,7 @@ public abstract class MutableRels {
 
   private static List<RelNode> fromMutables(List<MutableRel> nodes,
       final RelBuilder relBuilder) {
-    return Lists.transform(nodes,
+    return Util.transform(nodes,
         mutableRel -> fromMutable(mutableRel, relBuilder));
   }
 

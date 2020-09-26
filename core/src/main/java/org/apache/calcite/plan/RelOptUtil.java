@@ -318,7 +318,7 @@ public abstract class RelOptUtil {
    * @see org.apache.calcite.rel.type.RelDataType#getFieldNames()
    */
   public static List<RelDataType> getFieldTypeList(final RelDataType type) {
-    return Lists.transform(type.getFieldList(), RelDataTypeField::getType);
+    return Util.transform(type.getFieldList(), RelDataTypeField::getType);
   }
 
   public static boolean areRowTypesEqual(
@@ -3052,7 +3052,7 @@ public abstract class RelOptUtil {
         multiJoin.isFullOuterJoin(),
         multiJoin.getOuterJoinConditions(),
         multiJoin.getJoinTypes(),
-        Lists.transform(newProjFields, ImmutableBitSet::fromBitSet),
+        Util.transform(newProjFields, ImmutableBitSet::fromBitSet),
         multiJoin.getJoinFieldRefCountsMap(),
         multiJoin.getPostJoinFilter());
   }

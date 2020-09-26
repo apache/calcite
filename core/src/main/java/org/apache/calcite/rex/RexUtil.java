@@ -1813,11 +1813,11 @@ public class RexUtil {
 
   /** Transforms a list of expressions into a list of their types. */
   public static List<RelDataType> types(List<? extends RexNode> nodes) {
-    return Lists.transform(nodes, RexNode::getType);
+    return Util.transform(nodes, RexNode::getType);
   }
 
   public static List<RelDataTypeFamily> families(List<RelDataType> types) {
-    return Lists.transform(types, RelDataType::getFamily);
+    return Util.transform(types, RelDataType::getFamily);
   }
 
   /** Removes all expressions from a list that are equivalent to a given
@@ -2091,7 +2091,7 @@ public class RexUtil {
     }
     return composeConjunction(rexBuilder,
         Iterables.concat(ImmutableList.of(e),
-            Iterables.transform(notTerms, e2 -> not(rexBuilder, e2))));
+            Util.transform(notTerms, e2 -> not(rexBuilder, e2))));
   }
 
   /** Returns whether a given operand of a CASE expression is a predicate.
@@ -2474,11 +2474,11 @@ public class RexUtil {
         case OR:
           operands = ((RexCall) arg).getOperands();
           return toCnf2(
-              and(Lists.transform(flattenOr(operands), RexUtil::addNot)));
+              and(Util.transform(flattenOr(operands), RexUtil::addNot)));
         case AND:
           operands = ((RexCall) arg).getOperands();
           return toCnf2(
-              or(Lists.transform(flattenAnd(operands), RexUtil::addNot)));
+              or(Util.transform(flattenAnd(operands), RexUtil::addNot)));
         default:
           incrementAndCheck();
           return rex;
@@ -2577,7 +2577,7 @@ public class RexUtil {
 
   /** Transforms a list of expressions to the list of digests. */
   public static List<String> strings(List<RexNode> list) {
-    return Lists.transform(list, Object::toString);
+    return Util.transform(list, Object::toString);
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
@@ -2617,11 +2617,11 @@ public class RexUtil {
         case OR:
           operands = ((RexCall) arg).getOperands();
           return toDnf(
-              and(Lists.transform(flattenOr(operands), RexUtil::addNot)));
+              and(Util.transform(flattenOr(operands), RexUtil::addNot)));
         case AND:
           operands = ((RexCall) arg).getOperands();
           return toDnf(
-              or(Lists.transform(flattenAnd(operands), RexUtil::addNot)));
+              or(Util.transform(flattenAnd(operands), RexUtil::addNot)));
         default:
           return rex;
         }

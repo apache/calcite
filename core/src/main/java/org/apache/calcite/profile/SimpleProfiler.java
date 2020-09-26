@@ -200,7 +200,7 @@ public class SimpleProfiler implements Profiler {
         if (space.columns.size() == 1) {
           nullCount = space.nullCount;
           valueSet = ImmutableSortedSet.copyOf(
-              Iterables.transform(space.values, Iterables::getOnlyElement));
+              Util.transform(space.values, Iterables::getOnlyElement));
         } else {
           nullCount = -1;
           valueSet = null;
@@ -279,7 +279,7 @@ public class SimpleProfiler implements Profiler {
 
     private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
       return ImmutableSortedSet.copyOf(
-          Iterables.transform(ordinals, columns::get));
+          Util.transform(ordinals, columns::get));
     }
   }
 

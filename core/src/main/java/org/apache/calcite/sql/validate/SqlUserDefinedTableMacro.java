@@ -35,8 +35,6 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,8 +79,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
 
   @SuppressWarnings("deprecation")
   @Override public List<String> getParamNames() {
-    return Lists.transform(tableMacro.getParameters(),
-        FunctionParameter::getName);
+    return Util.transform(tableMacro.getParameters(), FunctionParameter::getName);
   }
 
   /** Returns the table in this UDF, or null if there is no table. */

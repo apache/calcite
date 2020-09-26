@@ -27,7 +27,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -122,7 +121,7 @@ public class SqlIdentifier extends SqlNode {
   public static SqlIdentifier star(List<String> names, SqlParserPos pos,
       List<SqlParserPos> componentPositions) {
     return new SqlIdentifier(
-        Lists.transform(names, s -> s.equals("*") ? "" : s), null, pos,
+        Util.transform(names, s -> s.equals("*") ? "" : s), null, pos,
         componentPositions);
   }
 
@@ -147,7 +146,7 @@ public class SqlIdentifier extends SqlNode {
 
   /** Converts empty strings in a list of names to stars. */
   public static List<String> toStar(List<String> names) {
-    return Lists.transform(names,
+    return Util.transform(names,
         s -> s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s);
   }
 

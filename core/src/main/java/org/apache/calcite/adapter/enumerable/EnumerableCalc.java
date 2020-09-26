@@ -50,7 +50,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -269,7 +268,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
-    final List<RexNode> exps = Lists.transform(program.getProjectList(),
+    final List<RexNode> exps = Util.transform(program.getProjectList(),
         program::expandLocalRef);
 
     return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
@@ -278,7 +277,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
-    final List<RexNode> exps = Lists.transform(program.getProjectList(),
+    final List<RexNode> exps = Util.transform(program.getProjectList(),
         program::expandLocalRef);
 
     return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,

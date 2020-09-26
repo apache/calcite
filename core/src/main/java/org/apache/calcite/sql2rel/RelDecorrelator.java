@@ -600,7 +600,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           ImmutableBitSet.range(oldGroupKeyCount, newGroupKeyCount);
       newGroupSets =
           ImmutableBitSet.ORDERING.immutableSortedCopy(
-              Iterables.transform(rel.getGroupSets(),
+              Util.transform(rel.getGroupSets(),
                   bitSet -> bitSet.union(addedGroupSet)));
     }
 

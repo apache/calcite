@@ -54,7 +54,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -137,7 +136,7 @@ public class RexBuilder {
   /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,
    * projecting the fields of a given record type. */
   public List<? extends RexNode> identityProjects(final RelDataType rowType) {
-    return Lists.transform(rowType.getFieldList(),
+    return Util.transform(rowType.getFieldList(),
         input -> new RexInputRef(input.getIndex(), input.getType()));
   }
 

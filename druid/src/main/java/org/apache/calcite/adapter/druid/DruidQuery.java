@@ -71,7 +71,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.joda.time.Interval;
@@ -1099,7 +1098,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // Case we have transformed the group by time to druid timeseries with Granularity.
         // Need to replace the name of the column with druid timestamp field name.
         final List<String> timeseriesFieldNames =
-            Lists.transform(queryOutputFieldNames, input -> {
+            Util.transform(queryOutputFieldNames, input -> {
               if (timeExtractColumn.equals(input)) {
                 return "timestamp";
               }

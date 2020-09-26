@@ -17,9 +17,9 @@
 package org.apache.calcite.util.mapping;
 
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import java.util.AbstractList;
@@ -33,6 +33,7 @@ import java.util.List;
  */
 public class IntPair {
   /** Function that swaps source and target fields of an {@link IntPair}. */
+  @Deprecated
   public static final Function<IntPair, IntPair> SWAP =
       new Function<IntPair, IntPair>() {
         public IntPair apply(IntPair pair) {
@@ -55,6 +56,7 @@ public class IntPair {
           });
 
   /** Function that returns the left (source) side of a pair. */
+  @Deprecated
   public static final Function<IntPair, Integer> LEFT =
       new Function<IntPair, Integer>() {
         public Integer apply(IntPair pair) {
@@ -63,6 +65,7 @@ public class IntPair {
       };
 
   /** Function that returns the right (target) side of a pair. */
+  @Deprecated
   public static final Function<IntPair, Integer> RIGHT =
       new Function<IntPair, Integer>() {
         public Integer apply(IntPair pair) {
@@ -156,11 +159,11 @@ public class IntPair {
 
   /** Returns the left side of a list of pairs. */
   public static List<Integer> left(final List<IntPair> pairs) {
-    return Lists.transform(pairs, LEFT);
+    return Util.transform(pairs, x -> x.source);
   }
 
   /** Returns the right side of a list of pairs. */
   public static List<Integer> right(final List<IntPair> pairs) {
-    return Lists.transform(pairs, RIGHT);
+    return Util.transform(pairs, x -> x.target);
   }
 }

@@ -39,7 +39,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -371,7 +370,7 @@ public class MaterializationService {
       return CloneSchema.createCloneTable(connection.getTypeFactory(),
           RelDataTypeImpl.proto(calciteSignature.rowType),
           calciteSignature.getCollationList(),
-          Lists.transform(calciteSignature.columns, column -> column.type.rep),
+          Util.transform(calciteSignature.columns, column -> column.type.rep),
           new AbstractQueryable<Object>() {
             public Enumerator<Object> enumerator() {
               final DataContext dataContext =

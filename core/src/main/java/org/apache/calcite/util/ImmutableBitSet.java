@@ -21,7 +21,6 @@ import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
 import java.io.Serializable;
@@ -264,7 +263,7 @@ public class ImmutableBitSet
       singletons.add(
           ImmutableList.of(ImmutableBitSet.of(), ImmutableBitSet.of(bit)));
     }
-    return Iterables.transform(Linq4j.product(singletons),
+    return Util.transform(Linq4j.product(singletons),
         ImmutableBitSet::union);
   }
 
@@ -886,7 +885,7 @@ public class ImmutableBitSet
   public static Iterable<ImmutableBitSet> permute(
       Iterable<ImmutableBitSet> bitSets,
       final Map<Integer, Integer> map) {
-    return Iterables.transform(bitSets, bitSet -> bitSet.permute(map));
+    return Util.transform(bitSets, bitSet -> bitSet.permute(map));
   }
 
   /** Returns a bit set with every bit moved up {@code offset} positions.
