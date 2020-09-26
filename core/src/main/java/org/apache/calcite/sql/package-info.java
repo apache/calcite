@@ -91,4 +91,11 @@
  * {@link org.apache.calcite.sql.SqlNode}s into a SQL string. A
  * {@link org.apache.calcite.sql.SqlDialect} defines how this happens.</p>
  */
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.FIELD)
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.PARAMETER)
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.RETURN)
 package org.apache.calcite.sql;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.framework.qual.DefaultQualifier;
+import org.checkerframework.framework.qual.TypeUseLocation;
