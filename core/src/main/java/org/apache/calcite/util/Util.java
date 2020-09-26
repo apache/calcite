@@ -36,6 +36,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -1721,19 +1722,7 @@ public class Util {
   public static <E> Iterator<E> cast(
       final Iterator<?> iter,
       final Class<E> clazz) {
-    return new Iterator<E>() {
-      public boolean hasNext() {
-        return iter.hasNext();
-      }
-
-      public E next() {
-        return clazz.cast(iter.next());
-      }
-
-      public void remove() {
-        iter.remove();
-      }
-    };
+    return transform(iter, clazz::cast);
   }
 
   /**
@@ -1750,7 +1739,12 @@ public class Util {
   public static <E> Iterable<E> cast(
       final Iterable<? super E> iterable,
       final Class<E> clazz) {
-    return () -> cast(iterable.iterator(), clazz);
+    // FluentIterable provides toString
+    return new FluentIterable<E>() {
+      @Override public Iterator<E> iterator() {
+        return Util.cast(iterable.iterator(), clazz);
+      }
+    };
   }
 
   /**
@@ -1774,7 +1768,12 @@ public class Util {
   public static <E> Iterable<E> filter(
       final Iterable<?> iterable,
       final Class<E> includeFilter) {
-    return () -> new Filterator<>(iterable.iterator(), includeFilter);
+    // FluentIterable provides toString
+    return new FluentIterable<E>() {
+      @Override public Iterator<E> iterator() {
+        return new Filterator<>(iterable.iterator(), includeFilter);
+      }
+    };
   }
 
   public static <E> Collection<E> filter(
@@ -2558,8 +2557,8 @@ public class Util {
   }
 
   /** Transforms a list, applying a function to each element. */
-  public static <F, T> List<T> transform(List<F> list,
-      java.util.function.Function<F, T> function) {
+  public static <F, T> List<T> transform(List<? extends F> list,
+      java.util.function.Function<? super F, ? extends T> function) {
     if (list instanceof RandomAccess) {
       return new RandomAccessTransformingList<>(list, function);
     } else {
@@ -2567,24 +2566,51 @@ public class Util {
     }
   }
 
+  /** Transforms a iterator, applying a function to each element. */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
+      java.util.function.Function<? super F, ? extends T> function) {
+    // FluentIterable provides toString
+    return new FluentIterable<T>() {
+      @Override public Iterator<T> iterator() {
+        return Util.transform(iterable.iterator(), function);
+      }
+    };
+  }
+
+  /** Transforms an iterator. */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static <F, T> Iterator<T> transform(Iterator<? extends F> iterator,
+      java.util.function.Function<? super F, ? extends T> function) {
+    return new TransformingIterator<>(iterator, function);
+  }
+
   /** Filters an iterable. */
-  public static <E> Iterable<E> filter(Iterable<E> iterable,
-      Predicate<E> predicate) {
-    return () -> filter(iterable.iterator(), predicate);
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static <E> Iterable<E> filter(Iterable<? extends E> iterable,
+      Predicate<? super E> predicate) {
+    // FluentIterable provides toString
+    return new FluentIterable<E>() {
+      @Override public Iterator<E> iterator() {
+        return Util.filter(iterable.iterator(), predicate);
+      }
+    };
   }
 
   /** Filters an iterator. */
-  public static <E> Iterator<E> filter(Iterator<E> iterator,
-      Predicate<E> predicate) {
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static <E> Iterator<E> filter(Iterator<? extends E> iterator,
+      Predicate<? super E> predicate) {
     return new FilteringIterator<>(iterator, predicate);
   }
 
   /** Returns a list with any elements for which the predicate is true moved to
    * the head of the list. The algorithm does not modify the list, is stable,
    * and is idempotent. */
-  public static <E> List<E> moveToHead(List<E> terms, Predicate<E> predicate) {
+  public static <E> List<E> moveToHead(List<? extends E> terms, Predicate<? super E> predicate) {
     if (alreadyAtFront(terms, predicate)) {
-      return terms;
+      //noinspection unchecked
+      return (List<E>) terms;
     }
     final List<E> newTerms = new ArrayList<>(terms.size());
     for (E term : terms) {
@@ -2603,8 +2629,8 @@ public class Util {
   /** Returns whether of the elements of a list for which predicate is true
    * occur before all elements where the predicate is false. (Returns true in
    * corner cases such as empty list, all true, or all false. */
-  private static <E> boolean alreadyAtFront(List<E> list,
-      Predicate<E> predicate) {
+  private static <E> boolean alreadyAtFront(List<? extends E> list,
+      Predicate<? super E> predicate) {
     boolean prev = true;
     for (E e : list) {
       final boolean pass = predicate.test(e);
@@ -2680,11 +2706,11 @@ public class Util {
    * @param <T> Element type of this list
    */
   private static class TransformingList<F, T> extends AbstractList<T> {
-    private final java.util.function.Function<F, T> function;
-    private final List<F> list;
+    private final java.util.function.Function<? super F, ? extends T> function;
+    private final List<? extends F> list;
 
-    TransformingList(List<F> list,
-        java.util.function.Function<F, T> function) {
+    TransformingList(List<? extends F> list,
+        java.util.function.Function<? super F, ? extends T> function) {
       this.function = function;
       this.list = list;
     }
@@ -2710,8 +2736,8 @@ public class Util {
    */
   private static class RandomAccessTransformingList<F, T>
       extends TransformingList<F, T> implements RandomAccess {
-    RandomAccessTransformingList(List<F> list,
-        java.util.function.Function<F, T> function) {
+    RandomAccessTransformingList(List<? extends F> list,
+        java.util.function.Function<? super F, ? extends T> function) {
       super(list, function);
     }
   }
@@ -2722,11 +2748,11 @@ public class Util {
   private static class FilteringIterator<T> implements Iterator<T> {
     private static final Object DUMMY = new Object();
     final Iterator<? extends T> iterator;
-    private final Predicate<T> predicate;
+    private final Predicate<? super T> predicate;
     T current;
 
     FilteringIterator(Iterator<? extends T> iterator,
-        Predicate<T> predicate) {
+        Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
       current = moveNext();
@@ -2750,6 +2776,35 @@ public class Util {
         }
       }
       return (T) DUMMY;
+    }
+  }
+
+  /**
+   * An {@link java.util.Iterator} that transforms its elements on-the-fly.
+   *
+   * @param <F> The element type of the delegate iterator
+   * @param <T> The element type of this iterator
+   */
+  private static class TransformingIterator<F, T> implements Iterator<T> {
+    private final Iterator<? extends F> delegate;
+    private final java.util.function.Function<? super F, ? extends T> function;
+
+    TransformingIterator(Iterator<? extends F> delegate,
+        java.util.function.Function<? super F, ? extends T> function) {
+      this.delegate = delegate;
+      this.function = function;
+    }
+
+    @Override public boolean hasNext() {
+      return delegate.hasNext();
+    }
+
+    @Override public final T next() {
+      return function.apply(delegate.next());
+    }
+
+    @Override public void remove() {
+      delegate.remove();
     }
   }
 }

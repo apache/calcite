@@ -45,8 +45,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import java.util.Collection;
@@ -204,10 +202,10 @@ public class RelMdAllPredicates
           currentTablesMapping.put(rightRef,
               RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
         }
-        final List<RexNode> updatedPreds = Lists.newArrayList(
-            Iterables.transform(inputPreds.pulledUpPredicates,
+        final List<RexNode> updatedPreds =
+            Util.transform(inputPreds.pulledUpPredicates,
                 e -> RexUtil.swapTableReferences(rexBuilder, e,
-                    currentTablesMapping)));
+                    currentTablesMapping));
         newPreds = newPreds.union(rexBuilder,
             RelOptPredicateList.of(rexBuilder, updatedPreds));
       }
@@ -303,10 +301,10 @@ public class RelMdAllPredicates
           qualifiedNamesToRefs.put(newRef.getQualifiedName(), newRef);
         }
         // Update preds
-        final List<RexNode> updatedPreds = Lists.newArrayList(
-            Iterables.transform(inputPreds.pulledUpPredicates,
+        final List<RexNode> updatedPreds =
+            Util.transform(inputPreds.pulledUpPredicates,
                 e -> RexUtil.swapTableReferences(rexBuilder, e,
-                    currentTablesMapping)));
+                    currentTablesMapping));
         newPreds = newPreds.union(rexBuilder,
             RelOptPredicateList.of(rexBuilder, updatedPreds));
       }

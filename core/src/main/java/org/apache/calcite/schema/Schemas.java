@@ -39,6 +39,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -443,7 +444,7 @@ public final class Schemas {
   public static List<CalciteSchema.TableEntry> getStarTables(
       CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, entry -> {
+    return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
           Objects.requireNonNull(entry).getStarTable();
       assert starTable.getTable().getJdbcTableType()
@@ -457,7 +458,7 @@ public final class Schemas {
    * @param schema Schema */
   public static List<Lattice> getLattices(CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, CalciteSchema.LatticeEntry::getLattice);
+    return Util.transform(list, LatticeEntry::getLattice);
   }
 
   /** Returns the lattices defined in a schema.

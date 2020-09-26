@@ -29,8 +29,6 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
-
 import java.util.List;
 
 /**
@@ -92,7 +90,6 @@ public class SqlUserDefinedFunction extends SqlFunction {
 
   @SuppressWarnings("deprecation")
   @Override public List<String> getParamNames() {
-    return Lists.transform(function.getParameters(),
-        FunctionParameter::getName);
+    return Util.transform(function.getParameters(), FunctionParameter::getName);
   }
 }

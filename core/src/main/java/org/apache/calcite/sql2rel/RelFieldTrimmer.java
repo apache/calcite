@@ -73,8 +73,6 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -364,7 +362,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RexProgram rexProgram = calc.getProgram();
-    final List<RexNode> projs = Lists.transform(rexProgram.getProjectList(),
+    final List<RexNode> projs = Util.transform(rexProgram.getProjectList(),
         rexProgram::expandLocalRef);
 
     final RelDataType rowType = calc.getRowType();
@@ -426,7 +424,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RelNode newInputRelNode = relBuilder.push(newInput).build();
     RexNode newConditionExpr = null;
     if (rexProgram.getCondition() != null) {
-      final List<RexNode> filter = Lists.transform(
+      final List<RexNode> filter = Util.transform(
           ImmutableList.of(
               rexProgram.getCondition()), rexProgram::expandLocalRef);
       assert filter.size() == 1;
@@ -1051,7 +1049,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final ImmutableList<ImmutableBitSet> newGroupSets =
         ImmutableList.copyOf(
-            Iterables.transform(aggregate.getGroupSets(),
+            Util.transform(aggregate.getGroupSets(),
                 input1 -> Mappings.apply(inputMapping, input1)));
 
     // Populate mapping of where to find the fields. System, group key and

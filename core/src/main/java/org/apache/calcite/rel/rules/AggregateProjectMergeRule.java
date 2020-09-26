@@ -29,10 +29,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -125,7 +125,7 @@ public class AggregateProjectMergeRule
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     final List<Integer> newKeys =
-        Lists.transform(aggregate.getGroupSet().asList(), map::get);
+        Util.transform(aggregate.getGroupSet().asList(), map::get);
     if (!newKeys.equals(newGroupSet.asList())) {
       final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {

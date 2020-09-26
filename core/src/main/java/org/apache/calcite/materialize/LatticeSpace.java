@@ -24,7 +24,6 @@ import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -120,7 +119,7 @@ class LatticeSpace {
   /** Returns a list of {@link IntPair}, transposing source and target fields,
    * and ensuring the result is sorted and unique. */
   static List<IntPair> swap(List<IntPair> keys) {
-    return sortUnique(Lists.transform(keys, IntPair.SWAP));
+    return sortUnique(Util.transform(keys, x -> IntPair.of(x.target, x.source)));
   }
 
   Path addPath(List<Step> steps) {

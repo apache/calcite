@@ -38,11 +38,10 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.util.HashSet;
@@ -101,7 +100,7 @@ public class RelMdUniqueKeys
     RexProgram program = rel.getProgram();
     Permutation permutation = program.getPermutation();
     return getProjectUniqueKeys(rel, mq, ignoreNulls,
-        Lists.transform(program.getProjectList(), program::expandLocalRef));
+        Util.transform(program.getProjectList(), program::expandLocalRef));
   }
 
   private Set<ImmutableBitSet> getProjectUniqueKeys(SingleRel rel, RelMetadataQuery mq,
@@ -159,10 +158,10 @@ public class RelMdUniqueKeys
       // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
 
       Iterable<List<ImmutableBitSet>> product = Linq4j.product(
-          Iterables.transform(colMask,
-              in -> Iterables.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
+          Util.transform(colMask,
+              in -> Util.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
 
-      resultBuilder.addAll(Iterables.transform(product, ImmutableBitSet::union));
+      resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
     }
     return resultBuilder.build();
   }

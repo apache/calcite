@@ -108,7 +108,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
       }
     } else {
       set = ImmutableSet.copyOf(
-          Iterables.transform(elements, e ->
+          Util.transform(elements, e ->
               e == null ? NullSentinel.INSTANCE : e));
     }
     if (set.contains(NullSentinel.INSTANCE)) {

@@ -25,8 +25,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
-
-import com.google.common.collect.Lists;
+import org.apache.calcite.util.Util;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -238,7 +237,7 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        return Lists.transform(list,
+        return Util.transform(list,
             (Timestamp t) -> t == null ? null : t.getTime());
       }
       break;
@@ -246,7 +245,7 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIME:
-        return Lists.transform(list, (Time t) -> t == null
+        return Util.transform(list, (Time t) -> t == null
             ? null
             : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
       }
@@ -255,7 +254,7 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_DATE:
-        return Lists.transform(list, (Date d) -> d == null
+        return Util.transform(list, (Date d) -> d == null
             ? null
             : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
       }

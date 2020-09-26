@@ -24,7 +24,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,7 +66,7 @@ public abstract class ListScope extends DelegatingScope {
    * @return list of child namespaces
    */
   public List<SqlValidatorNamespace> getChildren() {
-    return Lists.transform(children, scopeChild -> scopeChild.namespace);
+    return Util.transform(children, scopeChild -> scopeChild.namespace);
   }
 
   /**
@@ -76,7 +75,7 @@ public abstract class ListScope extends DelegatingScope {
    * @return list of child namespaces
    */
   List<String> getChildNames() {
-    return Lists.transform(children, scopeChild -> scopeChild.name);
+    return Util.transform(children, scopeChild -> scopeChild.name);
   }
 
   private ScopeChild findChild(List<String> names,

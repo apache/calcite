@@ -114,12 +114,12 @@ public class Programs {
 
   /** Creates a list of programs based on an array of rule sets. */
   public static List<Program> listOf(RuleSet... ruleSets) {
-    return Lists.transform(Arrays.asList(ruleSets), Programs::of);
+    return Util.transform(Arrays.asList(ruleSets), Programs::of);
   }
 
   /** Creates a list of programs based on a list of rule sets. */
   public static List<Program> listOf(List<RuleSet> ruleSets) {
-    return Lists.transform(ruleSets, Programs::of);
+    return Util.transform(ruleSets, Programs::of);
   }
 
   /** Creates a program from a list of rules. */

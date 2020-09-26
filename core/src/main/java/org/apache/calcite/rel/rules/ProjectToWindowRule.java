@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
@@ -46,7 +47,6 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -173,8 +173,7 @@ public abstract class ProjectToWindowRule
           }
           if (!program.projectsOnlyIdentity()) {
             relBuilder.project(
-                Lists.transform(program.getProjectList(),
-                    program::expandLocalRef),
+                Util.transform(program.getProjectList(), program::expandLocalRef),
                 calc.getRowType().getFieldNames());
           }
           return relBuilder.build();

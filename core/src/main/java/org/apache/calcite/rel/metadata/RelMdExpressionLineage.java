@@ -47,7 +47,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
@@ -269,7 +268,7 @@ public class RelMdExpressionLineage
             null,
             ImmutableList.of());
         final Set<RexNode> updatedExprs = ImmutableSet.copyOf(
-            Iterables.transform(originalExprs, e ->
+            Util.transform(originalExprs, e ->
                 RexUtil.swapTableReferences(rexBuilder, e,
                     currentTablesMapping)));
         mapping.put(RexInputRef.of(idx, fullRowType), updatedExprs);

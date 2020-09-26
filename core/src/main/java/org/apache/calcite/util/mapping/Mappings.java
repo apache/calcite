@@ -22,7 +22,6 @@ import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
 import java.util.AbstractList;
@@ -220,7 +219,7 @@ public abstract class Mappings {
       Iterable<ImmutableBitSet> bitSets) {
     return ImmutableList.copyOf(
         ImmutableBitSet.ORDERING.sortedCopy(
-            Iterables.transform(bitSets, input1 -> apply(mapping, input1))));
+            Util.transform(bitSets, input1 -> apply(mapping, input1))));
   }
 
   /**

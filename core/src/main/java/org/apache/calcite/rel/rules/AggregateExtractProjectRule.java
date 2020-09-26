@@ -28,12 +28,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +114,7 @@ public class AggregateExtractProjectRule
         Mappings.apply(mapping, aggregate.getGroupSet());
 
     final Iterable<ImmutableBitSet> newGroupSets =
-        Iterables.transform(aggregate.getGroupSets(),
+        Util.transform(aggregate.getGroupSets(),
             bitSet -> Mappings.apply(mapping, bitSet));
     final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {

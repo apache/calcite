@@ -19,8 +19,7 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
-
-import com.google.common.collect.Lists;
+import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +57,6 @@ abstract class MutableMultiRel extends MutableRel {
   }
 
   protected List<MutableRel> cloneChildren() {
-    return Lists.transform(inputs, MutableRel::clone);
+    return Util.transform(inputs, MutableRel::clone);
   }
 }

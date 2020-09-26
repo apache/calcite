@@ -23,7 +23,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -147,7 +146,7 @@ public class RelCollations {
   /** Returns the indexes of the fields in a list of field collations. */
   public static List<Integer> ordinals(
       List<RelFieldCollation> fieldCollations) {
-    return Lists.transform(fieldCollations, RelFieldCollation::getFieldIndex);
+    return Util.transform(fieldCollations, RelFieldCollation::getFieldIndex);
   }
 
   /** Returns whether a collation indicates that the collection is sorted on

@@ -33,8 +33,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -171,7 +169,7 @@ public abstract class Sort extends SingleRel {
   /** Returns the sort expressions. */
   public List<RexNode> getSortExps() {
     //noinspection StaticPseudoFunctionalStyleMethod
-    return Lists.transform(collation.getFieldCollations(), field ->
+    return Util.transform(collation.getFieldCollations(), field ->
         getCluster().getRexBuilder().makeInputRef(input,
             Objects.requireNonNull(field).getFieldIndex()));
   }

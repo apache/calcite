@@ -19,8 +19,8 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
@@ -86,7 +86,7 @@ public class SortNode extends AbstractSingleNode<Sort> {
       return comparator(rel.getCollation().getFieldCollations().get(0));
     }
     return Ordering.compound(
-        Iterables.transform(rel.getCollation().getFieldCollations(),
+        Util.transform(rel.getCollation().getFieldCollations(),
             this::comparator));
   }
 

@@ -84,12 +84,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import java.util.ArrayDeque;
@@ -848,14 +848,14 @@ public class RelToSqlConverter extends SqlImplementor
   private SqlNodeList exprList(final Context context,
       List<? extends RexNode> exprs) {
     return new SqlNodeList(
-        Lists.transform(exprs, e -> context.toSql(null, e)), POS);
+        Util.transform(exprs, e -> context.toSql(null, e)), POS);
   }
 
   /** Converts a list of names expressions to a list of single-part
    * {@link SqlIdentifier}s. */
   private SqlNodeList identifierList(List<String> names) {
     return new SqlNodeList(
-        Lists.transform(names, name -> new SqlIdentifier(name, POS)), POS);
+        Util.transform(names, name -> new SqlIdentifier(name, POS)), POS);
   }
 
   /** Visits a Match; called by {@link #dispatch} via reflection. */

@@ -21,6 +21,7 @@ import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -630,7 +631,7 @@ public abstract class RelOptRule {
    */
   protected static List<RelNode> convertList(List<RelNode> rels,
       final RelTrait trait) {
-    return Lists.transform(rels,
+    return Util.transform(rels,
         rel -> convert(rel, rel.getTraitSet().replace(trait)));
   }
 

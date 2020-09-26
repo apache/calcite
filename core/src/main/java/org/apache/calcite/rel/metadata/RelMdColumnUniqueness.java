@@ -49,9 +49,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -219,7 +219,7 @@ public class RelMdColumnUniqueness
     RexProgram program = rel.getProgram();
 
     return areProjectColumnsUnique(rel, mq, columns, ignoreNulls,
-        Lists.transform(program.getProjectList(), program::expandLocalRef));
+        Util.transform(program.getProjectList(), program::expandLocalRef));
   }
 
   private Boolean areProjectColumnsUnique(

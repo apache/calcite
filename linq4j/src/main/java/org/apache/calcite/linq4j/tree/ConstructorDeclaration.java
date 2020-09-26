@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,16 +62,17 @@ public class ConstructorDeclaration extends MemberDeclaration {
     if (!modifiers.isEmpty()) {
       writer.append(' ');
     }
+    //noinspection unchecked
     writer
         .append(resultType)
         .list("(", ", ", ")",
-            Lists.transform(parameters, parameter -> {
+            () -> (Iterator) parameters.stream().map(parameter -> {
               final String modifiers1 =
                   Modifier.toString(parameter.modifier);
               return modifiers1 + (modifiers1.isEmpty() ? "" : " ")
                   + Types.className(parameter.getType()) + " "
                   + parameter.name;
-            }))
+            }).iterator())
         .append(' ').append(body);
     writer.newlineAndIndent();
   }
