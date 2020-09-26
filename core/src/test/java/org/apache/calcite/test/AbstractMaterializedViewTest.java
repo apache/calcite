@@ -54,6 +54,8 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -231,8 +233,8 @@ public abstract class AbstractMaterializedViewTest {
     }
 
     @ImmutableBeans.Property
-    CalciteAssert.SchemaSpec getDefaultSchemaSpec();
-    Sql withDefaultSchemaSpec(CalciteAssert.SchemaSpec spec);
+    CalciteAssert.@Nullable SchemaSpec getDefaultSchemaSpec();
+    Sql withDefaultSchemaSpec(CalciteAssert.@Nullable SchemaSpec spec);
 
     @ImmutableBeans.Property
     List<Pair<String, String>> getMaterializations();
@@ -243,8 +245,8 @@ public abstract class AbstractMaterializedViewTest {
     Sql withQuery(String query);
 
     @ImmutableBeans.Property
-    Function<String, Boolean> getChecker();
-    Sql withChecker(Function<String, Boolean> checker);
+    @Nullable Function<String, Boolean> getChecker();
+    Sql withChecker(@Nullable Function<String, Boolean> checker);
 
     @ImmutableBeans.Property
     AbstractMaterializedViewTest getTester();
