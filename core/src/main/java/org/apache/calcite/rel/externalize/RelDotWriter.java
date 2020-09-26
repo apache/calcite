@@ -289,6 +289,6 @@ public class RelDotWriter extends RelWriterImpl {
      * Predicate for nodes that need to be highlighted.
      */
     @ImmutableBeans.Property
-    Predicate<RelNode> nodePredicate();
+    @Nullable Predicate<RelNode> nodePredicate();
   }
 }

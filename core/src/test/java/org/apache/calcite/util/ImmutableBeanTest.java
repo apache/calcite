@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
@@ -81,7 +81,8 @@ class ImmutableBeanTest {
       throw new AssertionError("expected error, got " + v);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("property 'IntSansDefault' is required and has no default value"));
+          is("property 'org.apache.calcite.util.ImmutableBeanTest$Bean2#IntSansDefault'"
+              + " is required and has no default value"));
     }
     assertThat(b.withIntSansDefault(4).getIntSansDefault(), is(4));
 
@@ -96,8 +97,8 @@ class ImmutableBeanTest {
       throw new AssertionError("expected error, got " + v);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("property 'BooleanSansDefault' is required and has no default "
-              + "value"));
+          is("property 'org.apache.calcite.util.ImmutableBeanTest$Bean2#BooleanSansDefault'"
+              + " is required and has no default value"));
     }
     assertThat(b.withBooleanSansDefault(false).isBooleanSansDefault(),
         is(false));
@@ -115,8 +116,8 @@ class ImmutableBeanTest {
       throw new AssertionError("expected error, got " + v);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("property 'StringSansDefault' is required and has no default "
-              + "value"));
+          is("property 'org.apache.calcite.util.ImmutableBeanTest$Bean2#StringSansDefault'"
+              + " is required and has no default value"));
     }
     assertThat(b.withStringSansDefault("a").getStringSansDefault(), is("a"));
 
@@ -126,7 +127,8 @@ class ImmutableBeanTest {
       throw new AssertionError("expected error, got " + v);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("property 'NonnullString' is required and has no default value"));
+          is("property 'org.apache.calcite.util.ImmutableBeanTest$Bean2#NonnullString'"
+              + " is required and has no default value"));
     }
     assertThat(b.withNonnullString("a").getNonnullString(), is("a"));
 
@@ -564,42 +566,42 @@ class ImmutableBeanTest {
     boolean isBooleanSansDefault();
     Bean2 withBooleanSansDefault(boolean x);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     String getStringSansDefault();
     Bean2 withStringSansDefault(String x);
 
     @ImmutableBeans.Property
-    String getOptionalString();
-    Bean2 withOptionalString(String s);
+    @Nullable String getOptionalString();
+    Bean2 withOptionalString(@Nullable String s);
 
-    /** Property is required because it has 'Nonnull' annotation. */
+    /** Property is required because its return type does not have Nullable annotation. */
     @ImmutableBeans.Property
-    @NonNull String getNonnullString();
+    String getNonnullString();
     Bean2 withNonnullString(String s);
 
     @ImmutableBeans.Property
     @ImmutableBeans.StringDefault("abc")
-    @NonNull String getStringWithDefault();
-    Bean2 withStringWithDefault(String s);
+    String getStringWithDefault();
+    Bean2 withStringWithDefault(@Nullable String s);
 
     @ImmutableBeans.Property
     @ImmutableBeans.NullDefault
-    String getStringWithNullDefault();
-    Bean2 withStringWithNullDefault(String s);
+    @Nullable String getStringWithNullDefault();
+    Bean2 withStringWithNullDefault(@Nullable String s);
 
     @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("RED")
-    @NonNull Color getColorWithDefault();
-    Bean2 withColorWithDefault(Color color);
+    Color getColorWithDefault();
+    Bean2 withColorWithDefault(@Nullable Color color);
 
     @ImmutableBeans.Property
     @ImmutableBeans.NullDefault
-    Color getColorWithNullDefault();
-    Bean2 withColorWithNullDefault(Color color);
+    @Nullable Color getColorWithNullDefault();
+    Bean2 withColorWithNullDefault(@Nullable Color color);
 
     @ImmutableBeans.Property()
-    Color getColorOptional();
-    Bean2 withColorOptional(Color color);
+    @Nullable Color getColorOptional();
+    Bean2 withColorOptional(@Nullable Color color);
   }
 
   /** Red, blue, green. */
@@ -638,33 +640,33 @@ class ImmutableBeanTest {
   /** A bean that has collection-valued properties. */
   public interface CollectionBean {
     @ImmutableBeans.Property(makeImmutable = false)
-    List<String> list();
+    @Nullable List<String> list();
 
-    CollectionBean withList(List<String> list);
+    CollectionBean withList(@Nullable List<String> list);
 
     @ImmutableBeans.Property(makeImmutable = true)
-    List<String> immutableList();
+    @Nullable List<String> immutableList();
 
-    CollectionBean withImmutableList(List<String> list);
+    CollectionBean withImmutableList(@Nullable List<String> list);
 
     @ImmutableBeans.Property(makeImmutable = false)
-    Set<String> set();
+    @Nullable Set<String> set();
 
-    CollectionBean withSet(Set<String> set);
+    CollectionBean withSet(@Nullable Set<String> set);
 
     @ImmutableBeans.Property(makeImmutable = true)
-    Set<String> immutableSet();
+    @Nullable Set<String> immutableSet();
 
-    CollectionBean withImmutableSet(Set<String> set);
+    CollectionBean withImmutableSet(@Nullable Set<String> set);
 
     @ImmutableBeans.Property(makeImmutable = false)
-    Map<String, Integer> map();
+    @Nullable Map<String, Integer> map();
 
-    CollectionBean withMap(Map<String, Integer> map);
+    CollectionBean withMap(@Nullable Map<String, Integer> map);
 
     @ImmutableBeans.Property(makeImmutable = true)
-    Map<String, Integer> immutableMap();
+    @Nullable Map<String, Integer> immutableMap();
 
-    CollectionBean withImmutableMap(Map<String, Integer> map);
+    CollectionBean withImmutableMap(@Nullable Map<String, Integer> map);
   }
 }

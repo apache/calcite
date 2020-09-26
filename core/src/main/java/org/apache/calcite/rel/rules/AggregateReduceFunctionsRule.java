@@ -881,7 +881,7 @@ public class AggregateReduceFunctionsRule
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */
-    @NonNull default Set<SqlKind> actualFunctionsToReduce() {
+    default Set<SqlKind> actualFunctionsToReduce() {
       final Set<SqlKind> set =
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);
