@@ -144,10 +144,10 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     /** Description of the rule instance. */
     @ImmutableBeans.Property
-    String description();
+    @Nullable String description();
 
     /** Sets {@link #description()}. */
-    Config withDescription(String description);
+    Config withDescription(@Nullable String description);
 
     /** Creates the operands for the rule instance. */
     @ImmutableBeans.Property

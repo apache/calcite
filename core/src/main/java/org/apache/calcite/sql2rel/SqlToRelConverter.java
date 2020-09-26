@@ -6136,7 +6136,7 @@ public class SqlToRelConverter {
 
     /** Returns the factory to create {@link RelBuilder}, never null. Default is
      * {@link RelFactories#LOGICAL_BUILDER}. */
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     RelBuilderFactory getRelBuilderFactory();
 
     /** Sets {@link #getRelBuilderFactory()}. */
@@ -6144,7 +6144,7 @@ public class SqlToRelConverter {
 
     /** Returns a function that takes a {@link RelBuilder.Config} and returns
      * another. Default is the identity function. */
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     UnaryOperator<RelBuilder.Config> getRelBuilderConfigTransform();
 
     /** Sets {@link #getRelBuilderConfigTransform()}.
@@ -6163,7 +6163,7 @@ public class SqlToRelConverter {
     /** Returns the hint strategies used to decide how the hints are propagated to
      * the relational expressions. Default is
      * {@link HintStrategyTable#EMPTY}. */
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     HintStrategyTable getHintStrategyTable();
 
     /** Sets {@link #getHintStrategyTable()}. */

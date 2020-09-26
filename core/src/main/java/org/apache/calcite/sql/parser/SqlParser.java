@@ -257,19 +257,19 @@ public class SqlParser {
     /** Sets {@link #identifierMaxLength()}. */
     Config withIdentifierMaxLength(int identifierMaxLength);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     Casing quotedCasing();
 
     /** Sets {@link #quotedCasing()}. */
     Config withQuotedCasing(Casing casing);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     Casing unquotedCasing();
 
     /** Sets {@link #unquotedCasing()}. */
     Config withUnquotedCasing(Casing casing);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     Quoting quoting();
 
     /** Sets {@link #quoting()}. */
@@ -282,7 +282,7 @@ public class SqlParser {
     /** Sets {@link #caseSensitive()}. */
     Config withCaseSensitive(boolean caseSensitive);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     SqlConformance conformance();
 
     /** Sets {@link #conformance()}. */
@@ -292,13 +292,13 @@ public class SqlParser {
     boolean allowBangEqual();
 
     /** Returns which character literal styles are supported. */
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     Set<CharLiteralStyle> charLiteralStyles();
 
     /** Sets {@link #charLiteralStyles()}. */
     Config withCharLiteralStyles(Set<CharLiteralStyle> charLiteralStyles);
 
-    @ImmutableBeans.Property(required = true)
+    @ImmutableBeans.Property
     SqlParserImplFactory parserFactory();
 
     /** Sets {@link #parserFactory()}. */
