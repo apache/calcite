@@ -33,6 +33,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * RelDataTypeImpl is an abstract base for implementations of
  * {@link RelDataType}.
@@ -225,7 +227,8 @@ public abstract class RelDataTypeImpl
    * @return SqlTypeName, never null
    */
   @Override public SqlTypeName getSqlTypeName() {
-    return null;
+    // The implementations must provide non-null value, however, we keep this for compatibility
+    return castNonNull(null);
   }
 
   @Override public SqlIdentifier getSqlIdentifier() {
