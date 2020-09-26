@@ -34,6 +34,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -118,8 +119,6 @@ public class ImmutableBeans {
       if (property == null) {
         continue;
       }
-      final boolean hasNonnull =
-          hasAnnotation(method, "org.checkerframework.checker.nullness.qual.NonNull");
       final Mode mode;
       final Object defaultValue = getDefault(method);
       final String methodName = method.getName();
@@ -142,9 +141,10 @@ public class ImmutableBeans {
         throw new IllegalArgumentException("method '" + methodName
             + "' has too many parameters");
       }
-      final boolean required = property.required()
-          || propertyType.isPrimitive()
-          || hasNonnull;
+      final boolean required = propertyType.isPrimitive()
+          || !hasAnnotation(
+              method.getAnnotatedReturnType(),
+          "org.checkerframework.checker.nullness.qual.Nullable");
       if (required) {
         requiredPropertyNames.add(propertyName);
       }
@@ -165,7 +165,8 @@ public class ImmutableBeans {
             return v;
           }
           if (required && defaultValue == null) {
-            throw new IllegalArgumentException("property '" + propertyName
+            throw new IllegalArgumentException("property '" + beanClass.getName()
+                + "#" + propertyName
                 + "' is required and has no default value");
           }
           return defaultValue2;
@@ -340,9 +341,9 @@ public class ImmutableBeans {
 
   /** Looks for an annotation by class name.
    * Useful if you don't want to depend on the class
-   * (e.g. "org.checkerframework.checker.nullness.qual.NonNull") at compile time. */
-  private static boolean hasAnnotation(Method method, String className) {
-    for (Annotation annotation : method.getDeclaredAnnotations()) {
+   * (e.g. "org.checkerframework.checker.nullness.qual.Nullable") at compile time. */
+  private static boolean hasAnnotation(AnnotatedElement element, String className) {
+    for (Annotation annotation : element.getDeclaredAnnotations()) {
       if (annotation.annotationType().getName().equals(className)) {
         return true;
       }
@@ -419,16 +420,6 @@ public class ImmutableBeans {
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface Property {
-    /** Whether the property is required.
-     *
-     * <p>Properties of type {@code int} and {@code boolean} are always
-     * required.
-     *
-     * <p>If a property is required, it cannot be set to null.
-     * If it has no default value, calling "get" will give a runtime exception.
-     */
-    boolean required() default false;
-
     /** Whether to make immutable copies of property values. */
     boolean makeImmutable() default true;
   }

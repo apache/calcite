@@ -892,7 +892,7 @@ public interface SqlValidator {
 
     /** Returns the type coercion rules for explicit type coercion. */
     @ImmutableBeans.Property
-    SqlTypeCoercionRule typeCoercionRules();
+    @Nullable SqlTypeCoercionRule typeCoercionRules();
 
     /**
      * Sets the {@link SqlTypeCoercionRule} instance which defines the type conversion matrix
@@ -904,7 +904,7 @@ public interface SqlValidator {
      * @param rules The {@link SqlTypeCoercionRule} instance,
      *              see its documentation for how to customize the rules
      */
-    Config withTypeCoercionRules(SqlTypeCoercionRule rules);
+    Config withTypeCoercionRules(@Nullable SqlTypeCoercionRule rules);
 
     /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
      * Default is {@link SqlConformanceEnum#DEFAULT}. */
