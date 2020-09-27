@@ -22,9 +22,10 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.slf4j.Logger;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -41,9 +42,10 @@ import java.util.stream.Collectors;
  * to decide i) if the given hint was registered; ii) which hints are suitable for the rel with
  * a given hints collection; iii) if the hint options are valid.
  *
- * <p>Once built, the hint strategy table is immutable during the planning phrase.
+ * <p>The hint strategy table is immutable. To create one, use
+ * {@link #builder()}.
  *
- * <p>Match of hint name is case in-sensitive.
+ * <p>Match of hint name is case insensitive.
  *
  * @see HintPredicate
  */
@@ -51,8 +53,8 @@ public class HintStrategyTable {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Empty strategies. */
-  public static final HintStrategyTable EMPTY = new HintStrategyTable(
-      Collections.emptyMap(), HintErrorLogger.INSTANCE);
+  public static final HintStrategyTable EMPTY =
+      new HintStrategyTable(ImmutableMap.of(), HintErrorLogger.INSTANCE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -63,7 +65,7 @@ public class HintStrategyTable {
   private final Litmus errorHandler;
 
   private HintStrategyTable(Map<Key, HintStrategy> strategies, Litmus litmus) {
-    this.strategies = strategies;
+    this.strategies = ImmutableMap.copyOf(strategies);
     this.errorHandler = litmus;
   }
 
@@ -155,7 +157,8 @@ public class HintStrategyTable {
    * Key used to keep the strategies which ignores the case sensitivity.
    */
   private static class Key {
-    private String name;
+    private final String name;
+
     private Key(String name) {
       this.name = name;
     }
@@ -184,13 +187,8 @@ public class HintStrategyTable {
    * Builder for {@code HintStrategyTable}.
    */
   public static class Builder {
-    private Map<Key, HintStrategy> strategies;
-    private Litmus errorHandler;
-
-    private Builder() {
-      this.strategies = new HashMap<>();
-      this.errorHandler = HintErrorLogger.INSTANCE;
-    }
+    private final Map<Key, HintStrategy> strategies = new HashMap<>();
+    private Litmus errorHandler = HintErrorLogger.INSTANCE;
 
     public Builder hintStrategy(String hintName, HintPredicate strategy) {
       this.strategies.put(Key.of(hintName),
