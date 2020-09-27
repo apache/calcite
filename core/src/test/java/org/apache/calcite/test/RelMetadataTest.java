@@ -107,6 +107,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -151,6 +152,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -3144,12 +3146,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  @Disabled("This test must be run alone (e.g. in an IDE), as it may change some global"
-      + " settings which causes other tests to fail.")
   @Test void testRegenerateHandler() {
-    // disable the regeneration flag
-    JaninoRelMetadataProvider.MetadataHandlerRegeneration.enableHandlerRegeneration(false);
-
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     RelNode filter = builder
@@ -3158,22 +3155,33 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .build();
     RelMetadataQuery mq = filter.getCluster().getMetadataQuery();
 
-    // get row size for a known type of rel node, ok
+    Pair<String, String> cause = Pair.of("Size",
+        "org.apache.calcite.test.RelMetadataTest.CustomRel");
+
+    // get metadata for the first time to make sure handler is generated.
     mq.getAverageRowSize(filter);
+    assertFalse(JaninoRelMetadataProvider.REGENERATION_CAUSES.contains(cause));
 
+    // make sure we have enough credits to perform regeneration.
+    assertTrue(JaninoRelMetadataProvider.MetadataRegenerationCounter.getCounterValue() > 0);
+
+    // get metadata for the second time, with a new node type,
+    // and make sure regeneration happens.
     RelNode customRel = new CustomRel(filter.getCluster(), filter.getTraitSet());
+    mq.getAverageRowSize(customRel);
 
-    // get row size for an unknown type of rel node, exception will be thrown
-    IllegalArgumentException exp = assertThrows(IllegalArgumentException.class,
-        () -> mq.getAverageRowSize(customRel));
+    // make sure a regeneration log is produced
+    assertTrue(JaninoRelMetadataProvider.REGENERATION_CAUSES.contains(cause));
+  }
 
-    assertEquals("Metadata handler already exists for Size", exp.getMessage());
-
-    // set the flag more than once will cause an exception
-    IllegalStateException exp1 = assertThrows(IllegalStateException.class,
-        () -> JaninoRelMetadataProvider
-            .MetadataHandlerRegeneration.enableHandlerRegeneration(true));
-    assertEquals("The flag of metadata handler regeneration has been set", exp1.getMessage());
+  @Test void testRegenerateCounter() {
+    // setting the initial counter value more than once will cause an exception
+    IllegalStateException exp = assertThrows(IllegalStateException.class,
+        () -> {
+          JaninoRelMetadataProvider.MetadataRegenerationCounter.setInitialValue(1000000);
+          JaninoRelMetadataProvider.MetadataRegenerationCounter.setInitialValue(1000000);
+        });
+    assertEquals("The initial counter value has been set", exp.getMessage());
   }
 
   /**
