@@ -81,10 +81,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
     }
     RelDataType firstType = null;
     for (Ord<SqlNode> operand : Ord.zip(callBinding.operands())) {
-      RelDataType type =
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(),
-              operand.e);
+      RelDataType type = SqlTypeUtil.deriveType(callBinding, operand.e);
       if (operand.i == 0) {
         firstType = type;
       } else {

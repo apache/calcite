@@ -85,11 +85,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    final List<RelDataType> argTypes =
-        SqlTypeUtil.deriveAndCollectTypes(
-            callBinding.getValidator(),
-            callBinding.getScope(),
-            callBinding.operands());
+    final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
     final RelDataType componentType =
         getComponentType(
             callBinding.getTypeFactory(),

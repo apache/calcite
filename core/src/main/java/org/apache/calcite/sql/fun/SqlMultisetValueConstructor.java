@@ -86,10 +86,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final List<RelDataType> argTypes =
-        SqlTypeUtil.deriveAndCollectTypes(
-            callBinding.getValidator(),
-            callBinding.getScope(),
-            callBinding.operands());
+        SqlTypeUtil.deriveType(callBinding, callBinding.operands());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(RESOURCE.requireAtLeastOneArg());
     }

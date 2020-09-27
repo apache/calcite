@@ -44,8 +44,7 @@ public abstract class InferTypes {
             callBinding.getValidator().getUnknownType();
         RelDataType knownType = unknownType;
         for (SqlNode operand : callBinding.operands()) {
-          knownType = callBinding.getValidator().deriveType(
-              callBinding.getScope(), operand);
+          knownType = SqlTypeUtil.deriveType(callBinding, operand);
           if (!knownType.equals(unknownType)) {
             break;
           }

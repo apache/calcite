@@ -46,6 +46,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.apiguardian.api.API;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -53,11 +55,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
@@ -123,21 +126,13 @@ public abstract class SqlTypeUtil {
       SqlCallBinding binding,
       List<SqlNode> operands,
       boolean throwOnFailure) {
-    final SqlValidator validator = binding.getValidator();
-    final SqlValidatorScope scope = binding.getScope();
-    assert operands != null;
-    assert operands.size() >= 2;
+    requireNonNull(operands, "operands");
+    assert operands.size() >= 2
+        : "operands.size() should be 2 or greater, actual: " + operands.size();
 
-    if (!isCharTypeComparable(
-        deriveAndCollectTypes(validator, scope, operands))) {
+    if (!isCharTypeComparable(SqlTypeUtil.deriveType(binding, operands))) {
       if (throwOnFailure) {
-        String msg = "";
-        for (int i = 0; i < operands.size(); i++) {
-          if (i > 0) {
-            msg += ", ";
-          }
-          msg += operands.get(i).toString();
-        }
+        String msg = String.join(", ", Util.transform(operands, String::valueOf));
         throw binding.newError(RESOURCE.operandNotComparable(msg));
       }
       return false;
@@ -152,7 +147,7 @@ public abstract class SqlTypeUtil {
   public static List<RelDataType> deriveAndCollectTypes(
       SqlValidator validator,
       SqlValidatorScope scope,
-      List<SqlNode> operands) {
+      List<? extends SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
     List<RelDataType> types = new ArrayList<>();
@@ -160,6 +155,43 @@ public abstract class SqlTypeUtil {
       types.add(validator.deriveType(scope, operand));
     }
     return types;
+  }
+
+  /**
+   * Derives type of the call via its binding.
+   * @param binding binding to derive the type from
+   * @return datatype of the call
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RelDataType deriveType(SqlCallBinding binding) {
+    return deriveType(binding, binding.getCall());
+  }
+
+  /**
+   * Derives type of the given call under given binding.
+   * @param binding binding to derive the type from
+   * @param node node type to derive
+   * @return datatype of the given node
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RelDataType deriveType(SqlCallBinding binding, SqlNode node) {
+    return binding.getValidator().deriveType(
+        requireNonNull(binding.getScope(), () -> "scope of " + binding), node);
+  }
+
+  /**
+   * Derives types for the list of nodes.
+   * @param binding binding to derive the type from
+   * @param nodes the list of nodes to derive types from
+   * @return the list of types of the given nodes
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static List<RelDataType> deriveType(SqlCallBinding binding,
+      List<? extends SqlNode> nodes) {
+    return deriveAndCollectTypes(
+        binding.getValidator(),
+        requireNonNull(binding.getScope(), () -> "scope of " + binding),
+        nodes);
   }
 
   /**
@@ -212,7 +244,7 @@ public abstract class SqlTypeUtil {
       final RelDataTypeFactory typeFactory,
       final List<RelDataType> argTypes,
       RelDataType type) {
-    Objects.requireNonNull(type);
+    requireNonNull(type, "type");
     if (containsNullable(argTypes)) {
       type = typeFactory.createTypeWithNullability(type, true);
     }

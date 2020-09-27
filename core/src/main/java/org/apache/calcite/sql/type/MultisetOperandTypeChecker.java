@@ -65,11 +65,9 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(
-                callBinding.getValidator()
-                    .deriveType(callBinding.getScope(), op0)
+                SqlTypeUtil.deriveType(callBinding, op0)
                     .getComponentType(),
-                callBinding.getValidator()
-                    .deriveType(callBinding.getScope(), op1)
+                SqlTypeUtil.deriveType(callBinding, op1)
                     .getComponentType()));
     if (null == biggest) {
       if (throwOnFailure) {

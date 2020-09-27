@@ -27,6 +27,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -45,9 +46,10 @@ import com.google.common.collect.Lists;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>SqlCallBinding</code> implements {@link SqlOperatorBinding} by
@@ -290,8 +292,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
       for (int i = 0; i < operands.size(); i += 2) {
         final SqlNode key = operands.get(i);
         final SqlNode value = operands.get(i + 1);
-        builder2.put(Objects.requireNonNull(valueAs(key, Object.class)),
-            Objects.requireNonNull(valueAs(value, Object.class)));
+        builder2.put(requireNonNull(valueAs(key, Object.class), "key"),
+            requireNonNull(valueAs(value, Object.class), "value"));
       }
       return clazz.cast(builder2.build());
 
@@ -341,7 +343,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   @Override public RelDataType getOperandType(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
-    final RelDataType type = validator.deriveType(scope, operand);
+    final RelDataType type = SqlTypeUtil.deriveType(this, operand);
     final SqlValidatorNamespace namespace = validator.getNamespace(operand);
     if (namespace != null) {
       return namespace.getType();
@@ -356,7 +358,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     }
     final SqlCall cursorCall = (SqlCall) operand;
     final SqlNode query = cursorCall.operand(0);
-    return validator.deriveType(scope, query);
+    return SqlTypeUtil.deriveType(this, query);
   }
 
   @Override public String getColumnListParamInfo(

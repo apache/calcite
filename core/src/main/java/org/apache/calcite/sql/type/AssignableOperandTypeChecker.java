@@ -72,10 +72,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     // yet, therefore we do not know the ordered parameter names.
     final List<SqlNode> operands = callBinding.getCall().getOperandList();
     for (Pair<RelDataType, SqlNode> pair : Pair.zip(paramTypes, operands)) {
-      RelDataType argType =
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(),
-              pair.right);
+      RelDataType argType = SqlTypeUtil.deriveType(callBinding, pair.right);
       if (!SqlTypeUtil.canAssignFrom(pair.left, argType)) {
         // TODO: add in unresolved function type cast.
         if (throwOnFailure) {

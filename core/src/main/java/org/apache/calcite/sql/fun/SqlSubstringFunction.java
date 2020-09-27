@@ -36,7 +36,6 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidator;
 
 import com.google.common.collect.ImmutableList;
 
@@ -117,9 +116,8 @@ public class SqlSubstringFunction extends SqlFunction {
       // Reset the operands because they may be coerced during
       // implicit type coercion.
       operands = callBinding.getCall().getOperandList();
-      final SqlValidator validator = callBinding.getValidator();
-      final RelDataType t1 = validator.deriveType(callBinding.getScope(), operands.get(1));
-      final RelDataType t2 = validator.deriveType(callBinding.getScope(), operands.get(2));
+      final RelDataType t1 = callBinding.getOperandType(1);
+      final RelDataType t2 = callBinding.getOperandType(2);
       if (SqlTypeUtil.inCharFamily(t1)) {
         if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
             throwOnFailure)) {

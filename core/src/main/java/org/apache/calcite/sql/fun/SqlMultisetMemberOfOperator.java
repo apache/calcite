@@ -62,15 +62,9 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
       return false;
     }
 
-    MultisetSqlType mt =
-        (MultisetSqlType) callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            callBinding.operand(1));
+    MultisetSqlType mt = (MultisetSqlType) callBinding.getOperandType(1);
 
-    RelDataType t0 =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            callBinding.operand(0));
+    RelDataType t0 = callBinding.getOperandType(0);
     RelDataType t1 = mt.getComponentType();
 
     if (t0.getFamily() != t1.getFamily()) {
