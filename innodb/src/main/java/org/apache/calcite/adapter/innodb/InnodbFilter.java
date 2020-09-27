@@ -51,7 +51,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
 
     this.tableDef = tableDef;
     InnodbFilterTranslator translator =
-        new InnodbFilterTranslator(getRowType(), tableDef, forceIndexName);
+        new InnodbFilterTranslator(cluster.getRexBuilder(), getRowType(),
+            tableDef, forceIndexName);
     this.indexCondition = translator.translateMatch(condition);
     this.forceIndexName = forceIndexName;
 
