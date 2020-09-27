@@ -286,8 +286,8 @@ public class Pair<T1, T2>
    * @return Iterable over the left elements
    */
   public static <L, R> Iterable<L> left(
-      final Iterable<? extends Map.Entry<L, R>> iterable) {
-    return () -> new LeftIterator<>(iterable.iterator());
+      final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
+    return Util.transform(iterable, Map.Entry::getKey);
   }
 
   /**
@@ -299,34 +299,18 @@ public class Pair<T1, T2>
    * @return Iterable over the right elements
    */
   public static <L, R> Iterable<R> right(
-      final Iterable<? extends Map.Entry<L, R>> iterable) {
-    return () -> new RightIterator<>(iterable.iterator());
+      final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
+    return Util.transform(iterable, Map.Entry::getValue);
   }
 
   public static <K, V> List<K> left(
-      final List<? extends Map.Entry<K, V>> pairs) {
-    return new AbstractList<K>() {
-      public K get(int index) {
-        return pairs.get(index).getKey();
-      }
-
-      public int size() {
-        return pairs.size();
-      }
-    };
+      final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
+    return Util.transform(pairs, Map.Entry::getKey);
   }
 
   public static <K, V> List<V> right(
-      final List<? extends Map.Entry<K, V>> pairs) {
-    return new AbstractList<V>() {
-      public V get(int index) {
-        return pairs.get(index).getValue();
-      }
-
-      public int size() {
-        return pairs.size();
-      }
-    };
+      final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
+    return Util.transform(pairs, Map.Entry::getValue);
   }
 
   /**
@@ -367,54 +351,6 @@ public class Pair<T1, T2>
       final T first = iterator.next();
       return new FirstAndIterator<>(iterator, first);
     };
-  }
-
-  /** Iterator that returns the left field of each pair.
-   *
-   * @param <L> Left-hand type
-   * @param <R> Right-hand type */
-  private static class LeftIterator<L, R> implements Iterator<L> {
-    private final Iterator<? extends Map.Entry<L, R>> iterator;
-
-    LeftIterator(Iterator<? extends Map.Entry<L, R>> iterator) {
-      this.iterator = Objects.requireNonNull(iterator);
-    }
-
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    public L next() {
-      return iterator.next().getKey();
-    }
-
-    public void remove() {
-      iterator.remove();
-    }
-  }
-
-  /** Iterator that returns the right field of each pair.
-   *
-   * @param <L> Left-hand type
-   * @param <R> Right-hand type */
-  private static class RightIterator<L, R> implements Iterator<R> {
-    private final Iterator<? extends Map.Entry<L, R>> iterator;
-
-    RightIterator(Iterator<? extends Map.Entry<L, R>> iterator) {
-      this.iterator = Objects.requireNonNull(iterator);
-    }
-
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    public R next() {
-      return iterator.next().getValue();
-    }
-
-    public void remove() {
-      iterator.remove();
-    }
   }
 
   /** Iterator that returns the first element of a collection paired with every
