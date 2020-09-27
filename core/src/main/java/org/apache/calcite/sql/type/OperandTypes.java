@@ -581,10 +581,7 @@ public abstract class OperandTypes {
         int iFormalOperand,
         boolean throwOnFailure) {
       assert 0 == iFormalOperand;
-      RelDataType type =
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(),
-              node);
+      RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
       boolean validationError = false;
       if (!type.isStruct()) {
         validationError = true;
@@ -663,10 +660,7 @@ public abstract class OperandTypes {
             int iFormalOperand,
             boolean throwOnFailure) {
           assert 0 == iFormalOperand;
-          RelDataType type =
-              callBinding.getValidator().deriveType(
-                  callBinding.getScope(),
-                  node);
+          RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
           boolean validationError = false;
           if (!type.isStruct()) {
             validationError = true;
@@ -721,8 +715,7 @@ public abstract class OperandTypes {
     public boolean checkSingleOperandType(SqlCallBinding callBinding,
         SqlNode node, int iFormalOperand, boolean throwOnFailure) {
       assert 0 == iFormalOperand;
-      RelDataType type =
-          callBinding.getValidator().deriveType(callBinding.getScope(), node);
+      RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
       boolean valid = false;
       if (type.isStruct() && type.getFieldList().size() == 2) {
         final RelDataType t0 = type.getFieldList().get(0).getType();

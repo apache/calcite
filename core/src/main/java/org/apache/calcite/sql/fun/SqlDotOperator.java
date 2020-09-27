@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -137,8 +138,7 @@ public class SqlDotOperator extends SqlSpecialOperator {
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
     final SqlNode right = callBinding.operand(1);
-    final RelDataType type =
-        callBinding.getValidator().deriveType(callBinding.getScope(), left);
+    final RelDataType type = SqlTypeUtil.deriveType(callBinding, left);
     if (type.getSqlTypeName() != SqlTypeName.ROW) {
       return false;
     } else if (type.getSqlIdentifier().isStar()) {

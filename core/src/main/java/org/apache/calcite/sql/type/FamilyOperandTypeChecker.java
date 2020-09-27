@@ -68,8 +68,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     final SqlTypeFamily family = families.get(iFormalOperand);
     switch (family) {
     case ANY:
-      final RelDataType type = callBinding.getValidator()
-          .deriveType(callBinding.getScope(), node);
+      final RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
       SqlTypeName typeName = type.getSqlTypeName();
 
       if (typeName == SqlTypeName.CURSOR) {
@@ -94,10 +93,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
         return false;
       }
     }
-    RelDataType type =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            node);
+    RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
     SqlTypeName typeName = type.getSqlTypeName();
 
     // Pass type checking for operators if it's of type 'ANY'.

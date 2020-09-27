@@ -145,8 +145,7 @@ public class SqlCastFunction extends SqlFunction {
     }
     RelDataType validatedNodeType =
         callBinding.getValidator().getValidatedNodeType(left);
-    RelDataType returnType =
-        callBinding.getValidator().deriveType(callBinding.getScope(), right);
+    RelDataType returnType = SqlTypeUtil.deriveType(callBinding, right);
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
       if (throwOnFailure) {
         throw callBinding.newError(
