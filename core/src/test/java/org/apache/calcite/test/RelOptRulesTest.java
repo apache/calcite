@@ -5234,6 +5234,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Similar to {@link #testAggregateJoinRemove3()} but with agg call
+   * referencing the last column of the left input. */
+  @Test void testAggregateJoinRemove11() {
+    final String sql = "select e.deptno, count(distinct e.slacker)\n"
+        + "from sales.emp e\n"
+        + "left outer join sales.dept d on e.deptno = d.deptno\n"
+        + "group by e.deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_JOIN_REMOVE)
+        .check();
+  }
+
   /** Similar to {@link #testAggregateJoinRemove1()};
    * Should remove the bottom join since the project uses column in the
    * right input of bottom join. */
@@ -5334,6 +5347,17 @@ class RelOptRulesTest extends RelOptTestBase {
         + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
     sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
         .checkUnchanged();
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove4()};
+   * The project references the last column of the left input.
+   * The rule should be fired.*/
+  @Test void testProjectJoinRemove10() {
+    final String sql = "SELECT e.deptno, e.slacker\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
   }
 
   @Test void testSwapOuterJoin() {
