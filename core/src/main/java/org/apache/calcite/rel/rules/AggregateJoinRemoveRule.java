@@ -82,7 +82,7 @@ public class AggregateJoinRemoveRule
     final Join join = call.rel(1);
     boolean isLeftJoin = join.getJoinType() == JoinRelType.LEFT;
     int lower = isLeftJoin
-        ? join.getLeft().getRowType().getFieldCount() - 1 : 0;
+        ? join.getLeft().getRowType().getFieldCount() : 0;
     int upper = isLeftJoin ? join.getRowType().getFieldCount()
         : join.getLeft().getRowType().getFieldCount();
 
