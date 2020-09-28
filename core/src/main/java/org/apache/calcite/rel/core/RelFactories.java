@@ -517,13 +517,24 @@ public class RelFactories {
     @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
         List<RelNode> inputs, RexCall call, Type elementType,
         Set<RelColumnMapping> columnMappings) {
-      final SqlOperatorBinding callBinding =
-          new RexCallBinding(cluster.getTypeFactory(), call.getOperator(),
-              call.operands, ImmutableList.of());
-      final SqlTableFunction operator = (SqlTableFunction) call.getOperator();
-      final SqlReturnTypeInference rowTypeInference =
-          operator.getRowTypeInference();
-      final RelDataType rowType = rowTypeInference.inferReturnType(callBinding);
+      final RelDataType rowType;
+      // To deduce the return type:
+      // 1. if the operator implements SqlTableFunction,
+      // use the SqlTableFunction's return type inference;
+      // 2. else use the call's type, e.g. the operator may has
+      // its custom way for return type inference.
+      if (call.getOperator() instanceof SqlTableFunction) {
+        final SqlOperatorBinding callBinding =
+            new RexCallBinding(cluster.getTypeFactory(), call.getOperator(),
+                call.operands, ImmutableList.of());
+        final SqlTableFunction operator = (SqlTableFunction) call.getOperator();
+        final SqlReturnTypeInference rowTypeInference =
+            operator.getRowTypeInference();
+        rowType = rowTypeInference.inferReturnType(callBinding);
+      } else {
+        rowType = call.getType();
+      }
+
       return LogicalTableFunctionScan.create(cluster, inputs, call,
           elementType, rowType, columnMappings);
     }
