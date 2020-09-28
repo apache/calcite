@@ -140,12 +140,11 @@ public class ArrowTest {
   }
 
   private static Consumer<ResultSet> expect(final String... expected) {
-    System.out.println(expected.toString());
     return resultSet -> {
       try {
         final List<String> lines = new ArrayList<>();
         ArrowTest.collect(lines, resultSet);
-        assertEquals(Arrays.asList(expected), lines);
+        assertEquals(Arrays.asList(expected).toString(), lines.toString());
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -184,7 +183,11 @@ public class ArrowTest {
 
   @Test void testJson() throws SQLException {
     final String sql = "select * from test\n";
-    final String[] lines = {};
+    final String[] lines = {
+        "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
+        + " fieldOne=2; fieldTwo=def; fieldThree=3.4,"
+        + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6"
+    };
     sql("bug", sql)
         .returns(lines)
         .ok();
