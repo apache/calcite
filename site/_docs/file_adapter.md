@@ -171,7 +171,7 @@ Tables can be simply defined for immediate gratification:
 }
 {% endhighlight %}
 
-And subsequently refined for better usability / querying:
+And subsequently refined for better usability/querying:
 
 {% highlight json %}
 {
@@ -235,7 +235,7 @@ query results.  These messages will be suppressed in the next release.)
 
 ## CSV files and model-free browsing
 
-Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.csv` has an
+Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.csv` has an
 integer `DEPTNO` column and a string `NAME` column:
 
 {% highlight json %}
@@ -275,7 +275,7 @@ sqlline> select distinct deptno from depts;
 
 ## JSON files and model-free browsing
 
-Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
+Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
 
 {% highlight json %}
 [
