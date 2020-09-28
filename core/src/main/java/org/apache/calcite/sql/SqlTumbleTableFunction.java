@@ -59,7 +59,7 @@ public class SqlTumbleTableFunction extends SqlWindowTableFunction {
     }
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-      return opName + "(TABLE table_name, DESCRIPTOR(col1, col2 ...), datetime interval"
+      return opName + "(TABLE table_name, DESCRIPTOR(timecol), datetime interval"
           + "[, datetime interval])";
     }
   }
