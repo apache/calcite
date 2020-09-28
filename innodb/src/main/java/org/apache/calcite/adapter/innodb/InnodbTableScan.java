@@ -142,17 +142,14 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
       if (skMeta == null) {
         throw new AssertionError("secondary index not found " + forceIndexName.get());
       }
-      return IndexCondition.create()
-          .setFieldNames(InnodbRules.innodbFieldNames(getRowType()))
-          .setIndexName(forceIndexName.get())
-          .setIndexColumnNames(skMeta.getKeyColumnNames())
-          .setQueryType(QueryType.SK_FULL_SCAN);
+      return IndexCondition.create(InnodbRules.innodbFieldNames(getRowType()),
+          forceIndexName.get(), skMeta.getKeyColumnNames(),
+          QueryType.SK_FULL_SCAN);
     }
     // by default clustering index will be used to scan table
-    return IndexCondition.create()
-        .setIndexName(Constants.PRIMARY_KEY_NAME)
-        .setFieldNames(InnodbRules.innodbFieldNames(getRowType()))
-        .setIndexColumnNames(innodbTable.getTableDef().getPrimaryKeyColumnNames())
-        .setQueryType(QueryType.PK_FULL_SCAN);
+    return IndexCondition.create(InnodbRules.innodbFieldNames(getRowType()),
+        Constants.PRIMARY_KEY_NAME,
+        innodbTable.getTableDef().getPrimaryKeyColumnNames(),
+        QueryType.PK_FULL_SCAN);
   }
 }

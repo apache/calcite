@@ -158,22 +158,23 @@ class InnodbFilterTranslator {
     // create result which might have conditions to push down
     List<String> indexColumnNames = keyMeta.getKeyColumnNames();
     List<RexNode> pushDownRexNodeList = new ArrayList<>();
-    List<RexNode> reminderRexNodeList = new ArrayList<>(rexNodeList);
-    IndexCondition condition = new IndexCondition(fieldNames, keyMeta.getName(),
-        indexColumnNames, pushDownRexNodeList, reminderRexNodeList);
+    List<RexNode> remainderRexNodeList = new ArrayList<>(rexNodeList);
+    IndexCondition condition =
+        IndexCondition.create(fieldNames, keyMeta.getName(), indexColumnNames,
+            pushDownRexNodeList, remainderRexNodeList);
 
     // handle point query if possible
-    handlePointQuery(condition, keyMeta, leftMostKeyNodes, keyOrdToNodesMap,
-        pushDownRexNodeList, reminderRexNodeList);
+    condition = handlePointQuery(condition, keyMeta, leftMostKeyNodes,
+        keyOrdToNodesMap, pushDownRexNodeList, remainderRexNodeList);
     if (condition.canPushDown()) {
       return condition;
     }
 
     // handle range query
-    handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, reminderRexNodeList, ">=", ">");
-    handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, reminderRexNodeList, "<=", "<");
+    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+        pushDownRexNodeList, remainderRexNodeList, ">=", ">");
+    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+        pushDownRexNodeList, remainderRexNodeList, "<=", "<");
 
     return condition;
   }
@@ -202,17 +203,17 @@ class InnodbFilterTranslator {
    * possible, if "=" operation found on all index columns, then it is a
    * point query on key (both primary key or composite key), else it will
    * transform to a range query.
-   * <p>
-   * If conditions can be pushed down, for range query, we only remove
+   *
+   * <p>If conditions can be pushed down, for range query, we only remove
    * first node from field expression list (<code>rexNodeList</code>),
    * because Innodb-java-reader only support range query, not fully
    * index condition pushdown; for point query, we can remove them all.
    */
-  private void handlePointQuery(IndexCondition condition, KeyMeta keyMeta,
-      Collection<InternalRexNode> leftMostKeyNodes,
+  private IndexCondition handlePointQuery(IndexCondition condition,
+      KeyMeta keyMeta, Collection<InternalRexNode> leftMostKeyNodes,
       Multimap<Integer, InternalRexNode> keyOrdToNodesMap,
       List<RexNode> pushDownRexNodeList,
-      List<RexNode> reminderRexNodeList) {
+      List<RexNode> remainderRexNodeList) {
     Optional<InternalRexNode> leftMostEqOpNode = findFirstOp(leftMostKeyNodes, "=");
     if (leftMostEqOpNode.isPresent()) {
       InternalRexNode node = leftMostEqOpNode.get();
@@ -221,31 +222,40 @@ class InnodbFilterTranslator {
       findSubsequentMatches(matchNodes, keyMeta.getNumOfColumns(), keyOrdToNodesMap, "=");
       List<Object> key = createKey(matchNodes);
       pushDownRexNodeList.add(node.node);
-      reminderRexNodeList.remove(node.node);
+      remainderRexNodeList.remove(node.node);
 
       if (matchNodes.size() != keyMeta.getNumOfColumns()) {
         // "=" operation does not apply on all index columns
-        condition.setQueryType(QueryType.getRangeQuery(keyMeta.isSecondaryKey()));
-        condition.setRangeQueryLowerOp(ComparisonOperator.GTE);
-        condition.setRangeQueryLowerKey(key);
-        condition.setRangeQueryUpperOp(ComparisonOperator.LTE);
-        condition.setRangeQueryUpperKey(key);
+        return condition
+            .withQueryType(QueryType.getRangeQuery(keyMeta.isSecondaryKey()))
+            .withRangeQueryLowerOp(ComparisonOperator.GTE)
+            .withRangeQueryLowerKey(key)
+            .withRangeQueryUpperOp(ComparisonOperator.LTE)
+            .withRangeQueryUpperKey(key)
+            .withPushDownConditions(pushDownRexNodeList)
+            .withRemainderConditions(remainderRexNodeList);
       } else {
-        condition.setQueryType(QueryType.getPointQuery(keyMeta.isSecondaryKey()));
-        condition.setPointQueryKey(key);
         for (InternalRexNode n : matchNodes) {
           pushDownRexNodeList.add(n.node);
-          reminderRexNodeList.remove(n.node);
+          remainderRexNodeList.remove(n.node);
         }
+        return condition
+            .withQueryType(QueryType.getPointQuery(keyMeta.isSecondaryKey()))
+            .withPointQueryKey(key)
+            .withPushDownConditions(pushDownRexNodeList)
+            .withRemainderConditions(remainderRexNodeList);
       }
     }
+    return condition;
   }
 
   /**
    * Handle range query push down. We try to find operation of GTE, GT, LT
    * or LTE in the left most key.
+   *
    * <p>We only push down partial condition since Innodb-java-reader only supports
    * range query with lower and upper bound, not fully index condition pushdown.
+   *
    * <p>For example, given the following 7 rows with (a,b) as secondary key.
    * <pre>
    *   a=100,b=200
@@ -256,36 +266,46 @@ class InnodbFilterTranslator {
    *   a=300,b=300
    *   a=500,b=600
    * </pre>
-   * If condition is <code>a&gt;200 AND b&gt;300</code>, the lower bound should be
+   *
+   * <p>If condition is <code>a&gt;200 AND b&gt;300</code>, the lower bound should be
    * <code>a=300,b=300</code>, we can only push down one condition
    * <code>a&gt;200</code> as lower bound condition, we cannot push
    * <code>a&gt;200 AND b&gt;300</code> because it will include
    * <code>a=200,b=400</code> as well which is incorrect.
+   *
    * <p>If conditions can be pushed down, we will first node from field
    * expression list (<code>rexNodeList</code>).
    */
-  private void handleRangeQuery(IndexCondition condition, KeyMeta keyMeta,
-      Collection<InternalRexNode> leftMostKeyNodes,
+  private IndexCondition handleRangeQuery(IndexCondition condition,
+      KeyMeta keyMeta, Collection<InternalRexNode> leftMostKeyNodes,
       List<RexNode> pushDownRexNodeList,
-      List<RexNode> reminderRexNodeList,
+      List<RexNode> remainderRexNodeList,
       String... opList) {
     Optional<InternalRexNode> node = findFirstOp(leftMostKeyNodes, opList);
     if (node.isPresent()) {
       pushDownRexNodeList.add(node.get().node);
-      reminderRexNodeList.remove(node.get().node);
+      remainderRexNodeList.remove(node.get().node);
       List<Object> key = createKey(Lists.newArrayList(node.get()));
       ComparisonOperator op = ComparisonOperator.parse(node.get().op);
-      condition.setQueryType(QueryType.getRangeQuery(keyMeta.isSecondaryKey()));
       if (ComparisonOperator.isLowerBoundOp(opList)) {
-        condition.setRangeQueryLowerOp(op);
-        condition.setRangeQueryLowerKey(key);
+        return condition
+            .withQueryType(QueryType.getRangeQuery(keyMeta.isSecondaryKey()))
+            .withRangeQueryLowerOp(op)
+            .withRangeQueryLowerKey(key)
+            .withPushDownConditions(pushDownRexNodeList)
+            .withRemainderConditions(remainderRexNodeList);
       } else if (ComparisonOperator.isUpperBoundOp(opList)) {
-        condition.setRangeQueryUpperOp(op);
-        condition.setRangeQueryUpperKey(key);
+        return condition
+            .withQueryType(QueryType.getRangeQuery(keyMeta.isSecondaryKey()))
+            .withRangeQueryUpperOp(op)
+            .withRangeQueryUpperKey(key)
+            .withPushDownConditions(pushDownRexNodeList)
+            .withRemainderConditions(remainderRexNodeList);
       } else {
         throw new AssertionError("comparison operation is invalid " + op);
       }
     }
+    return condition;
   }
 
   /**

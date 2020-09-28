@@ -29,64 +29,107 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
 
 /**
- * Index condition works in the following places.
- * <p>In {@link InnodbFilterTranslator}, it is the index condition
+ * Index condition.
+ *
+ * <p>Works in the following places:
+ *
+ * <ul>
+ * <li>In {@link InnodbFilterTranslator}, it is the index condition
  * to push down according to {@link InnodbFilter} by planner rule.
- * <p>In {@link InnodbTableScan}, it represents a full scan by a
+ *
+ * <li>In {@link InnodbTableScan}, it represents a full scan by a
  * primary key or a secondary key.
- * <p>In code generation, it indicates the storage engine which index
+ *
+ * <li>In code generation, it indicates the storage engine which index
  * to use and the associated condition if present.
+ * </ul>
  */
 public class IndexCondition {
 
-  static final IndexCondition EMPTY_CONDITION = new IndexCondition();
+  static final IndexCondition EMPTY_CONDITION =
+      create(null, null, null, ComparisonOperator.NOP, ComparisonOperator.NOP,
+          ImmutableList.of(), ImmutableList.of());
 
   /** Field names per row type. */
-  private List<String> fieldNames;
-  private String indexName;
-  private List<String> indexColumnNames;
-  private RelCollation implicitCollation;
-  private List<RexNode> pushDownConditions;
-  private List<RexNode> remainderConditions;
+  private final List<String> fieldNames;
+  private final String indexName;
+  private final List<String> indexColumnNames;
+  private final RelCollation implicitCollation;
+  private final List<RexNode> pushDownConditions;
+  private final List<RexNode> remainderConditions;
 
-  private QueryType queryType;
-  private List<Object> pointQueryKey;
-  private ComparisonOperator rangeQueryLowerOp = ComparisonOperator.NOP;
-  private ComparisonOperator rangeQueryUpperOp = ComparisonOperator.NOP;
-  private List<Object> rangeQueryLowerKey = ImmutableList.of();
-  private List<Object> rangeQueryUpperKey = ImmutableList.of();
+  private final QueryType queryType;
+  private final List<Object> pointQueryKey;
+  private final ComparisonOperator rangeQueryLowerOp;
+  private final ComparisonOperator rangeQueryUpperOp;
+  private final List<Object> rangeQueryLowerKey;
+  private final List<Object> rangeQueryUpperKey;
 
-  private IndexCondition() {
+  /** Constructor that assigns all fields. All other constructors call this. */
+  private IndexCondition(
+      List<String> fieldNames,
+      String indexName,
+      List<String> indexColumnNames,
+      RelCollation implicitCollation,
+      List<RexNode> pushDownConditions,
+      List<RexNode> remainderConditions,
+      QueryType queryType,
+      List<Object> pointQueryKey,
+      ComparisonOperator rangeQueryLowerOp,
+      ComparisonOperator rangeQueryUpperOp,
+      List<Object> rangeQueryLowerKey,
+      List<Object> rangeQueryUpperKey) {
+    this.fieldNames = fieldNames;
+    this.indexName = indexName;
+    this.indexColumnNames = indexColumnNames;
+    this.implicitCollation =
+        implicitCollation != null ? implicitCollation
+            : deduceImplicitCollation(fieldNames, indexColumnNames);
+    this.pushDownConditions = pushDownConditions == null ? ImmutableList.of()
+        : ImmutableList.copyOf(pushDownConditions);
+    this.remainderConditions = remainderConditions == null ? ImmutableList.of()
+        : ImmutableList.copyOf(remainderConditions);
+    this.queryType = queryType;
+    this.pointQueryKey = pointQueryKey;
+    this.rangeQueryLowerOp = Objects.requireNonNull(rangeQueryLowerOp);
+    this.rangeQueryUpperOp = Objects.requireNonNull(rangeQueryUpperOp);
+    this.rangeQueryLowerKey = ImmutableList.copyOf(rangeQueryLowerKey);
+    this.rangeQueryUpperKey = ImmutableList.copyOf(rangeQueryUpperKey);
   }
 
-  static IndexCondition create() {
-    return new IndexCondition();
+  static IndexCondition create(
+      List<String> fieldNames,
+      String indexName,
+      List<String> indexColumnNames,
+      QueryType queryType) {
+    return new IndexCondition(fieldNames, indexName, indexColumnNames, null,
+        null, null, queryType, null, ComparisonOperator.NOP,
+        ComparisonOperator.NOP, ImmutableList.of(), ImmutableList.of());
   }
 
   /**
-   * Create a new instance for {@link InnodbFilterTranslator} to build
+   * Creates a new instance for {@link InnodbFilterTranslator} to build
    * index condition which can be pushed down.
    */
-  IndexCondition(
+  static IndexCondition create(
       List<String> fieldNames,
       String indexName,
       List<String> indexColumnNames,
       List<RexNode> pushDownConditions,
       List<RexNode> remainderConditions) {
-    this.fieldNames = fieldNames;
-    this.indexName = indexName;
-    this.indexColumnNames = indexColumnNames;
-    this.pushDownConditions = pushDownConditions;
-    this.remainderConditions = remainderConditions;
-    this.implicitCollation = getImplicitCollation(indexColumnNames);
+    return new IndexCondition(fieldNames, indexName, indexColumnNames, null,
+        pushDownConditions, remainderConditions, null, null,
+        ComparisonOperator.NOP, ComparisonOperator.NOP, ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /**
-   * Create a new instance for code generation to build query parameters
+   * Creates a new instance for code generation to build query parameters
    * for underlying storage engine <code>Innodb-java-reader</code>.
    */
   public static IndexCondition create(
@@ -97,127 +140,182 @@ public class IndexCondition {
       ComparisonOperator rangeQueryUpperOp,
       List<Object> rangeQueryLowerKey,
       List<Object> rangeQueryUpperKey) {
-    IndexCondition condition = new IndexCondition();
-    condition.setIndexName(indexName);
-    condition.setQueryType(queryType);
-    condition.setPointQueryKey(pointQueryKey);
-    condition.setRangeQueryLowerOp(rangeQueryLowerOp);
-    condition.setRangeQueryUpperOp(rangeQueryUpperOp);
-    condition.setRangeQueryLowerKey(rangeQueryLowerKey);
-    condition.setRangeQueryUpperKey(rangeQueryUpperKey);
-    return condition;
+    return new IndexCondition(ImmutableList.of(), indexName, ImmutableList.of(),
+        null, null, null, queryType, pointQueryKey, rangeQueryLowerOp,
+        rangeQueryUpperOp, rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
-  /**
-   * If there are any push down conditions, return true.
-   */
+  /** Returns whether there are any push down conditions. */
   boolean canPushDown() {
-    return CollectionUtils.isNotEmpty(pushDownConditions);
+    return !pushDownConditions.isEmpty();
   }
 
   public RelCollation getImplicitCollation() {
-    if (implicitCollation == null) {
-      assert indexColumnNames != null;
-      implicitCollation = getImplicitCollation(indexColumnNames);
-    }
     return implicitCollation;
   }
 
   /**
-   * Infer the implicit correlation from the index.
+   * Infers the implicit correlation from the index.
    *
    * @param indexColumnNames index column names
    * @return the collation of the filtered results
    */
-  public RelCollation getImplicitCollation(List<String> indexColumnNames) {
+  private static RelCollation deduceImplicitCollation(List<String> fieldNames,
+      List<String> indexColumnNames) {
     checkState(fieldNames != null, "field names cannot be null");
     List<RelFieldCollation> keyCollations = new ArrayList<>(indexColumnNames.size());
     for (String keyColumnName : indexColumnNames) {
       int fieldIndex = fieldNames.indexOf(keyColumnName);
-      keyCollations.add(new RelFieldCollation(fieldIndex, RelFieldCollation.Direction.ASCENDING));
+      keyCollations.add(
+          new RelFieldCollation(fieldIndex, RelFieldCollation.Direction.ASCENDING));
     }
     return RelCollations.of(keyCollations);
   }
 
-  public IndexCondition setFieldNames(List<String> fieldNames) {
-    this.fieldNames = fieldNames;
-    return this;
+  public IndexCondition withFieldNames(List<String> fieldNames) {
+    if (Objects.equals(fieldNames, this.fieldNames)) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public String getIndexName() {
     return indexName;
   }
 
-  public IndexCondition setIndexName(String indexName) {
-    this.indexName = indexName;
-    return this;
+  public IndexCondition withIndexName(String indexName) {
+    if (Objects.equals(indexName, this.indexName)) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
-  public IndexCondition setIndexColumnNames(List<String> indexColumnNames) {
-    this.indexColumnNames = indexColumnNames;
-    return this;
+  public IndexCondition withIndexColumnNames(List<String> indexColumnNames) {
+    if (Objects.equals(indexColumnNames, this.indexColumnNames)) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public List<RexNode> getPushDownConditions() {
-    return pushDownConditions == null ? ImmutableList.of() : pushDownConditions;
+    return pushDownConditions;
+  }
+
+  public IndexCondition withPushDownConditions(List<RexNode> pushDownConditions) {
+    if (Objects.equals(pushDownConditions, this.pushDownConditions)) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public List<RexNode> getRemainderConditions() {
-    return remainderConditions == null ? ImmutableList.of() : remainderConditions;
+    return remainderConditions;
+  }
+
+  public IndexCondition withRemainderConditions(List<RexNode> remainderConditions) {
+    if (Objects.equals(remainderConditions, this.remainderConditions)) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public QueryType getQueryType() {
     return queryType;
   }
 
-  public IndexCondition setQueryType(QueryType queryType) {
-    this.queryType = queryType;
-    return this;
+  public IndexCondition withQueryType(QueryType queryType) {
+    if (queryType == this.queryType) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public List<Object> getPointQueryKey() {
     return pointQueryKey;
   }
 
-  public IndexCondition setPointQueryKey(List<Object> pointQueryKey) {
-    this.pointQueryKey = pointQueryKey;
-    return this;
+  public IndexCondition withPointQueryKey(List<Object> pointQueryKey) {
+    if (pointQueryKey == this.pointQueryKey) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public ComparisonOperator getRangeQueryLowerOp() {
     return rangeQueryLowerOp;
   }
 
-  public IndexCondition setRangeQueryLowerOp(ComparisonOperator rangeQueryLowerOp) {
-    this.rangeQueryLowerOp = rangeQueryLowerOp;
-    return this;
+  public IndexCondition withRangeQueryLowerOp(ComparisonOperator rangeQueryLowerOp) {
+    if (rangeQueryLowerOp == this.rangeQueryLowerOp) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public ComparisonOperator getRangeQueryUpperOp() {
     return rangeQueryUpperOp;
   }
 
-  public IndexCondition setRangeQueryUpperOp(ComparisonOperator rangeQueryUpperOp) {
-    this.rangeQueryUpperOp = rangeQueryUpperOp;
-    return this;
+  public IndexCondition withRangeQueryUpperOp(ComparisonOperator rangeQueryUpperOp) {
+    if (rangeQueryUpperOp == this.rangeQueryUpperOp) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public List<Object> getRangeQueryLowerKey() {
     return rangeQueryLowerKey;
   }
 
-  public IndexCondition setRangeQueryLowerKey(List<Object> rangeQueryLowerKey) {
-    this.rangeQueryLowerKey = rangeQueryLowerKey;
-    return this;
+  public IndexCondition withRangeQueryLowerKey(List<Object> rangeQueryLowerKey) {
+    if (rangeQueryLowerKey == this.rangeQueryLowerKey) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public List<Object> getRangeQueryUpperKey() {
     return rangeQueryUpperKey;
   }
 
-  public IndexCondition setRangeQueryUpperKey(List<Object> rangeQueryUpperKey) {
-    this.rangeQueryUpperKey = rangeQueryUpperKey;
-    return this;
+  public IndexCondition withRangeQueryUpperKey(List<Object> rangeQueryUpperKey) {
+    if (rangeQueryUpperKey == this.rangeQueryUpperKey) {
+      return this;
+    }
+    return new IndexCondition(fieldNames, indexName, indexColumnNames,
+        implicitCollation, pushDownConditions, remainderConditions,
+        queryType, pointQueryKey, rangeQueryLowerOp, rangeQueryUpperOp,
+        rangeQueryLowerKey, rangeQueryUpperKey);
   }
 
   public boolean nameMatch(String name) {

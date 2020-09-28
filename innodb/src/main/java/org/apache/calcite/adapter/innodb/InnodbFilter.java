@@ -37,8 +37,18 @@ import java.util.Optional;
  */
 public class InnodbFilter extends Filter implements InnodbRel {
   private final TableDef tableDef;
+
+  // Make IndexCondition immutable. We don't want mutable fields in a RelNode.
   private final IndexCondition indexCondition;
+
+  // TODO: don't use Optional; just use nullable string
   private final Optional<String> forceIndexName;
+
+  // TODO: make this constructor package-protected; code should generally call
+  //   a static 'create' method
+
+  // TODO: invoke InnodbFilterTranslator outside of constructor; constructor
+  //   should not do very much work
 
   public InnodbFilter(
       RelOptCluster cluster,
@@ -81,10 +91,12 @@ public class InnodbFilter extends Filter implements InnodbRel {
     return pw;
   }
 
+  // TODO: add javadoc
   boolean canPushDownCondition() {
     return indexCondition != null && indexCondition.canPushDown();
   }
 
+  // TODO: add javadoc to describe this method/field
   IndexCondition getPushDownCondition() {
     return indexCondition;
   }
