@@ -149,11 +149,11 @@ sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."usa" order by 
 
 For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter
 uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default.
-This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
-scroll is automatically cleared (removed) when all query resuts are consumed.
+This ensures that consistent and full data-set is returned to the end user (lazily and in batches). Please note that
+scroll is automatically cleared (removed) when all query results are consumed.
 
 ### Supported versions
 
-Currently this adapter supports ElasticSearch versions 6.x (or newer). Generally
-we try to follow official [support schedule](https://www.elastic.co/support/eol).
+Currently, this adapter supports ElasticSearch versions 6.x (or newer). Generally,
+we try to follow the official [support schedule](https://www.elastic.co/support/eol).
 Also, types are not supported (this adapter only supports indices).
