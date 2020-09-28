@@ -44,10 +44,12 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
 
   private final RelProtoDataType protoRowType;
   private final VectorSchemaRoot[] vectorSchemaRoots;
+  private UInt4Vector selectionVector;
 
-  public ArrowTable(VectorSchemaRoot[] vectorSchemaRoots, UInt4Vector intVector, RelProtoDataType protoRowType) {
+  public ArrowTable(VectorSchemaRoot[] vectorSchemaRoots, UInt4Vector selectionVector, RelProtoDataType protoRowType) {
     this.vectorSchemaRoots = vectorSchemaRoots;
     this.protoRowType = protoRowType;
+    this.selectionVector = selectionVector;
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -65,7 +67,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(vectorSchemaRoots, fields);
+          return new ArrowEnumerator(vectorSchemaRoots, fields, selectionVector);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

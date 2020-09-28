@@ -18,6 +18,7 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 import org.apache.arrow.vector.types.pojo.Field;
@@ -30,17 +31,21 @@ import java.util.List;
 public class ArrowEnumerator implements Enumerator<Object> {
   private final int[] fields;
   private final VectorSchemaRoot[] vectorSchemaRoots;
+  private int rootIndex = 0;
+  private int vectorIndex = -1;
+  private int selectionVectorIndex = 0;
+  private UInt4Vector selectionVector;
 
-  public ArrowEnumerator(VectorSchemaRoot[] vectorSchemaRoots, int[] fields) {
+  public ArrowEnumerator(VectorSchemaRoot[] vectorSchemaRoots, int[] fields, UInt4Vector selectionVector) {
     this.vectorSchemaRoots = vectorSchemaRoots;
     this.fields = fields;
+    this.selectionVector = selectionVector;
   }
 
   public VectorSchemaRoot[] getVectorSchemaRoots() {
     final int[] projected = this.fields;
     int rootSize = vectorSchemaRoots.length;
     VectorSchemaRoot[] vectorSchemaRoots = new VectorSchemaRoot[rootSize];
-    System.out.println(this.vectorSchemaRoots[0].getFieldVectors());
     for (int i = 0; i < rootSize; i++) {
       List<FieldVector> fieldVectors = new ArrayList<>();
       List<Field> fields = new ArrayList<>();
@@ -63,11 +68,38 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public Object current() {
-    return null;
+    int fieldSize = vectorSchemaRoots[rootIndex].getFieldVectors().size();
+    Object[] current = new Object[fieldSize];
+    for (int i = 0; i < fieldSize; i++) {
+      FieldVector vector = vectorSchemaRoots[rootIndex].getFieldVectors().get(i);
+      current[i] = vector.getObject(vectorIndex);
+    }
+    return current;
   }
 
   public boolean moveNext() {
-    return false;
+    UInt4Vector selectionVector = this.selectionVector;
+    if (selectionVector.getValueCount() > 0) {
+      if (selectionVectorIndex >= selectionVector.getValueCount()) {
+        return false;
+      }
+
+      int index = (int) selectionVector.getObject(selectionVectorIndex++);
+      rootIndex = index & 0xffff0000;
+      vectorIndex = index & 0x0000ffff;
+
+    } else {
+      if (vectorIndex >= (vectorSchemaRoots[rootIndex].getRowCount() - 1)) {
+        if (rootIndex >= (vectorSchemaRoots.length - 1)) {
+          return false;
+        }
+        rootIndex++;
+        vectorIndex = 0;
+      } else {
+        vectorIndex++;
+      }
+    }
+    return true;
   }
 
   public void reset() {
