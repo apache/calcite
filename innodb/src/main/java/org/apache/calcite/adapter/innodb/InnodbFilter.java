@@ -29,7 +29,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -41,8 +41,7 @@ public class InnodbFilter extends Filter implements InnodbRel {
   // Make IndexCondition immutable. We don't want mutable fields in a RelNode.
   private final IndexCondition indexCondition;
 
-  // TODO: don't use Optional; just use nullable string
-  private final Optional<String> forceIndexName;
+  private final @Nullable String forceIndexName;
 
   // TODO: make this constructor package-protected; code should generally call
   //   a static 'create' method
@@ -56,7 +55,7 @@ public class InnodbFilter extends Filter implements InnodbRel {
       RelNode child,
       RexNode condition,
       TableDef tableDef,
-      Optional<String> forceIndexName) {
+      @Nullable String forceIndexName) {
     super(cluster, traitSet, child, condition);
 
     this.tableDef = tableDef;
@@ -77,7 +76,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
 
   public InnodbFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
-    return new InnodbFilter(getCluster(), traitSet, input, condition, tableDef, forceIndexName);
+    return new InnodbFilter(getCluster(), traitSet, input, condition, tableDef,
+        forceIndexName);
   }
 
   public void implement(Implementor implementor) {

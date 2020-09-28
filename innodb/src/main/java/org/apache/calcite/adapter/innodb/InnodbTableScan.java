@@ -38,6 +38,7 @@ import com.alibaba.innodb.java.reader.schema.KeyMeta;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of an InnoDB data source.
@@ -46,7 +47,7 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
   final InnodbTable innodbTable;
   final RelDataType projectRowType;
   /** Force to use one specific index from hint. */
-  private final Optional<String> forceIndexName;
+  private final @Nullable String forceIndexName;
   /** This contains index to scan table and optional condition. */
   private final IndexCondition indexCondition;
 
@@ -56,7 +57,7 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
     super(cluster, traitSet, hints, table);
     this.innodbTable = innodbTable;
     this.projectRowType = projectRowType;
-    this.forceIndexName = getForceIndexName(hints);
+    this.forceIndexName = getForceIndexName(hints).orElse(null);
     this.indexCondition = getIndexCondition();
     assert innodbTable != null;
     assert getConvention() == InnodbRel.CONVENTION;
@@ -90,11 +91,8 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
   }
 
   public RelWriter explainTerms(RelWriter pw) {
-    super.explainTerms(pw);
-    if (forceIndexName.isPresent()) {
-      pw.itemIf("forceIndex", forceIndexName.get(), true);
-    }
-    return pw;
+    return super.explainTerms(pw)
+        .itemIf("forceIndex", forceIndexName, forceIndexName != null);
   }
 
   /**
@@ -129,21 +127,21 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
     return Optional.empty();
   }
 
-  public Optional<String> getForceIndexName() {
+  public String getForceIndexName() {
     return forceIndexName;
   }
 
   private IndexCondition getIndexCondition() {
     // force to use a secondary index to scan table if present
-    if (forceIndexName.isPresent()
-        && !forceIndexName.get().equalsIgnoreCase(Constants.PRIMARY_KEY_NAME)) {
+    if (forceIndexName != null
+        && !forceIndexName.equalsIgnoreCase(Constants.PRIMARY_KEY_NAME)) {
       KeyMeta skMeta = innodbTable.getTableDef()
-          .getSecondaryKeyMetaMap().get(forceIndexName.get());
+          .getSecondaryKeyMetaMap().get(forceIndexName);
       if (skMeta == null) {
-        throw new AssertionError("secondary index not found " + forceIndexName.get());
+        throw new AssertionError("secondary index not found " + forceIndexName);
       }
       return IndexCondition.create(InnodbRules.innodbFieldNames(getRowType()),
-          forceIndexName.get(), skMeta.getKeyColumnNames(),
+          forceIndexName, skMeta.getKeyColumnNames(),
           QueryType.SK_FULL_SCAN);
     }
     // by default clustering index will be used to scan table

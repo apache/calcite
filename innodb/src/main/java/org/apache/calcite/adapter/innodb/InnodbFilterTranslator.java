@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 /**
  * Translates {@link RexNode} expressions into {@link IndexCondition}
@@ -59,11 +60,11 @@ class InnodbFilterTranslator {
   private final KeyMeta pkMeta;
   /** Secondary key metadata. */
   private final List<KeyMeta> skMetaList;
-  /** Optional, force to use one specific index from hint. */
-  private final Optional<String> forceIndexName;
+  /** If not null, force to use one specific index from hint. */
+  private final @Nullable String forceIndexName;
 
   InnodbFilterTranslator(RexBuilder rexBuilder, RelDataType rowType,
-      TableDef tableDef, Optional<String> forceIndexName) {
+      TableDef tableDef, @Nullable String forceIndexName) {
     this.rexBuilder = rexBuilder;
     this.fieldNames = InnodbRules.innodbFieldNames(rowType);
     this.pkMeta = tableDef.getPrimaryKeyMeta();
@@ -460,7 +461,8 @@ class InnodbFilterTranslator {
   }
 
   private boolean nonForceIndexOrMatchForceIndexName(IndexCondition indexCondition) {
-    return forceIndexName.map(indexCondition::nameMatch).orElse(true);
+    return Optional.ofNullable(forceIndexName)
+        .map(indexCondition::nameMatch).orElse(true);
   }
 
   /** Internal representation of a row expression. */
