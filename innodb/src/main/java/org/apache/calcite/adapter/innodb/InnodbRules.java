@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.innodb;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
@@ -176,21 +177,26 @@ public class InnodbRules {
     RelNode convert(LogicalFilter filter, InnodbTableScan scan) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(InnodbRel.CONVENTION);
 
-      TableDef tableDef = scan.innodbTable.getTableDef();
-      InnodbFilter innodbFilter = new InnodbFilter(
-          filter.getCluster(),
-          traitSet,
-          convert(filter.getInput(), InnodbRel.CONVENTION),
-          filter.getCondition(),
-          tableDef,
-          scan.getForceIndexName());
+      final TableDef tableDef = scan.innodbTable.getTableDef();
+      final RelOptCluster cluster = filter.getCluster();
+      final InnodbFilterTranslator translator =
+          new InnodbFilterTranslator(cluster.getRexBuilder(),
+              filter.getRowType(), tableDef, scan.getForceIndexName());
+      final IndexCondition indexCondition =
+          translator.translateMatch(filter.getCondition());
 
-      // if some conditions can be pushed down, we left the reminder conditions
+      InnodbFilter innodbFilter =
+          InnodbFilter.create(cluster, traitSet,
+              convert(filter.getInput(), InnodbRel.CONVENTION),
+              filter.getCondition(), indexCondition, tableDef,
+              scan.getForceIndexName());
+
+      // if some conditions can be pushed down, we left the remainder conditions
       // in the original filter and create a subsidiary filter
-      if (innodbFilter.canPushDownCondition()) {
+      if (innodbFilter.indexCondition.canPushDown()) {
         return LogicalFilter.create(innodbFilter,
-            RexUtil.composeConjunction(filter.getCluster().getRexBuilder(),
-                innodbFilter.getPushDownCondition().getRemainderConditions()));
+            RexUtil.composeConjunction(cluster.getRexBuilder(),
+                indexCondition.getRemainderConditions()));
       }
       return filter;
     }

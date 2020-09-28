@@ -38,7 +38,7 @@ import java.util.Map;
  * relational expression for an InnoDB data source.
  */
 public class InnodbProject extends Project implements InnodbRel {
-  public InnodbProject(RelOptCluster cluster, RelTraitSet traitSet,
+  InnodbProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == InnodbRel.CONVENTION;

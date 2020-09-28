@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -37,36 +38,29 @@ import javax.annotation.Nullable;
  */
 public class InnodbFilter extends Filter implements InnodbRel {
   private final TableDef tableDef;
-
-  // Make IndexCondition immutable. We don't want mutable fields in a RelNode.
-  private final IndexCondition indexCondition;
-
+  public final IndexCondition indexCondition;
   private final @Nullable String forceIndexName;
 
-  // TODO: make this constructor package-protected; code should generally call
-  //   a static 'create' method
+  /** Creates an InnodbFilter; but use {@link #create} if possible. */
+  private InnodbFilter(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, RexNode condition, IndexCondition indexCondition,
+      TableDef tableDef, @Nullable String forceIndexName) {
+    super(cluster, traitSet, input, condition);
 
-  // TODO: invoke InnodbFilterTranslator outside of constructor; constructor
-  //   should not do very much work
-
-  public InnodbFilter(
-      RelOptCluster cluster,
-      RelTraitSet traitSet,
-      RelNode child,
-      RexNode condition,
-      TableDef tableDef,
-      @Nullable String forceIndexName) {
-    super(cluster, traitSet, child, condition);
-
-    this.tableDef = tableDef;
-    InnodbFilterTranslator translator =
-        new InnodbFilterTranslator(cluster.getRexBuilder(), getRowType(),
-            tableDef, forceIndexName);
-    this.indexCondition = translator.translateMatch(condition);
+    this.tableDef = Objects.requireNonNull(tableDef);
+    this.indexCondition = Objects.requireNonNull(indexCondition);
     this.forceIndexName = forceIndexName;
 
     assert getConvention() == InnodbRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
+  }
+
+  /** Creates an InnodbFilter. */
+  public static InnodbFilter create(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, RexNode condition, IndexCondition indexCondition,
+      TableDef tableDef, @Nullable String forceIndexName) {
+    return new InnodbFilter(cluster, traitSet, input, condition, indexCondition,
+        tableDef, forceIndexName);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -76,8 +70,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
 
   public InnodbFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
-    return new InnodbFilter(getCluster(), traitSet, input, condition, tableDef,
-        forceIndexName);
+    return new InnodbFilter(getCluster(), traitSet, input, condition,
+        indexCondition, tableDef, forceIndexName);
   }
 
   public void implement(Implementor implementor) {
@@ -87,22 +81,12 @@ public class InnodbFilter extends Filter implements InnodbRel {
 
   public RelWriter explainTerms(RelWriter pw) {
     pw.input("input", getInput());
-    pw.itemIf("condition", indexCondition, canPushDownCondition());
+    pw.itemIf("condition", indexCondition, indexCondition.canPushDown());
     return pw;
   }
 
-  // TODO: add javadoc
-  boolean canPushDownCondition() {
-    return indexCondition != null && indexCondition.canPushDown();
-  }
-
-  // TODO: add javadoc to describe this method/field
-  IndexCondition getPushDownCondition() {
-    return indexCondition;
-  }
-
   /**
-   * Get the resulting collation by the primary or secondary
+   * Returns the resulting collation by the primary or secondary
    * indexes after filtering.
    *
    * @return the implicit collation based on the natural sorting by specific index

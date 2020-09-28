@@ -36,12 +36,12 @@ import static com.google.common.base.Preconditions.checkState;
  * relational expression for an InnoDB data source.
  */
 public class InnodbSort extends Sort implements InnodbRel {
-  public InnodbSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, RelCollation collation) {
-    super(cluster, traitSet, child, collation, null, null);
+  InnodbSort(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, RelCollation collation) {
+    super(cluster, traitSet, input, collation, null, null);
 
     assert getConvention() == InnodbRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
