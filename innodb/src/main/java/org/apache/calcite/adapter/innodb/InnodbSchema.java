@@ -55,7 +55,7 @@ public class InnodbSchema extends AbstractSchema {
       ColumnTypeToSqlTypeConversionRules.instance();
 
   public InnodbSchema(List<String> sqlFilePathList,
-                      String ibdDataFileBasePath) {
+      String ibdDataFileBasePath) {
     checkArgument(CollectionUtils.isNotEmpty(sqlFilePathList),
         "SQL file path list cannot be empty");
     checkArgument(StringUtils.isNotEmpty(ibdDataFileBasePath),

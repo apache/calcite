@@ -44,6 +44,7 @@ import com.alibaba.innodb.java.reader.page.index.GenericRecord;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 import com.alibaba.innodb.java.reader.service.impl.RecordIterator;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -55,6 +56,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -66,8 +68,10 @@ public class InnodbTable extends AbstractQueryableTable
 
   private final InnodbSchema schema;
   private final String tableName;
-  private RelProtoDataType protoRowType;
-  private TableDef tableDef;
+  private final Supplier<RelProtoDataType> protoRowTypeSupplier =
+      Suppliers.memoize(this::supplyProto);
+  private final Supplier<TableDef> tableDefSupplier =
+      Suppliers.memoize(this::supplyTableDef);
 
   public InnodbTable(InnodbSchema schema, String tableName) {
     super(Object[].class);
@@ -79,18 +83,20 @@ public class InnodbTable extends AbstractQueryableTable
     return "InnodbTable {" + tableName + "}";
   }
 
+  private RelProtoDataType supplyProto() {
+    return schema.getRelDataType(tableName);
+  }
+
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    if (protoRowType == null) {
-      protoRowType = schema.getRelDataType(tableName);
-    }
-    return protoRowType.apply(typeFactory);
+    return protoRowTypeSupplier.get().apply(typeFactory);
   }
 
   public TableDef getTableDef() {
-    if (tableDef == null) {
-      tableDef = schema.getTableDef(tableName);
-    }
-    return tableDef;
+    return tableDefSupplier.get();
+  }
+
+  private TableDef supplyTableDef() {
+    return schema.getTableDef(tableName);
   }
 
   /**
