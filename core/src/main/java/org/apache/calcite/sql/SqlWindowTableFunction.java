@@ -103,13 +103,11 @@ public class SqlWindowTableFunction extends SqlFunction
   private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
     final RelDataType inputRowType = opBinding.getOperandType(0);
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType timestampType =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
     return typeFactory.builder()
         .kind(inputRowType.getStructKind())
         .addAll(inputRowType.getFieldList())
-        .add("window_start", timestampType)
-        .add("window_end", timestampType)
+        .add("window_start", SqlTypeName.TIMESTAMP, 3)
+        .add("window_end", SqlTypeName.TIMESTAMP, 3)
         .build();
   }
 
