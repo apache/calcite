@@ -186,7 +186,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (schema == null) {
       return ImmutableList.of();
     }
-    final List<SqlMoniker> result = new ArrayList<>();
+    final ImmutableList.Builder<SqlMoniker> result = new ImmutableList.Builder<>();
 
     // Add root schema if not anonymous
     if (!schema.name.equals("")) {
@@ -207,7 +207,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     for (String function : functions) { // views are here as well
       result.add(moniker(schema, function, SqlMonikerType.FUNCTION));
     }
-    return result;
+    return result.build();
   }
 
   private SqlMonikerImpl moniker(CalciteSchema schema, String name,

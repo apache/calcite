@@ -3159,11 +3159,11 @@ public abstract class Expressions {
     if (parameterExpressions.isEmpty()) {
       return Collections.emptyList(); // short cut
     }
-    final List<Expression> parameterExpressions1 = new ArrayList<>();
+    final ImmutableList.Builder<Expression> parameterExpressions1 = new ImmutableList.Builder<>();
     for (ParameterExpression parameterExpression : parameterExpressions) {
       parameterExpressions1.add(parameterExpression.accept(shuttle));
     }
-    return parameterExpressions1;
+    return parameterExpressions1.build();
   }
 
   static List<DeclarationStatement> acceptDeclarations(

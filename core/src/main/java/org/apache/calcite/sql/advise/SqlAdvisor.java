@@ -184,12 +184,12 @@ public class SqlAdvisor {
     }
 
     if (word.isEmpty()) {
-      return completionHints;
+      return ImmutableList.copyOf(completionHints);
     }
 
     // If cursor was part of the way through a word, only include hints
     // which start with that word in the result.
-    final List<SqlMoniker> result = new ArrayList<>();
+    final ImmutableList.Builder<SqlMoniker> result = new ImmutableList.Builder<>();
     Casing preferredCasing = getPreferredCasing(word);
 
     boolean ignoreCase = preferredCasing != Casing.UNCHANGED;
@@ -203,7 +203,7 @@ public class SqlAdvisor {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   public List<SqlMoniker> getCompletionHints0(String sql, int cursor) {

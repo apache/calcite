@@ -411,7 +411,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
           cubeRowFields.add(field);
         }
       }
-      return cubeRowFields;
+      return ImmutableList.copyOf(cubeRowFields);
     }
     return rowFields;
   }

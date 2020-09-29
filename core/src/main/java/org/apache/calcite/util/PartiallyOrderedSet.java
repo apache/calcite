@@ -641,9 +641,9 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     if (node == null) {
       if (hypothetical) {
         if (parentFunction != null) {
-          final List<E> list = new ArrayList<>();
+          final ImmutableList.Builder<E> list = new ImmutableList.Builder<>();
           closure(parentFunction, e, list, new HashSet<>());
-          return list;
+          return list.build();
         } else {
           return ImmutableList.copyOf(strip(findParents(e)));
         }
@@ -651,11 +651,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
         return null;
       }
     } else {
-      return strip(node.parentList);
+      return ImmutableList.copyOf(strip(node.parentList));
     }
   }
 
-  private void closure(Function<E, Iterable<E>> generator, E e, List<E> list,
+  private void closure(Function<E, Iterable<E>> generator, E e, ImmutableList.Builder<E> list,
       Set<E> set) {
     for (E p : Objects.requireNonNull(generator.apply(e))) {
       if (set.add(e)) {
@@ -770,7 +770,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     final Deque<Node<E>> deque = new ArrayDeque<>(c);
 
     final Set<Node<E>> seen = new HashSet<>();
-    final List<E> list = new ArrayList<>();
+    final ImmutableList.Builder<E> list = new ImmutableList.Builder<>();
     while (!deque.isEmpty()) {
       Node<E> node1 = deque.pop();
       list.add(node1.e);
@@ -784,7 +784,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
         }
       }
     }
-    return list;
+    return list.build();
   }
 
   /**

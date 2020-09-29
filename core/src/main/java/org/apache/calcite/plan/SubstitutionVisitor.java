@@ -503,6 +503,7 @@ public class SubstitutionVisitor {
    * are both a qualified match for replacement R, is R join B, R join R,
    * A join R.
    */
+  @SuppressWarnings("MixedMutabilityReturnType")
   public List<RelNode> go(RelNode replacement_) {
     List<List<Replacement>> matches = go(MutableRels.toMutable(replacement_));
     if (matches.isEmpty()) {
