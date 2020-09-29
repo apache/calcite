@@ -857,7 +857,7 @@ public abstract class SqlImplementor {
 
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
      * ranges are all points. */
-    @SuppressWarnings("UnstableApiUsage")
+    @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
     private <C extends Comparable<C>> SqlNode toSql(RexProgram program,
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();

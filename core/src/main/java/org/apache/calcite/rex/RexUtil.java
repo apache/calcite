@@ -580,6 +580,7 @@ public class RexUtil {
     return node.accept(shuttle);
   }
 
+  @SuppressWarnings("BetaApi")
   private static <C extends Comparable<C>> RexNode
       visitSearch(RexBuilder rexBuilder,
           @Nullable RexProgram program, RexCall call) {

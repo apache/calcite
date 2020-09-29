@@ -57,6 +57,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    *
    * <p>Uses weak interner to allow GC.
    */
+  @SuppressWarnings("BetaApi")
   private final Interner<T> interner = Interners.newWeakInterner();
 
   //~ Constructors -----------------------------------------------------------
@@ -95,6 +96,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param trait a possibly non-canonical RelTrait
    * @return a canonical RelTrait.
    */
+  @SuppressWarnings("BetaApi")
   public final T canonize(T trait) {
     if (!(trait instanceof RelCompositeTrait)) {
       assert getTraitClass().isInstance(trait)

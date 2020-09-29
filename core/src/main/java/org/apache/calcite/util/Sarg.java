@@ -60,6 +60,7 @@ import java.util.function.BiConsumer;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
+@SuppressWarnings("BetaApi")
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final boolean containsNull;

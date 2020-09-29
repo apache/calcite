@@ -258,6 +258,7 @@ public class DruidRules {
      * 2-m) condition filters that can be pushed to Druid,
      * 3-r) condition filters that cannot be pushed to Druid.
      */
+    @SuppressWarnings("BetaApi")
     private static Triple<List<RexNode>, List<RexNode>, List<RexNode>> splitFilters(
         final List<RexNode> validPreds,
         final List<RexNode> nonValidPreds, final int timestampFieldIdx) {

@@ -138,6 +138,7 @@ public abstract class DateRangeRules {
 
   /** Replaces calls to EXTRACT, FLOOR and CEIL in an expression. */
   @VisibleForTesting
+  @SuppressWarnings("BetaApi")
   public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
       String timeZone) {
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
@@ -264,6 +265,7 @@ public abstract class DateRangeRules {
   /** Walks over an expression, replacing calls to
    * {@code EXTRACT}, {@code FLOOR} and {@code CEIL} with date ranges. */
   @VisibleForTesting
+  @SuppressWarnings("BetaApi")
   static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
