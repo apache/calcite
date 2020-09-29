@@ -2123,7 +2123,7 @@ public class RexImpTable {
         // If one or both operands have ANY type, use the late-binding backup
         // method.
         if (anyAnyOperands(call)) {
-          return callBackupMethodAnyType(translator, call, argValueList);
+          return callBackupMethodAnyType(argValueList);
         }
 
         final Type type0 = argValueList.get(0).getType();
@@ -2167,8 +2167,7 @@ public class RexImpTable {
       return false;
     }
 
-    private Expression callBackupMethodAnyType(RexToLixTranslator translator,
-        RexCall call, List<Expression> expressions) {
+    private Expression callBackupMethodAnyType(List<Expression> expressions) {
       final String backupMethodNameForAnyType =
           backupMethodName + METHOD_POSTFIX_FOR_ANY_TYPE;
 
@@ -2791,6 +2790,8 @@ public class RexImpTable {
 
       final String alpha = ((RexPatternFieldRef) call.getOperands().get(0)).getAlpha();
 
+      // TODO: verify if the variable is needed
+      @SuppressWarnings("unused")
       final BinaryExpression lastIndex = Expressions.subtract(
           Expressions.call(rows, BuiltInMethod.COLLECTION_SIZE.method),
           Expressions.constant(1));

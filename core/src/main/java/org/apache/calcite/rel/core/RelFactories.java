@@ -437,21 +437,6 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@link SemiJoinFactory} that returns a vanilla
-   * {@link Join} with join type as {@link JoinRelType#SEMI}.
-   *
-   * @deprecated Use {@link JoinFactoryImpl} instead.
-   */
-  @Deprecated  // to be removed before 2.0
-  private static class SemiJoinFactoryImpl implements SemiJoinFactory {
-    @Override public RelNode createSemiJoin(RelNode left, RelNode right,
-        RexNode condition) {
-      return LogicalJoin.create(left, right, ImmutableList.of(), condition,
-          ImmutableSet.of(), JoinRelType.SEMI, false, ImmutableList.of());
-    }
-  }
-
-  /**
    * Can create a {@link Values} of the appropriate type for a rule's calling
    * convention.
    */

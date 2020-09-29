@@ -1462,14 +1462,6 @@ public abstract class Expressions {
     return unbox(expression, primitive);
   }
 
-  private Type largest(Type... types) {
-    Type max = types[0];
-    for (int i = 1; i < types.length; i++) {
-      max = larger(max, types[i]);
-    }
-    return max;
-  }
-
   private static Type larger(Type type0, Type type1) {
     // curiously, "short + short" has type "int".
     // similarly, "byte + byte" has type "int".
@@ -3066,6 +3058,7 @@ public abstract class Expressions {
 
   // ~ Private helper methods ------------------------------------------------
 
+  @SuppressWarnings("unused")
   private static boolean shouldLift(Expression left, Expression right,
       Method method) {
     // FIXME: Implement the rules in modulo
@@ -3113,10 +3106,6 @@ public abstract class Expressions {
       return (Collection<T>) iterable;
     }
     return toList(iterable);
-  }
-
-  private static <T> T[] toArray(Iterable<T> iterable, T[] a) {
-    return toCollection(iterable).toArray(a);
   }
 
   static <T extends Expression> Expression accept(T node, Shuttle shuttle) {

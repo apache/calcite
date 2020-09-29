@@ -130,6 +130,7 @@ class Step extends DefaultEdge {
 
   /** Temporary method. We should use (inferred) primary keys to figure out
    * the direction of steps. */
+  @SuppressWarnings("unused")
   private double cardinality(SqlStatisticProvider statisticProvider,
       LatticeTable table) {
     return statisticProvider.tableCardinality(table.t);

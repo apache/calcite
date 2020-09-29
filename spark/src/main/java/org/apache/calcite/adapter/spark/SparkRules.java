@@ -353,6 +353,7 @@ public abstract class SparkRules {
 
 
       Type outputJavaType = physType.getJavaRowType();
+      @SuppressWarnings("unused")
       final Type rddType =
           Types.of(
               JavaRDD.class, outputJavaType);

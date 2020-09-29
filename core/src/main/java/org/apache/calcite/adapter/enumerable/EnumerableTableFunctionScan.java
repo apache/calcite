@@ -101,7 +101,8 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   private Result defaultTableFunctionImplement(
-      EnumerableRelImplementor implementor, Prefer pref) {
+      EnumerableRelImplementor implementor,
+      @SuppressWarnings("unused") Prefer pref) { // TODO: remove or use
     BlockBuilder bb = new BlockBuilder();
     // Non-array user-specified types are not supported yet
     final JavaRowFormat format;

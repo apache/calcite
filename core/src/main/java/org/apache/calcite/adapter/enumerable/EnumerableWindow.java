@@ -111,6 +111,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     }
   }
 
+  @SuppressWarnings("unused")
   private void sampleOfTheGeneratedWindowedAggregate() {
     // Here's overview of the generated code
     // For each list of rows that have the same partitioning key, evaluate
@@ -902,7 +903,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       ParameterExpression i_, Expression row_, Expression min_,
       Expression max_, Expression rows_, Group group,
       boolean lower,
-      PhysType physType, Expression rowComparator,
+      PhysType physType,
+      @SuppressWarnings("unused") Expression rowComparator, // TODO: remove or use
       Expression keySelector, Expression keyComparator) {
     RexWindowBound bound = lower ? group.lowerBound : group.upperBound;
     if (bound.isUnbounded()) {

@@ -1797,7 +1797,7 @@ public class Util {
           // filtering values.  (Some java.util algorithms
           // call next() on the result of iterator() size() times.)
           int s = 0;
-          for (E e : this) {
+          for (@SuppressWarnings("unused") E e : this) {
             s++;
           }
           size = s;

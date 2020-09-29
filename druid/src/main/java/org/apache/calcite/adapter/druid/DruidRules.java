@@ -214,7 +214,7 @@ public class DruidRules {
               .indexOf(query.druidTable.timestampFieldName);
       RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
-          splitFilters(rexBuilder, query, validPreds, nonValidPreds, timestampFieldIdx);
+          splitFilters(validPreds, nonValidPreds, timestampFieldIdx);
       if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
         // it sucks, nothing to push
         return;
@@ -259,7 +259,7 @@ public class DruidRules {
      * 3-r) condition filters that cannot be pushed to Druid.
      */
     private static Triple<List<RexNode>, List<RexNode>, List<RexNode>> splitFilters(
-        final RexBuilder rexBuilder, final DruidQuery input, final List<RexNode> validPreds,
+        final List<RexNode> validPreds,
         final List<RexNode> nonValidPreds, final int timestampFieldIdx) {
       final List<RexNode> timeRangeNodes = new ArrayList<>();
       final List<RexNode> pushableNodes = new ArrayList<>();

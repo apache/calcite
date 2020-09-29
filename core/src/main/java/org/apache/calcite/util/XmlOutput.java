@@ -356,6 +356,7 @@ public class XmlOutput {
       data = "";
     }
     boolean specials = false;
+    @SuppressWarnings("unused")
     boolean cdataEnd = false;
 
     // Scan the string for special characters
@@ -363,6 +364,7 @@ public class XmlOutput {
     if (stringHasXMLSpecials(data)) {
       specials = true;
       if (data.contains("]]>")) {
+        // TODO: support string that contains cdataEnd literal values
         cdataEnd = true;
       }
     }

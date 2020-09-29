@@ -688,6 +688,7 @@ public class SqlSimpleParser {
       sublist.add(new Token(TokenType.ID, "*"));
     }
 
+    @SuppressWarnings("unused")
     private void purgeSelectExprsKeepAliases() {
       List<Token> sublist = findClause(TokenType.SELECT);
       List<Token> newSelectClause = new ArrayList<>();

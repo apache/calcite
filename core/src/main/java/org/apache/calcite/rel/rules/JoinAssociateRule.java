@@ -88,6 +88,7 @@ public class JoinAssociateRule
     final int bCount = relB.getRowType().getFieldCount();
     final int cCount = relC.getRowType().getFieldCount();
     final ImmutableBitSet aBitSet = ImmutableBitSet.range(0, aCount);
+    @SuppressWarnings("unused")
     final ImmutableBitSet bBitSet =
         ImmutableBitSet.range(aCount, aCount + bCount);
 

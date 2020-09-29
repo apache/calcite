@@ -279,7 +279,7 @@ public class SqlPrettyWriter implements SqlWriter {
   //~ Constructors -----------------------------------------------------------
 
   private SqlPrettyWriter(SqlWriterConfig config,
-      StringBuilder buf, boolean ignore) {
+      StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
     this.buf = Objects.requireNonNull(buf);
     this.dialect = Objects.requireNonNull(config.dialect());
     this.config = Objects.requireNonNull(config);

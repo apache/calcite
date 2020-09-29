@@ -264,7 +264,7 @@ public class JoinToMultiJoinRule
    */
   private void combineOuterJoins(
       Join joinRel,
-      List<RelNode> combinedInputs,
+      @SuppressWarnings("unused") List<RelNode> combinedInputs,
       RelNode left,
       RelNode right,
       List<Pair<JoinRelType, RexNode>> joinSpecs) {

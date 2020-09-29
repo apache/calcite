@@ -34,6 +34,7 @@ class ElasticsearchEnumerators {
 
   private ElasticsearchEnumerators() {}
 
+  @SuppressWarnings("unused")
   private static Function1<ElasticsearchJson.SearchHit, Map> mapGetter() {
     return ElasticsearchJson.SearchHit::sourceOrFields;
   }

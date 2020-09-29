@@ -73,7 +73,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       return false;
     }
     int n = 0;
-    for (E e : this) {
+    for (@SuppressWarnings("unused") E e : this) {
       if (n++ > size) {
         assert !fail;
         return false;

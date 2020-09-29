@@ -949,7 +949,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // there's to do.
     if (changeCount == 0
         && mapping.isIdentity()) {
-      for (RelNode input : setOp.getInputs()) {
+      for (@SuppressWarnings("unused") RelNode input : setOp.getInputs()) {
         relBuilder.build();
       }
       return result(setOp, mapping);

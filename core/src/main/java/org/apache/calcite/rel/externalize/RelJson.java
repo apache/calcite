@@ -633,7 +633,6 @@ public class RelJson {
     }
 
     final String type = (String) map.get("type");
-    final RexBuilder rexBuilder = input.getCluster().getRexBuilder();
     switch (type) {
     case "CURRENT_ROW":
       return RexWindowBounds.CURRENT_ROW;

@@ -148,6 +148,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   @Override public void closeStatement(StatementHandle h) {
     final CalciteConnectionImpl calciteConnection = getConnection();
+    @SuppressWarnings("unused")
     final CalciteServerStatement stmt;
     try {
       stmt = calciteConnection.server.getStatement(h);

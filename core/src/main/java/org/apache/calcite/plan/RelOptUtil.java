@@ -59,7 +59,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -1540,6 +1539,7 @@ public abstract class RelOptUtil {
     nonEquiList.add(condition);
   }
 
+  @SuppressWarnings("unused")
   private static void splitCorrelatedFilterCondition(
       LogicalFilter filter,
       RexNode condition,
@@ -1853,8 +1853,6 @@ public abstract class RelOptUtil {
     RelNode rightRel = inputRels[1];
     final RelOptCluster cluster = leftRel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
-    final RelDataTypeSystem typeSystem =
-        cluster.getTypeFactory().getTypeSystem();
 
     int origLeftInputSize = leftRel.getRowType().getFieldCount();
     int origRightInputSize = rightRel.getRowType().getFieldCount();
@@ -2003,6 +2001,7 @@ public abstract class RelOptUtil {
     RelOptRules.BASE_RULES.forEach(planner::addRule);
   }
 
+  @SuppressWarnings("unused")
   private static void registerReductionRules(RelOptPlanner planner) {
     RelOptRules.CONSTANT_REDUCTION_RULES.forEach(planner::addRule);
   }
@@ -2011,6 +2010,7 @@ public abstract class RelOptUtil {
     RelOptRules.MATERIALIZATION_RULES.forEach(planner::addRule);
   }
 
+  @SuppressWarnings("unused")
   private static void registerCalcRules(RelOptPlanner planner) {
     RelOptRules.CALC_RULES.forEach(planner::addRule);
   }

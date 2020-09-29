@@ -499,6 +499,7 @@ public class ProfilerImpl implements Profiler {
     public Builder withMinimumSurprise(double v) {
       predicate =
           spaceColumnPair -> {
+            @SuppressWarnings("unused")
             final Space space = spaceColumnPair.left;
             return false;
           };

@@ -412,6 +412,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
 
     // We could map all expressions. Create aggregate mapping.
+    @SuppressWarnings("unused")
     int viewAggregateAdditionalFieldCount = rollupNodes.size();
     int viewInputFieldCount = viewAggregate.getInput().getRowType().getFieldCount();
     int viewInputDifferenceViewFieldCount =

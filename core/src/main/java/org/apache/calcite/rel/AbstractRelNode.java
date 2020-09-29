@@ -37,12 +37,10 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,8 +56,6 @@ public abstract class AbstractRelNode implements RelNode {
 
   /** Generator for {@link #id} values. */
   private static final AtomicInteger NEXT_ID = new AtomicInteger(0);
-
-  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   //~ Instance fields --------------------------------------------------------
 

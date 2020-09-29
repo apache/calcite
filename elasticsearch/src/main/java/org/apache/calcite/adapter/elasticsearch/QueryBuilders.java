@@ -482,7 +482,9 @@ class QueryBuilders {
    * A Query that does fuzzy matching for a specific value.
    */
   static class RegexpQueryBuilder extends QueryBuilder {
+    @SuppressWarnings("unused")
     private final String fieldName;
+    @SuppressWarnings("unused")
     private final String value;
 
     RegexpQueryBuilder(final String fieldName, final String value) {

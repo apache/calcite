@@ -296,6 +296,7 @@ public class SplunkPushDownRule
 
   // ~ Private Methods ------------------------------------------------------
 
+  @SuppressWarnings("unused")
   private static RelNode addProjectionRule(LogicalProject proj, RelNode rel) {
     if (proj == null) {
       return rel;
@@ -379,6 +380,7 @@ public class SplunkPushDownRule
     return SUPPORTED_OPS.contains(kind);
   }
 
+  @SuppressWarnings("unused")
   private String toString(SqlOperator op) {
     if (op.equals(SqlStdOperatorTable.LIKE)) {
       return SqlStdOperatorTable.EQUALS.toString();

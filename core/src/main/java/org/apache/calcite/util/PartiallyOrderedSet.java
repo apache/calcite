@@ -76,6 +76,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
   private final Map<E, Node<E>> map;
   private final Function<E, Iterable<E>> parentFunction;
+  @SuppressWarnings("unused")
   private final Function<E, Iterable<E>> childFunction;
   private final Ordering<E> ordering;
 

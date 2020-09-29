@@ -51,9 +51,6 @@ import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -62,8 +59,6 @@ import java.util.Locale;
  * The default implementation of a <code>SqlDialectFactory</code>.
  */
 public class SqlDialectFactoryImpl implements SqlDialectFactory {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SqlDialectFactoryImpl.class);
-
   public static final SqlDialectFactoryImpl INSTANCE = new SqlDialectFactoryImpl();
 
   private final JethroDataSqlDialect.JethroInfoCache jethroCache =

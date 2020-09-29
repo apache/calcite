@@ -1224,7 +1224,8 @@ public class RexSimplify {
   }
 
   private static RexNode simplifyBooleanCase(RexBuilder rexBuilder,
-      List<CaseBranch> inputBranches, RexUnknownAs unknownAs, RelDataType branchType) {
+      List<CaseBranch> inputBranches, @SuppressWarnings("unused") RexUnknownAs unknownAs,
+      RelDataType branchType) {
     RexNode result;
 
     // prepare all condition/branches for boolean interpretation

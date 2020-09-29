@@ -826,7 +826,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       if (!joinedInputs.contains(newInput)) {
         final List<Integer> positions = mapNewInputToOutputs.get(newInput);
-        final List<String> fieldNames = newInput.getRowType().getFieldNames();
 
         RelNode distinct = relBuilder.push(newInput)
             .project(relBuilder.fields(positions))

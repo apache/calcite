@@ -87,10 +87,12 @@ public class GeodeFilter extends Filter implements GeodeRel {
    * Translates {@link RexNode} expressions into Geode expression strings.
    */
   static class Translator {
+    @SuppressWarnings("unused")
     private final RelDataType rowType;
 
     private final List<String> fieldNames;
 
+    @SuppressWarnings("unused")
     private RexBuilder rexBuilder;
 
     Translator(RelDataType rowType, RexBuilder rexBuilder) {

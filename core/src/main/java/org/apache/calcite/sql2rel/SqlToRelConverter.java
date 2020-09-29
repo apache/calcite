@@ -2409,7 +2409,6 @@ public class SqlToRelConverter {
   }
 
   protected void convertPivot(Blackboard bb, SqlPivot pivot) {
-    final SqlValidatorNamespace ns = validator.getNamespace(pivot);
     final SqlValidatorScope scope = validator.getJoinScope(pivot);
 
     final Blackboard pivotBb = createBlackboard(scope, null, false);

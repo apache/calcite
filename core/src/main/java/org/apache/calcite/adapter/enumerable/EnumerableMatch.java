@@ -354,6 +354,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       //   }
       final ParameterExpression row0_ =
           Expressions.parameter(Object.class, "row");
+      @SuppressWarnings("unused")
       final ParameterExpression rowsO_ =
           Expressions.parameter(Object.class, "rows");
       BlockBuilder bridgeBody = new BlockBuilder();

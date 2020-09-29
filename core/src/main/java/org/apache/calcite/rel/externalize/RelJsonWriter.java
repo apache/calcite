@@ -109,18 +109,6 @@ public class RelJsonWriter implements RelWriter {
     return this;
   }
 
-  private List<Object> getList(List<Pair<String, Object>> values, String tag) {
-    for (Pair<String, Object> value : values) {
-      if (value.left.equals(tag)) {
-        //noinspection unchecked
-        return (List<Object>) value.right;
-      }
-    }
-    final List<Object> list = new ArrayList<>();
-    values.add(Pair.of(tag, (Object) list));
-    return list;
-  }
-
   @Override public RelWriter done(RelNode node) {
     final List<Pair<String, Object>> valuesCopy =
         ImmutableList.copyOf(values);
