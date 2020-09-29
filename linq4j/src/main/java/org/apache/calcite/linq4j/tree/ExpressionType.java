@@ -73,7 +73,7 @@ public enum ExpressionType {
   AddChecked(" + ", false, 4, false),
 
   /**
-   * A bitwise or logical AND operation, such as {@code a &amp; b} in Java.
+   * A bitwise or logical AND operation, such as {@code a & b} in Java.
    */
   And(" & ", false, 8, false),
 
@@ -175,7 +175,7 @@ public enum ExpressionType {
   Invoke,
 
   /**
-   * A lambda expression, such as {@code a -&gt; a + a} in Java.
+   * A lambda expression, such as {@code a -> a + a} in Java.
    */
   Lambda,
 
