@@ -39,7 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
 
   /** Creates a JoinExtractFilterRule. */
-  protected JoinExtractFilterRule(Config config) {
+  JoinExtractFilterRule(Config config) {
     super(config);
   }
 

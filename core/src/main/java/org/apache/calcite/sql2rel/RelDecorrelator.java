@@ -1831,7 +1831,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveSingleAggregateRule. */
-    protected RemoveSingleAggregateRule(Config config) {
+    RemoveSingleAggregateRule(Config config) {
       super(config);
     }
 
@@ -1902,7 +1902,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveCorrelationForScalarProjectRule. */
-    protected RemoveCorrelationForScalarProjectRule(Config config) {
+    RemoveCorrelationForScalarProjectRule(Config config) {
       super(config);
       this.d = Objects.requireNonNull(config.decorrelator());
     }
@@ -2124,7 +2124,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveCorrelationForScalarAggregateRule. */
-    protected RemoveCorrelationForScalarAggregateRule(Config config) {
+    RemoveCorrelationForScalarAggregateRule(Config config) {
       super(config);
       d = Objects.requireNonNull(config.decorrelator());
     }
@@ -2514,7 +2514,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates an AdjustProjectForCountAggregateRule. */
-    protected AdjustProjectForCountAggregateRule(Config config) {
+    AdjustProjectForCountAggregateRule(Config config) {
       super(config);
       this.d = Objects.requireNonNull(config.decorrelator());
     }

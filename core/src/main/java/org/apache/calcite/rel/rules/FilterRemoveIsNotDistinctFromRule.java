@@ -42,7 +42,7 @@ public final class FilterRemoveIsNotDistinctFromRule
     implements TransformationRule {
 
   /** Creates a FilterRemoveIsNotDistinctFromRule. */
-  protected FilterRemoveIsNotDistinctFromRule(Config config) {
+  FilterRemoveIsNotDistinctFromRule(Config config) {
     super(config);
   }
 
