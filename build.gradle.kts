@@ -25,6 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
@@ -37,6 +38,7 @@ plugins {
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
+    id("net.ltgt.errorprone") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -60,11 +62,13 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
+val enableErrorprone by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
+val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
@@ -507,6 +511,34 @@ allprojects {
             signaturesFiles = files("$rootDir/src/main/config/forbidden-apis/signatures.txt")
         }
 
+        if (enableErrorprone) {
+            apply(plugin = "net.ltgt.errorprone")
+            dependencies {
+                "errorprone"("com.google.errorprone:error_prone_core:${"errorprone".v}")
+                "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
+            }
+            tasks.withType<JavaCompile>().configureEach {
+                options.errorprone {
+                    disableWarningsInGeneratedCode.set(true)
+                    errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
+                    disable(
+                        "ComplexBooleanConstant",
+                        "EqualsGetClass",
+                        "OperatorPrecedence",
+                        "MutableConstantField",
+                        "ReferenceEquality",
+                        "SameNameButDifferent",
+                        "TypeParameterUnusedInFormals"
+                    )
+                    // Analyze issues, and enable the check
+                    disable(
+                        "BigDecimalEquals",
+                        "StringSplitter"
+                    )
+                }
+            }
+        }
+
         tasks {
             configureEach<Jar> {
                 manifest {
@@ -535,7 +567,10 @@ allprojects {
 
             configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
-                options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Werror"))
+                options.compilerArgs.add("-Xlint:deprecation")
+                if (werror) {
+                    options.compilerArgs.add("-Werror")
+                }
             }
             configureEach<Test> {
                 outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {

@@ -99,6 +99,7 @@ $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
 $ ./gradlew autostyleCheck checkstyleAll # report code style violations
+$ ./gradlew -PenableErrorprone classes # verify Java code with Error Prone compiler, requires Java 11
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.
