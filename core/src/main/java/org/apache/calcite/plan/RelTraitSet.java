@@ -572,7 +572,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * Outputs the traits of this set as a String. Traits are output in order,
    * separated by periods.
    */
-  protected String computeString() {
+  String computeString() {
     StringBuilder s = new StringBuilder();
     for (int i = 0; i < traits.length; i++) {
       final RelTrait trait = traits[i];
