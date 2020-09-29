@@ -526,6 +526,7 @@ allprojects {
                         "OperatorPrecedence",
                         "MutableConstantField",
                         "ReferenceEquality",
+                        "SameNameButDifferent",
                         "TypeParameterUnusedInFormals"
                     )
                     // Analyze issues, and enable the check
