@@ -30,7 +30,7 @@ public abstract class AbstractTargetMapping
   private final int sourceCount;
   private final int targetCount;
 
-  public AbstractTargetMapping(int sourceCount, int targetCount) {
+  protected AbstractTargetMapping(int sourceCount, int targetCount) {
     this.sourceCount = sourceCount;
     this.targetCount = targetCount;
   }

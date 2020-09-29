@@ -109,7 +109,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
   public final C config;
 
   /** Creates a RelRule. */
-  public RelRule(C config) {
+  protected RelRule(C config) {
     super(OperandBuilderImpl.operand(config.operandSupplier()),
         config.relBuilderFactory(), config.description());
     this.config = config;

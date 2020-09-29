@@ -561,7 +561,7 @@ public abstract class CalciteSchema {
     public final CalciteSchema schema;
     public final String name;
 
-    public Entry(CalciteSchema schema, String name) {
+    protected Entry(CalciteSchema schema, String name) {
       this.schema = Objects.requireNonNull(schema);
       this.name = Objects.requireNonNull(name);
     }
@@ -576,7 +576,7 @@ public abstract class CalciteSchema {
   public abstract static class TableEntry extends Entry {
     public final ImmutableList<String> sqls;
 
-    public TableEntry(CalciteSchema schema, String name,
+    protected TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
       this.sqls = Objects.requireNonNull(sqls);
@@ -587,7 +587,7 @@ public abstract class CalciteSchema {
 
   /** Membership of a type in a schema. */
   public abstract static class TypeEntry extends Entry {
-    public TypeEntry(CalciteSchema schema, String name) {
+    protected TypeEntry(CalciteSchema schema, String name) {
       super(schema, name);
     }
 
@@ -596,7 +596,7 @@ public abstract class CalciteSchema {
 
   /** Membership of a function in a schema. */
   public abstract static class FunctionEntry extends Entry {
-    public FunctionEntry(CalciteSchema schema, String name) {
+    protected FunctionEntry(CalciteSchema schema, String name) {
       super(schema, name);
     }
 
@@ -609,7 +609,7 @@ public abstract class CalciteSchema {
 
   /** Membership of a lattice in a schema. */
   public abstract static class LatticeEntry extends Entry {
-    public LatticeEntry(CalciteSchema schema, String name) {
+    protected LatticeEntry(CalciteSchema schema, String name) {
       super(schema, name);
     }
 

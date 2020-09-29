@@ -573,7 +573,7 @@ public class Resources {
     protected final PropertyAccessor accessor;
     protected final boolean hasDefault;
 
-    public Prop(PropertyAccessor accessor, Method method) {
+    protected Prop(PropertyAccessor accessor, Method method) {
       super(method);
       this.accessor = accessor;
       final Default resource = method.getAnnotation(Default.class);

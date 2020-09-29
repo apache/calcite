@@ -33,7 +33,7 @@ public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable {
    *
    * @param table Parent table
    */
-  public DelegatingSqlValidatorTable(SqlValidatorTable table) {
+  protected DelegatingSqlValidatorTable(SqlValidatorTable table) {
     this.table = table;
   }
 

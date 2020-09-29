@@ -100,12 +100,12 @@ public class Frameworks {
   public abstract static class PrepareAction<R>
       implements BasePrepareAction<R> {
     private final FrameworkConfig config;
-    public PrepareAction() {
+    protected PrepareAction() {
       this.config = newConfigBuilder()
           .defaultSchema(Frameworks.createRootSchema(true)).build();
     }
 
-    public PrepareAction(FrameworkConfig config) {
+    protected PrepareAction(FrameworkConfig config) {
       this.config = config;
     }
 

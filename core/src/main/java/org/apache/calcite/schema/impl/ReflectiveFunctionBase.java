@@ -46,7 +46,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    *
    * @param method Method that is used to get type information from
    */
-  public ReflectiveFunctionBase(Method method) {
+  protected ReflectiveFunctionBase(Method method) {
     this.method = method;
     this.parameters = builder().addMethodParameters(method).build();
   }

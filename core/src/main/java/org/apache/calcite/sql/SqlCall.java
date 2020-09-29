@@ -40,7 +40,7 @@ import javax.annotation.Nonnull;
 public abstract class SqlCall extends SqlNode {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlCall(SqlParserPos pos) {
+  protected SqlCall(SqlParserPos pos) {
     super(pos);
   }
 

@@ -29,7 +29,7 @@ public abstract class QueryProviderImpl implements QueryProvider {
   /**
    * Creates a QueryProviderImpl.
    */
-  public QueryProviderImpl() {
+  protected QueryProviderImpl() {
     super();
   }
 

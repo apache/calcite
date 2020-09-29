@@ -77,7 +77,7 @@ public abstract class Window extends SingleRel {
    * @param rowType Output row type
    * @param groups Windows
    */
-  public Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+  protected Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     super(cluster, traitSet, input);
     this.constants = ImmutableList.copyOf(constants);

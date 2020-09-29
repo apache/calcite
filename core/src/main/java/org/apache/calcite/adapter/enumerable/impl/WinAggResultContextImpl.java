@@ -42,7 +42,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
    * @param accumulator accumulator variables that store the intermediate
    *                    aggregate state
    */
-  public WinAggResultContextImpl(BlockBuilder block,
+  protected WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     super(block, null, accumulator, null, null);
@@ -51,7 +51,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  public WinAggResultContextImpl(BlockBuilder block,
+  protected WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     this(block, accumulator,

@@ -48,7 +48,7 @@ public abstract class ListScope extends DelegatingScope {
 
   //~ Constructors -----------------------------------------------------------
 
-  public ListScope(SqlValidatorScope parent) {
+  protected ListScope(SqlValidatorScope parent) {
     super(parent);
   }
 

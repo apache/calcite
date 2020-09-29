@@ -28,11 +28,11 @@ public abstract class SqlAlter extends SqlCall {
   /** Scope of the operation. Values "SYSTEM" and "SESSION" are typical. */
   String scope;
 
-  public SqlAlter(SqlParserPos pos) {
+  protected SqlAlter(SqlParserPos pos) {
     this(pos, null);
   }
 
-  public SqlAlter(SqlParserPos pos, String scope) {
+  protected SqlAlter(SqlParserPos pos, String scope) {
     super(pos);
     this.scope = scope;
   }

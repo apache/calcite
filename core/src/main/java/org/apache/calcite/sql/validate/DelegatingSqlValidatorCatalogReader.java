@@ -35,7 +35,7 @@ public abstract class DelegatingSqlValidatorCatalogReader
    *
    * @param catalogReader Parent catalog reader
    */
-  public DelegatingSqlValidatorCatalogReader(
+  protected DelegatingSqlValidatorCatalogReader(
       SqlValidatorCatalogReader catalogReader) {
     this.catalogReader = catalogReader;
   }

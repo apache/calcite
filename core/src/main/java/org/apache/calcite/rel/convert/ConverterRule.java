@@ -71,7 +71,7 @@ public abstract class ConverterRule
    * @deprecated Use {@link #ConverterRule(Config)}
    */
   @Deprecated // to be removed before 2.0
-  public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
+  protected ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String descriptionPrefix) {
     this(Config.INSTANCE
         .withConversion(clazz, in, out, descriptionPrefix));
@@ -79,7 +79,7 @@ public abstract class ConverterRule
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  public <R extends RelNode> ConverterRule(Class<R> clazz,
+  protected <R extends RelNode> ConverterRule(Class<R> clazz,
       com.google.common.base.Predicate<? super R> predicate,
       RelTrait in, RelTrait out, String descriptionPrefix) {
     this(Config.INSTANCE
@@ -100,7 +100,7 @@ public abstract class ConverterRule
    * @deprecated Use {@link #ConverterRule(Config)}
    */
   @Deprecated // to be removed before 2.0
-  public <R extends RelNode> ConverterRule(Class<R> clazz,
+  protected <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       RelBuilderFactory relBuilderFactory, String descriptionPrefix) {
     this(Config.EMPTY
@@ -111,7 +111,7 @@ public abstract class ConverterRule
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  public <R extends RelNode> ConverterRule(Class<R> clazz,
+  protected <R extends RelNode> ConverterRule(Class<R> clazz,
       com.google.common.base.Predicate<? super R> predicate, RelTrait in,
       RelTrait out, RelBuilderFactory relBuilderFactory, String description) {
     this(clazz, (Predicate<? super R>) predicate::apply, in, out,

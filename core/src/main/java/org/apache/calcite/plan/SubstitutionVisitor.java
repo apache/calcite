@@ -988,7 +988,7 @@ public class SubstitutionVisitor {
 
   /** Abstract base class for implementing {@link UnifyRule}. */
   protected abstract static class AbstractUnifyRule extends UnifyRule {
-    public AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
+    protected AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
       super(slotCount, queryOperand, targetOperand);
       //noinspection AssertWithSideEffects
