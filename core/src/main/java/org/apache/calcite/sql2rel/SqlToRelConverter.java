@@ -5095,8 +5095,8 @@ public class SqlToRelConverter {
   /**
    * A default implementation of SubQueryConverter that does no conversion.
    */
-  private class NoOpSubQueryConverter implements SubQueryConverter {
-    public boolean canConvertSubQuery() {
+  private static class NoOpSubQueryConverter implements SubQueryConverter {
+    @Override public boolean canConvertSubQuery() {
       return false;
     }
 

@@ -556,7 +556,7 @@ public class JoinToMultiJoinRule
   /**
    * Visitor that keeps a reference count of the inputs used by an expression.
    */
-  private class InputReferenceCounter extends RexVisitorImpl<Void> {
+  private static class InputReferenceCounter extends RexVisitorImpl<Void> {
     private final int[] refCounts;
 
     InputReferenceCounter(int[] refCounts) {

@@ -607,7 +607,7 @@ public class SqlAdvisor {
   //~ Inner Classes ----------------------------------------------------------
 
   /** Text and position info of a validator or parser exception. */
-  public class ValidateErrorInfo {
+  public static class ValidateErrorInfo {
     private int startLineNum;
     private int startColumnNum;
     private int endLineNum;

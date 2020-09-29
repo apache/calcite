@@ -661,7 +661,7 @@ public class PushProjector {
    * Visitor which builds a bitmap of the inputs used by an expressions, as
    * well as locating expressions corresponding to special operators.
    */
-  private class InputSpecialOpFinder extends RexVisitorImpl<Void> {
+  private static class InputSpecialOpFinder extends RexVisitorImpl<Void> {
     private final BitSet rexRefs;
     private final ImmutableBitSet leftFields;
     private final ImmutableBitSet rightFields;
@@ -748,7 +748,7 @@ public class PushProjector {
    * Walks an expression tree, replacing input refs with new values to reflect
    * projection and converting special expressions to field references.
    */
-  private class RefAndExprConverter extends RelOptUtil.RexInputConverter {
+  private static class RefAndExprConverter extends RelOptUtil.RexInputConverter {
     private final List<RexNode> preserveLeft;
     private final int firstLeftRef;
     private final List<RexNode> preserveRight;
@@ -854,7 +854,7 @@ public class PushProjector {
    * An expression condition that evaluates to true if the expression is
    * a call to one of a set of operators.
    */
-  class OperatorExprCondition implements ExprCondition {
+  static class OperatorExprCondition implements ExprCondition {
     private final Set<SqlOperator> operatorSet;
 
     /**

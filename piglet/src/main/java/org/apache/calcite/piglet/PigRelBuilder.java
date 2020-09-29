@@ -662,7 +662,7 @@ public class PigRelBuilder extends RelBuilder {
   /**
    * Context constructed during Pig-to-{@link RelNode} translation process.
    */
-  public class PigRelTranslationContext {
+  public static class PigRelTranslationContext {
     final Map<String, FuncSpec> pigUdfs = new HashMap<>();
   }
 }

@@ -109,7 +109,7 @@ public class SqlSpecialOperator extends SqlOperator {
   /** Result of applying
    * {@link org.apache.calcite.util.PrecedenceClimbingParser.Special#apply}.
    * Tells the caller which range of tokens to replace, and with what. */
-  public class ReduceResult {
+  public static class ReduceResult {
     public final int startOrdinal;
     public final int endOrdinal;
     public final SqlNode node;

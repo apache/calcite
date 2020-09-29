@@ -442,7 +442,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
-  private class RuleAttemptsListener implements RelOptListener {
+  private static class RuleAttemptsListener implements RelOptListener {
     private long beforeTimestamp;
     private Map<String, Pair<Long, Long>> ruleAttempts;
 
