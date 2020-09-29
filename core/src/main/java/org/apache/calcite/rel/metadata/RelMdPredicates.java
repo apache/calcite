@@ -534,6 +534,7 @@ public class RelMdPredicates
     final ImmutableBitSet leftFieldsBitSet;
     final ImmutableBitSet rightFieldsBitSet;
     final ImmutableBitSet allFieldsBitSet;
+    @SuppressWarnings("JdkObsolete")
     SortedMap<Integer, BitSet> equivalence;
     final Map<RexNode, ImmutableBitSet> exprFields;
     final Set<RexNode> allExprs;
@@ -755,6 +756,7 @@ public class RelMdPredicates
           && !isAlwaysTrue(tr);
     }
 
+    @SuppressWarnings("JdkObsolete")
     private void markAsEquivalent(int p1, int p2) {
       BitSet b = equivalence.get(p1);
       b.set(p2);
@@ -830,6 +832,7 @@ public class RelMdPredicates
       Mapping nextMapping;
       boolean firstCall;
 
+      @SuppressWarnings("JdkObsolete")
       ExprsItr(ImmutableBitSet fields) {
         nextMapping = null;
         columns = new int[fields.cardinality()];

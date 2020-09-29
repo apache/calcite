@@ -2725,7 +2725,7 @@ public abstract class EnumerableDefaults {
             // the offset is bigger than the number of rows in the map
             return Linq4j.emptyEnumerator();
           }
-          map.headMap(until).clear();
+          map.headMap(until, false).clear();
         }
 
         return new LookupImpl<>(map).valuesEnumerable().enumerator();

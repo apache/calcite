@@ -748,6 +748,7 @@ public class ImmutableBitSet
    * <p>The input must have an entry for each position.
    *
    * <p>Does not modify the input map or its bit sets. */
+  @SuppressWarnings("JdkObsolete")
   public static SortedMap<Integer, ImmutableBitSet> closure(
       SortedMap<Integer, ImmutableBitSet> equivalence) {
     if (equivalence.isEmpty()) {
@@ -922,6 +923,7 @@ public class ImmutableBitSet
    * from lower positions and the final equivalence Set is propagated down
    * from the lowest element in the Set.
    */
+  @SuppressWarnings("JdkObsolete")
   private static class Closure {
     private SortedMap<Integer, ImmutableBitSet> equivalence;
     private final SortedMap<Integer, ImmutableBitSet> closure =

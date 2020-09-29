@@ -89,7 +89,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.RandomAccess;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
@@ -2849,7 +2848,7 @@ class UtilTest {
     c.equiv("fg", "fG");
     assertThat(c.size(), is(6));
     assertThat(c.classCount(), is(3));
-    final SortedMap<String, SortedSet<String>> map = c.map();
+    final NavigableMap<String, SortedSet<String>> map = c.map();
     assertThat(map.toString(),
         is("{ABC=[ABC, Abc, abc], de=[de], fG=[fG, fg]}"));
 

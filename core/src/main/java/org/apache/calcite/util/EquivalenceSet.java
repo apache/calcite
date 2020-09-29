@@ -24,8 +24,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
-import java.util.SortedMap;
 import java.util.SortedSet;
 
 /** Set of elements organized into equivalence classes.
@@ -109,7 +109,7 @@ public class EquivalenceSet<E extends Comparable<E>> {
   /** Returns a map of the canonical element in each equivalence class to the
    * set of elements in that class. The keys are sorted in natural order, as
    * are the elements within each key. */
-  public SortedMap<E, SortedSet<E>> map() {
+  public NavigableMap<E, SortedSet<E>> map() {
     final TreeMultimap<E, E> multimap = TreeMultimap.create();
     for (Map.Entry<E, E> entry : parents.entrySet()) {
       multimap.put(entry.getValue(), entry.getKey());

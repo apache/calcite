@@ -48,7 +48,7 @@ public abstract class ImmutableNullableMap<K, V> extends AbstractMap<K, V> {
    * <p>Behavior is as {@link ImmutableMap#copyOf(Iterable)}
    * except that this map allows nulls.
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings({"JdkObsolete", "unchecked", "rawtypes"})
   public static <K, V> Map<K, V> copyOf(Map<? extends K, ? extends V> map) {
     if (map instanceof ImmutableNullableMap
         || map instanceof ImmutableMap
@@ -87,7 +87,7 @@ public abstract class ImmutableNullableMap<K, V> extends AbstractMap<K, V> {
    * <p>Behavior is as {@link ImmutableSortedMap#copyOf(Map)}
    * except that this map allows nulls.
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings({"JdkObsolete", "unchecked", "rawtypes"})
   public static <K, V> Map<K, V> copyOf(
       SortedMap<? extends K, ? extends V> map) {
     if (map instanceof ImmutableNullableMap
