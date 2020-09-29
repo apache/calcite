@@ -1840,7 +1840,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       Aggregate aggregate = call.rel(2);
 
       // check singleAggRel is single_value agg
-      if ((!singleAggregate.getGroupSet().isEmpty())
+      if (!singleAggregate.getGroupSet().isEmpty()
           || (singleAggregate.getAggCallList().size() != 1)
           || !(singleAggregate.getAggCallList().get(0).getAggregation()
           instanceof SqlSingleValueAggFunction)) {
@@ -1937,7 +1937,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check that the agg is of the following type:
       // doing a single_value() on the entire input
-      if ((!aggregate.getGroupSet().isEmpty())
+      if (!aggregate.getGroupSet().isEmpty()
           || (aggregate.getAggCallList().size() != 1)
           || !(aggregate.getAggCallList().get(0).getAggregation()
           instanceof SqlSingleValueAggFunction)) {

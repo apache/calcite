@@ -813,7 +813,7 @@ public class LoptSemiJoinOptimizer {
       if ((c1 == null) || (c2 == null)) {
         return -1;
       }
-      return (c1.isLt(c2)) ? -1 : ((c1.equals(c2)) ? 0 : 1);
+      return c1.isLt(c2) ? -1 : (c1.equals(c2) ? 0 : 1);
     }
   }
 

@@ -488,7 +488,7 @@ public class BlockBuilder {
     int i = 0;
     String candidate = suggestion;
     while (hasVariable(candidate)) {
-      candidate = suggestion + (i++);
+      candidate = suggestion + i++;
     }
     return candidate;
   }

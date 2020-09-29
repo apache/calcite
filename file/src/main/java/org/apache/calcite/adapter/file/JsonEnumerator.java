@@ -94,7 +94,7 @@ public class JsonEnumerator implements Enumerator<Object[]> {
       //noinspection unchecked
       list = (List<Object>) jsonObj;
       //noinspection unchecked
-      jsonFieldMap = (LinkedHashMap) (list.get(0));
+      jsonFieldMap = (LinkedHashMap) list.get(0);
     } else if (jsonObj instanceof Map) {
       //noinspection unchecked
       jsonFieldMap = (LinkedHashMap) jsonObj;

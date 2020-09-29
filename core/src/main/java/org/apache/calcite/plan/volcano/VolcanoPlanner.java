@@ -729,7 +729,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public RelSubset getSubset(RelNode rel, RelTraitSet traits) {
-    if ((rel instanceof RelSubset) && (rel.getTraitSet().equals(traits))) {
+    if ((rel instanceof RelSubset) && rel.getTraitSet().equals(traits)) {
       return (RelSubset) rel;
     }
     RelSet set = getSet(rel);

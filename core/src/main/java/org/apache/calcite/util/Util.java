@@ -1322,7 +1322,7 @@ public class Util {
       if (s.charAt(n) != ' ') {
         return s;
       }
-      while ((--n) >= 0) {
+      while (--n >= 0) {
         if (s.charAt(n) != ' ') {
           return s.substring(0, n + 1);
         }

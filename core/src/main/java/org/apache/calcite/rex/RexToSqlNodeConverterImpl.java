@@ -110,7 +110,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.CHARACTER.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createCharString(
-          ((NlsString) (literal.getValue())).getValue(),
+          ((NlsString) literal.getValue()).getValue(),
           SqlParserPos.ZERO);
     }
 
