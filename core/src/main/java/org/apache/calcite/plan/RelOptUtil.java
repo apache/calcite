@@ -1514,14 +1514,14 @@ public abstract class RelOptUtil {
         RexNode op0 = operands.get(0);
         RexNode op1 = operands.get(1);
 
-        if (!(RexUtil.containsInputRef(op0))
-            && (op1 instanceof RexInputRef)) {
+        if (!RexUtil.containsInputRef(op0)
+            && op1 instanceof RexInputRef) {
           correlatedJoinKeys.add(op0);
           joinKeys.add((RexInputRef) op1);
           return;
         } else if (
-            (op0 instanceof RexInputRef)
-                && !(RexUtil.containsInputRef(op1))) {
+            op0 instanceof RexInputRef
+                && !RexUtil.containsInputRef(op1)) {
           joinKeys.add((RexInputRef) op0);
           correlatedJoinKeys.add(op1);
           return;
@@ -1580,26 +1580,26 @@ public abstract class RelOptUtil {
 
         if (extractCorrelatedFieldAccess) {
           if (!RexUtil.containsFieldAccess(op0)
-              && (op1 instanceof RexFieldAccess)) {
+              && op1 instanceof RexFieldAccess) {
             joinKeys.add(op0);
             correlatedJoinKeys.add(op1);
             return;
           } else if (
-              (op0 instanceof RexFieldAccess)
+              op0 instanceof RexFieldAccess
                   && !RexUtil.containsFieldAccess(op1)) {
             correlatedJoinKeys.add(op0);
             joinKeys.add(op1);
             return;
           }
         } else {
-          if (!(RexUtil.containsInputRef(op0))
-              && (op1 instanceof RexInputRef)) {
+          if (!RexUtil.containsInputRef(op0)
+              && op1 instanceof RexInputRef) {
             correlatedJoinKeys.add(op0);
             joinKeys.add(op1);
             return;
           } else if (
-              (op0 instanceof RexInputRef)
-                  && !(RexUtil.containsInputRef(op1))) {
+              op0 instanceof RexInputRef
+                  && !RexUtil.containsInputRef(op1)) {
             joinKeys.add(op0);
             correlatedJoinKeys.add(op1);
             return;

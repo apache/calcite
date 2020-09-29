@@ -621,7 +621,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       if (!TableScan.class.isAssignableFrom(c)
           && !Project.class.isAssignableFrom(c)
           && !Filter.class.isAssignableFrom(c)
-          && (!Join.class.isAssignableFrom(c))) {
+          && !Join.class.isAssignableFrom(c)) {
         // Skip it
         return false;
       }

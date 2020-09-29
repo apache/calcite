@@ -1808,7 +1808,7 @@ public class SubstitutionVisitor {
   private static boolean implies(
       RelOptCluster cluster, RexNode cond0, RexNode cond1, RelDataType rowType) {
     RexExecutorImpl rexImpl =
-        (RexExecutorImpl) (cluster.getPlanner().getExecutor());
+        (RexExecutorImpl) cluster.getPlanner().getExecutor();
     RexImplicationChecker rexImplicationChecker =
         new RexImplicationChecker(cluster.getRexBuilder(), rexImpl, rowType);
     return rexImplicationChecker.implies(cond0, cond1);

@@ -387,14 +387,14 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     // Every node's parents list it as a child.
     for (Node<E> node : map.values()) {
       if ((node == topNode)
-          != (node.parentList.isEmpty())) {
+          != node.parentList.isEmpty()) {
         assert !fail
             : "only top node should have no parents " + node
             + ", parents " + node.parentList;
         return false;
       }
       if ((node == bottomNode)
-          != (node.childList.isEmpty())) {
+          != node.childList.isEmpty()) {
         assert !fail
             : "only bottom node should have no children " + node
             + ", children " + node.childList;

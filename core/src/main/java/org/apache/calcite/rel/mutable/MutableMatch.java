@@ -78,9 +78,9 @@ public class MutableMatch extends MutableSingleRel {
     return obj == this
         || obj instanceof MutableMatch
         && pattern.equals(((MutableMatch) obj).pattern)
-        && strictStart == (((MutableMatch) obj).strictStart)
-        && strictEnd == (((MutableMatch) obj).strictEnd)
-        && allRows == (((MutableMatch) obj).allRows)
+        && strictStart == ((MutableMatch) obj).strictStart
+        && strictEnd == ((MutableMatch) obj).strictEnd
+        && allRows == ((MutableMatch) obj).allRows
         && patternDefinitions.equals(((MutableMatch) obj).patternDefinitions)
         && measures.equals(((MutableMatch) obj).measures)
         && after.equals(((MutableMatch) obj).after)

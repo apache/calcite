@@ -526,7 +526,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, year, TimeUnit.YEAR, pos);
-      if (!(isSecondaryFieldInRange(month, TimeUnit.MONTH))) {
+      if (!isSecondaryFieldInRange(month, TimeUnit.MONTH)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -636,7 +636,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
-      if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))) {
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -678,8 +678,8 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
-      if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
-          || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)
+          || !isSecondaryFieldInRange(minute, TimeUnit.MINUTE)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -746,10 +746,10 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, day, TimeUnit.DAY, pos);
-      if (!(isSecondaryFieldInRange(hour, TimeUnit.HOUR))
-          || !(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
-          || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
-          || !(isFractionalSecondFieldInRange(secondFrac))) {
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)
+          || !isSecondaryFieldInRange(minute, TimeUnit.MINUTE)
+          || !isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -831,7 +831,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, hour, TimeUnit.HOUR, pos);
-      if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))) {
+      if (!isSecondaryFieldInRange(minute, TimeUnit.MINUTE)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -897,9 +897,9 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, hour, TimeUnit.HOUR, pos);
-      if (!(isSecondaryFieldInRange(minute, TimeUnit.MINUTE))
-          || !(isSecondaryFieldInRange(second, TimeUnit.SECOND))
-          || !(isFractionalSecondFieldInRange(secondFrac))) {
+      if (!isSecondaryFieldInRange(minute, TimeUnit.MINUTE)
+          || !isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -1003,8 +1003,8 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, minute, TimeUnit.MINUTE, pos);
-      if (!(isSecondaryFieldInRange(second, TimeUnit.SECOND))
-          || !(isFractionalSecondFieldInRange(secondFrac))) {
+      if (!isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
         throw invalidValueException(pos, originalValue);
       }
 
@@ -1071,7 +1071,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, second, TimeUnit.SECOND, pos);
-      if (!(isFractionalSecondFieldInRange(secondFrac))) {
+      if (!isFractionalSecondFieldInRange(secondFrac)) {
         throw invalidValueException(pos, originalValue);
       }
 

@@ -228,7 +228,7 @@ public class RelMdUniqueKeys
     if ((rightUnique != null)
         && rightUnique
         && (leftSet != null)
-        && !(rel.getJoinType().generatesNullsOnLeft())) {
+        && !rel.getJoinType().generatesNullsOnLeft()) {
       retSet.addAll(leftSet);
     }
 
@@ -236,7 +236,7 @@ public class RelMdUniqueKeys
     if ((leftUnique != null)
         && leftUnique
         && (rightSet != null)
-        && !(rel.getJoinType().generatesNullsOnRight())) {
+        && !rel.getJoinType().generatesNullsOnRight()) {
       retSet.addAll(rightSet);
     }
 
