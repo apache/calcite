@@ -71,8 +71,8 @@ public class RelOptCostImpl implements RelOptCost {
     return Double.hashCode(getRows());
   }
 
-  // implement RelOptCost
-  public boolean equals(RelOptCost other) {
+  @SuppressWarnings("NonOverridingEquals")
+  @Override public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();
   }
 

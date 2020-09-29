@@ -477,6 +477,7 @@ public abstract class RelOptRule {
    * @param that Another rule
    * @return Whether this rule is equal to another rule
    */
+  @SuppressWarnings("NonOverridingEquals")
   protected boolean equals(@Nonnull RelOptRule that) {
     // Include operands and class in the equality criteria just in case
     // they have chosen a poor description.

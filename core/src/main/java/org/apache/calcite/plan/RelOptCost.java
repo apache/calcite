@@ -55,6 +55,7 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
+  @SuppressWarnings("NonOverridingEquals")
   boolean equals(RelOptCost cost);
 
   /**
