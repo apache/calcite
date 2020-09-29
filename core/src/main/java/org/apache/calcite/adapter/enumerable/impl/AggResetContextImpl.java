@@ -39,7 +39,7 @@ public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
    * @param accumulator Accumulator variables that store the intermediate
    *                    aggregate state
    */
-  public AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
+  protected AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
     super(block);
     this.accumulator = accumulator;
   }

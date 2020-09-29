@@ -87,7 +87,7 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Creates an <code>AbstractRelNode</code>.
    */
-  public AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
+  protected AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
     super();
     assert cluster != null;
     this.cluster = cluster;

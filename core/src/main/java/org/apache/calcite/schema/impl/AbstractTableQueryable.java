@@ -42,7 +42,7 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
   public final QueryableTable table;
   public final String tableName;
 
-  public AbstractTableQueryable(QueryProvider queryProvider,
+  protected AbstractTableQueryable(QueryProvider queryProvider,
       SchemaPlus schema, QueryableTable table, String tableName) {
     this.queryProvider = queryProvider;
     this.schema = schema;

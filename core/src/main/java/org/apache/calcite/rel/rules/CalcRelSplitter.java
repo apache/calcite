@@ -746,7 +746,7 @@ public abstract class CalcRelSplitter {
   public abstract static class RelType {
     private final String name;
 
-    public RelType(String name) {
+    protected RelType(String name) {
       this.name = name;
     }
 

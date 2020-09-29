@@ -36,7 +36,7 @@ public abstract class Intersect extends SetOp {
   /**
    * Creates an Intersect.
    */
-  public Intersect(
+  protected Intersect(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,

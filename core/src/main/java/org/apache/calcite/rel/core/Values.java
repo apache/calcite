@@ -90,7 +90,7 @@ public abstract class Values extends AbstractRelNode {
   /**
    * Creates a Values by parsing serialized output.
    */
-  public Values(RelInput input) {
+  protected Values(RelInput input) {
     this(input.getCluster(), input.getRowType("type"),
         input.getTuples("tuples"), input.getTraitSet());
   }

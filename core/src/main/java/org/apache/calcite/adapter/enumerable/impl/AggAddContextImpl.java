@@ -28,7 +28,7 @@ import java.util.List;
  */
 public abstract class AggAddContextImpl extends AggResultContextImpl
     implements AggAddContext {
-  public AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
+  protected AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
     super(block, null, accumulator, null, null);
   }
 

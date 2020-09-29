@@ -34,7 +34,7 @@ public abstract class CommonRelSubExprRule
   }
 
   @Deprecated // to be removed before 2.0
-  public CommonRelSubExprRule(RelOptRuleOperand operand) {
+  protected CommonRelSubExprRule(RelOptRuleOperand operand) {
     this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
         .as(Config.class));
   }

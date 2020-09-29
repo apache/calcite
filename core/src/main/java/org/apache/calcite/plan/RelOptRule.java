@@ -74,7 +74,7 @@ public abstract class RelOptRule {
    *
    * @param operand root operand, must not be null
    */
-  public RelOptRule(RelOptRuleOperand operand) {
+  protected RelOptRule(RelOptRuleOperand operand) {
     this(operand, RelFactories.LOGICAL_BUILDER, null);
   }
 
@@ -84,7 +84,7 @@ public abstract class RelOptRule {
    * @param operand     root operand, must not be null
    * @param description Description, or null to guess description
    */
-  public RelOptRule(RelOptRuleOperand operand, String description) {
+  protected RelOptRule(RelOptRuleOperand operand, String description) {
     this(operand, RelFactories.LOGICAL_BUILDER, description);
   }
 
@@ -95,7 +95,7 @@ public abstract class RelOptRule {
    * @param description Description, or null to guess description
    * @param relBuilderFactory Builder for relational expressions
    */
-  public RelOptRule(RelOptRuleOperand operand,
+  protected RelOptRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
     this.operand = Objects.requireNonNull(operand);
     this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);

@@ -36,7 +36,7 @@ public abstract class BaseQueryable<TSource>
   protected final Type elementType;
   protected final Expression expression;
 
-  public BaseQueryable(QueryProvider provider, Type elementType,
+  protected BaseQueryable(QueryProvider provider, Type elementType,
       Expression expression) {
     this.provider = provider;
     this.elementType = elementType;

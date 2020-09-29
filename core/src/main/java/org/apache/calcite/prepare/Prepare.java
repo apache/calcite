@@ -107,7 +107,7 @@ public abstract class Prepare {
   public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
-  public Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
+  protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
     assert context != null;
     this.context = context;
@@ -469,7 +469,7 @@ public abstract class Prepare {
     private final SqlExplainFormat format;
     private final SqlExplainLevel detailLevel;
 
-    public PreparedExplain(
+    protected PreparedExplain(
         RelDataType rowType,
         RelDataType parameterRowType,
         RelRoot root,
@@ -563,7 +563,7 @@ public abstract class Prepare {
     protected final List<List<String>> fieldOrigins;
     protected final List<RelCollation> collations;
 
-    public PreparedResultImpl(
+    protected PreparedResultImpl(
         RelDataType rowType,
         RelDataType parameterRowType,
         List<List<String>> fieldOrigins,

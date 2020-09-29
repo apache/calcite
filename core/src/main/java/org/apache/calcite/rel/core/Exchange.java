@@ -67,7 +67,7 @@ public abstract class Exchange extends SingleRel {
   /**
    * Creates an Exchange by parsing serialized output.
    */
-  public Exchange(RelInput input) {
+  protected Exchange(RelInput input) {
     this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
         input.getInput(),
         RelDistributionTraitDef.INSTANCE.canonize(input.getDistribution()));

@@ -104,7 +104,7 @@ public abstract class Correlate extends BiRel {
    *
    * @param input Input representation
    */
-  public Correlate(RelInput input) {
+  protected Correlate(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),

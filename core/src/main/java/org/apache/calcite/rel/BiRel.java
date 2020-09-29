@@ -33,7 +33,7 @@ public abstract class BiRel extends AbstractRelNode {
   protected RelNode left;
   protected RelNode right;
 
-  public BiRel(
+  protected BiRel(
       RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
       RelNode right) {
     super(cluster, traitSet);

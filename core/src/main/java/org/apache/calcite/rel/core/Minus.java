@@ -37,7 +37,7 @@ import java.util.List;
  * the results).
  */
 public abstract class Minus extends SetOp {
-  public Minus(RelOptCluster cluster, RelTraitSet traits, List<RelNode> inputs,
+  protected Minus(RelOptCluster cluster, RelTraitSet traits, List<RelNode> inputs,
       boolean all) {
     super(cluster, traits, inputs, SqlKind.EXCEPT, all);
   }

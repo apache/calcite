@@ -57,7 +57,7 @@ public abstract class Sort extends SingleRel {
    * @param child     input relational expression
    * @param collation array of sort specifications
    */
-  public Sort(
+  protected Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -76,7 +76,7 @@ public abstract class Sort extends SingleRel {
    *                  first row
    * @param fetch     Expression for number of rows to fetch
    */
-  public Sort(
+  protected Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
@@ -99,7 +99,7 @@ public abstract class Sort extends SingleRel {
   /**
    * Creates a Sort by parsing serialized output.
    */
-  public Sort(RelInput input) {
+  protected Sort(RelInput input) {
     this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
         input.getInput(),
         RelCollationTraitDef.INSTANCE.canonize(input.getCollation()),
