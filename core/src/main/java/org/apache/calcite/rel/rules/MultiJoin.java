@@ -49,6 +49,7 @@ public final class MultiJoin extends AbstractRelNode {
 
   private final List<RelNode> inputs;
   private final RexNode joinFilter;
+  @SuppressWarnings("HidingField")
   private final RelDataType rowType;
   private final boolean isFullOuterJoin;
   private final List<RexNode> outerJoinConditions;

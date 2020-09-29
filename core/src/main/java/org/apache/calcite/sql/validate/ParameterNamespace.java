@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 class ParameterNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------
 
+  @SuppressWarnings("HidingField")
   private final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------

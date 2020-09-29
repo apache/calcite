@@ -232,12 +232,10 @@ public class ReflectiveSchema
   private static class ReflectiveTable
       extends AbstractQueryableTable
       implements Table, ScannableTable {
-    private final Type elementType;
     private final Enumerable enumerable;
 
     ReflectiveTable(Type elementType, Enumerable enumerable) {
       super(elementType);
-      this.elementType = elementType;
       this.enumerable = enumerable;
     }
 

@@ -24,6 +24,7 @@ import java.util.Objects;
  */
 public class TypeBinaryExpression extends Expression {
   public final Expression expression;
+  @SuppressWarnings("HidingField")
   public final Type type;
 
   public TypeBinaryExpression(ExpressionType nodeType, Expression expression,

@@ -27,6 +27,7 @@ import java.util.Objects;
  * an anonymous class.</p>
  */
 public class NewExpression extends Expression {
+  @SuppressWarnings("HidingField")
   public final Type type;
   public final List<Expression> arguments;
   public final List<MemberDeclaration> memberDeclarations;
