@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
@@ -210,8 +211,8 @@ public abstract class Match extends SingleRel {
    * Find aggregate functions in operands.
    */
   private static class AggregateFinder extends RexVisitorImpl<Void> {
-    final SortedSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
-    final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPerVar =
+    final NavigableSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
+    final Map<String, NavigableSet<RexMRAggCall>> aggregateCallsPerVar =
         new TreeMap<>();
 
     AggregateFinder() {
@@ -254,7 +255,7 @@ public abstract class Match extends SingleRel {
           pv.add(STAR);
         }
         for (String alpha : pv) {
-          final SortedSet<RexMRAggCall> set;
+          final NavigableSet<RexMRAggCall> set;
           if (aggregateCallsPerVar.containsKey(alpha)) {
             set = aggregateCallsPerVar.get(alpha);
           } else {

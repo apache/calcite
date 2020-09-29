@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -273,6 +274,7 @@ public final class BitSets {
    * <p>The input must have an entry for each position.
    *
    * <p>Does not modify the input map or its bit sets. */
+  @SuppressWarnings("JdkObsolete")
   public static SortedMap<Integer, BitSet> closure(
       SortedMap<Integer, BitSet> equivalence) {
     if (equivalence.isEmpty()) {
@@ -321,8 +323,9 @@ public final class BitSets {
    */
   private static class Closure {
     private SortedMap<Integer, BitSet> equivalence;
-    private final SortedMap<Integer, BitSet> closure = new TreeMap<>();
+    private final NavigableMap<Integer, BitSet> closure = new TreeMap<>();
 
+    @SuppressWarnings("JdkObsolete")
     Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =

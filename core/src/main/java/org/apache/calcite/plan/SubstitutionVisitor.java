@@ -79,9 +79,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
@@ -324,7 +324,7 @@ public class SubstitutionVisitor {
     case AND:
     case OR: {
       RexCall call = (RexCall) condition;
-      SortedMap<String, RexNode> newOperands = new TreeMap<>();
+      NavigableMap<String, RexNode> newOperands = new TreeMap<>();
       for (RexNode operand : call.operands) {
         operand = canonizeNode(rexBuilder, operand);
         newOperands.put(operand.toString(), operand);

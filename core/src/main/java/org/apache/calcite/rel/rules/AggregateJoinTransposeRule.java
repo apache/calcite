@@ -53,8 +53,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -388,7 +388,7 @@ public class AggregateJoinTransposeRule
    * set, and vice versa. */
   private static ImmutableBitSet keyColumns(ImmutableBitSet aggregateColumns,
       ImmutableList<RexNode> predicates) {
-    SortedMap<Integer, BitSet> equivalence = new TreeMap<>();
+    NavigableMap<Integer, BitSet> equivalence = new TreeMap<>();
     for (RexNode predicate : predicates) {
       populateEquivalences(equivalence, predicate);
     }

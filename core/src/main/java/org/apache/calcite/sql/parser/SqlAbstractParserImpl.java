@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -638,7 +639,7 @@ public abstract class SqlAbstractParserImpl {
     /**
      * Set of all tokens.
      */
-    private final SortedSet<String> tokenSet = new TreeSet<>();
+    private final NavigableSet<String> tokenSet = new TreeSet<>();
 
     /**
      * Immutable list of all tokens, in alphabetical order.

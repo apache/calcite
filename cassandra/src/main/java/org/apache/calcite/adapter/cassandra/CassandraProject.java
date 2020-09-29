@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;

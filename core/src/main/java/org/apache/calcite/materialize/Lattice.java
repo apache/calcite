@@ -73,9 +73,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -768,7 +768,7 @@ public class Lattice {
     private final LatticeRootNode rootNode;
     private final ImmutableList<BaseColumn> baseColumns;
     private final ImmutableListMultimap<String, Column> columnsByAlias;
-    private final SortedSet<Measure> defaultMeasureSet =
+    private final NavigableSet<Measure> defaultMeasureSet =
         new TreeSet<>();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();

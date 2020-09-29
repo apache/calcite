@@ -66,6 +66,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -273,7 +274,7 @@ public class RelMdCollation
   /** Helper method to determine a {@link Project}'s collation. */
   public static List<RelCollation> project(RelMetadataQuery mq,
       RelNode input, List<? extends RexNode> projects) {
-    final SortedSet<RelCollation> collations = new TreeSet<>();
+    final NavigableSet<RelCollation> collations = new TreeSet<>();
     final List<RelCollation> inputCollations = mq.collations(input);
     if (inputCollations == null || inputCollations.isEmpty()) {
       return ImmutableList.of();

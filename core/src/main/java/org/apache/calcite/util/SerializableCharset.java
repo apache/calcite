@@ -63,6 +63,7 @@ public class SerializableCharset implements Serializable {
   /**
    * Per {@link Serializable}.
    */
+  @SuppressWarnings("JdkObsolete")
   private void readObject(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
     charsetName = (String) in.readObject();

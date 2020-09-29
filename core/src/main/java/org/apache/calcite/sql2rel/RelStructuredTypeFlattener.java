@@ -180,6 +180,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
+  @SuppressWarnings("JdkObsolete")
   public void updateRelInMap(
       SortedMap<CorrelationId, LogicalCorrelate> mapCorVarToCorRel) {
     for (CorrelationId corVar : mapCorVarToCorRel.keySet()) {

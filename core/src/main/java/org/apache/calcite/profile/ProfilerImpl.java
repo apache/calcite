@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -533,7 +534,7 @@ public class ProfilerImpl implements Profiler {
 
   /** Collector that collects values of a single column. */
   static class SingletonCollector extends Collector {
-    final SortedSet<Comparable> values = new TreeSet<>();
+    final NavigableSet<Comparable> values = new TreeSet<>();
     final int columnOrdinal;
     final int sketchThreshold;
     int nullCount = 0;

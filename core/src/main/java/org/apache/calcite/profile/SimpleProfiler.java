@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -288,7 +289,7 @@ public class SimpleProfiler implements Profiler {
     final ImmutableBitSet columnOrdinals;
     final ImmutableSortedSet<Column> columns;
     int nullCount;
-    final SortedSet<FlatLists.ComparableList<Comparable>> values =
+    final NavigableSet<FlatLists.ComparableList<Comparable>> values =
         new TreeSet<>();
     boolean unique;
     final BitSet dependencies = new BitSet();
