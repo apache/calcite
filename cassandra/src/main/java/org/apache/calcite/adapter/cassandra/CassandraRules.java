@@ -69,6 +69,7 @@ public class CassandraRules {
       CassandraToEnumerableConverterRule.DEFAULT_CONFIG
           .toRule(CassandraToEnumerableConverterRule.class);
 
+  @SuppressWarnings("MutablePublicArray")
   public static final RelOptRule[] RULES = {
       FILTER,
       PROJECT,

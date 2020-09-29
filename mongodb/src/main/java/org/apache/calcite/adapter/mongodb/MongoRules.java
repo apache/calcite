@@ -62,6 +62,7 @@ public class MongoRules {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
+  @SuppressWarnings("MutablePublicArray")
   public static final RelOptRule[] RULES = {
       MongoSortRule.INSTANCE,
       MongoFilterRule.INSTANCE,
