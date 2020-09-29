@@ -266,15 +266,16 @@ public class RelMdUniqueKeys
    */
   public Set<ImmutableBitSet> getUniqueKeys(Intersect rel,
       RelMetadataQuery mq, boolean ignoreNulls) {
-    Set<ImmutableBitSet> keys = new LinkedHashSet<>();
+    ImmutableSet.Builder<ImmutableBitSet> keys = new ImmutableSet.Builder<>();
     for (RelNode input : rel.getInputs()) {
       Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(input, ignoreNulls);
       if (uniqueKeys != null) {
         keys.addAll(uniqueKeys);
       }
     }
-    if (!keys.isEmpty()) {
-      return keys;
+    ImmutableSet<ImmutableBitSet> uniqueKeys = keys.build();
+    if (!uniqueKeys.isEmpty()) {
+      return uniqueKeys;
     }
 
     if (!rel.all) {

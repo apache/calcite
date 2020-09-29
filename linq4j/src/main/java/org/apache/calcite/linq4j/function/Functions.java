@@ -305,6 +305,7 @@ public abstract class Functions {
   /** Returns a list that contains only elements of {@code list} that match
    * {@code predicate}. Avoids allocating a list if all elements match or no
    * elements match. */
+  @SuppressWarnings("MixedMutabilityReturnType")
   public static <E> List<E> filter(List<E> list, Predicate1<E> predicate) {
   sniff:
     {

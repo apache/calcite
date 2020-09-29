@@ -121,11 +121,11 @@ public class RelJsonReader {
         if (jsonInputs == null) {
           return ImmutableList.of(lastRel);
         }
-        final List<RelNode> inputs = new ArrayList<>();
+        final ImmutableList.Builder<RelNode> inputs = new ImmutableList.Builder<>();
         for (String jsonInput : jsonInputs) {
           inputs.add(lookupInput(jsonInput));
         }
-        return inputs;
+        return inputs.build();
       }
 
       @Override public RexNode getExpression(String tag) {
