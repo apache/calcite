@@ -2015,6 +2015,8 @@ public class RexSimplify {
         switch (e.getType().getSqlTypeName()) {
         case TIMESTAMP:
           return e;
+        default:
+          break;
         }
         break;
       default:
@@ -2431,6 +2433,9 @@ public class RexSimplify {
           if (nodePredicate.test(left)) {
             return new Comparison(left, e.getKind(), (RexLiteral) right);
           }
+          break;
+        default:
+          break;
         }
         switch (left.getKind()) {
         case LITERAL:
