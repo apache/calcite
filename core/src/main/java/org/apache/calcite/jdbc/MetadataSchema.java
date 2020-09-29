@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import java.sql.SQLException;
 import java.util.Map;
 
-import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaColumn;
-import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaTable;
+import static org.apache.calcite.avatica.MetaImpl.MetaColumn;
+import static org.apache.calcite.avatica.MetaImpl.MetaTable;
 
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {

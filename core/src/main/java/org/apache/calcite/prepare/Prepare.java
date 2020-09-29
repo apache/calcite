@@ -33,7 +33,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -309,20 +309,20 @@ public abstract class Prepare {
     return implement(root);
   }
 
-  protected LogicalTableModify.Operation mapTableModOp(
+  protected TableModify.Operation mapTableModOp(
       boolean isDml, SqlKind sqlKind) {
     if (!isDml) {
       return null;
     }
     switch (sqlKind) {
     case INSERT:
-      return LogicalTableModify.Operation.INSERT;
+      return TableModify.Operation.INSERT;
     case DELETE:
-      return LogicalTableModify.Operation.DELETE;
+      return TableModify.Operation.DELETE;
     case MERGE:
-      return LogicalTableModify.Operation.MERGE;
+      return TableModify.Operation.MERGE;
     case UPDATE:
-      return LogicalTableModify.Operation.UPDATE;
+      return TableModify.Operation.UPDATE;
     default:
       return null;
     }
@@ -498,7 +498,7 @@ public abstract class Prepare {
       return false;
     }
 
-    public LogicalTableModify.Operation getTableModOp() {
+    @Override public TableModify.Operation getTableModOp() {
       return null;
     }
 
@@ -528,7 +528,7 @@ public abstract class Prepare {
      * Returns the table modification operation corresponding to this
      * statement if it is a table modification statement; otherwise null.
      */
-    LogicalTableModify.Operation getTableModOp();
+    TableModify.Operation getTableModOp();
 
     /**
      * Returns a list describing, for each result field, the origin of the
@@ -559,7 +559,7 @@ public abstract class Prepare {
     protected final RelDataType parameterRowType;
     protected final RelDataType rowType;
     protected final boolean isDml;
-    protected final LogicalTableModify.Operation tableModOp;
+    protected final TableModify.Operation tableModOp;
     protected final List<List<String>> fieldOrigins;
     protected final List<RelCollation> collations;
 
@@ -569,7 +569,7 @@ public abstract class Prepare {
         List<List<String>> fieldOrigins,
         List<RelCollation> collations,
         RelNode rootRel,
-        LogicalTableModify.Operation tableModOp,
+        TableModify.Operation tableModOp,
         boolean isDml) {
       this.rowType = Objects.requireNonNull(rowType);
       this.parameterRowType = Objects.requireNonNull(parameterRowType);
@@ -584,7 +584,7 @@ public abstract class Prepare {
       return isDml;
     }
 
-    public LogicalTableModify.Operation getTableModOp() {
+    @Override public TableModify.Operation getTableModOp() {
       return tableModOp;
     }
 

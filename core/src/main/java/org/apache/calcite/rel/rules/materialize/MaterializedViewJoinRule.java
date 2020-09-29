@@ -44,7 +44,7 @@ import java.util.Set;
  *
  * @param <C> Configuration type
  */
-public abstract class MaterializedViewJoinRule<C extends MaterializedViewJoinRule.Config>
+public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Config>
     extends MaterializedViewRule<C> {
 
   /** Creates a MaterializedViewJoinRule. */
