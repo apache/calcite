@@ -253,7 +253,7 @@ public enum Primitive {
 
   /**
    * Adapts a primitive array into a {@link List}. For example,
-   * {@code asList(new double[2])} returns a {@code List&lt;Double&gt;}.
+   * {@code asList(new double[2])} returns a {@code List<Double>}.
    */
   public static List<?> asList(final Object array) {
     // REVIEW: A per-type list might be more efficient. (Or might not.)

@@ -245,7 +245,7 @@ public class SubstitutionVisitor {
    * <li>residue: y = 2</li>
    * </ul>
    *
-   * <p>Note that residue {@code x &gt; 0 AND y = 2} would also satisfy the
+   * <p>Note that residue {@code x > 0 AND y = 2} would also satisfy the
    * relation {@code condition = target AND residue} but is stronger than
    * necessary, so we prefer {@code y = 2}.</p>
    *

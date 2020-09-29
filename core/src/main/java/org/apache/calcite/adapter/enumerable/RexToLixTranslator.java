@@ -1207,7 +1207,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    *
    * <p>We generate code that looks like:
    *
-   * <blockquote><pre>
+   * <blockquote><pre>{@code
    *      int case_when_value;
    *      ......code for a......
    *      if (!a_isNull && a_value) {
@@ -1223,7 +1223,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    *              case_when_value = res(e_isNull, e_value);
    *          }
    *      }
-   * </pre></blockquote>
+   * }</pre></blockquote>
    */
   private void implementRecursively(final RexToLixTranslator currentTranslator,
       final List<RexNode> operandList, final ParameterExpression valueVariable, int pos) {
