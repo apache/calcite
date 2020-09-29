@@ -29,8 +29,8 @@ public enum PigDataType {
 
   CHARARRAY(DataType.CHARARRAY, VARCHAR);
 
-  private byte pigType; // Pig defines types using bytes
-  private SqlTypeName sqlType;
+  private final byte pigType; // Pig defines types using bytes
+  private final SqlTypeName sqlType;
 
   PigDataType(byte pigType, SqlTypeName sqlType) {
     this.pigType = pigType;

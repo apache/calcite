@@ -42,6 +42,7 @@ public enum SparkMethod {
   RDD_FLAT_MAP(JavaRDD.class, "flatMap", FlatMapFunction.class),
   FLAT_MAP_FUNCTION_CALL(FlatMapFunction.class, "call", Object.class);
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   private static final HashMap<Method, SparkMethod> MAP = new HashMap<>();
