@@ -123,6 +123,7 @@ class VolcanoCost implements RelOptCost {
     return Objects.hash(rowCount, cpu, io);
   }
 
+  @SuppressWarnings("NonOverridingEquals")
   @Override public boolean equals(RelOptCost other) {
     return this == other
         || other instanceof VolcanoCost

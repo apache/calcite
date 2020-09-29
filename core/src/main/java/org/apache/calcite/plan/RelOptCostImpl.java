@@ -72,6 +72,7 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   // implement RelOptCost
+  @SuppressWarnings("NonOverridingEquals")
   @Override public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();
   }
