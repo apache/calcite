@@ -531,6 +531,8 @@ public class RelMdCollation
         }
       }
       return leftCollations;
+    default:
+      break;
     }
     return ImmutableList.of();
   }

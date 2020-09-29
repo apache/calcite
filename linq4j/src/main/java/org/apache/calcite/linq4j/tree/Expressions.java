@@ -1622,6 +1622,9 @@ public abstract class Expressions {
       if (type == byte.class || type == short.class) {
         type = int.class;
       }
+      break;
+    default:
+      break;
     }
     return new UnaryExpression(expressionType, type, expression);
   }

@@ -405,6 +405,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             inputs.set(operand.ordinalInParent, rel);
             setChildRels(previous, inputs);
           }
+          break;
+        default:
+          break;
         }
 
         rels[operandOrdinal] = rel;

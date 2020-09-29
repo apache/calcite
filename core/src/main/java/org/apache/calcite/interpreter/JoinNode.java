@@ -132,6 +132,8 @@ public class JoinNode implements Node {
       case SEMI:
         sink.send(Row.asCopy(outerRow.getValues()));
         break;
+      default:
+        break;
       }
     } else {
       switch (joinRelType) {
@@ -150,6 +152,8 @@ public class JoinNode implements Node {
         break;
       case ANTI:
         sink.send(Row.asCopy(outerRow.getValues()));
+        break;
+      default:
         break;
       }
     }

@@ -263,6 +263,8 @@ public class RexSimplify {
         case FALSE:
         case TRUE:
           return rexBuilder.makeLiteral(unknownAs.toBoolean());
+        default:
+          break;
         }
       }
       return rexBuilder.makeNullLiteral(e.getType());
@@ -400,6 +402,8 @@ public class RexSimplify {
               return rexBuilder.makeLiteral(true);
             }
             break;
+          default:
+            break;
           }
         }
         if (cmp.literal.isAlwaysFalse()) {
@@ -421,6 +425,8 @@ public class RexSimplify {
             if (!cmp.ref.getType().isNullable()) {
               return rexBuilder.makeLiteral(false);
             }
+            break;
+          default:
             break;
           }
         }
@@ -582,6 +588,9 @@ public class RexSimplify {
           && !RexLiteral.isNullLiteral(a)) {
         return rexBuilder.makeLiteral(!RexLiteral.booleanValue(a));
       }
+      break;
+    default:
+      break;
     }
     final SqlKind negateKind = a.getKind().negate();
     if (a.getKind() != negateKind) {
@@ -750,6 +759,8 @@ public class RexSimplify {
         return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
       }
       break;
+    default:
+      break;
     }
     switch (a.getKind()) {
     case NOT:
@@ -762,6 +773,8 @@ public class RexSimplify {
       final SqlOperator notKind = RexUtil.op(kind.negateNullSafe());
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify(rexBuilder.makeCall(notKind, arg), UNKNOWN);
+    default:
+      break;
     }
     final RexNode a2 = simplify(a, UNKNOWN);
     if (a != a2) {
@@ -883,6 +896,9 @@ public class RexSimplify {
             .map(RexNode::getType)
             .noneMatch(RelDataType::isNullable);
       }
+      break;
+    default:
+      break;
     }
   }
 
@@ -1313,6 +1329,8 @@ public class RexSimplify {
     switch (unknownAs) {
     case FALSE:
       return simplifyAnd2ForUnknownAsFalse(terms, notTerms, Comparable.class);
+    default:
+      break;
     }
     return simplifyAnd2(terms, notTerms);
   }
@@ -1536,6 +1554,9 @@ public class RexSimplify {
         break;
       case IS_NULL:
         nullOperands.add(((RexCall) term).getOperands().get(0));
+        break;
+      default:
+        break;
       }
     }
     // If one column should be null and is in a comparison predicate,
@@ -1709,6 +1730,9 @@ public class RexSimplify {
             break; // short-cut
           }
         }
+        break;
+      default:
+        break;
       }
     }
     return result;
@@ -1829,6 +1853,8 @@ public class RexSimplify {
           }
         }
         break;
+      default:
+        break;
       }
     }
     return RexUtil.composeDisjunction(rexBuilder, terms);
@@ -1882,6 +1908,9 @@ public class RexSimplify {
           if (v1 == NullSentinel.INSTANCE) {
             v1 = unknownAs.toBoolean();
           }
+          break;
+        default:
+          break;
         }
       }
       if (!v0.equals(v1)) {
@@ -1984,6 +2013,8 @@ public class RexSimplify {
           return e;
         }
         break;
+      default:
+        break;
       }
       final List<RexNode> reducedValues = new ArrayList<>();
       final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
@@ -2069,6 +2100,8 @@ public class RexSimplify {
           return outer == TimeUnit.YEAR;
         }
         return outer.ordinal() <= inner.ordinal();
+      default:
+        break;
       }
       break;
     case QUARTER:
@@ -2082,7 +2115,12 @@ public class RexSimplify {
       case MILLISECOND:
       case MICROSECOND:
         return true;
+      default:
+        break;
       }
+      break;
+    default:
+      break;
     }
     return false;
   }
@@ -2394,7 +2432,13 @@ public class RexSimplify {
           if (nodePredicate.test(right)) {
             return new Comparison(right, e.getKind().reverse(), (RexLiteral) left);
           }
+          break;
+        default:
+          break;
         }
+        break;
+      default:
+        break;
       }
       return null;
     }
@@ -2425,6 +2469,8 @@ public class RexSimplify {
           return null;
         }
         return new IsPredicate(pA, e.getKind());
+      default:
+        break;
       }
       return null;
     }
@@ -2559,6 +2605,8 @@ public class RexSimplify {
         switch (right.getKind()) {
         case LITERAL:
           return accept1(left, kind, (RexLiteral) right, newTerms);
+        default:
+          break;
         }
         return false;
       case LITERAL:
@@ -2566,8 +2614,12 @@ public class RexSimplify {
         case INPUT_REF:
         case FIELD_ACCESS:
           return accept1(right, kind.reverse(), (RexLiteral) left, newTerms);
+        default:
+          break;
         }
         return false;
+      default:
+        break;
       }
       return false;
     }

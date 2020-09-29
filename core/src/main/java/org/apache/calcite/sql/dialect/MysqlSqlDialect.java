@@ -129,6 +129,8 @@ public class MysqlSqlDialect extends SqlDialect {
       // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)",
       // only the non-standard "GROUP BY x, y WITH ROLLUP".
       return majorVersion >= 8;
+    default:
+      break;
     }
     return false;
   }
@@ -172,6 +174,8 @@ public class MysqlSqlDialect extends SqlDialect {
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    default:
+      break;
     }
     return super.getCastSpec(type);
   }

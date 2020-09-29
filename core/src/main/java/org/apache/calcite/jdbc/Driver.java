@@ -122,6 +122,8 @@ public class Driver extends UnregisteredDriver {
             case MAP:
               schemaFactory = AbstractSchema.Factory.INSTANCE;
               break;
+            default:
+              break;
             }
           }
         }

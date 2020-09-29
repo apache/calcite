@@ -580,13 +580,22 @@ public class RexBuilder {
                 literal.getTypeName().getEndUnit().multiplier;
             value = value2.multiply(multiplier)
                 .divide(divider, 0, RoundingMode.HALF_DOWN);
+            break;
+          default:
+            break;
           }
 
           // Not all types are allowed for literals
           switch (typeName) {
           case INTEGER:
             typeName = SqlTypeName.BIGINT;
+            break;
+          default:
+            break;
           }
+          break;
+        default:
+          break;
         }
         final RexLiteral literal2 =
             makeLiteral(value, type, typeName);
@@ -961,6 +970,8 @@ public class RexBuilder {
         p = 0;
       }
       o = ((TimestampString) o).round(p);
+      break;
+    default:
       break;
     }
     if (typeName == SqlTypeName.DECIMAL

@@ -195,6 +195,8 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       break;
     case SEMI_STRICT:
       return typeFactory.createTypeWithNullability(returnType, true);
+    default:
+      break;
     }
     return returnType;
   }

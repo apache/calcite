@@ -422,6 +422,8 @@ public class JdbcSchema implements Schema {
             typeFactory.createSqlType(SqlTypeName.ANY), true);
       }
       return typeFactory.createArrayType(component, -1);
+    default:
+      break;
     }
     if (precision >= 0
         && scale >= 0

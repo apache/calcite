@@ -269,6 +269,9 @@ class Maze {
           dNext = directionStack.pop();
           from = fromStack.pop();
         } while (dNext == Direction.BACKTRACK);
+        break;
+      default:
+        break;
       }
       if (move) {
         directionStack.push(dNext);

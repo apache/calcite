@@ -523,6 +523,9 @@ public class RelBuilder {
       switch (fieldCollation.direction) {
       case DESCENDING:
         node = desc(node);
+        break;
+      default:
+        break;
       }
       switch (fieldCollation.nullDirection) {
       case FIRST:
@@ -530,6 +533,8 @@ public class RelBuilder {
         break;
       case LAST:
         node = nullsLast(node);
+        break;
+      default:
         break;
       }
       nodes.add(node);
@@ -590,6 +595,8 @@ public class RelBuilder {
       assert operandList.size() == 3;
       return (RexCall) between(operandList.get(0), operandList.get(1),
           operandList.get(2));
+    default:
+      break;
     }
     final RexBuilder builder = cluster.getRexBuilder();
     final RelDataType type = builder.deriveReturnType(operator, operandList);
@@ -1422,6 +1429,8 @@ public class RelBuilder {
           final Field field = fields.get(i);
           final ImmutableSet<String> aliases = pair.right.left;
           fields.set(i, new Field(aliases, field.right));
+          break;
+        default:
           break;
         }
       }
@@ -3160,6 +3169,8 @@ public class RelBuilder {
         int i = registerExpression(operands.get(0));
         names.set(i, RexLiteral.stringValue(operands.get(1)));
         return i;
+      default:
+        break;
       }
       int i = extraNodes.indexOf(node);
       if (i < 0) {

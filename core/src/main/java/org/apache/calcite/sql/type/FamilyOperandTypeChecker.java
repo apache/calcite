@@ -82,6 +82,8 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     case IGNORE:
       // no need to check
       return true;
+    default:
+      break;
     }
     if (SqlUtil.isNullLiteral(node, false)) {
       if (callBinding.isTypeCoercionEnabled()) {

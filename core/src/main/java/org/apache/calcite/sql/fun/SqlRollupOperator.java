@@ -53,6 +53,8 @@ class SqlRollupOperator extends SqlInternalOperator {
         return;
       }
       break;
+    default:
+      break;
     }
     unparseCube(writer, call);
   }

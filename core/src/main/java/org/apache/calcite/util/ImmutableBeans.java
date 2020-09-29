@@ -222,6 +222,9 @@ public class ImmutableBeans {
               + "' should return void, actually returns '"
               + method.getReturnType() + "'");
         }
+        break;
+      default:
+        break;
       }
       if (method.getParameterCount() != 1) {
         throw new IllegalArgumentException("method '" + methodName

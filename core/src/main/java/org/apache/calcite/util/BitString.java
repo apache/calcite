@@ -134,6 +134,8 @@ public class BitString {
     case 7: // B'1000000' -> X'40'
     case 0: // B'10000000' -> X'80', and B'' -> X''
       return s;
+    default:
+      break;
     }
     if ((bitCount % 8) == 4) {
       return s.substring(1);

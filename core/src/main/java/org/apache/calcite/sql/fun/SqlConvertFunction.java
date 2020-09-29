@@ -57,6 +57,8 @@ public class SqlConvertFunction extends SqlFunction {
     switch (operandsCount) {
     case 2:
       return "{0}({1} USING {2})";
+    default:
+      break;
     }
     assert false;
     return null;

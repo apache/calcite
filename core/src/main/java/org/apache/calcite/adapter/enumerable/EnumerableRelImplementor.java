@@ -133,6 +133,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         result = new EnumerableRel.Result(bb.toBlock(), result.physType,
             JavaRowFormat.SCALAR);
       }
+      break;
+    default:
+      break;
     }
 
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();

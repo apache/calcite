@@ -268,6 +268,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         ((PassedRowsInputGetter) translator.inputGetter).setIndex(null);
         return matchImplementor.implement(translator, call, row_, rows_,
             symbols_, i_);
+      default:
+        break;
       }
       return translator.translate(operands.get(0));
 
@@ -433,6 +435,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         operand = (RexLiteral) call.getOperands().get(1);
         final int next = operand.getValueAs(Integer.class);
         this.future = Math.max(this.future, next);
+        break;
+      default:
         break;
       }
       return null;

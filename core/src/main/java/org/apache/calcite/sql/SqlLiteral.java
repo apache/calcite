@@ -372,6 +372,8 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(valTime.getIntervalQualifier());
       }
       break;
+    default:
+      break;
     }
     throw new AssertionError("cannot cast " + value + " as " + clazz);
   }
@@ -447,6 +449,8 @@ public class SqlLiteral extends SqlNode {
         final SqlIntervalLiteral.IntervalValue valTime =
             (SqlIntervalLiteral.IntervalValue) literal.value;
         return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime);
+      default:
+        break;
       }
     }
     if (SqlUtil.isLiteralChain(node)) {

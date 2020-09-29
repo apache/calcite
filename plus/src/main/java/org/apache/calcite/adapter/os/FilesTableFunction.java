@@ -212,6 +212,9 @@ public class FilesTableFunction {
                       : type.equals("") || type.equals("*") ? "f"
                       : type.equals("@") ? "l"
                       : type;
+                  break;
+                default:
+                  break;
                 }
                 return true;
               }

@@ -154,6 +154,8 @@ class ElasticsearchMapping {
             .atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
         // by default elastic returns dates as longs
         return FACTORY.numberNode(millisEpoch);
+      default:
+        break;
       }
 
       // this is unknown type

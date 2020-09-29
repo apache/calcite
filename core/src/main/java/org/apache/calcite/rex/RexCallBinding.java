@@ -64,6 +64,8 @@ public class RexCallBinding extends SqlOperatorBinding {
     case CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
           call.getOperands(), call.getType(), inputCollations);
+    default:
+      break;
     }
     return new RexCallBinding(typeFactory, call.getOperator(),
         call.getOperands(), inputCollations);

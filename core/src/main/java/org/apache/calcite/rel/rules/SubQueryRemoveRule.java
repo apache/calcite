@@ -500,6 +500,8 @@ public class SubQueryRemoveRule
     case TRUE:
       builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
       return trueLiteral;
+    default:
+      break;
     }
     // Now the left join
     builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
@@ -528,6 +530,8 @@ public class SubQueryRemoveRule
             falseLiteral);
       }
       break;
+    default:
+      break;
     }
 
     if (!keyIsNulls.isEmpty()) {
@@ -550,6 +554,9 @@ public class SubQueryRemoveRule
             builder.call(SqlStdOperatorTable.LESS_THAN,
                 builder.field("ct", "ck"), builder.field("ct", "c")),
             b);
+        break;
+      default:
+        break;
       }
     }
     operands.add(falseLiteral);

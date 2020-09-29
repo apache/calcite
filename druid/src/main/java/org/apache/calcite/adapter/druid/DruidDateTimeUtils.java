@@ -287,6 +287,8 @@ public class DruidDateTimeUtils {
           return null;
         }
         return dateVal.getMillisSinceEpoch();
+      default:
+        break;
       }
       break;
     case CAST:
@@ -308,6 +310,9 @@ public class DruidDateTimeUtils {
           && !operandType.isNullable()) {
         return literalValue(operand);
       }
+      break;
+    default:
+      break;
     }
     return null;
   }

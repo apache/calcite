@@ -116,6 +116,9 @@ public class ProjectAggregateMergeRule
               }
             }
           }
+          break;
+        default:
+          break;
         }
         return super.visitCall(call);
       }

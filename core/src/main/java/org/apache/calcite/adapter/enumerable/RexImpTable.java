@@ -915,8 +915,12 @@ public class RexImpTable {
         case NOT_POSSIBLE:
           return EnumUtils.convert(x,
               Primitive.ofBox(x.getType()).primitiveClass);
+        default:
+          break;
         }
-        // fall through
+        break;
+      default:
+        break;
       }
       switch (this) {
       case NULL:
@@ -2329,6 +2333,8 @@ public class RexImpTable {
         case INTERVAL_SECOND:
           // no convertlet conversion, pass it as extract
           throw new AssertionError("unexpected " + sqlTypeName);
+        default:
+          break;
         }
         break;
       case HOUR:
@@ -2337,6 +2343,8 @@ public class RexImpTable {
         switch (sqlTypeName) {
         case DATE:
           return Expressions.multiply(operand, Expressions.constant(0L));
+        default:
+          break;
         }
         break;
       }
@@ -2675,11 +2683,16 @@ public class RexImpTable {
                 Expressions.divide(trop1,
                     Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
                 int.class);
+            break;
+          default:
+            break;
           }
         }
         break;
       case TIME:
         trop1 = Expressions.convert_(trop1, int.class);
+        break;
+      default:
         break;
       }
       switch (typeName1) {
@@ -2689,6 +2702,9 @@ public class RexImpTable {
         switch (call.getKind()) {
         case MINUS:
           trop1 = Expressions.negate(trop1);
+          break;
+        default:
+          break;
         }
         switch (typeName) {
         case TIME:
@@ -2727,6 +2743,8 @@ public class RexImpTable {
           case INTERVAL_MONTH:
             return Expressions.call(BuiltInMethod.SUBTRACT_MONTHS.method,
                 trop0, trop1);
+          default:
+            break;
           }
           TimeUnit fromUnit =
               typeName1 == SqlTypeName.DATE ? TimeUnit.DAY : TimeUnit.MILLISECOND;

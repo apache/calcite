@@ -880,6 +880,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             case NUMERIC:
               nonCharacterTypes.add(
                   cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT));
+              break;
+            default:
+              break;
             }
           }
         }
@@ -919,6 +922,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         case INTERVAL_MINUTE_SECOND:
         case INTERVAL_SECOND:
           operands = ImmutableList.of(operands.get(1), operands.get(0));
+          break;
+        default:
+          break;
         }
       }
       return rexBuilder.makeCall(rex.getType(),
@@ -1538,6 +1544,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case QUARTER:
         divider = unit.multiplier;
         unit = TimeUnit.MONTH;
+        break;
+      default:
         break;
       }
       final SqlIntervalQualifier qualifier =

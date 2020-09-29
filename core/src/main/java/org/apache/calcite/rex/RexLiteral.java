@@ -1105,6 +1105,8 @@ public class RexLiteral extends RexNode {
         return clazz.cast(getValueAs(BigDecimal.class).signum() < 0);
       }
       break;
+    default:
+      break;
     }
     throw new AssertionError("cannot convert " + typeName
         + " literal to " + clazz);

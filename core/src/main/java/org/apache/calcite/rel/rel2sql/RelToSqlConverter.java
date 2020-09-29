@@ -198,6 +198,8 @@ public class RelToSqlConverter extends SqlImplementor
     case ANTI:
     case SEMI:
       return visitAntiOrSemiJoin(e);
+    default:
+      break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
     final Result rightResult = visitInput(e, 1).resetAlias();

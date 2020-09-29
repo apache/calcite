@@ -285,6 +285,9 @@ class DruidConnectionImpl implements DruidConnection {
             expect(parser, JsonToken.END_OBJECT);
           }
         }
+        break;
+      default:
+        break;
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -386,6 +389,8 @@ class DruidConnectionImpl implements DruidConnection {
       case DOUBLE:
         rowBuilder.set(i, parser.getDoubleValue());
         break;
+      default:
+        break;
       }
       break;
     case VALUE_TRUE:
@@ -412,6 +417,8 @@ class DruidConnectionImpl implements DruidConnection {
           case "-Infinity":
           case "NaN":
             throw new RuntimeException("/ by zero");
+          default:
+            break;
           }
           rowBuilder.set(i, Long.valueOf(s));
           break;
@@ -430,8 +437,12 @@ class DruidConnectionImpl implements DruidConnection {
           case "NaN":
             rowBuilder.set(i, Double.NaN);
             return;
+          default:
+            break;
           }
           rowBuilder.set(i, Double.valueOf(s));
+          break;
+        default:
           break;
         }
       } else {

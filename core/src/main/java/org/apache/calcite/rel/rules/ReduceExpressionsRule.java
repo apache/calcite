@@ -849,7 +849,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       if (!left.isEmpty() && !right.isEmpty() && left.intersect(right).isEmpty()) {
         return call;
       }
+      break;
     }
+    default:
+      break;
     }
     int caseOrdinal = -1;
     final List<RexNode> operands = call.getOperands();

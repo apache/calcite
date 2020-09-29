@@ -100,6 +100,9 @@ public class RelWriterImpl implements RelWriter {
           .append(mq.getRowCount(rel))
           .append(", cumulative cost = ")
           .append(mq.getCumulativeCost(rel));
+      break;
+    default:
+      break;
     }
     switch (detailLevel) {
     case NON_COST_ATTRIBUTES:
@@ -109,6 +112,8 @@ public class RelWriterImpl implements RelWriter {
         // it at the end.
         s.append(", id = ").append(rel.getId());
       }
+      break;
+    default:
       break;
     }
     pw.println(s);

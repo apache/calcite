@@ -134,6 +134,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new SnowflakeSqlDialect(c);
     case "SPARK":
       return new SparkSqlDialect(c);
+    default:
+      break;
     }
     // Now the fuzzy matches.
     if (databaseProductName.startsWith("DB2")) {

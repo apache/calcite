@@ -637,6 +637,8 @@ public class RelMdPredicates
             joinType == JoinRelType.LEFT ? rightFieldsBitSet
                 : allFieldsBitSet);
         break;
+      default:
+        break;
       }
       switch (joinType) {
       case SEMI:
@@ -646,6 +648,8 @@ public class RelMdPredicates
             includeEqualityInference,
             joinType == JoinRelType.RIGHT ? leftFieldsBitSet
                 : allFieldsBitSet);
+        break;
+      default:
         break;
       }
 

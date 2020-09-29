@@ -179,6 +179,8 @@ public class SqlExplain extends SqlCall {
     case ALL_ATTRIBUTES:
       writer.keyword("INCLUDING ALL ATTRIBUTES");
       break;
+    default:
+      break;
     }
     switch (getDepth()) {
     case TYPE:

@@ -256,58 +256,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       convert = operand;
       break;
     case DATE:
-      switch (sourceType.getSqlTypeName()) {
-      case CHAR:
-      case VARCHAR:
-        convert =
-            Expressions.call(BuiltInMethod.STRING_TO_DATE.method, operand);
-        break;
-      case TIMESTAMP:
-        convert = Expressions.convert_(
-            Expressions.call(BuiltInMethod.FLOOR_DIV.method,
-                operand, Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-            int.class);
-        break;
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        convert = RexImpTable.optimize2(
-            operand,
-            Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_DATE.method,
-                operand,
-                Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
-      }
+      convert = translateCastToDate(sourceType, operand);
       break;
     case TIME:
-      switch (sourceType.getSqlTypeName()) {
-      case CHAR:
-      case VARCHAR:
-        convert =
-            Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
-        break;
-      case TIME_WITH_LOCAL_TIME_ZONE:
-        convert = RexImpTable.optimize2(
-            operand,
-            Expressions.call(
-                BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
-                operand,
-                Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
-        break;
-      case TIMESTAMP:
-        convert = Expressions.convert_(
-            Expressions.call(
-                BuiltInMethod.FLOOR_MOD.method,
-                operand,
-                Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-            int.class);
-        break;
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        convert = RexImpTable.optimize2(
-            operand,
-            Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
-                operand,
-                Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
-      }
+      convert = translateCastToTime(sourceType, operand);
       break;
     case TIME_WITH_LOCAL_TIME_ZONE:
       switch (sourceType.getSqlTypeName()) {
@@ -342,6 +294,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             Expressions.call(
                 BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME_WITH_LOCAL_TIME_ZONE.method,
                 operand));
+        break;
+      default:
+        break;
       }
       break;
     case TIMESTAMP:
@@ -384,6 +339,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                 BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
+        break;
+      default:
+        break;
       }
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -442,6 +400,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                     BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method,
                     operand)),
             Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
+        break;
+      default:
+        break;
       }
       break;
     case BOOLEAN:
@@ -451,6 +412,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         convert = Expressions.call(
             BuiltInMethod.STRING_TO_BOOLEAN.method,
             operand);
+        break;
+      default:
+        break;
       }
       break;
     case CHAR:
@@ -532,7 +496,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                 BuiltInMethod.BOOLEAN_TO_STRING.method,
                 operand));
         break;
+      default:
+        break;
       }
+      break;
+    default:
+      break;
     }
     if (convert == null) {
       convert = EnumUtils.convert(operand, typeFactory.getJavaClass(targetType));
@@ -612,9 +581,81 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         final BigDecimal multiplier = targetType.getSqlTypeName().getEndUnit().multiplier;
         final BigDecimal divider = BigDecimal.ONE;
         convert = RexImpTable.multiplyDivide(convert, multiplier, divider);
+        break;
+      default:
+        break;
       }
+      break;
+    default:
+      break;
     }
     return scaleIntervalToNumber(sourceType, targetType, convert);
+  }
+
+  private Expression translateCastToTime(RelDataType sourceType, Expression operand) {
+    Expression convert = null;
+    switch (sourceType.getSqlTypeName()) {
+    case CHAR:
+    case VARCHAR:
+      convert =
+          Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
+      break;
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      convert = RexImpTable.optimize2(
+          operand,
+          Expressions.call(
+              BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
+      break;
+    case TIMESTAMP:
+      convert = Expressions.convert_(
+          Expressions.call(
+              BuiltInMethod.FLOOR_MOD.method,
+              operand,
+              Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+          int.class);
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      convert = RexImpTable.optimize2(
+          operand,
+          Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
+      break;
+    default:
+      break;
+    }
+    return convert;
+  }
+
+  private Expression translateCastToDate(RelDataType sourceType, Expression operand) {
+    Expression convert = null;
+    switch (sourceType.getSqlTypeName()) {
+    case CHAR:
+    case VARCHAR:
+      convert =
+          Expressions.call(BuiltInMethod.STRING_TO_DATE.method, operand);
+      break;
+    case TIMESTAMP:
+      convert = Expressions.convert_(
+          Expressions.call(BuiltInMethod.FLOOR_DIV.method,
+              operand, Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+          int.class);
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      convert = RexImpTable.optimize2(
+          operand,
+          Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_DATE.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
+      break;
+    default:
+      break;
+    }
+    return convert;
   }
 
   /**
@@ -686,6 +727,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return RexImpTable.TRUE_EXPR;
       case IS_NULL:
         return RexImpTable.FALSE_EXPR;
+      default:
+        break;
       }
     }
     Type javaClass = typeFactory.getJavaClass(type);
@@ -911,7 +954,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         final BigDecimal divider =
             sourceType.getSqlTypeName().getEndUnit().multiplier;
         return RexImpTable.multiplyDivide(operand, multiplier, divider);
+      default:
+        break;
       }
+      break;
+    default:
+      break;
     }
     return operand;
   }
@@ -1041,6 +1089,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       javaClass = Long.class;
+      break;
+    default:
       break;
     }
     return javaClass == null || javaClass == Void.class

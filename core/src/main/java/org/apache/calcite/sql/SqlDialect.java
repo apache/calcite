@@ -288,6 +288,8 @@ public class SqlDialect {
       return DatabaseProduct.MYSQL;
     case "REDSHIFT":
       return DatabaseProduct.REDSHIFT;
+    default:
+      break;
     }
     // Now the fuzzy matches.
     if (productName.startsWith("DB2")) {
@@ -706,6 +708,8 @@ public class SqlDialect {
     case MIN:
     case MAX:
       return true;
+    default:
+      break;
     }
     return false;
   }
@@ -777,6 +781,9 @@ public class SqlDialect {
       case VARCHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
+        break;
+      default:
+        break;
       }
       String charSet = type.getCharset() != null && supportsCharSet()
           ? type.getCharset().name()

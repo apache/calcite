@@ -249,6 +249,8 @@ public abstract class DateRangeRules {
           opKinds.add(call.getKind());
         }
         break;
+      default:
+        break;
       }
       return super.visitCall(call);
     }
@@ -311,6 +313,9 @@ public abstract class DateRangeRules {
                 subCall.getOperands().get(0), (RexLiteral) op0,
                 timeUnit, op1.getKind() == SqlKind.FLOOR);
           }
+          break;
+        default:
+          break;
         }
         switch (op1.getKind()) {
         case LITERAL:
@@ -332,6 +337,9 @@ public abstract class DateRangeRules {
                 subCall.getOperands().get(0), (RexLiteral) op1,
                 timeUnit, op0.getKind() == SqlKind.FLOOR);
           }
+          break;
+        default:
+          break;
         }
         // fall through
       default:
@@ -459,6 +467,9 @@ public abstract class DateRangeRules {
               s2.add(extractRange(timeUnit, comparison, c));
             }
           }
+          break;
+        default:
+          break;
         }
       }
       // Intersect old range set with new.
@@ -723,6 +734,9 @@ public abstract class DateRangeRules {
         // fall through; need to zero out lower time units
       case SECOND:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.MILLISECOND), 0);
+        break;
+      default:
+        break;
       }
       return c;
     }

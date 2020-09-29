@@ -142,6 +142,8 @@ public class JavaTypeFactoryImpl
       return createJavaType(clazz);
     case BOX:
       return createJavaType(Primitive.ofBox(clazz).boxClass);
+    default:
+      break;
     }
     if (JavaToSqlTypeConversionRules.instance().lookup(clazz) != null) {
       return createJavaType(clazz);
@@ -216,6 +218,8 @@ public class JavaTypeFactoryImpl
         return Object.class;
       case NULL:
         return Void.class;
+      default:
+        break;
       }
     }
     switch (type.getSqlTypeName()) {
@@ -231,6 +235,8 @@ public class JavaTypeFactoryImpl
     case ARRAY:
     case MULTISET:
       return List.class;
+    default:
+      break;
     }
     return null;
   }

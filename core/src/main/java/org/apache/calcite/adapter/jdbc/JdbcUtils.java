@@ -153,6 +153,8 @@ final class JdbcUtils {
         return shift(resultSet.getTime(i + 1));
       case Types.DATE:
         return shift(resultSet.getDate(i + 1));
+      default:
+        break;
       }
       return reps[i].jdbcGet(resultSet, i + 1);
     }

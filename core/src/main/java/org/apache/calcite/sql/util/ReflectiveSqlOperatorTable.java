@@ -131,6 +131,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         }
       }
       break;
+    default:
+      break;
     }
   }
 

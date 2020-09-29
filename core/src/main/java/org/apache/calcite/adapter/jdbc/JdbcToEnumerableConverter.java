@@ -237,7 +237,12 @@ public class JdbcToEnumerableConverter
       case TIMESTAMP:
       case DATE:
         offset = true;
+        break;
+      default:
+        break;
       }
+      break;
+    default:
       break;
     }
     final Expression source;

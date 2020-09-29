@@ -654,6 +654,9 @@ public class SqlPrettyWriter implements SqlWriter {
       newlineBeforeClose = newline;
       sepIndent = 0;
       break;
+
+    default:
+      break;
     }
 
     final int chopColumn;
@@ -1325,6 +1328,9 @@ public class SqlPrettyWriter implements SqlWriter {
               if (newlineAfterOpen != config.clauseEndsLine()) {
                 return false;
               }
+              break;
+            default:
+              break;
             }
             save.restore();
             newlineAndIndent();

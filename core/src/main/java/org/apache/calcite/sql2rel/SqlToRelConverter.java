@@ -1000,7 +1000,12 @@ public class SqlToRelConverter {
         return reg(scope,
             SqlStdOperatorTable.NOT_IN.createCall(SqlParserPos.ZERO,
                 call.getOperandList()));
+      default:
+        break;
       }
+      break;
+    default:
+      break;
     }
     return sqlNode;
   }
@@ -1205,6 +1210,9 @@ public class SqlToRelConverter {
         if (!converted.indicator) {
           logic = RelOptUtil.Logic.TRUE_FALSE;
         }
+        break;
+      default:
+        break;
       }
       subQuery.expr = translateIn(logic, bb.root, rex);
       if (notIn) {
@@ -1824,6 +1832,8 @@ public class SqlToRelConverter {
     case NOT:
       logic = logic.negate();
       break;
+    default:
+      break;
     }
     if (node instanceof SqlCall) {
       switch (kind) {
@@ -1879,8 +1889,13 @@ public class SqlToRelConverter {
         // fall through
       case UNKNOWN_AS_FALSE:
         logic = RelOptUtil.Logic.TRUE;
+        break;
+      default:
+        break;
       }
       bb.registerSubQuery(node, logic);
+      break;
+    default:
       break;
     }
   }
@@ -1951,6 +1966,9 @@ public class SqlToRelConverter {
       // fall through
     case RESPECT_NULLS:
       aggCall = aggCall.operand(0);
+      break;
+    default:
+      break;
     }
 
     SqlNode windowOrRef = call.operand(1);
@@ -3265,6 +3283,8 @@ public class SqlToRelConverter {
           extraExprs,
           direction,
           RelFieldCollation.NullDirection.LAST);
+    default:
+      break;
     }
 
     SqlNode converted = validator.expandOrderExpr(select, orderItem);
@@ -3274,6 +3294,9 @@ public class SqlToRelConverter {
       nullDirection = validator.config().defaultNullCollation().last(desc(direction))
           ? RelFieldCollation.NullDirection.LAST
           : RelFieldCollation.NullDirection.FIRST;
+      break;
+    default:
+      break;
     }
 
     // Scan the select list and order exprs for an identical expression.
@@ -4807,6 +4830,9 @@ public class SqlToRelConverter {
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
           return RexSubQuery.scalar(root.rel);
+
+        default:
+          break;
         }
       }
 
@@ -4894,6 +4920,9 @@ public class SqlToRelConverter {
         switch (direction) {
         case DESCENDING:
           flags.add(SqlKind.DESCENDING);
+          break;
+        default:
+          break;
         }
         switch (nullDirection) {
         case UNSPECIFIED:
@@ -4914,6 +4943,8 @@ public class SqlToRelConverter {
           break;
         case LAST:
           flags.add(SqlKind.NULLS_LAST);
+          break;
+        default:
           break;
         }
         return new RexFieldCollation(convertExpression(expr), flags);
@@ -5259,6 +5290,8 @@ public class SqlToRelConverter {
         // rchen 2006-10-17:
         // for now do not detect aggregates in sub-queries.
         return null;
+      default:
+        break;
       }
       final boolean prevInOver = inOver;
       // Ignore window aggregates and ranking functions (associated with OVER
@@ -5328,6 +5361,8 @@ public class SqlToRelConverter {
         translateAgg(call.operand(0), filter, orderList, ignoreNulls,
             outerCall);
         return;
+      default:
+        break;
       }
       final List<Integer> args = new ArrayList<>();
       int filterArg = -1;

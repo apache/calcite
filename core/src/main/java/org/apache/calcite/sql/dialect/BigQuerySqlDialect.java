@@ -295,6 +295,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+      default:
+        break;
       }
     }
     return super.getCastSpec(type);

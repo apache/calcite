@@ -253,6 +253,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       default:
         return DateTimeUtils.unixTimestampCeil(unit, v);
       }
+    default:
+      break;
     }
     final TimeUnitRange subUnit = subUnit(unit);
     for (long v2 = v;;) {

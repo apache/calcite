@@ -239,6 +239,8 @@ class ColumnLoader<T> {
       case JAVA_SQL_TIMESTAMP:
         return Util.transform(list,
             (Timestamp t) -> t == null ? null : t.getTime());
+      default:
+        break;
       }
       break;
     case TIME:
@@ -248,6 +250,8 @@ class ColumnLoader<T> {
         return Util.transform(list, (Time t) -> t == null
             ? null
             : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
+      default:
+        break;
       }
       break;
     case DATE:
@@ -257,7 +261,11 @@ class ColumnLoader<T> {
         return Util.transform(list, (Date d) -> d == null
             ? null
             : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
+      default:
+        break;
       }
+      break;
+    default:
       break;
     }
     return list;
@@ -322,6 +330,8 @@ class ColumnLoader<T> {
         case OTHER:
         case VOID:
           throw new AssertionError("wtf?!");
+        default:
+          break;
         }
         if (canBeLong(min) && canBeLong(max)) {
           return chooseFixedRep(
@@ -415,6 +425,8 @@ class ColumnLoader<T> {
         case 64:
           return new ArrayTable.PrimitiveArray(
               ordinal, Primitive.LONG, p);
+        default:
+          break;
         }
       }
       return new ArrayTable.BitSlicedPrimitiveArray(

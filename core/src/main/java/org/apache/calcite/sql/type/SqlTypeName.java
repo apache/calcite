@@ -530,6 +530,9 @@ public enum SqlTypeName {
         if (decimal.compareTo(other) == (sign ? 1 : -1)) {
           decimal = other;
         }
+        break;
+      default:
+        break;
       }
 
       // Apply scale.
@@ -567,6 +570,8 @@ public enum SqlTypeName {
           buf.append("Z");
         }
         break;
+      default:
+        break;
       }
       return buf.toString();
 
@@ -601,7 +606,6 @@ public enum SqlTypeName {
       calendar = Util.calendar();
       switch (limit) {
       case ZERO:
-
         // The epoch.
         calendar.set(Calendar.YEAR, 1970);
         calendar.set(Calendar.MONTH, 0);
@@ -632,6 +636,8 @@ public enum SqlTypeName {
           calendar.set(Calendar.MONTH, 0);
           calendar.set(Calendar.DAY_OF_MONTH, 1);
         }
+        break;
+      default:
         break;
       }
       calendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -667,6 +673,8 @@ public enum SqlTypeName {
                 : ((precision == 2) ? 990 : ((precision == 1) ? 900 : 0));
         calendar.set(Calendar.MILLISECOND, millis);
         break;
+      default:
+        break;
       }
       return calendar;
 
@@ -674,7 +682,6 @@ public enum SqlTypeName {
       calendar = Util.calendar();
       switch (limit) {
       case ZERO:
-
         // The epoch.
         calendar.set(Calendar.YEAR, 1970);
         calendar.set(Calendar.MONTH, 0);
@@ -721,6 +728,8 @@ public enum SqlTypeName {
           calendar.set(Calendar.SECOND, 0);
           calendar.set(Calendar.MILLISECOND, 0);
         }
+        break;
+      default:
         break;
       }
       return calendar;

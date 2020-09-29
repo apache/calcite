@@ -140,6 +140,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             final SqlValidatorNamespace ns2 = ns.lookupChild(field.getName());
             resolveInNamespace(ns2, nullable, names, nameMatcher, path2,
                 resolved);
+            break;
+          default:
+            break;
           }
         }
       }
