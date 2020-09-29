@@ -1885,7 +1885,6 @@ public class SqlToRelConverter {
         } else {
           break;
         }
-        // fall through
       case UNKNOWN_AS_FALSE:
         logic = RelOptUtil.Logic.TRUE;
         break;
