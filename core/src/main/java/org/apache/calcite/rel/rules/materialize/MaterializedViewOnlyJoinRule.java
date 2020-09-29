@@ -24,7 +24,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Rule that matches Join. */
 public class MaterializedViewOnlyJoinRule
-    extends MaterializedViewJoinRule<MaterializedViewJoinRule.Config> {
+    extends MaterializedViewJoinRule<MaterializedViewRule.Config> {
 
   MaterializedViewOnlyJoinRule(Config config) {
     super(config);

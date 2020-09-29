@@ -51,7 +51,7 @@ public class MaterializedViewProjectJoinRule
   }
 
   /** Rule configuration. */
-  public interface Config extends MaterializedViewJoinRule.Config {
+  public interface Config extends MaterializedViewRule.Config {
     Config DEFAULT = EMPTY.as(Config.class)
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
         .withOperandSupplier(b0 ->
