@@ -1630,6 +1630,7 @@ public class RexSimplify {
     return RexUtil.composeConjunction(rexBuilder, terms);
   }
 
+  @SuppressWarnings("BetaApi")
   private <C extends Comparable<C>> RexNode simplifyUsingPredicates(RexNode e,
       Class<C> clazz) {
     if (predicates.pulledUpPredicates.isEmpty()) {
@@ -1689,6 +1690,7 @@ public class RexSimplify {
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
    */
+  @SuppressWarnings("BetaApi")
   private <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
       RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
     RangeSet<C> result = r0;
@@ -2352,6 +2354,7 @@ public class RexSimplify {
     }
   }
 
+  @SuppressWarnings("BetaApi")
   private static <C extends Comparable<C>> RangeSet<C> rangeSet(SqlKind comparison,
       C c) {
     switch (comparison) {
@@ -2695,6 +2698,7 @@ public class RexSimplify {
    *
    * <p>The {@link SargCollector#fix} method converts it to an immutable
    * literal. */
+  @SuppressWarnings("BetaApi")
   static class RexSargBuilder extends RexNode {
     final RexNode ref;
     private final RexBuilder rexBuilder;

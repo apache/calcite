@@ -27,11 +27,11 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /** Utilities for Guava {@link com.google.common.collect.RangeSet}. */
-@SuppressWarnings({"UnstableApiUsage"})
+@SuppressWarnings({"BetaApi", "UnstableApiUsage"})
 public class RangeSets {
   private RangeSets() {}
 
-  @SuppressWarnings("rawtypes")
+  @SuppressWarnings({"BetaApi", "rawtypes"})
   private static final ImmutableRangeSet ALL =
       ImmutableRangeSet.of().complement();
 
