@@ -375,6 +375,7 @@ public class Util {
     print(pw, o, 0);
   }
 
+  @SuppressWarnings("JdkObsolete")
   public static void print(
       PrintWriter pw,
       Object o,
@@ -642,6 +643,7 @@ public class Util {
    * string reflects the current time.
    */
   @Deprecated // to be removed before 2.0
+  @SuppressWarnings("JdkObsolete")
   public static String getFileTimestamp() {
     SimpleDateFormat sdf =
         new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);

@@ -335,6 +335,7 @@ public final class BitSets {
       }
     }
 
+    @SuppressWarnings("JdkObsolete")
     private BitSet computeClosure(int pos) {
       BitSet o = closure.get(pos);
       if (o != null) {

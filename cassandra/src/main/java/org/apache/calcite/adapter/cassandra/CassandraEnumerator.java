@@ -103,7 +103,9 @@ class CassandraEnumerator implements Enumerator<Object> {
       return ((LocalDate) obj).getMillisSinceEpoch()
           / DateTimeUtils.MILLIS_PER_DAY;
     } else if (obj instanceof Date) {
-      return ((Date) obj).toInstant().toEpochMilli();
+      @SuppressWarnings("JdkObsolete")
+      long milli = ((Date) obj).toInstant().toEpochMilli();
+      return milli;
     } else if (obj instanceof LinkedHashSet) {
       // MULTISET is handled as an array
       return ((LinkedHashSet) obj).toArray();

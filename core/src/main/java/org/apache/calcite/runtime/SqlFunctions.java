@@ -1948,6 +1948,7 @@ public class SqlFunctions {
   }
 
   // mainly intended for java.sql.Timestamp but works for other dates also
+  @SuppressWarnings("JdkObsolete")
   public static long toLong(java.util.Date v, TimeZone timeZone) {
     final long time = v.getTime();
     return time + timeZone.getOffset(time);

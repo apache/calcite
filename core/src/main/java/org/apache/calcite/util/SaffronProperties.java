@@ -26,7 +26,7 @@ import org.apache.calcite.runtime.Resources.StringProp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessControlException;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.Properties;
 
 /**
@@ -139,8 +139,8 @@ public interface SaffronProperties {
 
       // copy in all system properties which start with "saffron."
       Properties source = System.getProperties();
-      for (Enumeration keys = source.keys(); keys.hasMoreElements();) {
-        String key = (String) keys.nextElement();
+      for (Object objectKey : Collections.list(source.keys())) {
+        String key = (String) objectKey;
         String value = source.getProperty(key);
         if (key.startsWith("saffron.") || key.startsWith("net.sf.saffron.")) {
           properties.setProperty(key, value);

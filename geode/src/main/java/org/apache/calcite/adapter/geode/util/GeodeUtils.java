@@ -245,6 +245,7 @@ public class GeodeUtils {
     return values;
   }
 
+  @SuppressWarnings("JdkObsolete")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;

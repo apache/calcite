@@ -543,6 +543,7 @@ public class RelMdPredicates
     final RexNode rightChildPredicates;
     final RexSimplify simplify;
 
+    @SuppressWarnings("JdkObsolete")
     JoinConditionBasedPredicateInference(Join joinRel, RexNode leftPredicates,
         RexNode rightPredicates, RexSimplify simplify) {
       super();
