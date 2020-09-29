@@ -44,6 +44,7 @@ import java.util.function.Predicate;
  * A Task is a piece of work to be executed, it may apply some rules
  * or schedule other tasks</p>
  */
+@SuppressWarnings("JdkObsolete")
 class TopDownRuleDriver implements RuleDriver {
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTaskTracer();
@@ -58,7 +59,7 @@ class TopDownRuleDriver implements RuleDriver {
   /**
    * All tasks waiting for execution.
    */
-  private Stack<Task> tasks = new Stack<>();
+  private Stack<Task> tasks = new Stack<>(); // TODO: replace with Deque
 
   /**
    * A task that is currently applying and may generate new RelNode.

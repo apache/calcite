@@ -66,8 +66,9 @@ public interface Pattern {
   }
 
   /** Builds a pattern expression. */
+  @SuppressWarnings("JdkObsolete")
   class PatternBuilder {
-    final Stack<Pattern> stack = new Stack<>();
+    final Stack<Pattern> stack = new Stack<>(); // TODO: replace with Deque
 
     private PatternBuilder() {}
 
