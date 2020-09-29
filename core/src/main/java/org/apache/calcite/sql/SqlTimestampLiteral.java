@@ -44,14 +44,14 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
         hasTimeZone, pos);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "TIMESTAMP '" + toFormattedString() + "'";
   }
 
   /**
    * Returns e.g. '03:05:67.456'.
    */
-  public String toFormattedString() {
+  @Override public String toFormattedString() {
     TimestampString ts = getTimestamp();
     if (precision > 0) {
       ts = ts.round(precision);
@@ -59,7 +59,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
     return ts.toString(precision);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

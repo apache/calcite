@@ -49,7 +49,7 @@ public class JoinNode implements Node {
 
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
 
     final int fieldCount = rel.getLeft().getRowType().getFieldCount()
         + rel.getRight().getRowType().getFieldCount();

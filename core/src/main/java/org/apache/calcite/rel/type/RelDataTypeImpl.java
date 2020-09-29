@@ -77,7 +77,7 @@ public abstract class RelDataTypeImpl
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataTypeField getField(String fieldName, boolean caseSensitive,
+  @Override public RelDataTypeField getField(String fieldName, boolean caseSensitive,
       boolean elideRecord) {
     for (RelDataTypeField field : fieldList) {
       if (Util.matches(caseSensitive, field.getName(), fieldName)) {
@@ -142,41 +142,41 @@ public abstract class RelDataTypeImpl
     }
   }
 
-  public List<RelDataTypeField> getFieldList() {
+  @Override public List<RelDataTypeField> getFieldList() {
     assert fieldList != null : "fieldList must not be null, type = " + this;
     return fieldList;
   }
 
-  public List<String> getFieldNames() {
+  @Override public List<String> getFieldNames() {
     assert fieldList != null : "fieldList must not be null, type = " + this;
     return Pair.left(fieldList);
   }
 
-  public int getFieldCount() {
+  @Override public int getFieldCount() {
     assert fieldList != null : "fieldList must not be null, type = " + this;
     return fieldList.size();
   }
 
-  public StructKind getStructKind() {
+  @Override public StructKind getStructKind() {
     return isStruct() ? StructKind.FULLY_QUALIFIED : StructKind.NONE;
   }
 
-  public RelDataType getComponentType() {
+  @Override public RelDataType getComponentType() {
     // this is not a collection type
     return null;
   }
 
-  public RelDataType getKeyType() {
+  @Override public RelDataType getKeyType() {
     // this is not a map type
     return null;
   }
 
-  public RelDataType getValueType() {
+  @Override public RelDataType getValueType() {
     // this is not a map type
     return null;
   }
 
-  public boolean isStruct() {
+  @Override public boolean isStruct() {
     return fieldList != null;
   }
 
@@ -190,31 +190,31 @@ public abstract class RelDataTypeImpl
     return digest.hashCode();
   }
 
-  public String getFullTypeString() {
+  @Override public String getFullTypeString() {
     return digest;
   }
 
-  public boolean isNullable() {
+  @Override public boolean isNullable() {
     return false;
   }
 
-  public Charset getCharset() {
+  @Override public Charset getCharset() {
     return null;
   }
 
-  public SqlCollation getCollation() {
+  @Override public SqlCollation getCollation() {
     return null;
   }
 
-  public SqlIntervalQualifier getIntervalQualifier() {
+  @Override public SqlIntervalQualifier getIntervalQualifier() {
     return null;
   }
 
-  public int getPrecision() {
+  @Override public int getPrecision() {
     return PRECISION_NOT_SPECIFIED;
   }
 
-  public int getScale() {
+  @Override public int getScale() {
     return SCALE_NOT_SPECIFIED;
   }
 
@@ -224,11 +224,11 @@ public abstract class RelDataTypeImpl
    *
    * @return SqlTypeName, never null
    */
-  public SqlTypeName getSqlTypeName() {
+  @Override public SqlTypeName getSqlTypeName() {
     return null;
   }
 
-  public SqlIdentifier getSqlIdentifier() {
+  @Override public SqlIdentifier getSqlIdentifier() {
     SqlTypeName typeName = getSqlTypeName();
     if (typeName == null) {
       return null;
@@ -238,7 +238,7 @@ public abstract class RelDataTypeImpl
         SqlParserPos.ZERO);
   }
 
-  public RelDataTypeFamily getFamily() {
+  @Override public RelDataTypeFamily getFamily() {
     // by default, put each type into its own family
     return this;
   }
@@ -274,15 +274,15 @@ public abstract class RelDataTypeImpl
     return sb.toString();
   }
 
-  public RelDataTypePrecedenceList getPrecedenceList() {
+  @Override public RelDataTypePrecedenceList getPrecedenceList() {
     // by default, make each type have a precedence list containing
     // only other types in the same family
     return new RelDataTypePrecedenceList() {
-      public boolean containsType(RelDataType type) {
+      @Override public boolean containsType(RelDataType type) {
         return getFamily() == type.getFamily();
       }
 
-      public int compareTypePrecedence(
+      @Override public int compareTypePrecedence(
           RelDataType type1,
           RelDataType type2) {
         assert containsType(type1);
@@ -292,7 +292,7 @@ public abstract class RelDataTypeImpl
     };
   }
 
-  public RelDataTypeComparability getComparability() {
+  @Override public RelDataTypeComparability getComparability() {
     return RelDataTypeComparability.ALL;
   }
 
@@ -379,7 +379,7 @@ public abstract class RelDataTypeImpl
     return rowType.getField("_extra", true, false);
   }
 
-  public boolean isDynamicStruct() {
+  @Override public boolean isDynamicStruct() {
     return false;
   }
 

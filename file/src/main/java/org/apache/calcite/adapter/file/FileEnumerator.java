@@ -43,14 +43,14 @@ class FileEnumerator implements Enumerator<Object> {
     this.fields = fields;
   }
 
-  public Object current() {
+  @Override public Object current() {
     if (current == null) {
       this.moveNext();
     }
     return current;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     try {
       if (this.iterator.hasNext()) {
         final Elements row = this.iterator.next();
@@ -68,12 +68,12 @@ class FileEnumerator implements Enumerator<Object> {
   }
 
   // required by linq4j Enumerator interface
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
   // required by linq4j Enumerator interface
-  public void close() {
+  @Override public void close() {
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */

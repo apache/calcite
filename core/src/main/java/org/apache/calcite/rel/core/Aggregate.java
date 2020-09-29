@@ -318,7 +318,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return groupSets;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     // We skip the "groups" element if it is a singleton of "group".
     super.explainTerms(pw)
         .item("group", groupSet)
@@ -364,7 +364,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return planner.getCostFactory().makeCost(rowCount * multiplier, 0, 0);
   }
 
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return deriveRowType(getCluster().getTypeFactory(), getInput().getRowType(),
         false, groupSet, groupSets, aggCalls);
   }
@@ -416,7 +416,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return builder.build();
   }
 
-  public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     return super.isValid(litmus, context)
         && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
             "distinct field names: {}", getRowType());
@@ -600,15 +600,15 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       return filter;
     }
 
-    public int getOperandCount() {
+    @Override public int getOperandCount() {
       return operands.size();
     }
 
-    public RelDataType getOperandType(int ordinal) {
+    @Override public RelDataType getOperandType(int ordinal) {
       return operands.get(ordinal);
     }
 
-    public CalciteException newError(
+    @Override public CalciteException newError(
         Resources.ExInst<SqlValidatorException> e) {
       return SqlUtil.newContextException(SqlParserPos.ZERO, e);
     }

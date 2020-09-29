@@ -108,12 +108,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     this.config = config;
   }
 
-  public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
+  @Override public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
     return new CalciteCatalogReader(rootSchema, nameMatcher,
         ImmutableList.of(schemaPath, ImmutableList.of()), typeFactory, config);
   }
 
-  public Prepare.PreparingTable getTable(final List<String> names) {
+  @Override public Prepare.PreparingTable getTable(final List<String> names) {
     // First look in the default schema, if any.
     // If not found, look in the root schema.
     CalciteSchema.TableEntry entry = SqlValidatorUtil.getTableEntry(this, names);
@@ -171,7 +171,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return functions2;
   }
 
-  public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public RelDataType getNamedType(SqlIdentifier typeName) {
     CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
     if (typeEntry != null) {
       return typeEntry.getType().apply(typeFactory);
@@ -180,7 +180,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
   }
 
-  public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
+  @Override public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
     final CalciteSchema schema =
         SqlValidatorUtil.getSchema(rootSchema, names, nameMatcher);
     if (schema == null) {
@@ -221,31 +221,31 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return new SqlMonikerImpl(path, type);
   }
 
-  public List<List<String>> getSchemaPaths() {
+  @Override public List<List<String>> getSchemaPaths() {
     return schemaPaths;
   }
 
-  public Prepare.PreparingTable getTableForMember(List<String> names) {
+  @Override public Prepare.PreparingTable getTableForMember(List<String> names) {
     return getTable(names);
   }
 
-  @SuppressWarnings("deprecation")
+  @Override @SuppressWarnings("deprecation")
   public RelDataTypeField field(RelDataType rowType, String alias) {
     return nameMatcher.field(rowType, alias);
   }
 
   @SuppressWarnings("deprecation")
-  public boolean matches(String string, String name) {
+  @Override public boolean matches(String string, String name) {
     return nameMatcher.matches(string, name);
   }
 
-  public RelDataType createTypeFromProjection(final RelDataType type,
+  @Override public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
         typeFactory, nameMatcher.isCaseSensitive());
   }
 
-  public void lookupOperatorOverloads(final SqlIdentifier opName,
+  @Override public void lookupOperatorOverloads(final SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
@@ -409,7 +409,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return JavaTypeFactoryImpl.toSql(typeFactory, type);
   }
 
-  public List<SqlOperator> getOperatorList() {
+  @Override public List<SqlOperator> getOperatorList() {
     final ImmutableList.Builder<SqlOperator> builder = ImmutableList.builder();
     for (List<String> schemaPath : schemaPaths) {
       CalciteSchema schema =
@@ -424,15 +424,15 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return builder.build();
   }
 
-  public CalciteSchema getRootSchema() {
+  @Override public CalciteSchema getRootSchema() {
     return rootSchema;
   }
 
-  public RelDataTypeFactory getTypeFactory() {
+  @Override public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
 
-  public void registerRules(RelOptPlanner planner) {
+  @Override public void registerRules(RelOptPlanner planner) {
   }
 
   @SuppressWarnings("deprecation")
@@ -440,7 +440,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return nameMatcher.isCaseSensitive();
   }
 
-  public SqlNameMatcher nameMatcher() {
+  @Override public SqlNameMatcher nameMatcher() {
     return nameMatcher;
   }
 

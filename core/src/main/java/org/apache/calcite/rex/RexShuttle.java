@@ -33,7 +33,7 @@ import java.util.List;
 public class RexShuttle implements RexVisitor<RexNode> {
   //~ Methods ----------------------------------------------------------------
 
-  public RexNode visitOver(RexOver over) {
+  @Override public RexNode visitOver(RexOver over) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(over.operands, update);
     RexWindow window = visitWindow(over.getWindow());
@@ -87,7 +87,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
         rows);
   }
 
-  public RexNode visitSubQuery(RexSubQuery subQuery) {
+  @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(subQuery.operands, update);
     if (update[0]) {
@@ -105,7 +105,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return fieldRef;
   }
 
-  public RexNode visitCall(final RexCall call) {
+  @Override public RexNode visitCall(final RexCall call) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(call.operands, update);
     if (update[0]) {
@@ -189,11 +189,11 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return clonedOperands.build();
   }
 
-  public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+  @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
     return variable;
   }
 
-  public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+  @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
     RexNode before = fieldAccess.getReferenceExpr();
     RexNode after = before.accept(this);
 
@@ -206,23 +206,23 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
-  public RexNode visitInputRef(RexInputRef inputRef) {
+  @Override public RexNode visitInputRef(RexInputRef inputRef) {
     return inputRef;
   }
 
-  public RexNode visitLocalRef(RexLocalRef localRef) {
+  @Override public RexNode visitLocalRef(RexLocalRef localRef) {
     return localRef;
   }
 
-  public RexNode visitLiteral(RexLiteral literal) {
+  @Override public RexNode visitLiteral(RexLiteral literal) {
     return literal;
   }
 
-  public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+  @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
     return dynamicParam;
   }
 
-  public RexNode visitRangeRef(RexRangeRef rangeRef) {
+  @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
     return rangeRef;
   }
 

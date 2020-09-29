@@ -60,22 +60,22 @@ public class RexLocalRef extends RexSlot {
     return SqlKind.LOCAL_REF;
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexLocalRef
         && Objects.equals(this.type, ((RexLocalRef) obj).type)
         && this.index == ((RexLocalRef) obj).index;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(type, index);
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitLocalRef(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLocalRef(this, arg);
   }
 

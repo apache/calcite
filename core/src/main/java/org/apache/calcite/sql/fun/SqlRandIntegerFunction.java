@@ -46,12 +46,12 @@ public class SqlRandIntegerFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
   }
 
   // Plans referencing context variables should never be cached
-  public boolean isDynamicFunction() {
+  @Override public boolean isDynamicFunction() {
     return true;
   }
 }

@@ -26,7 +26,7 @@ public class LongSchemaVersion implements SchemaVersion {
     this.value = value;
   }
 
-  public boolean isBefore(SchemaVersion other) {
+  @Override public boolean isBefore(SchemaVersion other) {
     if (!(other instanceof LongSchemaVersion)) {
       throw new IllegalArgumentException(
           "Cannot compare a LongSchemaVersion object with a "
@@ -36,7 +36,7 @@ public class LongSchemaVersion implements SchemaVersion {
     return this.value < ((LongSchemaVersion) other).value;
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -48,11 +48,11 @@ public class LongSchemaVersion implements SchemaVersion {
     return this.value == ((LongSchemaVersion) obj).value;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Long.valueOf(value).hashCode();
   }
 
-  public String toString() {
+  @Override public String toString() {
     return String.valueOf(value);
   }
 }

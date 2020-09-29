@@ -771,7 +771,7 @@ public final class SqlParserUtil {
       this.pos = pos;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return op.toString();
     }
 
@@ -797,16 +797,16 @@ public final class SqlParserUtil {
       this.list = parser.all();
     }
 
-    public PrecedenceClimbingParser parser(int start,
+    @Override public PrecedenceClimbingParser parser(int start,
         Predicate<PrecedenceClimbingParser.Token> predicate) {
       return parser.copy(start, predicate);
     }
 
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
 
-    public SqlOperator op(int i) {
+    @Override public SqlOperator op(int i) {
       return ((ToTreeListItem) list.get(i).o).getOperator();
     }
 
@@ -827,19 +827,19 @@ public final class SqlParserUtil {
       }
     }
 
-    public SqlParserPos pos(int i) {
+    @Override public SqlParserPos pos(int i) {
       return pos(list.get(i));
     }
 
-    public boolean isOp(int i) {
+    @Override public boolean isOp(int i) {
       return list.get(i).o instanceof ToTreeListItem;
     }
 
-    public SqlNode node(int i) {
+    @Override public SqlNode node(int i) {
       return convert(list.get(i));
     }
 
-    public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, parser.atom(e));
     }
   }
@@ -894,30 +894,30 @@ public final class SqlParserUtil {
       return builder.build();
     }
 
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
 
-    public SqlOperator op(int i) {
+    @Override public SqlOperator op(int i) {
       return ((ToTreeListItem) list.get(i)).op;
     }
 
-    public SqlParserPos pos(int i) {
+    @Override public SqlParserPos pos(int i) {
       final Object o = list.get(i);
       return o instanceof ToTreeListItem
           ? ((ToTreeListItem) o).pos
           : ((SqlNode) o).getParserPosition();
     }
 
-    public boolean isOp(int i) {
+    @Override public boolean isOp(int i) {
       return list.get(i) instanceof ToTreeListItem;
     }
 
-    public SqlNode node(int i) {
+    @Override public SqlNode node(int i) {
       return (SqlNode) list.get(i);
     }
 
-    public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, e);
     }
   }

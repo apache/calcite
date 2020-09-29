@@ -358,7 +358,7 @@ public class MaterializationService {
    * Creates a table using {@link CloneSchema}.
    */
   public static class DefaultTableFactory implements TableFactory {
-    public Table createTable(CalciteSchema schema, String viewSql,
+    @Override public Table createTable(CalciteSchema schema, String viewSql,
         List<String> viewSchemaPath) {
       final CalciteConnection connection =
           CalciteMetaImpl.connect(schema.root(), null);
@@ -372,26 +372,26 @@ public class MaterializationService {
           calciteSignature.getCollationList(),
           Util.transform(calciteSignature.columns, column -> column.type.rep),
           new AbstractQueryable<Object>() {
-            public Enumerator<Object> enumerator() {
+            @Override public Enumerator<Object> enumerator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
                       calciteSignature.rootSchema.plus());
               return calciteSignature.enumerable(dataContext).enumerator();
             }
 
-            public Type getElementType() {
+            @Override public Type getElementType() {
               return Object.class;
             }
 
-            public Expression getExpression() {
+            @Override public Expression getExpression() {
               throw new UnsupportedOperationException();
             }
 
-            public QueryProvider getProvider() {
+            @Override public QueryProvider getProvider() {
               return connection;
             }
 
-            public Iterator<Object> iterator() {
+            @Override public Iterator<Object> iterator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
                       calciteSignature.rootSchema.plus());

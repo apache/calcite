@@ -72,7 +72,7 @@ public abstract class SingleRel extends AbstractRelNode {
     visitor.visit(input, 0, this);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .input("input", getInput());
   }
@@ -85,7 +85,7 @@ public abstract class SingleRel extends AbstractRelNode {
     recomputeDigest();
   }
 
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return input.getRowType();
   }
 }

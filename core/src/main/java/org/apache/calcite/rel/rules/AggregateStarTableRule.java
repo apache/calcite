@@ -165,7 +165,7 @@ public class AggregateStarTableRule
               new AbstractSourceMapping(
                   tileKey.dimensions.cardinality() + tileKey.measures.size(),
                   aggregate.getRowType().getFieldCount()) {
-                public int getSourceOpt(int source) {
+                @Override public int getSourceOpt(int source) {
                   if (source < aggregate.getGroupCount()) {
                     int in = tileKey.dimensions.nth(source);
                     return aggregate.getGroupSet().indexOf(in);

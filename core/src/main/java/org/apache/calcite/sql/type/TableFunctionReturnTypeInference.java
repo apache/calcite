@@ -61,7 +61,7 @@ public class TableFunctionReturnTypeInference
     return columnMappings;
   }
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     columnMappings = new HashSet<>();
     RelDataType unexpandedOutputType =

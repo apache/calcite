@@ -60,11 +60,11 @@ public class SqlOrderBy extends SqlCall {
     return SqlKind.ORDER_BY;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
@@ -75,11 +75,11 @@ public class SqlOrderBy extends SqlCall {
       super("ORDER BY", SqlKind.ORDER_BY, 0);
     }
 
-    public SqlSyntax getSyntax() {
+    @Override public SqlSyntax getSyntax() {
       return SqlSyntax.POSTFIX;
     }
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,

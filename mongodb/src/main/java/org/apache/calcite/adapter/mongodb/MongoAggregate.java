@@ -92,7 +92,7 @@ public class MongoAggregate
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     List<String> list = new ArrayList<>();
     final List<String> inNames =

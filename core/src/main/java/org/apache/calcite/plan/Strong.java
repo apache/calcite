@@ -136,7 +136,7 @@ public class Strong {
     final ImmutableBitSet.Builder nullColumns = ImmutableBitSet.builder();
     e.accept(
         new RexVisitorImpl<Void>(true) {
-          public Void visitInputRef(RexInputRef inputRef) {
+          @Override public Void visitInputRef(RexInputRef inputRef) {
             nullColumns.set(inputRef.getIndex());
             return super.visitInputRef(inputRef);
           }

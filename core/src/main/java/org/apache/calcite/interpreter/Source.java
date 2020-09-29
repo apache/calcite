@@ -25,5 +25,5 @@ public interface Source extends AutoCloseable {
   /** Reads a row. Null means end of data. */
   Row receive();
 
-  void close();
+  @Override void close();
 }

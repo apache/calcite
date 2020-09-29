@@ -39,15 +39,15 @@ public abstract class ViewExpanders {
       RelOptCluster cluster,
       List<RelHint> hints) {
     return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
+      @Override public RelOptCluster getCluster() {
         return cluster;
       }
 
-      public List<RelHint> getTableHints() {
+      @Override public List<RelHint> getTableHints() {
         return hints;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
+      @Override public RelRoot expandView(RelDataType rowType, String queryString,
           List<String> schemaPath, List<String> viewPath) {
         return viewExpander.expandView(rowType, queryString, schemaPath,
             viewPath);
@@ -72,16 +72,16 @@ public abstract class ViewExpanders {
       RelOptCluster cluster,
       List<RelHint> hints) {
     return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
+      @Override public RelOptCluster getCluster() {
         return cluster;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
+      @Override public RelRoot expandView(RelDataType rowType, String queryString,
           List<String> schemaPath, List<String> viewPath) {
         throw new UnsupportedOperationException();
       }
 
-      public List<RelHint> getTableHints() {
+      @Override public List<RelHint> getTableHints() {
         return hints;
       }
     };

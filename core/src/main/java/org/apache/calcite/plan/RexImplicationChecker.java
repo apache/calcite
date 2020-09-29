@@ -436,7 +436,7 @@ public class RexImplicationChecker {
       super(true);
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       InputRefUsage<SqlOperator, RexNode> inputRefUse = getUsageMap(inputRef);
       inputRefUse.usageCount++;
       return null;

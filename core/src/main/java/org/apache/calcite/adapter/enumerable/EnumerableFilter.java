@@ -66,12 +66,12 @@ public class EnumerableFilter
     return new EnumerableFilter(cluster, traitSet, input, condition);
   }
 
-  public EnumerableFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public EnumerableFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new EnumerableFilter(getCluster(), traitSet, input, condition);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalc is always better
     throw new UnsupportedOperationException();
   }

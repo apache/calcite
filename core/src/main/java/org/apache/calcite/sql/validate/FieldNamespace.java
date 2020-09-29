@@ -45,19 +45,19 @@ class FieldNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void setType(RelDataType type) {
+  @Override public void setType(RelDataType type) {
     throw new UnsupportedOperationException();
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     return rowType;
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return null;
   }
 
-  public SqlValidatorNamespace lookupChild(String name) {
+  @Override public SqlValidatorNamespace lookupChild(String name) {
     if (rowType.isStruct()) {
       return validator.lookupFieldNamespace(
           rowType,
@@ -66,7 +66,7 @@ class FieldNamespace extends AbstractNamespace {
     return null;
   }
 
-  public boolean fieldExists(String name) {
+  @Override public boolean fieldExists(String name) {
     return false;
   }
 }

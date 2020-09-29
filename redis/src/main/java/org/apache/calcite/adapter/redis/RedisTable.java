@@ -64,7 +64,7 @@ public class RedisTable extends AbstractTable
     this.redisConfig = redisConfig;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
@@ -102,7 +102,7 @@ public class RedisTable extends AbstractTable
 
   @Override public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new RedisEnumerator(redisConfig, schema, tableName);
       }
     };

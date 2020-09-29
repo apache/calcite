@@ -88,7 +88,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
 
   // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
-  public Result visit(Window e) {
+  @Override public Result visit(Window e) {
     final Result x = visitInput(e, 0, Clause.SELECT);
     final Builder builder = x.builder(e);
     final List<SqlNode> selectList =

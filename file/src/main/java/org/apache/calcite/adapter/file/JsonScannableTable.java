@@ -38,13 +38,13 @@ public class JsonScannableTable extends JsonTable
     super(source);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "JsonScannableTable";
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new JsonEnumerator(getDataList(root.getTypeFactory()));
       }
     };

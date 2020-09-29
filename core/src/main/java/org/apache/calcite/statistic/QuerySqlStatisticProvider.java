@@ -79,7 +79,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
     this.sqlConsumer = Objects.requireNonNull(sqlConsumer);
   }
 
-  public double tableCardinality(RelOptTable table) {
+  @Override public double tableCardinality(RelOptTable table) {
     final SqlDialect dialect = table.unwrap(SqlDialect.class);
     final DataSource dataSource = table.unwrap(DataSource.class);
     return withBuilder(
@@ -107,7 +107,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
     final SqlDialect dialect = fromTable.unwrap(SqlDialect.class);
     final DataSource dataSource = fromTable.unwrap(DataSource.class);
@@ -152,7 +152,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  public boolean isKey(RelOptTable table, List<Integer> columns) {
+  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
     final SqlDialect dialect = table.unwrap(SqlDialect.class);
     final DataSource dataSource = table.unwrap(DataSource.class);
     return withBuilder(

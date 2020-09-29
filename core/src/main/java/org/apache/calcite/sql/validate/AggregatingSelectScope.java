@@ -151,7 +151,7 @@ public class AggregatingSelectScope
     }
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return select;
   }
 
@@ -168,7 +168,7 @@ public class AggregatingSelectScope
     return type;
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call.getOperator().isAggregator()) {
       // If we're the 'SUM' node in 'select a + sum(b + c) from t
       // group by a', then we should validate our arguments in
@@ -195,7 +195,7 @@ public class AggregatingSelectScope
     return super.getOperandScope(call);
   }
 
-  public boolean checkAggregateExpr(SqlNode expr, boolean deep) {
+  @Override public boolean checkAggregateExpr(SqlNode expr, boolean deep) {
     // Fully-qualify any identifiers in expr.
     if (deep) {
       expr = validator.expand(expr, this);
@@ -214,7 +214,7 @@ public class AggregatingSelectScope
     return aggChecker.isGroupExpr(expr);
   }
 
-  public void validateExpr(SqlNode expr) {
+  @Override public void validateExpr(SqlNode expr) {
     checkAggregateExpr(expr, true);
   }
 

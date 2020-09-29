@@ -65,7 +65,7 @@ public class JdbcToSparkConverter
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
+  @Override public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder list = new BlockBuilder();

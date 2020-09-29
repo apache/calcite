@@ -56,7 +56,7 @@ public class IntervalSqlType extends AbstractSqlType {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
     final SqlDialect dialect = AnsiSqlDialect.DEFAULT;
     final SqlWriterConfig config = SqlPrettyWriter.config()

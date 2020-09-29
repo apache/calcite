@@ -56,7 +56,7 @@ public class MongoSort extends Sort implements MongoRel {
         fetch);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     if (!collation.getFieldCollations().isEmpty()) {
       final List<String> keys = new ArrayList<>();

@@ -65,7 +65,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
         elementType, rowType, rexCall, columnMappings);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     if (isImplementorDefined((RexCall) getCall())) {
       return tvfImplementorBasedImplement(implementor, pref);
     } else {

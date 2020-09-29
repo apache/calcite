@@ -125,7 +125,7 @@ final class JdbcUtils {
       };
     }
 
-    public Object[] apply() {
+    @Override public Object[] apply() {
       try {
         final Object[] values = new Object[columnCount];
         for (int i = 0; i < columnCount; i++) {

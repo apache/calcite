@@ -745,18 +745,22 @@ public abstract class SqlAbstractParserImpl {
       return sb.toString();
     }
 
+    @Override
     public List<String> getTokens() {
       return tokenList;
     }
 
+    @Override
     public boolean isSql92ReservedWord(String token) {
       return SQL_92_RESERVED_WORD_SET.contains(token);
     }
 
+    @Override
     public String getJdbcKeywords() {
       return sql92ReservedWords;
     }
 
+    @Override
     public boolean isKeyword(String token) {
       return isNonReservedKeyword(token)
           || isReservedFunctionName(token)
@@ -764,18 +768,22 @@ public abstract class SqlAbstractParserImpl {
           || isReservedWord(token);
     }
 
+    @Override
     public boolean isNonReservedKeyword(String token) {
       return nonReservedKeyWordSet.contains(token);
     }
 
+    @Override
     public boolean isReservedFunctionName(String token) {
       return reservedFunctionNames.contains(token);
     }
 
+    @Override
     public boolean isContextVariableName(String token) {
       return contextVariableNames.contains(token);
     }
 
+    @Override
     public boolean isReservedWord(String token) {
       return reservedWords.contains(token);
     }

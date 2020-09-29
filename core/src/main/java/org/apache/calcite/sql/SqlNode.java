@@ -71,7 +71,7 @@ public abstract class SqlNode implements Cloneable {
    * along too much baggage from early versions of Java */
   @Deprecated
   @SuppressWarnings("MethodDoesntCallSuperMethod")
-  public Object clone() {
+  @Override public Object clone() {
     return clone(getParserPosition());
   }
 
@@ -125,7 +125,7 @@ public abstract class SqlNode implements Cloneable {
     return clones;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return toSqlString(c -> c.withDialect(AnsiSqlDialect.DEFAULT)
         .withAlwaysUseParentheses(false)
         .withSelectListItemsOnSeparateLines(false)

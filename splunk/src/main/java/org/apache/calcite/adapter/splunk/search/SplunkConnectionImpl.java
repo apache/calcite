@@ -122,14 +122,14 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  public void getSearchResults(String search, Map<String, String> otherArgs,
+  @Override public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
     assert srl != null;
     Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
-  public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList) {
     return getSearchResults_(search, otherArgs, fieldList, null);
   }
@@ -302,11 +302,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       this.print = print;
     }
 
-    public void setFieldNames(String[] fieldNames) {
+    @Override public void setFieldNames(String[] fieldNames) {
       this.fieldNames = fieldNames;
     }
 
-    public boolean processSearchResult(String[] values) {
+    @Override public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
         for (int i = 0; i < this.fieldNames.length; ++i) {
@@ -383,11 +383,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
     }
 
-    public Object current() {
+    @Override public Object current() {
       return current;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       try {
         String[] line;
         while ((line = csvReader.readNext()) != null) {
@@ -425,11 +425,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       return false;
     }
 
-    public void reset() {
+    @Override public void reset() {
       throw new UnsupportedOperationException();
     }
 
-    public void close() {
+    @Override public void close() {
       try {
         csvReader.close();
       } catch (IOException e) {

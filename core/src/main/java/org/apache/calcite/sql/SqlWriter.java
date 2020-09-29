@@ -263,7 +263,7 @@ public interface SqlWriter {
       this.needsIndent = needsIndent;
     }
 
-    public boolean needsIndent() {
+    @Override public boolean needsIndent() {
       return needsIndent;
     }
 
@@ -275,17 +275,17 @@ public interface SqlWriter {
      */
     public static FrameType create(final String name) {
       return new FrameType() {
-        public String getName() {
+        @Override public String getName() {
           return name;
         }
 
-        public boolean needsIndent() {
+        @Override public boolean needsIndent() {
           return true;
         }
       };
     }
 
-    public String getName() {
+    @Override public String getName() {
       return name();
     }
   }

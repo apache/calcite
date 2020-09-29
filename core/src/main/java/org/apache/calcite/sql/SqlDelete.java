@@ -58,11 +58,11 @@ public class SqlDelete extends SqlCall {
     return SqlKind.DELETE;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, alias);
   }
 
@@ -137,7 +137,7 @@ public class SqlDelete extends SqlCall {
     writer.endList(frame);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDelete(this);
   }
 

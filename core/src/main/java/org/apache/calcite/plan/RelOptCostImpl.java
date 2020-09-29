@@ -38,32 +38,32 @@ public class RelOptCostImpl implements RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptCost
-  public double getRows() {
+  @Override public double getRows() {
     return value;
   }
 
   // implement RelOptCost
-  public double getIo() {
+  @Override public double getIo() {
     return 0;
   }
 
   // implement RelOptCost
-  public double getCpu() {
+  @Override public double getCpu() {
     return 0;
   }
 
   // implement RelOptCost
-  public boolean isInfinite() {
+  @Override public boolean isInfinite() {
     return Double.isInfinite(value);
   }
 
   // implement RelOptCost
-  public boolean isLe(RelOptCost other) {
+  @Override public boolean isLe(RelOptCost other) {
     return getRows() <= other.getRows();
   }
 
   // implement RelOptCost
-  public boolean isLt(RelOptCost other) {
+  @Override public boolean isLt(RelOptCost other) {
     return getRows() < other.getRows();
   }
 
@@ -72,7 +72,7 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   // implement RelOptCost
-  public boolean equals(RelOptCost other) {
+  @Override public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();
   }
 
@@ -84,32 +84,32 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   // implement RelOptCost
-  public boolean isEqWithEpsilon(RelOptCost other) {
+  @Override public boolean isEqWithEpsilon(RelOptCost other) {
     return Math.abs(getRows() - other.getRows()) < RelOptUtil.EPSILON;
   }
 
   // implement RelOptCost
-  public RelOptCost minus(RelOptCost other) {
+  @Override public RelOptCost minus(RelOptCost other) {
     return new RelOptCostImpl(getRows() - other.getRows());
   }
 
   // implement RelOptCost
-  public RelOptCost plus(RelOptCost other) {
+  @Override public RelOptCost plus(RelOptCost other) {
     return new RelOptCostImpl(getRows() + other.getRows());
   }
 
   // implement RelOptCost
-  public RelOptCost multiplyBy(double factor) {
+  @Override public RelOptCost multiplyBy(double factor) {
     return new RelOptCostImpl(getRows() * factor);
   }
 
-  public double divideBy(RelOptCost cost) {
+  @Override public double divideBy(RelOptCost cost) {
     RelOptCostImpl that = (RelOptCostImpl) cost;
     return this.getRows() / that.getRows();
   }
 
   // implement RelOptCost
-  public String toString() {
+  @Override public String toString() {
     if (value == Double.MAX_VALUE) {
       return "huge";
     } else {
@@ -121,7 +121,7 @@ public class RelOptCostImpl implements RelOptCost {
    * {@link RelOptCostImpl}s. */
   private static class Factory implements RelOptCostFactory {
     // implement RelOptPlanner
-    public RelOptCost makeCost(
+    @Override public RelOptCost makeCost(
         double dRows,
         double dCpu,
         double dIo) {
@@ -129,22 +129,22 @@ public class RelOptCostImpl implements RelOptCost {
     }
 
     // implement RelOptPlanner
-    public RelOptCost makeHugeCost() {
+    @Override public RelOptCost makeHugeCost() {
       return new RelOptCostImpl(Double.MAX_VALUE);
     }
 
     // implement RelOptPlanner
-    public RelOptCost makeInfiniteCost() {
+    @Override public RelOptCost makeInfiniteCost() {
       return new RelOptCostImpl(Double.POSITIVE_INFINITY);
     }
 
     // implement RelOptPlanner
-    public RelOptCost makeTinyCost() {
+    @Override public RelOptCost makeTinyCost() {
       return new RelOptCostImpl(1.0);
     }
 
     // implement RelOptPlanner
-    public RelOptCost makeZeroCost() {
+    @Override public RelOptCost makeZeroCost() {
       return new RelOptCostImpl(0.0);
     }
   }

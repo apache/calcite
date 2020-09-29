@@ -70,14 +70,14 @@ public class SqlNumericLiteral extends SqlLiteral {
         isExact, pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     writer.literal(toValue());
   }
 
-  public String toValue() {
+  @Override public String toValue() {
     BigDecimal bd = (BigDecimal) value;
     if (isExact) {
       return value.toString();
@@ -85,7 +85,7 @@ public class SqlNumericLiteral extends SqlLiteral {
     return Util.toScientificNotation(bd);
   }
 
-  public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
     if (isExact) {
       int scaleValue = scale.intValue();
       if (0 == scaleValue) {

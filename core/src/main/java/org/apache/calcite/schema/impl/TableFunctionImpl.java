@@ -92,12 +92,12 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
     return new TableFunctionImpl(method, implementor);
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
       List<Object> arguments) {
     return apply(arguments).getRowType(typeFactory);
   }
 
-  public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<Object> arguments) {
     final Table table = apply(arguments);
     if (table instanceof QueryableTable) {
       QueryableTable queryableTable = (QueryableTable) table;
@@ -109,14 +109,14 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         + table.getClass());
   }
 
-  public CallImplementor getImplementor() {
+  @Override public CallImplementor getImplementor() {
     return implementor;
   }
 
   private static CallImplementor createImplementor(final Method method) {
     return RexImpTable.createImplementor(
         new ReflectiveCallNotNullImplementor(method) {
-          public Expression implement(RexToLixTranslator translator,
+          @Override public Expression implement(RexToLixTranslator translator,
               RexCall call, List<Expression> translatedOperands) {
             Expression expr = super.implement(translator, call,
                 translatedOperands);

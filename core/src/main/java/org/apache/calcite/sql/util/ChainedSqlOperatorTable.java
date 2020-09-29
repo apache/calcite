@@ -60,7 +60,7 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
     }
   }
 
-  public void lookupOperatorOverloads(SqlIdentifier opName,
+  @Override public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     for (SqlOperatorTable table : tableList) {
@@ -69,7 +69,7 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
     }
   }
 
-  public List<SqlOperator> getOperatorList() {
+  @Override public List<SqlOperator> getOperatorList() {
     List<SqlOperator> list = new ArrayList<>();
     for (SqlOperatorTable table : tableList) {
       list.addAll(table.getOperatorList());

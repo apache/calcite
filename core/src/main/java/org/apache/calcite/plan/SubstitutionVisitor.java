@@ -203,7 +203,7 @@ public class SubstitutionVisitor {
     final List<MutableRel> allNodes = new ArrayList<>();
     final MutableRelVisitor visitor =
         new MutableRelVisitor() {
-          public void visit(MutableRel node) {
+          @Override public void visit(MutableRel node) {
             parents.add(node.getParent());
             allNodes.add(node);
             super.visit(node);
@@ -1044,7 +1044,7 @@ public class SubstitutionVisitor {
       super(any(MutableRel.class), any(MutableRel.class), 0);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
         return call.result(call.target);
       }
@@ -1117,7 +1117,7 @@ public class SubstitutionVisitor {
           operand(MutableCalc.class, target(0)), 1);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       final MutableCalc query = (MutableCalc) call.query;
       final Pair<RexNode, List<RexNode>> queryExplained = explainCalc(query);
       final RexNode queryCond = queryExplained.left;
@@ -1549,7 +1549,7 @@ public class SubstitutionVisitor {
           operand(MutableAggregate.class, target(0)), 1);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       final MutableAggregate query = (MutableAggregate) call.query;
       final MutableAggregate target = (MutableAggregate) call.target;
       assert query != target;
@@ -1585,7 +1585,7 @@ public class SubstitutionVisitor {
       super(any(MutableUnion.class), any(MutableUnion.class), 0);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       final MutableUnion query = (MutableUnion) call.query;
       final MutableUnion target = (MutableUnion) call.target;
       final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
@@ -1612,7 +1612,7 @@ public class SubstitutionVisitor {
       super(any(MutableUnion.class), any(MutableUnion.class), 0);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       return setOpApply(call);
     }
   }
@@ -1630,7 +1630,7 @@ public class SubstitutionVisitor {
       super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       final MutableIntersect query = (MutableIntersect) call.query;
       final MutableIntersect target = (MutableIntersect) call.target;
       final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
@@ -1657,7 +1657,7 @@ public class SubstitutionVisitor {
       super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
     }
 
-    public UnifyResult apply(UnifyRuleCall call) {
+    @Override public UnifyResult apply(UnifyRuleCall call) {
       return setOpApply(call);
     }
   }
@@ -1866,7 +1866,7 @@ public class SubstitutionVisitor {
     Set<Integer> constantCondInputRefs = new HashSet<>();
     List<Integer> targetGroupByIndexList = target.groupSet.asList();
     RexShuttle rexShuttle = new RexShuttle() {
-      public RexNode visitInputRef(RexInputRef inputRef) {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
         constantCondInputRefs.add(targetGroupByIndexList.get(inputRef.getIndex()));
         return super.visitInputRef(inputRef);
       }

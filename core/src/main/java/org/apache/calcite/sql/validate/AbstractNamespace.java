@@ -70,11 +70,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlValidator getValidator() {
+  @Override public SqlValidator getValidator() {
     return validator;
   }
 
-  public final void validate(RelDataType targetRowType) {
+  @Override public final void validate(RelDataType targetRowType) {
     switch (status) {
     case UNVALIDATED:
       try {
@@ -110,7 +110,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    */
   protected abstract RelDataType validateImpl(RelDataType targetRowType);
 
-  public RelDataType getRowType() {
+  @Override public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
       Preconditions.checkArgument(rowType != null, "validate must set rowType");
@@ -118,68 +118,68 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return rowType;
   }
 
-  public RelDataType getRowTypeSansSystemColumns() {
+  @Override public RelDataType getRowTypeSansSystemColumns() {
     return getRowType();
   }
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     Util.discard(getRowType());
     return type;
   }
 
-  public void setType(RelDataType type) {
+  @Override public void setType(RelDataType type) {
     this.type = type;
     this.rowType = convertToStruct(type);
   }
 
-  public SqlNode getEnclosingNode() {
+  @Override public SqlNode getEnclosingNode() {
     return enclosingNode;
   }
 
-  public SqlValidatorTable getTable() {
+  @Override public SqlValidatorTable getTable() {
     return null;
   }
 
-  public SqlValidatorNamespace lookupChild(String name) {
+  @Override public SqlValidatorNamespace lookupChild(String name) {
     return validator.lookupFieldNamespace(
         getRowType(),
         name);
   }
 
-  public boolean fieldExists(String name) {
+  @Override public boolean fieldExists(String name) {
     final RelDataType rowType = getRowType();
     return validator.catalogReader.nameMatcher().field(rowType, name) != null;
   }
 
-  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+  @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return ImmutableList.of();
   }
 
-  public SqlMonotonicity getMonotonicity(String columnName) {
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
   @SuppressWarnings("deprecation")
-  public void makeNullable() {
+  @Override public void makeNullable() {
   }
 
   public String translate(String name) {
     return name;
   }
 
-  public SqlValidatorNamespace resolve() {
+  @Override public SqlValidatorNamespace resolve() {
     return this;
   }
 
-  public boolean supportsModality(SqlModality modality) {
+  @Override public boolean supportsModality(SqlModality modality) {
     return true;
   }
 
-  public <T> T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }
 
-  public boolean isWrapperFor(Class<?> clazz) {
+  @Override public boolean isWrapperFor(Class<?> clazz) {
     return clazz.isInstance(this);
   }
 

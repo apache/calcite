@@ -48,7 +48,7 @@ public class DruidTableFactory implements TableFactory {
   private DruidTableFactory() {}
 
   // name that is also the same name as a complex metric
-  public Table create(SchemaPlus schema, String name, Map operand,
+  @Override public Table create(SchemaPlus schema, String name, Map operand,
       RelDataType rowType) {
     final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
     // If "dataSource" operand is present it overrides the table name.

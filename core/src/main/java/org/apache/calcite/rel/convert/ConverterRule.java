@@ -124,7 +124,7 @@ public abstract class ConverterRule
     return (Convention) outTrait;
   }
 
-  public RelTrait getOutTrait() {
+  @Override public RelTrait getOutTrait() {
     return outTrait;
   }
 

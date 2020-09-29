@@ -70,11 +70,11 @@ public class Statistics {
         collations == null ? null : ImmutableList.copyOf(collations);
 
     return new Statistic() {
-      public Double getRowCount() {
+      @Override public Double getRowCount() {
         return rowCount;
       }
 
-      public boolean isKey(ImmutableBitSet columns) {
+      @Override public boolean isKey(ImmutableBitSet columns) {
         for (ImmutableBitSet key : keysCopy) {
           if (columns.contains(key)) {
             return true;
@@ -83,15 +83,15 @@ public class Statistics {
         return false;
       }
 
-      public List<ImmutableBitSet> getKeys() {
+      @Override public List<ImmutableBitSet> getKeys() {
         return keysCopy;
       }
 
-      public List<RelReferentialConstraint> getReferentialConstraints() {
+      @Override public List<RelReferentialConstraint> getReferentialConstraints() {
         return referentialConstraintsCopy;
       }
 
-      public List<RelCollation> getCollations() {
+      @Override public List<RelCollation> getCollations() {
         return collationsCopy;
       }
     };

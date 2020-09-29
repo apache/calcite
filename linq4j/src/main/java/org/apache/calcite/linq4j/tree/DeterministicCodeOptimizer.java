@@ -224,7 +224,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression input expression
    * @return parameter of the already existing declaration, or null
    */
-  protected ParameterExpression findDeclaredExpression(Expression expression) {
+  @Override protected ParameterExpression findDeclaredExpression(Expression expression) {
     if (!dedup.isEmpty()) {
       ParameterExpression pe = dedup.get(expression);
       if (pe != null) {
@@ -369,7 +369,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    *
    * @return new Visitor that is used to optimize class declarations
    */
-  protected DeterministicCodeOptimizer goDeeper() {
+  @Override protected DeterministicCodeOptimizer goDeeper() {
     return new DeterministicCodeOptimizer(this);
   }
 }

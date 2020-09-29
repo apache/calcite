@@ -53,7 +53,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
           .softValues()
           .build(
               new CacheLoader<Pair<ByteString, Charset>, String>() {
-                public String load(@Nonnull Pair<ByteString, Charset> key) {
+                @Override public String load(@Nonnull Pair<ByteString, Charset> key) {
                   final Charset charset = key.right;
                   final CharsetDecoder decoder = charset.newDecoder();
                   final byte[] bytes = key.left.getBytes();
@@ -149,7 +149,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Object clone() {
+  @Override public Object clone() {
     try {
       return super.clone();
     } catch (CloneNotSupportedException e) {
@@ -157,11 +157,11 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     }
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(stringValue, bytesValue, charsetName, collation);
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof NlsString
         && Objects.equals(stringValue, ((NlsString) obj).stringValue)
@@ -245,7 +245,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    * Returns the string quoted for SQL, for example <code>_ISO-8859-1'is it a
    * plane? no it''s superman!'</code>.
    */
-  public String toString() {
+  @Override public String toString() {
     return asSql(true, true);
   }
 

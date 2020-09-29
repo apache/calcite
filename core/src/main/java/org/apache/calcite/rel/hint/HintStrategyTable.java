@@ -229,16 +229,16 @@ public class HintStrategyTable {
 
     public static final HintErrorLogger INSTANCE = new HintErrorLogger();
 
-    public boolean fail(String message, Object... args) {
+    @Override public boolean fail(String message, Object... args) {
       LOGGER.warn(message, args);
       return false;
     }
 
-    public boolean succeed() {
+    @Override public boolean succeed() {
       return true;
     }
 
-    public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message, Object... args) {
       if (condition) {
         return succeed();
       } else {

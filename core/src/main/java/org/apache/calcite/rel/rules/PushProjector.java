@@ -691,7 +691,7 @@ public class PushProjector {
       this.strong = Strong.of(strongFields);
     }
 
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       if (preserve(call)) {
         return null;
       }
@@ -737,7 +737,7 @@ public class PushProjector {
       return false;
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       rexRefs.set(inputRef.getIndex());
       return null;
     }
@@ -770,7 +770,7 @@ public class PushProjector {
       this.firstRightRef = firstRightRef;
     }
 
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       // if the expression corresponds to one that needs to be preserved,
       // convert it to a field reference; otherwise, convert the entire
       // expression
@@ -837,7 +837,7 @@ public class PushProjector {
      * @param expr Expression
      * @return result of evaluating the condition
      */
-    boolean test(RexNode expr);
+    @Override boolean test(RexNode expr);
 
     /**
      * Constant condition that replies {@code false} for all expressions.
@@ -866,7 +866,7 @@ public class PushProjector {
       this.operatorSet = ImmutableSet.copyOf(operatorSet);
     }
 
-    public boolean test(RexNode expr) {
+    @Override public boolean test(RexNode expr) {
       return expr instanceof RexCall
           && operatorSet.contains(((RexCall) expr).getOperator());
     }

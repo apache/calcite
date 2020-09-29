@@ -123,5 +123,5 @@ public interface Enumerator<T> extends AutoCloseable {
    * <p>This method is idempotent. Calling it multiple times has the same effect
    * as calling it once.
    */
-  void close();
+  @Override void close();
 }

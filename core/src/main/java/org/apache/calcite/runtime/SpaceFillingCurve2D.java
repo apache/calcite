@@ -70,15 +70,15 @@ public interface SpaceFillingCurve2D {
       this.upper = upper;
     }
 
-    public long lower() {
+    @Override public long lower() {
       return lower;
     }
 
-    public long upper() {
+    @Override public long upper() {
       return upper;
     }
 
-    public IndexRangeTuple tuple() {
+    @Override public IndexRangeTuple tuple() {
       return new IndexRangeTuple(lower, upper, contained());
     }
   }
@@ -89,7 +89,7 @@ public interface SpaceFillingCurve2D {
       super(lower, upper);
     }
 
-    public boolean contained() {
+    @Override public boolean contained() {
       return true;
     }
 
@@ -104,7 +104,7 @@ public interface SpaceFillingCurve2D {
       super(lower, upper);
     }
 
-    public boolean contained() {
+    @Override public boolean contained() {
       return false;
     }
 
@@ -115,7 +115,7 @@ public interface SpaceFillingCurve2D {
 
   /** Lexicographic ordering for {@link IndexRange}. */
   class IndexRangeOrdering extends Ordering<IndexRange> {
-    public int compare(IndexRange x, IndexRange y) {
+    @Override public int compare(IndexRange x, IndexRange y) {
       final int c1 = Long.compare(x.lower(), y.lower());
       if (c1 != 0) {
         return c1;

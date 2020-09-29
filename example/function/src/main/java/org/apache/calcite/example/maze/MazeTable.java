@@ -79,13 +79,13 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     return new MazeTable(width, height, seed, true);
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         .add("S", SqlTypeName.VARCHAR, width * 3 + 1)
         .build();
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     final Random random = seed >= 0 ? new Random(seed) : new Random();
     final Maze maze = new Maze(width, height);
     final PrintWriter pw = Util.printWriter(System.out);
@@ -94,7 +94,7 @@ public class MazeTable extends AbstractTable implements ScannableTable {
       maze.print(pw, true);
     }
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         final Set<Integer> solutionSet;
         if (solution) {
           solutionSet = maze.solve(0, 0);

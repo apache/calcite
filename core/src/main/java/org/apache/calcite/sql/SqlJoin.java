@@ -74,7 +74,7 @@ public class SqlJoin extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -82,7 +82,7 @@ public class SqlJoin extends SqlCall {
     return SqlKind.JOIN;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(left, natural, joinType, right,
         conditionType, condition);
   }
@@ -175,11 +175,11 @@ public class SqlJoin extends SqlCall {
 
     //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax() {
+    @Override public SqlSyntax getSyntax() {
       return SqlSyntax.SPECIAL;
     }
 
-    public SqlCall createCall(
+    @Override public SqlCall createCall(
         SqlLiteral functionQualifier,
         SqlParserPos pos,
         SqlNode... operands) {

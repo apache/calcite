@@ -170,15 +170,15 @@ public class RexCall extends RexNode {
     return isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION);
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitCall(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitCall(this, arg);
   }
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return type;
   }
 
@@ -218,7 +218,7 @@ public class RexCall extends RexNode {
     }
   }
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return op.kind;
   }
 

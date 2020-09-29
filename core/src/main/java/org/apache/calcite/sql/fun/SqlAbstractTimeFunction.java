@@ -54,11 +54,11 @@ public class SqlAbstractTimeFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION_ID;
   }
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     // REVIEW jvs 20-Feb-2005: Need to take care of time zones.
     int precision = 0;
@@ -84,7 +84,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   }
 
   // Plans referencing context variables should never be cached
-  public boolean isDynamicFunction() {
+  @Override public boolean isDynamicFunction() {
     return true;
   }
 }

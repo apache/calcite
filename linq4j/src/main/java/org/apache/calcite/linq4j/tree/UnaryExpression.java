@@ -37,11 +37,11 @@ public class UnaryExpression extends Expression {
     return shuttle.visit(this, expression);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     switch (nodeType) {
     case Convert:
       if (!writer.requireParentheses(this, lprec, rprec)) {

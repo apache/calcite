@@ -207,7 +207,7 @@ public interface RelDataType {
    *
    * @return abbreviated type string
    */
-  String toString();
+  @Override String toString();
 
   /**
    * Gets a string representation of this type with full detail such as

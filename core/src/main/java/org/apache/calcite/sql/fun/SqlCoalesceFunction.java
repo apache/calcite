@@ -54,7 +54,7 @@ public class SqlCoalesceFunction extends SqlFunction {
   //~ Methods ----------------------------------------------------------------
 
   // override SqlOperator
-  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     validateQuantifier(validator, call); // check DISTINCT/ALL
 
     List<SqlNode> operands = call.getOperandList();

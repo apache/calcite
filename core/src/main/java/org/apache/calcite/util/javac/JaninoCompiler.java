@@ -50,7 +50,7 @@ public class JaninoCompiler implements JavaCompiler {
   //~ Methods ----------------------------------------------------------------
 
   // implement JavaCompiler
-  public void compile() {
+  @Override public void compile() {
     // REVIEW: SWZ: 3/12/2006: When this method is invoked multiple times,
     // it creates a series of AccountingClassLoader objects, each with
     // the previous as its parent ClassLoader.  If we refactored this
@@ -90,17 +90,17 @@ public class JaninoCompiler implements JavaCompiler {
   }
 
   // implement JavaCompiler
-  public JavaCompilerArgs getArgs() {
+  @Override public JavaCompilerArgs getArgs() {
     return args;
   }
 
   // implement JavaCompiler
-  public ClassLoader getClassLoader() {
+  @Override public ClassLoader getClassLoader() {
     return classLoader;
   }
 
   // implement JavaCompiler
-  public int getTotalByteCodeSize() {
+  @Override public int getTotalByteCodeSize() {
     return classLoader.getTotalByteCodeSize();
   }
 
@@ -117,21 +117,21 @@ public class JaninoCompiler implements JavaCompiler {
     public JaninoCompilerArgs() {
     }
 
-    public boolean supportsSetSource() {
+    @Override public boolean supportsSetSource() {
       return true;
     }
 
-    public void setDestdir(String destdir) {
+    @Override public void setDestdir(String destdir) {
       super.setDestdir(destdir);
       this.destdir = destdir;
     }
 
-    public void setSource(String source, String fileName) {
+    @Override public void setSource(String source, String fileName) {
       this.source = source;
       addFile(fileName);
     }
 
-    public void setFullClassName(String fullClassName) {
+    @Override public void setFullClassName(String fullClassName) {
       this.fullClassName = fullClassName;
     }
   }

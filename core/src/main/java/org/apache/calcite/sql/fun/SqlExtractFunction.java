@@ -47,12 +47,12 @@ public class SqlExtractFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public String getSignatureTemplate(int operandsCount) {
+  @Override public String getSignatureTemplate(int operandsCount) {
     Util.discard(operandsCount);
     return "{0}({1} FROM {2})";
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

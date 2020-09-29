@@ -75,7 +75,7 @@ public class HilbertCurve2D implements SpaceFillingCurve2D {
     return (long) (lonNormal * 360d / (precision - 1));
   }
 
-  public long toIndex(double x, double y) {
+  @Override public long toIndex(double x, double y) {
     final long normX = getNormalizedLongitude(x);
     final long normY = getNormalizedLatitude(y);
     final BitVector[] p = {
@@ -92,7 +92,7 @@ public class HilbertCurve2D implements SpaceFillingCurve2D {
     return hilbert.toLong();
   }
 
-  public Point toPoint(long i) {
+  @Override public Point toPoint(long i) {
     final BitVector h = BitVectorFactories.OPTIMAL.apply(resolution * 2);
     h.copyFrom(i);
     final BitVector[] p = {
@@ -107,7 +107,7 @@ public class HilbertCurve2D implements SpaceFillingCurve2D {
     return new Point((double) x, (double) y);
   }
 
-  public List<IndexRange> toRanges(double xMin, double yMin, double xMax,
+  @Override public List<IndexRange> toRanges(double xMin, double yMin, double xMax,
       double yMax, RangeComputeHints hints) {
     final CompactHilbertCurve chc =
         new CompactHilbertCurve(new int[] {resolution, resolution});

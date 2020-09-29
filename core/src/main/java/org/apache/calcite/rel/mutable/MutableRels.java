@@ -153,11 +153,11 @@ public abstract class MutableRels {
         RelOptUtil.permute(child.cluster.getTypeFactory(), rowType, mapping),
         child,
         new AbstractList<RexNode>() {
-          public int size() {
+          @Override public int size() {
             return posList.size();
           }
 
-          public RexNode get(int index) {
+          @Override public RexNode get(int index) {
             final int pos = posList.get(index);
             return RexInputRef.of(pos, rowType);
           }

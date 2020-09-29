@@ -393,7 +393,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     return planner.getCostFactory().makeCost(d, 0, 0);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);

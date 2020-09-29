@@ -49,15 +49,15 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     return checkOperandTypesImpl(
@@ -118,7 +118,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   // implement SqlOperandTypeChecker
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     if (nOperands == -1) {
       return SqlOperandCountRanges.any();
     } else {
@@ -126,7 +126,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     final String typeName = getTypeName();
     return SqlUtil.getAliasedSignature(op, opName,
         nOperands == -1
@@ -140,7 +140,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return "EQUIVALENT_TYPE";
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode operand,
       int iFormalOperand,

@@ -181,7 +181,7 @@ public class PigRelSqlUdfs {
     final int paramCount = 2;
 
     return new SqlOperandMetadata() {
-      public boolean checkOperandTypes(
+      @Override public boolean checkOperandTypes(
           SqlCallBinding callBinding, boolean throwOnFailure) {
         // Need at least two arguments
         if (callBinding.getOperandCount() < 2) {
@@ -212,19 +212,19 @@ public class PigRelSqlUdfs {
         return true;
       }
 
-      public SqlOperandCountRange getOperandCountRange() {
+      @Override public SqlOperandCountRange getOperandCountRange() {
         return SqlOperandCountRanges.from(2);
       }
 
-      public String getAllowedSignatures(SqlOperator op, String opName) {
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return opName + "(...)";
       }
 
-      public boolean isOptional(int i) {
+      @Override public boolean isOptional(int i) {
         return false;
       }
 
-      public Consistency getConsistency() {
+      @Override public Consistency getConsistency() {
         return Consistency.NONE;
       }
 

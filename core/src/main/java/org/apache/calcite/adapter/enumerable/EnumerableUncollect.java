@@ -76,7 +76,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
         withOrdinality);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);

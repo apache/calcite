@@ -57,7 +57,7 @@ public class CassandraProject extends Project implements CassandraRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     final CassandraRules.RexToCassandraTranslator translator =
         new CassandraRules.RexToCassandraTranslator(

@@ -324,7 +324,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    *
    * @return tightest common type, i.e. INTEGER + DECIMAL(10, 2) returns DECIMAL(10, 2)
    */
-  public RelDataType getTightestCommonType(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType getTightestCommonType(RelDataType type1, RelDataType type2) {
     if (type1 == null || type2 == null) {
       return null;
     }
@@ -430,7 +430,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * other is not. For date + timestamp operands, use timestamp as common type,
    * i.e. Timestamp(2017-01-01 00:00 ...) &gt; Date(2018) evaluates to be false.
    */
-  public RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2) {
     SqlTypeName typeName1 = type1.getSqlTypeName();
     SqlTypeName typeName2 = type2.getSqlTypeName();
 
@@ -508,7 +508,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * is that we allow some precision loss when widening decimal to fractional,
    * or promote fractional to string type.
    */
-  public RelDataType getWiderTypeForTwo(
+  @Override public RelDataType getWiderTypeForTwo(
       RelDataType type1,
       RelDataType type2,
       boolean stringPromotion) {
@@ -542,7 +542,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * you can override it based on the specific system requirement in
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem}.
    */
-  public RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2) {
     if (!SqlTypeUtil.isDecimal(type1) && !SqlTypeUtil.isDecimal(type2)) {
       return null;
     }
@@ -564,7 +564,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * {@link #getWiderTypeForTwo} satisfies the associative law. For instance,
    * (DATE, INTEGER, VARCHAR) should have VARCHAR as the wider common type.
    */
-  public RelDataType getWiderTypeFor(List<RelDataType> typeList, boolean stringPromotion) {
+  @Override public RelDataType getWiderTypeFor(List<RelDataType> typeList,
+      boolean stringPromotion) {
     assert typeList.size() > 1;
     RelDataType resultType = typeList.get(0);
 

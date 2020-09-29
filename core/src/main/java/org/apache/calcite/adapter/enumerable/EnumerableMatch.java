@@ -102,7 +102,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         subsets, allRows, partitionKeys, orderKeys, interval);
   }
 
-  public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
+  @Override public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
       EnumerableRel.Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel input = (EnumerableRel) getInput();

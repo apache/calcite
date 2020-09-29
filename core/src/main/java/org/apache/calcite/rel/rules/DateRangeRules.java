@@ -253,7 +253,7 @@ public abstract class DateRangeRules {
       return super.visitCall(call);
     }
 
-    public void close() {
+    @Override public void close() {
       timeUnits.clear();
       opKinds.clear();
     }

@@ -1348,7 +1348,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       super(source, target);
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "{" + source + " -> " + target + "}";
     }
   }

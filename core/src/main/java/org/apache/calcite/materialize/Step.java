@@ -144,11 +144,11 @@ class Step extends DefaultEdge {
       this.space = Objects.requireNonNull(space);
     }
 
-    public Step createEdge(LatticeTable source, LatticeTable target) {
+    @Override public Step createEdge(LatticeTable source, LatticeTable target) {
       throw new UnsupportedOperationException();
     }
 
-    public Step createEdge(LatticeTable source, LatticeTable target,
+    @Override public Step createEdge(LatticeTable source, LatticeTable target,
         Object... attributes) {
       @SuppressWarnings("unchecked") final List<IntPair> keys =
           (List) attributes[0];

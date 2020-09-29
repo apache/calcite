@@ -44,7 +44,7 @@ public abstract class CsvTable extends AbstractTable {
     this.protoRowType = protoRowType;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }

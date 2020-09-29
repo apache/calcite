@@ -44,7 +44,7 @@ public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     this.accumulator = accumulator;
   }
 
-  public List<Expression> accumulator() {
+  @Override public List<Expression> accumulator() {
     return accumulator;
   }
 

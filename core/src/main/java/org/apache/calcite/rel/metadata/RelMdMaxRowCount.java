@@ -51,7 +51,7 @@ public class RelMdMaxRowCount
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
     return BuiltInMetadata.MaxRowCount.DEF;
   }
 

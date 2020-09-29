@@ -51,7 +51,7 @@ public class SqlBasicCall extends SqlCall {
     this.functionQuantifier = functionQualifier;
   }
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return operator.getKind();
   }
 
@@ -67,7 +67,7 @@ public class SqlBasicCall extends SqlCall {
     this.operator = Objects.requireNonNull(operator);
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return operator;
   }
 
@@ -75,7 +75,7 @@ public class SqlBasicCall extends SqlCall {
     return operands;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(operands); // not immutable, but quick
   }
 

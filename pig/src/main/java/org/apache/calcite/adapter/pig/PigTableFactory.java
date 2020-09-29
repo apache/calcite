@@ -36,7 +36,7 @@ public class PigTableFactory implements TableFactory<PigTable> {
   }
 
   @SuppressWarnings("unchecked")
-  public PigTable create(SchemaPlus schema, String name,
+  @Override public PigTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);

@@ -71,19 +71,19 @@ public class RelCollationImpl implements RelCollation {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelTraitDef getTraitDef() {
+  @Override public RelTraitDef getTraitDef() {
     return RelCollationTraitDef.INSTANCE;
   }
 
-  public List<RelFieldCollation> getFieldCollations() {
+  @Override public List<RelFieldCollation> getFieldCollations() {
     return fieldCollations;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return fieldCollations.hashCode();
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -94,11 +94,11 @@ public class RelCollationImpl implements RelCollation {
     return false;
   }
 
-  public boolean isTop() {
+  @Override public boolean isTop() {
     return fieldCollations.isEmpty();
   }
 
-  public int compareTo(@Nonnull RelMultipleTrait o) {
+  @Override public int compareTo(@Nonnull RelMultipleTrait o) {
     final RelCollationImpl that = (RelCollationImpl) o;
     final UnmodifiableIterator<RelFieldCollation> iterator =
         that.fieldCollations.iterator();
@@ -115,7 +115,7 @@ public class RelCollationImpl implements RelCollation {
     return iterator.hasNext() ? -1 : 0;
   }
 
-  public void register(RelOptPlanner planner) {}
+  @Override public void register(RelOptPlanner planner) {}
 
   /**
    * Applies mapping to a given collation.
@@ -140,7 +140,7 @@ public class RelCollationImpl implements RelCollation {
     return (RelCollationImpl) RexUtil.apply(mapping, this);
   }
 
-  public boolean satisfies(RelTrait trait) {
+  @Override public boolean satisfies(RelTrait trait) {
     return this == trait
         || trait instanceof RelCollationImpl
         && Util.startsWith(fieldCollations,
@@ -150,7 +150,7 @@ public class RelCollationImpl implements RelCollation {
   /** Returns a string representation of this collation, suitably terse given
    * that it will appear in plan traces. Examples:
    * "[]", "[2]", "[0 DESC, 1]", "[0 DESC, 1 ASC NULLS LAST]". */
-  public String toString() {
+  @Override public String toString() {
     Iterator<RelFieldCollation> it = fieldCollations.iterator();
     if (! it.hasNext()) {
       return "[]";

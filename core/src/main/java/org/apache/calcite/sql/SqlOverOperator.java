@@ -57,7 +57,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -78,7 +78,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     validator.validateWindow(window, scope, aggCall);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -122,7 +122,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
    *
    * @param visitor Visitor
    */
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

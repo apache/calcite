@@ -52,7 +52,7 @@ public class CompositeSingleOperandTypeChecker
     return (ImmutableList<? extends SqlSingleOperandTypeChecker>) allowedRules;
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,

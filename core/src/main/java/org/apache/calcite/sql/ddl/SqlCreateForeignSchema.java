@@ -106,12 +106,12 @@ public class SqlCreateForeignSchema extends SqlCreate {
   private static List<Pair<SqlIdentifier, SqlNode>> options(
       final SqlNodeList optionList) {
     return new AbstractList<Pair<SqlIdentifier, SqlNode>>() {
-      public Pair<SqlIdentifier, SqlNode> get(int index) {
+      @Override public Pair<SqlIdentifier, SqlNode> get(int index) {
         return Pair.of((SqlIdentifier) optionList.get(index * 2),
             optionList.get(index * 2 + 1));
       }
 
-      public int size() {
+      @Override public int size() {
         return optionList.size() / 2;
       }
     };

@@ -38,11 +38,11 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
     this.type = Objects.requireNonNull(type);
   }
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     List<SqlTypeFamily> families = new ArrayList<>();
@@ -62,15 +62,15 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
     return OperandTypes.family(families).checkOperandTypes(callBinding, throwOnFailure);
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(type.getFieldCount());
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<TYPE> " + opName + " <TYPE>";
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }

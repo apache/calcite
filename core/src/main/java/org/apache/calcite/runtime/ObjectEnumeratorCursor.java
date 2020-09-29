@@ -36,19 +36,19 @@ public class ObjectEnumeratorCursor extends PositionedCursor<Object> {
     this.enumerator = enumerator;
   }
 
-  protected Getter createGetter(int ordinal) {
+  @Override protected Getter createGetter(int ordinal) {
     return new ObjectGetter(ordinal);
   }
 
-  protected Object current() {
+  @Override protected Object current() {
     return enumerator.current();
   }
 
-  public boolean next() {
+  @Override public boolean next() {
     return enumerator.moveNext();
   }
 
-  public void close() {
+  @Override public void close() {
     enumerator.close();
   }
 }

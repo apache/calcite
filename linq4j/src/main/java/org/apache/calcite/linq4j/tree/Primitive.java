@@ -253,11 +253,11 @@ public enum Primitive {
   public static List<?> asList(final Object array) {
     // REVIEW: A per-type list might be more efficient. (Or might not.)
     return new AbstractList() {
-      public Object get(int index) {
+      @Override public Object get(int index) {
         return Array.get(array, index);
       }
 
-      public int size() {
+      @Override public int size() {
         return Array.getLength(array);
       }
     };

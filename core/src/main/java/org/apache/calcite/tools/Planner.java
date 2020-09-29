@@ -127,7 +127,7 @@ public interface Planner extends AutoCloseable {
    * Releases all internal resources utilized while this {@code Planner}
    * exists.  Once called, this Planner object is no longer valid.
    */
-  void close();
+  @Override void close();
 
   RelTraitSet getEmptyTraitSet();
 }

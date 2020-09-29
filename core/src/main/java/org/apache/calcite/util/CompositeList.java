@@ -123,7 +123,7 @@ public class CompositeList<T> extends AbstractList<T> {
     return new CompositeList<T>((ImmutableList) ImmutableList.of(list0, list1, list2));
   }
 
-  public T get(int index) {
+  @Override public T get(int index) {
     for (List<? extends T> list : lists) {
       int nextIndex = index - list.size();
       if (nextIndex < 0) {
@@ -134,7 +134,7 @@ public class CompositeList<T> extends AbstractList<T> {
     throw new IndexOutOfBoundsException();
   }
 
-  public int size() {
+  @Override public int size() {
     int n = 0;
     for (List<? extends T> list : lists) {
       n += list.size();

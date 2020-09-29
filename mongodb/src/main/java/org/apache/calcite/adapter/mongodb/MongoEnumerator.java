@@ -47,11 +47,11 @@ class MongoEnumerator implements Enumerator<Object> {
     this.getter = getter;
   }
 
-  public Object current() {
+  @Override public Object current() {
     return current;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     try {
       if (cursor.hasNext()) {
         Document map = cursor.next();
@@ -66,11 +66,11 @@ class MongoEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     if (cursor instanceof MongoCursor) {
       ((MongoCursor) cursor).close();
     }

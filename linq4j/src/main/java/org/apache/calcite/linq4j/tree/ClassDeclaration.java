@@ -42,7 +42,7 @@ public class ClassDeclaration extends MemberDeclaration {
     this.implemented = implemented;
   }
 
-  public void accept(ExpressionWriter writer) {
+  @Override public void accept(ExpressionWriter writer) {
     String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {
@@ -59,14 +59,14 @@ public class ClassDeclaration extends MemberDeclaration {
     writer.newlineAndIndent();
   }
 
-  public ClassDeclaration accept(Shuttle shuttle) {
+  @Override public ClassDeclaration accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
     final List<MemberDeclaration> members1 =
         Expressions.acceptMemberDeclarations(memberDeclarations, shuttle);
     return shuttle.visit(this, members1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

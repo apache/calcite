@@ -79,7 +79,7 @@ public abstract class RexNode {
     return SqlKind.OTHER;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return digest;
   }
 

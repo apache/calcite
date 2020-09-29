@@ -90,51 +90,51 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(e);
   }
 
-  public Comparable visitInputRef(RexInputRef inputRef) {
+  @Override public Comparable visitInputRef(RexInputRef inputRef) {
     return getOrUnbound(inputRef);
   }
 
-  public Comparable visitLocalRef(RexLocalRef localRef) {
+  @Override public Comparable visitLocalRef(RexLocalRef localRef) {
     throw unbound(localRef);
   }
 
-  public Comparable visitLiteral(RexLiteral literal) {
+  @Override public Comparable visitLiteral(RexLiteral literal) {
     return Util.first(literal.getValue4(), N);
   }
 
-  public Comparable visitOver(RexOver over) {
+  @Override public Comparable visitOver(RexOver over) {
     throw unbound(over);
   }
 
-  public Comparable visitCorrelVariable(RexCorrelVariable correlVariable) {
+  @Override public Comparable visitCorrelVariable(RexCorrelVariable correlVariable) {
     return getOrUnbound(correlVariable);
   }
 
-  public Comparable visitDynamicParam(RexDynamicParam dynamicParam) {
+  @Override public Comparable visitDynamicParam(RexDynamicParam dynamicParam) {
     return getOrUnbound(dynamicParam);
   }
 
-  public Comparable visitRangeRef(RexRangeRef rangeRef) {
+  @Override public Comparable visitRangeRef(RexRangeRef rangeRef) {
     throw unbound(rangeRef);
   }
 
-  public Comparable visitFieldAccess(RexFieldAccess fieldAccess) {
+  @Override public Comparable visitFieldAccess(RexFieldAccess fieldAccess) {
     return getOrUnbound(fieldAccess);
   }
 
-  public Comparable visitSubQuery(RexSubQuery subQuery) {
+  @Override public Comparable visitSubQuery(RexSubQuery subQuery) {
     throw unbound(subQuery);
   }
 
-  public Comparable visitTableInputRef(RexTableInputRef fieldRef) {
+  @Override public Comparable visitTableInputRef(RexTableInputRef fieldRef) {
     throw unbound(fieldRef);
   }
 
-  public Comparable visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+  @Override public Comparable visitPatternFieldRef(RexPatternFieldRef fieldRef) {
     throw unbound(fieldRef);
   }
 
-  public Comparable visitCall(RexCall call) {
+  @Override public Comparable visitCall(RexCall call) {
     final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
     case IS_NOT_DISTINCT_FROM:

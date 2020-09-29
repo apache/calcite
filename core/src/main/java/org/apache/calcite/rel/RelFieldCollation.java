@@ -268,7 +268,7 @@ public class RelFieldCollation {
     return direction;
   }
 
-  public String toString() {
+  @Override public String toString() {
     if (direction == Direction.ASCENDING
         && nullDirection == direction.defaultNullDirection()) {
       return String.valueOf(fieldIndex);

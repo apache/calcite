@@ -61,7 +61,7 @@ class CassandraEnumerator implements Enumerator<Object> {
    *
    * @return A new row from the results
    */
-  public Object current() {
+  @Override public Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
       return currentRowField(0);
@@ -123,7 +123,7 @@ class CassandraEnumerator implements Enumerator<Object> {
     return obj;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (iterator.hasNext()) {
       current = iterator.next();
       return true;
@@ -132,11 +132,11 @@ class CassandraEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     // Nothing to do here
   }
 }

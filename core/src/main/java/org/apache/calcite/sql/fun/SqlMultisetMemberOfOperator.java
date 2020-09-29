@@ -51,7 +51,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (!OperandTypes.MULTISET.checkSingleOperandType(
@@ -77,7 +77,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
     return true;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 }

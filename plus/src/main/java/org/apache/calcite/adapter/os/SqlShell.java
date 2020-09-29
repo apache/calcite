@@ -192,7 +192,7 @@ public class SqlShell {
   /** Output format. */
   enum Format {
     SPACED {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final int n = r.getMetaData().getColumnCount();
         final StringBuilder b = new StringBuilder();
         while (r.next()) {
@@ -208,7 +208,7 @@ public class SqlShell {
       }
     },
     HEADERS {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
         final StringBuilder b = new StringBuilder();
@@ -224,7 +224,7 @@ public class SqlShell {
       }
     },
     CSV {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         // We aim to comply with https://tools.ietf.org/html/rfc4180.
         // It's a bug if we don't.
         final ResultSetMetaData m = r.getMetaData();
@@ -268,7 +268,7 @@ public class SqlShell {
       }
     },
     JSON {
-      protected void output(PrintWriter out, final ResultSet r)
+      @Override protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
@@ -323,7 +323,7 @@ public class SqlShell {
       }
     },
     MYSQL {
-      protected void output(PrintWriter out, final ResultSet r)
+      @Override protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         // E.g.
         // +-------+--------+

@@ -87,7 +87,7 @@ public class BitString {
     return new BitString(s, n);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return toBitString();
   }
 

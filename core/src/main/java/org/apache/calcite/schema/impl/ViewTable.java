@@ -104,17 +104,17 @@ public class ViewTable
     return Schema.TableType.VIEW;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowType.apply(typeFactory);
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return queryProvider.createQuery(
         getExpression(schema, tableName, Queryable.class), elementType);
   }
 
-  public RelNode toRel(
+  @Override public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return expandView(context, relOptTable.getRowType(), viewSql).rel;

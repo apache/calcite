@@ -95,7 +95,7 @@ public class SqlTrimFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -109,7 +109,7 @@ public class SqlTrimFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 3:
       return "{0}([BOTH|LEADING|TRAILING] {1} FROM {2})";
@@ -118,7 +118,7 @@ public class SqlTrimFunction extends SqlFunction {
     }
   }
 
-  public SqlCall createCall(
+  @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
@@ -147,7 +147,7 @@ public class SqlTrimFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (!super.checkOperandTypes(callBinding, throwOnFailure)) {

@@ -90,13 +90,13 @@ public class CassandraFilter extends Filter implements CassandraRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new CassandraFilter(getCluster(), traitSet, input, condition,
         partitionKeys, clusteringKeys, implicitFieldCollations);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     implementor.add(null, Collections.singletonList(match));
   }

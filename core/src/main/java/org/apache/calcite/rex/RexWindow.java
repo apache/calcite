@@ -88,15 +88,15 @@ public class RexWindow {
 
   //~ Methods ----------------------------------------------------------------
 
-  public String toString() {
+  @Override public String toString() {
     return digest;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return digest.hashCode();
   }
 
-  public boolean equals(Object that) {
+  @Override public boolean equals(Object that) {
     if (that instanceof RexWindow) {
       RexWindow window = (RexWindow) that;
       return digest.equals(window.digest);

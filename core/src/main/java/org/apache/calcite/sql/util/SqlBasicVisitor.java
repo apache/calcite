@@ -37,15 +37,15 @@ import org.apache.calcite.sql.SqlNodeList;
 public class SqlBasicVisitor<R> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
 
-  public R visit(SqlLiteral literal) {
+  @Override public R visit(SqlLiteral literal) {
     return null;
   }
 
-  public R visit(SqlCall call) {
+  @Override public R visit(SqlCall call) {
     return call.getOperator().acceptCall(this, call);
   }
 
-  public R visit(SqlNodeList nodeList) {
+  @Override public R visit(SqlNodeList nodeList) {
     R result = null;
     for (int i = 0; i < nodeList.size(); i++) {
       SqlNode node = nodeList.get(i);
@@ -54,19 +54,19 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
     return result;
   }
 
-  public R visit(SqlIdentifier id) {
+  @Override public R visit(SqlIdentifier id) {
     return null;
   }
 
-  public R visit(SqlDataTypeSpec type) {
+  @Override public R visit(SqlDataTypeSpec type) {
     return null;
   }
 
-  public R visit(SqlDynamicParam param) {
+  @Override public R visit(SqlDynamicParam param) {
     return null;
   }
 
-  public R visit(SqlIntervalQualifier intervalQualifier) {
+  @Override public R visit(SqlIntervalQualifier intervalQualifier) {
     return null;
   }
 
@@ -108,11 +108,11 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
       return INSTANCE;
     }
 
-    public R result() {
+    @Override public R result() {
       return null;
     }
 
-    public R visitChild(
+    @Override public R visitChild(
         SqlVisitor<R> visitor,
         SqlNode expr,
         int i,

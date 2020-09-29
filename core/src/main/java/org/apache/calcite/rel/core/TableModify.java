@@ -158,7 +158,7 @@ public abstract class TableModify extends SingleRel {
     return catalogReader;
   }
 
-  public RelOptTable getTable() {
+  @Override public RelOptTable getTable() {
     return table;
   }
 

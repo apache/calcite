@@ -120,7 +120,7 @@ public final class LogicalFilter extends Filter {
     return variablesSet;
   }
 
-  public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalFilter(getCluster(), traitSet, input, condition,

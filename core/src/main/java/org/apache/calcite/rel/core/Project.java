@@ -153,7 +153,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return true;
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     List<RexNode> exps = shuttle.apply(this.exps);
     if (this.exps == exps) {
       return this;
@@ -200,7 +200,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return RexOver.containsOver(getProjects(), null);
   }
 
-  public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     if (!super.isValid(litmus, context)) {
       return litmus.fail(null);
     }
@@ -259,7 +259,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return refs.size();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     // Skip writing field names so the optimizer can reuse the projects that differ in
     // field names only

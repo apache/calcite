@@ -121,7 +121,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
     }
   }
 
-  public boolean argumentMustBeScalar(int ordinal) {
+  @Override public boolean argumentMustBeScalar(int ordinal) {
     return false;
   }
 

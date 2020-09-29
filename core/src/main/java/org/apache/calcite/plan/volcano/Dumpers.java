@@ -66,7 +66,7 @@ class Dumpers {
     final PrintWriter pw = new PrintWriter(sw);
     final List<RelNode> nodes = new ArrayList<>();
     new RelVisitor() {
-      public void visit(RelNode node, int ordinal, RelNode parent) {
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
         nodes.add(node);
         super.visit(node, ordinal, parent);
       }

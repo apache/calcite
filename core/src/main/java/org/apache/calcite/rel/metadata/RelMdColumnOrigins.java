@@ -58,7 +58,7 @@ public class RelMdColumnOrigins
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.ColumnOrigin> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.ColumnOrigin> getDef() {
     return BuiltInMetadata.ColumnOrigin.DEF;
   }
 
@@ -272,7 +272,7 @@ public class RelMdColumnOrigins
     final Set<RelColumnOrigin> set = new HashSet<>();
     final RexVisitor<Void> visitor =
         new RexVisitorImpl<Void>(true) {
-          public Void visitInputRef(RexInputRef inputRef) {
+          @Override public Void visitInputRef(RexInputRef inputRef) {
             Set<RelColumnOrigin> inputSet =
                 mq.getColumnOrigins(input, inputRef.getIndex());
             if (inputSet != null) {

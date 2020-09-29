@@ -212,7 +212,7 @@ public class RelSubset extends AbstractRelNode {
     return set.rel;
   }
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (inputs.isEmpty()) {
       final RelTraitSet traitSet1 = traitSet.simplify();
       if (traitSet1.equals(this.traitSet)) {
@@ -223,11 +223,11 @@ public class RelSubset extends AbstractRelNode {
     throw new UnsupportedOperationException();
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     return planner.getCostFactory().makeZeroCost();
   }
 
-  public double estimateRowCount(RelMetadataQuery mq) {
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
     if (best != null) {
       return mq.getRowCount(best);
     } else {

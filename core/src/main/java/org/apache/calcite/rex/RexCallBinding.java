@@ -127,16 +127,16 @@ public class RexCallBinding extends SqlOperatorBinding {
   }
 
   // implement SqlOperatorBinding
-  public int getOperandCount() {
+  @Override public int getOperandCount() {
     return operands.size();
   }
 
   // implement SqlOperatorBinding
-  public RelDataType getOperandType(int ordinal) {
+  @Override public RelDataType getOperandType(int ordinal) {
     return operands.get(ordinal).getType();
   }
 
-  public CalciteException newError(
+  @Override public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }

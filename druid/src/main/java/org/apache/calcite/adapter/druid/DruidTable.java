@@ -228,7 +228,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     return complexMetrics.get(alias) != null;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
     Preconditions.checkArgument(fieldNames.contains(timestampFieldName));
@@ -236,7 +236,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     return rowType;
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
     final TableScan scan = LogicalTableScan.create(cluster, relOptTable, ImmutableList.of());
@@ -265,7 +265,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       this.timestampColumn = timestampColumn;
     }
 
-    public RelDataType apply(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType apply(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
         final String key = field.getKey();

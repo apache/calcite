@@ -50,19 +50,19 @@ public class VisitorDataContext implements DataContext {
     this.values = values;
   }
 
-  public SchemaPlus getRootSchema() {
+  @Override public SchemaPlus getRootSchema() {
     throw new RuntimeException("Unsupported");
   }
 
-  public JavaTypeFactory getTypeFactory() {
+  @Override public JavaTypeFactory getTypeFactory() {
     throw new RuntimeException("Unsupported");
   }
 
-  public QueryProvider getQueryProvider() {
+  @Override public QueryProvider getQueryProvider() {
     throw new RuntimeException("Unsupported");
   }
 
-  public Object get(String name) {
+  @Override public Object get(String name) {
     if (name.equals("inputRecord")) {
       return values;
     } else {

@@ -56,7 +56,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    *
    * @return Parameters; never null
    */
-  public List<FunctionParameter> getParameters() {
+  @Override public List<FunctionParameter> getParameters() {
     return parameters;
   }
 
@@ -118,19 +118,19 @@ public abstract class ReflectiveFunctionBase implements Function {
                   + (optional ? "?" : "");
             }
 
-            public int getOrdinal() {
+            @Override public int getOrdinal() {
               return ordinal;
             }
 
-            public String getName() {
+            @Override public String getName() {
               return name;
             }
 
-            public RelDataType getType(RelDataTypeFactory typeFactory) {
+            @Override public RelDataType getType(RelDataTypeFactory typeFactory) {
               return typeFactory.createJavaType(type);
             }
 
-            public boolean isOptional() {
+            @Override public boolean isOptional() {
               return optional;
             }
           });

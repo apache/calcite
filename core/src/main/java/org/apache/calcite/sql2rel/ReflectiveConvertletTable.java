@@ -129,7 +129,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     });
   }
 
-  public SqlRexConvertlet get(SqlCall call) {
+  @Override public SqlRexConvertlet get(SqlCall call) {
     SqlRexConvertlet convertlet;
     final SqlOperator op = call.getOperator();
 

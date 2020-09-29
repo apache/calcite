@@ -51,11 +51,11 @@ public class GroupByScope extends DelegatingScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return groupByList;
   }
 
-  public void validateExpr(SqlNode expr) {
+  @Override public void validateExpr(SqlNode expr) {
     SqlNode expanded = validator.expandGroupByOrHavingExpr(expr, this, select, false);
 
     // expression needs to be valid in parent scope too

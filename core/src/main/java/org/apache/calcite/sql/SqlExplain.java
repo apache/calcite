@@ -74,11 +74,11 @@ public class SqlExplain extends SqlCall {
     return SqlKind.EXPLAIN;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(explicandum, detailLevel, depth, format);
   }
 

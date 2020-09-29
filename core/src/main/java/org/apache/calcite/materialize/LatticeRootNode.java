@@ -46,7 +46,7 @@ public class LatticeRootNode extends LatticeNode {
     return ImmutableList.copyOf(paths);
   }
 
-  void use(List<LatticeNode> usedNodes) {
+  @Override void use(List<LatticeNode> usedNodes) {
     if (!usedNodes.contains(this)) {
       usedNodes.add(this);
     }

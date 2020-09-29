@@ -53,7 +53,7 @@ public class RelCollations {
       RelCollationTraitDef.INSTANCE.canonize(
           new RelCollationImpl(
               ImmutableList.of(new RelFieldCollation(-1))) {
-            public String toString() {
+            @Override public String toString() {
               return "PRESERVE";
             }
           });

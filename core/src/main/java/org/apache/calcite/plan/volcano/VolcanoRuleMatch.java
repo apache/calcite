@@ -52,7 +52,7 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public String toString() {
+  @Override public String toString() {
     return digest;
   }
 

@@ -39,27 +39,27 @@ import java.util.List;
 public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode visit(SqlLiteral literal) {
+  @Override public SqlNode visit(SqlLiteral literal) {
     return literal;
   }
 
-  public SqlNode visit(SqlIdentifier id) {
+  @Override public SqlNode visit(SqlIdentifier id) {
     return id;
   }
 
-  public SqlNode visit(SqlDataTypeSpec type) {
+  @Override public SqlNode visit(SqlDataTypeSpec type) {
     return type;
   }
 
-  public SqlNode visit(SqlDynamicParam param) {
+  @Override public SqlNode visit(SqlDynamicParam param) {
     return param;
   }
 
-  public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+  @Override public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
     return intervalQualifier;
   }
 
-  public SqlNode visit(final SqlCall call) {
+  @Override public SqlNode visit(final SqlCall call) {
     // Handler creates a new copy of 'call' only if one or more operands
     // change.
     ArgHandler<SqlNode> argHandler = new CallCopyingArgHandler(call, false);
@@ -67,7 +67,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
     return argHandler.result();
   }
 
-  public SqlNode visit(SqlNodeList nodeList) {
+  @Override public SqlNode visit(SqlNodeList nodeList) {
     boolean update = false;
     List<SqlNode> exprs = nodeList.getList();
     int exprCount = exprs.size();
@@ -112,7 +112,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       this.alwaysCopy = alwaysCopy;
     }
 
-    public SqlNode result() {
+    @Override public SqlNode result() {
       if (update || alwaysCopy) {
         return call.getOperator().createCall(
             call.getFunctionQuantifier(),
@@ -123,7 +123,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       }
     }
 
-    public SqlNode visitChild(
+    @Override public SqlNode visitChild(
         SqlVisitor<SqlNode> visitor,
         SqlNode expr,
         int i,

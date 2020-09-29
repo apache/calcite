@@ -49,7 +49,7 @@ public class NewArrayExpression extends Expression {
     return shuttle.visit(this, dimension, bound, expressions);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

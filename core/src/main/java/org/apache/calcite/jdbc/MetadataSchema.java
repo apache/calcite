@@ -35,7 +35,7 @@ class MetadataSchema extends AbstractSchema {
       ImmutableMap.of(
           "COLUMNS",
           new CalciteMetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
-            public Enumerator<MetaColumn> enumerator(
+            @Override public Enumerator<MetaColumn> enumerator(
                 final CalciteMetaImpl meta) {
               final String catalog;
               try {
@@ -49,7 +49,7 @@ class MetadataSchema extends AbstractSchema {
           },
           "TABLES",
           new CalciteMetaImpl.MetadataTable<MetaTable>(MetaTable.class) {
-            public Enumerator<MetaTable> enumerator(CalciteMetaImpl meta) {
+            @Override public Enumerator<MetaTable> enumerator(CalciteMetaImpl meta) {
               final String catalog;
               try {
                 catalog = meta.getConnection().getCatalog();

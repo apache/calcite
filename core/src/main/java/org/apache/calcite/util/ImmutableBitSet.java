@@ -356,7 +356,7 @@ public class ImmutableBitSet
    *
    * @return a string representation of this bit set
    */
-  public String toString() {
+  @Override public String toString() {
     int numBits = words.length * BITS_PER_WORD;
     StringBuilder b = new StringBuilder(6 * numBits + 2);
     b.append('{');
@@ -420,7 +420,7 @@ public class ImmutableBitSet
    *
    * @return the hash code value for this bit set
    */
-  public int hashCode() {
+  @Override public int hashCode() {
     long h = 1234;
     for (int i = words.length; --i >= 0;) {
       h ^= words[i] * (i + 1);
@@ -453,7 +453,7 @@ public class ImmutableBitSet
    *         {@code false} otherwise
    * @see    #size()
    */
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -470,7 +470,7 @@ public class ImmutableBitSet
    * <p>Bit sets {@code (), (0), (0, 1), (0, 1, 3), (1), (2, 3)} are in sorted
    * order.</p>
    */
-  public int compareTo(@Nonnull ImmutableBitSet o) {
+  @Override public int compareTo(@Nonnull ImmutableBitSet o) {
     int i = 0;
     for (;;) {
       int n0 = nextSetBit(i);
@@ -582,21 +582,21 @@ public class ImmutableBitSet
     }
   }
 
-  public Iterator<Integer> iterator() {
+  @Override public Iterator<Integer> iterator() {
     return new Iterator<Integer>() {
       int i = nextSetBit(0);
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return i >= 0;
       }
 
-      public Integer next() {
+      @Override public Integer next() {
         int prev = i;
         i = nextSetBit(i + 1);
         return prev;
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     };
@@ -638,11 +638,11 @@ public class ImmutableBitSet
    * iterator is efficient. */
   public Set<Integer> asSet() {
     return new AbstractSet<Integer>() {
-      @Nonnull public Iterator<Integer> iterator() {
+      @Override @Nonnull public Iterator<Integer> iterator() {
         return ImmutableBitSet.this.iterator();
       }
 
-      public int size() {
+      @Override public int size() {
         return cardinality();
       }
 

@@ -104,21 +104,21 @@ public interface Convention extends RelTrait {
       return getName();
     }
 
-    public void register(RelOptPlanner planner) {}
+    @Override public void register(RelOptPlanner planner) {}
 
-    public boolean satisfies(RelTrait trait) {
+    @Override public boolean satisfies(RelTrait trait) {
       return this == trait;
     }
 
-    public Class getInterface() {
+    @Override public Class getInterface() {
       return relClass;
     }
 
-    public String getName() {
+    @Override public String getName() {
       return name;
     }
 
-    public RelTraitDef getTraitDef() {
+    @Override public RelTraitDef getTraitDef() {
       return ConventionTraitDef.INSTANCE;
     }
 
@@ -127,11 +127,11 @@ public interface Convention extends RelTrait {
       return null;
     }
 
-    public boolean canConvertConvention(Convention toConvention) {
+    @Override public boolean canConvertConvention(Convention toConvention) {
       return false;
     }
 
-    public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+    @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
         RelTraitSet toTraits) {
       return false;
     }

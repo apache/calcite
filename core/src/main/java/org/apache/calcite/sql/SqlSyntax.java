@@ -27,7 +27,7 @@ public enum SqlSyntax {
    * Function syntax, as in "Foo(x, y)".
    */
   FUNCTION {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -42,7 +42,7 @@ public enum SqlSyntax {
    * for example "COUNT(*)".
    */
   FUNCTION_STAR {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -56,7 +56,7 @@ public enum SqlSyntax {
    * Binary operator syntax, as in "x + y".
    */
   BINARY {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -70,7 +70,7 @@ public enum SqlSyntax {
    * Prefix unary operator syntax, as in "- x".
    */
   PREFIX {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -87,7 +87,7 @@ public enum SqlSyntax {
    * Postfix unary operator syntax, as in "x ++".
    */
   POSTFIX {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -105,7 +105,7 @@ public enum SqlSyntax {
    * THEN 2 ELSE 3 END".
    */
   SPECIAL {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -124,7 +124,7 @@ public enum SqlSyntax {
    * @see SqlConformance#allowNiladicParentheses()
    */
   FUNCTION_ID {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -138,7 +138,7 @@ public enum SqlSyntax {
    * Syntax of an internal operator, which does not appear in the SQL.
    */
   INTERNAL {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,

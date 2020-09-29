@@ -409,7 +409,7 @@ public class JdbcRules {
       return Math.max(leftRowCount, rightRowCount);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -432,7 +432,7 @@ public class JdbcRules {
       super(config);
     }
 
-    public RelNode convert(RelNode rel) {
+    @Override public RelNode convert(RelNode rel) {
       final Calc calc = (Calc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it
@@ -470,7 +470,7 @@ public class JdbcRules {
       Util.discard(flags);
     }
 
-    public RelWriter explainTerms(RelWriter pw) {
+    @Override public RelWriter explainTerms(RelWriter pw) {
       return program.explainCalc(super.explainTerms(pw));
     }
 
@@ -478,7 +478,7 @@ public class JdbcRules {
       return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       double dRows = mq.getRowCount(this);
       double dCpu = mq.getRowCount(getInput())
@@ -487,11 +487,11 @@ public class JdbcRules {
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new JdbcCalc(getCluster(), traitSet, sole(inputs), program);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -576,7 +576,7 @@ public class JdbcRules {
           .multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -630,12 +630,12 @@ public class JdbcRules {
       assert getConvention() instanceof JdbcConvention;
     }
 
-    public JdbcFilter copy(RelTraitSet traitSet, RelNode input,
+    @Override public JdbcFilter copy(RelTraitSet traitSet, RelNode input,
         RexNode condition) {
       return new JdbcFilter(getCluster(), traitSet, input, condition);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -729,7 +729,7 @@ public class JdbcRules {
       }
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -807,7 +807,7 @@ public class JdbcRules {
       return super.computeSelfCost(planner, mq).multiplyBy(0.9);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -849,7 +849,7 @@ public class JdbcRules {
       super(cluster, traitSet, inputs, all);
     }
 
-    public JdbcUnion copy(
+    @Override public JdbcUnion copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
       return new JdbcUnion(getCluster(), traitSet, inputs, all);
     }
@@ -859,7 +859,7 @@ public class JdbcRules {
       return super.computeSelfCost(planner, mq).multiplyBy(.1);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -908,12 +908,12 @@ public class JdbcRules {
       assert !all;
     }
 
-    public JdbcIntersect copy(
+    @Override public JdbcIntersect copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
       return new JdbcIntersect(getCluster(), traitSet, inputs, all);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -956,12 +956,12 @@ public class JdbcRules {
       assert !all;
     }
 
-    public JdbcMinus copy(RelTraitSet traitSet, List<RelNode> inputs,
+    @Override public JdbcMinus copy(RelTraitSet traitSet, List<RelNode> inputs,
         boolean all) {
       return new JdbcMinus(getCluster(), traitSet, inputs, all);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -1044,7 +1044,7 @@ public class JdbcRules {
           getSourceExpressionList(), isFlattened());
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }
@@ -1083,7 +1083,7 @@ public class JdbcRules {
       return new JdbcValues(getCluster(), rowType, tuples, traitSet);
     }
 
-    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }
   }

@@ -2687,7 +2687,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           && field == ((CorRef) o).field;
     }
 
-    public int compareTo(@Nonnull CorRef o) {
+    @Override public int compareTo(@Nonnull CorRef o) {
       int c = corr.compareTo(o.corr);
       if (c != 0) {
         return c;
@@ -2729,7 +2729,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           && field == ((CorDef) o).field;
     }
 
-    public int compareTo(@Nonnull CorDef o) {
+    @Override public int compareTo(@Nonnull CorDef o) {
       int c = corr.compareTo(o.corr);
       if (c != 0) {
         return c;

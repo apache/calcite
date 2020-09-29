@@ -101,7 +101,7 @@ public class SqlGeoFunctions {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       if (geom != null && deltaX != null && deltaY != null) {
         final Geometry geometry = geom.g();
         final Envelope envelope = new Envelope();
@@ -115,19 +115,19 @@ public class SqlGeoFunctions {
       return Linq4j.emptyEnumerable();
     }
 
-    public Statistic getStatistic() {
+    @Override public Statistic getStatistic() {
       return Statistics.of(100d, ImmutableList.of(ImmutableBitSet.of(0, 1)));
     }
 
-    public Schema.TableType getJdbcTableType() {
+    @Override public Schema.TableType getJdbcTableType() {
       return Schema.TableType.OTHER;
     }
 
-    public boolean isRolledUp(String column) {
+    @Override public boolean isRolledUp(String column) {
       return false;
     }
 
-    public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+    @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
         SqlNode parent, CalciteConnectionConfig config) {
       return false;
     }

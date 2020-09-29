@@ -63,7 +63,7 @@ public class SqlMerge extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -71,7 +71,7 @@ public class SqlMerge extends SqlCall {
     return SqlKind.MERGE;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
         insertCall, sourceSelect, alias);
   }
@@ -207,7 +207,7 @@ public class SqlMerge extends SqlCall {
     }
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateMerge(this);
   }
 }

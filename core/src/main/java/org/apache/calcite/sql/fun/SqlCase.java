@@ -97,11 +97,11 @@ public class SqlCase extends SqlCall {
     return SqlKind.CASE;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlStdOperatorTable.CASE;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
   }
 

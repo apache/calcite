@@ -38,7 +38,7 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
   }
 
   @SuppressWarnings("deprecation")
-  public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
+  @Override public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
     switch (generationStrategy(table, iColumn)) {
     case VIRTUAL:
     case STORED:
@@ -48,24 +48,24 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     }
   }
 
-  public ColumnStrategy generationStrategy(RelOptTable table, int iColumn) {
+  @Override public ColumnStrategy generationStrategy(RelOptTable table, int iColumn) {
     return table.getRowType().getFieldList().get(iColumn).getType().isNullable()
         ? ColumnStrategy.NULLABLE
         : ColumnStrategy.NOT_NULLABLE;
   }
 
-  public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
+  @Override public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
       InitializerContext context) {
     final RelDataType fieldType =
         table.getRowType().getFieldList().get(iColumn).getType();
     return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 
-  public BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
+  @Override public BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
     return null;
   }
 
-  public RexNode newAttributeInitializer(RelDataType type,
+  @Override public RexNode newAttributeInitializer(RelDataType type,
       SqlFunction constructor, int iAttribute, List<RexNode> constructorArgs,
       InitializerContext context) {
     final RelDataType fieldType =

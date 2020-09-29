@@ -118,7 +118,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:
@@ -131,7 +131,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:

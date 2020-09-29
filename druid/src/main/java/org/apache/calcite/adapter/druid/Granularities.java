@@ -75,7 +75,7 @@ public class Granularities {
       generator.writeObject("all");
     }
 
-    @Nonnull public Type getType() {
+    @Override @Nonnull public Type getType() {
       return Type.ALL;
     }
   }
@@ -101,7 +101,7 @@ public class Granularities {
       generator.writeEndObject();
     }
 
-    @Nonnull public Type getType() {
+    @Override @Nonnull public Type getType() {
       return type;
     }
   }

@@ -118,7 +118,7 @@ public class Contexts {
       this.target = Objects.requireNonNull(target);
     }
 
-    public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> T unwrap(Class<T> clazz) {
       if (clazz.isInstance(target)) {
         return clazz.cast(target);
       }
@@ -128,7 +128,7 @@ public class Contexts {
 
   /** Empty context. */
   static class EmptyContext implements Context {
-    public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> T unwrap(Class<T> clazz) {
       return null;
     }
   }

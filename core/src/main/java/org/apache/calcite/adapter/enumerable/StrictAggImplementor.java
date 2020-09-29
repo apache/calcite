@@ -55,7 +55,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
             Expressions.assign(acc, EnumUtils.convert(next, acc.type))));
   }
 
-  public final List<Type> getStateType(AggContext info) {
+  @Override public final List<Type> getStateType(AggContext info) {
     List<Type> subState = getNotNullState(info);
     stateSize = subState.size();
     needTrackEmptySet = nonDefaultOnEmptySet(info);
@@ -87,7 +87,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return Collections.singletonList(type);
   }
 
-  public final void implementReset(AggContext info, AggResetContext reset) {
+  @Override public final void implementReset(AggContext info, AggResetContext reset) {
     if (trackNullsPerRow) {
       List<Expression> acc = reset.accumulator();
       Expression flag = acc.get(acc.size() - 1);
@@ -113,7 +113,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     }
   }
 
-  public final void implementAdd(AggContext info, final AggAddContext add) {
+  @Override public final void implementAdd(AggContext info, final AggAddContext add) {
     final List<RexNode> args = add.rexArguments();
     final RexToLixTranslator translator = add.rowTranslator();
     final List<Expression> conditions = new ArrayList<>();
@@ -155,7 +155,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
   protected abstract void implementNotNullAdd(AggContext info,
       AggAddContext add);
 
-  public final Expression implementResult(AggContext info,
+  @Override public final Expression implementResult(AggContext info,
       final AggResultContext result) {
     if (!needTrackEmptySet) {
       return EnumUtils.convert(

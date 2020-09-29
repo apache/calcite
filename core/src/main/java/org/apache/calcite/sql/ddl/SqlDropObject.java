@@ -43,7 +43,7 @@ public abstract class SqlDropObject extends SqlDrop {
     this.name = name;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(name);
   }
 

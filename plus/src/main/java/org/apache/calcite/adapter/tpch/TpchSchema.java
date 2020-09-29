@@ -91,17 +91,17 @@ public class TpchSchema extends AbstractSchema {
       this.tpchTable = tpchTable;
     }
 
-    public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+    @Override public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
         final SchemaPlus schema, final String tableName) {
       //noinspection unchecked
       return (Queryable) new AbstractTableQueryable<Object[]>(queryProvider,
           schema, this, tableName) {
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           final Enumerator<E> iterator =
               Linq4j.iterableEnumerator(
                   tpchTable.createGenerator(scaleFactor, part, partCount));
           return new Enumerator<Object[]>() {
-            public Object[] current() {
+            @Override public Object[] current() {
               final List<TpchColumn<E>> columns = tpchTable.getColumns();
               final Object[] objects = new Object[columns.size()];
               int i = 0;
@@ -128,22 +128,22 @@ public class TpchSchema extends AbstractSchema {
               }
             }
 
-            public boolean moveNext() {
+            @Override public boolean moveNext() {
               return iterator.moveNext();
             }
 
-            public void reset() {
+            @Override public void reset() {
               iterator.reset();
             }
 
-            public void close() {
+            @Override public void close() {
             }
           };
         }
       };
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       String prefix = "";
       if (columnPrefix) {

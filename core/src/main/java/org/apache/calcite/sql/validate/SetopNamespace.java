@@ -50,7 +50,7 @@ public class SetopNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return call;
   }
 
@@ -88,7 +88,7 @@ public class SetopNamespace extends AbstractNamespace {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  public RelDataType validateImpl(RelDataType targetRowType) {
+  @Override public RelDataType validateImpl(RelDataType targetRowType) {
     switch (call.getKind()) {
     case UNION:
     case INTERSECT:

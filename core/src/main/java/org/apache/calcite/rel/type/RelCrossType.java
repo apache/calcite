@@ -57,7 +57,7 @@ public class RelCrossType extends RelDataTypeImpl {
     return false;
   }
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("CrossType(");
     for (Ord<RelDataType> type : Ord.zip(types)) {
       if (type.i > 0) {

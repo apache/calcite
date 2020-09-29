@@ -32,7 +32,7 @@ public abstract class AggAddContextImpl extends AggResultContextImpl
     super(block, null, accumulator, null, null);
   }
 
-  public final List<Expression> arguments() {
+  @Override public final List<Expression> arguments() {
     return rowTranslator().translateList(rexArguments());
   }
 }

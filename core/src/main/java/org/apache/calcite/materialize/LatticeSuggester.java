@@ -433,7 +433,7 @@ public class LatticeSuggester {
       }
       final int fieldCount = r.getRowType().getFieldCount();
       return new Frame(fieldCount, h.hops, measures, ImmutableList.of(h)) {
-        ColRef column(int offset) {
+        @Override ColRef column(int offset) {
           if (offset < aggregate.getGroupSet().cardinality()) {
             return h.column(aggregate.getGroupSet().nth(offset));
           }
@@ -459,7 +459,7 @@ public class LatticeSuggester {
           columns = columnBuilder.build();
         }
 
-        ColRef column(int offset) {
+        @Override ColRef column(int offset) {
           return columns.get(offset);
         }
 
@@ -515,7 +515,7 @@ public class LatticeSuggester {
       return new Frame(fieldCount, builder.build(),
           CompositeList.of(left.measures, right.measures),
           ImmutableList.of(left, right)) {
-        ColRef column(int offset) {
+        @Override ColRef column(int offset) {
           if (offset < leftCount) {
             return left.column(offset);
           } else {
@@ -529,7 +529,7 @@ public class LatticeSuggester {
       final int fieldCount = r.getRowType().getFieldCount();
       return new Frame(fieldCount, ImmutableList.of(),
           ImmutableList.of(), ImmutableSet.of(tableRef)) {
-        ColRef column(int offset) {
+        @Override ColRef column(int offset) {
           if (offset >= scan.getTable().getRowType().getFieldCount()) {
             throw new IndexOutOfBoundsException("field " + offset
                 + " out of range in " + scan.getTable().getRowType());
@@ -627,17 +627,17 @@ public class LatticeSuggester {
       this.ordinalInQuery = ordinalInQuery;
     }
 
-    public int hashCode() {
+    @Override public int hashCode() {
       return ordinalInQuery;
     }
 
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj
           || obj instanceof TableRef
           && ordinalInQuery == ((TableRef) obj).ordinalInQuery;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return table + ":" + ordinalInQuery;
     }
   }
@@ -680,11 +680,11 @@ public class LatticeSuggester {
     private static class Factory
         implements AttributedDirectedGraph.AttributedEdgeFactory<
             TableRef, StepRef> {
-      public StepRef createEdge(TableRef source, TableRef target) {
+      @Override public StepRef createEdge(TableRef source, TableRef target) {
         throw new UnsupportedOperationException();
       }
 
-      public StepRef createEdge(TableRef source, TableRef target,
+      @Override public StepRef createEdge(TableRef source, TableRef target,
             Object... attributes) {
         final Step step = (Step) attributes[0];
         final Integer ordinalInQuery = (Integer) attributes[1];
@@ -753,11 +753,11 @@ public class LatticeSuggester {
       this.c = c;
     }
 
-    public TableRef tableRef() {
+    @Override public TableRef tableRef() {
       return t;
     }
 
-    public int col(LatticeSpace space) {
+    @Override public int col(LatticeSpace space) {
       return c;
     }
   }
@@ -787,11 +787,11 @@ public class LatticeSuggester {
       super(ImmutableList.of(tableRef), e, alias);
     }
 
-    public TableRef tableRef() {
+    @Override public TableRef tableRef() {
       return tableRefs.get(0);
     }
 
-    public int col(LatticeSpace space) {
+    @Override public int col(LatticeSpace space) {
       return space.registerExpression(tableRef().table, e);
     }
   }

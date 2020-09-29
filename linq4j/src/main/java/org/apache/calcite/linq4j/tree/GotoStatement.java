@@ -61,7 +61,7 @@ public class GotoStatement extends Statement {
     return shuttle.visit(this, expression1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

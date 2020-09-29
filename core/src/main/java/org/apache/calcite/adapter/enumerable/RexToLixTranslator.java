@@ -1389,7 +1389,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       this.inputs = inputs;
     }
 
-    public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
       int offset = 0;
       for (Pair<Expression, PhysType> input : inputs) {
         final PhysType physType = input.right;

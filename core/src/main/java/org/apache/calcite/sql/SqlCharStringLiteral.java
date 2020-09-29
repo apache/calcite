@@ -61,7 +61,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     return new SqlCharStringLiteral((NlsString) value, pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -76,7 +76,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     writer.literal(nlsString.asSql(true, true, writer.getDialect()));
   }
 
-  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
+  @Override protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlCharStringLiteral(
         NlsString.concat(
             Util.transform(literals,

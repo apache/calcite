@@ -98,7 +98,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
     keyMap = initializer.keyMapBuilder.build();
   }
 
-  public double tableCardinality(RelOptTable table) {
+  @Override public double tableCardinality(RelOptTable table) {
     final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
     final List<String> qualifiedName;
     if (jdbcTable != null) {
@@ -110,7 +110,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
     return cardinalityMap.get(qualifiedName.toString());
   }
 
-  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
     // Assume that anything that references a primary key is a foreign key.
     // It's wrong but it's enough for our current test cases.
@@ -122,7 +122,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
                 + columnNames(fromTable, fromColumns));
   }
 
-  public boolean isKey(RelOptTable table, List<Integer> columns) {
+  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
     // In order to match, all column ordinals must be in range 0 .. columnCount
     return columns.stream().allMatch(columnOrdinal ->
         (columnOrdinal >= 0)

@@ -98,11 +98,11 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
         pref.prefer(JavaRowFormat.ARRAY));
 
     final List<Class> physFieldClasses = new AbstractList<Class>() {
-      public Class get(int index) {
+      @Override public Class get(int index) {
         return physType.fieldClass(index);
       }
 
-      public int size() {
+      @Override public int size() {
         return rowType.getFieldCount();
       }
     };

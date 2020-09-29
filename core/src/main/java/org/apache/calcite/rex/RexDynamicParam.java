@@ -46,7 +46,7 @@ public class RexDynamicParam extends RexVariable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.DYNAMIC_PARAM;
   }
 
@@ -54,11 +54,11 @@ public class RexDynamicParam extends RexVariable {
     return index;
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitDynamicParam(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitDynamicParam(this, arg);
   }
 

@@ -222,30 +222,30 @@ public class Geometries {
       return g.toString();
     }
 
-    public int compareTo(Geom o) {
+    @Override public int compareTo(Geom o) {
       return toString().compareTo(o.toString());
     }
 
-    public Geometry g() {
+    @Override public Geometry g() {
       return g;
     }
 
-    public Type type() {
+    @Override public Type type() {
       return Geometries.type(g);
     }
 
-    public SpatialReference sr() {
+    @Override public SpatialReference sr() {
       return SPATIAL_REFERENCE;
     }
 
-    public Geom transform(int srid) {
+    @Override public Geom transform(int srid) {
       if (srid == SPATIAL_REFERENCE.getID()) {
         return this;
       }
       return bind(g, srid);
     }
 
-    public Geom wrap(Geometry g) {
+    @Override public Geom wrap(Geometry g) {
       return new SimpleGeom(g);
     }
   }
@@ -262,23 +262,23 @@ public class Geometries {
       return mg.toString();
     }
 
-    public int compareTo(Geom o) {
+    @Override public int compareTo(Geom o) {
       return toString().compareTo(o.toString());
     }
 
-    public Geometry g() {
+    @Override public Geometry g() {
       return mg.getGeometry();
     }
 
-    public Type type() {
+    @Override public Type type() {
       return Geometries.type(mg.getGeometry());
     }
 
-    public SpatialReference sr() {
+    @Override public SpatialReference sr() {
       return mg.getSpatialReference();
     }
 
-    public Geom transform(int srid) {
+    @Override public Geom transform(int srid) {
       if (srid == NO_SRID) {
         return new SimpleGeom(mg.getGeometry());
       }
@@ -288,7 +288,7 @@ public class Geometries {
       return bind(mg.getGeometry(), srid);
     }
 
-    public Geom wrap(Geometry g) {
+    @Override public Geom wrap(Geometry g) {
       return bind(g, this.mg.getSpatialReference());
     }
   }

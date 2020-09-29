@@ -73,7 +73,7 @@ public class RelDotWriter extends RelWriterImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void explain_(RelNode rel,
+  @Override protected void explain_(RelNode rel,
                           List<Pair<String, Object>> values) {
     // get inputs
     List<RelNode> inputs = getInputs(rel);
@@ -179,7 +179,7 @@ public class RelDotWriter extends RelWriterImpl {
     }
   }
 
-  public RelWriter done(RelNode node) {
+  @Override public RelWriter done(RelNode node) {
     int numOfVisitedNodes = nodeLabels.size();
     super.done(node);
     if (numOfVisitedNodes == 0) {

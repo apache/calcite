@@ -50,7 +50,7 @@ public class SqlCreateTable extends SqlCreate {
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
   }
 

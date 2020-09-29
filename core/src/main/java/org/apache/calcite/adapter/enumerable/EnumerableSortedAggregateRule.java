@@ -44,7 +44,7 @@ class EnumerableSortedAggregateRule extends ConverterRule {
     super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final LogicalAggregate agg = (LogicalAggregate) rel;
     if (!Aggregate.isSimple(agg)) {
       return null;

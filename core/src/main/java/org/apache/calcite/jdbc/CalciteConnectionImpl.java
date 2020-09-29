@@ -151,11 +151,11 @@ abstract class CalciteConnectionImpl
     return (CalciteMetaImpl) meta;
   }
 
-  public CalciteConnectionConfig config() {
+  @Override public CalciteConnectionConfig config() {
     return new CalciteConnectionConfigImpl(info);
   }
 
-  public Context createPrepareContext() {
+  @Override public Context createPrepareContext() {
     return new ContextImpl(this);
   }
 
@@ -243,38 +243,38 @@ abstract class CalciteConnectionImpl
 
   // CalciteConnection methods
 
-  public SchemaPlus getRootSchema() {
+  @Override public SchemaPlus getRootSchema() {
     return rootSchema.plus();
   }
 
-  public JavaTypeFactory getTypeFactory() {
+  @Override public JavaTypeFactory getTypeFactory() {
     return typeFactory;
   }
 
-  public Properties getProperties() {
+  @Override public Properties getProperties() {
     return info;
   }
 
   // QueryProvider methods
 
-  public <T> Queryable<T> createQuery(
+  @Override public <T> Queryable<T> createQuery(
       Expression expression, Class<T> rowType) {
     return new CalciteQueryable<>(this, rowType, expression);
   }
 
-  public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
+  @Override public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
     return new CalciteQueryable<>(this, rowType, expression);
   }
 
-  public <T> T execute(Expression expression, Type type) {
+  @Override public <T> T execute(Expression expression, Type type) {
     return null; // TODO:
   }
 
-  public <T> T execute(Expression expression, Class<T> type) {
+  @Override public <T> T execute(Expression expression, Class<T> type) {
     return null; // TODO:
   }
 
-  public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
+  @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
     try {
       CalciteStatement statement = (CalciteStatement) createStatement();
       CalcitePrepare.CalciteSignature<T> signature =
@@ -351,11 +351,11 @@ abstract class CalciteConnectionImpl
   private static class CalciteServerImpl implements CalciteServer {
     final Map<Integer, CalciteServerStatement> statementMap = new HashMap<>();
 
-    public void removeStatement(Meta.StatementHandle h) {
+    @Override public void removeStatement(Meta.StatementHandle h) {
       statementMap.remove(h.id);
     }
 
-    public void addStatement(CalciteConnection connection,
+    @Override public void addStatement(CalciteConnection connection,
         Meta.StatementHandle h) {
       final CalciteConnectionImpl c = (CalciteConnectionImpl) connection;
       final CalciteServerStatement previous =
@@ -365,7 +365,7 @@ abstract class CalciteConnectionImpl
       }
     }
 
-    public CalciteServerStatement getStatement(Meta.StatementHandle h)
+    @Override public CalciteServerStatement getStatement(Meta.StatementHandle h)
         throws NoSuchStatementException {
       CalciteServerStatement statement = statementMap.get(h.id);
       if (statement == null) {
@@ -445,7 +445,7 @@ abstract class CalciteConnectionImpl
       map = builder.build();
     }
 
-    public synchronized Object get(String name) {
+    @Override public synchronized Object get(String name) {
       Object o = map.get(name);
       if (o == AvaticaSite.DUMMY_VALUE) {
         return null;
@@ -484,15 +484,15 @@ abstract class CalciteConnectionImpl
       return new SqlAdvisor(validator, parserConfig);
     }
 
-    public SchemaPlus getRootSchema() {
+    @Override public SchemaPlus getRootSchema() {
       return rootSchema == null ? null : rootSchema.plus();
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public JavaTypeFactory getTypeFactory() {
       return typeFactory;
     }
 
-    public QueryProvider getQueryProvider() {
+    @Override public QueryProvider getQueryProvider() {
       return queryProvider;
     }
   }
@@ -511,19 +511,19 @@ abstract class CalciteConnectionImpl
       this.rootSchema = mutableRootSchema.createSnapshot(schemaVersion);
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public JavaTypeFactory getTypeFactory() {
       return connection.typeFactory;
     }
 
-    public CalciteSchema getRootSchema() {
+    @Override public CalciteSchema getRootSchema() {
       return rootSchema;
     }
 
-    public CalciteSchema getMutableRootSchema() {
+    @Override public CalciteSchema getMutableRootSchema() {
       return mutableRootSchema;
     }
 
-    public List<String> getDefaultSchemaPath() {
+    @Override public List<String> getDefaultSchemaPath() {
       final String schemaName;
       try {
         schemaName = connection.getSchema();
@@ -535,20 +535,20 @@ abstract class CalciteConnectionImpl
           : ImmutableList.of(schemaName);
     }
 
-    public List<String> getObjectPath() {
+    @Override public List<String> getObjectPath() {
       return null;
     }
 
-    public CalciteConnectionConfig config() {
+    @Override public CalciteConnectionConfig config() {
       return connection.config();
     }
 
-    public DataContext getDataContext() {
+    @Override public DataContext getDataContext() {
       return connection.createDataContext(ImmutableMap.of(),
           rootSchema);
     }
 
-    public RelRunner getRelRunner() {
+    @Override public RelRunner getRelRunner() {
       final RelRunner runner;
       try {
         runner = connection.unwrap(RelRunner.class);
@@ -561,7 +561,7 @@ abstract class CalciteConnectionImpl
       return runner;
     }
 
-    public CalcitePrepare.SparkHandler spark() {
+    @Override public CalcitePrepare.SparkHandler spark() {
       final boolean enable = config().spark();
       return CalcitePrepare.Dummy.getSparkHandler(enable);
     }
@@ -570,19 +570,19 @@ abstract class CalciteConnectionImpl
   /** Implementation of {@link DataContext} that has few variables and is
    * {@link Serializable}. For Spark. */
   private static class SlimDataContext implements DataContext, Serializable {
-    public SchemaPlus getRootSchema() {
+    @Override public SchemaPlus getRootSchema() {
       return null;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public JavaTypeFactory getTypeFactory() {
       return null;
     }
 
-    public QueryProvider getQueryProvider() {
+    @Override public QueryProvider getQueryProvider() {
       return null;
     }
 
-    public Object get(String name) {
+    @Override public Object get(String name) {
       return null;
     }
   }
@@ -599,27 +599,27 @@ abstract class CalciteConnectionImpl
       this.connection = Objects.requireNonNull(connection);
     }
 
-    public Context createPrepareContext() {
+    @Override public Context createPrepareContext() {
       return connection.createPrepareContext();
     }
 
-    public CalciteConnection getConnection() {
+    @Override public CalciteConnection getConnection() {
       return connection;
     }
 
-    public void setSignature(Meta.Signature signature) {
+    @Override public void setSignature(Meta.Signature signature) {
       this.signature = signature;
     }
 
-    public Meta.Signature getSignature() {
+    @Override public Meta.Signature getSignature() {
       return signature;
     }
 
-    public Iterator<Object> getResultSet() {
+    @Override public Iterator<Object> getResultSet() {
       return iterator;
     }
 
-    public void setResultSet(Iterator<Object> iterator) {
+    @Override public void setResultSet(Iterator<Object> iterator) {
       this.iterator = iterator;
     }
   }

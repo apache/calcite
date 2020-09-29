@@ -85,11 +85,11 @@ public class SqlParserPos implements Serializable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(lineNumber, columnNumber, endLineNumber, endColumnNumber);
   }
 
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     return o == this
         || o instanceof SqlParserPos
         && this.lineNumber == ((SqlParserPos) o).lineNumber
@@ -185,10 +185,10 @@ public class SqlParserPos implements Serializable {
 
   private static List<SqlParserPos> toPos(final SqlNode[] nodes) {
     return new AbstractList<SqlParserPos>() {
-      public SqlParserPos get(int index) {
+      @Override public SqlParserPos get(int index) {
         return nodes[index].getParserPosition();
       }
-      public int size() {
+      @Override public int size() {
         return nodes.length;
       }
     };
@@ -230,10 +230,10 @@ public class SqlParserPos implements Serializable {
       return positions.get(0);
     default:
       final List<SqlParserPos> poses = new AbstractList<SqlParserPos>() {
-        public SqlParserPos get(int index) {
+        @Override public SqlParserPos get(int index) {
           return positions.get(index + 1);
         }
-        public int size() {
+        @Override public int size() {
           return positions.size() - 1;
         }
       };

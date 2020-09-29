@@ -281,7 +281,7 @@ public class PrecedenceClimbingParser {
       return print(new StringBuilder()).toString();
     }
 
-    protected StringBuilder print(StringBuilder b) {
+    @Override protected StringBuilder print(StringBuilder b) {
       switch (op.type) {
       case PREFIX:
         b.append('(');

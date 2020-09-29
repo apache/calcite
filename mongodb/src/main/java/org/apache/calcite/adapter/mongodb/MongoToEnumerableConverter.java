@@ -66,7 +66,7 @@ public class MongoToEnumerableConverter
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "find" or "aggregate", depending upon whether
     // an aggregate is present.
     //

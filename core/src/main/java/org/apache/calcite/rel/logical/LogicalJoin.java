@@ -184,7 +184,7 @@ public final class LogicalJoin extends Join {
     return shuttle.visit(this);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     // Don't ever print semiJoinDone=false. This way, we
     // don't clutter things up in optimizers that don't use semi-joins.
     return super.explainTerms(pw)
@@ -208,7 +208,7 @@ public final class LogicalJoin extends Join {
     return semiJoinDone;
   }
 
-  public List<RelDataTypeField> getSystemFieldList() {
+  @Override public List<RelDataTypeField> getSystemFieldList() {
     return systemFieldList;
   }
 

@@ -472,7 +472,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         block, physType, ((PhysTypeImpl) physType).format);
   }
 
-  public SqlConformance getConformance() {
+  @Override public SqlConformance getConformance() {
     return (SqlConformance) map.getOrDefault("_conformance",
         SqlConformanceEnum.DEFAULT);
   }

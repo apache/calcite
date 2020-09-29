@@ -74,7 +74,7 @@ public class RelMdColumnUniqueness
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.ColumnUniqueness> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.ColumnUniqueness> getDef() {
     return BuiltInMetadata.ColumnUniqueness.DEF;
   }
 

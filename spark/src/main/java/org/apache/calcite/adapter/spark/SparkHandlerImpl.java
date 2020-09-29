@@ -83,7 +83,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return Holder.INSTANCE;
   }
 
-  public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+  @Override public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
       boolean restructure) {
     RelNode root2 =
         planner.changeTraits(rootRel,
@@ -91,22 +91,22 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return planner.changeTraits(root2, rootRel.getTraitSet().simplify());
   }
 
-  public void registerRules(RuleSetBuilder builder) {
+  @Override public void registerRules(RuleSetBuilder builder) {
     for (RelOptRule rule : SparkRules.rules()) {
       builder.addRule(rule);
     }
     builder.removeRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
   }
 
-  public Object sparkContext() {
+  @Override public Object sparkContext() {
     return sparkContext;
   }
 
-  public boolean enabled() {
+  @Override public boolean enabled() {
     return true;
   }
 
-  public ArrayBindable compile(ClassDeclaration expr, String s) {
+  @Override public ArrayBindable compile(ClassDeclaration expr, String s) {
     final String className = "CalciteProgram" + classId.getAndIncrement();
     final String classFileName = className + ".java";
     String source = "public class " + className + "\n"

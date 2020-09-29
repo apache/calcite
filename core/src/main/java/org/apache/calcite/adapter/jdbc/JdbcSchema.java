@@ -208,11 +208,11 @@ public class JdbcSchema implements Schema {
         password);
   }
 
-  public boolean isMutable() {
+  @Override public boolean isMutable() {
     return false;
   }
 
-  public Schema snapshot(SchemaVersion version) {
+  @Override public Schema snapshot(SchemaVersion version) {
     return new JdbcSchema(dataSource, dialect, convention, catalog, schema,
         tableMap);
   }
@@ -222,7 +222,7 @@ public class JdbcSchema implements Schema {
     return dataSource;
   }
 
-  public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
 
@@ -231,11 +231,11 @@ public class JdbcSchema implements Schema {
     return ImmutableMultimap.of();
   }
 
-  public final Collection<Function> getFunctions(String name) {
+  @Override public final Collection<Function> getFunctions(String name) {
     return getFunctions().get(name); // never null
   }
 
-  public final Set<String> getFunctionNames() {
+  @Override public final Set<String> getFunctionNames() {
     return getFunctions().keySet();
   }
 
@@ -341,7 +341,7 @@ public class JdbcSchema implements Schema {
     return Pair.of(catalog, schema);
   }
 
-  public Table getTable(String name) {
+  @Override public Table getTable(String name) {
     return getTableMap(false).get(name);
   }
 
@@ -470,7 +470,7 @@ public class JdbcSchema implements Schema {
     }
   }
 
-  public Set<String> getTableNames() {
+  @Override public Set<String> getTableNames() {
     // This method is called during a cache refresh. We can take it as a signal
     // that we need to re-build our own cache.
     return getTableMap(!snapshot).keySet();
@@ -489,12 +489,12 @@ public class JdbcSchema implements Schema {
     return getTypes().keySet();
   }
 
-  public Schema getSubSchema(String name) {
+  @Override public Schema getSubSchema(String name) {
     // JDBC does not support sub-schemas.
     return null;
   }
 
-  public Set<String> getSubSchemaNames() {
+  @Override public Set<String> getSubSchemaNames() {
     return ImmutableSet.of();
   }
 
@@ -553,7 +553,7 @@ public class JdbcSchema implements Schema {
 
     private Factory() {}
 
-    public Schema create(
+    @Override public Schema create(
         SchemaPlus parentSchema,
         String name,
         Map<String, Object> operand) {

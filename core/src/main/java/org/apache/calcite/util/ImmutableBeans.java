@@ -59,7 +59,7 @@ public class ImmutableBeans {
           .weakKeys()
           .softValues()
           .build(new CacheLoader<Class, Def>() {
-            public Def load(@Nonnull Class key) {
+            @Override public Def load(@Nonnull Class key) {
               //noinspection unchecked
               return makeDef(key);
             }
@@ -473,7 +473,7 @@ public class ImmutableBeans {
       this.map = Objects.requireNonNull(map);
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args) {
+    @Override public Object invoke(Object proxy, Method method, Object[] args) {
       final Handler handler = def.handlers.get(method);
       if (handler == null) {
         throw new IllegalArgumentException("no handler for method " + method);

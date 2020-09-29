@@ -34,7 +34,7 @@ public class TpchSchemaFactory implements SchemaFactory {
   public TpchSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     double scale = Util.first((Double) map.get("scale"), 1D);

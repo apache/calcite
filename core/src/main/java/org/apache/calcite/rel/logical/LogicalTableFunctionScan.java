@@ -113,7 +113,7 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
         columnMappings);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     // REVIEW jvs 8-Jan-2006:  what is supposed to be here
     // for an abstract rel?
     return planner.getCostFactory().makeHugeCost();

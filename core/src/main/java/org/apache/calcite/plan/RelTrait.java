@@ -48,12 +48,12 @@ public interface RelTrait {
   /**
    * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
    */
-  int hashCode();
+  @Override int hashCode();
 
   /**
    * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
    */
-  boolean equals(Object o);
+  @Override boolean equals(Object o);
 
   /**
    * Returns whether this trait satisfies a given trait.
@@ -78,7 +78,7 @@ public interface RelTrait {
    * Returns a succinct name for this trait. The planner may use this String
    * to describe the trait.
    */
-  String toString();
+  @Override String toString();
 
   /**
    * Registers a trait instance with the planner.

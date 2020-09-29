@@ -50,7 +50,7 @@ public class SqlCreateView extends SqlCreate {
     this.query = Objects.requireNonNull(query);
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
   }
 

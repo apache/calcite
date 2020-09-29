@@ -568,15 +568,15 @@ public class GeoFunctions {
           return new Object[] {geom, id, x + 1, y + 1, baseX + x, baseY + y};
         }
 
-        public boolean moveNext() {
+        @Override public boolean moveNext() {
           return ++id < area;
         }
 
-        public void reset() {
+        @Override public void reset() {
           id = -1;
         }
 
-        public void close() {
+        @Override public void close() {
         }
       };
     }

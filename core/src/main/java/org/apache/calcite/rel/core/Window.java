@@ -123,7 +123,7 @@ public abstract class Window extends SingleRel {
     return litmus.succeed();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<Group> window : Ord.zip(groups)) {
       pw.item("window#" + window.i, window.e.toString());
@@ -134,11 +134,11 @@ public abstract class Window extends SingleRel {
   public static ImmutableIntList getProjectOrdinals(final List<RexNode> exprs) {
     return ImmutableIntList.copyOf(
         new AbstractList<Integer>() {
-          public Integer get(int index) {
+          @Override public Integer get(int index) {
             return ((RexSlot) exprs.get(index)).getIndex();
           }
 
-          public int size() {
+          @Override public int size() {
             return exprs.size();
           }
         });
@@ -148,7 +148,7 @@ public abstract class Window extends SingleRel {
       final List<RexFieldCollation> collations) {
     return RelCollations.of(
         new AbstractList<RelFieldCollation>() {
-          public RelFieldCollation get(int index) {
+          @Override public RelFieldCollation get(int index) {
             final RexFieldCollation collation = collations.get(index);
             return new RelFieldCollation(
                 ((RexLocalRef) collation.left).getIndex(),
@@ -156,7 +156,7 @@ public abstract class Window extends SingleRel {
                 collation.getNullDirection());
           }
 
-          public int size() {
+          @Override public int size() {
             return collations.size();
           }
         });
@@ -239,7 +239,7 @@ public abstract class Window extends SingleRel {
       this.digest = computeString();
     }
 
-    public String toString() {
+    @Override public String toString() {
       return digest;
     }
 
@@ -325,11 +325,11 @@ public abstract class Window extends SingleRel {
           Util.skip(windowRel.getRowType().getFieldNames(),
               windowRel.getInput().getRowType().getFieldCount());
       return new AbstractList<AggregateCall>() {
-        public int size() {
+        @Override public int size() {
           return aggCalls.size();
         }
 
-        public AggregateCall get(int index) {
+        @Override public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
           return AggregateCall.create(op, aggCall.distinct, false,

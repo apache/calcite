@@ -56,18 +56,18 @@ class SimpleCalciteSchema extends CalciteSchema {
         functionMap, functionNames, nullaryFunctionMap, path);
   }
 
-  public void setCache(boolean cache) {
+  @Override public void setCache(boolean cache) {
     throw new UnsupportedOperationException();
   }
 
-  public CalciteSchema add(String name, Schema schema) {
+  @Override public CalciteSchema add(String name, Schema schema) {
     final CalciteSchema calciteSchema =
         new SimpleCalciteSchema(this, schema, name);
     subSchemaMap.put(name, calciteSchema);
     return calciteSchema;
   }
 
-  protected CalciteSchema getImplicitSubSchema(String schemaName,
+  @Override protected CalciteSchema getImplicitSubSchema(String schemaName,
       boolean caseSensitive) {
     // Check implicit schemas.
     Schema s = schema.getSubSchema(schemaName);
@@ -77,7 +77,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  protected TableEntry getImplicitTable(String tableName,
+  @Override protected TableEntry getImplicitTable(String tableName,
       boolean caseSensitive) {
     // Check implicit tables.
     Table table = schema.getTable(tableName);
@@ -87,7 +87,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
+  @Override protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
     // Check implicit types.
     RelProtoDataType type = schema.getType(name);
     if (type != null) {
@@ -96,7 +96,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  protected void addImplicitSubSchemaToBuilder(
+  @Override protected void addImplicitSubSchemaToBuilder(
       ImmutableSortedMap.Builder<String, CalciteSchema> builder) {
     ImmutableSortedMap<String, CalciteSchema> explicitSubSchemas = builder.build();
     for (String schemaName : schema.getSubSchemaNames()) {
@@ -112,11 +112,11 @@ class SimpleCalciteSchema extends CalciteSchema {
     }
   }
 
-  protected void addImplicitTableToBuilder(ImmutableSortedSet.Builder<String> builder) {
+  @Override protected void addImplicitTableToBuilder(ImmutableSortedSet.Builder<String> builder) {
     builder.addAll(schema.getTableNames());
   }
 
-  protected void addImplicitFunctionsToBuilder(
+  @Override protected void addImplicitFunctionsToBuilder(
       ImmutableList.Builder<Function> builder,
       String name, boolean caseSensitive) {
     Collection<Function> functions = schema.getFunctions(name);
@@ -125,7 +125,8 @@ class SimpleCalciteSchema extends CalciteSchema {
     }
   }
 
-  protected void addImplicitFuncNamesToBuilder(ImmutableSortedSet.Builder<String> builder) {
+  @Override protected void addImplicitFuncNamesToBuilder(
+      ImmutableSortedSet.Builder<String> builder) {
     builder.addAll(schema.getFunctionNames());
   }
 
@@ -134,7 +135,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     builder.addAll(schema.getTypeNames());
   }
 
-  protected void addImplicitTablesBasedOnNullaryFunctionsToBuilder(
+  @Override protected void addImplicitTablesBasedOnNullaryFunctionsToBuilder(
       ImmutableSortedMap.Builder<String, Table> builder) {
     ImmutableSortedMap<String, Table> explicitTables = builder.build();
 
@@ -153,7 +154,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     }
   }
 
-  protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
+  @Override protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
     Collection<Function> functions = schema.getFunctions(tableName);
     if (functions != null) {
@@ -168,7 +169,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
+  @Override protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
     CalciteSchema snapshot = new SimpleCalciteSchema(parent,
         schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());
@@ -179,7 +180,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return snapshot;
   }
 
-  protected boolean isCacheEnabled() {
+  @Override protected boolean isCacheEnabled() {
     return false;
   }
 

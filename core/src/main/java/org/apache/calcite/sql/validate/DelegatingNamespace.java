@@ -44,64 +44,64 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlValidator getValidator() {
+  @Override public SqlValidator getValidator() {
     return namespace.getValidator();
   }
 
-  public SqlValidatorTable getTable() {
+  @Override public SqlValidatorTable getTable() {
     return namespace.getTable();
   }
 
-  public RelDataType getRowType() {
+  @Override public RelDataType getRowType() {
     return namespace.getRowType();
   }
 
-  public void setType(RelDataType type) {
+  @Override public void setType(RelDataType type) {
     namespace.setType(type);
   }
 
-  public RelDataType getRowTypeSansSystemColumns() {
+  @Override public RelDataType getRowTypeSansSystemColumns() {
     return namespace.getRowTypeSansSystemColumns();
   }
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return namespace.getType();
   }
 
-  public void validate(RelDataType targetRowType) {
+  @Override public void validate(RelDataType targetRowType) {
     namespace.validate(targetRowType);
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return namespace.getNode();
   }
 
-  public SqlNode getEnclosingNode() {
+  @Override public SqlNode getEnclosingNode() {
     return namespace.getEnclosingNode();
   }
 
-  public SqlValidatorNamespace lookupChild(
+  @Override public SqlValidatorNamespace lookupChild(
       String name) {
     return namespace.lookupChild(name);
   }
 
-  public boolean fieldExists(String name) {
+  @Override public boolean fieldExists(String name) {
     return namespace.fieldExists(name);
   }
 
-  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+  @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return namespace.getMonotonicExprs();
   }
 
-  public SqlMonotonicity getMonotonicity(String columnName) {
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return namespace.getMonotonicity(columnName);
   }
 
   @SuppressWarnings("deprecation")
-  public void makeNullable() {
+  @Override public void makeNullable() {
   }
 
-  public <T> T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     } else {
@@ -109,7 +109,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     }
   }
 
-  public boolean isWrapperFor(Class<?> clazz) {
+  @Override public boolean isWrapperFor(Class<?> clazz) {
     return clazz.isInstance(this)
         || namespace.isWrapperFor(clazz);
   }

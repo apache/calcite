@@ -142,7 +142,7 @@ public final class MultiJoin extends AbstractRelNode {
     return clonedMap;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     List<String> joinTypeNames = new ArrayList<>();
     List<String> outerJoinConds = new ArrayList<>();
     List<String> projFieldObjects = new ArrayList<>();
@@ -172,15 +172,15 @@ public final class MultiJoin extends AbstractRelNode {
         .itemIf("postJoinFilter", postJoinFilter, postJoinFilter != null);
   }
 
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     return rowType;
   }
 
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode joinFilter = shuttle.apply(this.joinFilter);
     List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
     RexNode postJoinFilter = shuttle.apply(this.postJoinFilter);

@@ -103,7 +103,7 @@ public abstract class SortExchange extends Exchange {
     return collation;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("collation", collation);
   }

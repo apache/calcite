@@ -66,7 +66,7 @@ public interface RelDistribution extends RelMultipleTrait {
    * @param mapping   Mapping
    * @return distribution with mapping applied
    */
-  RelDistribution apply(Mappings.TargetMapping mapping);
+  @Override RelDistribution apply(Mappings.TargetMapping mapping);
 
   /** Type of distribution. */
   enum Type {

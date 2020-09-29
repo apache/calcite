@@ -171,7 +171,7 @@ public class BasicSqlType extends AbstractSqlType {
   }
 
   // implement RelDataTypeImpl
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // Called to make the digest, which equals() compares;
     // so equivalent data types must produce identical type strings.
 

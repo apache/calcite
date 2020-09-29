@@ -117,11 +117,11 @@ public class RexOver extends RexCall {
     return sb.toString();
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitOver(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitOver(this, arg);
   }
 
@@ -192,7 +192,7 @@ public class RexOver extends RexCall {
       super(true);
     }
 
-    public Void visitOver(RexOver over) {
+    @Override public Void visitOver(RexOver over) {
       throw OverFound.INSTANCE;
     }
   }

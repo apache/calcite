@@ -198,7 +198,7 @@ public class ReflectiveRelMetadataProvider
         space.providerMap);
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
@@ -228,7 +228,7 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);

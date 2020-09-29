@@ -114,11 +114,11 @@ class Maze {
       final StringBuilder b = new StringBuilder();
       final StringBuilder b2 = new StringBuilder();
 
-      public String current() {
+      @Override public String current() {
         return i % 2 == 0 ? b.toString() : b2.toString();
       }
 
-      public boolean moveNext() {
+      @Override public boolean moveNext() {
         if (i >= height * 2) {
           return false;
         }
@@ -131,11 +131,11 @@ class Maze {
         return true;
       }
 
-      public void reset() {
+      @Override public void reset() {
         i = -1;
       }
 
-      public void close() {}
+      @Override public void close() {}
     };
   }
 

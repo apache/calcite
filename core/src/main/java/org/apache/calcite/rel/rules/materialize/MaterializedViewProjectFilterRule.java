@@ -64,7 +64,7 @@ public class MaterializedViewProjectFilterRule
         .withFastBailOut(true)
         .as(Config.class);
 
-    default MaterializedViewProjectFilterRule toRule() {
+    @Override default MaterializedViewProjectFilterRule toRule() {
       return new MaterializedViewProjectFilterRule(this);
     }
   }

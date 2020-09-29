@@ -38,15 +38,15 @@ public abstract class AbstractTable implements Table, Wrapper {
   }
 
   // Default implementation. Override if you have statistics.
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 
-  public Schema.TableType getJdbcTableType() {
+  @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
   }
 
-  public <C> C unwrap(Class<C> aClass) {
+  @Override public <C> C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }

@@ -53,7 +53,7 @@ public class PsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<Object[]> scan(DataContext root) {
         final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
@@ -77,7 +77,7 @@ public class PsTableFunction {
         return Processes.processLines(args)
             .select(
                 new Function1<String, Object[]>() {
-                  public Object[] apply(String line) {
+                  @Override public Object[] apply(String line) {
                     final String[] fields = line.trim().split(" +");
                     final Object[] values = new Object[fieldNames.size()];
                     for (int i = 0; i < values.length; i++) {
@@ -136,7 +136,7 @@ public class PsTableFunction {
                 });
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("pid", SqlTypeName.INTEGER)
             .add("ppid", SqlTypeName.INTEGER)
@@ -158,19 +158,19 @@ public class PsTableFunction {
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }

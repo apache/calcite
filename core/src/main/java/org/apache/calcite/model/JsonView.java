@@ -82,7 +82,7 @@ public class JsonView extends JsonTable {
    */
   public Boolean modifiable;
 
-  public void accept(ModelHandler handler) {
+  @Override public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 

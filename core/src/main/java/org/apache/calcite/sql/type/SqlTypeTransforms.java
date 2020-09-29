@@ -100,7 +100,7 @@ public abstract class SqlTypeTransforms {
    */
   public static final SqlTypeTransform TO_VARYING =
       new SqlTypeTransform() {
-        public RelDataType transformType(
+        @Override public RelDataType transformType(
             SqlOperatorBinding opBinding,
             RelDataType typeToTransform) {
           switch (typeToTransform.getSqlTypeName()) {

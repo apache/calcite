@@ -68,7 +68,7 @@ public class CassandraToEnumerableConverter
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "query" with the appropriate fields and predicates
     final BlockBuilder list = new BlockBuilder();
     final CassandraRel.Implementor cassandraImplementor = new CassandraRel.Implementor();

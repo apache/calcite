@@ -71,11 +71,11 @@ public abstract class RexSlot extends RexVariable {
         final int start,
         final int end) {
       return new AbstractList<String>() {
-        public String get(int index) {
+        @Override public String get(int index) {
           return prefix + (index + start);
         }
 
-        public int size() {
+        @Override public int size() {
           return end - start;
         }
       };

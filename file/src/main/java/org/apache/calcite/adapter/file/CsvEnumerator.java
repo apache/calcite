@@ -169,11 +169,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return new CSVReader(source.reader());
   }
 
-  public E current() {
+  @Override public E current() {
     return current;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     try {
     outer:
       for (;;) {
@@ -212,11 +212,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     try {
       reader.close();
     } catch (IOException e) {
@@ -331,7 +331,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       this.stream = stream;
     }
 
-    public Object[] convertRow(String[] strings) {
+    @Override public Object[] convertRow(String[] strings) {
       if (stream) {
         return convertStreamRow(strings);
       } else {
@@ -369,7 +369,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       this.fieldIndex = fieldIndex;
     }
 
-    public Object convertRow(String[] strings) {
+    @Override public Object convertRow(String[] strings) {
       return convert(fieldType, strings[fieldIndex]);
     }
   }

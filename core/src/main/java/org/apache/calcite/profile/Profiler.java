@@ -109,7 +109,7 @@ public interface Profiler {
       this.rowCount = rowCount;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
       final Map<String, Object> map = jsonBuilder.map();
       map.put("type", "rowCount");
       map.put("rowCount", rowCount);
@@ -125,7 +125,7 @@ public interface Profiler {
       this.columns = ImmutableSortedSet.copyOf(columns);
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
       final Map<String, Object> map = jsonBuilder.map();
       map.put("type", "unique");
       map.put("columns", FunctionalDependency.getObjects(jsonBuilder, columns));
@@ -143,7 +143,7 @@ public interface Profiler {
       this.dependentColumn = dependentColumn;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
       final Map<String, Object> map = jsonBuilder.map();
       map.put("type", "fd");
       map.put("columns", getObjects(jsonBuilder, columns));
@@ -199,7 +199,7 @@ public interface Profiler {
       this.minimal = minimal;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
       final Map<String, Object> map = jsonBuilder.map();
       map.put("type", "distribution");
       map.put("columns", FunctionalDependency.getObjects(jsonBuilder, columns));

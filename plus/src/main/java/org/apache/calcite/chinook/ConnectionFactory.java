@@ -29,7 +29,7 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
 
   private static final CalciteConnectionProvider CALCITE = new CalciteConnectionProvider();
 
-  public Connection connect(String db, boolean bln) throws Exception {
+  @Override public Connection connect(String db, boolean bln) throws Exception {
     return DatabaseWrapper.valueOf(db).connection();
   }
 

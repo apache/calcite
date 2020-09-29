@@ -43,16 +43,16 @@ public class CsvScannableTable extends CsvTable
     super(source, protoRowType);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CsvScannableTable";
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,
             CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }

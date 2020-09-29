@@ -79,7 +79,7 @@ public class EnumerableInterpretable extends ConverterImpl
     return new EnumerableInterpretable(getCluster(), sole(inputs));
   }
 
-  public Node implement(final InterpreterImplementor implementor) {
+  @Override public Node implement(final InterpreterImplementor implementor) {
     final Bindable bindable = toBindable(implementor.internalParameters,
             implementor.spark, (EnumerableRel) getInput(),
         EnumerableRel.Prefer.ARRAY);
@@ -181,29 +181,29 @@ public class EnumerableInterpretable extends ConverterImpl
       return (ArrayBindable) bindable;
     }
     return new ArrayBindable() {
-      public Class<Object[]> getElementType() {
+      @Override public Class<Object[]> getElementType() {
         return Object[].class;
       }
 
-      public Enumerable<Object[]> bind(DataContext dataContext) {
+      @Override public Enumerable<Object[]> bind(DataContext dataContext) {
         final Enumerable<?> enumerable = bindable.bind(dataContext);
         return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             final Enumerator<?> enumerator = enumerable.enumerator();
             return new Enumerator<Object[]>() {
-              public Object[] current() {
+              @Override public Object[] current() {
                 return new Object[] {enumerator.current()};
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 return enumerator.moveNext();
               }
 
-              public void reset() {
+              @Override public void reset() {
                 enumerator.reset();
               }
 
-              public void close() {
+              @Override public void close() {
                 enumerator.close();
               }
             };
@@ -226,7 +226,7 @@ public class EnumerableInterpretable extends ConverterImpl
       this.sink = compiler.sink(rel);
     }
 
-    public void run() throws InterruptedException {
+    @Override public void run() throws InterruptedException {
       final Enumerator<Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
         Object[] values = enumerator.current();

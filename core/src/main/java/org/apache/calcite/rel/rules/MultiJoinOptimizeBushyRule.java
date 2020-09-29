@@ -123,7 +123,7 @@ public class MultiJoinOptimizeBushyRule
     // a large difference in the number of rows on LHS and RHS.
     final Comparator<LoptMultiJoin.Edge> edgeComparator =
         new Comparator<LoptMultiJoin.Edge>() {
-          public int compare(LoptMultiJoin.Edge e0, LoptMultiJoin.Edge e1) {
+          @Override public int compare(LoptMultiJoin.Edge e0, LoptMultiJoin.Edge e1) {
             return Double.compare(rowCountDiff(e0), rowCountDiff(e1));
           }
 

@@ -69,7 +69,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
   private final JethroDataSqlDialect.JethroInfoCache jethroCache =
       JethroDataSqlDialect.createCache();
 
-  public SqlDialect create(DatabaseMetaData databaseMetaData) {
+  @Override public SqlDialect create(DatabaseMetaData databaseMetaData) {
     String databaseProductName;
     int databaseMajorVersion;
     int databaseMinorVersion;

@@ -278,7 +278,7 @@ public interface SqlValidatorScope {
       return 1 + parent.stepCount();
     }
 
-    protected void build(ImmutableList.Builder<Step> paths) {
+    @Override protected void build(ImmutableList.Builder<Step> paths) {
       parent.build(paths);
       paths.add(this);
     }
@@ -289,7 +289,7 @@ public interface SqlValidatorScope {
   class ResolvedImpl implements Resolved {
     final List<Resolve> resolves = new ArrayList<>();
 
-    public void found(SqlValidatorNamespace namespace, boolean nullable,
+    @Override public void found(SqlValidatorNamespace namespace, boolean nullable,
         SqlValidatorScope scope, Path path, List<String> remainingNames) {
       if (scope instanceof TableScope) {
         scope = scope.getValidator().getSelectScope((SqlSelect) scope.getNode());
@@ -302,7 +302,7 @@ public interface SqlValidatorScope {
           new Resolve(namespace, nullable, scope, path, remainingNames));
     }
 
-    public int count() {
+    @Override public int count() {
       return resolves.size();
     }
 

@@ -56,7 +56,7 @@ public class FilesTableFunction {
    */
   public static ScannableTable eval(final String path) {
     return new ScannableTable() {
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("access_time", SqlTypeName.TIMESTAMP) // %A@ sec since epoch
             .add("block_count", SqlTypeName.INTEGER) // %b in 512B blocks
@@ -144,7 +144,7 @@ public class FilesTableFunction {
         return Processes.processLines('\n', args);
       }
 
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<Object[]> scan(DataContext root) {
         final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
@@ -160,16 +160,16 @@ public class FilesTableFunction {
           enumerable = sourceLinux();
         }
         return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
             return new Enumerator<Object[]>() {
               Object[] current;
 
-              public Object[] current() {
+              @Override public Object[] current() {
                 return current;
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 current = new Object[fieldNames.size()];
                 for (int i = 0; i < current.length; i++) {
                   if (!e.moveNext()) {
@@ -226,11 +226,11 @@ public class FilesTableFunction {
                 return n;
               }
 
-              public void reset() {
+              @Override public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              public void close() {
+              @Override public void close() {
                 e.close();
               }
 
@@ -259,19 +259,19 @@ public class FilesTableFunction {
         };
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }

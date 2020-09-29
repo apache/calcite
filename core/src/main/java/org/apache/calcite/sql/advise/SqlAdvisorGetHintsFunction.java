@@ -71,20 +71,20 @@ public class SqlAdvisorGetHintsFunction
           .add(int.class, "pos")
           .build();
 
-  public CallImplementor getImplementor() {
+  @Override public CallImplementor getImplementor() {
     return IMPLEMENTOR;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
       List<Object> arguments) {
     return typeFactory.createJavaType(SqlAdvisorHint.class);
   }
 
-  public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<Object> arguments) {
     return SqlAdvisorHint.class;
   }
 
-  public List<FunctionParameter> getParameters() {
+  @Override public List<FunctionParameter> getParameters() {
     return PARAMETERS;
   }
 

@@ -55,7 +55,7 @@ public class RelMdSelectivity
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
     return BuiltInMetadata.Selectivity.DEF;
   }
 

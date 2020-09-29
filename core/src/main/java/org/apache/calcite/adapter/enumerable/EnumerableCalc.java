@@ -108,7 +108,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return new EnumerableCalc(getCluster(), traitSet, child, program);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
@@ -284,7 +284,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
-  public RexProgram getProgram() {
+  @Override public RexProgram getProgram() {
     return program;
   }
 }

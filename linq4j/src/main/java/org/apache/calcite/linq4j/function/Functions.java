@@ -268,11 +268,11 @@ public abstract class Functions {
   public static <T1, R> List<R> adapt(final List<T1> list,
       final Function1<T1, R> f) {
     return new AbstractList<R>() {
-      public R get(int index) {
+      @Override public R get(int index) {
         return f.apply(list.get(index));
       }
 
-      public int size() {
+      @Override public int size() {
         return list.size();
       }
     };
@@ -288,11 +288,11 @@ public abstract class Functions {
   public static <T, R> List<R> adapt(final T[] ts,
       final Function1<T, R> f) {
     return new AbstractList<R>() {
-      public R get(int index) {
+      @Override public R get(int index) {
         return f.apply(ts[index]);
       }
 
-      public int size() {
+      @Override public int size() {
         return ts.length;
       }
     };
@@ -491,11 +491,11 @@ public abstract class Functions {
   /** Array equality comparer. */
   private static class ArrayEqualityComparer
       implements EqualityComparer<Object[]> {
-    public boolean equal(Object[] v1, Object[] v2) {
+    @Override public boolean equal(Object[] v1, Object[] v2) {
       return Arrays.deepEquals(v1, v2);
     }
 
-    public int hashCode(Object[] t) {
+    @Override public int hashCode(Object[] t) {
       return Arrays.deepHashCode(t);
     }
   }
@@ -503,11 +503,11 @@ public abstract class Functions {
   /** Identity equality comparer. */
   private static class IdentityEqualityComparer
       implements EqualityComparer<Object> {
-    public boolean equal(Object v1, Object v2) {
+    @Override public boolean equal(Object v1, Object v2) {
       return Objects.equals(v1, v2);
     }
 
-    public int hashCode(Object t) {
+    @Override public int hashCode(Object t) {
       return t == null ? 0x789d : t.hashCode();
     }
   }
@@ -524,14 +524,14 @@ public abstract class Functions {
       this.selector = selector;
     }
 
-    public boolean equal(T v1, T v2) {
+    @Override public boolean equal(T v1, T v2) {
       return v1 == v2
           || v1 != null
           && v2 != null
           && Objects.equals(selector.apply(v1), selector.apply(v2));
     }
 
-    public int hashCode(T t) {
+    @Override public int hashCode(T t) {
       return t == null ? 0x789d : selector.apply(t).hashCode();
     }
   }
@@ -539,7 +539,7 @@ public abstract class Functions {
   /** Nulls first comparator. */
   private static class NullsFirstComparator
       implements Comparator<Comparable>, Serializable {
-    public int compare(Comparable o1, Comparable o2) {
+    @Override public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -557,7 +557,7 @@ public abstract class Functions {
   /** Nulls last comparator. */
   private static class NullsLastComparator
       implements Comparator<Comparable>, Serializable {
-    public int compare(Comparable o1, Comparable o2) {
+    @Override public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -575,7 +575,7 @@ public abstract class Functions {
   /** Nulls first reverse comparator. */
   private static class NullsFirstReverseComparator
       implements Comparator<Comparable>, Serializable  {
-    public int compare(Comparable o1, Comparable o2) {
+    @Override public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -593,7 +593,7 @@ public abstract class Functions {
   /** Nulls last reverse comparator. */
   private static class NullsLastReverseComparator
       implements Comparator<Comparable>, Serializable  {
-    public int compare(Comparable o1, Comparable o2) {
+    @Override public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -615,15 +615,15 @@ public abstract class Functions {
    * @param <T1> second argument type */
   private static final class Ignore<R, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
-    public R apply() {
+    @Override public R apply() {
       return null;
     }
 
-    public R apply(T0 p0) {
+    @Override public R apply(T0 p0) {
       return null;
     }
 
-    public R apply(T0 p0, T1 p1) {
+    @Override public R apply(T0 p0, T1 p1) {
       return null;
     }
 
@@ -643,11 +643,11 @@ public abstract class Functions {
       this.fn = fn;
     }
 
-    public int size() {
+    @Override public int size() {
       return size;
     }
 
-    public E get(int index) {
+    @Override public E get(int index) {
       return fn.apply(index);
     }
   }

@@ -51,7 +51,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     boolean b = true;
@@ -98,7 +98,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
    * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
    * interface, and cannot throw an error.
    */
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     boolean b = true;
     for (int i = 0; i < nOperands; ++i) {

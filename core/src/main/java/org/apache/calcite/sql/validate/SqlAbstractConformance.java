@@ -23,107 +23,107 @@ package org.apache.calcite.sql.validate;
  * and behaves the same as in {@link SqlConformanceEnum#DEFAULT}.
  */
 public abstract class SqlAbstractConformance implements SqlConformance {
-  public boolean isLiberal() {
+  @Override public boolean isLiberal() {
     return SqlConformanceEnum.DEFAULT.isLiberal();
   }
 
-  public boolean allowCharLiteralAlias() {
+  @Override public boolean allowCharLiteralAlias() {
     return SqlConformanceEnum.DEFAULT.allowCharLiteralAlias();
   }
 
-  public boolean isGroupByAlias() {
+  @Override public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }
 
-  public boolean isGroupByOrdinal() {
+  @Override public boolean isGroupByOrdinal() {
     return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
   }
 
-  public boolean isHavingAlias() {
+  @Override public boolean isHavingAlias() {
     return SqlConformanceEnum.DEFAULT.isHavingAlias();
   }
 
-  public boolean isSortByOrdinal() {
+  @Override public boolean isSortByOrdinal() {
     return SqlConformanceEnum.DEFAULT.isSortByOrdinal();
   }
 
-  public boolean isSortByAlias() {
+  @Override public boolean isSortByAlias() {
     return SqlConformanceEnum.DEFAULT.isSortByAlias();
   }
 
-  public boolean isSortByAliasObscures() {
+  @Override public boolean isSortByAliasObscures() {
     return SqlConformanceEnum.DEFAULT.isSortByAliasObscures();
   }
 
-  public boolean isFromRequired() {
+  @Override public boolean isFromRequired() {
     return SqlConformanceEnum.DEFAULT.isFromRequired();
   }
 
-  public boolean splitQuotedTableName() {
+  @Override public boolean splitQuotedTableName() {
     return SqlConformanceEnum.DEFAULT.splitQuotedTableName();
   }
 
-  public boolean allowHyphenInUnquotedTableName() {
+  @Override public boolean allowHyphenInUnquotedTableName() {
     return SqlConformanceEnum.DEFAULT.allowHyphenInUnquotedTableName();
   }
 
-  public boolean isBangEqualAllowed() {
+  @Override public boolean isBangEqualAllowed() {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }
 
-  public boolean isMinusAllowed() {
+  @Override public boolean isMinusAllowed() {
     return SqlConformanceEnum.DEFAULT.isMinusAllowed();
   }
 
-  public boolean isApplyAllowed() {
+  @Override public boolean isApplyAllowed() {
     return SqlConformanceEnum.DEFAULT.isApplyAllowed();
   }
 
-  public boolean isInsertSubsetColumnsAllowed() {
+  @Override public boolean isInsertSubsetColumnsAllowed() {
     return SqlConformanceEnum.DEFAULT.isInsertSubsetColumnsAllowed();
   }
 
-  public boolean allowNiladicParentheses() {
+  @Override public boolean allowNiladicParentheses() {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
-  public boolean allowExplicitRowValueConstructor() {
+  @Override public boolean allowExplicitRowValueConstructor() {
     return SqlConformanceEnum.DEFAULT.allowExplicitRowValueConstructor();
   }
 
-  public boolean allowExtend() {
+  @Override public boolean allowExtend() {
     return SqlConformanceEnum.DEFAULT.allowExtend();
   }
 
-  public boolean isLimitStartCountAllowed() {
+  @Override public boolean isLimitStartCountAllowed() {
     return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
   }
 
-  public boolean isPercentRemainderAllowed() {
+  @Override public boolean isPercentRemainderAllowed() {
     return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
   }
 
-  public boolean allowGeometry() {
+  @Override public boolean allowGeometry() {
     return SqlConformanceEnum.DEFAULT.allowGeometry();
   }
 
-  public boolean shouldConvertRaggedUnionTypesToVarying() {
+  @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return SqlConformanceEnum.DEFAULT.shouldConvertRaggedUnionTypesToVarying();
   }
 
-  public boolean allowExtendedTrim() {
+  @Override public boolean allowExtendedTrim() {
     return SqlConformanceEnum.DEFAULT.allowExtendedTrim();
   }
 
-  public boolean allowPluralTimeUnits() {
+  @Override public boolean allowPluralTimeUnits() {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }
 
-  public boolean allowQualifyingCommonColumn() {
+  @Override public boolean allowQualifyingCommonColumn() {
     return SqlConformanceEnum.DEFAULT.allowQualifyingCommonColumn();
   }
 
-  public boolean allowAliasUnnestItems() {
+  @Override public boolean allowAliasUnnestItems() {
     return SqlConformanceEnum.DEFAULT.allowAliasUnnestItems();
   }
 }

@@ -345,7 +345,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       super(queryProvider, schema, table, tableName);
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       return null;
     }
 

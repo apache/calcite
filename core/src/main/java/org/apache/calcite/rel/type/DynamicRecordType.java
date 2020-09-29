@@ -26,7 +26,7 @@ public abstract class DynamicRecordType extends RelDataTypeImpl {
   // The prefix string for dynamic star column name
   public static final String DYNAMIC_STAR_PREFIX = "**";
 
-  public boolean isDynamicStruct() {
+  @Override public boolean isDynamicStruct() {
     return true;
   }
 

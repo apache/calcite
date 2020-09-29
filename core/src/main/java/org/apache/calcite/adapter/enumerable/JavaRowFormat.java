@@ -37,7 +37,7 @@ import java.util.List;
  */
 public enum JavaRowFormat {
   CUSTOM {
-    Type javaRowClass(
+    @Override Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
       assert type.getFieldCount() > 1;
@@ -49,7 +49,7 @@ public enum JavaRowFormat {
       return typeFactory.getJavaClass(type.getFieldList().get(index).getType());
     }
 
-    public Expression record(
+    @Override public Expression record(
         Type javaRowClass, List<Expression> expressions) {
       switch (expressions.size()) {
       case 0:
@@ -60,7 +60,7 @@ public enum JavaRowFormat {
       }
     }
 
-    public MemberExpression field(Expression expression, int field,
+    @Override public MemberExpression field(Expression expression, int field,
         Type fromType, Type fieldType) {
       final Type type = expression.getType();
       if (type instanceof Types.RecordType) {
@@ -76,7 +76,7 @@ public enum JavaRowFormat {
   },
 
   SCALAR {
-    Type javaRowClass(
+    @Override Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
       assert type.getFieldCount() == 1;
@@ -89,12 +89,12 @@ public enum JavaRowFormat {
       return javaRowClass(typeFactory, type);
     }
 
-    public Expression record(Type javaRowClass, List<Expression> expressions) {
+    @Override public Expression record(Type javaRowClass, List<Expression> expressions) {
       assert expressions.size() == 1;
       return expressions.get(0);
     }
 
-    public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
       assert field == 0;
       return expression;
@@ -105,7 +105,7 @@ public enum JavaRowFormat {
    * (empty list is a good singleton) but sometimes also for records with 2 or
    * more fields that you need to be comparable, say as a key in a lookup. */
   LIST {
-    Type javaRowClass(
+    @Override Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
       return FlatLists.ComparableList.class;
@@ -116,7 +116,7 @@ public enum JavaRowFormat {
       return Object.class;
     }
 
-    public Expression record(
+    @Override public Expression record(
         Type javaRowClass, List<Expression> expressions) {
       switch (expressions.size()) {
       case 0:
@@ -177,7 +177,7 @@ public enum JavaRowFormat {
       }
     }
 
-    public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
       final MethodCallExpression e = Expressions.call(expression,
           BuiltInMethod.LIST_GET.method, Expressions.constant(field));
@@ -206,7 +206,7 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
     }
 
-    public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
       final Expression e = Expressions.call(expression,
           BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
@@ -218,7 +218,7 @@ public enum JavaRowFormat {
   },
 
   ARRAY {
-    Type javaRowClass(
+    @Override Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
       return Object[].class;
@@ -229,7 +229,7 @@ public enum JavaRowFormat {
       return Object.class;
     }
 
-    public Expression record(Type javaRowClass, List<Expression> expressions) {
+    @Override public Expression record(Type javaRowClass, List<Expression> expressions) {
       return Expressions.newArrayInit(Object.class, expressions);
     }
 
@@ -237,7 +237,7 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ARRAY_COMPARER.method);
     }
 
-    public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
       final IndexExpression e = Expressions.arrayIndex(expression,
           Expressions.constant(field));

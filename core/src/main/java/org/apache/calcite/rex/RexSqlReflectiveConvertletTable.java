@@ -36,7 +36,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RexSqlConvertlet get(RexCall call) {
+  @Override public RexSqlConvertlet get(RexCall call) {
     RexSqlConvertlet convertlet;
     final SqlOperator op = call.getOperator();
 

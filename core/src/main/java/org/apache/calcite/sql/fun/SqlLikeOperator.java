@@ -92,11 +92,11 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     return negated;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     switch (callBinding.getOperandCount()) {
@@ -128,7 +128,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -145,7 +145,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public ReduceResult reduceExpr(
+  @Override public ReduceResult reduceExpr(
       final int opOrdinal,
       TokenSequence list) {
     // Example:

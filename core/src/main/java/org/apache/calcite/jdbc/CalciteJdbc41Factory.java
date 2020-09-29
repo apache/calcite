@@ -53,20 +53,20 @@ public class CalciteJdbc41Factory extends CalciteFactory {
     super(major, minor);
   }
 
-  public CalciteJdbc41Connection newConnection(UnregisteredDriver driver,
+  @Override public CalciteJdbc41Connection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
       CalciteSchema rootSchema, JavaTypeFactory typeFactory) {
     return new CalciteJdbc41Connection(
         (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
 
-  public CalciteJdbc41DatabaseMetaData newDatabaseMetaData(
+  @Override public CalciteJdbc41DatabaseMetaData newDatabaseMetaData(
       AvaticaConnection connection) {
     return new CalciteJdbc41DatabaseMetaData(
         (CalciteConnectionImpl) connection);
   }
 
-  public CalciteJdbc41Statement newStatement(AvaticaConnection connection,
+  @Override public CalciteJdbc41Statement newStatement(AvaticaConnection connection,
       Meta.StatementHandle h,
       int resultSetType,
       int resultSetConcurrency,
@@ -78,7 +78,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
         resultSetHoldability);
   }
 
-  public AvaticaPreparedStatement newPreparedStatement(
+  @Override public AvaticaPreparedStatement newPreparedStatement(
       AvaticaConnection connection,
       Meta.StatementHandle h,
       Meta.Signature signature,
@@ -91,7 +91,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
         resultSetConcurrency, resultSetHoldability);
   }
 
-  public CalciteResultSet newResultSet(AvaticaStatement statement, QueryState state,
+  @Override public CalciteResultSet newResultSet(AvaticaStatement statement, QueryState state,
       Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame)
       throws SQLException {
     final ResultSetMetaData metaData =
@@ -102,7 +102,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
         firstFrame);
   }
 
-  public ResultSetMetaData newResultSetMetaData(AvaticaStatement statement,
+  @Override public ResultSetMetaData newResultSetMetaData(AvaticaStatement statement,
       Meta.Signature signature) {
     return new AvaticaResultSetMetaData(statement, null, signature);
   }
@@ -137,18 +137,18 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           resultSetHoldability);
     }
 
-    public void setRowId(
+    @Override public void setRowId(
         int parameterIndex,
         RowId x) throws SQLException {
       getSite(parameterIndex).setRowId(x);
     }
 
-    public void setNString(
+    @Override public void setNString(
         int parameterIndex, String value) throws SQLException {
       getSite(parameterIndex).setNString(value);
     }
 
-    public void setNCharacterStream(
+    @Override public void setNCharacterStream(
         int parameterIndex,
         Reader value,
         long length) throws SQLException {
@@ -156,13 +156,13 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setNCharacterStream(value, length);
     }
 
-    public void setNClob(
+    @Override public void setNClob(
         int parameterIndex,
         NClob value) throws SQLException {
       getSite(parameterIndex).setNClob(value);
     }
 
-    public void setClob(
+    @Override public void setClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
@@ -170,7 +170,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setClob(reader, length);
     }
 
-    public void setBlob(
+    @Override public void setBlob(
         int parameterIndex,
         InputStream inputStream,
         long length) throws SQLException {
@@ -178,19 +178,19 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setBlob(inputStream, length);
     }
 
-    public void setNClob(
+    @Override public void setNClob(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
       getSite(parameterIndex).setNClob(reader, length);
     }
 
-    public void setSQLXML(
+    @Override public void setSQLXML(
         int parameterIndex, SQLXML xmlObject) throws SQLException {
       getSite(parameterIndex).setSQLXML(xmlObject);
     }
 
-    public void setAsciiStream(
+    @Override public void setAsciiStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
@@ -198,7 +198,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setAsciiStream(x, length);
     }
 
-    public void setBinaryStream(
+    @Override public void setBinaryStream(
         int parameterIndex,
         InputStream x,
         long length) throws SQLException {
@@ -206,7 +206,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setBinaryStream(x, length);
     }
 
-    public void setCharacterStream(
+    @Override public void setCharacterStream(
         int parameterIndex,
         Reader reader,
         long length) throws SQLException {
@@ -214,41 +214,41 @@ public class CalciteJdbc41Factory extends CalciteFactory {
           .setCharacterStream(reader, length);
     }
 
-    public void setAsciiStream(
+    @Override public void setAsciiStream(
         int parameterIndex, InputStream x) throws SQLException {
       getSite(parameterIndex).setAsciiStream(x);
     }
 
-    public void setBinaryStream(
+    @Override public void setBinaryStream(
         int parameterIndex, InputStream x) throws SQLException {
       getSite(parameterIndex).setBinaryStream(x);
     }
 
-    public void setCharacterStream(
+    @Override public void setCharacterStream(
         int parameterIndex, Reader reader) throws SQLException {
       getSite(parameterIndex)
           .setCharacterStream(reader);
     }
 
-    public void setNCharacterStream(
+    @Override public void setNCharacterStream(
         int parameterIndex, Reader value) throws SQLException {
       getSite(parameterIndex)
           .setNCharacterStream(value);
     }
 
-    public void setClob(
+    @Override public void setClob(
         int parameterIndex,
         Reader reader) throws SQLException {
       getSite(parameterIndex).setClob(reader);
     }
 
-    public void setBlob(
+    @Override public void setBlob(
         int parameterIndex, InputStream inputStream) throws SQLException {
       getSite(parameterIndex)
           .setBlob(inputStream);
     }
 
-    public void setNClob(
+    @Override public void setNClob(
         int parameterIndex, Reader reader) throws SQLException {
       getSite(parameterIndex)
           .setNClob(reader);

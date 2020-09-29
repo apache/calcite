@@ -90,7 +90,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     accumulatorFactories = builder.build();
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     Row r;
     while ((r = source.receive()) != null) {
       for (Grouping group : groups) {
@@ -219,7 +219,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
       AggAddContext addContext =
           new AggAddContextImpl(builder2, accumulator) {
-            public List<RexNode> rexArguments() {
+            @Override public List<RexNode> rexArguments() {
               List<RexNode> args = new ArrayList<>();
               for (int index : agg.call.getArgList()) {
                 args.add(RexInputRef.of(index, inputPhysType.getRowType()));
@@ -227,14 +227,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
               return args;
             }
 
-            public RexNode rexFilterArgument() {
+            @Override public RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,
                       inputPhysType.getRowType());
             }
 
-            public RexToLixTranslator rowTranslator() {
+            @Override public RexToLixTranslator rowTranslator() {
               final SqlConformance conformance =
                   SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
@@ -269,7 +269,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       cnt = 0;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       boolean notNull = true;
       for (Integer i : call.getArgList()) {
         if (row.getObject(i) == null) {
@@ -282,7 +282,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
     }
 
-    public Object end() {
+    @Override public Object end() {
       return cnt;
     }
   }
@@ -315,7 +315,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.endContext.values = new Object[accumulatorLength];
     }
 
-    public Accumulator get() {
+    @Override public Accumulator get() {
       return new ScalarAccumulator(this, new Object[accumulatorLength]);
     }
   }
@@ -330,7 +330,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.values = values;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       System.arraycopy(row.getValues(), 0, def.sendContext.values, 0,
           def.rowLength);
       System.arraycopy(values, 0, def.sendContext.values, def.rowLength,
@@ -338,7 +338,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       def.addScalar.execute(def.sendContext, values);
     }
 
-    public Object end() {
+    @Override public Object end() {
       System.arraycopy(values, 0, def.endContext.values, 0, values.length);
       return def.endScalar.execute(def.endContext);
     }
@@ -686,7 +686,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.nullIfEmpty = nullIfEmpty;
     }
 
-    public Accumulator get() {
+    @Override public Accumulator get() {
       return new UdaAccumulator(this);
     }
   }
@@ -707,7 +707,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.empty = true;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       final Object[] args = {value, row.getValues()[factory.argOrdinal]};
       for (int i = 1; i < args.length; i++) {
         if (args[i] == null) {
@@ -722,7 +722,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       empty = false;
     }
 
-    public Object end() {
+    @Override public Object end() {
       if (factory.nullIfEmpty && empty) {
         return null;
       }
@@ -746,13 +746,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.filterArg = filterArg;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       if (row.getValues()[filterArg] == Boolean.TRUE) {
         accumulator.send(row);
       }
     }
 
-    public Object end() {
+    @Override public Object end() {
       return accumulator.end();
     }
   }

@@ -53,7 +53,7 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

@@ -142,7 +142,7 @@ public abstract class RelToSqlConverterUtil {
    * unparse override. */
   public static SqlSpecialOperator specialOperatorByName(String opName) {
     return new SqlSpecialOperator(opName, SqlKind.OTHER_FUNCTION) {
-      public void unparse(
+      @Override public void unparse(
           SqlWriter writer,
           SqlCall call,
           int leftPrec,

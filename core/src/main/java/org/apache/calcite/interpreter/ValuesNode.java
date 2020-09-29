@@ -59,7 +59,7 @@ public class ValuesNode implements Node {
     return rows.build();
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     for (Row row : rows) {
       sink.send(row);
     }

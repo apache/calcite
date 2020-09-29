@@ -98,7 +98,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     // Note that empty set equals empty set, so relational expressions
     // with zero inputs do not generally need to implement their own copy
     // method.
@@ -118,37 +118,37 @@ public abstract class AbstractRelNode implements RelNode {
     return collection.get(0);
   }
 
-  public final RelOptCluster getCluster() {
+  @Override public final RelOptCluster getCluster() {
     return cluster;
   }
 
-  public final Convention getConvention() {
+  @Override public final Convention getConvention() {
     return traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
-  public RelTraitSet getTraitSet() {
+  @Override public RelTraitSet getTraitSet() {
     return traitSet;
   }
 
-  public String getCorrelVariable() {
+  @Override public String getCorrelVariable() {
     return null;
   }
 
-  public int getId() {
+  @Override public int getId() {
     return id;
   }
 
-  public RelNode getInput(int i) {
+  @Override public RelNode getInput(int i) {
     List<RelNode> inputs = getInputs();
     return inputs.get(i);
   }
 
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
     Util.discard(planner);
   }
 
   // It is not recommended to override this method, but sub-classes can do it at their own risk.
-  public String getRelTypeName() {
+  @Override public String getRelTypeName() {
     String cn = getClass().getName();
     int i = cn.length();
     while (--i >= 0) {
@@ -159,11 +159,11 @@ public abstract class AbstractRelNode implements RelNode {
     return cn;
   }
 
-  public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     return litmus.succeed();
   }
 
-  public final RelDataType getRowType() {
+  @Override public final RelDataType getRowType() {
     if (rowType == null) {
       rowType = deriveRowType();
       assert rowType != null : this;
@@ -177,58 +177,58 @@ public abstract class AbstractRelNode implements RelNode {
     throw new UnsupportedOperationException();
   }
 
-  public RelDataType getExpectedInputRowType(int ordinalInParent) {
+  @Override public RelDataType getExpectedInputRowType(int ordinalInParent) {
     return getRowType();
   }
 
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return Collections.emptyList();
   }
 
-  public double estimateRowCount(RelMetadataQuery mq) {
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
     return 1.0;
   }
 
-  public Set<CorrelationId> getVariablesSet() {
+  @Override public Set<CorrelationId> getVariablesSet() {
     return ImmutableSet.of();
   }
 
-  public void collectVariablesUsed(Set<CorrelationId> variableSet) {
+  @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     // for default case, nothing to do
   }
 
-  public boolean isEnforcer() {
+  @Override public boolean isEnforcer() {
     return false;
   }
 
-  public void collectVariablesSet(Set<CorrelationId> variableSet) {
+  @Override public void collectVariablesSet(Set<CorrelationId> variableSet) {
   }
 
-  public void childrenAccept(RelVisitor visitor) {
+  @Override public void childrenAccept(RelVisitor visitor) {
     List<RelNode> inputs = getInputs();
     for (int i = 0; i < inputs.size(); i++) {
       visitor.visit(inputs.get(i), i, this);
     }
   }
 
-  public RelNode accept(RelShuttle shuttle) {
+  @Override public RelNode accept(RelShuttle shuttle) {
     // Call fall-back method. Specific logical types (such as LogicalProject
     // and LogicalJoin) have their own RelShuttle.visit methods.
     return shuttle.visit(this);
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     return this;
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // by default, assume cost is proportional to number of rows
     double rowCount = mq.getRowCount(this);
     return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
-  public final <M extends Metadata> M metadata(Class<M> metadataClass,
+  @Override public final <M extends Metadata> M metadata(Class<M> metadataClass,
       RelMetadataQuery mq) {
     final MetadataFactory factory = cluster.getMetadataFactory();
     final M metadata = factory.query(this, mq, metadataClass);
@@ -242,7 +242,7 @@ public abstract class AbstractRelNode implements RelNode {
     return metadata;
   }
 
-  public void explain(RelWriter pw) {
+  @Override public void explain(RelWriter pw) {
     explainTerms(pw).done(this);
   }
 
@@ -261,7 +261,7 @@ public abstract class AbstractRelNode implements RelNode {
     return pw;
   }
 
-  public RelNode onRegister(RelOptPlanner planner) {
+  @Override public RelNode onRegister(RelOptPlanner planner) {
     List<RelNode> oldInputs = getInputs();
     List<RelNode> inputs = new ArrayList<>(oldInputs.size());
     for (final RelNode input : oldInputs) {
@@ -282,35 +282,35 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  public void recomputeDigest() {
+  @Override public void recomputeDigest() {
     digest.clear();
   }
 
-  public void replaceInput(
+  @Override public void replaceInput(
       int ordinalInParent,
       RelNode p) {
     throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
   /** Description; consists of id plus digest. */
-  public String toString() {
+  @Override public String toString() {
     return "rel#" + id + ':' + getDigest();
   }
 
   @Deprecated // to be removed before 2.0
-  public final String getDescription() {
+  @Override public final String getDescription() {
     return this.toString();
   }
 
-  public String getDigest() {
+  @Override public String getDigest() {
     return digest.toString();
   }
 
-  public final RelDigest getRelDigest() {
+  @Override public final RelDigest getRelDigest() {
     return digest;
   }
 
-  public RelOptTable getTable() {
+  @Override public RelOptTable getTable() {
     return null;
   }
 
@@ -349,7 +349,7 @@ public abstract class AbstractRelNode implements RelNode {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
-  @API(since = "1.25", status = API.Status.MAINTAINED)
+  @Override @API(since = "1.25", status = API.Status.MAINTAINED)
   public boolean deepEquals(Object obj) {
     if (this == obj) {
       return true;
@@ -386,7 +386,7 @@ public abstract class AbstractRelNode implements RelNode {
    * @see #deepEquals(Object)
    */
   @API(since = "1.25", status = API.Status.MAINTAINED)
-  public int deepHashCode() {
+  @Override public int deepHashCode() {
     int result = 31 + getTraitSet().hashCode();
     List<Pair<String, Object>> items = this.getDigestItems();
     for (Pair<String, Object> item : items) {

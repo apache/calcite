@@ -67,41 +67,41 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   }
 
   // implement RelDataTypeField
-  public String getName() {
+  @Override public String getName() {
     return name;
   }
 
   // implement RelDataTypeField
-  public int getIndex() {
+  @Override public int getIndex() {
     return index;
   }
 
   // implement RelDataTypeField
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return type;
   }
 
   // implement Map.Entry
-  public final String getKey() {
+  @Override public final String getKey() {
     return getName();
   }
 
   // implement Map.Entry
-  public final RelDataType getValue() {
+  @Override public final RelDataType getValue() {
     return getType();
   }
 
   // implement Map.Entry
-  public RelDataType setValue(RelDataType value) {
+  @Override public RelDataType setValue(RelDataType value) {
     throw new UnsupportedOperationException();
   }
 
   // for debugging
-  public String toString() {
+  @Override public String toString() {
     return "#" + index + ": " + name + " " + type;
   }
 
-  public boolean isDynamicStar() {
+  @Override public boolean isDynamicStar() {
     return type.getSqlTypeName() == SqlTypeName.DYNAMIC_STAR;
   }
 

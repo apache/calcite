@@ -125,19 +125,19 @@ public class RelDistributions {
       }
     }
 
-    @Nonnull public Type getType() {
+    @Override @Nonnull public Type getType() {
       return type;
     }
 
-    @Nonnull public List<Integer> getKeys() {
+    @Override @Nonnull public List<Integer> getKeys() {
       return keys;
     }
 
-    public RelDistributionTraitDef getTraitDef() {
+    @Override public RelDistributionTraitDef getTraitDef() {
       return RelDistributionTraitDef.INSTANCE;
     }
 
-    public RelDistribution apply(Mappings.TargetMapping mapping) {
+    @Override public RelDistribution apply(Mappings.TargetMapping mapping) {
       if (keys.isEmpty()) {
         return this;
       }
@@ -151,7 +151,7 @@ public class RelDistributions {
       return of(type, mappedKeys);
     }
 
-    public boolean satisfies(RelTrait trait) {
+    @Override public boolean satisfies(RelTrait trait) {
       if (trait == this || trait == ANY) {
         return true;
       }
@@ -181,7 +181,7 @@ public class RelDistributions {
       return false;
     }
 
-    public void register(RelOptPlanner planner) {
+    @Override public void register(RelOptPlanner planner) {
     }
 
     @Override public boolean isTop() {

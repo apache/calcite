@@ -122,7 +122,7 @@ public class Uncollect extends SingleRel {
     return new Uncollect(getCluster(), traitSet, input, withOrdinality, itemAliases);
   }
 
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return deriveUncollectRowType(input, withOrdinality, itemAliases);
   }
 

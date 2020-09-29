@@ -36,7 +36,7 @@ public class IntPair {
   @Deprecated
   public static final Function<IntPair, IntPair> SWAP =
       new Function<IntPair, IntPair>() {
-        public IntPair apply(IntPair pair) {
+        @Override public IntPair apply(IntPair pair) {
           return of(pair.target, pair.source);
         }
       };
@@ -46,7 +46,7 @@ public class IntPair {
   public static final Ordering<IntPair> ORDERING =
       Ordering.from(
           new Comparator<IntPair>() {
-            public int compare(IntPair o1, IntPair o2) {
+            @Override public int compare(IntPair o1, IntPair o2) {
               int c = Integer.compare(o1.source, o2.source);
               if (c == 0) {
                 c = Integer.compare(o1.target, o2.target);
@@ -59,7 +59,7 @@ public class IntPair {
   @Deprecated
   public static final Function<IntPair, Integer> LEFT =
       new Function<IntPair, Integer>() {
-        public Integer apply(IntPair pair) {
+        @Override public Integer apply(IntPair pair) {
           return pair.source;
         }
       };
@@ -68,7 +68,7 @@ public class IntPair {
   @Deprecated
   public static final Function<IntPair, Integer> RIGHT =
       new Function<IntPair, Integer>() {
-        public Integer apply(IntPair pair) {
+        @Override public Integer apply(IntPair pair) {
           return pair.target;
         }
       };
@@ -91,11 +91,11 @@ public class IntPair {
     return new IntPair(left, right);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return source + "-" + target;
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (obj instanceof IntPair) {
       IntPair that = (IntPair) obj;
       return (this.source == that.source) && (this.target == that.target);
@@ -103,7 +103,7 @@ public class IntPair {
     return false;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Utilities.hash(source, target);
   }
 
@@ -146,12 +146,12 @@ public class IntPair {
       size = Math.min(lefts.size(), rights.size());
     }
     return new AbstractList<IntPair>() {
-      public IntPair get(int index) {
+      @Override public IntPair get(int index) {
         return IntPair.of(lefts.get(index).intValue(),
             rights.get(index).intValue());
       }
 
-      public int size() {
+      @Override public int size() {
         return size;
       }
     };

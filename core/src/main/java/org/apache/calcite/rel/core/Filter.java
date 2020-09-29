@@ -97,7 +97,7 @@ public abstract class Filter extends SingleRel {
   public abstract Filter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition);
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);
     if (this.condition == condition) {
       return this;
@@ -151,7 +151,7 @@ public abstract class Filter extends SingleRel {
     return RelMdUtil.estimateFilteredRows(child, condition, mq);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("condition", condition);
   }

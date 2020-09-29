@@ -66,7 +66,7 @@ public class Sample extends SingleRel {
         repeatable ? ((Number) repeatableSeed).intValue() : 0);
   }
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new Sample(getCluster(), sole(inputs), params);
   }

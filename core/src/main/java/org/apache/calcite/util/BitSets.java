@@ -88,17 +88,17 @@ public final class BitSets {
     return () -> new Iterator<Integer>() {
       int i = bitSet.nextSetBit(0);
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return i >= 0;
       }
 
-      public Integer next() {
+      @Override public Integer next() {
         int prev = i;
         i = bitSet.nextSetBit(i + 1);
         return prev;
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     };

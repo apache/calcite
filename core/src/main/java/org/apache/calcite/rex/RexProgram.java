@@ -153,11 +153,11 @@ public class RexProgram {
    */
   public List<Pair<RexLocalRef, String>> getNamedProjects() {
     return new AbstractList<Pair<RexLocalRef, String>>() {
-      public int size() {
+      @Override public int size() {
         return projects.size();
       }
 
-      public Pair<RexLocalRef, String> get(int index) {
+      @Override public Pair<RexLocalRef, String> get(int index) {
         return Pair.of(
             projects.get(index),
             outputRowType.getFieldList().get(index).getName());
@@ -247,7 +247,7 @@ public class RexProgram {
   }
 
   // description of this calc, chiefly intended for debugging
-  public String toString() {
+  @Override public String toString() {
     // Intended to produce similar output to explainCalc,
     // but without requiring a RelNode or RelOptPlanWriter.
     final RelWriterImpl pw =
@@ -761,7 +761,7 @@ public class RexProgram {
     final Set<String> paramIdSet = new HashSet<>();
     RexUtil.apply(
         new RexVisitorImpl<Void>(true) {
-          public Void visitCorrelVariable(
+          @Override public Void visitCorrelVariable(
               RexCorrelVariable correlVariable) {
             paramIdSet.add(correlVariable.getName());
             return null;
@@ -900,7 +900,7 @@ public class RexProgram {
       this.exprs = exprs;
     }
 
-    public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public RexNode visitLocalRef(RexLocalRef localRef) {
       RexNode tree = exprs.get(localRef.getIndex());
       return tree.accept(this);
     }
@@ -935,20 +935,20 @@ public class RexProgram {
       super(false);
     }
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       return inputRef;
     }
 
-    public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public RexNode visitLocalRef(RexLocalRef localRef) {
       final RexNode expr = exprs.get(localRef.index);
       return expr.accept(this);
     }
 
-    public RexNode visitLiteral(RexLiteral literal) {
+    @Override public RexNode visitLiteral(RexLiteral literal) {
       return literal;
     }
 
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       final List<RexNode> newOperands = new ArrayList<>();
       for (RexNode operand : call.getOperands()) {
         newOperands.add(operand.accept(this));
@@ -956,23 +956,23 @@ public class RexProgram {
       return call.clone(call.getType(), newOperands);
     }
 
-    public RexNode visitOver(RexOver over) {
+    @Override public RexNode visitOver(RexOver over) {
       return visitCall(over);
     }
 
-    public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
       return correlVariable;
     }
 
-    public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       return dynamicParam;
     }
 
-    public RexNode visitRangeRef(RexRangeRef rangeRef) {
+    @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
       return rangeRef;
     }
 
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode referenceExpr =
           fieldAccess.getReferenceExpr().accept(this);
       return new RexFieldAccess(
@@ -989,7 +989,7 @@ public class RexProgram {
       super(true);
     }
 
-    public Void visitLocalRef(RexLocalRef localRef) {
+    @Override public Void visitLocalRef(RexLocalRef localRef) {
       final int index = localRef.getIndex();
       refCounts[index]++;
       return null;

@@ -839,7 +839,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.BOOLEAN,
           null,
           OperandTypes.ANY) {
-        public boolean argumentMustBeScalar(int ordinal) {
+        @Override public boolean argumentMustBeScalar(int ordinal) {
           return false;
         }
 
@@ -1454,7 +1454,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlSpecialOperator REINTERPRET =
       new SqlSpecialOperator("Reinterpret", SqlKind.REINTERPRET) {
-        public SqlOperandCountRange getOperandCountRange() {
+        @Override public SqlOperandCountRange getOperandCountRange() {
           return SqlOperandCountRanges.between(1, 2);
         }
       };
@@ -1764,7 +1764,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.NILADIC,
           SqlFunctionCategory.NUMERIC) {
-        public SqlSyntax getSyntax() {
+        @Override public SqlSyntax getSyntax() {
           return SqlSyntax.FUNCTION_ID;
         }
       };
@@ -2133,7 +2133,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.MULTISET_RECORD,
           null,
           OperandTypes.MULTISET) {
-        public void unparse(
+        @Override public void unparse(
             SqlWriter writer,
             SqlCall call,
             int leftPrec,
@@ -2158,7 +2158,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.RECORD_TO_SCALAR,
           null,
           OperandTypes.RECORD_TO_SCALAR) {
-        public void unparse(
+        @Override public void unparse(
             SqlWriter writer,
             SqlCall call,
             int leftPrec,
@@ -2168,7 +2168,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           writer.endList(frame);
         }
 
-        public boolean argumentMustBeScalar(int ordinal) {
+        @Override public boolean argumentMustBeScalar(int ordinal) {
           // Obvious, really.
           return false;
         }
@@ -2289,7 +2289,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0,
           null,
           OperandTypes.VARIADIC) {
-        public void unparse(
+        @Override public void unparse(
             SqlWriter writer,
             SqlCall call,
             int leftPrec,

@@ -188,7 +188,7 @@ public class RexMultisetUtil {
       multisetCount = 0;
     }
 
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       ++totalCount;
       if (MULTISET_OPERATORS.contains(call.getOperator())) {
         if (!call.getOperator().equals(SqlStdOperatorTable.CAST)

@@ -234,7 +234,7 @@ public abstract class Sources {
       return url;
     }
 
-    public File file() {
+    @Override public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }

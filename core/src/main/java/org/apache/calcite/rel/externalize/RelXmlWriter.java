@@ -49,7 +49,7 @@ public class RelXmlWriter extends RelWriterImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void explain_(
+  @Override protected void explain_(
       RelNode rel,
       List<Pair<String, Object>> values) {
     if (generic) {

@@ -165,15 +165,15 @@ class HttpServer {
 
   private static <E> Iterable<E> iterable(final Enumeration<E> enumeration) {
     return () -> new Iterator<E>() {
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return enumeration.hasMoreElements();
       }
 
-      public E next() {
+      @Override public E next() {
         return enumeration.nextElement();
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     };

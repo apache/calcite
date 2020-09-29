@@ -64,7 +64,7 @@ public class MaterializedViewProjectJoinRule
         .withFastBailOut(true)
         .as(Config.class);
 
-    default MaterializedViewProjectJoinRule toRule() {
+    @Override default MaterializedViewProjectJoinRule toRule() {
       return new MaterializedViewProjectJoinRule(this);
     }
   }

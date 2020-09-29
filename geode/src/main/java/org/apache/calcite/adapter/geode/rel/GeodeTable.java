@@ -70,7 +70,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     this.rowType = GeodeUtils.autodetectRelTypeFromRegion(region);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "GeodeTable {" + regionName + "}";
   }
 
@@ -195,7 +195,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     LOGGER.info("OQL: " + oqlQuery);
 
     return new AbstractEnumerable<Object>() {
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         final QueryService queryService = clientCache.getQueryService();
         try {
           SelectResults results = (SelectResults) queryService.newQuery(oqlQuery).execute();
@@ -209,7 +209,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     };
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new GeodeQueryable<>(queryProvider, schema, this, tableName);
   }
@@ -240,7 +240,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
 
     // tzolov: this should never be called for queryable tables???
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       throw new UnsupportedOperationException("Enumerator on Queryable should never be called");
     }
 

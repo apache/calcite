@@ -84,7 +84,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     throw new UnsupportedOperationException();
   }
 
-  public void resolve(List<String> names, SqlNameMatcher nameMatcher,
+  @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
       boolean deep, Resolved resolved) {
     parent.resolve(names, nameMatcher, deep, resolved);
   }
@@ -165,52 +165,52 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
-  public void findAllColumnNames(List<SqlMoniker> result) {
+  @Override public void findAllColumnNames(List<SqlMoniker> result) {
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(Collection<SqlMoniker> result) {
+  @Override public void findAliases(Collection<SqlMoniker> result) {
     parent.findAliases(result);
   }
 
   @SuppressWarnings("deprecation")
-  public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
+  @Override public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
       String columnName, SqlNode ctx) {
     //noinspection deprecation
     return parent.findQualifyingTableName(columnName, ctx);
   }
 
-  public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
+  @Override public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
       SqlNode ctx, SqlNameMatcher nameMatcher) {
     return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
   }
 
-  public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
     return parent.resolveColumn(name, ctx);
   }
 
-  public RelDataType nullifyType(SqlNode node, RelDataType type) {
+  @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
     return parent.nullifyType(node, type);
   }
 
-  @SuppressWarnings("deprecation")
+  @Override @SuppressWarnings("deprecation")
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }
 
-  public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
+  @Override public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
       Path path, Resolved resolved) {
     parent.resolveTable(names, nameMatcher, path, resolved);
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
       return validator.getSelectScope((SqlSelect) call);
     }
     return this;
   }
 
-  public SqlValidator getValidator() {
+  @Override public SqlValidator getValidator() {
     return validator;
   }
 
@@ -221,7 +221,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    *
    * <p>If the identifier cannot be resolved, throws. Never returns null.
    */
-  public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     if (identifier.isStar()) {
       return SqlQualified.create(this, 1, null, identifier);
     }
@@ -444,7 +444,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       default:
         final Comparator<Resolve> c =
             new Comparator<Resolve>() {
-              public int compare(Resolve o1, Resolve o2) {
+              @Override public int compare(Resolve o1, Resolve o2) {
                 // Name resolution that uses fewer implicit steps wins.
                 int c = Integer.compare(worstKind(o1.path), worstKind(o2.path));
                 if (c != 0) {
@@ -525,20 +525,20 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
-  public void validateExpr(SqlNode expr) {
+  @Override public void validateExpr(SqlNode expr) {
     // Do not delegate to parent. An expression valid in this scope may not
     // be valid in the parent scope.
   }
 
-  public SqlWindow lookupWindow(String name) {
+  @Override public SqlWindow lookupWindow(String name) {
     return parent.lookupWindow(name);
   }
 
-  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+  @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {
     return parent.getMonotonicity(expr);
   }
 
-  public SqlNodeList getOrderList() {
+  @Override public SqlNodeList getOrderList() {
     return parent.getOrderList();
   }
 

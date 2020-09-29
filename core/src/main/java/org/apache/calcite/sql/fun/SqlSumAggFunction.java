@@ -63,7 +63,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
   }
 
@@ -73,7 +73,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }
 

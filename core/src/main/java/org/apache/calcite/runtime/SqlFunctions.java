@@ -128,7 +128,7 @@ public class SqlFunctions {
         }
         final Enumerator<List<Object>> product = Linq4j.product(enumerators);
         return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             return Linq4j.transform(product, List::toArray);
           }
         };
@@ -2727,7 +2727,7 @@ public class SqlFunctions {
       final List list = (List) inputObject;
       final Enumerator<List<Object>> enumerator = Linq4j.enumerator(list);
       return new AbstractEnumerable<Comparable>() {
-        public Enumerator<Comparable> enumerator() {
+        @Override public Enumerator<Comparable> enumerator() {
           return new Enumerator<Comparable>() {
 
             @Override public boolean moveNext() {
@@ -2831,7 +2831,7 @@ public class SqlFunctions {
       final List<Enumerator<List<E>>> enumerators, final int fieldCount,
       final boolean withOrdinality) {
     return new AbstractEnumerable<FlatLists.ComparableList<E>>() {
-      public Enumerator<FlatLists.ComparableList<E>> enumerator() {
+      @Override public Enumerator<FlatLists.ComparableList<E>> enumerator() {
         return new ProductComparableListEnumerator<>(enumerators, fieldCount,
             withOrdinality);
       }
@@ -2985,7 +2985,7 @@ public class SqlFunctions {
       return hasNext;
     }
 
-    public FlatLists.ComparableList<E> current() {
+    @Override public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
         Object[] a;

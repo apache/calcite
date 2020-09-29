@@ -455,7 +455,7 @@ public abstract class RelOptRule {
     return ImmutableList.copyOf(operands);
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     // Conventionally, hashCode() and equals() should use the same
     // criteria, whereas here we only look at the description. This is
     // okay, because the planner requires all rule instances to have
@@ -463,7 +463,7 @@ public abstract class RelOptRule {
     return description.hashCode();
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return (obj instanceof RelOptRule)
         && equals((RelOptRule) obj);
   }
@@ -570,7 +570,7 @@ public abstract class RelOptRule {
    * <p>It must be unique (for rules that are not equal) and must consist of
    * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')', '-', ',', '[', ']', ':', ' '.
    * It must start with a letter. */
-  public final String toString() {
+  @Override public final String toString() {
     return description;
   }
 
@@ -678,7 +678,7 @@ public abstract class RelOptRule {
           ImmutableList.of());
     }
 
-    public boolean matches(RelNode rel) {
+    @Override public boolean matches(RelNode rel) {
       // Don't apply converters to converters that operate
       // on the same RelTraitDef -- otherwise we get
       // an n^2 effect.

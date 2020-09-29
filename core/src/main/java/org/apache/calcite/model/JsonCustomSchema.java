@@ -41,7 +41,7 @@ public class JsonCustomSchema extends JsonMapSchema {
    */
   public Map<String, Object> operand;
 
-  public void accept(ModelHandler handler) {
+  @Override public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 

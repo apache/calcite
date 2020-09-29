@@ -129,15 +129,15 @@ public class AggregateFunctionImpl implements AggregateFunction,
     return null;
   }
 
-  public List<FunctionParameter> getParameters() {
+  @Override public List<FunctionParameter> getParameters() {
     return parameters;
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(resultType);
   }
 
-  public AggImplementor getImplementor(boolean windowContext) {
+  @Override public AggImplementor getImplementor(boolean windowContext) {
     return new RexImpTable.UserDefinedAggReflectiveImplementor(this);
   }
 }

@@ -62,12 +62,12 @@ public class MongoFilter extends Filter implements MongoRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public MongoFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public MongoFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new MongoFilter(getCluster(), traitSet, input, condition);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     Translator translator =
         new Translator(implementor.rexBuilder,

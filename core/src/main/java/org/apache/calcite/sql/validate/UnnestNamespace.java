@@ -59,7 +59,7 @@ class UnnestNamespace extends AbstractNamespace {
     return null;
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.
     validator.validateCall(unnest, scope);
     RelDataType type =
@@ -68,7 +68,7 @@ class UnnestNamespace extends AbstractNamespace {
     return toStruct(type, unnest);
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return unnest;
   }
 }

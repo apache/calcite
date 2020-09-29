@@ -178,17 +178,17 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  public void validate(
+  @Override public void validate(
       SqlValidator validator,
       SqlValidatorScope scope) {
     validator.validateIntervalQualifier(this);
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
     final String thisString = this.toString();
     final String thatString = node.toString();
     if (!thisString.equals(thatString)) {
@@ -305,12 +305,12 @@ public class SqlIntervalQualifier extends SqlNode {
     return Util.first(timeUnitRange.endUnit, timeUnitRange.startUnit);
   }
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlNode clone(SqlParserPos pos) {
     return new SqlIntervalQualifier(timeUnitRange.startUnit, startPrecision,
         timeUnitRange.endUnit, fractionalSecondPrecision, pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

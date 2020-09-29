@@ -59,7 +59,7 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     for (int i = start; i < opBinding.getOperandCount(); i++) {
       RelDataType argType = opBinding.getOperandType(i);

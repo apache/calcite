@@ -70,11 +70,11 @@ public class SqlBinaryOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.BINARY;
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
 
     // op0 opname op1
@@ -95,7 +95,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return !getName().equals(".");
   }
 
-  protected RelDataType adjustType(
+  @Override protected RelDataType adjustType(
       SqlValidator validator,
       final SqlCall call,
       RelDataType type) {
@@ -141,7 +141,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return type;
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

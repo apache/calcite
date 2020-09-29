@@ -151,12 +151,12 @@ public class TpcdsSchema extends AbstractSchema {
       return Statistics.of(rowCount, ImmutableList.of());
     }
 
-    public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+    @Override public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
         final SchemaPlus schema, final String tableName) {
       //noinspection unchecked
       return (Queryable) new AbstractTableQueryable<Object[]>(queryProvider,
           schema, this, tableName) {
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           final Session session =
               Session.getDefaultSession()
                   .withTable(tpcdsTable)
@@ -167,7 +167,7 @@ public class TpcdsSchema extends AbstractSchema {
                   new Function1<List<List<String>>, Enumerable<Object[]>>() {
                     final Column[] columns = tpcdsTable.getColumns();
 
-                    public Enumerable<Object[]> apply(
+                    @Override public Enumerable<Object[]> apply(
                         List<List<String>> inRows) {
                       final List<Object[]> rows = new ArrayList<>();
                       for (List<String> strings : inRows) {
@@ -186,7 +186,7 @@ public class TpcdsSchema extends AbstractSchema {
       };
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Column column : tpcdsTable.getColumns()) {
         builder.add(column.getName().toUpperCase(Locale.ROOT),

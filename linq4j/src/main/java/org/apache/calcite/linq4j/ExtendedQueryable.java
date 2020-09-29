@@ -159,7 +159,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Concatenates two sequences.
    */
-  Queryable<TSource> concat(Enumerable<TSource> source2);
+  @Override Queryable<TSource> concat(Enumerable<TSource> source2);
 
   /**
    * Returns the number of elements in the specified
@@ -172,26 +172,26 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  Queryable<TSource> defaultIfEmpty();
+  @Override Queryable<TSource> defaultIfEmpty();
 
   /**
    * Returns distinct elements from a sequence by using
    * the default equality comparer to compare values.
    */
-  Queryable<TSource> distinct();
+  @Override Queryable<TSource> distinct();
 
   /**
    * Returns distinct elements from a sequence by using
    * a specified EqualityComparer&lt;TSource&gt; to compare values.
    */
-  Queryable<TSource> distinct(EqualityComparer<TSource> comparer);
+  @Override Queryable<TSource> distinct(EqualityComparer<TSource> comparer);
 
   /**
    * Produces the set difference of two sequences by
    * using the default equality comparer to compare values,
    * eliminate duplicates. (Defined by Enumerable.)
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable);
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable);
 
   /**
    * Produces the set difference of two sequences by
@@ -199,14 +199,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using {@code all} to indicate whether to eliminate duplicates.
    * (Defined by Enumerable.)
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable, boolean all);
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
    * values, eliminate duplicates.
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
 
   /**
@@ -214,7 +214,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using the specified {@code EqualityComparer<TSource>} to compare
    * values, using {@code all} to indicate whether to eliminate duplicates.
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer, boolean all);
   /**
    * Returns the first element of a sequence that
@@ -342,7 +342,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using the default equality comparer to compare values,
    * eliminate duplicates.(Defined by Queryable.)
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable);
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable);
 
   /**
    * Produces the set intersection of two sequences by
@@ -350,14 +350,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using {@code all} to indicate whether to eliminate duplicates.
    * (Defined by Queryable.)
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable, boolean all);
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
    * values, eliminate duplicates.
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
 
   /**
@@ -365,7 +365,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using the specified {@code EqualityComparer<TSource>} to compare
    * values, using {@code all} to indicate whether to eliminate duplicates.
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer, boolean all);
 
   /**
@@ -443,9 +443,9 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
    * Java type erasure.</p>
    */
-  <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
+  @Override <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
 
-  <T2> Queryable<T2> cast(Class<T2> clazz);
+  @Override <T2> Queryable<T2> cast(Class<T2> clazz);
 
   /**
    * Sorts the elements of a sequence in ascending
@@ -480,7 +480,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Inverts the order of the elements in a sequence.
    */
-  Queryable<TSource> reverse();
+  @Override Queryable<TSource> reverse();
 
 
   /**
@@ -564,7 +564,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * exception if there is more than one element in the
    * sequence.
    */
-  TSource singleOrDefault();
+  @Override TSource singleOrDefault();
 
   /**
    * Returns the only element of a sequence that
@@ -578,7 +578,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * Bypasses a specified number of elements in a
    * sequence and then returns the remaining elements.
    */
-  Queryable<TSource> skip(int count);
+  @Override Queryable<TSource> skip(int count);
 
   /**
    * Bypasses elements in a sequence as long as a
@@ -677,7 +677,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * Returns a specified number of contiguous elements
    * from the start of a sequence.
    */
-  Queryable<TSource> take(int count);
+  @Override Queryable<TSource> take(int count);
 
   /**
    * Returns elements from a sequence as long as a
@@ -698,13 +698,13 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * Produces the set union of two sequences by using
    * the default equality comparer.
    */
-  Queryable<TSource> union(Enumerable<TSource> source1);
+  @Override Queryable<TSource> union(Enumerable<TSource> source1);
 
   /**
    * Produces the set union of two sequences by using a
    * specified {@code EqualityComparer<TSource>}.
    */
-  Queryable<TSource> union(Enumerable<TSource> source1,
+  @Override Queryable<TSource> union(Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer);
 
   /**

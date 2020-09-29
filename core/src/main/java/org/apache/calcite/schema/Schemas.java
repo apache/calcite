@@ -380,19 +380,19 @@ public final class Schemas {
     final ImmutableList<String> objectPath =
         objectPath_ == null ? null : ImmutableList.copyOf(objectPath_);
     return new CalcitePrepare.Context() {
-      public JavaTypeFactory getTypeFactory() {
+      @Override public JavaTypeFactory getTypeFactory() {
         return typeFactory;
       }
 
-      public CalciteSchema getRootSchema() {
+      @Override public CalciteSchema getRootSchema() {
         return schema.root();
       }
 
-      public CalciteSchema getMutableRootSchema() {
+      @Override public CalciteSchema getMutableRootSchema() {
         return getRootSchema();
       }
 
-      public List<String> getDefaultSchemaPath() {
+      @Override public List<String> getDefaultSchemaPath() {
         // schemaPath is usually null. If specified, it overrides schema
         // as the context within which the SQL is validated.
         if (schemaPath == null) {
@@ -401,23 +401,23 @@ public final class Schemas {
         return schemaPath;
       }
 
-      public List<String> getObjectPath() {
+      @Override public List<String> getObjectPath() {
         return objectPath;
       }
 
-      public CalciteConnectionConfig config() {
+      @Override public CalciteConnectionConfig config() {
         return connectionConfig;
       }
 
-      public DataContext getDataContext() {
+      @Override public DataContext getDataContext() {
         return dataContext;
       }
 
-      public RelRunner getRelRunner() {
+      @Override public RelRunner getRelRunner() {
         throw new UnsupportedOperationException();
       }
 
-      public CalcitePrepare.SparkHandler spark() {
+      @Override public CalcitePrepare.SparkHandler spark() {
         final boolean enable = config().spark();
         return CalcitePrepare.Dummy.getSparkHandler(enable);
       }
@@ -555,19 +555,19 @@ public final class Schemas {
       this.map = ImmutableMap.of();
     }
 
-    public SchemaPlus getRootSchema() {
+    @Override public SchemaPlus getRootSchema() {
       return rootSchema;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public JavaTypeFactory getTypeFactory() {
       return connection.getTypeFactory();
     }
 
-    public QueryProvider getQueryProvider() {
+    @Override public QueryProvider getQueryProvider() {
       return connection;
     }
 
-    public Object get(String name) {
+    @Override public Object get(String name) {
       return map.get(name);
     }
   }
@@ -594,34 +594,34 @@ public final class Schemas {
       return pairs.hashCode();
     }
 
-    public Pair<String, Schema> get(int index) {
+    @Override public Pair<String, Schema> get(int index) {
       return pairs.get(index);
     }
 
-    public int size() {
+    @Override public int size() {
       return pairs.size();
     }
 
-    public Path parent() {
+    @Override public Path parent() {
       if (pairs.isEmpty()) {
         throw new IllegalArgumentException("at root");
       }
       return new PathImpl(pairs.subList(0, pairs.size() - 1));
     }
 
-    public List<String> names() {
+    @Override public List<String> names() {
       return new AbstractList<String>() {
-        public String get(int index) {
+        @Override public String get(int index) {
           return pairs.get(index + 1).left;
         }
 
-        public int size() {
+        @Override public int size() {
           return pairs.size() - 1;
         }
       };
     }
 
-    public List<Schema> schemas() {
+    @Override public List<Schema> schemas() {
       return Pair.right(pairs);
     }
   }

@@ -53,7 +53,7 @@ public class EnumerableRelFactories {
    */
   private static class TableScanFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.TableScanFactory {
-    public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
+    @Override public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
       return EnumerableTableScan.create(toRelContext.getCluster(), table);
     }
   }
@@ -64,7 +64,7 @@ public class EnumerableRelFactories {
    */
   private static class ProjectFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
-    public RelNode createProject(RelNode input, List<RelHint> hints,
+    @Override public RelNode createProject(RelNode input, List<RelHint> hints,
                           List<? extends RexNode> childExprs, List<String> fieldNames) {
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
@@ -79,7 +79,7 @@ public class EnumerableRelFactories {
    */
   private static class FilterFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.FilterFactory {
-    public RelNode createFilter(RelNode input, RexNode condition,
+    @Override public RelNode createFilter(RelNode input, RexNode condition,
                          Set<CorrelationId> variablesSet) {
       return EnumerableFilter.create(input, condition);
     }
@@ -91,7 +91,7 @@ public class EnumerableRelFactories {
    */
   private static class SortFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.SortFactory {
-    public RelNode createSort(RelNode input, RelCollation collation,
+    @Override public RelNode createSort(RelNode input, RelCollation collation,
                               RexNode offset, RexNode fetch) {
       return EnumerableSort.create(input, collation, offset, fetch);
     }

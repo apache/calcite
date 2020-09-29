@@ -249,7 +249,7 @@ public class RexSqlStandardConvertletTable
       this.op = op;
     }
 
-    public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
+    @Override public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
       SqlNode[] operands = convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;

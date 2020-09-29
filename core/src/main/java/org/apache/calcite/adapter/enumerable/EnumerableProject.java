@@ -78,13 +78,13 @@ public class EnumerableProject extends Project implements EnumerableRel {
     return new EnumerableProject(cluster, traitSet, input, projects, rowType);
   }
 
-  public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
+  @Override public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType) {
     return new EnumerableProject(getCluster(), traitSet, input,
         projects, rowType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalcRel is always better
     throw new UnsupportedOperationException();
   }

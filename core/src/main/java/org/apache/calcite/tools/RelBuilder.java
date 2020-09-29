@@ -2430,11 +2430,11 @@ public class RelBuilder {
           fieldName.e != null ? fieldName.e : "expr$" + fieldName.i;
       final RelDataType type = typeFactory.leastRestrictive(
           new AbstractList<RelDataType>() {
-            public RelDataType get(int index) {
+            @Override public RelDataType get(int index) {
               return tupleList.get(index).get(fieldName.i).getType();
             }
 
-            public int size() {
+            @Override public int size() {
               return rowCount;
             }
           });
@@ -3011,7 +3011,7 @@ public class RelBuilder {
       return nodes.size();
     }
 
-    public GroupKey alias(String alias) {
+    @Override public GroupKey alias(String alias) {
       return Objects.equals(this.alias, alias)
           ? this
           : new GroupKeyImpl(nodes, nodeLists, alias);
@@ -3124,7 +3124,7 @@ public class RelBuilder {
       }
     }
 
-    public AggCall sort(Iterable<RexNode> orderKeys) {
+    @Override public AggCall sort(Iterable<RexNode> orderKeys) {
       final ImmutableList<RexNode> orderKeyList =
           ImmutableList.copyOf(orderKeys);
       return orderKeyList.equals(this.orderKeys)
@@ -3133,43 +3133,43 @@ public class RelBuilder {
               filter, alias, operands, orderKeyList);
     }
 
-    public AggCall sort(RexNode... orderKeys) {
+    @Override public AggCall sort(RexNode... orderKeys) {
       return sort(ImmutableList.copyOf(orderKeys));
     }
 
-    public AggCall approximate(boolean approximate) {
+    @Override public AggCall approximate(boolean approximate) {
       return approximate == this.approximate
           ? this
           : new AggCallImpl(aggFunction, distinct, approximate, ignoreNulls,
               filter, alias, operands, orderKeys);
     }
 
-    public AggCall filter(RexNode condition) {
+    @Override public AggCall filter(RexNode condition) {
       return Objects.equals(condition, this.filter)
           ? this
           : new AggCallImpl(aggFunction, distinct, approximate, ignoreNulls,
               condition, alias, operands, orderKeys);
     }
 
-    public AggCall as(String alias) {
+    @Override public AggCall as(String alias) {
       return Objects.equals(alias, this.alias)
           ? this
           : new AggCallImpl(aggFunction, distinct, approximate, ignoreNulls,
               filter, alias, operands, orderKeys);
     }
 
-    public AggCall distinct(boolean distinct) {
+    @Override public AggCall distinct(boolean distinct) {
       return distinct == this.distinct
           ? this
           : new AggCallImpl(aggFunction, distinct, approximate, ignoreNulls,
               filter, alias, operands, orderKeys);
     }
 
-    public AggCall distinct() {
+    @Override public AggCall distinct() {
       return distinct(true);
     }
 
-    public AggCall ignoreNulls(boolean ignoreNulls) {
+    @Override public AggCall ignoreNulls(boolean ignoreNulls) {
       return ignoreNulls == this.ignoreNulls
           ? this
           : new AggCallImpl(aggFunction, distinct, approximate, ignoreNulls,
@@ -3211,35 +3211,35 @@ public class RelBuilder {
       // nothing to do
     }
 
-    public AggCall sort(Iterable<RexNode> orderKeys) {
+    @Override public AggCall sort(Iterable<RexNode> orderKeys) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall sort(RexNode... orderKeys) {
+    @Override public AggCall sort(RexNode... orderKeys) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall approximate(boolean approximate) {
+    @Override public AggCall approximate(boolean approximate) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall filter(RexNode condition) {
+    @Override public AggCall filter(RexNode condition) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall as(String alias) {
+    @Override public AggCall as(String alias) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall distinct(boolean distinct) {
+    @Override public AggCall distinct(boolean distinct) {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall distinct() {
+    @Override public AggCall distinct() {
       throw new UnsupportedOperationException();
     }
 
-    public AggCall ignoreNulls(boolean ignoreNulls) {
+    @Override public AggCall ignoreNulls(boolean ignoreNulls) {
       throw new UnsupportedOperationException();
     }
   }
@@ -3386,7 +3386,7 @@ public class RelBuilder {
       this.right = right;
     }
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       final RelDataType leftRowType = left.getRowType();
       final RexBuilder rexBuilder = getRexBuilder();
       final int leftCount = leftRowType.getFieldCount();

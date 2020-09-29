@@ -241,7 +241,7 @@ public class StatementTest {
       this.commission = commission;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Employee [empid: " + empid + ", deptno: " + deptno
           + ", name: " + name + "]";
     }
@@ -261,7 +261,7 @@ public class StatementTest {
     }
 
 
-    public String toString() {
+    @Override public String toString() {
       return "Department [deptno: " + deptno + ", name: " + name
           + ", employees: " + employees + "]";
     }

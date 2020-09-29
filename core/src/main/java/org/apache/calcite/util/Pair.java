@@ -87,7 +87,7 @@ public class Pair<T1, T2>
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || (obj instanceof Pair)
         && Objects.equals(this.left, ((Pair) obj).left)
@@ -104,7 +104,7 @@ public class Pair<T1, T2>
     return keyHash ^ valueHash;
   }
 
-  public int compareTo(@Nonnull Pair<T1, T2> that) {
+  @Override public int compareTo(@Nonnull Pair<T1, T2> that) {
     //noinspection unchecked
     int c = NULLS_FIRST_COMPARATOR.compare(this.left, that.left);
     if (c == 0) {
@@ -114,19 +114,19 @@ public class Pair<T1, T2>
     return c;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "<" + left + ", " + right + ">";
   }
 
-  public T1 getKey() {
+  @Override public T1 getKey() {
     return left;
   }
 
-  public T2 getValue() {
+  @Override public T2 getValue() {
     return right;
   }
 
-  public T2 setValue(T2 value) {
+  @Override public T2 setValue(T2 value) {
     throw new UnsupportedOperationException();
   }
 
@@ -228,11 +228,11 @@ public class Pair<T1, T2>
       final K[] ks,
       final V[] vs) {
     return new AbstractList<Pair<K, V>>() {
-      public Pair<K, V> get(int index) {
+      @Override public Pair<K, V> get(int index) {
         return Pair.of(ks[index], vs[index]);
       }
 
-      public int size() {
+      @Override public int size() {
         return Math.min(ks.length, vs.length);
       }
     };
@@ -384,15 +384,15 @@ public class Pair<T1, T2>
       this.first = first;
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return iterator.hasNext();
     }
 
-    public Pair<E, E> next() {
+    @Override public Pair<E, E> next() {
       return of(first, iterator.next());
     }
 
-    public void remove() {
+    @Override public void remove() {
       throw new UnsupportedOperationException("remove");
     }
   }
@@ -411,15 +411,15 @@ public class Pair<T1, T2>
       this.rightIterator = Objects.requireNonNull(rightIterator);
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return leftIterator.hasNext() && rightIterator.hasNext();
     }
 
-    public Pair<L, R> next() {
+    @Override public Pair<L, R> next() {
       return Pair.of(leftIterator.next(), rightIterator.next());
     }
 
-    public void remove() {
+    @Override public void remove() {
       leftIterator.remove();
       rightIterator.remove();
     }
@@ -440,18 +440,18 @@ public class Pair<T1, T2>
       previous = first;
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return iterator.hasNext();
     }
 
-    public Pair<E, E> next() {
+    @Override public Pair<E, E> next() {
       final E current = iterator.next();
       final Pair<E, E> pair = of(previous, current);
       previous = current;
       return pair;
     }
 
-    public void remove() {
+    @Override public void remove() {
       throw new UnsupportedOperationException("remove");
     }
   }
@@ -477,11 +477,11 @@ public class Pair<T1, T2>
       this.size = size;
     }
 
-    public Pair<K, V> get(int index) {
+    @Override public Pair<K, V> get(int index) {
       return Pair.of(ks.get(index), vs.get(index));
     }
 
-    public int size() {
+    @Override public int size() {
       return size;
     }
   }

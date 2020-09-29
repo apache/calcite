@@ -564,7 +564,7 @@ public class JoinToMultiJoinRule
       this.refCounts = refCounts;
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       refCounts[inputRef.getIndex()]++;
       return null;
     }

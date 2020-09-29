@@ -40,12 +40,12 @@ public class Graphs {
       DirectedGraph<V, E> graph, V vertex) {
     final List<E> edges = graph.getInwardEdges(vertex);
     return new AbstractList<V>() {
-      public V get(int index) {
+      @Override public V get(int index) {
         //noinspection unchecked
         return (V) edges.get(index).source;
       }
 
-      public int size() {
+      @Override public int size() {
         return edges.size();
       }
     };

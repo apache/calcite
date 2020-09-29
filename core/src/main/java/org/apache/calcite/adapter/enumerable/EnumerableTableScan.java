@@ -317,7 +317,7 @@ public class EnumerableTableScan
     return new EnumerableTableScan(getCluster(), traitSet, table, elementType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Note that representation is ARRAY. This assumes that the table
     // returns a Object[] for each record. Actually a Table<T> can
     // return any type T. And, if it is a JdbcTable, we'd like to be

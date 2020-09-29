@@ -151,55 +151,55 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   /** Implementation of {@link RelShuttle} that returns each relational
    * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
-    public RelNode visit(TableScan scan) {
+    @Override public RelNode visit(TableScan scan) {
       return scan;
     }
-    public RelNode visit(TableFunctionScan scan) {
+    @Override public RelNode visit(TableFunctionScan scan) {
       return scan;
     }
-    public RelNode visit(LogicalValues values) {
+    @Override public RelNode visit(LogicalValues values) {
       return values;
     }
-    public RelNode visit(LogicalFilter filter) {
+    @Override public RelNode visit(LogicalFilter filter) {
       return filter;
     }
-    public RelNode visit(LogicalCalc calc) {
+    @Override public RelNode visit(LogicalCalc calc) {
       return calc;
     }
-    public RelNode visit(LogicalProject project) {
+    @Override public RelNode visit(LogicalProject project) {
       return project;
     }
-    public RelNode visit(LogicalJoin join) {
+    @Override public RelNode visit(LogicalJoin join) {
       return join;
     }
-    public RelNode visit(LogicalCorrelate correlate) {
+    @Override public RelNode visit(LogicalCorrelate correlate) {
       return correlate;
     }
-    public RelNode visit(LogicalUnion union) {
+    @Override public RelNode visit(LogicalUnion union) {
       return union;
     }
-    public RelNode visit(LogicalIntersect intersect) {
+    @Override public RelNode visit(LogicalIntersect intersect) {
       return intersect;
     }
-    public RelNode visit(LogicalMinus minus) {
+    @Override public RelNode visit(LogicalMinus minus) {
       return minus;
     }
-    public RelNode visit(LogicalAggregate aggregate) {
+    @Override public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
     }
-    public RelNode visit(LogicalMatch match) {
+    @Override public RelNode visit(LogicalMatch match) {
       return match;
     }
-    public RelNode visit(LogicalSort sort) {
+    @Override public RelNode visit(LogicalSort sort) {
       return sort;
     }
-    public RelNode visit(LogicalExchange exchange) {
+    @Override public RelNode visit(LogicalExchange exchange) {
       return exchange;
     }
-    public RelNode visit(LogicalTableModify modify) {
+    @Override public RelNode visit(LogicalTableModify modify) {
       return modify;
     }
-    public RelNode visit(RelNode other) {
+    @Override public RelNode visit(RelNode other) {
       return other;
     }
   }

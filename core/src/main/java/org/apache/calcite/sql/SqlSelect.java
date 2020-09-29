@@ -82,7 +82,7 @@ public class SqlSelect extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlSelectOperator.INSTANCE;
   }
 
@@ -228,7 +228,7 @@ public class SqlSelect extends SqlCall {
     return this.hints != null && this.hints.size() > 0;
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateQuery(this, scope, validator.getUnknownType());
   }
 

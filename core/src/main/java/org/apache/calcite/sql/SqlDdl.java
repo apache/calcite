@@ -34,7 +34,7 @@ public abstract class SqlDdl extends SqlCall {
     this.operator = Objects.requireNonNull(operator);
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return operator;
   }
 }

@@ -65,11 +65,11 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     countMap.keySet().removeAll(empties);
   }
 
-  public boolean hasNext() {
+  @Override public boolean hasNext() {
     return !empties.isEmpty();
   }
 
-  public V next() {
+  @Override public V next() {
     V v = empties.remove(0);
     for (E o : graph.vertexMap.get(v).outEdges) {
       //noinspection unchecked
@@ -82,7 +82,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     return v;
   }
 
-  public void remove() {
+  @Override public void remove() {
     throw new UnsupportedOperationException();
   }
 

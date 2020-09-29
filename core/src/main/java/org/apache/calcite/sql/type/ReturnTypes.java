@@ -384,7 +384,7 @@ public abstract class ReturnTypes {
             opBinding,
             new AbstractList<RelDataType>() {
               // CHECKSTYLE: IGNORE 12
-              public RelDataType get(int index) {
+              @Override public RelDataType get(int index) {
                 RelDataType type =
                     opBinding.getOperandType(index)
                         .getComponentType();
@@ -392,7 +392,7 @@ public abstract class ReturnTypes {
                 return type;
               }
 
-              public int size() {
+              @Override public int size() {
                 return opBinding.getOperandCount();
               }
             });

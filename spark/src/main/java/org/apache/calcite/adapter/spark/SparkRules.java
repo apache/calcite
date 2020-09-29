@@ -195,7 +195,7 @@ public abstract class SparkRules {
           getCluster(), rowType, tuples, traitSet);
     }
 
-    public Result implementSpark(Implementor implementor) {
+    @Override public Result implementSpark(Implementor implementor) {
 /*
             return Linq4j.asSpark(
                 new Object[][] {
@@ -315,7 +315,7 @@ public abstract class SparkRules {
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new SparkCalc(
           getCluster(),
           traitSet,
@@ -328,7 +328,7 @@ public abstract class SparkRules {
       return 1;
     }
 
-    public Result implementSpark(Implementor implementor) {
+    @Override public Result implementSpark(Implementor implementor) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
       final SparkRel child = (SparkRel) getInput();

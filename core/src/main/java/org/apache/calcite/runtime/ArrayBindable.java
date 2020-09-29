@@ -24,5 +24,5 @@ package org.apache.calcite.runtime;
  */
 public interface ArrayBindable extends Bindable<Object[]>, Typed {
   // override
-  Class<Object[]> getElementType();
+  @Override Class<Object[]> getElementType();
 }

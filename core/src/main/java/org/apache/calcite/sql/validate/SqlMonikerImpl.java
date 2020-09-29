@@ -64,23 +64,23 @@ public class SqlMonikerImpl implements SqlMoniker {
     return Objects.hash(type, names);
   }
 
-  public SqlMonikerType getType() {
+  @Override public SqlMonikerType getType() {
     return type;
   }
 
-  public List<String> getFullyQualifiedNames() {
+  @Override public List<String> getFullyQualifiedNames() {
     return names;
   }
 
-  public SqlIdentifier toIdentifier() {
+  @Override public SqlIdentifier toIdentifier() {
     return new SqlIdentifier(names, SqlParserPos.ZERO);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return Util.sepList(names, ".");
   }
 
-  public String id() {
+  @Override public String id() {
     return type + "(" + this + ")";
   }
 }

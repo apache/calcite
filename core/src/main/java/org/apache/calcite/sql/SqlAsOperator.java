@@ -64,7 +64,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -93,7 +93,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -111,7 +111,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
   }
 
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -124,7 +124,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

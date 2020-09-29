@@ -49,7 +49,7 @@ public class CsvTranslatableTable extends CsvTable
     super(source, protoRowType);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CsvTranslatableTable";
   }
 
@@ -59,28 +59,28 @@ public class CsvTranslatableTable extends CsvTable
       final int[] fields) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag,
             getFieldTypes(root.getTypeFactory()), ImmutableIntList.of(fields));
       }
     };
   }
 
-  public Expression getExpression(SchemaPlus schema, String tableName,
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
       Class clazz) {
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Type getElementType() {
+  @Override public Type getElementType() {
     return Object[].class;
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     throw new UnsupportedOperationException();
   }
 
-  public RelNode toRel(
+  @Override public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     // Request all fields.

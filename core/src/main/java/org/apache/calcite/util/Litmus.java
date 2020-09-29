@@ -25,17 +25,17 @@ public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that throws
    * an {@link java.lang.AssertionError} on failure. */
   Litmus THROW = new Litmus() {
-    public boolean fail(String message, Object... args) {
+    @Override public boolean fail(String message, Object... args) {
       final String s = message == null
           ? null : MessageFormatter.arrayFormat(message, args).getMessage();
       throw new AssertionError(s);
     }
 
-    public boolean succeed() {
+    @Override public boolean succeed() {
       return true;
     }
 
-    public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message, Object... args) {
       if (condition) {
         return succeed();
       } else {
@@ -47,15 +47,15 @@ public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that returns
    * a status code but does not throw. */
   Litmus IGNORE = new Litmus() {
-    public boolean fail(String message, Object... args) {
+    @Override public boolean fail(String message, Object... args) {
       return false;
     }
 
-    public boolean succeed() {
+    @Override public boolean succeed() {
       return true;
     }
 
-    public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message, Object... args) {
       return condition;
     }
   };

@@ -111,10 +111,10 @@ public class EnumUtils {
       final JavaTypeFactory typeFactory,
       final List<? extends RelDataType> inputTypes) {
     return new AbstractList<Type>() {
-      public Type get(int index) {
+      @Override public Type get(int index) {
         return EnumUtils.javaClass(typeFactory, inputTypes.get(index));
       }
-      public int size() {
+      @Override public int size() {
         return inputTypes.size();
       }
     };
@@ -126,13 +126,13 @@ public class EnumUtils {
       final List<Integer> argList) {
     final List<RelDataTypeField> inputFields = inputRowType.getFieldList();
     return new AbstractList<RelDataType>() {
-      public RelDataType get(int index) {
+      @Override public RelDataType get(int index) {
         final int arg = argList.get(index);
         return arg < inputFields.size()
             ? inputFields.get(arg).getType()
             : extraInputs.get(arg - inputFields.size()).getType();
       }
-      public int size() {
+      @Override public int size() {
         return argList.size();
       }
     };
@@ -1020,7 +1020,7 @@ public class EnumUtils {
       list = new ArrayDeque<>();
     }
 
-    public Object[] current() {
+    @Override public Object[] current() {
       if (list.size() > 0) {
         return takeOne();
       } else {
@@ -1038,16 +1038,16 @@ public class EnumUtils {
       }
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return list.size() > 0 || inputEnumerator.moveNext();
     }
 
-    public void reset() {
+    @Override public void reset() {
       inputEnumerator.reset();
       list.clear();
     }
 
-    public void close() {
+    @Override public void close() {
     }
 
     private Object[] takeOne() {
@@ -1080,19 +1080,19 @@ public class EnumUtils {
         return new Enumerator<TResult>() {
           Enumerator<TSource> inputs = inputEnumerable.enumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return outSelector.apply(inputs.current());
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             return inputs.moveNext();
           }
 
-          public void reset() {
+          @Override public void reset() {
             inputs.reset();
           }
 
-          public void close() {
+          @Override public void close() {
           }
         };
       }

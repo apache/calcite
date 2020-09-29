@@ -53,11 +53,11 @@ public class MethodDeclaration extends MemberDeclaration {
     return shuttle.visit(this, body);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public void accept(ExpressionWriter writer) {
+  @Override public void accept(ExpressionWriter writer) {
     String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {

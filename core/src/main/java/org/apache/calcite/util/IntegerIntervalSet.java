@@ -100,11 +100,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     return new Enumerator<Integer>() {
       int i = bounds[0] - 1;
 
-      public Integer current() {
+      @Override public Integer current() {
         return i;
       }
 
-      public boolean moveNext() {
+      @Override public boolean moveNext() {
         for (;;) {
           if (++i > bounds[1]) {
             return false;
@@ -115,11 +115,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
         }
       }
 
-      public void reset() {
+      @Override public void reset() {
         i = bounds[0] - 1;
       }
 
-      public void close() {
+      @Override public void close() {
         // no resources
       }
     };

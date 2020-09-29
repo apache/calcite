@@ -140,7 +140,7 @@ public class SqlWindow extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlWindowOperator.INSTANCE;
   }
 
@@ -148,7 +148,7 @@ public class SqlWindow extends SqlCall {
     return SqlKind.WINDOW;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(declName, refName, partitionList, orderList,
         isRows, lowerBound, upperBound, allowPartial);
   }
@@ -790,7 +790,7 @@ public class SqlWindow extends SqlCall {
       this.sql = sql;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return sql;
     }
   }
@@ -803,11 +803,11 @@ public class SqlWindow extends SqlCall {
       super("WINDOW", SqlKind.WINDOW, 2, true, null, null, null);
     }
 
-    public SqlSyntax getSyntax() {
+    @Override public SqlSyntax getSyntax() {
       return SqlSyntax.SPECIAL;
     }
 
-    public SqlCall createCall(
+    @Override public SqlCall createCall(
         SqlLiteral functionQualifier,
         SqlParserPos pos,
         SqlNode... operands) {
@@ -825,7 +825,7 @@ public class SqlWindow extends SqlCall {
           pos);
     }
 
-    public <R> void acceptCall(
+    @Override public <R> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,
@@ -849,7 +849,7 @@ public class SqlWindow extends SqlCall {
       }
     }
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,

@@ -47,11 +47,11 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
   public Iterator<V[]> arrays(final Comparator<V> comparator) {
     final Iterator<List<V>> iterator = values().iterator();
     return new Iterator<V[]>() {
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return iterator.hasNext();
       }
 
-      public V[] next() {
+      @Override public V[] next() {
         List<V> list = iterator.next();
         @SuppressWarnings("unchecked")
         final V[] vs = (V[]) list.toArray();
@@ -59,7 +59,7 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
         return vs;
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     };

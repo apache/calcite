@@ -50,25 +50,25 @@ public class StdinTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<Object[]> scan(DataContext root) {
         final InputStream is = DataContext.Variable.STDIN.get(root);
         return new AbstractEnumerable<Object[]>() {
           final InputStreamReader in =
               new InputStreamReader(is, StandardCharsets.UTF_8);
           final BufferedReader br = new BufferedReader(in);
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
               String line;
               int i;
 
-              public Object[] current() {
+              @Override public Object[] current() {
                 if (line == null) {
                   throw new NoSuchElementException();
                 }
                 return new Object[] {i, line};
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 try {
                   line = br.readLine();
                   ++i;
@@ -78,11 +78,11 @@ public class StdinTableFunction {
                 }
               }
 
-              public void reset() {
+              @Override public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              public void close() {
+              @Override public void close() {
                 try {
                   br.close();
                 } catch (IOException e) {
@@ -94,26 +94,26 @@ public class StdinTableFunction {
         };
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("ordinal", SqlTypeName.INTEGER)
             .add("line", SqlTypeName.VARCHAR)
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }

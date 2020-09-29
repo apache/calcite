@@ -40,19 +40,19 @@ public abstract class DelegatingSqlValidatorCatalogReader
     this.catalogReader = catalogReader;
   }
 
-  public SqlValidatorTable getTable(List<String> names) {
+  @Override public SqlValidatorTable getTable(List<String> names) {
     return catalogReader.getTable(names);
   }
 
-  public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public RelDataType getNamedType(SqlIdentifier typeName) {
     return catalogReader.getNamedType(typeName);
   }
 
-  public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
+  @Override public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
     return catalogReader.getAllSchemaObjectNames(names);
   }
 
-  public List<List<String>> getSchemaPaths() {
+  @Override public List<List<String>> getSchemaPaths() {
     return catalogReader.getSchemaPaths();
   }
 

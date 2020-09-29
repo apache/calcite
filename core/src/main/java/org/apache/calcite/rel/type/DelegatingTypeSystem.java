@@ -28,70 +28,70 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     this.typeSystem = typeSystem;
   }
 
-  public int getMaxScale(SqlTypeName typeName) {
+  @Override public int getMaxScale(SqlTypeName typeName) {
     return typeSystem.getMaxScale(typeName);
   }
 
-  public int getDefaultPrecision(SqlTypeName typeName) {
+  @Override public int getDefaultPrecision(SqlTypeName typeName) {
     return typeSystem.getDefaultPrecision(typeName);
   }
 
-  public int getMaxPrecision(SqlTypeName typeName) {
+  @Override public int getMaxPrecision(SqlTypeName typeName) {
     return typeSystem.getMaxPrecision(typeName);
   }
 
-  public int getMaxNumericScale() {
+  @Override public int getMaxNumericScale() {
     return typeSystem.getMaxNumericScale();
   }
 
-  public int getMaxNumericPrecision() {
+  @Override public int getMaxNumericPrecision() {
     return typeSystem.getMaxNumericPrecision();
   }
 
-  public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
+  @Override public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     return typeSystem.getLiteral(typeName, isPrefix);
   }
 
-  public boolean isCaseSensitive(SqlTypeName typeName) {
+  @Override public boolean isCaseSensitive(SqlTypeName typeName) {
     return typeSystem.isCaseSensitive(typeName);
   }
 
-  public boolean isAutoincrement(SqlTypeName typeName) {
+  @Override public boolean isAutoincrement(SqlTypeName typeName) {
     return typeSystem.isAutoincrement(typeName);
   }
 
-  public int getNumTypeRadix(SqlTypeName typeName) {
+  @Override public int getNumTypeRadix(SqlTypeName typeName) {
     return typeSystem.getNumTypeRadix(typeName);
   }
 
-  public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
     return typeSystem.deriveSumType(typeFactory, argumentType);
   }
 
-  public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
     return typeSystem.deriveAvgAggType(typeFactory, argumentType);
   }
 
-  public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
       RelDataType arg0Type, RelDataType arg1Type) {
     return typeSystem.deriveCovarType(typeFactory, arg0Type, arg1Type);
   }
 
-  public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
     return typeSystem.deriveFractionalRankType(typeFactory);
   }
 
-  public RelDataType deriveRankType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveRankType(RelDataTypeFactory typeFactory) {
     return typeSystem.deriveRankType(typeFactory);
   }
 
-  public boolean isSchemaCaseSensitive() {
+  @Override public boolean isSchemaCaseSensitive() {
     return typeSystem.isSchemaCaseSensitive();
   }
 
-  public boolean shouldConvertRaggedUnionTypesToVarying() {
+  @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return typeSystem.shouldConvertRaggedUnionTypesToVarying();
   }
 }

@@ -56,11 +56,11 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return optional.test(i);
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,
@@ -110,7 +110,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     return true;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (families.size() != callBinding.getOperandCount()) {
@@ -175,7 +175,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     return families.get(iFormalOperand);
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     final int max = families.size();
     int min = max;
     while (min > 0 && optional.test(min - 1)) {
@@ -184,11 +184,11 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     return SqlOperandCountRanges.between(min, max);
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName, families);
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }

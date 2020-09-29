@@ -320,7 +320,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, T2> Enumerable<T2> cast(
       final Enumerable<TSource> source, final Class<T2> clazz) {
     return new AbstractEnumerable<T2>() {
-      public Enumerator<T2> enumerator() {
+      @Override public Enumerator<T2> enumerator() {
         return new CastingEnumerator<>(source.enumerator(), clazz);
       }
     };
@@ -412,11 +412,11 @@ public abstract class EnumerableDefaults {
 
           private Iterator<TSource> rest;
 
-          public boolean hasNext() {
+          @Override public boolean hasNext() {
             return !nonFirst || rest.hasNext();
           }
 
-          public TSource next() {
+          @Override public TSource next() {
             if (nonFirst) {
               return rest.next();
             } else {
@@ -427,7 +427,7 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void remove() {
+          @Override public void remove() {
             throw new UnsupportedOperationException("remove");
           }
         });
@@ -835,7 +835,7 @@ public abstract class EnumerableDefaults {
       final Function2<TKey, TAccumulate, TResult> resultSelector,
       final Comparator<TKey> comparator) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new SortedAggregateEnumerator(
           enumerable, keySelector, accumulatorInitializer,
           accumulatorAdder, resultSelector, comparator);
@@ -1037,24 +1037,24 @@ public abstract class EnumerableDefaults {
       final Enumerator<Map.Entry<TKey, TSource>> entries =
           Linq4j.enumerator(outerMap.entrySet());
 
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          public TResult current() {
+          @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             return entries.moveNext();
           }
 
-          public void reset() {
+          @Override public void reset() {
             entries.reset();
           }
 
-          public void close() {
+          @Override public void close() {
           }
         };
       }
@@ -1078,24 +1078,24 @@ public abstract class EnumerableDefaults {
       final Enumerator<Map.Entry<TKey, TSource>> entries =
           Linq4j.enumerator(outerMap.entrySet());
 
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          public TResult current() {
+          @Override public TResult current() {
             final Map.Entry<TKey, TSource> entry = entries.current();
             final Enumerable<TInner> inners = innerLookup.get(entry.getKey());
             return resultSelector.apply(entry.getValue(),
                 inners == null ? Linq4j.emptyEnumerable() : inners);
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             return entries.moveNext();
           }
 
-          public void reset() {
+          @Override public void reset() {
             entries.reset();
           }
 
-          public void close() {
+          @Override public void close() {
           }
         };
       }
@@ -1284,7 +1284,7 @@ public abstract class EnumerableDefaults {
       final EqualityComparer<TKey> comparer, final boolean generateNullsOnLeft,
       final boolean generateNullsOnRight) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         final Lookup<TKey, TInner> innerLookup =
             comparer == null
                 ? inner.toLookup(innerKeySelector)
@@ -1298,11 +1298,11 @@ public abstract class EnumerableDefaults {
                   ? new HashSet<>(innerLookup.keySet())
                   : null;
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultSelector.apply(outers.current(), inners.current());
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               if (inners.moveNext()) {
                 return true;
@@ -1355,11 +1355,11 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             outers.reset();
           }
 
-          public void close() {
+          @Override public void close() {
             outers.close();
           }
         };
@@ -1378,7 +1378,7 @@ public abstract class EnumerableDefaults {
       final boolean generateNullsOnRight, final Predicate2<TSource, TInner> predicate) {
 
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         /**
          * the innerToLookUp will refer the inner , if current join
          * is a right join, we should figure out the right list first, if
@@ -1402,11 +1402,11 @@ public abstract class EnumerableDefaults {
                   ? new ArrayList<>(innerToLookUp.toList())
                   : null;
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultSelector.apply(outers.current(), inners.current());
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               if (inners.moveNext()) {
                 return true;
@@ -1464,11 +1464,11 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             outers.reset();
           }
 
-          public void close() {
+          @Override public void close() {
             outers.close();
           }
         };
@@ -1489,7 +1489,7 @@ public abstract class EnumerableDefaults {
     }
 
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           private Enumerator<TSource> outerEnumerator = outer.enumerator();
           private Enumerator<TInner> innerEnumerator;
@@ -1497,11 +1497,11 @@ public abstract class EnumerableDefaults {
           TInner innerValue;
           int state = 0; // 0 -- moving outer, 1 moving inner;
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultSelector.apply(outerValue, innerValue);
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             while (true) {
               switch (state) {
               case 0:
@@ -1554,13 +1554,13 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             state = 0;
             outerEnumerator.reset();
             closeInner();
           }
 
-          public void close() {
+          @Override public void close() {
             outerEnumerator.close();
             closeInner();
             outerValue = null;
@@ -1870,7 +1870,7 @@ public abstract class EnumerableDefaults {
       final Predicate2<TSource, TInner> nonEquiPredicate) {
 
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         // CALCITE-2909 Delay the computation of the innerLookup until the
         // moment when we are sure
         // that it will be really needed, i.e. when the first outer
@@ -1914,7 +1914,7 @@ public abstract class EnumerableDefaults {
       final EqualityComparer<TKey> comparer,
       final boolean anti) {
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         // CALCITE-2909 Delay the computation of the innerLookup until the moment when we are sure
         // that it will be really needed, i.e. when the first outer enumerator item is processed
         final Supplier<Enumerable<TKey>> innerLookup = Suppliers.memoize(() ->
@@ -2014,7 +2014,7 @@ public abstract class EnumerableDefaults {
     }
 
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           private Enumerator<TSource> outerEnumerator = outer.enumerator();
           private Enumerator<TInner> innerEnumerator = null;
@@ -2183,7 +2183,7 @@ public abstract class EnumerableDefaults {
       throw new UnsupportedOperationException("MergeJoin unsupported for join type " + joinType);
     }
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer, inner, outerKeySelector, innerKeySelector,
             extraPredicate, resultSelector, joinType, comparator);
       }
@@ -2748,11 +2748,11 @@ public abstract class EnumerableDefaults {
     final int n = list.size();
     return Linq4j.asEnumerable(
         new AbstractList<TSource>() {
-          public TSource get(int index) {
+          @Override public TSource get(int index) {
             return list.get(n - 1 - index);
           }
 
-          public int size() {
+          @Override public int size() {
             return n;
           }
         });
@@ -2769,23 +2769,23 @@ public abstract class EnumerableDefaults {
       return (Enumerable<TResult>) source;
     }
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<TSource> enumerator = source.enumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return selector.apply(enumerator.current());
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             return enumerator.moveNext();
           }
 
-          public void reset() {
+          @Override public void reset() {
             enumerator.reset();
           }
 
-          public void close() {
+          @Override public void close() {
             enumerator.close();
           }
         };
@@ -2801,16 +2801,16 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, TResult> selector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<TSource> enumerator = source.enumerator();
           int n = -1;
 
-          public TResult current() {
+          @Override public TResult current() {
             return selector.apply(enumerator.current(), n);
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             if (enumerator.moveNext()) {
               ++n;
               return true;
@@ -2819,11 +2819,11 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             enumerator.reset();
           }
 
-          public void close() {
+          @Override public void close() {
             enumerator.close();
           }
         };
@@ -2840,16 +2840,16 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Function1<TSource, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultEnumerator.current();
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               if (resultEnumerator.moveNext()) {
                 return true;
@@ -2862,12 +2862,12 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             sourceEnumerator.reset();
             resultEnumerator = Linq4j.emptyEnumerator();
           }
 
-          public void close() {
+          @Override public void close() {
             sourceEnumerator.close();
             resultEnumerator.close();
           }
@@ -2886,17 +2886,17 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Function2<TSource, Integer, Enumerable<TResult>> selector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           int index = -1;
           Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultEnumerator.current();
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               if (resultEnumerator.moveNext()) {
                 return true;
@@ -2910,12 +2910,12 @@ public abstract class EnumerableDefaults {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             sourceEnumerator.reset();
             resultEnumerator = Linq4j.emptyEnumerator();
           }
 
-          public void close() {
+          @Override public void close() {
             sourceEnumerator.close();
             resultEnumerator.close();
           }
@@ -2936,18 +2936,18 @@ public abstract class EnumerableDefaults {
       final Function2<TSource, Integer, Enumerable<TCollection>> collectionSelector,
       final Function2<TSource, TCollection, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           int index = -1;
           Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultEnumerator.current();
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               if (resultEnumerator.moveNext()) {
                 return true;
@@ -2961,19 +2961,19 @@ public abstract class EnumerableDefaults {
                   .enumerator();
               resultEnumerator =
                   new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
-                    protected TResult transform(TCollection collectionElement) {
+                    @Override protected TResult transform(TCollection collectionElement) {
                       return resultSelector.apply(sourceElement, collectionElement);
                     }
                   };
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             sourceEnumerator.reset();
             resultEnumerator = Linq4j.emptyEnumerator();
           }
 
-          public void close() {
+          @Override public void close() {
             sourceEnumerator.close();
             resultEnumerator.close();
           }
@@ -2993,17 +2993,17 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, Enumerable<TCollection>> collectionSelector,
       final Function2<TSource, TCollection, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultEnumerator.current();
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             boolean incremented = false;
             for (;;) {
               if (resultEnumerator.moveNext()) {
@@ -3017,19 +3017,19 @@ public abstract class EnumerableDefaults {
                   .enumerator();
               resultEnumerator =
                   new TransformedEnumerator<TCollection, TResult>(collectionEnumerator) {
-                    protected TResult transform(TCollection collectionElement) {
+                    @Override protected TResult transform(TCollection collectionElement) {
                       return resultSelector.apply(sourceElement, collectionElement);
                     }
                   };
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             sourceEnumerator.reset();
             resultEnumerator = Linq4j.emptyEnumerator();
           }
 
-          public void close() {
+          @Override public void close() {
             sourceEnumerator.close();
             resultEnumerator.close();
           }
@@ -3059,10 +3059,10 @@ public abstract class EnumerableDefaults {
     Objects.requireNonNull(second);
     if (comparer == null) {
       comparer = new EqualityComparer<TSource>() {
-        public boolean equal(TSource v1, TSource v2) {
+        @Override public boolean equal(TSource v1, TSource v2) {
           return Objects.equals(v1, v2);
         }
-        public int hashCode(TSource tSource) {
+        @Override public int hashCode(TSource tSource) {
           return Objects.hashCode(tSource);
         }
       };
@@ -3215,7 +3215,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Predicate2<TSource, Integer> predicate) {
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         return new SkipWhileEnumerator<>(source.enumerator(), predicate);
       }
     };
@@ -3368,7 +3368,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Predicate2<TSource, Integer> predicate) {
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         return new TakeWhileEnumerator<>(source.enumerator(), predicate);
       }
     };
@@ -3383,7 +3383,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Predicate2<TSource, Long> predicate) {
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         return new TakeWhileLongEnumerator<>(source.enumerator(), predicate);
       }
     };
@@ -3647,7 +3647,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source, final Predicate1<TSource> predicate) {
     assert predicate != null;
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         final Enumerator<TSource> enumerator = source.enumerator();
         return EnumerableDefaults.where(enumerator, predicate);
       }
@@ -3658,11 +3658,11 @@ public abstract class EnumerableDefaults {
       final Enumerator<TSource> enumerator,
       final Predicate1<TSource> predicate) {
     return new Enumerator<TSource>() {
-      public TSource current() {
+      @Override public TSource current() {
         return enumerator.current();
       }
 
-      public boolean moveNext() {
+      @Override public boolean moveNext() {
         while (enumerator.moveNext()) {
           if (predicate.apply(enumerator.current())) {
             return true;
@@ -3671,11 +3671,11 @@ public abstract class EnumerableDefaults {
         return false;
       }
 
-      public void reset() {
+      @Override public void reset() {
         enumerator.reset();
       }
 
-      public void close() {
+      @Override public void close() {
         enumerator.close();
       }
     };
@@ -3690,16 +3690,16 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> source,
       final Predicate2<TSource, Integer> predicate) {
     return new AbstractEnumerable<TSource>() {
-      public Enumerator<TSource> enumerator() {
+      @Override public Enumerator<TSource> enumerator() {
         return new Enumerator<TSource>() {
           final Enumerator<TSource> enumerator = source.enumerator();
           int n = -1;
 
-          public TSource current() {
+          @Override public TSource current() {
             return enumerator.current();
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             while (enumerator.moveNext()) {
               ++n;
               if (predicate.apply(enumerator.current(), n)) {
@@ -3709,12 +3709,12 @@ public abstract class EnumerableDefaults {
             return false;
           }
 
-          public void reset() {
+          @Override public void reset() {
             enumerator.reset();
             n = -1;
           }
 
-          public void close() {
+          @Override public void close() {
             enumerator.close();
           }
         };
@@ -3731,22 +3731,22 @@ public abstract class EnumerableDefaults {
       final Enumerable<T0> first, final Enumerable<T1> second,
       final Function2<T0, T1, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<T0> e1 = first.enumerator();
           final Enumerator<T1> e2 = second.enumerator();
 
-          public TResult current() {
+          @Override public TResult current() {
             return resultSelector.apply(e1.current(), e2.current());
           }
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             return e1.moveNext() && e2.moveNext();
           }
-          public void reset() {
+          @Override public void reset() {
             e1.reset();
             e2.reset();
           }
-          public void close() {
+          @Override public void close() {
             e1.close();
             e2.close();
           }
@@ -3801,11 +3801,11 @@ public abstract class EnumerableDefaults {
       this.predicate = predicate;
     }
 
-    public TSource current() {
+    @Override public TSource current() {
       return enumerator.current();
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       if (!done) {
         if (enumerator.moveNext()
             && predicate.apply(enumerator.current(), ++n)) {
@@ -3817,13 +3817,13 @@ public abstract class EnumerableDefaults {
       return false;
     }
 
-    public void reset() {
+    @Override public void reset() {
       enumerator.reset();
       done = false;
       n = -1;
     }
 
-    public void close() {
+    @Override public void close() {
       enumerator.close();
     }
   }
@@ -3844,11 +3844,11 @@ public abstract class EnumerableDefaults {
       this.predicate = predicate;
     }
 
-    public TSource current() {
+    @Override public TSource current() {
       return enumerator.current();
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       if (!done) {
         if (enumerator.moveNext()
             && predicate.apply(enumerator.current(), ++n)) {
@@ -3860,13 +3860,13 @@ public abstract class EnumerableDefaults {
       return false;
     }
 
-    public void reset() {
+    @Override public void reset() {
       enumerator.reset();
       done = false;
       n = -1;
     }
 
-    public void close() {
+    @Override public void close() {
       enumerator.close();
     }
   }
@@ -3887,11 +3887,11 @@ public abstract class EnumerableDefaults {
       this.predicate = predicate;
     }
 
-    public TSource current() {
+    @Override public TSource current() {
       return enumerator.current();
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       for (;;) {
         if (!enumerator.moveNext()) {
           return false;
@@ -3906,13 +3906,13 @@ public abstract class EnumerableDefaults {
       }
     }
 
-    public void reset() {
+    @Override public void reset() {
       enumerator.reset();
       started = false;
       n = -1;
     }
 
-    public void close() {
+    @Override public void close() {
       enumerator.close();
     }
   }
@@ -3929,19 +3929,19 @@ public abstract class EnumerableDefaults {
       this.clazz = clazz;
     }
 
-    public T current() {
+    @Override public T current() {
       return clazz.cast(enumerator.current());
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return enumerator.moveNext();
     }
 
-    public void reset() {
+    @Override public void reset() {
       enumerator.reset();
     }
 
-    public void close() {
+    @Override public void close() {
       enumerator.close();
     }
   }
@@ -3997,16 +3997,16 @@ public abstract class EnumerableDefaults {
               map.entrySet().iterator();
 
           return new Iterator<Entry<K, V>>() {
-            public boolean hasNext() {
+            @Override public boolean hasNext() {
               return iterator.hasNext();
             }
 
-            public Entry<K, V> next() {
+            @Override public Entry<K, V> next() {
               Entry<Wrapped<K>, V> next = iterator.next();
               return new SimpleEntry<>(next.getKey().element, next.getValue());
             }
 
-            public void remove() {
+            @Override public void remove() {
               iterator.remove();
             }
           };
@@ -4063,20 +4063,20 @@ public abstract class EnumerableDefaults {
       this.resultSelector = resultSelector;
     }
 
-    public Iterator<TResult> iterator() {
+    @Override public Iterator<TResult> iterator() {
       final Iterator<Map.Entry<TKey, TAccumulate>> iterator =
           map.entrySet().iterator();
       return new Iterator<TResult>() {
-        public boolean hasNext() {
+        @Override public boolean hasNext() {
           return iterator.hasNext();
         }
 
-        public TResult next() {
+        @Override public TResult next() {
           final Map.Entry<TKey, TAccumulate> entry = iterator.next();
           return resultSelector.apply(entry.getKey(), entry.getValue());
         }
 
-        public void remove() {
+        @Override public void remove() {
           throw new UnsupportedOperationException();
         }
       };
@@ -4370,14 +4370,14 @@ public abstract class EnumerableDefaults {
       return false;
     }
 
-    public TResult current() {
+    @Override public TResult current() {
       if (current == DUMMY) {
         throw new NoSuchElementException();
       }
       return current;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       for (;;) {
         if (results != null) {
           if (results.moveNext()) {
@@ -4404,7 +4404,7 @@ public abstract class EnumerableDefaults {
       }
     }
 
-    public void reset() {
+    @Override public void reset() {
       done = false;
       results = null;
       current = (TResult) DUMMY;
@@ -4416,7 +4416,7 @@ public abstract class EnumerableDefaults {
       start();
     }
 
-    public void close() {
+    @Override public void close() {
       leftEnumerator.close();
       if (rightEnumerator != null) {
         rightEnumerator.close();

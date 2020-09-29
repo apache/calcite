@@ -50,7 +50,7 @@ public class SqlAccessType {
     return accessEnums.contains(access);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return accessEnums.toString();
   }
 

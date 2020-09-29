@@ -100,7 +100,7 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     return null;
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     if (!Aggregate.isSimple(this)) {
       throw Util.needToImplement("EnumerableSortedAggregate");
     }

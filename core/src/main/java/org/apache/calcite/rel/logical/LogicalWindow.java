@@ -212,7 +212,7 @@ public final class LogicalWindow extends Window {
     // the output calc (if it exists).
     RexShuttle shuttle =
         new RexShuttle() {
-          public RexNode visitOver(RexOver over) {
+          @Override public RexNode visitOver(RexOver over) {
             // Look up the aggCall which this expr was translated to.
             final Window.RexWinAggCall aggCall =
                 aggMap.get(origToNewOver.get(over));
@@ -243,7 +243,7 @@ public final class LogicalWindow extends Window {
                 over.getType());
           }
 
-          public RexNode visitLocalRef(RexLocalRef localRef) {
+          @Override public RexNode visitLocalRef(RexLocalRef localRef) {
             final int index = localRef.getIndex();
             if (index < inputFieldCount) {
               // Reference to input field.
@@ -281,11 +281,11 @@ public final class LogicalWindow extends Window {
   private static List<RexNode> toInputRefs(
       final List<? extends RexNode> operands) {
     return new AbstractList<RexNode>() {
-      public int size() {
+      @Override public int size() {
         return operands.size();
       }
 
-      public RexNode get(int index) {
+      @Override public RexNode get(int index) {
         final RexNode operand = operands.get(index);
         if (operand instanceof RexInputRef) {
           return operand;

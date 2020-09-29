@@ -67,7 +67,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     return providers.hashCode();
   }
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     final List<UnboundMetadata<M>> functions = new ArrayList<>();
@@ -101,7 +101,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
@@ -125,7 +125,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
       this.metadataList = ImmutableList.copyOf(metadataList);
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args)
+    @Override public Object invoke(Object proxy, Method method, Object[] args)
         throws Throwable {
       for (Metadata metadata : metadataList) {
         try {

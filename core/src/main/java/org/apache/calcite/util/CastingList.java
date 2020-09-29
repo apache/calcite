@@ -47,24 +47,24 @@ public class CastingList<E> extends AbstractList<E> implements List<E> {
 
   //~ Methods ----------------------------------------------------------------
 
-  public E get(int index) {
+  @Override public E get(int index) {
     return clazz.cast(list.get(index));
   }
 
-  public int size() {
+  @Override public int size() {
     return list.size();
   }
 
-  public E set(int index, E element) {
+  @Override public E set(int index, E element) {
     final Object o = list.set(index, element);
     return clazz.cast(o);
   }
 
-  public E remove(int index) {
+  @Override public E remove(int index) {
     return clazz.cast(list.remove(index));
   }
 
-  public void add(int pos, E o) {
+  @Override public void add(int pos, E o) {
     list.add(pos, o);
   }
 }

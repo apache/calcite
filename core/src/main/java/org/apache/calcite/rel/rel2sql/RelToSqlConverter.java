@@ -131,7 +131,7 @@ public class RelToSqlConverter extends SqlImplementor
     return dispatcher.invoke(e);
   }
 
-  public Result visitInput(RelNode parent, int i, boolean anon,
+  @Override public Result visitInput(RelNode parent, int i, boolean anon,
       boolean ignoreClauses, Set<Clause> expectedClauses) {
     try {
       final RelNode e = parent.getInput(i);

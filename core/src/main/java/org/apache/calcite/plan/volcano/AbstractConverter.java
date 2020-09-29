@@ -60,7 +60,7 @@ public class AbstractConverter extends ConverterImpl {
   //~ Methods ----------------------------------------------------------------
 
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new AbstractConverter(
         getCluster(),
         (RelSubset) sole(inputs),
@@ -68,11 +68,11 @@ public class AbstractConverter extends ConverterImpl {
         traitSet);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     return planner.getCostFactory().makeInfiniteCost();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (RelTrait trait : traitSet) {
       pw.item(trait.getTraitDef().getSimpleName(), trait);

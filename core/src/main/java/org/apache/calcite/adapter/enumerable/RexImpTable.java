@@ -1085,11 +1085,11 @@ public class RexImpTable {
 
   /** Implementor for the {@code SINGLE_VALUE} aggregate function. */
   static class SingleValueImplementor implements AggImplementor {
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return Arrays.asList(boolean.class, info.returnType());
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
       List<Expression> acc = reset.accumulator();
       reset.currentBlock().add(
           Expressions.statement(
@@ -1100,7 +1100,7 @@ public class RexImpTable {
                   getDefaultValue(acc.get(1).getType()))));
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       List<Expression> acc = add.accumulator();
       Expression flag = acc.get(0);
       add.currentBlock().add(
@@ -1117,7 +1117,7 @@ public class RexImpTable {
               Expressions.assign(acc.get(1), add.arguments().get(0))));
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       return EnumUtils.convert(result.accumulator().get(1),
           info.returnType());
@@ -1278,17 +1278,17 @@ public class RexImpTable {
 
   /** Implementor for the {@code GROUPING} aggregate function. */
   static class GroupingImplementor implements AggImplementor {
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return ImmutableList.of();
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       final List<Integer> keys;
       switch (info.aggregation().kind) {
@@ -1452,23 +1452,23 @@ public class RexImpTable {
       this.seekType = seekType;
     }
 
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return Collections.emptyList();
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
       // no op
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       // no op
     }
 
-    public boolean needCacheWhenFrameIntact() {
+    @Override public boolean needCacheWhenFrameIntact() {
       return true;
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 
@@ -1497,23 +1497,23 @@ public class RexImpTable {
   /** Implementor for the {@code NTH_VALUE}
    * windowed aggregate function. */
   static class NthValueImplementor implements WinAggImplementor {
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return Collections.emptyList();
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
       // no op
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       // no op
     }
 
-    public boolean needCacheWhenFrameIntact() {
+    @Override public boolean needCacheWhenFrameIntact() {
       return true;
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 
@@ -1559,23 +1559,23 @@ public class RexImpTable {
       this.isLead = isLead;
     }
 
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return Collections.emptyList();
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
       // no op
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       // no op
     }
 
-    public boolean needCacheWhenFrameIntact() {
+    @Override public boolean needCacheWhenFrameIntact() {
       return false;
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 
@@ -1637,23 +1637,23 @@ public class RexImpTable {
 
   /** Implementor for the {@code NTILE} windowed aggregate function. */
   static class NtileImplementor implements WinAggImplementor {
-    public List<Type> getStateType(AggContext info) {
+    @Override public List<Type> getStateType(AggContext info) {
       return Collections.emptyList();
     }
 
-    public void implementReset(AggContext info, AggResetContext reset) {
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
       // no op
     }
 
-    public void implementAdd(AggContext info, AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       // no op
     }
 
-    public boolean needCacheWhenFrameIntact() {
+    @Override public boolean needCacheWhenFrameIntact() {
       return false;
     }
 
-    public Expression implementResult(AggContext info,
+    @Override public Expression implementResult(AggContext info,
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 

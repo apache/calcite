@@ -55,11 +55,11 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return new EnumerableBindable(getCluster(), sole(inputs));
   }
 
-  public Class<Object[]> getElementType() {
+  @Override public Class<Object[]> getElementType() {
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
     final ImmutableMap<String, Object> map = ImmutableMap.of();
     final Bindable bindable = EnumerableInterpretable.toBindable(map, null,
         (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
@@ -67,7 +67,7 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return arrayBindable.bind(dataContext);
   }
 
-  public Node implement(final InterpreterImplementor implementor) {
+  @Override public Node implement(final InterpreterImplementor implementor) {
     return () -> {
       final Sink sink =
           implementor.relSinks.get(EnumerableBindable.this).get(0);

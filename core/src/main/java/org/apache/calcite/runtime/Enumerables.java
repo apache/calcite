@@ -76,7 +76,7 @@ public class Enumerables {
       Matcher<E> matcher,
       Emitter<E, TResult> emitter, int history, int future) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<E> inputEnumerator = enumerable.enumerator();
 
@@ -94,12 +94,12 @@ public class Enumerables {
           /** Match counter is 1-based in Oracle. */
           final AtomicInteger matchCounter = new AtomicInteger(1);
 
-          public TResult current() {
+          @Override public TResult current() {
             Objects.requireNonNull(resultRow);
             return resultRow;
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               resultRow = emitRows.pollFirst();
               if (resultRow != null) {
@@ -170,11 +170,11 @@ public class Enumerables {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             throw new UnsupportedOperationException();
           }
 
-          public void close() {
+          @Override public void close() {
             inputEnumerator.close();
           }
         };

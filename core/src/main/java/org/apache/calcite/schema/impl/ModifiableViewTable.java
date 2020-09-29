@@ -70,20 +70,20 @@ public class ModifiableViewTable extends ViewTable
     this.initializerExpressionFactory = new ModifiableViewTableInitializerExpressionFactory();
   }
 
-  public RexNode getConstraint(RexBuilder rexBuilder,
+  @Override public RexNode getConstraint(RexBuilder rexBuilder,
       RelDataType tableRowType) {
     return rexBuilder.copy(constraint);
   }
 
-  public ImmutableIntList getColumnMapping() {
+  @Override public ImmutableIntList getColumnMapping() {
     return columnMapping;
   }
 
-  public Table getTable() {
+  @Override public Table getTable() {
     return table;
   }
 
-  public Path getTablePath() {
+  @Override public Path getTablePath() {
     return tablePath;
   }
 

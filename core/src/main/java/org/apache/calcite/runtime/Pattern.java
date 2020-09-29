@@ -154,7 +154,7 @@ public interface Pattern {
       this.op = Objects.requireNonNull(op);
     }
 
-    public Automaton toAutomaton() {
+    @Override public Automaton toAutomaton() {
       return new AutomatonBuilder().add(this).build();
     }
   }

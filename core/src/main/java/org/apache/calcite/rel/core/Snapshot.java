@@ -74,7 +74,7 @@ public abstract class Snapshot extends SingleRel  {
 
   public abstract Snapshot copy(RelTraitSet traitSet, RelNode input, RexNode period);
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.period);
     if (this.period == condition) {
       return this;

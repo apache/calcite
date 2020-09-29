@@ -55,7 +55,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
     });
   }
 
-  public <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
+  @Override public <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz) {
     try {
       //noinspection unchecked

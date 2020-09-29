@@ -509,7 +509,7 @@ abstract class DruidJsonFilter implements DruidJson {
       this.extractionFunction = extractionFunction;
     }
 
-    public void write(JsonGenerator generator) throws IOException {
+    @Override public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);
@@ -551,7 +551,7 @@ abstract class DruidJsonFilter implements DruidJson {
       this.extractionFunction = extractionFunction;
     }
 
-    public void write(JsonGenerator generator) throws IOException {
+    @Override public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);
@@ -589,7 +589,7 @@ abstract class DruidJsonFilter implements DruidJson {
       this(type, ImmutableList.copyOf(fields));
     }
 
-    public void write(JsonGenerator generator) throws IOException {
+    @Override public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("type", type.lowercase());
       switch (type) {
@@ -621,7 +621,7 @@ abstract class DruidJsonFilter implements DruidJson {
       this.extractionFunction = extractionFunction;
     }
 
-    public void write(JsonGenerator generator) throws IOException {
+    @Override public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);

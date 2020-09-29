@@ -48,7 +48,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
         getCluster(), table, jdbcTable, (JdbcConvention) getConvention());
   }
 
-  public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+  @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
     return implementor.result(jdbcTable.tableName(),
         ImmutableList.of(JdbcImplementor.Clause.FROM), this, null);
   }

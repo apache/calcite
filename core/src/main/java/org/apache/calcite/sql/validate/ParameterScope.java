@@ -49,11 +49,11 @@ public class ParameterScope extends EmptyScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     return SqlQualified.create(this, 1, null, identifier);
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     return this;
   }
 

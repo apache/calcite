@@ -36,19 +36,19 @@ public class RexBiVisitorImpl<R, P> implements RexBiVisitor<R, P> {
 
   //~ Methods ----------------------------------------------------------------
 
-  public R visitInputRef(RexInputRef inputRef, P arg) {
+  @Override public R visitInputRef(RexInputRef inputRef, P arg) {
     return null;
   }
 
-  public R visitLocalRef(RexLocalRef localRef, P arg) {
+  @Override public R visitLocalRef(RexLocalRef localRef, P arg) {
     return null;
   }
 
-  public R visitLiteral(RexLiteral literal, P arg) {
+  @Override public R visitLiteral(RexLiteral literal, P arg) {
     return null;
   }
 
-  public R visitOver(RexOver over, P arg) {
+  @Override public R visitOver(RexOver over, P arg) {
     R r = visitCall(over, arg);
     if (!deep) {
       return null;
@@ -65,11 +65,11 @@ public class RexBiVisitorImpl<R, P> implements RexBiVisitor<R, P> {
     return r;
   }
 
-  public R visitCorrelVariable(RexCorrelVariable correlVariable, P arg) {
+  @Override public R visitCorrelVariable(RexCorrelVariable correlVariable, P arg) {
     return null;
   }
 
-  public R visitCall(RexCall call, P arg) {
+  @Override public R visitCall(RexCall call, P arg) {
     if (!deep) {
       return null;
     }
@@ -81,15 +81,15 @@ public class RexBiVisitorImpl<R, P> implements RexBiVisitor<R, P> {
     return r;
   }
 
-  public R visitDynamicParam(RexDynamicParam dynamicParam, P arg) {
+  @Override public R visitDynamicParam(RexDynamicParam dynamicParam, P arg) {
     return null;
   }
 
-  public R visitRangeRef(RexRangeRef rangeRef, P arg) {
+  @Override public R visitRangeRef(RexRangeRef rangeRef, P arg) {
     return null;
   }
 
-  public R visitFieldAccess(RexFieldAccess fieldAccess, P arg) {
+  @Override public R visitFieldAccess(RexFieldAccess fieldAccess, P arg) {
     if (!deep) {
       return null;
     }
@@ -97,7 +97,7 @@ public class RexBiVisitorImpl<R, P> implements RexBiVisitor<R, P> {
     return expr.accept(this, arg);
   }
 
-  public R visitSubQuery(RexSubQuery subQuery, P arg) {
+  @Override public R visitSubQuery(RexSubQuery subQuery, P arg) {
     if (!deep) {
       return null;
     }

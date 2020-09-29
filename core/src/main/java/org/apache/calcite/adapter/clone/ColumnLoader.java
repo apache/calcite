@@ -151,12 +151,12 @@ class ColumnLoader<T> {
         new AbstractList<Type>() {
           final List<RelDataTypeField> fields =
               elementType.getFieldList();
-          public Type get(int index) {
+          @Override public Type get(int index) {
             return typeFactory.getJavaClass(
                 fields.get(index).getType());
           }
 
-          public int size() {
+          @Override public int size() {
             return fields.size();
           }
         };
@@ -169,11 +169,11 @@ class ColumnLoader<T> {
               : new AbstractList<Object>() {
                 final int slice = pair.i;
 
-                public Object get(int index) {
+                @Override public Object get(int index) {
                   return ((Object[]) list.get(index))[slice];
                 }
 
-                public int size() {
+                @Override public int size() {
                   return list.size();
                 }
               };
@@ -444,7 +444,7 @@ class ColumnLoader<T> {
       this.key = key;
     }
 
-    public int compareTo(Kev o) {
+    @Override public int compareTo(Kev o) {
       //noinspection unchecked
       return key.compareTo(o.key);
     }

@@ -47,7 +47,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
 
   //~ Methods ----------------------------------------------------------------
 
-  protected boolean checkOperandTypesImpl(
+  @Override protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
       SqlCallBinding callBinding) {
@@ -94,7 +94,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
     return true;
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     final String typeName = getTypeName();
     if (nOperands == -1) {
       return SqlUtil.getAliasedSignature(op, opName,

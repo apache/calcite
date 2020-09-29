@@ -53,11 +53,11 @@ public class SqlSelectOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  public SqlCall createCall(
+  @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
@@ -123,7 +123,7 @@ public class SqlSelectOperator extends SqlOperator {
         hints);
   }
 
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -135,7 +135,7 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @SuppressWarnings("deprecation")
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -236,7 +236,7 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  public boolean argumentMustBeScalar(int ordinal) {
+  @Override public boolean argumentMustBeScalar(int ordinal) {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }

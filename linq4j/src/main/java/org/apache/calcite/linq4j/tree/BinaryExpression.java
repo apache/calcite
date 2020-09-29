@@ -44,11 +44,11 @@ public class BinaryExpression extends Expression {
     return visitor.visit(this, expression0, expression1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     switch (nodeType) {
     case AndAlso:
       return (Boolean) expression0.evaluate(evaluator)
@@ -203,7 +203,7 @@ public class BinaryExpression extends Expression {
     }
   }
 
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (writer.requireParentheses(this, lprec, rprec)) {
       return;
     }

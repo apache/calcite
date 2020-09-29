@@ -37,7 +37,7 @@ public class RexPermutationShuttle extends RexShuttle {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RexNode visitLocalRef(RexLocalRef local) {
+  @Override public RexNode visitLocalRef(RexLocalRef local) {
     final int index = local.getIndex();
     int target = permutation.getTarget(index);
     return new RexLocalRef(

@@ -61,7 +61,7 @@ public class EnumerableToSparkConverter
     return super.computeSelfCost(planner, mq).multiplyBy(.01);
   }
 
-  public Result implementSpark(Implementor implementor) {
+  @Override public Result implementSpark(Implementor implementor) {
     // Generate:
     //   Enumerable source = ...;
     //   return SparkRuntime.createRdd(sparkContext, source);

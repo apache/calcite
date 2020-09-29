@@ -104,7 +104,7 @@ public class EnumerableCorrelate extends Correlate
     return DeriveMode.LEFT_FIRST;
   }
 
-  public Result implement(EnumerableRelImplementor implementor,
+  @Override public Result implement(EnumerableRelImplementor implementor,
       Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =

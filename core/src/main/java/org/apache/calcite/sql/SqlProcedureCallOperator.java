@@ -36,7 +36,7 @@ public class SqlProcedureCallOperator extends SqlPrefixOperator {
   //~ Methods ----------------------------------------------------------------
 
   // override SqlOperator
-  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     // for now, rewrite "CALL f(x)" to "SELECT f(x) FROM VALUES(0)"
     // TODO jvs 18-Jan-2005:  rewrite to SELECT * FROM TABLE f(x)
     // once we support function calls as tables

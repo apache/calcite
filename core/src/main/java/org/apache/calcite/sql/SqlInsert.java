@@ -67,11 +67,11 @@ public class SqlInsert extends SqlCall {
     return SqlKind.INSERT;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
 
@@ -154,7 +154,7 @@ public class SqlInsert extends SqlCall {
     source.unparse(writer, 0, 0);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateInsert(this);
   }
 }

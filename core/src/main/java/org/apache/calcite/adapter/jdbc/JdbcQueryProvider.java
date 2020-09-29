@@ -30,7 +30,7 @@ public final class JdbcQueryProvider extends QueryProviderImpl {
   private JdbcQueryProvider() {
   }
 
-  public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
+  @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
     return null;
   }
 }

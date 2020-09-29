@@ -76,7 +76,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     return Schema.TableType.STAR;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final List<RelDataType> typeList = new ArrayList<>();
     final List<Integer> fieldCounts = new ArrayList<>();
     for (Table table : tables) {
@@ -92,7 +92,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     return typeFactory.createStructType(typeList, lattice.uniqueColumnNames());
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {
+  @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {
     // Create a table scan of infinite cost.
     return new StarTableScan(context.getCluster(), table);
   }

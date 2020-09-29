@@ -54,11 +54,11 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return builder.build();
   }
 
-  public int size() {
+  @Override public int size() {
     return keySet().size();
   }
 
-  public boolean isEmpty() {
+  @Override public boolean isEmpty() {
     // Empty iff all maps are empty.
     for (Map<K, V> map : maps) {
       if (!map.isEmpty()) {
@@ -68,7 +68,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return true;
   }
 
-  public boolean containsKey(Object key) {
+  @Override public boolean containsKey(Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
         return true;
@@ -77,7 +77,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  public boolean containsValue(Object value) {
+  @Override public boolean containsValue(Object value) {
     for (Map<K, V> map : maps) {
       if (map.containsValue(value)) {
         return true;
@@ -86,7 +86,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  public V get(Object key) {
+  @Override public V get(Object key) {
     for (Map<K, V> map : maps) {
       //noinspection SuspiciousMethodCalls
       if (map.containsKey(key)) {
@@ -96,27 +96,27 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return null;
   }
 
-  public V put(K key, V value) {
+  @Override public V put(K key, V value) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  public V remove(Object key) {
+  @Override public V remove(Object key) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  public void putAll(Map<? extends K, ? extends V> m) {
+  @Override public void putAll(Map<? extends K, ? extends V> m) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  public void clear() {
+  @Override public void clear() {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  public Set<K> keySet() {
+  @Override public Set<K> keySet() {
     final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       keys.addAll(map.keySet());
@@ -137,11 +137,11 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return builder.build();
   }
 
-  public Collection<V> values() {
+  @Override public Collection<V> values() {
     return combinedMap().values();
   }
 
-  public Set<Entry<K, V>> entrySet() {
+  @Override public Set<Entry<K, V>> entrySet() {
     return combinedMap().entrySet();
   }
 }

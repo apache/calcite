@@ -51,26 +51,26 @@ public class SqlRowOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       final SqlOperatorBinding opBinding) {
     // The type of a ROW(e1,e2) expression is a record with the types
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
     return opBinding.getTypeFactory().createStructType(
         new AbstractList<Map.Entry<String, RelDataType>>() {
-          public Map.Entry<String, RelDataType> get(int index) {
+          @Override public Map.Entry<String, RelDataType> get(int index) {
             return Pair.of(
                 SqlUtil.deriveAliasFromOrdinal(index),
                 opBinding.getOperandType(index));
           }
 
-          public int size() {
+          @Override public int size() {
             return opBinding.getOperandCount();
           }
         });
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -79,7 +79,7 @@ public class SqlRowOperator extends SqlSpecialOperator {
   }
 
   // override SqlOperator
-  public boolean requiresDecimalExpansion() {
+  @Override public boolean requiresDecimalExpansion() {
     return false;
   }
 }

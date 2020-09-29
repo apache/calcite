@@ -55,23 +55,23 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
   }
 
   // implement Map.Entry
-  public Enumerable<V> getValue() {
+  @Override public Enumerable<V> getValue() {
     return Linq4j.asEnumerable(values);
   }
 
   // implement Map.Entry
-  public Enumerable<V> setValue(Enumerable<V> value) {
+  @Override public Enumerable<V> setValue(Enumerable<V> value) {
     // immutable
     throw new UnsupportedOperationException();
   }
 
   // implement Map.Entry
   // implement Grouping
-  public K getKey() {
+  @Override public K getKey() {
     return key;
   }
 
-  public Enumerator<V> enumerator() {
+  @Override public Enumerator<V> enumerator() {
     return Linq4j.enumerator(values);
   }
 }

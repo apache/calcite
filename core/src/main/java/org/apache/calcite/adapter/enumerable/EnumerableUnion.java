@@ -36,12 +36,12 @@ public class EnumerableUnion extends Union implements EnumerableRel {
     super(cluster, traitSet, inputs, all);
   }
 
-  public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
+  @Override public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
       boolean all) {
     return new EnumerableUnion(getCluster(), traitSet, inputs, all);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     Expression unionExp = null;
     for (Ord<RelNode> ord : Ord.zip(inputs)) {

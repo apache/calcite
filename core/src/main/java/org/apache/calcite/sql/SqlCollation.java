@@ -274,7 +274,7 @@ public class SqlCollation implements Serializable {
     }
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "COLLATE " + collationName;
   }
 

@@ -70,7 +70,7 @@ public class RelColumnOrigin {
   }
 
   // override Object
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (!(obj instanceof RelColumnOrigin)) {
       return false;
     }
@@ -82,7 +82,7 @@ public class RelColumnOrigin {
   }
 
   // override Object
-  public int hashCode() {
+  @Override public int hashCode() {
     return originTable.getQualifiedName().hashCode()
         + iOriginColumn + (isDerived ? 313 : 0);
   }

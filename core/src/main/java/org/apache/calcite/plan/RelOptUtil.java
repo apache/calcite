@@ -3103,7 +3103,7 @@ public abstract class RelOptUtil {
     }
     try {
       new RelVisitor() {
-        public void visit(RelNode node, int ordinal, RelNode parent) {
+        @Override public void visit(RelNode node, int ordinal, RelNode parent) {
           if (node == target) {
             throw Util.FoundOne.NULL;
           }
@@ -3263,11 +3263,11 @@ public abstract class RelOptUtil {
     assert fieldNames.size() == fields.size();
     final List<RexNode> refs =
         new AbstractList<RexNode>() {
-          public int size() {
+          @Override public int size() {
             return fields.size();
           }
 
-          public RexNode get(int index) {
+          @Override public RexNode get(int index) {
             return RexInputRef.of(index, fields);
           }
         };
@@ -3377,11 +3377,11 @@ public abstract class RelOptUtil {
     final RelBuilder relBuilder =
         RelBuilder.proto(factory).create(child.getCluster(), null);
     final List<RexNode> exprs = new AbstractList<RexNode>() {
-      public int size() {
+      @Override public int size() {
         return posList.size();
       }
 
-      public RexNode get(int index) {
+      @Override public RexNode get(int index) {
         final int pos = posList.get(index);
         return relBuilder.getRexBuilder().makeInputRef(child, pos);
       }
@@ -3540,11 +3540,11 @@ public abstract class RelOptUtil {
           relBuilder.peek().getRowType().getFieldList();
       final List<Pair<RexNode, String>> pairs =
           new AbstractList<Pair<RexNode, String>>() {
-            public int size() {
+            @Override public int size() {
               return leftCount + extraLeftExprs.size();
             }
 
-            public Pair<RexNode, String> get(int index) {
+            @Override public Pair<RexNode, String> get(int index) {
               if (index < leftCount) {
                 RelDataTypeField field = fields.get(index);
                 return Pair.of(
@@ -3564,11 +3564,11 @@ public abstract class RelOptUtil {
       final int newLeftCount = leftCount + extraLeftExprs.size();
       final List<Pair<RexNode, String>> pairs =
           new AbstractList<Pair<RexNode, String>>() {
-            public int size() {
+            @Override public int size() {
               return rightCount + extraRightExprs.size();
             }
 
-            public Pair<RexNode, String> get(int index) {
+            @Override public Pair<RexNode, String> get(int index) {
               if (index < rightCount) {
                 RelDataTypeField field = fields.get(index);
                 return Pair.of(
@@ -3855,7 +3855,7 @@ public abstract class RelOptUtil {
     /**
      * Visits a particular child of a parent.
      */
-    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
       inheritPaths.forEach(inheritPath -> inheritPath.right.push(i));
       try {
         RelNode child2 = child.accept(this);
@@ -3870,7 +3870,7 @@ public abstract class RelOptUtil {
       }
     }
 
-    public RelNode visit(RelNode other) {
+    @Override public RelNode visit(RelNode other) {
       if (other instanceof Hintable) {
         return visitHintable(other);
       } else {
@@ -3989,7 +3989,7 @@ public abstract class RelOptUtil {
     /**
      * Visits a particular child of a parent.
      */
-    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
       appendPath.add(i);
       try {
         RelNode child2 = child.accept(this);
@@ -4005,7 +4005,7 @@ public abstract class RelOptUtil {
       }
     }
 
-    public RelNode visit(RelNode other) {
+    @Override public RelNode visit(RelNode other) {
       if (this.appendPath.size() > 3) {
         // Returns early if the visiting depth is bigger than 3
         return other;
@@ -4087,7 +4087,7 @@ public abstract class RelOptUtil {
    * </ul>
    */
   private static class ResetHintsShuttle extends RelHomogeneousShuttle {
-    public RelNode visit(RelNode node) {
+    @Override public RelNode visit(RelNode node) {
       node = visitChildren(node);
       if (node instanceof Hintable) {
         node = resetHints((Hintable) node);
@@ -4112,7 +4112,7 @@ public abstract class RelOptUtil {
     final Set<CorrelationId> variables = new HashSet<>();
 
     // implement RelVisitor
-    public void visit(
+    @Override public void visit(
         RelNode p,
         int ordinal,
         RelNode parent) {
@@ -4163,7 +4163,7 @@ public abstract class RelOptUtil {
   public static class InputReferencedVisitor extends RexShuttle {
     public final SortedSet<Integer> inputPosReferenced = new TreeSet<>();
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       inputPosReferenced.add(inputRef.getIndex());
       return inputRef;
     }
@@ -4283,7 +4283,7 @@ public abstract class RelOptUtil {
       return bitBuilder.build();
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       bitBuilder.set(inputRef.getIndex());
       return null;
     }
@@ -4383,7 +4383,7 @@ public abstract class RelOptUtil {
       this(rexBuilder, srcFields, null, null, null, adjustments);
     }
 
-    public RexNode visitInputRef(RexInputRef var) {
+    @Override public RexNode visitInputRef(RexInputRef var) {
       int srcIndex = var.getIndex();
       int destIndex = srcIndex + adjustments[srcIndex];
 

@@ -57,7 +57,7 @@ public class GeodeSimpleScannableTable extends AbstractTable implements Scannabl
 
   @Override public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new GeodeSimpleEnumerator<Object[]>(clientCache, regionName) {
           @Override public Object[] convert(Object obj) {
             Object values = convertToRowValues(relDataType.getFieldList(), obj);

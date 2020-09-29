@@ -48,18 +48,18 @@ public class CsvFilterableTable extends CsvTable
     super(source, protoRowType);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CsvFilterableTable";
   }
 
-  public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
+  @Override public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
             CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }

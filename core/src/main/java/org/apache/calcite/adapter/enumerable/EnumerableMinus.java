@@ -36,12 +36,12 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
     super(cluster, traitSet, inputs, all);
   }
 
-  public EnumerableMinus copy(RelTraitSet traitSet, List<RelNode> inputs,
+  @Override public EnumerableMinus copy(RelTraitSet traitSet, List<RelNode> inputs,
       boolean all) {
     return new EnumerableMinus(getCluster(), traitSet, inputs, all);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     Expression minusExp = null;
     for (Ord<RelNode> ord : Ord.zip(inputs)) {

@@ -146,17 +146,17 @@ public class PlannerImpl implements Planner, ViewExpander {
     state.from(this);
   }
 
-  public RelTraitSet getEmptyTraitSet() {
+  @Override public RelTraitSet getEmptyTraitSet() {
     return planner.emptyTraitSet();
   }
 
-  public void close() {
+  @Override public void close() {
     open = false;
     typeFactory = null;
     state = State.STATE_0_CLOSED;
   }
 
-  public void reset() {
+  @Override public void reset() {
     ensure(State.STATE_0_CLOSED);
     open = true;
     state = State.STATE_1_RESET;
@@ -195,7 +195,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
   }
 
-  public SqlNode parse(final Reader reader) throws SqlParseException {
+  @Override public SqlNode parse(final Reader reader) throws SqlParseException {
     switch (state) {
     case STATE_0_CLOSED:
     case STATE_1_RESET:
@@ -208,7 +208,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     return sqlNode;
   }
 
-  public SqlNode validate(SqlNode sqlNode) throws ValidationException {
+  @Override public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
     this.validator = createSqlValidator(createCatalogReader());
     try {
@@ -220,7 +220,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     return validatedSqlNode;
   }
 
-  public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
+  @Override public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
       throws ValidationException {
     final SqlNode validatedNode = this.validate(sqlNode);
     final RelDataType type =
@@ -229,11 +229,11 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   @SuppressWarnings("deprecation")
-  public final RelNode convert(SqlNode sql) {
+  @Override public final RelNode convert(SqlNode sql) {
     return rel(sql).rel;
   }
 
-  public RelRoot rel(SqlNode sql) {
+  @Override public RelRoot rel(SqlNode sql) {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
@@ -262,7 +262,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     ViewExpanderImpl() {
     }
 
-    public RelRoot expandView(RelDataType rowType, String queryString,
+    @Override public RelRoot expandView(RelDataType rowType, String queryString,
         List<String> schemaPath, List<String> viewPath) {
       return PlannerImpl.this.expandView(rowType, queryString, schemaPath,
           viewPath);
@@ -341,11 +341,11 @@ public class PlannerImpl implements Planner, ViewExpander {
     return new RexBuilder(typeFactory);
   }
 
-  public JavaTypeFactory getTypeFactory() {
+  @Override public JavaTypeFactory getTypeFactory() {
     return typeFactory;
   }
 
-  public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
+  @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(

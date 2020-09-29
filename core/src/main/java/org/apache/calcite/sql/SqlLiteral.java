@@ -232,11 +232,11 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
-  public SqlLiteral clone(SqlParserPos pos) {
+  @Override public SqlLiteral clone(SqlParserPos pos) {
     return new SqlLiteral(value, typeName, pos);
   }
 
-  public @Nonnull SqlKind getKind() {
+  @Override public @Nonnull SqlKind getKind() {
     return SqlKind.LITERAL;
   }
 
@@ -550,15 +550,15 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateLiteral(this);
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlLiteral)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -569,7 +569,7 @@ public class SqlLiteral extends SqlNode {
     return litmus.succeed();
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
@@ -618,7 +618,7 @@ public class SqlLiteral extends SqlNode {
     return new SqlLiteral(sampleSpec, SqlTypeName.SYMBOL, pos);
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (!(obj instanceof SqlLiteral)) {
       return false;
     }
@@ -626,7 +626,7 @@ public class SqlLiteral extends SqlNode {
     return Objects.equals(value, that.value);
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return (value == null) ? 0 : value.hashCode();
   }
 
@@ -715,7 +715,7 @@ public class SqlLiteral extends SqlNode {
     return ((NlsString) value).getValue();
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

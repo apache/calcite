@@ -43,7 +43,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     return 107;
   }
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     return (rel, mq) -> {
@@ -59,7 +59,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
   }

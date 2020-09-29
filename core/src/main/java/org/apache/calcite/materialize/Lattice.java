@@ -571,7 +571,7 @@ public class Lattice {
       this.digest = b.toString();
     }
 
-    public int compareTo(@Nonnull Measure measure) {
+    @Override public int compareTo(@Nonnull Measure measure) {
       int c = compare(args, measure.args);
       if (c == 0) {
         c = agg.getName().compareTo(measure.agg.getName());
@@ -655,7 +655,7 @@ public class Lattice {
       return builder.build();
     }
 
-    public int compareTo(Column column) {
+    @Override public int compareTo(Column column) {
       return Utilities.compare(ordinal, column.ordinal);
     }
 
@@ -700,11 +700,11 @@ public class Lattice {
       return ImmutableList.of(table, column);
     }
 
-    public void toSql(SqlWriter writer) {
+    @Override public void toSql(SqlWriter writer) {
       writer.dialect.quoteIdentifier(writer.buf, identifiers());
     }
 
-    public String defaultAlias() {
+    @Override public String defaultAlias() {
       return column;
     }
   }
@@ -725,11 +725,11 @@ public class Lattice {
       return Arrays.toString(new Object[] {e, alias});
     }
 
-    public void toSql(SqlWriter writer) {
+    @Override public void toSql(SqlWriter writer) {
       writer.write(e);
     }
 
-    public String defaultAlias() {
+    @Override public String defaultAlias() {
       // there is no default alias for an expression
       return null;
     }

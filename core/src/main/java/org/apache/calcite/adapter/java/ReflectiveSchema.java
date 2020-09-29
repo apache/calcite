@@ -241,15 +241,15 @@ public class ReflectiveSchema
       this.enumerable = enumerable;
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return ((JavaTypeFactory) typeFactory).createType(elementType);
     }
 
-    public Statistic getStatistic() {
+    @Override public Statistic getStatistic() {
       return Statistics.UNKNOWN;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       if (elementType == Object[].class) {
         //noinspection unchecked
         return enumerable;
@@ -259,12 +259,12 @@ public class ReflectiveSchema
       }
     }
 
-    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
         SchemaPlus schema, String tableName) {
       return new AbstractTableQueryable<T>(queryProvider, schema, this,
           tableName) {
         @SuppressWarnings("unchecked")
-        public Enumerator<T> enumerator() {
+        @Override public Enumerator<T> enumerator() {
           return (Enumerator<T>) enumerable.enumerator();
         }
       };
@@ -301,7 +301,7 @@ public class ReflectiveSchema
    * }</pre></blockquote>
    */
   public static class Factory implements SchemaFactory {
-    public Schema create(SchemaPlus parentSchema, String name,
+    @Override public Schema create(SchemaPlus parentSchema, String name,
         Map<String, Object> operand) {
       Class<?> clazz;
       Object target;
@@ -350,11 +350,11 @@ public class ReflectiveSchema
           + "expanded";
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Member {method=" + method + "}";
     }
 
-    public TranslatableTable apply(final List<Object> arguments) {
+    @Override public TranslatableTable apply(final List<Object> arguments) {
       try {
         final Object o = method.invoke(schema.getTarget(), arguments.toArray());
         return (TranslatableTable) o;
@@ -382,7 +382,7 @@ public class ReflectiveSchema
       this.statistic = statistic;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Relation {field=" + field.getName() + "}";
     }
 
@@ -406,7 +406,7 @@ public class ReflectiveSchema
       this.fields = elementType.getFields();
     }
 
-    public Object[] apply(Object o) {
+    @Override public Object[] apply(Object o) {
       try {
         final Object[] objects = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {

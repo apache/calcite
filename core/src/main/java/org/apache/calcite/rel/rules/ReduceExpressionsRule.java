@@ -447,7 +447,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       final List<RexNode> expandedExprList = new ArrayList<>();
       final RexShuttle shuttle =
           new RexShuttle() {
-            public RexNode visitLocalRef(RexLocalRef localRef) {
+            @Override public RexNode visitLocalRef(RexLocalRef localRef) {
               return expandedExprList.get(localRef.getIndex());
             }
           };

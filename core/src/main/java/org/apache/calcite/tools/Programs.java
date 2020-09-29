@@ -291,7 +291,7 @@ public class Programs {
       this.ruleSet = ruleSet;
     }
 
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -323,7 +323,7 @@ public class Programs {
       this.programs = programs;
     }
 
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -343,7 +343,7 @@ public class Programs {
    * disable field-trimming in {@link SqlToRelConverter}, and run
    * {@link TrimFieldsProgram} after this program. */
   private static class DecorrelateProgram implements Program {
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -361,7 +361,7 @@ public class Programs {
 
   /** Program that trims fields. */
   private static class TrimFieldsProgram implements Program {
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {

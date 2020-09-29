@@ -43,7 +43,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
     this.cache = cache;
   }
 
-  public double tableCardinality(RelOptTable table) {
+  @Override public double tableCardinality(RelOptTable table) {
     try {
       final ImmutableList<Object> key =
           ImmutableList.of("tableCardinality",
@@ -55,7 +55,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
     }
   }
 
-  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
     try {
       final ImmutableList<Object> key =
@@ -72,7 +72,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
     }
   }
 
-  public boolean isKey(RelOptTable table, List<Integer> columns) {
+  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
     try {
       final ImmutableList<Object> key =
           ImmutableList.of("isKey", table.getQualifiedName(),

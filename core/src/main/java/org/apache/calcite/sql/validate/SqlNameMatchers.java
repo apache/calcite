@@ -59,11 +59,11 @@ public class SqlNameMatchers {
       this.caseSensitive = caseSensitive;
     }
 
-    public boolean isCaseSensitive() {
+    @Override public boolean isCaseSensitive() {
       return caseSensitive;
     }
 
-    public boolean matches(String string, String name) {
+    @Override public boolean matches(String string, String name) {
       return caseSensitive ? string.equals(name)
           : string.equalsIgnoreCase(name);
     }
@@ -82,7 +82,7 @@ public class SqlNameMatchers {
       return true;
     }
 
-    public <K extends List<String>, V> V get(Map<K, V> map,
+    @Override public <K extends List<String>, V> V get(Map<K, V> map,
         List<String> prefixNames, List<String> names) {
       final List<String> key = concat(prefixNames, names);
       if (caseSensitive) {
@@ -114,15 +114,15 @@ public class SqlNameMatchers {
       throw new UnsupportedOperationException();
     }
 
-    public String bestString() {
+    @Override public String bestString() {
       return SqlIdentifier.getString(bestMatch());
     }
 
-    public RelDataTypeField field(RelDataType rowType, String fieldName) {
+    @Override public RelDataTypeField field(RelDataType rowType, String fieldName) {
       return rowType.getField(fieldName, caseSensitive, false);
     }
 
-    public int frequency(Iterable<String> names, String name) {
+    @Override public int frequency(Iterable<String> names, String name) {
       int n = 0;
       for (String s : names) {
         if (matches(s, name)) {
@@ -132,7 +132,7 @@ public class SqlNameMatchers {
       return n;
     }
 
-    public Set<String> createSet() {
+    @Override public Set<String> createSet() {
       return isCaseSensitive()
           ? new LinkedHashSet<>()
           : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);

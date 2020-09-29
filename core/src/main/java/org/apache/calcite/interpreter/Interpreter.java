@@ -103,7 +103,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     return rootRel;
   }
 
-  public Enumerator<Object[]> enumerator() {
+  @Override public Enumerator<Object[]> enumerator() {
     start();
     final NodeInfo nodeInfo = nodes.get(rootRel);
     final Enumerator<Row> rows;
@@ -116,7 +116,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     }
 
     return new TransformedEnumerator<Row, Object[]>(rows) {
-      protected Object[] transform(Row row) {
+      @Override protected Object[] transform(Row row) {
         return row.getValues();
       }
     };
@@ -134,12 +134,12 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     }
   }
 
-  public void close() {
+  @Override public void close() {
   }
 
   /** Not used. */
   private class FooCompiler implements ScalarCompiler {
-    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+    @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
       final RexNode node = nodes.get(0);
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
@@ -147,11 +147,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         return new Scalar() {
           final Object[] args = new Object[call.getOperands().size()];
 
-          public void execute(final Context context, Object[] results) {
+          @Override public void execute(final Context context, Object[] results) {
             results[0] = execute(context);
           }
 
-          public Object execute(Context context) {
+          @Override public Object execute(Context context) {
             Comparable o0;
             Comparable o1;
             switch (call.getKind()) {
@@ -227,11 +227,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         };
       }
       return new Scalar() {
-        public void execute(Context context, Object[] results) {
+        @Override public void execute(Context context, Object[] results) {
           results[0] = execute(context);
         }
 
-        public Object execute(Context context) {
+        @Override public Object execute(Context context) {
           switch (node.getKind()) {
           case LITERAL:
             return ((RexLiteral) node).getValueAs(Comparable.class);
@@ -291,11 +291,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.list = list;
     }
 
-    public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) throws InterruptedException {
       list.add(row);
     }
 
-    public void end() throws InterruptedException {
+    @Override public void end() throws InterruptedException {
     }
 
     @SuppressWarnings("deprecation")
@@ -319,7 +319,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.list = list;
     }
 
-    public Row receive() {
+    @Override public Row receive() {
       try {
         if (iterator == null) {
           iterator = list.iterator();
@@ -344,13 +344,13 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.queues = ImmutableList.copyOf(queues);
     }
 
-    public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) throws InterruptedException {
       for (ArrayDeque<Row> queue : queues) {
         queue.add(row);
       }
     }
 
-    public void end() throws InterruptedException {
+    @Override public void end() throws InterruptedException {
     }
 
     @SuppressWarnings("deprecation")
@@ -479,7 +479,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     public void rewrite(RelNode r) {
     }
 
-    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+    @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
       if (inputRowType == null) {
         inputRowType = interpreter.dataContext.getTypeFactory().builder()
             .build();
@@ -487,7 +487,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       return scalarCompiler.compile(nodes, inputRowType);
     }
 
-    public RelDataType combinedRowType(List<RelNode> inputs) {
+    @Override public RelDataType combinedRowType(List<RelNode> inputs) {
       final RelDataTypeFactory.Builder builder =
           interpreter.dataContext.getTypeFactory().builder();
       for (RelNode input : inputs) {
@@ -496,7 +496,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       return builder.build();
     }
 
-    public Source source(RelNode rel, int ordinal) {
+    @Override public Source source(RelNode rel, int ordinal) {
       final RelNode input = getInput(rel, ordinal);
       final Edge edge = new Edge(rel, ordinal);
       final Collection<Edge> edges = outEdges.get(input);
@@ -524,7 +524,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       return rel.getInput(ordinal);
     }
 
-    public Sink sink(RelNode rel) {
+    @Override public Sink sink(RelNode rel) {
       final Collection<Edge> edges = outEdges.get(rel);
       final Collection<Edge> edges2 = edges.isEmpty()
           ? ImmutableList.of(new Edge(null, 0))
@@ -555,16 +555,16 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       }
     }
 
-    public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
+    @Override public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
       NodeInfo nodeInfo = new NodeInfo(rel, rowEnumerable);
       nodes.put(rel, nodeInfo);
     }
 
-    public Context createContext() {
+    @Override public Context createContext() {
       return new Context(getDataContext());
     }
 
-    public DataContext getDataContext() {
+    @Override public DataContext getDataContext() {
       return interpreter.dataContext;
     }
   }

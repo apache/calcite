@@ -130,7 +130,7 @@ public abstract class Sort extends SingleRel {
     return planner.getCostFactory().makeCost(rowCount, cpu, 0);
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode offset = shuttle.apply(this.offset);
     RexNode fetch = shuttle.apply(this.fetch);
     List<RexNode> originalSortExps = getSortExps();
@@ -174,7 +174,7 @@ public abstract class Sort extends SingleRel {
             Objects.requireNonNull(field).getFieldIndex()));
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     if (pw.nest()) {
       pw.item("collation", collation);

@@ -61,7 +61,7 @@ public class RelMdDistinctRowCount
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
     return BuiltInMetadata.DistinctRowCount.DEF;
   }
 

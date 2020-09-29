@@ -41,7 +41,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType createSqlType(SqlTypeName typeName) {
+  @Override public RelDataType createSqlType(SqlTypeName typeName) {
     if (typeName.allowsPrec()) {
       return createSqlType(typeName, typeSystem.getDefaultPrecision(typeName));
     }
@@ -50,7 +50,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createSqlType(
+  @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
@@ -71,7 +71,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createSqlType(
+  @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
       int scale) {
@@ -88,11 +88,11 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createUnknownType() {
+  @Override public RelDataType createUnknownType() {
     return canonize(new UnknownSqlType(this));
   }
 
-  public RelDataType createMultisetType(
+  @Override public RelDataType createMultisetType(
       RelDataType type,
       long maxCardinality) {
     assert maxCardinality == -1;
@@ -100,7 +100,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createArrayType(
+  @Override public RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality) {
     assert maxCardinality == -1;
@@ -108,21 +108,21 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createMapType(
+  @Override public RelDataType createMapType(
       RelDataType keyType,
       RelDataType valueType) {
     MapSqlType newType = new MapSqlType(keyType, valueType, false);
     return canonize(newType);
   }
 
-  public RelDataType createSqlIntervalType(
+  @Override public RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier) {
     RelDataType newType =
         new IntervalSqlType(typeSystem, intervalQualifier, false);
     return canonize(newType);
   }
 
-  public RelDataType createTypeWithCharsetAndCollation(
+  @Override public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
       Charset charset,
       SqlCollation collation) {
@@ -538,7 +538,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   // override RelDataTypeFactoryImpl
-  protected RelDataType canonize(RelDataType type) {
+  @Override protected RelDataType canonize(RelDataType type) {
     type = super.canonize(type);
     if (!(type instanceof ObjectSqlType)) {
       return type;

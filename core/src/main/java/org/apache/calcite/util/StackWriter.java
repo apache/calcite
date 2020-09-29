@@ -159,7 +159,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(int c) throws IOException {
+  @Override public void write(int c) throws IOException {
     switch (c) {
     case INDENT:
       indentationDepth++;
@@ -203,7 +203,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(char[] cbuf, int off, int len) throws IOException {
+  @Override public void write(char[] cbuf, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {
@@ -212,7 +212,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  public void write(String str, int off, int len) throws IOException {
+  @Override public void write(String str, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {

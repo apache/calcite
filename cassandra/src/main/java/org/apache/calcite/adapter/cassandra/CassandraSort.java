@@ -59,7 +59,7 @@ public class CassandraSort extends Sort implements CassandraRel {
     return new CassandraSort(getCluster(), traitSet, input, collation);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
 
     List<RelFieldCollation> sortCollations = collation.getFieldCollations();

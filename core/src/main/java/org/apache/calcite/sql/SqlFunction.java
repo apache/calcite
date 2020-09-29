@@ -134,7 +134,7 @@ public class SqlFunction extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
   }
 
@@ -167,7 +167,7 @@ public class SqlFunction extends SqlOperator {
     return Functions.generate(getParamTypes().size(), i -> "arg" + i);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -191,7 +191,7 @@ public class SqlFunction extends SqlOperator {
     return false;
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -219,7 +219,7 @@ public class SqlFunction extends SqlOperator {
     }
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

@@ -52,7 +52,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     writer.endList(orderFrame);
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -73,7 +73,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     validator.validateAggregateParams(aggCall, null, orderList, scope);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

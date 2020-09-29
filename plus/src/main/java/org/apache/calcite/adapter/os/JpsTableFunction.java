@@ -42,7 +42,7 @@ public class JpsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<Object[]> scan(DataContext root) {
         return Processes.processLines("jps", "-mlvV")
             .select(a0 -> {
               final String[] fields = a0.split(" ");
@@ -50,26 +50,26 @@ public class JpsTableFunction {
             });
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("pid", SqlTypeName.BIGINT)
             .add("info", SqlTypeName.VARCHAR)
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }

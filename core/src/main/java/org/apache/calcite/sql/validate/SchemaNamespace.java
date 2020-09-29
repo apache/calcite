@@ -40,7 +40,7 @@ class SchemaNamespace extends AbstractNamespace {
     this.names = Objects.requireNonNull(names);
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     for (SqlMoniker moniker
@@ -52,7 +52,7 @@ class SchemaNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return null;
   }
 }

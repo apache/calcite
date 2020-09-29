@@ -186,25 +186,25 @@ public abstract class OperandTypes {
   public static SqlOperandTypeChecker variadic(
       final SqlOperandCountRange range) {
     return new SqlOperandTypeChecker() {
-      public boolean checkOperandTypes(
+      @Override public boolean checkOperandTypes(
           SqlCallBinding callBinding,
           boolean throwOnFailure) {
         return range.isValidCount(callBinding.getOperandCount());
       }
 
-      public SqlOperandCountRange getOperandCountRange() {
+      @Override public SqlOperandCountRange getOperandCountRange() {
         return range;
       }
 
-      public String getAllowedSignatures(SqlOperator op, String opName) {
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return opName + "(...)";
       }
 
-      public boolean isOptional(int i) {
+      @Override public boolean isOptional(int i) {
         return false;
       }
 
-      public Consistency getConsistency() {
+      @Override public Consistency getConsistency() {
         return Consistency.NONE;
       }
     };
@@ -319,7 +319,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker POSITIVE_INTEGER_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.INTEGER),
           i -> false) {
-        public boolean checkSingleOperandType(
+        @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
             SqlNode node,
             int iFormalOperand,
@@ -532,7 +532,7 @@ public abstract class OperandTypes {
           ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
               SqlTypeFamily.DATETIME_INTERVAL),
           i -> false) {
-        public boolean checkOperandTypes(
+        @Override public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
           if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
@@ -575,7 +575,7 @@ public abstract class OperandTypes {
       this.typeNamePredicate = predicate;
     }
 
-    public boolean checkSingleOperandType(
+    @Override public boolean checkSingleOperandType(
         SqlCallBinding callBinding,
         SqlNode node,
         int iFormalOperand,
@@ -601,7 +601,7 @@ public abstract class OperandTypes {
       return !validationError;
     }
 
-    public boolean checkOperandTypes(
+    @Override public boolean checkOperandTypes(
         SqlCallBinding callBinding,
         boolean throwOnFailure) {
       return checkSingleOperandType(
@@ -611,15 +611,15 @@ public abstract class OperandTypes {
           throwOnFailure);
     }
 
-    public SqlOperandCountRange getOperandCountRange() {
+    @Override public SqlOperandCountRange getOperandCountRange() {
       return SqlOperandCountRanges.of(1);
     }
 
-    public boolean isOptional(int i) {
+    @Override public boolean isOptional(int i) {
       return false;
     }
 
-    public Consistency getConsistency() {
+    @Override public Consistency getConsistency() {
       return Consistency.NONE;
     }
   }
@@ -654,7 +654,7 @@ public abstract class OperandTypes {
 
   public static final SqlOperandTypeChecker RECORD_TO_SCALAR =
       new SqlSingleOperandTypeChecker() {
-        public boolean checkSingleOperandType(
+        @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
             SqlNode node,
             int iFormalOperand,
@@ -674,7 +674,7 @@ public abstract class OperandTypes {
           return !validationError;
         }
 
-        public boolean checkOperandTypes(
+        @Override public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
           return checkSingleOperandType(
@@ -684,20 +684,20 @@ public abstract class OperandTypes {
               throwOnFailure);
         }
 
-        public SqlOperandCountRange getOperandCountRange() {
+        @Override public SqlOperandCountRange getOperandCountRange() {
           return SqlOperandCountRanges.of(1);
         }
 
-        public String getAllowedSignatures(SqlOperator op, String opName) {
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return SqlUtil.getAliasedSignature(op, opName,
               ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
         }
 
-        public boolean isOptional(int i) {
+        @Override public boolean isOptional(int i) {
           return false;
         }
 
-        public Consistency getConsistency() {
+        @Override public Consistency getConsistency() {
           return Consistency.NONE;
         }
       };
@@ -712,7 +712,7 @@ public abstract class OperandTypes {
    * </ul> */
   private static class PeriodOperandTypeChecker
       implements SqlSingleOperandTypeChecker {
-    public boolean checkSingleOperandType(SqlCallBinding callBinding,
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
         SqlNode node, int iFormalOperand, boolean throwOnFailure) {
       assert 0 == iFormalOperand;
       RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
@@ -738,27 +738,27 @@ public abstract class OperandTypes {
       return valid;
     }
 
-    public boolean checkOperandTypes(SqlCallBinding callBinding,
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
         boolean throwOnFailure) {
       return checkSingleOperandType(callBinding, callBinding.operand(0), 0,
           throwOnFailure);
     }
 
-    public SqlOperandCountRange getOperandCountRange() {
+    @Override public SqlOperandCountRange getOperandCountRange() {
       return SqlOperandCountRanges.of(1);
     }
 
-    public String getAllowedSignatures(SqlOperator op, String opName) {
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
     }
 
-    public boolean isOptional(int i) {
+    @Override public boolean isOptional(int i) {
       return false;
     }
 
-    public Consistency getConsistency() {
+    @Override public Consistency getConsistency() {
       return Consistency.NONE;
     }
   }

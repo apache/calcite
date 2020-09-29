@@ -64,19 +64,19 @@ class RedisEnumerator implements Enumerator<Object[]> {
     return fieldBuilder;
   }
 
-  public Object[] current() {
+  @Override public Object[] current() {
     return enumerator.current();
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  public void reset() {
+  @Override public void reset() {
     enumerator.reset();
   }
 
-  public void close() {
+  @Override public void close() {
     enumerator.close();
   }
 }

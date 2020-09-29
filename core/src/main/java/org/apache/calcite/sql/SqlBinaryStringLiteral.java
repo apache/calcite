@@ -54,7 +54,7 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
     return new SqlBinaryStringLiteral((BitString) value, pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -62,7 +62,7 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
     writer.literal("X'" + ((BitString) value).toHexString() + "'");
   }
 
-  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
+  @Override protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlBinaryStringLiteral(
         BitString.concat(
             Util.transform(literals,

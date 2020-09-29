@@ -40,7 +40,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<LowerBoundCost> getDef() {
+  @Override public MetadataDef<LowerBoundCost> getDef() {
     return BuiltInMetadata.LowerBoundCost.DEF;
   }
 

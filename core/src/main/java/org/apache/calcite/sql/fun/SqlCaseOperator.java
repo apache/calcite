@@ -139,7 +139,7 @@ public class SqlCaseOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -159,7 +159,7 @@ public class SqlCaseOperator extends SqlOperator {
     }
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -168,7 +168,7 @@ public class SqlCaseOperator extends SqlOperator {
     return validateOperands(validator, scope, call);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     SqlCase caseCall = (SqlCase) callBinding.getCall();
@@ -212,7 +212,7 @@ public class SqlCaseOperator extends SqlOperator {
     return true;
   }
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     // REVIEW jvs 4-June-2005:  can't these be unified?
     if (!(opBinding instanceof SqlCallBinding)) {
@@ -314,15 +314,15 @@ public class SqlCaseOperator extends SqlOperator {
     return typeFactory.leastRestrictive(thenTypes);
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.any();
   }
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  public SqlCall createCall(
+  @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {

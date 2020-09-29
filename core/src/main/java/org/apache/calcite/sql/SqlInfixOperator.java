@@ -56,7 +56,7 @@ public class SqlInfixOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

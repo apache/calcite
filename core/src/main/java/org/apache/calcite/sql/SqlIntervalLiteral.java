@@ -68,7 +68,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
     return new SqlIntervalLiteral((IntervalValue) value, getTypeName(), pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -76,7 +76,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
   }
 
   @SuppressWarnings("deprecation")
-  public int signum() {
+  @Override public int signum() {
     return ((IntervalValue) value).signum();
   }
 
@@ -109,7 +109,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
       this.intervalStr = intervalStr;
     }
 
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       if (!(obj instanceof IntervalValue)) {
         return false;
       }
@@ -120,7 +120,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
               Litmus.IGNORE);
     }
 
-    public int hashCode() {
+    @Override public int hashCode() {
       return Objects.hash(sign, intervalStr, intervalQualifier);
     }
 
@@ -147,7 +147,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
       return 0;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return intervalStr;
     }
   }

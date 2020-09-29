@@ -154,15 +154,15 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     return new Iterator<E>() {
       E previous;
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return iterator.hasNext();
       }
 
-      public E next() {
+      @Override public E next() {
         return previous = iterator.next();
       }
 
-      public void remove() {
+      @Override public void remove() {
         if (!PartiallyOrderedSet.this.remove(previous)) {
           // Object was not present.
           // Maybe they have never called 'next'?

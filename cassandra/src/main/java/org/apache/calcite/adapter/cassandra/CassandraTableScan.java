@@ -71,7 +71,7 @@ public class CassandraTableScan extends TableScan implements CassandraRel {
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.cassandraTable = cassandraTable;
     implementor.table = table;
   }

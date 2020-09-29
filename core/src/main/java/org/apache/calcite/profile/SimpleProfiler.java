@@ -45,7 +45,7 @@ import javax.annotation.Nonnull;
  */
 public class SimpleProfiler implements Profiler {
 
-  public Profile profile(Iterable<List<Comparable>> rows,
+  @Override public Profile profile(Iterable<List<Comparable>> rows,
       final List<Column> columns, Collection<ImmutableBitSet> initialGroups) {
     Util.discard(initialGroups); // this profiler ignores initial groups
     return new Run(columns).profile(rows);
@@ -309,7 +309,7 @@ public class SimpleProfiler implements Profiler {
           && columnOrdinals.equals(((Space) o).columnOrdinals);
     }
 
-    public int compareTo(@Nonnull Space o) {
+    @Override public int compareTo(@Nonnull Space o) {
       return columnOrdinals.equals(o.columnOrdinals) ? 0
           : columnOrdinals.contains(o.columnOrdinals) ? 1
               : -1;

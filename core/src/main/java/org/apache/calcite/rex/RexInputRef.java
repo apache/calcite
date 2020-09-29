@@ -108,11 +108,11 @@ public class RexInputRef extends RexSlot {
     return SqlKind.INPUT_REF;
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitInputRef(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitInputRef(this, arg);
   }
 

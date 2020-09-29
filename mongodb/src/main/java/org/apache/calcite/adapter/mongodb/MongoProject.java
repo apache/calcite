@@ -64,7 +64,7 @@ public class MongoProject extends Project implements MongoRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
 
     final MongoRules.RexToMongoTranslator translator =

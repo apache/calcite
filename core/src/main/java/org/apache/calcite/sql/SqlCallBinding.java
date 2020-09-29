@@ -227,7 +227,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return call.getOperator().createCall(call.pos, operandList);
   }
 
-  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+  @Override public SqlMonotonicity getOperandMonotonicity(int ordinal) {
     return call.getOperandList().get(ordinal).getMonotonicity(scope);
   }
 
@@ -375,7 +375,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return validator.getParentCursor(paramName);
   }
 
-  public CalciteException newError(
+  @Override public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return validator.newValidationError(call, e);
   }

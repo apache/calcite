@@ -164,16 +164,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   public CalcitePrepareImpl() {
   }
 
-  public ParseResult parse(
+  @Override public ParseResult parse(
       Context context, String sql) {
     return parse_(context, sql, false, false, false);
   }
 
-  public ConvertResult convert(Context context, String sql) {
+  @Override public ConvertResult convert(Context context, String sql) {
     return (ConvertResult) parse_(context, sql, true, false, false);
   }
 
-  public AnalyzeViewResult analyzeView(Context context, String sql, boolean fail) {
+  @Override public AnalyzeViewResult analyzeView(Context context, String sql, boolean fail) {
     return (AnalyzeViewResult) parse_(context, sql, true, true, fail);
   }
 
@@ -449,11 +449,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (spark.enabled()) {
       spark.registerRules(
           new SparkHandler.RuleSetBuilder() {
-            public void addRule(RelOptRule rule) {
+            @Override public void addRule(RelOptRule rule) {
               // TODO:
             }
 
-            public void removeRule(RelOptRule rule) {
+            @Override public void removeRule(RelOptRule rule) {
               // TODO:
             }
           });
@@ -463,14 +463,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return planner;
   }
 
-  public <T> CalciteSignature<T> prepareQueryable(
+  @Override public <T> CalciteSignature<T> prepareQueryable(
       Context context,
       Queryable<T> queryable) {
     return prepare_(context, Query.of(queryable), queryable.getElementType(),
         -1);
   }
 
-  public <T> CalciteSignature<T> prepareSql(
+  @Override public <T> CalciteSignature<T> prepareSql(
       Context context,
       Query<T> query,
       Type elementType,
@@ -1145,15 +1145,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           root.rel,
           mapTableModOp(isDml, root.kind),
           isDml) {
-        public String getCode() {
+        @Override public String getCode() {
           throw new UnsupportedOperationException();
         }
 
-        public Bindable getBindable(Meta.CursorFactory cursorFactory) {
+        @Override public Bindable getBindable(Meta.CursorFactory cursorFactory) {
           return bindable;
         }
 
-        public Type getElementType() {
+        @Override public Type getElementType() {
           return ((Typed) bindable).getElementType();
         }
       };
@@ -1186,7 +1186,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       super(resultType, parameterRowType, root, format, detailLevel);
     }
 
-    public Bindable getBindable(final Meta.CursorFactory cursorFactory) {
+    @Override public Bindable getBindable(final Meta.CursorFactory cursorFactory) {
       final String explanation = getCode();
       return dataContext -> {
         switch (cursorFactory.style) {
@@ -1221,7 +1221,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return new EmptyScalarTranslator(builder);
     }
 
-    public List<RexNode> toRexList(BlockStatement statement) {
+    @Override public List<RexNode> toRexList(BlockStatement statement) {
       final List<Expression> simpleList = simpleList(statement);
       final List<RexNode> list = new ArrayList<>();
       for (Expression expression1 : simpleList) {
@@ -1230,7 +1230,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return list;
     }
 
-    public RexNode toRex(BlockStatement statement) {
+    @Override public RexNode toRex(BlockStatement statement) {
       return toRex(Blocks.simple(statement));
     }
 
@@ -1244,7 +1244,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
     }
 
-    public RexNode toRex(Expression expression) {
+    @Override public RexNode toRex(Expression expression) {
       switch (expression.getNodeType()) {
       case MemberAccess:
         // Case-sensitive name match because name was previously resolved.
@@ -1320,7 +1320,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return ((JavaTypeFactory) rexBuilder.getTypeFactory()).createType(type);
     }
 
-    public ScalarTranslator bind(
+    @Override public ScalarTranslator bind(
         List<ParameterExpression> parameterList, List<RexNode> values) {
       return new LambdaScalarTranslator(
           rexBuilder, parameterList, values);
@@ -1345,7 +1345,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       this.values = values;
     }
 
-    public RexNode parameter(ParameterExpression param) {
+    @Override public RexNode parameter(ParameterExpression param) {
       int i = parameterList.indexOf(param);
       if (i >= 0) {
         return values.get(i);

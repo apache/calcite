@@ -51,7 +51,7 @@ class WithItemNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return withItem;
   }
 

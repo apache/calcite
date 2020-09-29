@@ -79,7 +79,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param columnIndex Target column index
    * @param targetType  Target type to cast to
    */
-  public boolean rowTypeCoercion(
+  @Override public boolean rowTypeCoercion(
       SqlValidatorScope scope,
       SqlNode query,
       int columnIndex,
@@ -132,7 +132,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * If the other operand is DECIMAL,
    * coerce the STRING operand to max precision/scale DECIMAL.
    */
-  public boolean binaryArithmeticCoercion(SqlCallBinding binding) {
+  @Override public boolean binaryArithmeticCoercion(SqlCallBinding binding) {
     // Assume the operator has NUMERIC family operand type checker.
     SqlOperator operator = binding.getOperator();
     SqlKind kind = operator.getKind();
@@ -204,7 +204,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *   then common comparison type E between D and C as the final common type.</li>
    * </ul>
    */
-  public boolean binaryComparisonCoercion(SqlCallBinding binding) {
+  @Override public boolean binaryComparisonCoercion(SqlCallBinding binding) {
     SqlOperator operator = binding.getOperator();
     SqlKind kind = operator.getKind();
     int operandCnt = binding.getOperandCount();
@@ -376,7 +376,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
-  public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+  @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -449,7 +449,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *   find the common type of LHS and RHS nodes.
    * </ul>
    */
-  public boolean inOperationCoercion(SqlCallBinding binding) {
+  @Override public boolean inOperationCoercion(SqlCallBinding binding) {
     SqlOperator operator = binding.getOperator();
     if (operator.getKind() == SqlKind.IN || operator.getKind() == SqlKind.NOT_IN) {
       assert binding.getOperandCount() == 2;
@@ -472,13 +472,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       for (int i = 0; i < colCount; i++) {
         final int i2 = i;
         List<RelDataType> columnIthTypes = new AbstractList<RelDataType>() {
-          public RelDataType get(int index) {
+          @Override public RelDataType get(int index) {
             return argTypes[index].isStruct()
                 ? argTypes[index].getFieldList().get(i2).getType()
                 : argTypes[index];
           }
 
-          public int size() {
+          @Override public int size() {
             return argTypes.length;
           }
         };
@@ -542,7 +542,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return false;
   }
 
-  public boolean builtinFunctionCoercion(
+  @Override public boolean builtinFunctionCoercion(
       SqlCallBinding binding,
       List<RelDataType> operandTypes,
       List<SqlTypeFamily> expectedFamilies) {
@@ -564,7 +564,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   /**
    * Type coercion for user-defined functions (UDFs).
    */
-  public boolean userDefinedFunctionCoercion(SqlValidatorScope scope,
+  @Override public boolean userDefinedFunctionCoercion(SqlValidatorScope scope,
       SqlCall call, SqlFunction function) {
     final SqlOperandMetadata operandMetadata =
         (SqlOperandMetadata) function.getOperandTypeChecker();
@@ -591,7 +591,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return coerced;
   }
 
-  public boolean querySourceCoercion(SqlValidatorScope scope,
+  @Override public boolean querySourceCoercion(SqlValidatorScope scope,
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query) {
     final List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
     final List<RelDataTypeField> targetFields = targetRowType.getFieldList();

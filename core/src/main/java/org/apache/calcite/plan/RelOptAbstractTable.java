@@ -61,66 +61,66 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return name;
   }
 
-  public List<String> getQualifiedName() {
+  @Override public List<String> getQualifiedName() {
     return ImmutableList.of(name);
   }
 
-  public double getRowCount() {
+  @Override public double getRowCount() {
     return 100;
   }
 
-  public RelDataType getRowType() {
+  @Override public RelDataType getRowType() {
     return rowType;
   }
 
-  public RelOptSchema getRelOptSchema() {
+  @Override public RelOptSchema getRelOptSchema() {
     return schema;
   }
 
   // Override to define collations.
-  public List<RelCollation> getCollationList() {
+  @Override public List<RelCollation> getCollationList() {
     return Collections.emptyList();
   }
 
-  public RelDistribution getDistribution() {
+  @Override public RelDistribution getDistribution() {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 
-  public <T> T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     return clazz.isInstance(this)
         ? clazz.cast(this)
         : null;
   }
 
   // Override to define keys
-  public boolean isKey(ImmutableBitSet columns) {
+  @Override public boolean isKey(ImmutableBitSet columns) {
     return false;
   }
 
   // Override to get unique keys
-  public List<ImmutableBitSet> getKeys() {
+  @Override public List<ImmutableBitSet> getKeys() {
     return Collections.emptyList();
   }
 
   // Override to define foreign keys
-  public List<RelReferentialConstraint> getReferentialConstraints() {
+  @Override public List<RelReferentialConstraint> getReferentialConstraints() {
     return Collections.emptyList();
   }
 
-  public RelNode toRel(ToRelContext context) {
+  @Override public RelNode toRel(ToRelContext context) {
     return LogicalTableScan.create(context.getCluster(), this,
         context.getTableHints());
   }
 
-  public Expression getExpression(Class clazz) {
+  @Override public Expression getExpression(Class clazz) {
     return null;
   }
 
-  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+  @Override public RelOptTable extend(List<RelDataTypeField> extendedFields) {
     throw new UnsupportedOperationException();
   }
 
-  public List<ColumnStrategy> getColumnStrategies() {
+  @Override public List<ColumnStrategy> getColumnStrategies() {
     return RelOptTableImpl.columnStrategies(this);
   }
 

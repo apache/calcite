@@ -38,7 +38,7 @@ public class JsonTable extends AbstractTable {
     this.source = source;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType == null) {
       rowType = JsonEnumerator.deduceRowType(typeFactory, source).getRelDataType();
     }
@@ -55,7 +55,7 @@ public class JsonTable extends AbstractTable {
     return dataList;
   }
 
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 }

@@ -74,11 +74,11 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
 
   // ~ Methods ----------------------------------------------------------------
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
   }
 
-  public SqlCall createCall(
+  @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
@@ -88,7 +88,7 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     int operandCount = callBinding.getOperandCount();
@@ -111,7 +111,7 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
         throwOnFailure);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

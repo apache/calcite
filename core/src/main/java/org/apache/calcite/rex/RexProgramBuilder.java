@@ -164,7 +164,7 @@ public class RexProgramBuilder {
   private void validate(final RexNode expr, final int fieldOrdinal) {
     final RexVisitor<Void> validator =
         new RexVisitorImpl<Void>(true) {
-          public Void visitInputRef(RexInputRef input) {
+          @Override public Void visitInputRef(RexInputRef input) {
             final int index = input.getIndex();
             final List<RelDataTypeField> fields =
                 inputRowType.getFieldList();
@@ -885,32 +885,32 @@ public class RexProgramBuilder {
   /** Shuttle that visits a tree of {@link RexNode} and registers them
    * in a program. */
   private abstract class RegisterShuttle extends RexShuttle {
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       final RexNode expr = super.visitCall(call);
       return registerInternal(expr, false);
     }
 
-    public RexNode visitOver(RexOver over) {
+    @Override public RexNode visitOver(RexOver over) {
       final RexNode expr = super.visitOver(over);
       return registerInternal(expr, false);
     }
 
-    public RexNode visitLiteral(RexLiteral literal) {
+    @Override public RexNode visitLiteral(RexLiteral literal) {
       final RexNode expr = super.visitLiteral(literal);
       return registerInternal(expr, false);
     }
 
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode expr = super.visitFieldAccess(fieldAccess);
       return registerInternal(expr, false);
     }
 
-    public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       final RexNode expr = super.visitDynamicParam(dynamicParam);
       return registerInternal(expr, false);
     }
 
-    public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
       final RexNode expr = super.visitCorrelVariable(variable);
       return registerInternal(expr, false);
     }
@@ -928,7 +928,7 @@ public class RexProgramBuilder {
       this.valid = valid;
     }
 
-    public RexNode visitInputRef(RexInputRef input) {
+    @Override public RexNode visitInputRef(RexInputRef input) {
       final int index = input.getIndex();
       if (valid) {
         // The expression should already be valid. Check that its
@@ -954,7 +954,7 @@ public class RexProgramBuilder {
       return ref;
     }
 
-    public RexNode visitLocalRef(RexLocalRef local) {
+    @Override public RexNode visitLocalRef(RexLocalRef local) {
       if (valid) {
         // The expression should already be valid.
         final int index = local.getIndex();
@@ -1003,7 +1003,7 @@ public class RexProgramBuilder {
       this.localExprList = localExprList;
     }
 
-    public RexNode visitLocalRef(RexLocalRef local) {
+    @Override public RexNode visitLocalRef(RexLocalRef local) {
       // Convert a local ref into the common-subexpression it references.
       final int index = local.getIndex();
       return localExprList.get(index).accept(this);
@@ -1023,7 +1023,7 @@ public class RexProgramBuilder {
       this.localExprList = localExprList;
     }
 
-    public RexNode visitInputRef(RexInputRef input) {
+    @Override public RexNode visitInputRef(RexInputRef input) {
       // This expression refers to the Nth project column. Lookup that
       // column and find out what common sub-expression IT refers to.
       final int index = input.getIndex();
@@ -1037,7 +1037,7 @@ public class RexProgramBuilder {
       return local;
     }
 
-    public RexNode visitLocalRef(RexLocalRef local) {
+    @Override public RexNode visitLocalRef(RexLocalRef local) {
       // Convert a local ref into the common-subexpression it references.
       final int index = local.getIndex();
       return localExprList.get(index).accept(this);
@@ -1055,7 +1055,7 @@ public class RexProgramBuilder {
       this.newRefs = newRefs;
     }
 
-    public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public RexNode visitLocalRef(RexLocalRef localRef) {
       return newRefs.get(localRef.getIndex());
     }
   }

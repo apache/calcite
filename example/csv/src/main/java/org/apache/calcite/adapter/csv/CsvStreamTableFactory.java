@@ -40,7 +40,7 @@ public class CsvStreamTableFactory implements TableFactory<CsvTable> {
   public CsvStreamTableFactory() {
   }
 
-  public CsvTable create(SchemaPlus schema, String name,
+  @Override public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);

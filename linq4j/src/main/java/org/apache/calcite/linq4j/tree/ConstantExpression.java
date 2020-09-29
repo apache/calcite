@@ -54,7 +54,7 @@ public class ConstantExpression extends Expression {
     }
   }
 
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     return value;
   }
 
@@ -62,7 +62,7 @@ public class ConstantExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -435,7 +435,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     return sb.toString();
   }
 
-  public SqlCall createCall(
+  @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
@@ -460,11 +460,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     return lookupCall;
   }
 
-  public String getAllowedSignatures(String name) {
+  @Override public String getAllowedSignatures(String name) {
     return lookupMakeCallObj.getOperator().getAllowedSignatures(name);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -480,7 +480,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     return validateOperands(validator, scope, call);
   }
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     // only expected to come here if validator called this method
     SqlCallBinding callBinding = (SqlCallBinding) opBinding;
@@ -511,7 +511,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
         callBinding.getScope(), newCall);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -581,15 +581,15 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       this.operator = operator;
     }
 
-    public SqlOperator getOperator() {
+    @Override public SqlOperator getOperator() {
       return operator;
     }
 
-    public SqlCall createCall(SqlParserPos pos, SqlNode... operands) {
+    @Override public SqlCall createCall(SqlParserPos pos, SqlNode... operands) {
       return operator.createCall(pos, operands);
     }
 
-    public String isValidArgCount(SqlCallBinding binding) {
+    @Override public String isValidArgCount(SqlCallBinding binding) {
       return null; // any number of arguments is valid
     }
   }

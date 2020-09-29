@@ -78,7 +78,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
         + ", edges: " + edgeOrdering.sortedCopy(edges) + ")";
   }
 
-  public boolean addVertex(V vertex) {
+  @Override public boolean addVertex(V vertex) {
     if (vertexMap.containsKey(vertex)) {
       return false;
     } else {
@@ -87,11 +87,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  public Set<E> edgeSet() {
+  @Override public Set<E> edgeSet() {
     return Collections.unmodifiableSet(edges);
   }
 
-  public E addEdge(V vertex, V targetVertex) {
+  @Override public E addEdge(V vertex, V targetVertex) {
     final VertexInfo<V, E> info = vertexMap.get(vertex);
     if (info == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
@@ -110,7 +110,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  public E getEdge(V source, V target) {
+  @Override public E getEdge(V source, V target) {
     // REVIEW: could instead use edges.get(new DefaultEdge(source, target))
     final VertexInfo<V, E> info = vertexMap.get(source);
     for (E outEdge : info.outEdges) {
@@ -121,7 +121,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return null;
   }
 
-  public boolean removeEdge(V source, V target) {
+  @Override public boolean removeEdge(V source, V target) {
     // remove out edges
     final List<E> outEdges = vertexMap.get(source).outEdges;
     boolean outRemoved = false;
@@ -150,11 +150,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return outRemoved;
   }
 
-  public Set<V> vertexSet() {
+  @Override public Set<V> vertexSet() {
     return vertexMap.keySet();
   }
 
-  public void removeAllVertices(Collection<V> collection) {
+  @Override public void removeAllVertices(Collection<V> collection) {
     // The point at which collection is large enough to make the 'majority'
     // algorithm more efficient.
     final float threshold = 0.35f;
@@ -208,11 +208,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  public List<E> getOutwardEdges(V source) {
+  @Override public List<E> getOutwardEdges(V source) {
     return vertexMap.get(source).outEdges;
   }
 
-  public List<E> getInwardEdges(V target) {
+  @Override public List<E> getInwardEdges(V target) {
     return vertexMap.get(target).inEdges;
   }
 

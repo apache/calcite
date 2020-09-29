@@ -82,7 +82,7 @@ public abstract class MutableRel {
 
   public abstract List<MutableRel> getInputs();
 
-  public abstract MutableRel clone();
+  @Override public abstract MutableRel clone();
 
   public abstract void childrenAccept(MutableRelVisitor visitor);
 

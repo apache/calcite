@@ -44,7 +44,7 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
         CacheLoader.from(key -> provider.cardinality(ImmutableList.of(key))));
   }
 
-  public double cardinality(List<Lattice.Column> columns) {
+  @Override public double cardinality(List<Lattice.Column> columns) {
     final List<Double> counts = new ArrayList<>();
     for (Lattice.Column column : columns) {
       try {

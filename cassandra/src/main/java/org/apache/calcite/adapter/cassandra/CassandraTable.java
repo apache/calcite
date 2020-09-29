@@ -70,11 +70,11 @@ public class CassandraTable extends AbstractQueryableTable
     this(schema, columnFamily, false);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CassandraTable {" + columnFamily + "}";
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType == null) {
       protoRowType = schema.getRelDataType(columnFamily, view);
     }
@@ -191,7 +191,7 @@ public class CassandraTable extends AbstractQueryableTable
     final String query = queryBuilder.toString();
 
     return new AbstractEnumerable<Object>() {
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         final ResultSet results = session.execute(query);
         // Skip results until we get to the right offset
         int skip = 0;
@@ -204,12 +204,12 @@ public class CassandraTable extends AbstractQueryableTable
     };
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new CassandraQueryable<>(queryProvider, schema, this, tableName);
   }
 
-  public RelNode toRel(
+  @Override public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
@@ -227,7 +227,7 @@ public class CassandraTable extends AbstractQueryableTable
       super(queryProvider, schema, table, tableName);
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       //noinspection unchecked
       final Enumerable<T> enumerable =
           (Enumerable<T>) getTable().query(getSession());

@@ -148,7 +148,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     return DeriveMode.LEFT_FIRST;
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);

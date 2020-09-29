@@ -48,18 +48,18 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
     return new SqlTimeLiteral((TimeString) value, precision, hasTimeZone, pos);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "TIME '" + toFormattedString() + "'";
   }
 
   /**
    * Returns e.g. '03:05:67.456'.
    */
-  public String toFormattedString() {
+  @Override public String toFormattedString() {
     return getTime().toString(precision);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

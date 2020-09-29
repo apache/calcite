@@ -84,7 +84,7 @@ public class MongoTableScan extends TableScan implements MongoRel {
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.mongoTable = mongoTable;
     implementor.table = table;
   }

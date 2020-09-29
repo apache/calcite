@@ -65,7 +65,7 @@ public class PigToEnumerableConverter
    * store results in a predefined file so they can be read here and returned as
    * a {@code Result} object.
    */
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder list = new BlockBuilder();
     final PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), rowType,

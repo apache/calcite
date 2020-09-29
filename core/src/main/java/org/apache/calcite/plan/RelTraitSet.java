@@ -105,7 +105,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
   }
 
-  public RelTrait get(int index) {
+  @Override public RelTrait get(int index) {
     return getTrait(index);
   }
 
@@ -393,7 +393,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    *
    * @return the size of the RelTraitSet.
    */
-  public int size() {
+  @Override public int size() {
     return traits.length;
   }
 

@@ -41,12 +41,12 @@ public abstract class BiRel extends AbstractRelNode {
     this.right = right;
   }
 
-  public void childrenAccept(RelVisitor visitor) {
+  @Override public void childrenAccept(RelVisitor visitor) {
     visitor.visit(left, 0, this);
     visitor.visit(right, 1, this);
   }
 
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return FlatLists.of(left, right);
   }
 
@@ -58,7 +58,7 @@ public abstract class BiRel extends AbstractRelNode {
     return right;
   }
 
-  public void replaceInput(
+  @Override public void replaceInput(
       int ordinalInParent,
       RelNode p) {
     switch (ordinalInParent) {

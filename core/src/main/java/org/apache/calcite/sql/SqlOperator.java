@@ -213,7 +213,7 @@ public abstract class SqlOperator {
     return kind;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return name;
   }
 
@@ -366,7 +366,7 @@ public abstract class SqlOperator {
   }
 
   // override Object
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (!(obj instanceof SqlOperator)) {
       return false;
     }

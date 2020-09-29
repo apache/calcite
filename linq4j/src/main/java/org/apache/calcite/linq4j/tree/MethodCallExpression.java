@@ -60,7 +60,7 @@ public class MethodCallExpression extends Expression {
     return shuttle.visit(this, targetExpression, expressions);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -251,7 +251,7 @@ public class Bindables {
       return builder.build();
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
@@ -288,11 +288,11 @@ public class Bindables {
           || table.unwrap(ProjectableFilterableTable.class) != null;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       throw new UnsupportedOperationException(); // TODO:
     }
   }
@@ -344,20 +344,20 @@ public class Bindables {
       return new BindableFilter(cluster, traitSet, input, condition);
     }
 
-    public BindableFilter copy(RelTraitSet traitSet, RelNode input,
+    @Override public BindableFilter copy(RelTraitSet traitSet, RelNode input,
         RexNode condition) {
       return new BindableFilter(getCluster(), traitSet, input, condition);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new FilterNode(implementor.compiler, this);
     }
   }
@@ -402,21 +402,21 @@ public class Bindables {
       assert getConvention() instanceof BindableConvention;
     }
 
-    public BindableProject copy(RelTraitSet traitSet, RelNode input,
+    @Override public BindableProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> projects, RelDataType rowType) {
       return new BindableProject(getCluster(), traitSet, input,
           projects, rowType);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new ProjectNode(implementor.compiler, this);
     }
   }
@@ -466,15 +466,15 @@ public class Bindables {
           offset, fetch);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new SortNode(implementor.compiler, this);
     }
   }
@@ -531,22 +531,22 @@ public class Bindables {
           CorrelationId.setOf(variablesStopped), joinType);
     }
 
-    public BindableJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
+    @Override public BindableJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
         RelNode left, RelNode right, JoinRelType joinType,
         boolean semiJoinDone) {
       return new BindableJoin(getCluster(), traitSet, left, right,
           conditionExpr, variablesSet, joinType);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new JoinNode(implementor.compiler, this);
     }
   }
@@ -594,20 +594,20 @@ public class Bindables {
       super(cluster, traitSet, inputs, all);
     }
 
-    public BindableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
+    @Override public BindableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
         boolean all) {
       return new BindableUnion(getCluster(), traitSet, inputs, all);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new SetOpNode(implementor.compiler, this);
     }
   }
@@ -620,19 +620,20 @@ public class Bindables {
       super(cluster, traitSet, inputs, all);
     }
 
-    public BindableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    @Override public BindableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs,
+        boolean all) {
       return new BindableIntersect(getCluster(), traitSet, inputs, all);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new SetOpNode(implementor.compiler, this);
     }
   }
@@ -645,19 +646,19 @@ public class Bindables {
       super(cluster, traitSet, inputs, all);
     }
 
-    public BindableMinus copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    @Override public BindableMinus copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
       return new BindableMinus(getCluster(), traitSet, inputs, all);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new SetOpNode(implementor.compiler, this);
     }
   }
@@ -675,15 +676,15 @@ public class Bindables {
       return new BindableValues(getCluster(), rowType, tuples, traitSet);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new ValuesNode(implementor.compiler, this);
     }
   }
@@ -762,15 +763,15 @@ public class Bindables {
       }
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new AggregateNode(implementor.compiler, this);
     }
   }
@@ -825,15 +826,15 @@ public class Bindables {
           .multiplyBy(BindableConvention.COST_MULTIPLIER);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new WindowNode(implementor.compiler, this);
     }
   }
@@ -889,15 +890,15 @@ public class Bindables {
           subsets, allRows, partitionKeys, orderKeys, interval);
     }
 
-    public Class<Object[]> getElementType() {
+    @Override public Class<Object[]> getElementType() {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
-    public Node implement(InterpreterImplementor implementor) {
+    @Override public Node implement(InterpreterImplementor implementor) {
       return new MatchNode(implementor.compiler, this);
     }
   }

@@ -46,7 +46,7 @@ class TableScope extends ListScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return node;
   }
 

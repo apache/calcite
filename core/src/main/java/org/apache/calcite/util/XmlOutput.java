@@ -611,7 +611,7 @@ public class XmlOutput {
       }
     }
 
-    protected StringEscaper clone() {
+    @Override protected StringEscaper clone() {
       StringEscaper clone = new StringEscaper();
       if (translationVector != null) {
         clone.translationVector = new ArrayList<>(translationVector);

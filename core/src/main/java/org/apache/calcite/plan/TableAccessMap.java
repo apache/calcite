@@ -170,7 +170,7 @@ public class TableAccessMap {
 
   /** Visitor that finds all tables in a tree. */
   private class TableRelVisitor extends RelVisitor {
-    public void visit(
+    @Override public void visit(
         RelNode p,
         int ordinal,
         RelNode parent) {

@@ -246,7 +246,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     }
   }
 
-  public Enumerator<T> enumerator() {
+  @Override public Enumerator<T> enumerator() {
     if (preparedStatementEnricher == null) {
       return enumeratorBasedOnStatement();
     } else {
@@ -361,11 +361,11 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       this.rowBuilder = rowBuilderFactory.apply(resultSet);
     }
 
-    public T current() {
+    @Override public T current() {
       return rowBuilder.apply();
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       try {
         return resultSet.next();
       } catch (SQLException e) {
@@ -373,7 +373,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       }
     }
 
-    public void reset() {
+    @Override public void reset() {
       try {
         resultSet.beforeFirst();
       } catch (SQLException e) {
@@ -381,7 +381,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       }
     }
 
-    public void close() {
+    @Override public void close() {
       ResultSet savedResultSet = resultSet;
       if (savedResultSet != null) {
         try {

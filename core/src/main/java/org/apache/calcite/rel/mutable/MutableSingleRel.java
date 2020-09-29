@@ -34,7 +34,7 @@ abstract class MutableSingleRel extends MutableRel {
     input.ordinalInParent = 0;
   }
 
-  public void setInput(int ordinalInParent, MutableRel input) {
+  @Override public void setInput(int ordinalInParent, MutableRel input) {
     if (ordinalInParent > 0) {
       throw new IllegalArgumentException();
     }
@@ -45,11 +45,11 @@ abstract class MutableSingleRel extends MutableRel {
     }
   }
 
-  public List<MutableRel> getInputs() {
+  @Override public List<MutableRel> getInputs() {
     return ImmutableList.of(input);
   }
 
-  public void childrenAccept(MutableRelVisitor visitor) {
+  @Override public void childrenAccept(MutableRelVisitor visitor) {
     visitor.visit(input);
   }
 

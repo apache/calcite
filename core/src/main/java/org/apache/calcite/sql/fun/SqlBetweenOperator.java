@@ -119,7 +119,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     return negated;
   }
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     ExplicitOperatorBinding newOpBinding =
         new ExplicitOperatorBinding(
@@ -129,7 +129,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         newOpBinding);
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{1} {0} {2} AND {3}";
   }
@@ -140,7 +140,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         + flag.name();
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -172,7 +172,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     writer.endList(frame);
   }
 
-  public ReduceResult reduceExpr(int opOrdinal, TokenSequence list) {
+  @Override public ReduceResult reduceExpr(int opOrdinal, TokenSequence list) {
     SqlOperator op = list.op(opOrdinal);
     assert op == this;
 
@@ -233,7 +233,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Finds an AND operator in an expression.
    */
   private static class AndFinder extends SqlBasicVisitor<Void> {
-    public Void visit(SqlCall call) {
+    @Override public Void visit(SqlCall call) {
       final SqlOperator operator = call.getOperator();
       if (operator == SqlStdOperatorTable.AND) {
         throw Util.FoundOne.NULL;

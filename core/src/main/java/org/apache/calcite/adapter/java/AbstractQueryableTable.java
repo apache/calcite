@@ -36,11 +36,11 @@ public abstract class AbstractQueryableTable extends AbstractTable
     this.elementType = elementType;
   }
 
-  public Type getElementType() {
+  @Override public Type getElementType() {
     return elementType;
   }
 
-  public Expression getExpression(SchemaPlus schema, String tableName,
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
       Class clazz) {
     return Schemas.tableExpression(schema, elementType, tableName, clazz);
   }

@@ -53,11 +53,11 @@ public class AggResultContextImpl extends AggResetContextImpl
     this.keyPhysType = keyPhysType;
   }
 
-  public Expression key() {
+  @Override public Expression key() {
     return key;
   }
 
-  public Expression keyField(int i) {
+  @Override public Expression keyField(int i) {
     return keyPhysType.fieldReference(key, i);
   }
 

@@ -43,11 +43,11 @@ public class InterpretableConverter extends ConverterImpl
     return new InterpretableConverter(getCluster(), traitSet, sole(inputs));
   }
 
-  public Class<Object[]> getElementType() {
+  @Override public Class<Object[]> getElementType() {
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
     return new Interpreter(dataContext, getInput());
   }
 }

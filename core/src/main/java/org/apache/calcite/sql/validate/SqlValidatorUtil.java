@@ -1227,7 +1227,7 @@ public class SqlValidatorUtil {
       return (SqlNodeList) list.accept(new DeepCopier(scope));
     }
 
-    public SqlNode visit(SqlNodeList list) {
+    @Override public SqlNode visit(SqlNodeList list) {
       SqlNodeList copy = new SqlNodeList(list.getParserPosition());
       for (SqlNode node : list) {
         copy.add(node.accept(this));
@@ -1237,18 +1237,18 @@ public class SqlValidatorUtil {
 
     // Override to copy all arguments regardless of whether visitor changes
     // them.
-    protected SqlNode visitScoped(SqlCall call) {
+    @Override protected SqlNode visitScoped(SqlCall call) {
       ArgHandler<SqlNode> argHandler =
           new CallCopyingArgHandler(call, true);
       call.getOperator().acceptCall(this, call, false, argHandler);
       return argHandler.result();
     }
 
-    public SqlNode visit(SqlLiteral literal) {
+    @Override public SqlNode visit(SqlLiteral literal) {
       return SqlNode.clone(literal);
     }
 
-    public SqlNode visit(SqlIdentifier id) {
+    @Override public SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have parentheses,
       // like "LOCALTIME".
       SqlValidator validator = getScope().getValidator();
@@ -1260,15 +1260,15 @@ public class SqlValidatorUtil {
       return getScope().fullyQualify(id).identifier;
     }
 
-    public SqlNode visit(SqlDataTypeSpec type) {
+    @Override public SqlNode visit(SqlDataTypeSpec type) {
       return SqlNode.clone(type);
     }
 
-    public SqlNode visit(SqlDynamicParam param) {
+    @Override public SqlNode visit(SqlDynamicParam param) {
       return SqlNode.clone(param);
     }
 
-    public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+    @Override public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
       return SqlNode.clone(intervalQualifier);
     }
   }

@@ -29,7 +29,7 @@ import java.util.Iterator;
  * @param <T> Element type
  */
 public abstract class AbstractEnumerable<T> extends DefaultEnumerable<T> {
-  public Iterator<T> iterator() {
+  @Override public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }

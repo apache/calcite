@@ -149,7 +149,7 @@ public class FileReader implements Iterable<Elements> {
     return "Table: {url: " + this.source + ", selector: " + this.selector + "}";
   }
 
-  public FileReaderIterator iterator() {
+  @Override public FileReaderIterator iterator() {
     if (this.tableElement == null) {
       try {
         getTable();
@@ -202,7 +202,7 @@ public class FileReader implements Iterable<Elements> {
       this.rowIterator = rows.iterator();
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return this.rowIterator.hasNext();
     }
 
@@ -213,11 +213,11 @@ public class FileReader implements Iterable<Elements> {
     }
 
     // return th and td elements by default
-    public Elements next() {
+    @Override public Elements next() {
       return next("th,td");
     }
 
-    public void remove() {
+    @Override public void remove() {
       throw new UnsupportedOperationException("NFW - can't remove!");
     }
   }

@@ -36,28 +36,28 @@ class VolcanoCost implements RelOptCost {
           Double.POSITIVE_INFINITY,
           Double.POSITIVE_INFINITY,
           Double.POSITIVE_INFINITY) {
-        public String toString() {
+        @Override public String toString() {
           return "{inf}";
         }
       };
 
   static final VolcanoCost HUGE =
       new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
-        public String toString() {
+        @Override public String toString() {
           return "{huge}";
         }
       };
 
   static final VolcanoCost ZERO =
       new VolcanoCost(0.0, 0.0, 0.0) {
-        public String toString() {
+        @Override public String toString() {
           return "{0}";
         }
       };
 
   static final VolcanoCost TINY =
       new VolcanoCost(1.0, 1.0, 0.0) {
-        public String toString() {
+        @Override public String toString() {
           return "{tiny}";
         }
       };
@@ -80,22 +80,22 @@ class VolcanoCost implements RelOptCost {
 
   //~ Methods ----------------------------------------------------------------
 
-  public double getCpu() {
+  @Override public double getCpu() {
     return cpu;
   }
 
-  public boolean isInfinite() {
+  @Override public boolean isInfinite() {
     return (this == INFINITY)
         || (this.rowCount == Double.POSITIVE_INFINITY)
         || (this.cpu == Double.POSITIVE_INFINITY)
         || (this.io == Double.POSITIVE_INFINITY);
   }
 
-  public double getIo() {
+  @Override public double getIo() {
     return io;
   }
 
-  public boolean isLe(RelOptCost other) {
+  @Override public boolean isLe(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
     if (true) {
       return this == that
@@ -107,7 +107,7 @@ class VolcanoCost implements RelOptCost {
         && (this.io <= that.io));
   }
 
-  public boolean isLt(RelOptCost other) {
+  @Override public boolean isLt(RelOptCost other) {
     if (true) {
       VolcanoCost that = (VolcanoCost) other;
       return this.rowCount < that.rowCount;
@@ -115,7 +115,7 @@ class VolcanoCost implements RelOptCost {
     return isLe(other) && !equals(other);
   }
 
-  public double getRows() {
+  @Override public double getRows() {
     return rowCount;
   }
 
@@ -123,7 +123,7 @@ class VolcanoCost implements RelOptCost {
     return Objects.hash(rowCount, cpu, io);
   }
 
-  public boolean equals(RelOptCost other) {
+  @Override public boolean equals(RelOptCost other) {
     return this == other
         || other instanceof VolcanoCost
         && (this.rowCount == ((VolcanoCost) other).rowCount)
@@ -138,7 +138,7 @@ class VolcanoCost implements RelOptCost {
     return false;
   }
 
-  public boolean isEqWithEpsilon(RelOptCost other) {
+  @Override public boolean isEqWithEpsilon(RelOptCost other) {
     if (!(other instanceof VolcanoCost)) {
       return false;
     }
@@ -149,7 +149,7 @@ class VolcanoCost implements RelOptCost {
         && (Math.abs(this.io - that.io) < RelOptUtil.EPSILON));
   }
 
-  public RelOptCost minus(RelOptCost other) {
+  @Override public RelOptCost minus(RelOptCost other) {
     if (this == INFINITY) {
       return this;
     }
@@ -160,14 +160,14 @@ class VolcanoCost implements RelOptCost {
         this.io - that.io);
   }
 
-  public RelOptCost multiplyBy(double factor) {
+  @Override public RelOptCost multiplyBy(double factor) {
     if (this == INFINITY) {
       return this;
     }
     return new VolcanoCost(rowCount * factor, cpu * factor, io * factor);
   }
 
-  public double divideBy(RelOptCost cost) {
+  @Override public double divideBy(RelOptCost cost) {
     // Compute the geometric average of the ratios of all of the factors
     // which are non-zero and finite.
     VolcanoCost that = (VolcanoCost) cost;
@@ -200,7 +200,7 @@ class VolcanoCost implements RelOptCost {
     return Math.pow(d, 1 / n);
   }
 
-  public RelOptCost plus(RelOptCost other) {
+  @Override public RelOptCost plus(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
     if ((this == INFINITY) || (that == INFINITY)) {
       return INFINITY;
@@ -211,30 +211,30 @@ class VolcanoCost implements RelOptCost {
         this.io + that.io);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "{" + rowCount + " rows, " + cpu + " cpu, " + io + " io}";
   }
 
   /** Implementation of {@link org.apache.calcite.plan.RelOptCostFactory}
    * that creates {@link org.apache.calcite.plan.volcano.VolcanoCost}s. */
   private static class Factory implements RelOptCostFactory {
-    public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
+    @Override public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
       return new VolcanoCost(dRows, dCpu, dIo);
     }
 
-    public RelOptCost makeHugeCost() {
+    @Override public RelOptCost makeHugeCost() {
       return VolcanoCost.HUGE;
     }
 
-    public RelOptCost makeInfiniteCost() {
+    @Override public RelOptCost makeInfiniteCost() {
       return VolcanoCost.INFINITY;
     }
 
-    public RelOptCost makeTinyCost() {
+    @Override public RelOptCost makeTinyCost() {
       return VolcanoCost.TINY;
     }
 
-    public RelOptCost makeZeroCost() {
+    @Override public RelOptCost makeZeroCost() {
       return VolcanoCost.ZERO;
     }
   }

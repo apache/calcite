@@ -237,7 +237,7 @@ public class ValuesReduceRule
   private static class MyRexShuttle extends RexShuttle {
     private List<RexLiteral> literalList;
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       return literalList.get(inputRef.getIndex());
     }
   }

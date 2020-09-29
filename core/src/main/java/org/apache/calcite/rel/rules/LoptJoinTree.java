@@ -180,7 +180,7 @@ public class LoptJoinTree {
       return id;
     }
 
-    public void getTreeOrder(List<Integer> treeOrder) {
+    @Override public void getTreeOrder(List<Integer> treeOrder) {
       treeOrder.add(id);
     }
   }
@@ -204,7 +204,7 @@ public class LoptJoinTree {
       return right;
     }
 
-    public void getTreeOrder(List<Integer> treeOrder) {
+    @Override public void getTreeOrder(List<Integer> treeOrder) {
       left.getTreeOrder(treeOrder);
       right.getTreeOrder(treeOrder);
     }

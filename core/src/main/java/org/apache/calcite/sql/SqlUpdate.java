@@ -65,11 +65,11 @@ public class SqlUpdate extends SqlCall {
     return SqlKind.UPDATE;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
         sourceExpressionList, condition, alias);
   }
@@ -178,7 +178,7 @@ public class SqlUpdate extends SqlCall {
     writer.endList(frame);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateUpdate(this);
   }
 }

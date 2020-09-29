@@ -43,7 +43,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @return new code block that can optimize expressions and reuse already
    * calculated values from the parent blocks.
    */
-  public final BlockBuilder nestBlock() {
+  @Override public final BlockBuilder nestBlock() {
     BlockBuilder block = new BlockBuilder(true, currentBlock());
     nestBlock(block);
     return block;
@@ -55,14 +55,14 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @param block new code block
    * @see #exitBlock()
    */
-  public final void nestBlock(BlockBuilder block) {
+  @Override public final void nestBlock(BlockBuilder block) {
     blocks.add(block);
   }
 
   /**
    * Returns the current code block.
    */
-  public final BlockBuilder currentBlock() {
+  @Override public final BlockBuilder currentBlock() {
     return blocks.get(blocks.size() - 1);
   }
 
@@ -70,7 +70,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * Leaves the current code block.
    * @see #nestBlock()
    */
-  public final void exitBlock() {
+  @Override public final void exitBlock() {
     blocks.remove(blocks.size() - 1);
   }
 }

@@ -32,15 +32,15 @@ abstract class MutableLeafRel extends MutableRel {
     this.rel = rel;
   }
 
-  public void setInput(int ordinalInParent, MutableRel input) {
+  @Override public void setInput(int ordinalInParent, MutableRel input) {
     throw new IllegalArgumentException();
   }
 
-  public List<MutableRel> getInputs() {
+  @Override public List<MutableRel> getInputs() {
     return ImmutableList.of();
   }
 
-  public void childrenAccept(MutableRelVisitor visitor) {
+  @Override public void childrenAccept(MutableRelVisitor visitor) {
     // no children - nothing to do
   }
 }

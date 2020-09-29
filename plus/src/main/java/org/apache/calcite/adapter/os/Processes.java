@@ -77,7 +77,7 @@ public class Processes {
       this.processSupplier = processSupplier;
     }
 
-    public Enumerator<String> enumerator() {
+    @Override public Enumerator<String> enumerator() {
       final Process process = processSupplier.get();
       final InputStream is = process.getInputStream();
       final BufferedInputStream bis =
@@ -88,11 +88,11 @@ public class Processes {
       return new Enumerator<String>() {
         private String line;
 
-        public String current() {
+        @Override public String current() {
           return line;
         }
 
-        public boolean moveNext() {
+        @Override public boolean moveNext() {
           try {
             line = br.readLine();
             return line != null;
@@ -101,11 +101,11 @@ public class Processes {
           }
         }
 
-        public void reset() {
+        @Override public void reset() {
           throw new UnsupportedOperationException();
         }
 
-        public void close() {
+        @Override public void close() {
           try {
             br.close();
           } catch (IOException e) {
@@ -128,7 +128,7 @@ public class Processes {
       this.sep = sep;
     }
 
-    public Enumerator<String> enumerator() {
+    @Override public Enumerator<String> enumerator() {
       final Process process = processSupplier.get();
       final InputStream is = process.getInputStream();
       final BufferedInputStream bis =
@@ -140,11 +140,11 @@ public class Processes {
         private final StringBuilder b = new StringBuilder();
         private String line;
 
-        public String current() {
+        @Override public String current() {
           return line;
         }
 
-        public boolean moveNext() {
+        @Override public boolean moveNext() {
           try {
             for (;;) {
               int c = br.read();
@@ -163,11 +163,11 @@ public class Processes {
           }
         }
 
-        public void reset() {
+        @Override public void reset() {
           throw new UnsupportedOperationException();
         }
 
-        public void close() {
+        @Override public void close() {
           try {
             br.close();
           } catch (IOException e) {
@@ -187,7 +187,7 @@ public class Processes {
       this.args = args;
     }
 
-    public Process get() {
+    @Override public Process get() {
       try {
         return new ProcessBuilder().command(args).start();
       } catch (IOException e) {

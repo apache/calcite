@@ -37,7 +37,7 @@ public class RedisSchemaFactory implements SchemaFactory {
   public RedisSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus schema, String name,
+  @Override public Schema create(SchemaPlus schema, String name,
       Map<String, Object> operand) {
     Preconditions.checkArgument(operand.get("tables") != null,
         "tables must be specified");

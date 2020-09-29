@@ -47,47 +47,47 @@ public class DelegatingSchema implements Schema {
     return "DelegatingSchema(delegate=" + schema + ")";
   }
 
-  public boolean isMutable() {
+  @Override public boolean isMutable() {
     return schema.isMutable();
   }
 
-  public Schema snapshot(SchemaVersion version) {
+  @Override public Schema snapshot(SchemaVersion version) {
     return schema.snapshot(version);
   }
 
-  public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
     return schema.getExpression(parentSchema, name);
   }
 
-  public Table getTable(String name) {
+  @Override public Table getTable(String name) {
     return schema.getTable(name);
   }
 
-  public Set<String> getTableNames() {
+  @Override public Set<String> getTableNames() {
     return schema.getTableNames();
   }
 
-  public RelProtoDataType getType(String name) {
+  @Override public RelProtoDataType getType(String name) {
     return schema.getType(name);
   }
 
-  public Set<String> getTypeNames() {
+  @Override public Set<String> getTypeNames() {
     return schema.getTypeNames();
   }
 
-  public Collection<Function> getFunctions(String name) {
+  @Override public Collection<Function> getFunctions(String name) {
     return schema.getFunctions(name);
   }
 
-  public Set<String> getFunctionNames() {
+  @Override public Set<String> getFunctionNames() {
     return schema.getFunctionNames();
   }
 
-  public Schema getSubSchema(String name) {
+  @Override public Schema getSubSchema(String name) {
     return schema.getSubSchema(name);
   }
 
-  public Set<String> getSubSchemaNames() {
+  @Override public Set<String> getSubSchemaNames() {
     return schema.getSubSchemaNames();
   }
 }

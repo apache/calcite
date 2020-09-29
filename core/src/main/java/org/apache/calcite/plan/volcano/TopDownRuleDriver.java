@@ -145,7 +145,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
-  public void onSetMerged(RelSet set) {
+  @Override public void onSetMerged(RelSet set) {
     // When RelSets get merged, an optimized group may get extra opportunities.
     // Clear the OPTIMISED state for the RelSubsets and all theirs ancestors
     // so that they will be optimized again
@@ -172,7 +172,7 @@ class TopDownRuleDriver implements RuleDriver {
   // a callback invoked when a RelNode is going to be added into a RelSubset,
   // either by Register or Reregister. The task driver should need to schedule
   // tasks for the new nodes.
-  public void onProduce(RelNode node, RelSubset subset) {
+  @Override public void onProduce(RelNode node, RelSubset subset) {
 
     // if the RelNode is added to another RelSubset, just ignore it.
     // It should be schedule in the later OptimizeGroup task

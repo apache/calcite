@@ -31,19 +31,19 @@ public abstract class TransformedEnumerator<F, E> implements Enumerator<E> {
 
   protected abstract E transform(F from);
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  public E current() {
+  @Override public E current() {
     return transform(enumerator.current());
   }
 
-  public void reset() {
+  @Override public void reset() {
     enumerator.reset();
   }
 
-  public void close() {
+  @Override public void close() {
     enumerator.close();
   }
 }

@@ -871,7 +871,7 @@ public class RexLiteral extends RexNode {
     return typeName;
   }
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return type;
   }
 
@@ -1114,21 +1114,21 @@ public class RexLiteral extends RexNode {
     return (Boolean) ((RexLiteral) node).value;
   }
 
-  public boolean isAlwaysTrue() {
+  @Override public boolean isAlwaysTrue() {
     if (typeName != SqlTypeName.BOOLEAN) {
       return false;
     }
     return booleanValue(this);
   }
 
-  public boolean isAlwaysFalse() {
+  @Override public boolean isAlwaysFalse() {
     if (typeName != SqlTypeName.BOOLEAN) {
       return false;
     }
     return !booleanValue(this);
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -1137,7 +1137,7 @@ public class RexLiteral extends RexNode {
         && equals(((RexLiteral) obj).type, type);
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(value, type);
   }
 
@@ -1183,11 +1183,11 @@ public class RexLiteral extends RexNode {
     return Objects.equals(o1, o2);
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitLiteral(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLiteral(this, arg);
   }
 }

@@ -55,7 +55,7 @@ public class RelTraitPropagationVisitor extends RelVisitor {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void visit(RelNode rel, int ordinal, RelNode parent) {
+  @Override public void visit(RelNode rel, int ordinal, RelNode parent) {
     // REVIEW: SWZ: 1/31/06: We assume that any special RelNodes, such
     // as the VolcanoPlanner's RelSubset always have a full complement
     // of traits and that they either appear as registered or do nothing

@@ -127,7 +127,7 @@ public class SqlIdentifier extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.IDENTIFIER;
   }
 
@@ -277,18 +277,18 @@ public class SqlIdentifier extends SqlNode {
     return getComponent(0, names.size() - n);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     SqlUtil.unparseSqlIdentifierSyntax(writer, this, false);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateIdentifier(this, scope);
   }
 
-  public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlCall call = validator.makeNullaryCall(this);
@@ -300,7 +300,7 @@ public class SqlIdentifier extends SqlNode {
     validator.validateIdentifier(this, scope);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlIdentifier)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -316,7 +316,7 @@ public class SqlIdentifier extends SqlNode {
     return litmus.succeed();
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -356,7 +356,7 @@ public class SqlIdentifier extends SqlNode {
         && componentPositions.get(i).isQuoted();
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;

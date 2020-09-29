@@ -81,11 +81,11 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
     return name;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return name;
   }
 
-  public int compareTo(CorrelationId other) {
+  @Override public int compareTo(CorrelationId other) {
     return id - other.id;
   }
 

@@ -50,7 +50,7 @@ public class ProcedureNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType validateImpl(RelDataType targetRowType) {
+  @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.inferUnknownTypes(validator.unknownType, scope, call);
     final RelDataType type = validator.deriveTypeImpl(scope, call);
     final SqlOperator operator = call.getOperator();
@@ -70,7 +70,7 @@ public class ProcedureNamespace extends AbstractNamespace {
     return rowTypeInference.inferReturnType(callBinding);
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return call;
   }
 }

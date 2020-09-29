@@ -227,11 +227,11 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
       return b.operands.get(0);
     }
 
-    public <R extends RelNode> OperandDetailBuilder<R> operand(Class<R> relClass) {
+    @Override public <R extends RelNode> OperandDetailBuilder<R> operand(Class<R> relClass) {
       return new OperandDetailBuilderImpl<>(this, relClass);
     }
 
-    public Done exactly(RelOptRuleOperand operand) {
+    @Override public Done exactly(RelOptRuleOperand operand) {
       operands.add(operand);
       return DoneImpl.INSTANCE;
     }
@@ -253,12 +253,12 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
       this.relClass = Objects.requireNonNull(relClass);
     }
 
-    public OperandDetailBuilderImpl<R> trait(@Nonnull RelTrait trait) {
+    @Override public OperandDetailBuilderImpl<R> trait(@Nonnull RelTrait trait) {
       this.trait = Objects.requireNonNull(trait);
       return this;
     }
 
-    public OperandDetailBuilderImpl<R> predicate(Predicate<? super R> predicate) {
+    @Override public OperandDetailBuilderImpl<R> predicate(Predicate<? super R> predicate) {
       this.predicate = predicate;
       return this;
     }
@@ -271,27 +271,27 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
       return DoneImpl.INSTANCE;
     }
 
-    public Done convert(RelTrait in) {
+    @Override public Done convert(RelTrait in) {
       parent.operands.add(
           new ConverterRelOptRuleOperand(relClass, in, predicate));
       return DoneImpl.INSTANCE;
     }
 
-    public Done noInputs() {
+    @Override public Done noInputs() {
       return done(RelOptRuleOperandChildPolicy.LEAF);
     }
 
-    public Done anyInputs() {
+    @Override public Done anyInputs() {
       return done(RelOptRuleOperandChildPolicy.ANY);
     }
 
-    public Done oneInput(OperandTransform transform) {
+    @Override public Done oneInput(OperandTransform transform) {
       final Done done = transform.apply(inputBuilder);
       Objects.requireNonNull(done);
       return done(RelOptRuleOperandChildPolicy.SOME);
     }
 
-    public Done inputs(OperandTransform... transforms) {
+    @Override public Done inputs(OperandTransform... transforms) {
       for (OperandTransform transform : transforms) {
         final Done done = transform.apply(inputBuilder);
         Objects.requireNonNull(done);
@@ -299,7 +299,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
       return done(RelOptRuleOperandChildPolicy.SOME);
     }
 
-    public Done unorderedInputs(OperandTransform... transforms) {
+    @Override public Done unorderedInputs(OperandTransform... transforms) {
       for (OperandTransform transform : transforms) {
         final Done done = transform.apply(inputBuilder);
         Objects.requireNonNull(done);

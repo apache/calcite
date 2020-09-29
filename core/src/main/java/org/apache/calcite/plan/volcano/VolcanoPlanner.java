@@ -252,11 +252,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public boolean isRegistered(RelNode rel) {
+  @Override public boolean isRegistered(RelNode rel) {
     return mapRel2Subset.get(rel) != null;
   }
 
-  public void setRoot(RelNode rel) {
+  @Override public void setRoot(RelNode rel) {
     // We've registered all the rules, and therefore RelNode classes,
     // we're interested in, and have not yet started calling metadata providers.
     // So now is a good time to tell the metadata layer what to expect.
@@ -271,7 +271,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ensureRootConverters();
   }
 
-  public RelNode getRoot() {
+  @Override public RelNode getRoot() {
     return root;
   }
 
@@ -398,7 +398,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.provenanceMap.clear();
   }
 
-  public boolean addRule(RelOptRule rule) {
+  @Override public boolean addRule(RelOptRule rule) {
     if (locked) {
       return false;
     }
@@ -437,7 +437,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
-  public boolean removeRule(RelOptRule rule) {
+  @Override public boolean removeRule(RelOptRule rule) {
     // Remove description.
     if (!super.removeRule(rule)) {
       // Rule was not present.
@@ -479,7 +479,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
+  @Override public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
     assert !rel.getTraitSet().equals(toTraits);
     assert toTraits.allSimple();
 
@@ -492,7 +492,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         rel.getCluster(), toTraits, true);
   }
 
-  public RelOptPlanner chooseDelegate() {
+  @Override public RelOptPlanner chooseDelegate() {
     return this;
   }
 
@@ -503,7 +503,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return the most efficient RelNode tree found for implementing the given
    * query
    */
-  public RelNode findBestExp() {
+  @Override public RelNode findBestExp() {
     ensureRootConverters();
     registerMaterializations();
 
@@ -569,7 +569,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public RelSubset register(
+  @Override public RelSubset register(
       RelNode rel,
       RelNode equivRel) {
     assert !isRegistered(rel) : "pre: isRegistered(rel)";
@@ -589,7 +589,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return registerImpl(rel, set);
   }
 
-  public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
     RelSubset result;
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
@@ -674,7 +674,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelOptUtil.registerAbstractRelationalRules(this);
   }
 
-  public void registerSchema(RelOptSchema schema) {
+  @Override public void registerSchema(RelOptSchema schema) {
     if (registeredSchemas.add(schema)) {
       try {
         schema.registerRules(this);
@@ -693,7 +693,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.noneConventionHasInfiniteCost = infinite;
   }
 
-  public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
@@ -1290,12 +1290,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public void registerMetadataProviders(List<RelMetadataProvider> list) {
+  @Override public void registerMetadataProviders(List<RelMetadataProvider> list) {
     list.add(0, new VolcanoRelMetadataProvider());
   }
 
   // implement RelOptPlanner
-  public long getRelMetadataTimestamp(RelNode rel) {
+  @Override public long getRelMetadataTimestamp(RelNode rel) {
     RelSubset subset = getSubset(rel);
     if (subset == null) {
       return 0;
@@ -1459,7 +1459,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
      * Rather than invoking the rule (as the base method does), creates a
      * {@link VolcanoRuleMatch} which can be invoked later.
      */
-    protected void onMatch() {
+    @Override protected void onMatch() {
       final VolcanoRuleMatch match =
           new VolcanoRuleMatch(
               volcanoPlanner,

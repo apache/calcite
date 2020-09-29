@@ -43,11 +43,11 @@ public enum EnumerableConvention implements Convention {
     return getName();
   }
 
-  public Class getInterface() {
+  @Override public Class getInterface() {
     return EnumerableRel.class;
   }
 
-  public String getName() {
+  @Override public String getName() {
     return "ENUMERABLE";
   }
 
@@ -67,26 +67,26 @@ public enum EnumerableConvention implements Convention {
     return rel;
   }
 
-  public RelTraitDef getTraitDef() {
+  @Override public RelTraitDef getTraitDef() {
     return ConventionTraitDef.INSTANCE;
   }
 
-  public boolean satisfies(RelTrait trait) {
+  @Override public boolean satisfies(RelTrait trait) {
     return this == trait;
   }
 
-  public void register(RelOptPlanner planner) {}
+  @Override public void register(RelOptPlanner planner) {}
 
-  public boolean canConvertConvention(Convention toConvention) {
+  @Override public boolean canConvertConvention(Convention toConvention) {
     return false;
   }
 
-  public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+  @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return true;
   }
 
-  public RelFactories.Struct getRelFactories() {
+  @Override public RelFactories.Struct getRelFactories() {
     return RelFactories.Struct.fromContext(
             Contexts.of(
                 EnumerableRelFactories.ENUMERABLE_TABLE_SCAN_FACTORY,

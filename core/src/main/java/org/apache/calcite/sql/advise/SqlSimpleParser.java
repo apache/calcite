@@ -43,14 +43,14 @@ public class SqlSimpleParser {
 
     /** Left parenthesis. */
     LPAREN {
-      public String sql() {
+      @Override public String sql() {
         return "(";
       }
     },
 
     /** Right parenthesis. */
     RPAREN {
-      public String sql() {
+      @Override public String sql() {
         return ")";
       }
     },
@@ -68,7 +68,7 @@ public class SqlSimpleParser {
      */
     SQID, COMMENT,
     COMMA {
-      public String sql() {
+      @Override public String sql() {
         return ",";
       }
     },
@@ -454,7 +454,7 @@ public class SqlSimpleParser {
       this.s = s;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return (s == null) ? type.toString() : (type + "(" + s + ")");
     }
 
@@ -484,7 +484,7 @@ public class SqlSimpleParser {
       this.tokenList = new ArrayList<>(tokenList);
     }
 
-    public void unparse(StringBuilder buf) {
+    @Override public void unparse(StringBuilder buf) {
       int k = -1;
       for (Token token : tokenList) {
         if (++k > 0) {

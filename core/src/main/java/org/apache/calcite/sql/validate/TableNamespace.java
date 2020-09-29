@@ -54,7 +54,7 @@ class TableNamespace extends AbstractNamespace {
     this(validator, table, ImmutableList.of());
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }
@@ -65,7 +65,7 @@ class TableNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     // This is the only kind of namespace not based on a node in the parse tree.
     return null;
   }

@@ -101,7 +101,7 @@ public class MysqlSqlDialect extends SqlDialect {
     return true;
   }
 
-  public boolean supportsAliasedValues() {
+  @Override public boolean supportsAliasedValues() {
     // MySQL supports VALUES only in INSERT; not in a FROM clause
     return false;
   }

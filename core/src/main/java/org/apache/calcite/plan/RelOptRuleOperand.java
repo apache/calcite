@@ -166,11 +166,11 @@ public class RelOptRuleOperand {
     this.rule = rule;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(clazz, trait, children);
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }

@@ -53,15 +53,15 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
   /**
    * Returns e.g. '1969-07-21'.
    */
-  public String toFormattedString() {
+  @Override public String toFormattedString() {
     return getDate().toString();
   }
 
-  public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
     return typeFactory.createSqlType(getTypeName());
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

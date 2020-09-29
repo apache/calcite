@@ -209,23 +209,23 @@ public interface CalcitePrepare {
     /** Implementation of {@link SparkHandler} that either does nothing or
      * throws for each method. Use this if Spark is not installed. */
     private static class TrivialSparkHandler implements SparkHandler {
-      public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+      @Override public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
           boolean restructure) {
         return rootRel;
       }
 
-      public void registerRules(RuleSetBuilder builder) {
+      @Override public void registerRules(RuleSetBuilder builder) {
       }
 
-      public boolean enabled() {
+      @Override public boolean enabled() {
         return false;
       }
 
-      public ArrayBindable compile(ClassDeclaration expr, String s) {
+      @Override public ArrayBindable compile(ClassDeclaration expr, String s) {
         throw new UnsupportedOperationException();
       }
 
-      public Object sparkContext() {
+      @Override public Object sparkContext() {
         throw new UnsupportedOperationException();
       }
     }

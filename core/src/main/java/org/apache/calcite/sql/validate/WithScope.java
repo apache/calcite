@@ -43,7 +43,7 @@ class WithScope extends ListScope {
     this.withItem = withItem;
   }
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return withItem;
   }
 

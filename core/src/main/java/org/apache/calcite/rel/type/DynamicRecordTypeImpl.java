@@ -73,7 +73,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
     return new SqlTypeExplicitPrecedenceList(ImmutableList.of());
   }
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("(DynamicRecordRow").append(getFieldNames()).append(")");
   }
 

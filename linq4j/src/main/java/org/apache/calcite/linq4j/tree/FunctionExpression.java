@@ -72,7 +72,7 @@ public final class FunctionExpression<F extends Function<?>>
     return shuttle.visit(this, body);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

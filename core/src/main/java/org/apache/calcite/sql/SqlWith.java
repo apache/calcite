@@ -49,7 +49,7 @@ public class SqlWith extends SqlCall {
     return SqlWithOperator.INSTANCE;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(withList, body);
   }
 
@@ -85,7 +85,7 @@ public class SqlWith extends SqlCall {
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,

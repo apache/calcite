@@ -70,7 +70,7 @@ public class EnumerableTableModify extends TableModify
         isFlattened());
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result result = implementor.visitChild(
         this, 0, (EnumerableRel) getInput(), pref);

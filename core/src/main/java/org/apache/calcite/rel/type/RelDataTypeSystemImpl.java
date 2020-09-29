@@ -34,7 +34,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
-  public int getMaxScale(SqlTypeName typeName) {
+  @Override public int getMaxScale(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
       return getMaxNumericScale();
@@ -256,11 +256,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
         typeFactory.createSqlType(SqlTypeName.BIGINT), false);
   }
 
-  public boolean isSchemaCaseSensitive() {
+  @Override public boolean isSchemaCaseSensitive() {
     return true;
   }
 
-  public boolean shouldConvertRaggedUnionTypesToVarying() {
+  @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return false;
   }
 

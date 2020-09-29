@@ -108,7 +108,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     for (SqlOperandTypeChecker allowedRule : allowedRules) {
       if (allowedRule.isOptional(i)) {
         return true;
@@ -121,11 +121,11 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return allowedRules;
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     if (allowedSignatures != null) {
       return allowedSignatures;
     }
@@ -147,7 +147,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return ret.toString();
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     switch (composition) {
     case REPEAT:
       return range;
@@ -158,11 +158,11 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     default:
       final List<SqlOperandCountRange> ranges =
           new AbstractList<SqlOperandCountRange>() {
-            public SqlOperandCountRange get(int index) {
+            @Override public SqlOperandCountRange get(int index) {
               return allowedRules.get(index).getOperandCountRange();
             }
 
-            public int size() {
+            @Override public int size() {
               return allowedRules.size();
             }
           };
@@ -170,7 +170,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       final int max = maxMax(ranges);
       SqlOperandCountRange composite =
           new SqlOperandCountRange() {
-            public boolean isValidCount(int count) {
+            @Override public boolean isValidCount(int count) {
               switch (composition) {
               case AND:
                 for (SqlOperandCountRange range : ranges) {
@@ -190,11 +190,11 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
               }
             }
 
-            public int getMin() {
+            @Override public int getMin() {
               return min;
             }
 
-            public int getMax() {
+            @Override public int getMax() {
               return max;
             }
           };
@@ -235,7 +235,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return max;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // 1. Check eagerly for binary arithmetic expressions.

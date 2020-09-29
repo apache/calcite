@@ -128,11 +128,11 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ints.length == 0;
   }
 
-  public int size() {
+  @Override public int size() {
     return ints.length;
   }
 
-  public Object[] toArray() {
+  @Override public Object[] toArray() {
     final Object[] objects = new Object[ints.length];
     for (int i = 0; i < objects.length; i++) {
       objects[i] = ints[i];
@@ -140,7 +140,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return objects;
   }
 
-  public <T> T[] toArray(T[] a) {
+  @Override public <T> T[] toArray(T[] a) {
     final int size = ints.length;
     if (a.length < size) {
       // Make a new array of a's runtime type, but my contents:
@@ -177,7 +177,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return arrayList;
   }
 
-  public Integer get(int index) {
+  @Override public Integer get(int index) {
     return ints[index];
   }
 
@@ -195,13 +195,13 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   @Override public ListIterator<Integer> listIterator(int index) {
     return new AbstractIndexedListIterator<Integer>(size(), index) {
-      protected Integer get(int index) {
+      @Override protected Integer get(int index) {
         return ImmutableIntList.this.get(index);
       }
     };
   }
 
-  public int indexOf(Object o) {
+  @Override public int indexOf(Object o) {
     if (o instanceof Integer) {
       return indexOf((int) (Integer) o);
     }
@@ -217,7 +217,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return -1;
   }
 
-  public int lastIndexOf(Object o) {
+  @Override public int lastIndexOf(Object o) {
     if (o instanceof Integer) {
       return lastIndexOf((int) (Integer) o);
     }
@@ -326,33 +326,33 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
       this.position = position;
     }
 
-    public final boolean hasNext() {
+    @Override public final boolean hasNext() {
       return position < size;
     }
 
-    public final E next() {
+    @Override public final E next() {
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
       return get(position++);
     }
 
-    public final int nextIndex() {
+    @Override public final int nextIndex() {
       return position;
     }
 
-    public final boolean hasPrevious() {
+    @Override public final boolean hasPrevious() {
       return position > 0;
     }
 
-    public final E previous() {
+    @Override public final E previous() {
       if (!hasPrevious()) {
         throw new NoSuchElementException();
       }
       return get(--position);
     }
 
-    public final int previousIndex() {
+    @Override public final int previousIndex() {
       return position - 1;
     }
   }

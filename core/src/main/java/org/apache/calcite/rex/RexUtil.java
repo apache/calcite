@@ -625,23 +625,23 @@ public class RexUtil {
   static class ConstantFinder implements RexVisitor<Boolean> {
     static final ConstantFinder INSTANCE = new ConstantFinder();
 
-    public Boolean visitLiteral(RexLiteral literal) {
+    @Override public Boolean visitLiteral(RexLiteral literal) {
       return true;
     }
 
-    public Boolean visitInputRef(RexInputRef inputRef) {
+    @Override public Boolean visitInputRef(RexInputRef inputRef) {
       return false;
     }
 
-    public Boolean visitLocalRef(RexLocalRef localRef) {
+    @Override public Boolean visitLocalRef(RexLocalRef localRef) {
       return false;
     }
 
-    public Boolean visitOver(RexOver over) {
+    @Override public Boolean visitOver(RexOver over) {
       return false;
     }
 
-    public Boolean visitSubQuery(RexSubQuery subQuery) {
+    @Override public Boolean visitSubQuery(RexSubQuery subQuery) {
       return false;
     }
 
@@ -653,19 +653,19 @@ public class RexUtil {
       return false;
     }
 
-    public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
       // Correlating variables change when there is an internal restart.
       // Not good enough for our purposes.
       return false;
     }
 
-    public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
       // Dynamic parameters are constant WITHIN AN EXECUTION, so that's
       // good enough.
       return true;
     }
 
-    public Boolean visitCall(RexCall call) {
+    @Override public Boolean visitCall(RexCall call) {
       // Constant if operator meets the following conditions:
       // 1. It is deterministic;
       // 2. All its operands are constant.
@@ -673,11 +673,11 @@ public class RexUtil {
           && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
     }
 
-    public Boolean visitRangeRef(RexRangeRef rangeRef) {
+    @Override public Boolean visitRangeRef(RexRangeRef rangeRef) {
       return false;
     }
 
-    public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
       // "<expr>.FIELD" is constant iff "<expr>" is constant.
       return fieldAccess.getReferenceExpr().accept(this);
     }
@@ -740,7 +740,7 @@ public class RexUtil {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
-            public Void visitCall(RexCall call) {
+            @Override public Void visitCall(RexCall call) {
               if (call.getOperator().equals(operator)) {
                 throw new Util.FoundOne(call);
               }
@@ -765,7 +765,7 @@ public class RexUtil {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
-            public Void visitInputRef(RexInputRef inputRef) {
+            @Override public Void visitInputRef(RexInputRef inputRef) {
               throw new Util.FoundOne(inputRef);
             }
           };
@@ -787,7 +787,7 @@ public class RexUtil {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
-            public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+            @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
               throw new Util.FoundOne(fieldAccess);
             }
           };
@@ -1017,7 +1017,7 @@ public class RexUtil {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
-            public Void visitTableInputRef(RexTableInputRef inputRef) {
+            @Override public Void visitTableInputRef(RexTableInputRef inputRef) {
               throw new Util.FoundOne(inputRef);
             }
           };
@@ -2279,19 +2279,19 @@ public class RexUtil {
       return map.get(expr);
     }
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       return register(inputRef);
     }
 
-    public RexNode visitLiteral(RexLiteral literal) {
+    @Override public RexNode visitLiteral(RexLiteral literal) {
       return register(literal);
     }
 
-    public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
       return register(correlVariable);
     }
 
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       List<RexNode> normalizedOperands = new ArrayList<>();
       int diffCount = 0;
       for (RexNode operand : call.getOperands()) {
@@ -2311,15 +2311,15 @@ public class RexUtil {
       return register(call);
     }
 
-    public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       return register(dynamicParam);
     }
 
-    public RexNode visitRangeRef(RexRangeRef rangeRef) {
+    @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
       return register(rangeRef);
     }
 
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode expr = fieldAccess.getReferenceExpr();
       expr.accept(this);
       final RexNode normalizedExpr = lookup(expr);
@@ -2357,7 +2357,7 @@ public class RexUtil {
       this.inputRowType = inputRowType;
     }
 
-    public Void visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       super.visitInputRef(inputRef);
       if (inputRef.getIndex() >= inputRowType.getFieldCount()) {
         throw new IllegalForwardRefException();
@@ -2365,7 +2365,7 @@ public class RexUtil {
       return null;
     }
 
-    public Void visitLocalRef(RexLocalRef inputRef) {
+    @Override public Void visitLocalRef(RexLocalRef inputRef) {
       super.visitLocalRef(inputRef);
       if (inputRef.getIndex() >= limit) {
         throw new IllegalForwardRefException();
@@ -2394,12 +2394,12 @@ public class RexUtil {
       fieldAccessList = new ArrayList<>();
     }
 
-    public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
       fieldAccessList.add(fieldAccess);
       return null;
     }
 
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       visitEach(call.operands);
       return null;
     }

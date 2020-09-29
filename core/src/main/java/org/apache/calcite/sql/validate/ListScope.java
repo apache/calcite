@@ -112,14 +112,14 @@ public abstract class ListScope extends DelegatingScope {
     return null;
   }
 
-  public void findAllColumnNames(List<SqlMoniker> result) {
+  @Override public void findAllColumnNames(List<SqlMoniker> result) {
     for (ScopeChild child : children) {
       addColumnNames(child.namespace, result);
     }
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(Collection<SqlMoniker> result) {
+  @Override public void findAliases(Collection<SqlMoniker> result) {
     for (ScopeChild child : children) {
       result.add(new SqlMonikerImpl(child.name, SqlMonikerType.TABLE));
     }
@@ -200,7 +200,7 @@ public abstract class ListScope extends DelegatingScope {
     super.resolve(names, nameMatcher, deep, resolved);
   }
 
-  public RelDataType resolveColumn(String columnName, SqlNode ctx) {
+  @Override public RelDataType resolveColumn(String columnName, SqlNode ctx) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     int found = 0;
     RelDataType type = null;

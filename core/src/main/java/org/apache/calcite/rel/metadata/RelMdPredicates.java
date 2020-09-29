@@ -132,7 +132,7 @@ public class RelMdPredicates
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
 
-  public MetadataDef<BuiltInMetadata.Predicates> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Predicates> getDef() {
     return BuiltInMetadata.Predicates.DEF;
   }
 
@@ -840,7 +840,7 @@ public class RelMdPredicates
         firstCall = true;
       }
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         if (firstCall) {
           initializeMapping();
           firstCall = false;
@@ -850,11 +850,11 @@ public class RelMdPredicates
         return nextMapping != null;
       }
 
-      public Mapping next() {
+      @Override public Mapping next() {
         return nextMapping;
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
 

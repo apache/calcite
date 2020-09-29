@@ -90,7 +90,7 @@ public class JdbcTable extends AbstractQueryableTable
     this.jdbcTableType = Objects.requireNonNull(jdbcTableType);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "JdbcTable {" + jdbcTableName + "}";
   }
 
@@ -108,7 +108,7 @@ public class JdbcTable extends AbstractQueryableTable
     }
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType == null) {
       try {
         protoRowType =
@@ -165,18 +165,18 @@ public class JdbcTable extends AbstractQueryableTable
     return new SqlIdentifier(names, SqlParserPos.ZERO);
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return new JdbcTableScan(context.getCluster(), relOptTable, this,
         jdbcSchema.convention);
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new JdbcTableQueryable<>(queryProvider, schema, tableName);
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     final JavaTypeFactory typeFactory = root.getTypeFactory();
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
@@ -212,7 +212,7 @@ public class JdbcTable extends AbstractQueryableTable
       return "JdbcTableQueryable {table: " + tableName + "}";
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       final JavaTypeFactory typeFactory =
           ((CalciteConnection) queryProvider).getTypeFactory();
       final SqlString sql = generateSql();

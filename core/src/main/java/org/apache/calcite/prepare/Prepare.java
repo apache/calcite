@@ -382,7 +382,7 @@ public abstract class Prepare {
   /** Interface by which validator and planner can read table metadata. */
   public interface CatalogReader
       extends RelOptSchema, SqlValidatorCatalogReader, SqlOperatorTable {
-    PreparingTable getTableForMember(List<String> names);
+    @Override PreparingTable getTableForMember(List<String> names);
 
     /** Returns a catalog reader the same as this one but with a possibly
      * different schema path. */
@@ -403,7 +403,7 @@ public abstract class Prepare {
   public abstract static class AbstractPreparingTable
       implements PreparingTable {
     @SuppressWarnings("deprecation")
-    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
+    @Override public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
         InitializerContext initializerContext) {
       // This method is no longer used
       final Table table = this.unwrap(Table.class);
@@ -422,7 +422,7 @@ public abstract class Prepare {
       return !rowType.getFieldList().get(ordinal).getType().isNullable();
     }
 
-    public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    @Override public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final Table table = unwrap(Table.class);
 
       // Get the set of extended columns that do not have the same name as a column
@@ -452,7 +452,7 @@ public abstract class Prepare {
      * based on a {@link Table} that has been extended. */
     protected abstract RelOptTable extend(Table extendedTable);
 
-    public List<ColumnStrategy> getColumnStrategies() {
+    @Override public List<ColumnStrategy> getColumnStrategies() {
       return RelOptTableImpl.columnStrategies(AbstractPreparingTable.this);
     }
   }
@@ -482,7 +482,7 @@ public abstract class Prepare {
       this.detailLevel = detailLevel;
     }
 
-    public String getCode() {
+    @Override public String getCode() {
       if (root == null) {
         return RelOptUtil.dumpType(rowType);
       } else {
@@ -490,19 +490,19 @@ public abstract class Prepare {
       }
     }
 
-    public RelDataType getParameterRowType() {
+    @Override public RelDataType getParameterRowType() {
       return parameterRowType;
     }
 
-    public boolean isDml() {
+    @Override public boolean isDml() {
       return false;
     }
 
-    public LogicalTableModify.Operation getTableModOp() {
+    @Override public LogicalTableModify.Operation getTableModOp() {
       return null;
     }
 
-    public List<List<String>> getFieldOrigins() {
+    @Override public List<List<String>> getFieldOrigins() {
       return Collections.singletonList(
           Collections.nCopies(4, null));
     }
@@ -580,19 +580,19 @@ public abstract class Prepare {
       this.isDml = isDml;
     }
 
-    public boolean isDml() {
+    @Override public boolean isDml() {
       return isDml;
     }
 
-    public LogicalTableModify.Operation getTableModOp() {
+    @Override public LogicalTableModify.Operation getTableModOp() {
       return tableModOp;
     }
 
-    public List<List<String>> getFieldOrigins() {
+    @Override public List<List<String>> getFieldOrigins() {
       return fieldOrigins;
     }
 
-    public RelDataType getParameterRowType() {
+    @Override public RelDataType getParameterRowType() {
       return parameterRowType;
     }
 
@@ -605,7 +605,7 @@ public abstract class Prepare {
       return rowType;
     }
 
-    public abstract Type getElementType();
+    @Override public abstract Type getElementType();
 
     public RelNode getRootRel() {
       return rootRel;

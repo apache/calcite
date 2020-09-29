@@ -36,19 +36,19 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
   private RelDistributionTraitDef() {
   }
 
-  public Class<RelDistribution> getTraitClass() {
+  @Override public Class<RelDistribution> getTraitClass() {
     return RelDistribution.class;
   }
 
-  public String getSimpleName() {
+  @Override public String getSimpleName() {
     return "dist";
   }
 
-  public RelDistribution getDefault() {
+  @Override public RelDistribution getDefault() {
     return RelDistributions.ANY;
   }
 
-  public RelNode convert(RelOptPlanner planner, RelNode rel,
+  @Override public RelNode convert(RelOptPlanner planner, RelNode rel,
       RelDistribution toDistribution, boolean allowInfiniteCostConverters) {
     if (toDistribution == RelDistributions.ANY) {
       return rel;
@@ -66,7 +66,7 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     return newRel;
   }
 
-  public boolean canConvert(RelOptPlanner planner, RelDistribution fromTrait,
+  @Override public boolean canConvert(RelOptPlanner planner, RelDistribution fromTrait,
       RelDistribution toTrait) {
     return true;
   }

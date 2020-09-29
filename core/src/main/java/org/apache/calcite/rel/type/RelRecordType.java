@@ -84,7 +84,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     return kind;
   }
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("RecordType");
     switch (kind) {
     case PEEK_FIELDS:

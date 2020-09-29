@@ -1067,11 +1067,11 @@ public abstract class SqlImplementor {
 
     public List<SqlNode> fieldList() {
       return new AbstractList<SqlNode>() {
-        public SqlNode get(int index) {
+        @Override public SqlNode get(int index) {
           return field(index);
         }
 
-        public int size() {
+        @Override public int size() {
           return fieldCount;
         }
       };
@@ -1359,7 +1359,7 @@ public abstract class SqlImplementor {
       throw new UnsupportedOperationException();
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       return field.apply(ordinal);
     }
   }
@@ -1438,7 +1438,7 @@ public abstract class SqlImplementor {
       this.qualified = qualified;
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       for (Map.Entry<String, RelDataType> alias : aliases.entrySet()) {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
@@ -1469,7 +1469,7 @@ public abstract class SqlImplementor {
       this.rightContext = rightContext;
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       if (ordinal < leftContext.fieldCount) {
         return leftContext.field(ordinal);
       } else {

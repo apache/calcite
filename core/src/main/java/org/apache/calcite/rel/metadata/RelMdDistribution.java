@@ -60,7 +60,7 @@ public class RelMdDistribution
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.Distribution> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Distribution> getDef() {
     return BuiltInMetadata.Distribution.DEF;
   }
 

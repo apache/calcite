@@ -107,11 +107,11 @@ public class RexSubQuery extends RexCall {
         ImmutableList.of(), rel);
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitSubQuery(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitSubQuery(this, arg);
   }
 

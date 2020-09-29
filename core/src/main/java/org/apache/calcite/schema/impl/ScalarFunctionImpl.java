@@ -151,11 +151,11 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return new ScalarFunctionImpl(method, implementor);
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(method.getReturnType());
   }
 
-  public CallImplementor getImplementor() {
+  @Override public CallImplementor getImplementor() {
     return implementor;
   }
 

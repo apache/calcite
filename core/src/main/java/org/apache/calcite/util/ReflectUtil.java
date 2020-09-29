@@ -419,7 +419,7 @@ public abstract class ReflectUtil {
     return new ReflectiveVisitDispatcher<R, E>() {
       final Map<List<Object>, Method> map = new HashMap<>();
 
-      public Method lookupVisitMethod(
+      @Override public Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName) {
@@ -430,7 +430,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      public Method lookupVisitMethod(
+      @Override public Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -458,7 +458,7 @@ public abstract class ReflectUtil {
         return method;
       }
 
-      public boolean invokeVisitor(
+      @Override public boolean invokeVisitor(
           R visitor,
           E visitee,
           String visitMethodName) {
@@ -519,7 +519,7 @@ public abstract class ReflectUtil {
         createDispatcher(
             (Class<ReflectiveVisitor>) visitor.getClass(), arg0Clazz);
     return new MethodDispatcher<T>() {
-      public T invoke(Object... args) {
+      @Override public T invoke(Object... args) {
         Method method = lookupMethod(args[0]);
         try {
           final Object o = method.invoke(visitor, args);

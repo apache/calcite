@@ -103,7 +103,7 @@ public class ProjectTableScanRule
 
     final List<Integer> selectedColumns = new ArrayList<>();
     final RexVisitorImpl<Void> visitor = new RexVisitorImpl<Void>(true) {
-      public Void visitInputRef(RexInputRef inputRef) {
+      @Override public Void visitInputRef(RexInputRef inputRef) {
         if (!selectedColumns.contains(inputRef.getIndex())) {
           selectedColumns.add(inputRef.getIndex());
         }

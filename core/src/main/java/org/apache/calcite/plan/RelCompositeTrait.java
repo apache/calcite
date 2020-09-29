@@ -70,7 +70,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return def.canonize(compositeTrait);
   }
 
-  public RelTraitDef getTraitDef() {
+  @Override public RelTraitDef getTraitDef() {
     return traitDef;
   }
 
@@ -88,7 +88,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return Arrays.toString(traits);
   }
 
-  public boolean satisfies(RelTrait trait) {
+  @Override public boolean satisfies(RelTrait trait) {
     for (T t : traits) {
       if (t.satisfies(trait)) {
         return true;
@@ -97,7 +97,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return false;
   }
 
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
   }
 
   /** Returns an immutable list of the traits in this composite trait. */

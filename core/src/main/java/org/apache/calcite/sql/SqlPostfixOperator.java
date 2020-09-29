@@ -50,16 +50,16 @@ public class SqlPostfixOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.POSTFIX;
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{1} {0}";
   }
 
-  protected RelDataType adjustType(
+  @Override protected RelDataType adjustType(
       SqlValidator validator,
       SqlCall call,
       RelDataType type) {

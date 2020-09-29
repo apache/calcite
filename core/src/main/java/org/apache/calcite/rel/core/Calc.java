@@ -136,7 +136,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return RexOver.containsOver(program);
   }
 
-  public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
@@ -174,11 +174,11 @@ public abstract class Calc extends SingleRel implements Hintable {
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return program.explainCalc(super.explainTerms(pw));
   }
 
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     List<RexNode> oldExprs = program.getExprList();
     List<RexNode> exprs = shuttle.apply(oldExprs);
     List<RexLocalRef> oldProjects = program.getProjectList();

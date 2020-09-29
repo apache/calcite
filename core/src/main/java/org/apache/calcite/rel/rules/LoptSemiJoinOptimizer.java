@@ -803,7 +803,7 @@ public class LoptSemiJoinOptimizer {
   /** Compares factors. */
   private class FactorCostComparator
       implements Comparator<Integer> {
-    public int compare(Integer rel1Idx, Integer rel2Idx) {
+    @Override public int compare(Integer rel1Idx, Integer rel2Idx) {
       RelOptCost c1 =
           mq.getCumulativeCost(chosenSemiJoins[rel1Idx]);
       RelOptCost c2 =

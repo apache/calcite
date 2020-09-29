@@ -1378,17 +1378,17 @@ public class Util {
   public static Iterable<String> tokenize(final String s, final String delim) {
     return new Iterable<String>() {
       final StringTokenizer t = new StringTokenizer(s, delim);
-      public Iterator<String> iterator() {
+      @Override public Iterator<String> iterator() {
         return new Iterator<String>() {
-          public boolean hasNext() {
+          @Override public boolean hasNext() {
             return t.hasMoreTokens();
           }
 
-          public String next() {
+          @Override public String next() {
             return t.nextToken();
           }
 
-          public void remove() {
+          @Override public void remove() {
             throw new UnsupportedOperationException("remove");
           }
         };
@@ -1782,11 +1782,11 @@ public class Util {
     return new AbstractCollection<E>() {
       private int size = -1;
 
-      public Iterator<E> iterator() {
+      @Override public Iterator<E> iterator() {
         return new Filterator<>(collection.iterator(), includeFilter);
       }
 
-      public int size() {
+      @Override public int size() {
         if (size == -1) {
           // Compute size.  This is expensive, but the value
           // collection.size() is not correct since we're
@@ -1966,11 +1966,11 @@ public class Util {
     }
     final int size = (list.size() + n - k - 1) / n;
     return new AbstractList<E>() {
-      public E get(int index) {
+      @Override public E get(int index) {
         return list.get(index * n + k);
       }
 
-      public int size() {
+      @Override public int size() {
         return size;
       }
     };
@@ -2098,11 +2098,11 @@ public class Util {
 
   public static List<Integer> range(final int end) {
     return new AbstractList<Integer>() {
-      public int size() {
+      @Override public int size() {
         return end;
       }
 
-      public Integer get(int index) {
+      @Override public Integer get(int index) {
         return index;
       }
     };
@@ -2110,11 +2110,11 @@ public class Util {
 
   public static List<Integer> range(final int start, final int end) {
     return new AbstractList<Integer>() {
-      public int size() {
+      @Override public int size() {
         return end - start;
       }
 
-      public Integer get(int index) {
+      @Override public Integer get(int index) {
         return start + index;
       }
     };
@@ -2387,16 +2387,16 @@ public class Util {
         Collections2.transform(values, v -> Pair.of(function.apply(v), v));
     final Set<Map.Entry<K, V>> entrySet =
         new AbstractSet<Map.Entry<K, V>>() {
-          public Iterator<Map.Entry<K, V>> iterator() {
+          @Override public Iterator<Map.Entry<K, V>> iterator() {
             return entries.iterator();
           }
 
-          public int size() {
+          @Override public int size() {
             return entries.size();
           }
         };
     return new AbstractMap<K, V>() {
-      public Set<Entry<K, V>> entrySet() {
+      @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
     };
@@ -2728,11 +2728,11 @@ public class Util {
       this.list = list;
     }
 
-    public T get(int i) {
+    @Override public T get(int i) {
       return function.apply(list.get(i));
     }
 
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
 
@@ -2771,11 +2771,11 @@ public class Util {
       current = moveNext();
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return current != DUMMY;
     }
 
-    public T next() {
+    @Override public T next() {
       final T t = this.current;
       current = moveNext();
       return t;

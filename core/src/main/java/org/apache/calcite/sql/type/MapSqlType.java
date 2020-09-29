@@ -55,7 +55,7 @@ public class MapSqlType extends AbstractSqlType {
   }
 
   // implement RelDataTypeImpl
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("(")
         .append(
             withDetail
@@ -70,7 +70,7 @@ public class MapSqlType extends AbstractSqlType {
   }
 
   // implement RelDataType
-  public RelDataTypeFamily getFamily() {
+  @Override public RelDataTypeFamily getFamily() {
     return this;
   }
 }

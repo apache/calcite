@@ -59,7 +59,7 @@ public class RuleSets {
           && rules.equals(((ListRuleSet) obj).rules);
     }
 
-    public Iterator<RelOptRule> iterator() {
+    @Override public Iterator<RelOptRule> iterator() {
       return rules.iterator();
     }
   }

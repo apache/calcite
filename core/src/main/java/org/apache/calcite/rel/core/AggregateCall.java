@@ -291,7 +291,7 @@ public class AggregateCall {
         name);
   }
 
-  public String toString() {
+  @Override public String toString() {
     StringBuilder buf = new StringBuilder(aggFunction.toString());
     buf.append("(");
     if (approximate) {

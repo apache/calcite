@@ -43,7 +43,7 @@ class MutableNode {
   static final Ordering<MutableNode> ORDERING =
       Ordering.from(
           new Comparator<MutableNode>() {
-            public int compare(MutableNode o1, MutableNode o2) {
+            @Override public int compare(MutableNode o1, MutableNode o2) {
               int c = Ordering.<String>natural().lexicographical().compare(
                   o1.table.t.getQualifiedName(), o2.table.t.getQualifiedName());
               if (c == 0) {

@@ -63,7 +63,7 @@ public class TableScanNode implements Node {
     compiler.enumerable(rel, enumerable);
   }
 
-  public void run() {
+  @Override public void run() {
     // nothing to do
   }
 

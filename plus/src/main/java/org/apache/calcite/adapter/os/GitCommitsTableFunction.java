@@ -53,24 +53,24 @@ public class GitCommitsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<Object[]> scan(DataContext root) {
         final Enumerable<String> enumerable =
             Processes.processLines("git", "log", "--pretty=raw");
         return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
             return new Enumerator<Object[]>() {
               private Object[] objects;
               private final StringBuilder b = new StringBuilder();
 
-              public Object[] current() {
+              @Override public Object[] current() {
                 if (objects == null) {
                   throw new NoSuchElementException();
                 }
                 return objects;
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 if (!e.moveNext()) {
                   objects = null;
                   return false;
@@ -127,11 +127,11 @@ public class GitCommitsTableFunction {
                 }
               }
 
-              public void reset() {
+              @Override public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              public void close() {
+              @Override public void close() {
                 e.close();
               }
             };
@@ -139,7 +139,7 @@ public class GitCommitsTableFunction {
         };
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("commit", SqlTypeName.CHAR, 40)
             .add("tree", SqlTypeName.CHAR, 40)
@@ -153,19 +153,19 @@ public class GitCommitsTableFunction {
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(0)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }

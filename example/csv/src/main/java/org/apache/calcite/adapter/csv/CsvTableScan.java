@@ -98,7 +98,7 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             / ((double) table.getRowType().getFieldCount() + 2D));
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

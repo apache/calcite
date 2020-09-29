@@ -48,7 +48,7 @@ public class SqlNullTreatmentOperator extends SqlSpecialOperator {
     writer.keyword(getName());
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,

@@ -98,7 +98,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if bad things happen during the read
    */
-  public String[] readNext() throws IOException {
+  @Override public String[] readNext() throws IOException {
     String[] result = null;
     do {
       String nextLine = getNextLine();
@@ -136,7 +136,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if the close fails
    */
-  public void close() throws IOException {
+  @Override public void close() throws IOException {
   }
 
   /** Watches for content being appended to a CSV file. */

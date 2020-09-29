@@ -513,20 +513,20 @@ class DruidConnectionImpl implements DruidConnection {
       final ExecutorService service)
       throws IOException {
     return new AbstractEnumerable<Row>() {
-      public Enumerator<Row> enumerator() {
+      @Override public Enumerator<Row> enumerator() {
         final BlockingQueueEnumerator<Row> enumerator =
             new BlockingQueueEnumerator<>();
         final RunnableQueueSink sink = new RunnableQueueSink() {
-          public void send(Row row) throws InterruptedException {
+          @Override public void send(Row row) throws InterruptedException {
             enumerator.queue.put(row);
           }
 
-          public void end() {
+          @Override public void end() {
             enumerator.done.set(true);
           }
 
           @SuppressWarnings("deprecation")
-          public void setSourceEnumerable(Enumerable<Row> enumerable)
+          @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {
               send(row);
@@ -534,7 +534,7 @@ class DruidConnectionImpl implements DruidConnection {
             end();
           }
 
-          public void run() {
+          @Override public void run() {
             try {
               final Page page = new Page();
               final List<ColumnMetaData.Rep> fieldTypes =
@@ -667,14 +667,14 @@ class DruidConnectionImpl implements DruidConnection {
 
     E next;
 
-    public E current() {
+    @Override public E current() {
       if (next == null) {
         throw new NoSuchElementException();
       }
       return next;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       for (;;) {
         next = queue.poll();
         if (next != null) {
@@ -687,9 +687,9 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    public void reset() {}
+    @Override public void reset() {}
 
-    public void close() {
+    @Override public void close() {
       final Throwable e = throwableHolder.get();
       if (e != null) {
         throwableHolder.set(null);

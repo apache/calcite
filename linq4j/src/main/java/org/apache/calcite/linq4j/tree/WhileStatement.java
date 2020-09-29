@@ -40,7 +40,7 @@ public class WhileStatement extends Statement {
     return shuttle.visit(this, condition1, body1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

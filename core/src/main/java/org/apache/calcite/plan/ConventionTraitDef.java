@@ -70,19 +70,19 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelTraitDef
-  public Class<Convention> getTraitClass() {
+  @Override public Class<Convention> getTraitClass() {
     return Convention.class;
   }
 
-  public String getSimpleName() {
+  @Override public String getSimpleName() {
     return "convention";
   }
 
-  public Convention getDefault() {
+  @Override public Convention getDefault() {
     return Convention.NONE;
   }
 
-  public void registerConverterRule(
+  @Override public void registerConverterRule(
       RelOptPlanner planner,
       ConverterRule converterRule) {
     if (converterRule.isGuaranteed()) {
@@ -101,7 +101,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     }
   }
 
-  public void deregisterConverterRule(
+  @Override public void deregisterConverterRule(
       RelOptPlanner planner,
       ConverterRule converterRule) {
     if (converterRule.isGuaranteed()) {
@@ -122,7 +122,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   }
 
   // implement RelTraitDef
-  public RelNode convert(
+  @Override public RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       Convention toConvention,
@@ -191,7 +191,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     return null;
   }
 
-  public boolean canConvert(
+  @Override public boolean canConvert(
       RelOptPlanner planner,
       Convention fromConvention,
       Convention toConvention) {

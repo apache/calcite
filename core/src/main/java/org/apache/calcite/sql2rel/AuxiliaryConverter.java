@@ -47,7 +47,7 @@ public interface AuxiliaryConverter {
       this.f = f;
     }
 
-    public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
+    @Override public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
         RexNode e) {
       switch (f.getKind()) {
       case TUMBLE_START:

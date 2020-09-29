@@ -146,7 +146,7 @@ public class ReduceDecimalsRule
      * </ol>
      * </ol>
      */
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       RexNode savedResult = lookup(call);
       if (savedResult != null) {
         return savedResult;
@@ -721,7 +721,7 @@ public class ReduceDecimalsRule
     }
 
     // implement RexExpander
-    public RexNode expand(RexCall call) {
+    @Override public RexNode expand(RexCall call) {
       List<RexNode> operands = call.operands;
       assert call.isA(SqlKind.CAST);
       assert operands.size() == 1;
@@ -1010,7 +1010,7 @@ public class ReduceDecimalsRule
       super(rexBuilder);
     }
 
-    public RexNode expand(RexCall call) {
+    @Override public RexNode expand(RexCall call) {
       assert call.getOperator() == SqlStdOperatorTable.FLOOR;
       RexNode decValue = call.operands.get(0);
       int scale = decValue.getType().getScale();
@@ -1060,7 +1060,7 @@ public class ReduceDecimalsRule
       super(rexBuilder);
     }
 
-    public RexNode expand(RexCall call) {
+    @Override public RexNode expand(RexCall call) {
       assert call.getOperator() == SqlStdOperatorTable.CEIL;
       RexNode decValue = call.operands.get(0);
       int scale = decValue.getType().getScale();
@@ -1111,7 +1111,7 @@ public class ReduceDecimalsRule
       super(rexBuilder);
     }
 
-    public RexNode expand(RexCall call) {
+    @Override public RexNode expand(RexCall call) {
       RelDataType retType = call.getType();
       int argCount = call.operands.size();
       ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
@@ -1152,7 +1152,7 @@ public class ReduceDecimalsRule
       return RexUtil.requiresDecimalExpansion(call, false);
     }
 
-    public RexNode expand(RexCall call) {
+    @Override public RexNode expand(RexCall call) {
       ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
       for (RexNode operand : call.operands) {
         if (SqlTypeUtil.isNumeric(operand.getType())) {
@@ -1183,7 +1183,7 @@ public class ReduceDecimalsRule
       super(builder);
     }
 
-    public RelDataType getArgType(RexCall call, int ordinal) {
+    @Override public RelDataType getArgType(RexCall call, int ordinal) {
       RelDataType type = real8;
       if (call.operands.get(ordinal).getType().isNullable()) {
         type =

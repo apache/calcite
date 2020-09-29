@@ -38,15 +38,15 @@ class ParameterNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return null;
   }
 
-  public RelDataType validateImpl(RelDataType targetRowType) {
+  @Override public RelDataType validateImpl(RelDataType targetRowType) {
     return type;
   }
 
-  public RelDataType getRowType() {
+  @Override public RelDataType getRowType() {
     return type;
   }
 }

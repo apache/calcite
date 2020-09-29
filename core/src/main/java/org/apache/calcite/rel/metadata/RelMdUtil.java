@@ -811,7 +811,7 @@ public class RelMdUtil {
       this.rel = rel;
     }
 
-    public Double visitInputRef(RexInputRef var) {
+    @Override public Double visitInputRef(RexInputRef var) {
       int index = var.getIndex();
       ImmutableBitSet col = ImmutableBitSet.of(index);
       Double distinctRowCount =
@@ -823,11 +823,11 @@ public class RelMdUtil {
       }
     }
 
-    public Double visitLiteral(RexLiteral literal) {
+    @Override public Double visitLiteral(RexLiteral literal) {
       return numDistinctVals(1.0, mq.getRowCount(rel));
     }
 
-    public Double visitCall(RexCall call) {
+    @Override public Double visitCall(RexCall call) {
       Double distinctRowCount;
       Double rowCount = mq.getRowCount(rel);
       if (call.isA(SqlKind.MINUS_PREFIX)) {

@@ -188,43 +188,43 @@ public abstract class EnumerableAggregateBase extends Aggregate {
       this.typeFactory = typeFactory;
     }
 
-    public SqlAggFunction aggregation() {
+    @Override public SqlAggFunction aggregation() {
       return agg.call.getAggregation();
     }
 
-    public RelDataType returnRelType() {
+    @Override public RelDataType returnRelType() {
       return agg.call.type;
     }
 
-    public Type returnType() {
+    @Override public Type returnType() {
       return EnumUtils.javaClass(typeFactory, returnRelType());
     }
 
-    public List<? extends RelDataType> parameterRelTypes() {
+    @Override public List<? extends RelDataType> parameterRelTypes() {
       return EnumUtils.fieldRowTypes(getInput().getRowType(), null,
           agg.call.getArgList());
     }
 
-    public List<? extends Type> parameterTypes() {
+    @Override public List<? extends Type> parameterTypes() {
       return EnumUtils.fieldTypes(
           typeFactory,
           parameterRelTypes());
     }
 
-    public List<ImmutableBitSet> groupSets() {
+    @Override public List<ImmutableBitSet> groupSets() {
       return groupSets;
     }
 
-    public List<Integer> keyOrdinals() {
+    @Override public List<Integer> keyOrdinals() {
       return groupSet.asList();
     }
 
-    public List<? extends RelDataType> keyRelTypes() {
+    @Override public List<? extends RelDataType> keyRelTypes() {
       return EnumUtils.fieldRowTypes(getInput().getRowType(), null,
           groupSet.asList());
     }
 
-    public List<? extends Type> keyTypes() {
+    @Override public List<? extends Type> keyTypes() {
       return EnumUtils.fieldTypes(typeFactory, keyRelTypes());
     }
   }
@@ -253,7 +253,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
 
       AggAddContext addContext =
           new AggAddContextImpl(builder2, accumulator) {
-            public List<RexNode> rexArguments() {
+            @Override public List<RexNode> rexArguments() {
               List<RelDataTypeField> inputTypes =
                   inputPhysType.getRowType().getFieldList();
               List<RexNode> args = new ArrayList<>();
@@ -263,14 +263,14 @@ public abstract class EnumerableAggregateBase extends Aggregate {
               return args;
             }
 
-            public RexNode rexFilterArgument() {
+            @Override public RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,
                       inputPhysType.getRowType());
             }
 
-            public RexToLixTranslator rowTranslator() {
+            @Override public RexToLixTranslator rowTranslator() {
               return RexToLixTranslator.forAggregation(typeFactory,
                   currentBlock(),
                   new RexToLixTranslator.InputGetterImpl(

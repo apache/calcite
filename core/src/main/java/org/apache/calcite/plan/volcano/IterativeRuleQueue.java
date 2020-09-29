@@ -72,7 +72,7 @@ class IterativeRuleQueue extends RuleQueue {
   /**
    * Add a rule match.
    */
-  public void addMatch(VolcanoRuleMatch match) {
+  @Override public void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
 
     if (!matchList.names.add(matchName)) {

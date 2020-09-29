@@ -109,7 +109,7 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns the type of the rows returned by this relational expression.
    */
-  RelDataType getRowType();
+  @Override RelDataType getRowType();
 
   /**
    * Returns the type of the rows expected for an input. Defaults to
@@ -127,7 +127,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Array of this relational expression's inputs
    */
-  List<RelNode> getInputs();
+  @Override List<RelNode> getInputs();
 
   /**
    * Returns an estimate of the number of rows this relational expression will
@@ -259,7 +259,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @see #getRelDigest()
    */
-  default String getDigest() {
+  @Override default String getDigest() {
     return getRelDigest().toString();
   }
 
