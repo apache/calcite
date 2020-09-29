@@ -120,7 +120,7 @@ public abstract class MutableRel {
    * Implementation of MutableVisitor that dumps the details
    * of a MutableRel tree.
    */
-  private class MutableRelDumper extends MutableRelVisitor {
+  private static class MutableRelDumper extends MutableRelVisitor {
     private final StringBuilder buf = new StringBuilder();
     private int level;
 

@@ -1049,7 +1049,7 @@ public class RexProgramBuilder {
    * Shuttle that rewires {@link RexLocalRef} using a list of updated
    * references.
    */
-  private class UpdateRefShuttle extends RexShuttle {
+  private static class UpdateRefShuttle extends RexShuttle {
     private List<RexLocalRef> newRefs;
 
     private UpdateRefShuttle(List<RexLocalRef> newRefs) {
