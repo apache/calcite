@@ -2663,7 +2663,7 @@ public abstract class EnumerableDefaults {
 
         TreeMap<TKey, List<TSource>> map = new TreeMap<>(comparator);
         long size = 0;
-        long needed = fetch + offset;
+        long needed = fetch + (long) offset;
 
         // read the input into a tree map
         try (Enumerator<TSource> os = source.enumerator()) {
