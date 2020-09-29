@@ -45,7 +45,6 @@ import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -244,7 +243,7 @@ public class SplunkPushDownRule
     }
 
     // field renaming: to -> from
-    List<Pair<String, String>> renames = new LinkedList<>();
+    List<Pair<String, String>> renames = new ArrayList<>();
 
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;

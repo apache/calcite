@@ -19,11 +19,11 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -33,7 +33,7 @@ import java.util.function.Predicate;
  */
 class TopDownRuleQueue extends RuleQueue {
 
-  private final Map<RelNode, List<VolcanoRuleMatch>> matches = new HashMap<>();
+  private final Map<RelNode, Deque<VolcanoRuleMatch>> matches = new HashMap<>();
 
   private final Set<String> names = new HashSet<>();
 
@@ -43,25 +43,25 @@ class TopDownRuleQueue extends RuleQueue {
 
   @Override public void addMatch(VolcanoRuleMatch match) {
     RelNode rel = match.rel(0);
-    List<VolcanoRuleMatch> queue = matches.
-        computeIfAbsent(rel, id -> new LinkedList<>());
+    Deque<VolcanoRuleMatch> queue = matches.
+        computeIfAbsent(rel, id -> new ArrayDeque<>());
     addMatch(match, queue);
   }
 
-  private void addMatch(VolcanoRuleMatch match, List<VolcanoRuleMatch> queue) {
+  private void addMatch(VolcanoRuleMatch match, Deque<VolcanoRuleMatch> queue) {
     if (!names.add(match.toString())) {
       return;
     }
 
     if (!planner.isSubstituteRule(match)) {
-      queue.add(0, match);
+      queue.addFirst(match);
     } else {
-      queue.add(match);
+      queue.addLast(match);
     }
   }
 
   public VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
-    List<VolcanoRuleMatch> queue = matches.get(category.left);
+    Deque<VolcanoRuleMatch> queue = matches.get(category.left);
     if (queue == null) {
       return null;
     }

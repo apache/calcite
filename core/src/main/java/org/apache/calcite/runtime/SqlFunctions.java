@@ -2652,8 +2652,10 @@ public class SqlFunctions {
   }
 
   /** Support the MULTISET EXCEPT ALL function. */
+  @SuppressWarnings("JdkObsolete")
   public static <E> Collection<E> multisetExceptAll(Collection<E> c1,
       Collection<E> c2) {
+    // TOOD: use Multisets?
     final List<E> result = new LinkedList<>(c1);
     for (E e : c2) {
       result.remove(e);
@@ -2686,11 +2688,13 @@ public class SqlFunctions {
   }
 
   /** Support the SUBMULTISET OF function. */
+  @SuppressWarnings("JdkObsolete")
   public static boolean submultisetOf(Collection possibleSubMultiset,
       Collection multiset) {
     if (possibleSubMultiset.size() > multiset.size()) {
       return false;
     }
+    // TODO: use Multisets?
     Collection multisetLocal = new LinkedList(multiset);
     for (Object e : possibleSubMultiset) {
       if (!multisetLocal.remove(e)) {

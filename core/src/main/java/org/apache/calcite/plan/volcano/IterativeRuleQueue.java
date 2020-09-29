@@ -26,8 +26,8 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
@@ -172,14 +172,14 @@ class IterativeRuleQueue extends RuleQueue {
     /**
      * Rule match queue for SubstitutionRule.
      */
-    private final Queue<VolcanoRuleMatch> preQueue = new LinkedList<>();
+    private final Queue<VolcanoRuleMatch> preQueue = new ArrayDeque<>();
 
     /**
      * Current list of VolcanoRuleMatches for this phase. New rule-matches
      * are appended to the end of this queue.
      * The rules are not sorted in any way.
      */
-    private final Queue<VolcanoRuleMatch> queue = new LinkedList<>();
+    private final Queue<VolcanoRuleMatch> queue = new ArrayDeque<>();
 
     /**
      * A set of rule-match names contained in {@link #queue}. Allows fast

@@ -24,7 +24,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import java.time.Duration;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -42,7 +43,7 @@ public class KafkaMessageEnumerator<K, V> implements Enumerator<Object[]> {
   private final AtomicBoolean cancelFlag;
 
   //runtime
-  private final LinkedList<ConsumerRecord<K, V>> bufferedRecords = new LinkedList<>();
+  private final Deque<ConsumerRecord<K, V>> bufferedRecords = new ArrayDeque<>();
   private ConsumerRecord<K, V> curRecord;
 
   KafkaMessageEnumerator(final Consumer consumer,

@@ -76,7 +76,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -510,7 +509,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     boolean[] innerFlags = new boolean[numInputs];
     for (int i = 0; i < numInputs; i++) {
       // Adding empty join keys
-      joinPlans.put(i, new LinkedList<>());
+      joinPlans.put(i, Collections.emptyList());
       innerFlags[i] = true;
     }
     joinInternal(joinPlans, innerFlags);
