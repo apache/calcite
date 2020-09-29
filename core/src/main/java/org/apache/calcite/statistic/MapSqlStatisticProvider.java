@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMultimap;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -38,9 +37,9 @@ import java.util.stream.Collectors;
 public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   INSTANCE;
 
-  private final Map<String, Double> cardinalityMap;
+  private final ImmutableMap<String, Double> cardinalityMap;
 
-  private final ImmutableMultimap<String, List<String>> keyMap;
+  private final ImmutableMultimap<String, ImmutableList<String>> keyMap;
 
   MapSqlStatisticProvider() {
     final Initializer initializer = new Initializer()
@@ -143,7 +142,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   private static class Initializer {
     final ImmutableMap.Builder<String, Double> cardinalityMapBuilder =
         ImmutableMap.builder();
-    final ImmutableMultimap.Builder<String, List<String>> keyMapBuilder =
+    final ImmutableMultimap.Builder<String, ImmutableList<String>> keyMapBuilder =
         ImmutableMultimap.builder();
 
     Initializer put(String schema, String table, int count, Object... keys) {

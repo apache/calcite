@@ -66,6 +66,7 @@ public class NodeTypeHintPredicate implements HintPredicate {
     CALC(Calc.class);
 
     /** Relational expression clazz that the hint can apply to. */
+    @SuppressWarnings("ImmutableEnumChecker")
     private Class<?> relClazz;
 
     NodeType(Class<?> relClazz) {

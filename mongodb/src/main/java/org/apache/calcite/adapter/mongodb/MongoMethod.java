@@ -32,6 +32,7 @@ public enum MongoMethod {
   MONGO_QUERYABLE_AGGREGATE(MongoTable.MongoQueryable.class, "aggregate",
       List.class, List.class);
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   public static final ImmutableMap<Method, MongoMethod> MAP;

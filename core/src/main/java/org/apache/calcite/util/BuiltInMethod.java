@@ -618,8 +618,11 @@ public enum BuiltInMethod {
       long.class),
   BIG_DECIMAL_NEGATE(BigDecimal.class, "negate");
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Constructor constructor;
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Field field;
 
   public static final ImmutableMap<Method, BuiltInMethod> MAP;

@@ -1284,6 +1284,7 @@ public class SqlDialect {
      */
     UNKNOWN("Unknown", "`", NullCollation.HIGH);
 
+    @SuppressWarnings("ImmutableEnumChecker")
     private final Supplier<SqlDialect> dialect;
 
     DatabaseProduct(String databaseProductName, String quoteString,

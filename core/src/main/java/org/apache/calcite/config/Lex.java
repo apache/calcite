@@ -79,6 +79,7 @@ public enum Lex {
   public final Casing unquotedCasing;
   public final Casing quotedCasing;
   public final boolean caseSensitive;
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Set<CharLiteralStyle> charLiteralStyles;
 
   Lex(Quoting quoting,

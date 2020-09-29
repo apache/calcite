@@ -99,9 +99,11 @@ public enum Hook {
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   PLAN_BEFORE_IMPLEMENTATION;
 
+  @SuppressWarnings("ImmutableEnumChecker")
   private final List<Consumer<Object>> handlers =
       new CopyOnWriteArrayList<>();
 
+  @SuppressWarnings("ImmutableEnumChecker")
   private final ThreadLocal<List<Consumer<Object>>> threadHandlers =
       ThreadLocal.withInitial(ArrayList::new);
 

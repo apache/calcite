@@ -63,20 +63,25 @@ public enum Primitive {
   /** The default value of this primitive class. This is the value
    * taken by uninitialized fields, for instance; 0 for {@code int}, false for
    * {@code boolean}, etc. */
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Object defaultValue;
 
   /** The minimum value of this primitive class. */
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Object min;
 
   /** The largest value that is less than zero. Null if not applicable for this
    * type. */
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Object maxNegative;
 
   /** The smallest value that is greater than zero. Null if not applicable for
    * this type. */
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Object minPositive;
 
   /** The maximum value of this primitive class. */
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Object max;
 
   /** The size of a value of this type, in bits. Null if not applicable for this

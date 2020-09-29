@@ -165,6 +165,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   private final String camelName;
   private final Type type;
+  @SuppressWarnings("ImmutableEnumChecker")
   private final Object defaultValue;
   private final boolean required;
   private final Class valueClass;

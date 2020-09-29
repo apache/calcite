@@ -1118,6 +1118,7 @@ public class RexSimplify {
   enum SafeRexVisitor implements RexVisitor<Boolean> {
     INSTANCE;
 
+    @SuppressWarnings("ImmutableEnumChecker")
     private final Set<SqlKind> safeOps;
 
     SafeRexVisitor() {

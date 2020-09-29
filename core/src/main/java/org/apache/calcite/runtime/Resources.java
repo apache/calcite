@@ -1013,6 +1013,7 @@ public class Resources {
   enum BuiltinMethod {
     OBJECT_TO_STRING(Object.class, "toString");
 
+    @SuppressWarnings("ImmutableEnumChecker")
     public final Method method;
 
     BuiltinMethod(Class clazz, String methodName, Class... argumentTypes) {
