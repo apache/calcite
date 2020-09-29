@@ -52,14 +52,12 @@ public class ArrowTest {
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataType relDataType = tableMap.get("TEST").getRowType(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
 
-    Assertions.assertEquals(relDataType.getFieldNames().get(0), "one");
+    Assertions.assertEquals(relDataType.getFieldNames().get(0), "fieldOne");
     Assertions.assertEquals(relDataType.getFieldList().get(0).getType().toString(), "INTEGER");
-    Assertions.assertEquals(relDataType.getFieldNames().get(1), "two");
-    Assertions.assertEquals(relDataType.getFieldList().get(1).getType().toString(), "INTEGER");
-    Assertions.assertEquals(relDataType.getFieldNames().get(2), "three");
-    Assertions.assertEquals(relDataType.getFieldList().get(2).getType().toString(), "VARCHAR");
-    Assertions.assertEquals(relDataType.getFieldNames().get(3), "four");
-    Assertions.assertEquals(relDataType.getFieldList().get(3).getType().toString(), "REAL");
+    Assertions.assertEquals(relDataType.getFieldNames().get(1), "fieldTwo");
+    Assertions.assertEquals(relDataType.getFieldList().get(1).getType().toString(), "VARCHAR");
+    Assertions.assertEquals(relDataType.getFieldNames().get(2), "fieldThree");
+    Assertions.assertEquals(relDataType.getFieldList().get(2).getType().toString(), "REAL");
 
   }
 
