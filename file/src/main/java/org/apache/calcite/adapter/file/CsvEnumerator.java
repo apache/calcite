@@ -239,6 +239,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   abstract static class RowConverter<E> {
     abstract E convertRow(String[] rows);
 
+    @SuppressWarnings("JdkObsolete")
     protected Object convert(CsvFieldType fieldType, String string) {
       if (fieldType == null) {
         return string;

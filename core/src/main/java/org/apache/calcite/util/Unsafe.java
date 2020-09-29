@@ -47,6 +47,7 @@ public class Unsafe {
   }
 
   /** Clears the contents of a {@link StringWriter}. */
+  @SuppressWarnings("JdkObsolete")
   public static void clear(StringWriter sw) {
     // Included in this class because StringBuffer is banned.
     sw.getBuffer().setLength(0);
@@ -58,6 +59,7 @@ public class Unsafe {
    * Versions of {@link Matcher#appendReplacement(StringBuffer, String)}
    * and {@link Matcher#appendTail(StringBuffer)}
    * that use {@link StringBuilder} are not available until JDK 9. */
+  @SuppressWarnings("JdkObsolete")
   public static String regexpReplace(String s, Pattern pattern,
       String replacement, int pos, int occurrence) {
     Bug.upgrade("when we drop JDK 8, replace StringBuffer with StringBuilder");
