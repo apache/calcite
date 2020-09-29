@@ -25,6 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
@@ -37,6 +38,7 @@ plugins {
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
+    id("net.ltgt.errorprone") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -60,6 +62,7 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
+val enableErrorprone by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -507,6 +510,34 @@ allprojects {
             signaturesFiles = files("$rootDir/src/main/config/forbidden-apis/signatures.txt")
         }
 
+        if (enableErrorprone) {
+            apply(plugin = "net.ltgt.errorprone")
+            dependencies {
+                "errorprone"("com.google.errorprone:error_prone_core:${"errorprone".v}")
+                "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
+            }
+            tasks.withType<JavaCompile>().configureEach {
+                options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000", "-Xmaxwarns", "10000"))
+                options.errorprone {
+                    disableWarningsInGeneratedCode.set(true)
+                    errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
+                    disable(
+                        "EqualsGetClass",
+                        "OperatorPrecedence",
+                        "MutableConstantField",
+                        "ReferenceEquality",
+                        "TypeParameterUnusedInFormals"
+                    )
+                    // Analyze issues, and enable the check
+                    disable(
+                        "BigDecimalEquals",
+                        "MissingOverride",
+                        "StringSplitter"
+                    )
+                }
+            }
+        }
+
         tasks {
             configureEach<Jar> {
                 manifest {
@@ -535,7 +566,11 @@ allprojects {
 
             configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
-                options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Werror"))
+                options.compilerArgs.add("-Xlint:deprecation")
+                if (!enableErrorprone) {
+                    // TODO: error prone warnings/errors are not fixed yet, so avoid failing the build
+                    options.compilerArgs.add("-Werror")
+                }
             }
             configureEach<Test> {
                 outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
