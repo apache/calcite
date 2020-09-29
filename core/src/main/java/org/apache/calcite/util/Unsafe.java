@@ -42,6 +42,7 @@ public class Unsafe {
   }
 
   /** Calls {@link Object#wait()}. */
+  @SuppressWarnings("WaitNotInLoop")
   public static void wait(Object o) throws InterruptedException {
     o.wait();
   }
