@@ -42,7 +42,7 @@ public enum DruidType {
   }
 
   /** Returns a DruidType matching the given String type from a Druid metric. */
-  protected static DruidType getTypeFromMetric(String type) {
+  static DruidType getTypeFromMetric(String type) {
     assert type != null;
     if (type.equals("hyperUnique")) {
       return HYPER_UNIQUE;
