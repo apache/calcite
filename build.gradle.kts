@@ -522,6 +522,7 @@ allprojects {
                     disableWarningsInGeneratedCode.set(true)
                     errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
                     disable(
+                        "ComplexBooleanConstant",
                         "EqualsGetClass",
                         "OperatorPrecedence",
                         "MutableConstantField",
