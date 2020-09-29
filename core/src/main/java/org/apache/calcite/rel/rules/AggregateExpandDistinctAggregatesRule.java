@@ -86,7 +86,7 @@ public final class AggregateExpandDistinctAggregatesRule
     implements TransformationRule {
 
   /** Creates an AggregateExpandDistinctAggregatesRule. */
-  protected AggregateExpandDistinctAggregatesRule(Config config) {
+  AggregateExpandDistinctAggregatesRule(Config config) {
     super(config);
   }
 
