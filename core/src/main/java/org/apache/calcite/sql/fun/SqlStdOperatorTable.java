@@ -1438,7 +1438,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <ol>
    * <li>name of window function ({@link org.apache.calcite.sql.SqlCall})</li>
    * <li>window name ({@link org.apache.calcite.sql.SqlLiteral}) or window
-   * in-line specification (@link SqlWindowOperator})</li>
+   * in-line specification ({@code org.apache.calcite.sql.SqlWindow.SqlWindowOperator})</li>
    * </ol>
    */
   public static final SqlBinaryOperator OVER = new SqlOverOperator();
