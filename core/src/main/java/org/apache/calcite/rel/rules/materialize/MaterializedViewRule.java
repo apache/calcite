@@ -75,7 +75,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -322,7 +321,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           // the mapping to the query mapping
           final EquivalenceClasses currQEC = EquivalenceClasses.copy(qEC);
           if (matchModality == MatchModality.QUERY_PARTIAL) {
-            for (Entry<RexTableInputRef, RexTableInputRef> e
+            for (Map.Entry<RexTableInputRef, RexTableInputRef> e
                 : compensationEquiColumns.entries()) {
               // Copy origin
               RelTableRef queryTableRef = queryToViewTableMapping.inverse().get(
@@ -580,7 +579,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     List<BiMap<RelTableRef, RelTableRef>> result =
         ImmutableList.of(
             HashBiMap.create());
-    for (Entry<RelTableRef, Collection<RelTableRef>> e : multiMapTables.asMap().entrySet()) {
+    for (Map.Entry<RelTableRef, Collection<RelTableRef>> e : multiMapTables.asMap().entrySet()) {
       if (e.getValue().size() == 1) {
         // Only one reference, we can just add it to every map
         RelTableRef target = e.getValue().iterator().next();
@@ -616,7 +615,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       return false;
     }
 
-    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
+    for (Map.Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
       Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)
           && !Project.class.isAssignableFrom(c)
@@ -1312,7 +1311,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     protected static EquivalenceClasses copy(EquivalenceClasses ec) {
       final EquivalenceClasses newEc = new EquivalenceClasses();
-      for (Entry<RexTableInputRef, Set<RexTableInputRef>> e
+      for (Map.Entry<RexTableInputRef, Set<RexTableInputRef>> e
           : ec.nodeToEquivalenceClass.entrySet()) {
         newEc.nodeToEquivalenceClass.put(
             e.getKey(), Sets.newLinkedHashSet(e.getValue()));

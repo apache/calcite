@@ -68,7 +68,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
@@ -2806,7 +2805,7 @@ public class SqlFunctions {
       case MAP:
         @SuppressWarnings("unchecked") Map<Comparable, Comparable> map =
             (Map<Comparable, Comparable>) inputObject;
-        Enumerator<Entry<Comparable, Comparable>> enumerator =
+        Enumerator<Map.Entry<Comparable, Comparable>> enumerator =
             Linq4j.enumerator(map.entrySet());
 
         Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
