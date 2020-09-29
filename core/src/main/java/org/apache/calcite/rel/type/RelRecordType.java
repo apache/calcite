@@ -96,6 +96,8 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     case PEEK_FIELDS_NO_EXPAND:
       sb.append(":peek_no_expand");
       break;
+    default:
+      break;
     }
     sb.append("(");
     for (Ord<RelDataTypeField> ord : Ord.zip(fieldList)) {

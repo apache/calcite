@@ -76,6 +76,8 @@ public class MongoSchemaFactory implements SchemaFactory {
       return MongoCredential.createGSSAPICredential(username);
     case MONGODB_X509:
       return MongoCredential.createMongoX509Credential(username);
+    default:
+      break;
     }
     throw new IllegalArgumentException("Unsupported authentication mechanism "
         + authMechanismName);

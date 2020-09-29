@@ -80,6 +80,9 @@ public class SetOpNode implements Node {
       for (Row r : leftRows) {
         sink.send(r);
       }
+      break;
+    default:
+      break;
     }
   }
 }

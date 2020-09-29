@@ -438,6 +438,9 @@ public class SubstitutionVisitor {
         if (!RexLiteral.booleanValue(disjunction)) {
           return false;
         }
+        break;
+      default:
+        break;
       }
     }
     for (RexNode disjunction : notDisjunctions) {
@@ -446,6 +449,9 @@ public class SubstitutionVisitor {
         if (RexLiteral.booleanValue(disjunction)) {
           return false;
         }
+        break;
+      default:
+        break;
       }
     }
     // If one of the not-disjunctions is a disjunction that is wholly

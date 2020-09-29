@@ -506,6 +506,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return SqlValidatorUtil.deriveNaturalJoinColumnList(
             catalogReader.nameMatcher(), t0, t1);
       }
+      break;
+    default:
+      break;
     }
     return null;
   }
@@ -1043,6 +1046,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case EXTEND:
       // Until we have a dedicated namespace for EXTEND
       deriveType(scope, node);
+      break;
+    default:
+      break;
     }
     if (node == top) {
       validateModality(node);
@@ -1150,7 +1156,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         case TABLE_REF:
         case EXTEND:
           return getNamespace(nested, scope);
+        default:
+          break;
         }
+        break;
+      default:
         break;
       }
     }
@@ -1397,6 +1407,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       rewriteMerge(call);
       break;
     }
+    default:
+      break;
     }
     return node;
   }
@@ -2144,6 +2156,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           newNode = SqlValidatorUtil.addAlias(node, alias);
         }
         break;
+      default:
+        break;
       }
     }
 
@@ -2248,6 +2262,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case FULL:
         forceLeftNullable = true;
         forceRightNullable = true;
+        break;
+      default:
         break;
       }
       final SqlNode newLeft =
@@ -2967,6 +2983,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case MULTISET_VALUE_CONSTRUCTOR:
       validateFeature(RESOURCE.sQLFeature_S271(), node.getParserPosition());
       break;
+    default:
+      break;
     }
   }
 
@@ -3666,6 +3684,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       switch (modality) {
       case STREAM:
         throw newValidationError(query, Static.RESOURCE.cannotStreamValues());
+      default:
+        break;
       }
     } else {
       assert query.isA(SqlKind.SET_QUERY);
@@ -3760,6 +3780,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             return false;
           }
         }
+        break;
+      default:
+        break;
       }
     }
 
@@ -3776,6 +3799,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             return false;
           }
         }
+        break;
+      default:
+        break;
       }
     }
     return true;
@@ -3792,6 +3818,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case DESCENDING:
       return isSortCompatible(scope, ((SqlCall) node).getOperandList().get(0),
           true);
+    default:
+      break;
     }
     final SqlMonotonicity monotonicity = scope.getMonotonicity(node);
     switch (monotonicity) {
@@ -3904,6 +3932,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case SEQUENCE:
       case TEMPORARY_SEQUENCE:
         return;
+      default:
+        break;
       }
     }
     throw newValidationError(id, RESOURCE.notASequence(id.toString()));
@@ -4007,6 +4037,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateOrderItem(select,
           ((SqlCall) orderItem).operand(0));
       return;
+    default:
+      break;
     }
 
     final SqlValidatorScope orderScope = getOrderScope(select);
@@ -4576,6 +4608,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(node,
               RESOURCE.insertIntoAlwaysGenerated(field.getName()));
         }
+        break;
+      default:
+        break;
       }
     }
   }
@@ -4591,6 +4626,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
       return true;
+    default:
+      break;
     }
     return false;
   }
@@ -4601,6 +4638,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCall row = (SqlCall) operand;
       return row.getOperandList().size() >= column
           && row.getOperandList().get(column).getKind() == SqlKind.DEFAULT;
+    default:
+      break;
     }
     return false;
   }
@@ -6025,6 +6064,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case NEXT_VALUE:
       case WITH:
         return call;
+      default:
+        break;
       }
       // Only visits arguments which are expressions. We don't want to
       // qualify non-expressions such as 'x' in 'empno * 5 AS x'.
@@ -6094,6 +6135,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             int ordinal = intValue - 1;
             return nthSelectItem(ordinal, literal.getParserPosition());
           }
+          break;
+        default:
           break;
         }
       }
@@ -6261,6 +6304,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           }
         }
         break;
+      default:
+        break;
       }
       if (isOrdinalLiteral) {
         switch (literal.getTypeName()) {
@@ -6277,6 +6322,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             int ordinal = intValue - 1;
             return SqlUtil.stripAs(select.getSelectList().get(ordinal));
           }
+          break;
+        default:
           break;
         }
       }
@@ -6460,6 +6507,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           return name.equals(alpha) ? call
               : SqlStdOperatorTable.LAST.createCall(SqlParserPos.ZERO, operands);
         }
+        break;
+      default:
+        break;
       }
       return super.visit(call);
     }

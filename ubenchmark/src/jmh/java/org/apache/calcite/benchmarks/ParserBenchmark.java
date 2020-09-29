@@ -82,6 +82,8 @@ public class ParserBenchmark {
           sb.append('\'').append(rnd.nextLong()).append(rnd.nextLong())
               .append('\'');
           break;
+        default:
+          break;
         }
       }
       if (comments && sb.length() < length) {

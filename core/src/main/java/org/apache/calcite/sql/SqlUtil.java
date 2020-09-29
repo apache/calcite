@@ -301,6 +301,9 @@ public abstract class SqlUtil {
       case FUNCTION_STAR: // E.g. "COUNT(*)"
       case FUNCTION: // E.g. "RANK()"
         // fall through - dealt with below
+        break;
+      default:
+        break;
       }
     }
     final SqlWriter.Frame frame =
@@ -313,6 +316,9 @@ public abstract class SqlUtil {
       switch (call.getOperator().getSyntax()) {
       case FUNCTION_STAR:
         writer.sep("*");
+        break;
+      default:
+        break;
       }
     }
     for (SqlNode operand : call.getOperandList()) {
@@ -1123,6 +1129,9 @@ public abstract class SqlUtil {
         // fall through
       }
       // fall through
+      break;
+    default:
+      break;
     }
     if (op instanceof SqlBinaryOperator && operands.size() > 2) {
       return createLeftCall(op, pos, operands);

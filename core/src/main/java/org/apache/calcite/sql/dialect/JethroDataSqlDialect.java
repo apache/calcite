@@ -90,6 +90,8 @@ public class JethroDataSqlDialect extends SqlDialect {
     case CASE:
     case CAST:
       return true;
+    default:
+      break;
     }
     final Set<JethroSupportedFunction> functions =
         info.supportedFunctions.get(operator.getName());

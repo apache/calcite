@@ -72,6 +72,8 @@ public class MongoSort extends Sort implements MongoRel {
             break;
           case LAST:
             break;
+          default:
+            break;
           }
         }
       }

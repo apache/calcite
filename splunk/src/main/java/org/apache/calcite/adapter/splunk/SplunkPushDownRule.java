@@ -325,6 +325,8 @@ public class SplunkPushDownRule
     case LIKE:
       like = true;
       break;
+    default:
+      break;
     }
 
     for (int i = 0; i < operands.size(); i++) {

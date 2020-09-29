@@ -351,6 +351,9 @@ public class SqlShell {
           case Types.FLOAT:
           case Types.DOUBLE:
             rights[i] = true;
+            break;
+          default:
+            break;
           }
         }
         while (r.next()) {

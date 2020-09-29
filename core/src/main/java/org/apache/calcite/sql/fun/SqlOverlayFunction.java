@@ -74,6 +74,8 @@ public class SqlOverlayFunction extends SqlFunction {
       return "{0}({1} PLACING {2} FROM {3})";
     case 4:
       return "{0}({1} PLACING {2} FROM {3} FOR {4})";
+    default:
+      break;
     }
     assert false;
     return null;

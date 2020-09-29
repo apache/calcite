@@ -992,6 +992,8 @@ public class Lattice {
             return resolveQualifiedColumn((String) table, (String) column);
           }
           break;
+        default:
+          break;
         }
       }
       throw new RuntimeException(

@@ -1548,6 +1548,8 @@ public abstract class SqlTypeUtil {
       case INTEGER:
       case BOOLEAN:
         return true;
+      default:
+        break;
       }
     }
     return false;

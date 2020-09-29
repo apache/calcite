@@ -387,6 +387,9 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       switch (strategies.get(j)) {
       case VIRTUAL:
         ++n;
+        break;
+      default:
+        break;
       }
     }
     return i - n;

@@ -402,6 +402,9 @@ public class RelJson {
         switch (node.getKind()) {
         case CAST:
           map.put("type", toJson(node.getType()));
+          break;
+        default:
+          break;
         }
         if (call.getOperator() instanceof SqlFunction) {
           if (((SqlFunction) call.getOperator()).getFunctionType().isUserDefined()) {

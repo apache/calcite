@@ -55,6 +55,8 @@ class JoinNamespace extends AbstractNamespace {
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
+    default:
+      break;
     }
     return typeFactory.createJoinType(leftType, rightType);
   }

@@ -538,6 +538,8 @@ public class RelMdCollation
         }
       }
       return leftCollations;
+    default:
+      break;
     }
     return null;
   }

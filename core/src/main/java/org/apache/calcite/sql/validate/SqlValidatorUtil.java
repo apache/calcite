@@ -841,6 +841,9 @@ public class SqlValidatorUtil {
           && ((SqlNodeList) expandedGroupExpr).size() == 0) {
         return ImmutableBitSet.of();
       }
+      break;
+    default:
+      break;
     }
 
     final int ref = lookupGroupExpr(groupAnalyzer, expandedGroupExpr);
@@ -903,6 +906,8 @@ public class SqlValidatorUtil {
     case TUMBLE:
     case SESSION:
       groupAnalyzer.extraExprs.add(expr);
+      break;
+    default:
       break;
     }
     groupAnalyzer.groupExprs.add(expr);

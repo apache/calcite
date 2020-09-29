@@ -242,6 +242,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
       return null; // all were null
     case 1:
       return inputColumnSizeList.get(0); // all but one were null
+    default:
+      break;
     }
     final ImmutableNullableList.Builder<Double> sizes =
         ImmutableNullableList.builder();

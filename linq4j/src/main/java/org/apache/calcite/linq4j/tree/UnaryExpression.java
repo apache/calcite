@@ -49,6 +49,8 @@ public class UnaryExpression extends Expression {
         expression.accept(writer, nodeType.rprec, rprec);
       }
       return;
+    default:
+      break;
     }
     if (nodeType.postfix) {
       expression.accept(writer, lprec, nodeType.rprec);

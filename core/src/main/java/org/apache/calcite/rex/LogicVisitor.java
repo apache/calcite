@@ -99,6 +99,8 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
     case CASE:
       logic = Logic.TRUE_FALSE_UNKNOWN;
       break;
+    default:
+      break;
     }
     switch (logic) {
     case TRUE:
@@ -108,6 +110,9 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
       default:
         logic = Logic.TRUE_FALSE_UNKNOWN;
       }
+      break;
+    default:
+      break;
     }
     for (RexNode operand : call.operands) {
       operand.accept(this, logic);

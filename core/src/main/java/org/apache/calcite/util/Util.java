@@ -797,6 +797,8 @@ public class Util {
       return "";
     case 0:
       return list.get(0).toString();
+    default:
+      break;
     }
     final StringBuilder buf = new StringBuilder();
     for (int i = 0;; i++) {
@@ -1618,6 +1620,8 @@ public class Util {
       if (isEnd) {
         time += tz.getDSTSavings();
       }
+      break;
+    default:
       break;
     }
     if (verbose || (time != 7200000)) {

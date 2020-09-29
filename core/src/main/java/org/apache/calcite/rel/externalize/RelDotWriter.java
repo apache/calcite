@@ -124,6 +124,9 @@ public class RelDotWriter extends RelWriterImpl {
           .append(" cumulative cost = ")
           .append(mq.getCumulativeCost(rel))
           .append(" ");
+      break;
+    default:
+      break;
     }
     switch (detailLevel) {
     case NON_COST_ATTRIBUTES:
@@ -133,6 +136,8 @@ public class RelDotWriter extends RelWriterImpl {
         // it at the end.
         sb.append("id = ").append(rel.getId());
       }
+      break;
+    default:
       break;
     }
     labels.add(sb.toString().trim());

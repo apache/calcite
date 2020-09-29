@@ -194,13 +194,16 @@ class PredicateAnalyzer {
         case IS_NOT_NULL:
         case IS_NULL:
           return true;
+        default:
+          return false;
         }
       case PREFIX: // NOT()
         switch (call.getKind()) {
         case NOT:
           return true;
+        default:
+          return false;
         }
-      // fall through
       case FUNCTION_ID:
       case FUNCTION_STAR:
       default:

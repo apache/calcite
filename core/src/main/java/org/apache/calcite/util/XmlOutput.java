@@ -521,6 +521,8 @@ public class XmlOutput {
       case '\n':
       case '\r':
         return true;
+      default:
+        break;
       }
     }
     return false;

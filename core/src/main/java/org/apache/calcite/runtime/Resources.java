@@ -388,6 +388,8 @@ public class Resources {
                 + types + " and method parameters " + parameterTypeList);
           }
           break;
+        default:
+          break;
         }
       }
     }

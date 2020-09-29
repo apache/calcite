@@ -422,6 +422,8 @@ abstract class DruidJsonFilter implements DruidJson {
       }
       return new JsonCompositeFilter(Type.valueOf(rexNode.getKind().name()),
           jsonFilters);
+    default:
+      break;
     }
 
     final DruidJsonFilter simpleLeafFilter = toSimpleDruidFilter(rexNode, rowType, druidQuery);

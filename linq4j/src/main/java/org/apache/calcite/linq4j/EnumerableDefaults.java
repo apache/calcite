@@ -1527,6 +1527,8 @@ public abstract class EnumerableDefaults {
                     continue;
                   case SEMI:
                     return true; // current row matches
+                  default:
+                    break;
                   }
                   // INNER and LEFT just return result
                   innerValue = innerEnumerator.current();
@@ -1539,6 +1541,8 @@ public abstract class EnumerableDefaults {
                 case LEFT:
                 case ANTI:
                   return true;
+                default:
+                  break;
                 }
                 // For INNER and LEFT need to find another outer row
                 continue;
@@ -1550,6 +1554,9 @@ public abstract class EnumerableDefaults {
                 }
                 state = 0;
                 // continue loop, move outer
+                break;
+              default:
+                break;
               }
             }
           }
@@ -2057,6 +2064,8 @@ public abstract class EnumerableDefaults {
                     case INNER:
                     case LEFT: // INNER and LEFT just return result
                       return true;
+                    default:
+                      break;
                     }
                   } // else (predicate returned false) continue: move inner
                 } else { // innerEnumerator is over
@@ -2068,6 +2077,9 @@ public abstract class EnumerableDefaults {
                     return true;
                   }
                 }
+                break;
+              default:
+                break;
               }
             }
           }

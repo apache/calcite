@@ -166,6 +166,9 @@ public class PlannerImpl implements Planner, ViewExpander {
     switch (state) {
     case STATE_0_CLOSED:
       reset();
+      break;
+    default:
+      break;
     }
     ensure(State.STATE_1_RESET);
 
@@ -200,6 +203,9 @@ public class PlannerImpl implements Planner, ViewExpander {
     case STATE_0_CLOSED:
     case STATE_1_RESET:
       ready();
+      break;
+    default:
+      break;
     }
     ensure(State.STATE_2_READY);
     SqlParser parser = SqlParser.create(reader, parserConfig);

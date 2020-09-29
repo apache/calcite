@@ -308,6 +308,8 @@ public class EnumerableTableScan
       case ARRAY:
       case MULTISET:
         return true;
+      default:
+        break;
       }
     }
     return false;

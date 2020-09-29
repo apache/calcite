@@ -156,6 +156,9 @@ public class RexImplicationChecker {
           return true;
         }
       }
+      break;
+    default:
+      break;
     }
     return false;
   }
@@ -191,6 +194,9 @@ public class RexImplicationChecker {
       if (strong.isNull(first)) {
         return true;
       }
+      break;
+    default:
+      break;
     }
 
     final InputUsageFinder firstUsageFinder = new InputUsageFinder();

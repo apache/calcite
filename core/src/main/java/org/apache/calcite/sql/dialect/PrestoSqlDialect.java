@@ -86,6 +86,8 @@ public class PrestoSqlDialect extends SqlDialect {
     case MAX:
     case ROLLUP:
       return true;
+    default:
+      break;
     }
     return false;
   }

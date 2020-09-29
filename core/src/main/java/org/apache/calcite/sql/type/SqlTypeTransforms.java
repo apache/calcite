@@ -107,6 +107,8 @@ public abstract class SqlTypeTransforms {
           case VARCHAR:
           case VARBINARY:
             return typeToTransform;
+          default:
+            break;
           }
 
           SqlTypeName retTypeName = toVar(typeToTransform);

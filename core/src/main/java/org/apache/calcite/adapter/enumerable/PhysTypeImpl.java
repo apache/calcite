@@ -154,6 +154,8 @@ public class PhysTypeImpl implements PhysType {
     case 1:
       targetFormat = JavaRowFormat.SCALAR;
       break;
+    default:
+      break;
     }
     final PhysType targetPhysType =
         project(fields, targetFormat);
@@ -202,6 +204,8 @@ public class PhysTypeImpl implements PhysType {
       break;
     case 1:
       targetFormat = JavaRowFormat.SCALAR;
+      break;
+    default:
       break;
     }
     final PhysType targetPhysType =
@@ -312,6 +316,9 @@ public class PhysTypeImpl implements PhysType {
       case OBJECT:
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
+        break;
+      default:
+        break;
       }
       final boolean nullsFirst =
           collation.nullDirection
@@ -415,6 +422,9 @@ public class PhysTypeImpl implements PhysType {
       case OBJECT:
         arg0 = EnumUtils.convert(arg0, Comparable.class);
         arg1 = EnumUtils.convert(arg1, Comparable.class);
+        break;
+      default:
+        break;
       }
       final boolean nullsFirst =
           fieldCollation.nullDirection

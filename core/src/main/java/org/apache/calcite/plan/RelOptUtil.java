@@ -640,6 +640,8 @@ public abstract class RelOptUtil {
     switch (subQueryType) {
     case SCALAR:
       return new Exists(seekRel, false, true);
+    default:
+      break;
     }
 
     switch (logic) {
@@ -648,6 +650,9 @@ public abstract class RelOptUtil {
       if (notIn && !containsNullableFields(seekRel)) {
         logic = Logic.TRUE_FALSE;
       }
+      break;
+    default:
+      break;
     }
     RelNode ret = seekRel;
     final RelOptCluster cluster = seekRel.getCluster();
@@ -2567,6 +2572,9 @@ public abstract class RelOptUtil {
             continue;
           }
         }
+        break;
+      default:
+        break;
       }
       filters.add(node);
     }

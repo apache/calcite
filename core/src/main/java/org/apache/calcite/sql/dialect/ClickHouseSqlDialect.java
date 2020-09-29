@@ -93,6 +93,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("DateTime", typeName);
+      default:
+        break;
       }
     }
 

@@ -87,6 +87,9 @@ public class Handler {
         switch (field.getType().getSqlTypeName()) {
         case ARRAY:
           System.out.println(field);
+          break;
+        default:
+          break;
         }
       }
       for (Ast.Stmt stmt : foreachNested.nestedStmtList) {
@@ -298,6 +301,9 @@ public class Handler {
         switch (pair.right) {
         case DESC:
           node = builder.desc(node);
+          break;
+        default:
+          break;
         }
         nodes.add(node);
       }
@@ -306,6 +312,9 @@ public class Handler {
       switch (pair.right) {
       case DESC:
         node = builder.desc(node);
+        break;
+      default:
+        break;
       }
       nodes.add(node);
     }

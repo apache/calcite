@@ -549,6 +549,8 @@ public class SqlSimpleParser {
               foundInSubQuery = (Query) token;
             }
             break;
+          default:
+            break;
           }
         }
       } else {
@@ -609,6 +611,8 @@ public class SqlSimpleParser {
           purgeWhere();
           purgeGroupByHaving();
           break;
+        default:
+          break;
         }
       }
 
@@ -621,6 +625,8 @@ public class SqlSimpleParser {
               (query == foundInSubQuery) ? hintToken : null);
           break;
         }
+        default:
+          break;
         }
       }
       return this;
@@ -654,6 +660,9 @@ public class SqlSimpleParser {
           if (hintToken.equals(token.s)) {
             found = true;
           }
+          break;
+        default:
+          break;
         }
       }
       if (found) {
@@ -737,6 +746,9 @@ public class SqlSimpleParser {
           if (hintToken.equals(token.s)) {
             found = true;
           }
+          break;
+        default:
+          break;
         }
       }
 
@@ -822,6 +834,8 @@ public class SqlSimpleParser {
           if (((Query) token).contains(hintToken)) {
             return true;
           }
+          break;
+        default:
           break;
         }
       }

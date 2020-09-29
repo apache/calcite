@@ -321,6 +321,8 @@ public class ModelHandler {
                 ((JsonCustomSchema) jsonSchema).tables);
           }
           break;
+        default:
+          break;
         }
       }
     }

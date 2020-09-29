@@ -416,6 +416,9 @@ public class AggregateJoinTransposeRule
           populateEquivalence(equivalence, ref1.getIndex(), ref0.getIndex());
         }
       }
+      break;
+    default:
+      break;
     }
   }
 

@@ -287,6 +287,8 @@ public class RexUtil {
       final RexNode arg0 = call.getOperands().get(0);
       return SqlTypeUtil.equalSansNullability(typeFactory, arg0.getType(),
           call.getType());
+    default:
+      break;
     }
     return false;
   }
@@ -436,6 +438,9 @@ public class RexUtil {
             constant = clazz.cast(castRight);
           }
         }
+        break;
+      default:
+        break;
       }
       map.put(left, constant);
     } else {
@@ -2013,6 +2018,8 @@ public class RexUtil {
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = op(call.getKind().negateNullSafe());
       return rexBuilder.makeCall(op, call.getOperands());
+    default:
+      break;
     }
     return null;
   }
@@ -2027,6 +2034,8 @@ public class RexUtil {
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = op(call.getKind().reverse());
       return rexBuilder.makeCall(op, Lists.reverse(call.getOperands()));
+    default:
+      break;
     }
     return null;
   }
@@ -2084,10 +2093,16 @@ public class RexUtil {
                           .equals(call2.getOperands().get(1))) {
                   return false;
                 }
+                break;
+              default:
+                break;
               }
               return true;
             });
       }
+      break;
+    default:
+      break;
     }
     return composeConjunction(rexBuilder,
         Iterables.concat(ImmutableList.of(e),
@@ -2835,6 +2850,9 @@ public class RexUtil {
         for (RexNode operand : call.operands) {
           this.unknownAsMap.put(operand, unknownAs);
         }
+        break;
+      default:
+        break;
       }
       RexNode node = super.visitCall(call);
       RexNode simplifiedNode = simplify.simplify(node, unknownAs);

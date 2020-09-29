@@ -1017,6 +1017,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       for (RexNode operand : ((RexCall) e).getOperands()) {
         findCorrelationEquivalent(correlation, operand);
       }
+      break;
+    default:
+      break;
     }
   }
 

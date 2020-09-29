@@ -738,6 +738,8 @@ public class EnumUtils {
       return JoinType.SEMI;
     case ANTI:
       return JoinType.ANTI;
+    default:
+      break;
     }
     throw new IllegalStateException(
         "Unable to convert " + joinRelType + " to Linq4j JoinType");
