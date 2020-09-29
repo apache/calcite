@@ -119,7 +119,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1174,7 +1173,7 @@ public class RelBuilder {
     }
 
     // Gets inputs.
-    final List<RelNode> inputs = new LinkedList<>();
+    final List<RelNode> inputs = new ArrayList<>();
     for (int i = 0; i < inputCount; i++) {
       inputs.add(0, build());
     }
@@ -1959,7 +1958,7 @@ public class RelBuilder {
   }
 
   private RelBuilder setOp(boolean all, SqlKind kind, int n) {
-    List<RelNode> inputs = new LinkedList<>();
+    List<RelNode> inputs = new ArrayList<>();
     for (int i = 0; i < n; i++) {
       inputs.add(0, build());
     }

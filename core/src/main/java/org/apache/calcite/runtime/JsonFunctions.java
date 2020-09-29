@@ -439,7 +439,7 @@ public class JsonFunctions {
       return JSON_PATH_JSON_PROVIDER.getObjectMapper().writer(JSON_PRETTY_PRINTER)
           .writeValueAsString(input.obj);
     } catch (Exception e) {
-      throw RESOURCE.exceptionWhileSerializingToJson(Objects.toString(input.obj)).ex();
+      throw RESOURCE.exceptionWhileSerializingToJson(Objects.toString(input.obj)).ex(e);
     }
   }
 
@@ -476,7 +476,7 @@ public class JsonFunctions {
       }
       return result;
     } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonType(val.toString()).ex();
+      throw RESOURCE.invalidInputForJsonType(val.toString()).ex(ex);
     }
   }
 
@@ -495,14 +495,17 @@ public class JsonFunctions {
       }
       return result;
     } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonDepth(o.toString()).ex();
+      throw RESOURCE.invalidInputForJsonDepth(o.toString()).ex(ex);
     }
   }
 
+  @SuppressWarnings("JdkObsolete")
   private static Integer calculateDepth(Object o) {
     if (isScalarObject(o)) {
       return 1;
     }
+    // Note: even even though LinkedList implements Queue, it supports null values
+    //
     Queue<Object> q = new LinkedList<>();
     int depth = 0;
     q.add(o);
@@ -566,7 +569,7 @@ public class JsonFunctions {
       }
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonLength(
-          context.toString()).ex();
+          context.toString()).ex(ex);
     }
     return result;
   }
@@ -606,7 +609,7 @@ public class JsonFunctions {
       }
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonKeys(
-          context.toString()).ex();
+          context.toString()).ex(ex);
     }
     return jsonize(list);
   }
@@ -632,7 +635,7 @@ public class JsonFunctions {
       return ctx.jsonString();
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonRemove(
-          input.toString(), Arrays.toString(pathSpecs)).ex();
+          input.toString(), Arrays.toString(pathSpecs)).ex(ex);
     }
   }
 
@@ -645,7 +648,7 @@ public class JsonFunctions {
       return JSON_PATH_JSON_PROVIDER.getObjectMapper()
           .writeValueAsBytes(input.obj).length;
     } catch (Exception e) {
-      throw RESOURCE.invalidInputForJsonStorageSize(Objects.toString(input.obj)).ex();
+      throw RESOURCE.invalidInputForJsonStorageSize(Objects.toString(input.obj)).ex(e);
     }
   }
 

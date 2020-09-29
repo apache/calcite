@@ -53,6 +53,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +61,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -881,7 +881,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
     Queue<DefaultEdge> queue =
-        new LinkedList<>(graph.getInwardEdges(vertex));
+        new ArrayDeque<>(graph.getInwardEdges(vertex));
     while (!queue.isEmpty()) {
       DefaultEdge edge = queue.remove();
       HepRelVertex source = (HepRelVertex) edge.source;
