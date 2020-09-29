@@ -207,6 +207,7 @@ class FileRowConverter {
 
   /** Parses an an HTML table cell. */
   private class CellReader {
+    @SuppressWarnings("unused")
     private String type;
     private String selector;
     private Integer selectedElement;

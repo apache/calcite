@@ -140,6 +140,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private final Map<RelNode, RelNode> oldToNewRelMap = new HashMap<>();
   private RelNode currentRel;
   private int iRestructureInput;
+  @SuppressWarnings("unused")
   private RelDataType flattenedRootType;
   boolean restructured;
   private final RelOptTable.ToRelContext toRelContext;

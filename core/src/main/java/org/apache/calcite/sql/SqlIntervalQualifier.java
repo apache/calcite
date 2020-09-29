@@ -360,7 +360,7 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   private boolean isLeadFieldInRange(RelDataTypeSystem typeSystem,
-      BigDecimal value, TimeUnit unit) {
+      BigDecimal value, @SuppressWarnings("unused") TimeUnit unit) {
     // we should never get handed a negative field value
     assert value.compareTo(ZERO) >= 0;
 

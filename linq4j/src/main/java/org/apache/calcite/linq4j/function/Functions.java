@@ -199,14 +199,6 @@ public abstract class Functions {
   }
 
   /**
-   * Converts a 1-parameter function to a predicate.
-   */
-  private static <T> Predicate1<T> toPredicate(
-      final Function1<T, Boolean> function) {
-    return function::apply;
-  }
-
-  /**
    * Returns the appropriate interface for a lambda function with
    * 1 argument and the given return type.
    *

@@ -90,6 +90,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   }
 
   /** Connection that looks up responses from a static map. */
+  @SuppressWarnings("unused")
   private static class MockSplunkConnection implements SplunkConnection {
     public Enumerator<Object> getSearchResultEnumerator(String search,
         Map<String, String> otherArgs, List<String> fieldList) {
@@ -103,7 +104,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   }
 
   /** Connection that records requests and responses. */
+  @SuppressWarnings("unused")
   private static class WrappingSplunkConnection implements SplunkConnection {
+    @SuppressWarnings("unused")
     private final SplunkConnection connection;
 
     WrappingSplunkConnection(SplunkConnection connection) {

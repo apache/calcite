@@ -48,6 +48,7 @@ public class RexProgramBuilder {
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
   private final List<String> projectNameList = new ArrayList<>();
+  @SuppressWarnings("unused")
   private final RexSimplify simplify;
   private RexLocalRef conditionRef = null;
   private boolean validating;

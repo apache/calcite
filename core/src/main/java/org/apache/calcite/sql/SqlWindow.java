@@ -526,6 +526,7 @@ public class SqlWindow extends SqlCall {
       SqlValidatorScope scope) {
     SqlValidatorScope operandScope = scope; // REVIEW
 
+    @SuppressWarnings("unused")
     SqlIdentifier declName = this.declName;
     SqlIdentifier refName = this.refName;
     SqlNodeList partitionList = this.partitionList;

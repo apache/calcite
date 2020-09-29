@@ -34,6 +34,7 @@ public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
   private Iterator results;
 
   private E current;
+  @SuppressWarnings("unused")
   private ClientCache clientCache;
 
   protected GeodeSimpleEnumerator(ClientCache clientCache, String regionName) {

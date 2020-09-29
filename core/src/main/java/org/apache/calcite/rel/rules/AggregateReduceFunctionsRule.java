@@ -361,7 +361,7 @@ public class AggregateReduceFunctionsRule
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      List<RexNode> inputExprs) {
+      @SuppressWarnings("unused") List<RexNode> inputExprs) {
     final int nGroups = oldAggRel.getGroupCount();
     final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
     final int iAvgInput = oldCall.getArgList().get(0);

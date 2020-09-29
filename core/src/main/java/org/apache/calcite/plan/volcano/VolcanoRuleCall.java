@@ -144,7 +144,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             entry.getKey(), entry.getValue());
       }
       // The subset is not used, but we need it, just for debugging
-      //noinspection unused
+      @SuppressWarnings("unused")
       RelSubset subset = volcanoPlanner.ensureRegistered(rel, rels[0]);
 
       if (volcanoPlanner.getListener() != null) {

@@ -84,6 +84,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private State state;
 
   // set in STATE_1_RESET
+  @SuppressWarnings("unused")
   private boolean open;
 
   // set in STATE_2_READY

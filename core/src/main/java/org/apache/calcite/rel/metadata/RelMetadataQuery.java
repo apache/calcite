@@ -110,7 +110,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   /** Creates and initializes the instance that will serve as a prototype for
    * all other instances. */
-  private RelMetadataQuery(boolean dummy) {
+  private RelMetadataQuery(@SuppressWarnings("unused") boolean dummy) {
     super(null);
     this.collationHandler = initialHandler(BuiltInMetadata.Collation.Handler.class);
     this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOrigin.Handler.class);

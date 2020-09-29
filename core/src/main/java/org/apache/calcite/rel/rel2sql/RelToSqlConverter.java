@@ -1027,6 +1027,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** Stack frame. */
   private static class Frame {
     private final RelNode parent;
+    @SuppressWarnings("unused")
     private final int ordinalInParent;
     private final RelNode r;
     private final boolean anon;

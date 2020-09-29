@@ -50,8 +50,10 @@ public class SqlShell {
   static final String MODEL = model();
 
   private final List<String> args;
+  @SuppressWarnings("unused")
   private final InputStreamReader in;
   private final PrintWriter out;
+  @SuppressWarnings("unused")
   private final PrintWriter err;
 
   SqlShell(InputStreamReader in, PrintWriter out,

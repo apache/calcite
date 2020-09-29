@@ -85,7 +85,7 @@ public class VmstatTableFunction {
                     return values;
                   }
 
-                  private Object field(String field, String value) {
+                  private Object field(@SuppressWarnings("unused") String field, String value) {
                     if (value.isEmpty()) {
                       return 0;
                     }

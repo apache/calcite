@@ -40,6 +40,7 @@ import java.util.Objects;
 class MutableArrayTable extends AbstractModifiableTable
     implements Wrapper {
   final List rows = new ArrayList();
+  @SuppressWarnings("unused")
   private final RelProtoDataType protoStoredRowType;
   private final RelProtoDataType protoRowType;
   private final InitializerExpressionFactory initializerExpressionFactory;

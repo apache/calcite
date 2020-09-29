@@ -434,6 +434,7 @@ class ColumnLoader<T> {
     }
 
     /** Two's complement absolute on int value. */
+    @SuppressWarnings("unused")
     private static int abs2(int v) {
       // -128 becomes +127
       return v < 0 ? ~v : v;

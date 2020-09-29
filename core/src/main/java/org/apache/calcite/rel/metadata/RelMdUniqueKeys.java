@@ -37,7 +37,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMultimap;
@@ -98,7 +97,6 @@ public class RelMdUniqueKeys
   public Set<ImmutableBitSet> getUniqueKeys(Calc rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     RexProgram program = rel.getProgram();
-    Permutation permutation = program.getPermutation();
     return getProjectUniqueKeys(rel, mq, ignoreNulls,
         Util.transform(program.getProjectList(), program::expandLocalRef));
   }
@@ -148,7 +146,6 @@ public class RelMdUniqueKeys
     // Now add to the projUniqueKeySet the child keys that are fully
     // projected.
     for (ImmutableBitSet colMask : childUniqueKeySet) {
-      ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
       if (!inColumnsUsed.contains(colMask)) {
         // colMask contains a column that is not projected as RexInput => the key is not unique
         continue;

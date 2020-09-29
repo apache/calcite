@@ -95,6 +95,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @SuppressWarnings("UnnecessaryUnboxing")
 @Deterministic
 public class SqlFunctions {
+  @SuppressWarnings("unused")
   private static final DecimalFormat DOUBLE_FORMAT =
       NumberUtil.decimalFormat("0.0E0");
 
@@ -120,6 +121,7 @@ public class SqlFunctions {
   private static final String[] POSIX_CHARACTER_CLASSES = new String[] { "Lower", "Upper", "ASCII",
       "Alpha", "XDigit", "Digit", "Alnum", "Punct", "Graph", "Print", "Blank", "Cntrl", "Space" };
 
+  @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
       lists -> {
         final List<Enumerator<Object>> enumerators = new ArrayList<>();

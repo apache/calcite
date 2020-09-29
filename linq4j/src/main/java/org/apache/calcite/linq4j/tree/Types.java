@@ -345,7 +345,6 @@ public abstract class Types {
       }
     }
     if (constructors.length == 0 && argumentTypes.length == 0) {
-      Constructor[] constructors1 = clazz.getConstructors();
       try {
         return clazz.getConstructor();
       } catch (NoSuchMethodException e) {

@@ -65,15 +65,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
-import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -125,8 +122,6 @@ import static org.apache.calcite.rex.RexUtil.removeAll;
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
-
-  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.of(
@@ -299,7 +294,7 @@ public class SubstitutionVisitor {
       return z;
     }
 
-    if (isEquivalent(rexBuilder, condition2, target2)) {
+    if (isEquivalent(condition2, target2)) {
       return rexBuilder.makeLiteral(true);
     }
 
@@ -309,7 +304,7 @@ public class SubstitutionVisitor {
           ImmutableList.of(condition2, target2));
       RexNode r = canonizeNode(rexBuilder,
           simplify.simplifyUnknownAsFalse(x2));
-      if (!r.isAlwaysFalse() && isEquivalent(rexBuilder, condition2, r)) {
+      if (!r.isAlwaysFalse() && isEquivalent(condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
         for (RexNode e : RelOptUtil.conjunctions(target2)) {
           removeAll(conjs, e);
@@ -399,7 +394,7 @@ public class SubstitutionVisitor {
     return null;
   }
 
-  private static boolean isEquivalent(RexBuilder rexBuilder, RexNode condition, RexNode target) {
+  private static boolean isEquivalent(RexNode condition, RexNode target) {
     // Example:
     //  e: x = 1 AND y = 2 AND z = 3 AND NOT (x = 1 AND y = 2)
     //  disjunctions: {x = 1, y = 2, z = 3}

@@ -482,6 +482,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
+  @SuppressWarnings("unused")
   private void expectObjectField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);

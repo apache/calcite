@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlNode;
 class CollectScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
+  @SuppressWarnings("unused")
   private final SqlValidatorScope usingScope;
   private final SqlCall child;
 

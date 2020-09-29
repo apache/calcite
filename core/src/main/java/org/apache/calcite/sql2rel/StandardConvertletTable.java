@@ -606,6 +606,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return convertFunction(cx, (SqlFunction) call.getOperator(), call);
   }
 
+  @SuppressWarnings("unused")
   private RexNode mod(RexBuilder rexBuilder, RelDataType resType, RexNode res,
       BigDecimal val) {
     if (val.equals(BigDecimal.ONE)) {

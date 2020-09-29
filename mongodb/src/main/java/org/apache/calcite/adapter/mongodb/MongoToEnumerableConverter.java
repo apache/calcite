@@ -81,23 +81,6 @@ public class MongoToEnumerableConverter
     final MongoRel.Implementor mongoImplementor =
         new MongoRel.Implementor(getCluster().getRexBuilder());
     mongoImplementor.visitChild(0, getInput());
-    int aggCount = 0;
-    int findCount = 0;
-    String project = null;
-    String filter = null;
-    for (Pair<String, String> op : mongoImplementor.list) {
-      if (op.left == null) {
-        ++aggCount;
-      }
-      if (op.right.startsWith("{$match:")) {
-        filter = op.left;
-        ++findCount;
-      }
-      if (op.right.startsWith("{$project:")) {
-        project = op.left;
-        ++findCount;
-      }
-    }
     final RelDataType rowType = getRowType();
     final PhysType physType =
         PhysTypeImpl.of(

@@ -364,14 +364,13 @@ public class GeodeRules {
 
     @Override public void onMatch(RelOptRuleCall call) {
       LogicalFilter filter = call.rel(0);
-      GeodeTableScan scan = call.rel(1);
       if (filter.getTraitSet().contains(Convention.NONE)) {
-        final RelNode converted = convert(filter, scan);
+        final RelNode converted = convert(filter);
         call.transformTo(converted);
       }
     }
 
-    private RelNode convert(LogicalFilter filter, GeodeTableScan scan) {
+    private RelNode convert(LogicalFilter filter) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(GeodeRel.CONVENTION);
       return new GeodeFilter(
           filter.getCluster(),

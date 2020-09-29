@@ -852,6 +852,7 @@ public abstract class EnumerableDefaults {
    * @param <TResult> result type */
   private static class SortedAggregateEnumerator<TSource, TKey, TAccumulate, TResult>
       implements Enumerator<TResult> {
+    @SuppressWarnings("unused")
     private final Enumerable<TSource> enumerable;
     private final Function1<TSource, TKey> keySelector;
     private final Function0<TAccumulate> accumulatorInitializer;
@@ -1007,6 +1008,7 @@ public abstract class EnumerableDefaults {
     return new LookupResultEnumerable<>(map, resultSelector);
   }
 
+  @SuppressWarnings("unused")
   private static <TSource, TKey, TResult> Enumerable<TResult> groupBy_(
       final Set<TKey> map, Enumerable<TSource> enumerable,
       Function1<TSource, TKey> keySelector,
@@ -3015,8 +3017,7 @@ public abstract class EnumerableDefaults {
             return resultEnumerator.current();
           }
 
-          public boolean moveNext() {
-            boolean incremented = false;
+          @Override public boolean moveNext() {
             for (;;) {
               if (resultEnumerator.moveNext()) {
                 return true;

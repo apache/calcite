@@ -199,20 +199,20 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return containsNull(values) ? N
           : number(values.get(0)).divide(number(values.get(1)));
     case CAST:
-      return cast(call, values);
+      return cast(values);
     case COALESCE:
-      return coalesce(call, values);
+      return coalesce(values);
     case CEIL:
     case FLOOR:
       return ceil(call, values);
     case EXTRACT:
-      return extract(call, values);
+      return extract(values);
     default:
       throw unbound(call);
     }
   }
 
-  private Comparable extract(RexCall call, List<Comparable> values) {
+  private Comparable extract(List<Comparable> values) {
     final Comparable v = values.get(1);
     if (v == N) {
       return N;
@@ -229,7 +229,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return DateTimeUtils.unixDateExtract(timeUnitRange, v2);
   }
 
-  private Comparable coalesce(RexCall call, List<Comparable> values) {
+  private Comparable coalesce(List<Comparable> values) {
     for (Comparable value : values) {
       if (value != N) {
         return value;
@@ -275,7 +275,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private Comparable cast(RexCall call, List<Comparable> values) {
+  private Comparable cast(List<Comparable> values) {
     if (values.get(0) == N) {
       return N;
     }

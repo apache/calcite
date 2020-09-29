@@ -40,9 +40,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -62,8 +59,6 @@ import java.util.stream.Collectors;
  * Table based on an Elasticsearch index.
  */
 public class ElasticsearchTable extends AbstractQueryableTable implements TranslatableTable {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchTable.class);
 
   /**
    * Used for constructing (possibly nested) Elastic aggregation nodes.

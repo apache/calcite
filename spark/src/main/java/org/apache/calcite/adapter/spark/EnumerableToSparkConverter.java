@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.spark;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
@@ -65,8 +64,10 @@ public class EnumerableToSparkConverter
     // Generate:
     //   Enumerable source = ...;
     //   return SparkRuntime.createRdd(sparkContext, source);
+    if (true) {
+      throw new RuntimeException("EnumerableToSparkConverter is not implemented");
+    }
     final BlockBuilder list = new BlockBuilder();
-    final EnumerableRel child = (EnumerableRel) getInput();
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(), getRowType(),

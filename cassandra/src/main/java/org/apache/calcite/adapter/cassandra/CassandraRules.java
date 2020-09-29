@@ -86,13 +86,11 @@ public class CassandraRules {
   /** Translator from {@link RexNode} to strings in Cassandra's expression
    * language. */
   static class RexToCassandraTranslator extends RexVisitorImpl<String> {
-    private final JavaTypeFactory typeFactory;
     private final List<String> inFields;
 
-    protected RexToCassandraTranslator(JavaTypeFactory typeFactory,
+    protected RexToCassandraTranslator(
         List<String> inFields) {
       super(true);
-      this.typeFactory = typeFactory;
       this.inFields = inFields;
     }
 
@@ -121,11 +119,6 @@ public class CassandraRules {
     protected CassandraFilterRule(Config config) {
       super(config);
     }
-
-    private static final Predicate<LogicalFilter> PREDICATE =
-        // TODO: Check for an equality predicate on the partition key
-        // Right now this just checks if we have a single top-level AND
-        filter -> RelOptUtil.disjunctions(filter.getCondition()).size() == 1;
 
     @Override public boolean matches(RelOptRuleCall call) {
       // Get the condition from the filter operation

@@ -138,6 +138,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   }
 
   /** Not used. */
+  @SuppressWarnings("unused")
   private class FooCompiler implements ScalarCompiler {
     public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
       final RexNode node = nodes.get(0);

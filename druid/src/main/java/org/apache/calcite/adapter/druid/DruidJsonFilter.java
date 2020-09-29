@@ -217,8 +217,9 @@ abstract class DruidJsonFilter implements DruidJson {
    * equivalent
    */
   @Nullable
-  private static String toDruidLiteral(RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
+  private static String toDruidLiteral(RexNode rexNode,
+      @SuppressWarnings("unused") RelDataType rowType,
+      @SuppressWarnings("unused") DruidQuery druidQuery) {
     final String val;
     final RexLiteral rhsLiteral = (RexLiteral) rexNode;
     if (SqlTypeName.NUMERIC_TYPES.contains(rhsLiteral.getTypeName())) {

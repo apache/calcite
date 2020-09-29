@@ -120,6 +120,7 @@ class PredicateAnalyzer {
   /**
    * Converts expressions of the form NOT(LIKE(...)) into NOT_LIKE(...)
    */
+  @SuppressWarnings("unused")
   private static class NotLikeConverter extends RexShuttle {
     final RexBuilder rexBuilder;
 
@@ -849,6 +850,7 @@ class PredicateAnalyzer {
    * SQL cast. For example, {@code cast(col as INTEGER)}.
    */
   static final class CastExpression implements TerminalExpression {
+    @SuppressWarnings("unused")
     private final RelDataType type;
     private final TerminalExpression argument;
 

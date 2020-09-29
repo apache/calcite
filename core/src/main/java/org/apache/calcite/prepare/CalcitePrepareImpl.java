@@ -819,7 +819,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return type.getSqlTypeName().getJdbcOrdinal();
   }
 
-  private static String getClassName(RelDataType type) {
+  private static String getClassName(@SuppressWarnings("unused") RelDataType type) {
     return Object.class.getName(); // CALCITE-2613
   }
 
@@ -940,6 +940,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private final RelOptCluster cluster;
     private final Map<String, Object> internalParameters =
         new LinkedHashMap<>();
+    @SuppressWarnings("unused")
     private int expansionDepth;
     private SqlValidator sqlValidator;
 

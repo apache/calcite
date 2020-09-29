@@ -145,11 +145,7 @@ public class FileReader implements Iterable<Elements> {
     return this.headings;
   }
 
-  private String tableKey() {
-    return "Table: {url: " + this.source + ", selector: " + this.selector + "}";
-  }
-
-  public FileReaderIterator iterator() {
+  @Override public FileReaderIterator iterator() {
     if (this.tableElement == null) {
       try {
         getTable();
