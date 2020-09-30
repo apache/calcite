@@ -134,7 +134,7 @@ public enum Hook {
 
   // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #add(Consumer)}. */
-  @SuppressWarnings("Guava")
+  @SuppressWarnings({"Guava", "ReturnValueIgnored"})
   @Deprecated // to be removed before 2.0
   public <T, R> Closeable add(final Function<T, R> handler) {
     return add((Consumer<T>) handler::apply);

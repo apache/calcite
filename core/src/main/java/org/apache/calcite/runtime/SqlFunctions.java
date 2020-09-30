@@ -2429,7 +2429,7 @@ public class SqlFunctions {
   public static int currentTime(DataContext root) {
     int time = (int) (currentTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
-      time += DateTimeUtils.MILLIS_PER_DAY;
+      time = (int) (time + DateTimeUtils.MILLIS_PER_DAY);
     }
     return time;
   }

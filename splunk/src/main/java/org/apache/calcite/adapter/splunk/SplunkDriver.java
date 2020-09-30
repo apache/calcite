@@ -94,7 +94,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   private static class MockSplunkConnection implements SplunkConnection {
     @Override public Enumerator<Object> getSearchResultEnumerator(String search,
         Map<String, String> otherArgs, List<String> fieldList) {
-      throw null;
+      throw new NullPointerException();
     }
 
     @Override public void getSearchResults(String search, Map<String, String> otherArgs,

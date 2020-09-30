@@ -2778,9 +2778,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           + "\n";
     }
 
+    @SuppressWarnings("UndefinedEquals")
     @Override public boolean equals(Object obj) {
       return obj == this
           || obj instanceof CorelMap
+          // TODO: Multimap does not have well-defined equals behavior
           && mapRefRelToCorRef.equals(((CorelMap) obj).mapRefRelToCorRef)
           && mapCorToCorRel.equals(((CorelMap) obj).mapCorToCorRel)
           && mapFieldAccessToCorRef.equals(

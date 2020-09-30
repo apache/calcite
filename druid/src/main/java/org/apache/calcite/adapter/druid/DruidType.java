@@ -59,7 +59,7 @@ public enum DruidType {
   }
 
   /** Returns a DruidType matching the String from a meta data query. */
-  protected static DruidType getTypeFromMetaData(String type) {
+  static DruidType getTypeFromMetaData(String type) {
     assert type != null;
     switch (type) {
     case "LONG":

@@ -40,7 +40,7 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
     this.lattice = lattice;
-    cache = CacheBuilder.<Lattice.Column>newBuilder().build(
+    cache = CacheBuilder.newBuilder().build(
         CacheLoader.from(key -> provider.cardinality(ImmutableList.of(key))));
   }
 

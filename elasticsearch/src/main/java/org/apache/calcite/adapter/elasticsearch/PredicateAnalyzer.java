@@ -263,6 +263,7 @@ class PredicateAnalyzer {
       Preconditions.checkArgument(query instanceof LiteralExpression,
           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
+      @SuppressWarnings("ModifiedButNotUsed")
       Map<String, String> fieldMap = new LinkedHashMap<>();
       for (Expression expr : fields) {
         if (expr instanceof NamedFieldExpression) {

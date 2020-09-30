@@ -486,7 +486,11 @@ public class RelMdPredicates
   }
 
   // CHECKSTYLE: IGNORE 1
-  /** @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.Predicates#getPredicates()}
+   * statistic.
+   * @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
   public RelOptPredicateList getPredicates(RelSubset r,
       RelMetadataQuery mq) {
     if (!Bug.CALCITE_1048_FIXED) {

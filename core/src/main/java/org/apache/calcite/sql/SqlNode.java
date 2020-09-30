@@ -70,12 +70,13 @@ public abstract class SqlNode implements Cloneable {
   /** @deprecated Please use {@link #clone(SqlNode)}; this method brings
    * along too much baggage from early versions of Java */
   @Deprecated
-  @SuppressWarnings("MethodDoesntCallSuperMethod")
+  @SuppressWarnings({"MethodDoesntCallSuperMethod", "AmbiguousMethodReference"})
   @Override public Object clone() {
     return clone(getParserPosition());
   }
 
   /** Creates a copy of a SqlNode. */
+  @SuppressWarnings("AmbiguousMethodReference")
   public static <E extends SqlNode> E clone(E e) {
     //noinspection unchecked
     return (E) e.clone(e.pos);

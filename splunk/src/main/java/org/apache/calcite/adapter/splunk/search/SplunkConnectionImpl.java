@@ -86,6 +86,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
+  @SuppressWarnings("CatchAndPrintStackTrace")
   private void connect() {
     BufferedReader rd = null;
 
