@@ -188,7 +188,8 @@ final class ElasticsearchTransport {
     try {
       final String json = mapper().writeValueAsString(payload);
       request.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
-      rawHttp().apply(request);
+      @SuppressWarnings("unused")
+      Response response = rawHttp().apply(request);
     } catch (IOException | UncheckedIOException e) {
       LOGGER.warn("Failed to close scroll(s): {}", scrollIds, e);
     }

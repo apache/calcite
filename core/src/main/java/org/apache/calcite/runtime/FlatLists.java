@@ -1289,6 +1289,7 @@ public class FlatLists {
    *
    * @param <T> element type
    */
+  @SuppressWarnings("ComparableType")
   public interface ComparableList<T> extends List<T>, Comparable<List> {
   }
 

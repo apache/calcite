@@ -122,6 +122,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     };
   }
 
+  @SuppressWarnings("CatchAndPrintStackTrace")
   private void start() {
     // We rely on the nodes being ordered leaves first.
     for (Map.Entry<RelNode, NodeInfo> entry : nodes.entrySet()) {

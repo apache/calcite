@@ -98,6 +98,7 @@ public class SqlShell {
   }
 
   /** Main entry point. */
+  @SuppressWarnings("CatchAndPrintStackTrace")
   public static void main(String[] args) {
     try (PrintWriter err =
              new PrintWriter(

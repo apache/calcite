@@ -331,7 +331,7 @@ abstract class DruidJsonFilter implements DruidJson {
       return null;
     }
     final boolean isNumeric = lhs.getType().getFamily() == SqlTypeFamily.NUMERIC
-        || lhs.getType().getFamily() == SqlTypeFamily.NUMERIC;
+        || rhs.getType().getFamily() == SqlTypeFamily.NUMERIC;
     final Pair<String, ExtractionFunction> druidColumn = DruidQuery
         .toDruidColumn(refNode, rowType, query);
     final String columnName = druidColumn.left;

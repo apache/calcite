@@ -215,6 +215,7 @@ public class GeodeUtils {
     return values;
   }
 
+  @SuppressWarnings("CatchAndPrintStackTrace")
   private static Object handleJavaObjectEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 

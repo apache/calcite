@@ -29,6 +29,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Socket factory that trusts all SSL connections.
  */
+@SuppressWarnings("CatchAndPrintStackTrace")
 public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   private static final TrustAllSslSocketFactory DEFAULT =
       new TrustAllSslSocketFactory();

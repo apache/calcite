@@ -31,7 +31,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,7 +100,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     geodeImplementContext.addGroupBy(groupByFields);
 
     // Find the aggregate functions (e.g. MAX, SUM ...)
-    Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
+    ImmutableMap.Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
     for (AggregateCall aggCall : aggCalls) {
 
       List<String> aggCallFieldNames = new ArrayList<>();

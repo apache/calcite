@@ -153,8 +153,7 @@ public class SqlParseException extends Exception
     return expectedTokenSequences;
   }
 
-  // override Exception
-  public Throwable getCause() {
+  @Override public synchronized Throwable getCause() {
     return parserException;
   }
 

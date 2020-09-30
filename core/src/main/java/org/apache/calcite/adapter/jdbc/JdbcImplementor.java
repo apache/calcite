@@ -35,6 +35,7 @@ public class JdbcImplementor extends RelToSqlConverter {
 
   // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
+  @SuppressWarnings("MissingSummary")
   public Result visit(JdbcTableScan scan) {
     return result(scan.jdbcTable.tableName(),
         ImmutableList.of(Clause.FROM), scan, null);

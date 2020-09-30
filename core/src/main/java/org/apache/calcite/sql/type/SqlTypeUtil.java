@@ -1425,7 +1425,7 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns the least restrictive type T, such that a value of type T can be
-   * compared with values of type {@code type0} and {@code type1} using
+   * compared with values of type {@code type1} and {@code type2} using
    * {@code =}. */
   public static RelDataType leastRestrictiveForComparison(
       RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {

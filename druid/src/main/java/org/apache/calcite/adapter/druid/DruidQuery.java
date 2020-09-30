@@ -587,7 +587,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   private double getIntervalCostMultiplier() {
-    int days = 0;
+    long days = 0;
     for (Interval interval : intervals) {
       days += interval.toDuration().getStandardDays();
     }
@@ -595,7 +595,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // A plan querying 10 or more years of data will have 10x the cost of a
     // plan returning 1 day data.
     // A plan where least interval is queries will be preferred.
-    return RelMdUtil.linear(days, 1, DAYS_IN_TEN_YEARS, 0.1d, 1d);
+    return RelMdUtil.linear((int) days, 1, DAYS_IN_TEN_YEARS, 0.1d, 1d);
   }
 
   private double getQueryTypeCostMultiplier() {
@@ -1193,7 +1193,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // cannot use timeseries
       boolean hasExpressionOnTopOfTimeExtract = false;
       for (JsonExpressionPostAgg postAgg : postAggregations) {
-        if (postAgg instanceof JsonExpressionPostAgg) {
+        if (postAgg != null) {
           if (postAgg.expression.contains(groupByKeyDims.get(0).getOutputName())) {
             hasExpressionOnTopOfTimeExtract = true;
           }

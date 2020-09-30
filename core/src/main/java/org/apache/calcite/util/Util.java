@@ -899,6 +899,7 @@ public class Util {
   /** @deprecated Throw new {@link AssertionError} if applicable;
    * or {@link RuntimeException} if e is checked;
    * or raw exception if e is unchecked or {@link Error}. */
+  @SuppressWarnings("MissingSummary")
   public static Error newInternal(Throwable e, String s) {
     return new AssertionError("Internal error: " + s, e);
   }

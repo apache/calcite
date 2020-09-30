@@ -44,7 +44,6 @@ import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
@@ -129,7 +128,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
 
     // Construct the list of fields to project
-    Builder<String> selectBuilder = ImmutableList.builder();
+    ImmutableList.Builder<String> selectBuilder = ImmutableList.builder();
     if (!groupByFields.isEmpty()) {
       // manually add GROUP BY to select clause (GeodeProjection was not visited)
       for (String groupByField : groupByFields) {
