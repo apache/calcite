@@ -673,9 +673,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private static void shiftMapping(Map<Integer, Integer> mapping, int startIndex, int offset) {
     for (Map.Entry<Integer, Integer> entry : mapping.entrySet()) {
       if (entry.getValue() >= startIndex) {
-        mapping.put(entry.getKey(), entry.getValue() + offset);
-      } else {
-        mapping.put(entry.getKey(), entry.getValue());
+        entry.setValue(entry.getValue() + offset);
       }
     }
   }
@@ -1188,9 +1186,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Update the output position for the corVars: only pass on the cor
     // vars that are not used in the join key.
-    for (CorDef corDef : corDefOutputs.keySet()) {
-      int newPos = corDefOutputs.get(corDef) + newLeftFieldCount;
-      corDefOutputs.put(corDef, newPos);
+    for (Map.Entry<CorDef, Integer> entry : corDefOutputs.entrySet()) {
+      entry.setValue(entry.getValue() + newLeftFieldCount);
     }
 
     // then add any corVar from the left input. Do not need to change
