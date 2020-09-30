@@ -34,7 +34,6 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Planner rule that creates a {@code SemiJoin} from a
@@ -44,12 +43,16 @@ import java.util.function.Predicate;
 public abstract class SemiJoinRule
     extends RelRule<SemiJoinRule.Config>
     implements TransformationRule {
-  private static final Predicate<Join> NOT_GENERATE_NULLS_ON_LEFT =
-      join -> !join.getJoinType().generatesNullsOnLeft();
+  private static boolean notGenerateNullsOnLeft(Join join) {
+    return !join.getJoinType().generatesNullsOnLeft();
+  }
 
-  /* Tests if an Aggregate always produces 1 row and 0 columns. */
-  private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
-      aggregate -> aggregate.getRowType().getFieldCount() == 0;
+  /**
+   * Tests if an Aggregate always produces 1 row and 0 columns.
+   */
+  private static boolean isEmptyAggregate(Aggregate aggregate) {
+    return aggregate.getRowType().getFieldCount() == 0;
+  }
 
   /** Creates a SemiJoinRule. */
   protected SemiJoinRule(Config config) {
@@ -71,7 +74,7 @@ public abstract class SemiJoinRule
       }
     } else {
       if (join.getJoinType().projectsRight()
-          && !IS_EMPTY_AGGREGATE.test(aggregate)) {
+          && !isEmptyAggregate(aggregate)) {
         return;
       }
     }
@@ -165,7 +168,7 @@ public abstract class SemiJoinRule
         return withOperandSupplier(b ->
             b.operand(projectClass).oneInput(b2 ->
                 b2.operand(joinClass)
-                    .predicate(NOT_GENERATE_NULLS_ON_LEFT).inputs(
+                    .predicate(SemiJoinRule::notGenerateNullsOnLeft).inputs(
                         b3 -> b3.operand(RelNode.class).anyInputs(),
                         b4 -> b4.operand(aggregateClass).anyInputs())))
             .as(Config.class);
@@ -214,7 +217,7 @@ public abstract class SemiJoinRule
       default Config withOperandFor(Class<Join> joinClass,
           Class<Aggregate> aggregateClass) {
         return withOperandSupplier(b ->
-            b.operand(joinClass).predicate(NOT_GENERATE_NULLS_ON_LEFT).inputs(
+            b.operand(joinClass).predicate(SemiJoinRule::notGenerateNullsOnLeft).inputs(
                 b2 -> b2.operand(RelNode.class).anyInputs(),
                 b3 -> b3.operand(aggregateClass).anyInputs()))
             .as(Config.class);
