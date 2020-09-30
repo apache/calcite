@@ -7911,6 +7911,16 @@ public class JdbcTest {
     }
   }
 
+  public static class DepartmentPlus extends Department {
+    public final Timestamp inceptionDate;
+
+    public DepartmentPlus(int deptno, String name, List<Employee> employees,
+        Location location, Timestamp inceptionDate) {
+      super(deptno, name, employees, location);
+      this.inceptionDate = inceptionDate;
+    }
+  }
+
   public static class Location {
     public final int x;
     public final int y;

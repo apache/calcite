@@ -372,6 +372,10 @@ public class RelBuilder {
   }
 
   private Frame peek_(int n) {
+    if (n == 0) {
+      // more efficient than starting an iterator
+      return Objects.requireNonNull(stack.peek(), "stack.peek");
+    }
     return Iterables.get(stack, n);
   }
 
@@ -397,6 +401,17 @@ public class RelBuilder {
       offset += peek(inputCount, i).getRowType().getFieldCount();
     }
     return offset;
+  }
+
+  /** Evaluates an expression with a relational expression temporarily on the
+   * stack. */
+  public <E> E with(RelNode r, Function<RelBuilder, E> fn) {
+    try {
+      push(r);
+      return fn.apply(this);
+    } finally {
+      stack.pop();
+    }
   }
 
   // Methods that return scalar expressions
