@@ -385,7 +385,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       for (final AggImpState agg : aggs) {
         agg.implementor.implementReset(agg.context,
             new WinAggResetContextImpl(builder6, agg.state, i_, startX, endX,
-                hasRows, partitionRowCount, frameRowCount));
+                hasRows, frameRowCount, partitionRowCount));
       }
 
       Expression lowerBoundCanChange =
