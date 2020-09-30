@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -70,6 +71,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new NotATableFunction());
     opTab.addOperator(new BadTableFunction());
     opTab.addOperator(new StructuredFunction());
+    opTab.addOperator(new CompositeFunction());
   }
 
   /** "RAMP" user-defined table function. */
@@ -255,6 +257,27 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           .add("F0", bigintType)
           .add("F1", varcharType)
           .build();
+    }
+  }
+
+  /** "COMPOSITE" user-defined scalar function. **/
+  public static class CompositeFunction extends SqlFunction {
+    public CompositeFunction() {
+      super("COMPOSITE",
+          new SqlIdentifier("COMPOSITE", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.or(
+              OperandTypes.variadic(SqlOperandCountRanges.from(1)),
+              OperandTypes.variadic(SqlOperandCountRanges.from(2))),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
   }
 }

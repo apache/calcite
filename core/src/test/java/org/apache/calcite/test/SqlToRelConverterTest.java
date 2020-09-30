@@ -4110,6 +4110,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4295">[CALCITE-4295]
+   * Composite of two checker with SqlOperandCountRange throws IllegalArgumentException</a>.
+   */
+  @Test public void testCompositeOfCountRange() {
+    final String sql = ""
+        + "select COMPOSITE(deptno)\n"
+        + "from dept";
+    sql(sql).trim(true).ok();
+  }
+
+  /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
    * @see RelNode#isValid(Litmus, RelNode.Context)
