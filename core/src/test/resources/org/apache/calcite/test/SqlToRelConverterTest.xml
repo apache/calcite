@@ -7213,4 +7213,16 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCompositeOfCountRange">
+        <Resource name="sql">
+            <![CDATA[select COMPOSITE(deptno)
+from dept]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[COMPOSITE($0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
