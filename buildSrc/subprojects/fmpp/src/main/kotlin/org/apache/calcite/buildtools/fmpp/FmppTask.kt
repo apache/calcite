@@ -52,19 +52,28 @@ open class FmppTask @Inject constructor(
     val output = objectFactory.directoryProperty()
         .convention(project.layout.buildDirectory.dir("fmpp/$name"))
 
+    /**
+     * Path might contain spaces and TDD special characters, so it needs to be quoted.
+     * See http://fmpp.sourceforge.net/tdd.html
+     */
+    private fun String.tddString() =
+        "\"${toString().replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
     @TaskAction
     fun run() {
         project.delete(output.asFileTree)
         ant.withGroovyBuilder {
-            "taskdef"("name" to "fmpp",
+            "taskdef"(
+                "name" to "fmpp",
                 "classname" to "fmpp.tools.AntTask",
-                "classpath" to fmppClasspath.get().asPath)
+                "classpath" to fmppClasspath.get().asPath
+            )
             "fmpp"(
                 "configuration" to config.get(),
                 "sourceRoot" to templates.get().asFile,
                 "outputRoot" to output.get().asFile,
-                "data" to "tdd(" + config.get() + "), " +
-                    "default: tdd(" + templates.get().asFile + "/../default_config.fmpp)"
+                "data" to "tdd(" + config.get().toString().tddString() + "), " +
+                    "default: tdd(" + "${templates.get().asFile}/../default_config.fmpp".tddString() + ")"
             )
         }
     }
