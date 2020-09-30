@@ -46,8 +46,8 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
  */
 abstract class DruidJsonFilter implements DruidJson {
 
-  private static final SimpleDateFormat DATE_FORMATTER =
-      getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
+  private static final ThreadLocal<SimpleDateFormat> DATE_FORMATTER =
+      ThreadLocal.withInitial(() -> getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT));
 
   /**
    * Converts a {@link RexNode} to a Druid JSON filter.
@@ -235,7 +235,7 @@ abstract class DruidJsonFilter implements DruidJson {
             "Cannot translate Literal" + rexNode + " of type "
                 + rhsLiteral.getTypeName() + " to TimestampString");
       }
-      val = DATE_FORMATTER.format(millisSinceEpoch);
+      val = DATE_FORMATTER.get().format(millisSinceEpoch);
     } else {
       // Don't know how to filter on this kind of literal.
       val = null;
