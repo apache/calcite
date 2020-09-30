@@ -230,7 +230,7 @@ public class RelDotWriter extends RelWriterImpl {
     label = label.trim();
 
     // escape quotes in the label.
-    label.replace("\"", "\\\"");
+    label = label.replace("\"", "\\\"");
 
     boolean trimmed = false;
     if (limit != -1 && label.length() > limit) {
