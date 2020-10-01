@@ -16,17 +16,18 @@
  */
 package org.apache.calcite.test;
 
+
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 
 import org.cassandraunit.CQLDataLoader;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package related to data types.
@@ -176,33 +177,31 @@ class CassandraAdapterDataTypesTest {
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
             + "\"f_map\"['k1'], "
-            + "\"f_tuple\"['1'], "
-            + "\"f_tuple\"['2'], "
-            + "\"f_tuple\"['3']"
+            + "\"test_collections\".\"f_tuple\".\"1\", "
+            + "\"test_collections\".\"f_tuple\".\"2\", "
+            + "\"test_collections\".\"f_tuple\".\"3\""
             + " from \"test_collections\"")
         .typeIs("[EXPR$0 INTEGER"
             + ", EXPR$1 VARCHAR"
-            + ", EXPR$2 BIGINT"
-            + ", EXPR$3 VARBINARY"
-            + ", EXPR$4 TIMESTAMP]");
+            + ", 1 BIGINT"
+            + ", 2 VARBINARY"
+            + ", 3 TIMESTAMP]");
   }
 
-  // ignored as tuple elements returns 'null' when accessed in the select statement
-  @Disabled
   @Test void testCollectionsInnerValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
             + "\"f_map\"['k1'], "
-            + "\"f_tuple\"['1'], "
-            + "\"f_tuple\"['2'], "
-            + "\"f_tuple\"['3']"
+            + "\"test_collections\".\"f_tuple\".\"1\", "
+            + "\"test_collections\".\"f_tuple\".\"2\", "
+            + "\"test_collections\".\"f_tuple\".\"3\""
             + " from \"test_collections\"")
         .returns("EXPR$0=1"
             + "; EXPR$1=v1"
-            + "; EXPR$2=3000000000"
-            + "; EXPR$3=30ff87"
-            + "; EXPR$4=2015-05-03 13:30:54.234");
+            + "; 1=3000000000"
+            + "; 2=30ff87"
+            + "; 3=2015-05-03 11:30:54\n");
   }
 
   // frozen collections should not affect the row type
