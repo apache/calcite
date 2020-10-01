@@ -162,7 +162,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     ParameterExpression corrArg;
     final ParameterExpression corrArgList =
         Expressions.parameter(Modifier.FINAL,
-            List.class, "corrList");
+            List.class, "corrList" + this.getId());
 
     // Declare batchSize correlation variables
     if (!Primitive.is(corrVarType)) {
