@@ -501,7 +501,6 @@ public class DruidAdapter2IT {
   /** Tests a query that contains no GROUP BY and is therefore executed as a
    * Druid "select" query. */
   @Test void testFilterSortDesc() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "select \"product_name\" from \"foodmart\"\n"
         + "where \"product_id\" BETWEEN '1500' AND '1502'\n"
         + "order by \"state_province\" desc, \"product_id\"";
@@ -857,7 +856,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testGroupByMonthGranularityFiltered() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "select sum(\"unit_sales\") as s,\n"
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
@@ -908,7 +906,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testTopNDayGranularityFiltered() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "select sum(\"unit_sales\") as s,\n"
         + "max(\"unit_sales\") as m,\n"
         + "\"state_province\" as p\n"
@@ -1012,7 +1009,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testFilterDistinct() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "select distinct \"state_province\", \"city\",\n"
         + "  \"product_name\"\n"
         + "from \"foodmart\"\n"
@@ -1027,13 +1023,13 @@ public class DruidAdapter2IT {
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]],"
-        + " filter=[AND(=($3, 'High Top Dried Mushrooms'),"
-        + " OR(=($87, 'Q2'),"
-        + " =($87, 'Q3')),"
-        + " =($30, 'WA'))],"
-        + " projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[AND("
+        + "SEARCH($3, Sarg['High Top Dried Mushrooms':VARCHAR]:VARCHAR), "
+        + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
+        + "SEARCH($30, Sarg['WA':VARCHAR]:VARCHAR))], "
+        + "projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
         .queryContains(new DruidChecker(druidQuery1, druidQuery2))
         .explainContains(explain)
@@ -1051,7 +1047,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testFilter() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "select \"state_province\", \"city\",\n"
         + "  \"product_name\"\n"
         + "from \"foodmart\"\n"
@@ -1072,8 +1067,10 @@ public class DruidAdapter2IT {
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "filter=[AND(=($3, 'High Top Dried Mushrooms'), "
-        + "OR(=($87, 'Q2'), =($87, 'Q3')), =($30, 'WA'))], "
+        + "filter=[AND("
+        + "SEARCH($3, Sarg['High Top Dried Mushrooms':VARCHAR]:VARCHAR), "
+        + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
+        + "SEARCH($30, Sarg['WA':VARCHAR]:VARCHAR))], "
         + "projects=[[$30, $29, $3]])\n";
     sql(sql)
         .queryContains(new DruidChecker(druidQuery))
@@ -1164,7 +1161,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractYear() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( year from \"timestamp\") as \"year\",\"product_id\" from "
         + "\"foodmart\" where \"product_id\" = 1016 and "
         + "\"timestamp\" < cast('1999-01-02' as timestamp) and \"timestamp\" > cast"
@@ -1182,7 +1178,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractMonth() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( month from \"timestamp\") as \"month\",\"product_id\" from "
         + "\"foodmart\" where \"product_id\" = 1016 and "
         + "\"timestamp\" < cast('1997-06-02' as timestamp) and \"timestamp\" > cast"
@@ -1201,7 +1196,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractDay() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( day from \"timestamp\") as \"day\","
         + "\"product_id\" from \"foodmart\""
         + " where \"product_id\" = 1016 and "
@@ -1221,7 +1215,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractHourOfDay() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql =
         "select EXTRACT( hour from \"timestamp\") as \"hourOfDay\",\"product_id\"  from "
             + "\"foodmart\" where \"product_id\" = 1016 and "
@@ -1234,7 +1227,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractYearMonthDay() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( day from \"timestamp\") as \"day\", EXTRACT( month from "
         + "\"timestamp\") as \"month\",  EXTRACT( year from \"timestamp\") as \"year\",\""
         + "product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
@@ -1269,7 +1261,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractYearMonthDayWithOutRenaming() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( day from \"timestamp\"), EXTRACT( month from "
         + "\"timestamp\"), EXTRACT( year from \"timestamp\"),\""
         + "product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
@@ -1303,7 +1294,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushAggregateOnTimeWithExtractWithOutRenaming() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select EXTRACT( day from \"timestamp\"), "
         + "\"product_id\" as \"dayOfMonth\" from \"foodmart\" "
         + "where \"product_id\" = 1016 and \"timestamp\" < cast('1997-01-20' as timestamp) "
@@ -1328,7 +1318,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushComplexFilter() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select sum(\"store_sales\") from \"foodmart\" "
         + "where EXTRACT( year from \"timestamp\") = 1997 and "
         + "\"cases_per_pallet\" >= 8 and \"cases_per_pallet\" <= 10 and "
@@ -2048,7 +2037,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testOrderByOnMetricsInSelectDruidQuery() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sqlQuery = "select \"store_sales\" as a, \"store_cost\" as b, \"store_sales\" - "
         + "\"store_cost\" as c from \"foodmart\" where \"timestamp\" "
         + ">= '1997-01-01 00:00:00' and \"timestamp\" < '1997-09-01 00:00:00' order by c "
@@ -2251,7 +2239,6 @@ public class DruidAdapter2IT {
   /** Tests that multiple aggregates with filter clauses have their filters
   extracted to the outer filter field for data pruning. */
   @Test void testFilterClausesFactoredForPruning1() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'WA') "
@@ -2276,7 +2263,6 @@ public class DruidAdapter2IT {
    * extracted to the outer filter field for data pruning in the presence of an
    * outer filter. */
   @Test void testFilterClausesFactoredForPruning2() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     String sql = "select "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
         + "sum(\"store_sales\") filter (where \"store_state\" = 'WA') "
@@ -2427,7 +2413,6 @@ public class DruidAdapter2IT {
   /** Tests that an aggregate with a nested filter clause has its filter
    * factored out. */
   @Test void testNestedFilterClauseFactored() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     // Logically equivalent to
     // select sum("store_sales") from "foodmart" where "store_state" in ('CA', 'OR')
     String sql =
@@ -2718,7 +2703,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testFilterWithFloorOnTime() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     // Test filter on floor on time column is pushed to druid
     final String sql =
         "Select floor(\"timestamp\" to MONTH) as t from \"foodmart\" where "
@@ -2773,7 +2757,6 @@ public class DruidAdapter2IT {
   }
 
   @Test void testFloorToDateRangeWithTimeZone() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "Select floor(\"timestamp\" to MONTH) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00' "
         + "and floor(\"timestamp\" to MONTH) < '1997-05-02 00:00:00' order by t"
@@ -3192,7 +3175,6 @@ public class DruidAdapter2IT {
 
 
   @Test void testCeilFilterExpression() {
-    Assumptions.assumeTrue(Bug.CALCITE_4279_FIXED, "CALCITE-4279");
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE ceil(\"store_sales\") > 1"
         + " AND ceil(\"timestamp\" TO DAY) < CAST('1997-01-05' AS TIMESTAMP)"
         + " AND ceil(\"timestamp\" TO MONTH) < CAST('1997-03-01' AS TIMESTAMP)"

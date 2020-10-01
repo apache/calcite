@@ -17,9 +17,11 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -376,13 +378,15 @@ abstract class DruidJsonFilter implements DruidJson {
    * @param rexNode    RexNode to translate to Druid Filter
    * @param rowType    Row type of filter input
    * @param druidQuery Druid query
+   * @param rexBuilder Rex builder
    *
    * @return Druid Json filters, or null when cannot translate to valid Druid
    * filters
    */
   @Nullable
-  static DruidJsonFilter toDruidFilters(final RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
+  static DruidJsonFilter toDruidFilters(RexNode rexNode, RelDataType rowType,
+      DruidQuery druidQuery, RexBuilder rexBuilder) {
+    rexNode = RexUtil.expandSearch(rexBuilder, null, rexNode);
     if (rexNode.isAlwaysTrue()) {
       return JsonExpressionFilter.alwaysTrue();
     }
@@ -392,12 +396,15 @@ abstract class DruidJsonFilter implements DruidJson {
     switch (rexNode.getKind()) {
     case IS_TRUE:
     case IS_NOT_FALSE:
-      return toDruidFilters(Iterables.getOnlyElement(((RexCall) rexNode).getOperands()), rowType,
-          druidQuery);
+      return toDruidFilters(
+          Iterables.getOnlyElement(((RexCall) rexNode).getOperands()), rowType,
+          druidQuery, rexBuilder);
     case IS_NOT_TRUE:
     case IS_FALSE:
-      final DruidJsonFilter simpleFilter = toDruidFilters(Iterables
-          .getOnlyElement(((RexCall) rexNode).getOperands()), rowType, druidQuery);
+      final DruidJsonFilter simpleFilter =
+          toDruidFilters(
+              Iterables.getOnlyElement(((RexCall) rexNode).getOperands()),
+              rowType, druidQuery, rexBuilder);
       return simpleFilter != null ? new JsonCompositeFilter(Type.NOT, simpleFilter)
           : simpleFilter;
     case AND:
@@ -406,7 +413,8 @@ abstract class DruidJsonFilter implements DruidJson {
       final RexCall call = (RexCall) rexNode;
       final List<DruidJsonFilter> jsonFilters = new ArrayList<>();
       for (final RexNode e : call.getOperands()) {
-        final DruidJsonFilter druidFilter = toDruidFilters(e, rowType, druidQuery);
+        final DruidJsonFilter druidFilter =
+            toDruidFilters(e, rowType, druidQuery, rexBuilder);
         if (druidFilter == null) {
           return null;
         }
