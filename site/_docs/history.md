@@ -6208,7 +6208,7 @@ This is the first release under the Apache incubator process.
     * If best rel in a Volcano subset doesn't have metadata, see if
       other rels have metadata.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-127">CALCITE-127</a>]
-  EnumerableCalcRel can't support 3+ AND conditions (Harish Butani)
+  EnumerableCalc can't support 3+ AND conditions (Harish Butani)
 * Fix push-down of datetime literals to JDBC data sources.
 * Add `Util.startsWith(List, List)` and `Util.hashCode(double)`.
 * Add maven-checkstyle-plugin, enable in "verify" phase, and fix exceptions.

@@ -279,7 +279,7 @@ public class Programs {
         program1,
 
         // Second planner pass to do physical "tweaks". This the first time
-        // that EnumerableCalcRel is introduced.
+        // that EnumerableCalc is introduced.
         calc(metadataProvider));
   }
 

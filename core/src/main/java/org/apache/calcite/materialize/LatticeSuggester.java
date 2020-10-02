@@ -333,7 +333,7 @@ public class LatticeSuggester {
       }
 
       if (bestMatch != null) {
-        // Fix up the best batch
+        // Fix up the best match
         for (Path path
             : minus(bestMatch.rootNode.paths, lattice.rootNode.paths)) {
           // TODO: assign alias based on node in bestMatch
