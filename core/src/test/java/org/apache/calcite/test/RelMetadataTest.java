@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -106,6 +107,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -150,8 +152,10 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -3130,6 +3134,54 @@ public class RelMetadataTest extends SqlToRelTestBase {
             .get(0)
             .toString(),
         is("=($0, $1)"));
+  }
+
+
+  /**
+   * Custom rel node for testing.
+   */
+  static class CustomRel extends AbstractRelNode {
+    CustomRel(RelOptCluster cluster, RelTraitSet traits) {
+      super(cluster, traits);
+    }
+  }
+
+  @Test void testRegenerateHandler() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(builder.call(NONDETERMINISTIC_OP))
+        .build();
+    RelMetadataQuery mq = filter.getCluster().getMetadataQuery();
+
+    Pair<String, String> cause = Pair.of("Size",
+        "org.apache.calcite.test.RelMetadataTest.CustomRel");
+
+    // get metadata for the first time to make sure handler is generated.
+    mq.getAverageRowSize(filter);
+    assertFalse(JaninoRelMetadataProvider.REGENERATION_CAUSES.contains(cause));
+
+    // make sure we have enough credits to perform regeneration.
+    assertTrue(JaninoRelMetadataProvider.MetadataRegenerationCounter.getCounterValue() > 0);
+
+    // get metadata for the second time, with a new node type,
+    // and make sure regeneration happens.
+    RelNode customRel = new CustomRel(filter.getCluster(), filter.getTraitSet());
+    mq.getAverageRowSize(customRel);
+
+    // make sure a regeneration log is produced
+    assertTrue(JaninoRelMetadataProvider.REGENERATION_CAUSES.contains(cause));
+  }
+
+  @Test void testRegenerateCounter() {
+    // setting the initial counter value more than once will cause an exception
+    IllegalStateException exp = assertThrows(IllegalStateException.class,
+        () -> {
+          JaninoRelMetadataProvider.MetadataRegenerationCounter.setInitialValue(1000000);
+          JaninoRelMetadataProvider.MetadataRegenerationCounter.setInitialValue(1000000);
+        });
+    assertEquals("The initial counter value has been set", exp.getMessage());
   }
 
   /**

@@ -81,6 +81,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that generates
@@ -97,6 +98,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private static final Set<Class<? extends RelNode>> ALL_RELS =
       new CopyOnWriteArraySet<>();
 
+  private static final Set<String> HANDLERS_GENERATED = new HashSet<>();
+
+  /**
+   * Information about the reasons for metadata handler regeneration.
+   * The key is the handler name, and the value is the class name.
+   */
+  public static final List<Pair<String, String>>  REGENERATION_CAUSES = new ArrayList<>();
+
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity
    * correctly. */
@@ -106,7 +115,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())
           .build(
               CacheLoader.from(key ->
-                  load3(key.def, key.provider.handlers(key.def),
+                  checkAndLoad(key.def, key.provider.handlers(key.def),
                       key.relClasses)));
 
   // Pre-register the most common relational operators, to reduce the number of
@@ -189,6 +198,29 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
       handlers(MetadataDef<M> def) {
     return provider.handlers(def);
+  }
+
+  private static <M extends Metadata> MetadataHandler<M> checkAndLoad(
+      MetadataDef<M> def, Multimap<Method, MetadataHandler<M>> map,
+      ImmutableList<Class<? extends RelNode>> relClasses) {
+    String handlerName = def.metadataClass.getSimpleName();
+    synchronized (HANDLERS_GENERATED) {
+      if (!HANDLERS_GENERATED.add(handlerName)) {
+        // a handler already exists, so regeneration is required
+        REGENERATION_CAUSES.add(
+            Pair.of(handlerName, relClasses.get(relClasses.size() - 1).getCanonicalName()));
+        if (MetadataRegenerationCounter.decrementAndGet() < 0) {
+          // we have run out of credits for handler regenerations
+          String msg = "JaninoRelMetadataProvider is frozen, "
+              + "because metadata handler regeneration has happened too many times. "
+              + "Reasons for current regenerations:\n";
+          msg += String.join("\n", REGENERATION_CAUSES.stream()
+              .map(p -> p.left + ", " + p.right).collect(Collectors.toList()));
+          throw new IllegalArgumentException(msg);
+        }
+      }
+      return load3(def, map, relClasses);
+    }
   }
 
   private static <M extends Metadata> MetadataHandler<M> load3(
@@ -539,6 +571,73 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           && ((Key) obj).def.equals(def)
           && ((Key) obj).provider.equals(provider)
           && ((Key) obj).relClasses.equals(relClasses);
+    }
+  }
+
+  /**
+   * The purpose of this class is to hold a counter that records the number of
+   * metadata handler regenerations.
+   */
+  public static class MetadataRegenerationCounter {
+
+    /**
+     * The counter value corresponding to unlimited number of regenerations.
+     */
+    static final int NO_LIMIT_COUNTER_VALUE = Integer.MAX_VALUE;
+
+    static Integer counter = null;
+
+    /**
+     * Sets the initial counter value.
+     * That is, the maximum permitted number of times to perform metadata handler regeneration.
+     * After exceeding this number, {@link JaninoRelMetadataProvider}
+     * will be frozen, and no more regeneration is allowed.
+     *
+     * <p>
+     *   Note that this method can be called at most once. Calling it more than once, or
+     *   calling it after the counter has been accessed will cause an exception.
+     * </p>
+     * <p>
+     *   If this method is never called, there will be no limit to the number or regenerations.
+     * </p>
+     * @param value the initial counter value.
+     */
+    public static void setInitialValue(int value) {
+      if (counter != null) {
+        throw new IllegalStateException("The initial counter value has been set");
+      }
+      counter = value;
+    }
+
+    /**
+     * Decrement the counter value. Note this method is always called in a synchronized
+     * block, so there is no concurrency related problems.
+     *
+     * @return the counter value after decrementing.
+     */
+    public static int decrementAndGet() {
+      if (counter == null) {
+        // no limit by default
+        counter = NO_LIMIT_COUNTER_VALUE;
+      }
+      if (counter == NO_LIMIT_COUNTER_VALUE) {
+        // for the case with no limit, there is no need to decrement the counter
+        return counter;
+      }
+      counter -= 1;
+      return counter;
+    }
+
+    /**
+     * Ges the current counter value.
+     * That is, the remaining number of times metadata handler regeneration can happen.
+     */
+    public static int getCounterValue() {
+      if (counter == null) {
+        // no limit by default
+        counter = NO_LIMIT_COUNTER_VALUE;
+      }
+      return counter;
     }
   }
 }
