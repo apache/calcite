@@ -164,6 +164,10 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.cast(getThis(), clazz);
   }
 
+  public <T2> Enumerable<T2> extendedCast(Class<T2> clazz) {
+    return EnumerableDefaults.extendedCast(getThis(), clazz);
+  }
+
   public Enumerable<T> concat(Enumerable<T> enumerable1) {
     return EnumerableDefaults.concat(getThis(), enumerable1);
   }

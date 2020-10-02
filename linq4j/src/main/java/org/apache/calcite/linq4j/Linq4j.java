@@ -248,6 +248,72 @@ public abstract class Linq4j {
   }
 
   /**
+   * Converts the elements of a given Iterable to the specified type.
+   *
+   * <p>This method is the extension of {@link #cast(Iterable, Class)}.</p>
+   *
+   * <p>Besides the things what {@link #cast(Iterable, Class)} can do, this method supports the
+   * cast between these types:
+   * <ol>
+   *   <li>{@link Short}</li>
+   *   <li>{@link Byte}</li>
+   *   <li>{@link Integer}</li>
+   *   <li>{@link Long}</li>
+   *   <li>{@link Double}</li>
+   *   <li>{@link java.math.BigDecimal}</li>
+   *   <li>{@link Float}</li>
+   *   <li>{@code int}</li>
+   *   <li>{@code long}</li>
+   *   <li>{@code short}</li>
+   *   <li>{@code byte}</li>
+   *   <li>{@code double}</li>
+   *   <li>{@code float}</li>
+   * </ol>
+   *
+   * <p>This method supports for casting to below types by using the constructor of these types.</p>
+   * <ol>
+   *   <li>{@link Short}</li>
+   *   <li>{@link Byte}</li>
+   *   <li>{@link Integer}</li>
+   *   <li>{@link Long}</li>
+   *   <li>{@link Double}</li>
+   *   <li>{@link java.math.BigDecimal}</li>
+   *   <li>{@link Float}</li>
+   * </ol>
+   * <p>This method support for casting to below types by using corresponding method such as
+   * {@code intValue()}, {@code longValue()}, {@code shortValue()}, and so on.</p>
+   * <ol>
+   *   <li>{@code int}</li>
+   *   <li>{@code long}</li>
+   *   <li>{@code short}</li>
+   *   <li>{@code byte}</li>
+   *   <li>{@code double}</li>
+   *   <li>{@code float}</li>
+   * </ol>
+   *
+   * <p> For example,
+   * <ol>
+   *   <li>This method allows {@link Byte} cast to {@link Integer} by using
+   *   {@code new Integer(Byte.toString)}.</li>
+   *   <li>This method allows {@link Long} cast to {@code double} by using the method
+   *   {@link Long#doubleValue()}.</li>
+   * </ol>
+   *
+   * <p>Same as {@link #cast(Iterable, Class)} you can invoke
+   *    <blockquote><code>Linq4j.extendedCast(list, Integer.class)</code></blockquote>
+   * to convert the list of an enumerable that can be queried using the standard query operators.
+   *
+   * @see Enumerable#extendedCast(Class)
+   * @see Enumerable#cast(Class)
+   * @see #cast(Iterable, Class)
+   * @see #asEnumerable(Iterable)
+   */
+  public static <TSource, TResult> Enumerable<TResult> extendedCast(
+      Iterable<TSource> source, Class<TResult> clazz) {
+    return asEnumerable(source).extendedCast(clazz);
+  }
+
+  /**
    * Returns elements of a given {@link Iterable} that are of the specified
    * type.
    *
