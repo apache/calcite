@@ -394,6 +394,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(deptnoColumn.getOriginColumnOrdinal(), is(0));
   }
 
+  @Test void testDerivedColumnOrigins() {
+    final String sql1 = ""
+        + "select empno, sum(sal) as all_sal\n"
+        + "from emp\n"
+        + "group by empno";
+    final RelNode relNode = convertSql(sql1);
+    final HepProgram program = new HepProgramBuilder().
+        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(relNode);
+    final RelNode rel = planner.findBestExp();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelColumnOrigin allSal = mq.getColumnOrigin(rel, 1);
+    assertThat(allSal.getOriginColumnOrdinal(), is(5));
+  }
+
   @Test void testColumnOriginsTableOnly() {
     checkSingleColumnOrigin(
         "select name as dname from dept",
