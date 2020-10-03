@@ -27,6 +27,11 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / under development
+{: #v1-27-0}
+#### Breaking Changes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4521">CALCITE-4251</a>]
+Get the origin column, even if it is derived
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.26.0">1.26.0</a> / 2020-10-06
 {: #v1-26-0}
@@ -103,7 +108,7 @@ In `RelBuilder`, add an option to not simplify `LIMIT 0` to an empty relation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4208">CALCITE-4208</a>]
 Improve metadata row count for `Join`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4210">CALCITE-4210</a>]
-Replaying subqueries in `ON` clauses (James Starr) 
+Replaying subqueries in `ON` clauses (James Starr)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4214">CALCITE-4214</a>]
 Make `RelDataType.getSqlTypeName` non-nullable
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4217">CALCITE-4217</a>]

@@ -2046,12 +2046,12 @@ public class LoptOptimizeJoinRule
     for (IntPair pair : joinInfo.pairs()) {
       final RelColumnOrigin leftOrigin =
           mq.getColumnOrigin(leftRel, pair.source);
-      if (leftOrigin == null) {
+      if (leftOrigin == null || !leftOrigin.isDerived()) {
         return false;
       }
       final RelColumnOrigin rightOrigin =
           mq.getColumnOrigin(rightRel, pair.target);
-      if (rightOrigin == null) {
+      if (rightOrigin == null || !rightOrigin.isDerived()) {
         return false;
       }
       if (leftOrigin.getOriginColumnOrdinal()

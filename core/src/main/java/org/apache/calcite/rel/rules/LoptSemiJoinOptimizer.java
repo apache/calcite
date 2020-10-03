@@ -413,7 +413,7 @@ public class LoptSemiJoinOptimizer {
           mq.getColumnOrigin(factRel, keyIter.next());
 
       // can't use the rid column as a semijoin key
-      if ((colOrigin == null)
+      if ((colOrigin == null || !colOrigin.isDerived())
           || LucidDbSpecialOperators.isLcsRidColumnId(
             colOrigin.getOriginColumnOrdinal())) {
         removeKey = true;

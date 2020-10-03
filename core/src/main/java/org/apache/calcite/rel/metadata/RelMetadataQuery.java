@@ -338,8 +338,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
-   * Determines the origin of a column, provided the column maps to a single
-   * column that isn't derived.
+   * Determines the origin of a column.
    *
    * @see #getColumnOrigins(org.apache.calcite.rel.RelNode, int)
    *
@@ -347,8 +346,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param column the offset of the column whose origin we are trying to
    * determine
    *
-   * @return the origin of a column provided it's a simple column; otherwise,
-   * returns null
+   * @return the origin of a column
    */
   public RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
     final Set<RelColumnOrigin> origins = getColumnOrigins(rel, column);
@@ -356,7 +354,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       return null;
     }
     final RelColumnOrigin origin = Iterables.getOnlyElement(origins);
-    return origin.isDerived() ? null : origin;
+    return origin;
   }
 
   /**
