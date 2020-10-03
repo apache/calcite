@@ -68,7 +68,7 @@ has not changed.
 
 Typically re-generation is called automatically when the relevant templates
 are changed, and it should work transparently.
-However if your IDE does not generate sources (e.g. `core/build/javacc/javaCCMain/org/apache/calcite/sql/parser/impl/SqlParserImpl.java`),
+However, if your IDE does not generate sources (e.g. `core/build/javacc/javaCCMain/org/apache/calcite/sql/parser/impl/SqlParserImpl.java`),
 then you can call `./gradlew generateSources` tasks manually.
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -192,8 +192,8 @@ From within IDE:
 
 ### Integration tests technical details
 
-Tests with external data are executed at maven's integration-test phase.
-We do not currently use pre-integration-test/post-integration-test, however we could use that in future.
+Tests with external data are executed at the maven's integration-test phase.
+We do not currently use pre-integration-test/post-integration-test, however, we could use that in the future.
 The verification of build pass/failure is performed at verify phase.
 Integration tests should be named `...IT.java`, so they are not picked up on unit test execution.
 
@@ -287,7 +287,7 @@ To debug generated classes, set two system properties when starting the JVM:
   for temporary files, such as `/tmp` on Unix-based systems.)
 
 After code is generated, either go into Intellij and mark the folder that
-contains generated temporary files as a generated sources root or sources root,
+contains generated temporary files as generated sources root or sources root,
 or directly set the value of `org.codehaus.janino.source_debugging.dir` to an
 existing source root when starting the JVM.
 
@@ -300,7 +300,7 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 First, download and install Calcite,
 and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
-Note: you can use MongoDB from integration test virtual machine above.
+Note: you can use MongoDB from the integration test virtual machine above.
 
 Import MongoDB's zipcode data set into MongoDB:
 
@@ -508,11 +508,11 @@ The *class name* should indicate the basic RelNode types that are matched,
 sometimes followed by what the rule does, then the word `Rule`.
 Examples: `ProjectFilterTransposeRule`, `FilterMergeRule`.
 
-The rule must have a constructor that takes a `Config` as argument.
+The rule must have a constructor that takes a `Config` as an argument.
 It should be `protected`, and will only be called from `Config.toRule()`.
 
 The class must contain an interface called `Config` that extends
-`RelRule.Config` (or the config of a the rule's super-class).
+`RelRule.Config` (or the config of the rule's super-class).
 
 `Config` must implement the `toRule` method and create a rule.
 
@@ -587,7 +587,7 @@ the `slow-tests-needed` label. It is up to you to decide if these additional
 tests need to run before merging.
 
 If the PR has multiple commits, squash them into a single commit. The
-commit message should follow the conventions outined in
+commit message should follow the conventions outlined in
 [contribution guidelines]({{ site.baseurl }}/develop/#contributing).
 If there are conflicts it is better to ask the contributor to take this step,
 otherwise it is preferred to do this manually since it saves time and also
@@ -929,7 +929,7 @@ out to mirrors, and other tasks.
 Choose a release date.
 This is based on the time when you expect to announce the release.
 This is usually a day after the vote closes.
-Remember that UTC date changes at 4pm Pacific time.
+Remember that UTC date changes at 4 pm Pacific time.
 
 
 ### Publishing directly in your environment:
