@@ -31,15 +31,15 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, or 14) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.25.0-src.tar.gz
-$ cd apache-calcite-1.25.0-src
+$ tar xvfz apache-calcite-1.26.0-src.tar.gz
+$ cd apache-calcite-1.26.0-src
 $ ./gradlew build
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, or 14) on your path.
+and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -605,7 +605,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.25.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.26.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
