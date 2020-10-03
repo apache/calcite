@@ -27,7 +27,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Spool;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -37,9 +36,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -353,13 +350,12 @@ class RelSet {
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
     RelOptCluster cluster = rel.getCluster();
-    RelMetadataQuery mq = cluster.getMetadataQuery();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
     assert existed : "merging with a dead otherSet";
 
-    Map<RelSubset, RelNode> changedSubsets = new IdentityHashMap<>();
+    Set<RelNode> changedRels = new HashSet<>();
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
@@ -386,7 +382,7 @@ class RelSet {
 
       // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
-        changedSubsets.put(subset, otherSubset.best);
+        changedRels.add(otherSubset.best);
       }
     }
 
@@ -410,17 +406,10 @@ class RelSet {
     // Has another set merged with this?
     assert equivalentSet == null;
 
-    // calls propagateCostImprovements() for RelSubset instances,
-    // whose best should be changed to check whether that
-    // subset's parents get cheaper.
-    Set<RelSubset> activeSet = new HashSet<>();
-    for (Map.Entry<RelSubset, RelNode> subsetBestPair : changedSubsets.entrySet()) {
-      RelSubset relSubset = subsetBestPair.getKey();
-      relSubset.propagateCostImprovements(
-          planner, mq, subsetBestPair.getValue(),
-          activeSet);
+    // propagate the new best information from changed relNodes.
+    for (RelNode rel : changedRels) {
+      planner.propagateCostImprovements(rel);
     }
-    assert activeSet.isEmpty();
 
     // Update all rels which have a child in the other set, to reflect the
     // fact that the child has been renamed.
@@ -441,12 +430,8 @@ class RelSet {
 
     // Make sure the cost changes as a result of merging are propagated.
     for (RelNode parentRel : getParentRels()) {
-      final RelSubset parentSubset = planner.getSubset(parentRel);
-      parentSubset.propagateCostImprovements(
-          planner, mq, parentRel,
-          activeSet);
+      planner.propagateCostImprovements(parentRel);
     }
-    assert activeSet.isEmpty();
     assert equivalentSet == null;
 
     // Each of the relations in the old set now has new parents, so
