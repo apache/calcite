@@ -45,7 +45,7 @@ By registering materialized views in Calcite, the optimizer has the opportunity 
 ### View-based query rewriting
 
 View-based query rewriting aims to take an input query which can be answered using a preexisting view and rewrite the query to make use of the view.
-Currently Calcite has two implementations of view-based query rewriting.
+Currently, Calcite has two implementations of view-based query rewriting.
 
 #### Substitution via rules transformation
 
@@ -71,7 +71,7 @@ In turn, an alternative rule that attempts to match queries to views by extracti
 The rule can rewrite expressions containing arbitrary chains of Join, Filter, and Project operators.
 Additionally, the rule can rewrite expressions rooted at an Aggregate operator, rolling aggregations up if necessary. In turn, it can also produce rewritings using Union operators if the query can be partially answered from a view.
 
-To produce a larger number of rewritings, the rule relies on information exposed as constraints defined over the database tables, e.g., *foreign keys*, *primary keys*, *unique keys* or *not null*.
+To produce a larger number of rewritings, the rule relies on the information exposed as constraints defined over the database tables, e.g., *foreign keys*, *primary keys*, *unique keys* or *not null*.
 
 ##### Rewriting coverage
 
