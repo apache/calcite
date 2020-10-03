@@ -69,6 +69,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -1055,11 +1056,35 @@ public class SubstitutionVisitor {
       super(any(MutableRel.class), any(MutableRel.class), 0);
     }
 
-    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
+    @Override
+    public @Nullable UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
         return call.result(call.target);
       }
+      if (isSpa(call.target) && MutableRels.descendants(call.query)
+          .containsAll(MutableRels.descendants(call.target))) {
+        return call.result(call.query);
+      }
       return null;
+    }
+
+    private boolean isSpa(MutableRel rel) {
+      if (rel.getParent() != null) {
+        return false;
+      }
+      if (rel instanceof MutableCalc) {
+        MutableCalc topCalc = (MutableCalc) rel;
+        if (topCalc.getInput() instanceof MutableAggregate) {
+          MutableAggregate aggregate = (MutableAggregate) topCalc.getInput();
+          if (aggregate.getInput() instanceof MutableCalc) {
+            MutableCalc bottomCalc = (MutableCalc) aggregate.getInput();
+            if (bottomCalc.getInput() instanceof MutableScan) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
     }
   }
 
@@ -1509,7 +1534,7 @@ public class SubstitutionVisitor {
       final RexNode targetCond = RexUtil.apply(mappingForQueryCond, qInputCond);
 
       final MutableRel unifiedAggregate =
-          unifyAggregates(aggregate2, targetCond, target);
+          unifyAggregates(query, aggregate2, targetCond, target);
       if (unifiedAggregate == null) {
         return null;
       }
@@ -1873,6 +1898,11 @@ public class SubstitutionVisitor {
 
   public static @Nullable MutableRel unifyAggregates(MutableAggregate query,
       @Nullable RexNode targetCond, MutableAggregate target) {
+    return unifyAggregates(null, query, targetCond, target);
+  }
+
+  public static @Nullable MutableRel unifyAggregates(MutableAggregate originQuery,
+      MutableAggregate query, RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
     Map<RexNode, RexNode> targetCondConstantMap =
@@ -1983,8 +2013,37 @@ public class SubstitutionVisitor {
             MutableCalc.of(target, compenRexProgram),
             groupSet, groupSets, aggregateCalls);
       } else {
-        result = MutableAggregate.of(
-            target, groupSet, groupSets, aggregateCalls);
+        if (needCompenAggregate(originQuery, target)) {
+          MutableCalc calcOnTarget = (MutableCalc) target.getParent();
+          MutableAggregate compenAggregate = MutableAggregate.of(
+              target, groupSet, groupSets, aggregateCalls);
+          Map<Integer, Integer> mapping = buildMapping(calcOnTarget);
+          final ImmutableBitSet compensateGroupSet = compenAggregate.groupSet.permute(mapping);
+          final List<AggregateCall> newAggregateCalls = new ArrayList<>();
+          for (AggregateCall call : compenAggregate.aggCalls) {
+            List<Integer> argsList = call.getArgList();
+            if (argsList.size() != 1) {
+              return null;
+            } else {
+              if (mapping.containsKey(argsList.get(0))) {
+                Integer conpenArg = mapping.get(argsList.get(0));
+                newAggregateCalls.add(
+                    AggregateCall.create(call.getAggregation(),
+                        call.isDistinct(), call.isApproximate(),
+                        call.ignoreNulls(), ImmutableList.of(conpenArg), -1, call.distinctKeys,
+                        call.collation, call.type, call.name));
+              } else {
+                return null;
+              }
+            }
+          }
+          MutableCalc newTarget = MutableCalc.of(target, calcOnTarget.program);
+          result = MutableAggregate.of(newTarget,
+              compensateGroupSet, ImmutableList.of(compensateGroupSet), newAggregateCalls);
+        } else {
+          result = MutableAggregate.of(
+              target, groupSet, groupSets, aggregateCalls);
+        }
       }
     } else {
       return null;
@@ -2049,6 +2108,29 @@ public class SubstitutionVisitor {
         return super.visitLiteral(literal);
       }
     };
+  }
+
+  public static boolean needCompenAggregate(MutableAggregate aggregate,
+      MutableAggregate target) {
+    if (!(aggregate.getParent() instanceof MutableCalc) && target
+        .getParent() instanceof MutableCalc) {
+      return true;
+    }
+    return false;
+  }
+
+  private static Map<Integer, Integer> buildMapping(MutableCalc calc) {
+    Pair<RexNode, List<RexNode>> pair = SubstitutionVisitor.explainCalc(calc);
+    Map<Integer, Integer> maps = Maps.newHashMap();
+    for (int i = 0; i < pair.right.size(); i++) {
+      RexNode rexNode = pair.getValue().get(i);
+      if (rexNode instanceof RexInputRef) {
+        RexInputRef ref = (RexInputRef) rexNode;
+        maps.put(ref.getIndex(), maps.size());
+        continue;
+      }
+    }
+    return maps;
   }
 
   /** Returns if one rel is weaker than another. */

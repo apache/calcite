@@ -609,16 +609,16 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         .ok();
   }
 
-  @Test void testAggregateOnProjectAndFilter() {
+  @Test void testNoCalcOnAggregate() {
     String mv = ""
-        + "select \"deptno\", sum(\"salary\"), count(1)\n"
+        + "select sum(\"salary\"), \"deptno\"\n"
         + "from \"emps\"\n"
-        + "group by \"deptno\"";
+        + "group by \"empid\", \"deptno\"";
     String query = ""
-        + "select \"deptno\", count(1)\n"
+        + "select \"deptno\"\n"
         + "from \"emps\"\n"
-        + "where \"deptno\" = 10\n"
-        + "group by \"deptno\"";
+        + "group by \"deptno\""
+        + "limit 1000";
     sql(mv, query).ok();
   }
 
