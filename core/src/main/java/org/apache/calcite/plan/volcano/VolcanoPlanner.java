@@ -73,6 +73,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -884,13 +885,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         final RelSubset equivSubset = getSubset(equivRel);
         for (RelSubset s : subset.set.subsets) {
           if (s.best == rel) {
-            Set<RelSubset> activeSet = new HashSet<>();
             s.best = equivRel;
-
             // Propagate cost improvement since this potentially would change the subset's best cost
-            s.propagateCostImprovements(
-                    this, equivRel.getCluster().getMetadataQuery(),
-                    equivRel, activeSet);
+            propagateCostImprovements(equivRel);
           }
         }
 
@@ -901,6 +898,67 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               subset.getTraitSet());
           assert equivSubset.set != subset.set;
           merge(equivSubset.set, subset.set);
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks whether a relexp has made any subset cheaper, and if it so,
+   * propagate new cost to parent rel nodes.
+   *
+   * @param rel       Relational expression whose cost has improved
+   */
+  void propagateCostImprovements(RelNode rel) {
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Map<RelNode, RelOptCost> propagateRels = new HashMap<>();
+    PriorityQueue<RelNode> propagateHeap = new PriorityQueue<>((o1, o2) -> {
+      RelOptCost c1 = propagateRels.get(o1);
+      RelOptCost c2 = propagateRels.get(o2);
+      if (c1.equals(c2)) {
+        return 0;
+      } else if (c1.isLt(c2)) {
+        return -1;
+      }
+      return 1;
+    });
+    propagateRels.put(rel, getCost(rel, mq));
+    propagateHeap.offer(rel);
+
+    while (!propagateHeap.isEmpty()) {
+      RelNode relNode = propagateHeap.poll();
+      RelOptCost cost = propagateRels.get(relNode);
+
+      for (RelSubset subset : getSet(relNode).subsets) {
+        if (!relNode.getTraitSet().satisfies(subset.getTraitSet())) {
+          continue;
+        }
+        if (!cost.isLt(subset.bestCost)) {
+          continue;
+        }
+        // Update subset best cost when we find a cheaper rel or the current
+        // best's cost is changed
+        subset.timestamp++;
+        LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
+            subset, subset.bestCost, cost);
+
+        subset.bestCost = cost;
+        subset.best = relNode;
+        // since best was changed, cached metadata for this subset should be removed
+        mq.clearCache(subset);
+
+        for (RelNode parent : subset.getParents()) {
+          mq.clearCache(parent);
+          RelOptCost newCost = getCost(parent, mq);
+          RelOptCost existingCost = propagateRels.get(parent);
+          if (existingCost == null || newCost.isLt(existingCost)) {
+            propagateRels.put(parent, newCost);
+            if (existingCost != null) {
+              // Cost reduced, force the heap to adjust its ordering
+              propagateHeap.remove(parent);
+            }
+            propagateHeap.offer(parent);
+          }
         }
       }
     }
@@ -1263,9 +1321,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // 100. We think this happens because the back-links to parents are
     // not established. So, give the subset another chance to figure out
     // its cost.
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     try {
-      subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
+      propagateCostImprovements(rel);
     } catch (CyclicMetadataException e) {
       // ignore
     }
