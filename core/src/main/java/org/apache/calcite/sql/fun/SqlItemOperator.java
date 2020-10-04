@@ -102,7 +102,6 @@ class SqlItemOperator extends SqlSpecialOperator {
       return OperandTypes.family(
           operandType.getKeyType().getSqlTypeName().getFamily());
     case ROW:
-      return OperandTypes.CHARACTER;
     case ANY:
     case DYNAMIC_STAR:
       return OperandTypes.or(
@@ -115,7 +114,8 @@ class SqlItemOperator extends SqlSpecialOperator {
 
   @Override public String getAllowedSignatures(String name) {
     return "<ARRAY>[<INTEGER>]\n"
-        + "<MAP>[<VALUE>]";
+        + "<MAP>[<VALUE>]\n"
+        + "<ROW>[<VALUE>]";
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
@@ -129,18 +129,34 @@ class SqlItemOperator extends SqlSpecialOperator {
       return typeFactory.createTypeWithNullability(operandType.getValueType(),
           true);
     case ROW:
-      String fieldName = opBinding.getOperandLiteralValue(1, String.class);
-      RelDataTypeField field = operandType.getField(fieldName, false, false);
-      if (field == null) {
-        throw new AssertionError("Cannot infer type of field '"
-            + fieldName + "' within ROW type: " + operandType);
-      } else {
-        RelDataType fieldType = field.getType();
-        if (operandType.isNullable()) {
-          fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+      RelDataType fieldType = null;
+      RelDataType indexType = opBinding.getOperandType(1);
+
+      if (SqlTypeFamily.STRING.contains(indexType)) {
+        String fieldName = opBinding.getOperandLiteralValue(1, String.class);
+        RelDataTypeField field = operandType.getField(fieldName, false, false);
+        if (field == null) {
+          throw new AssertionError("Cannot infer type of field '"
+              + fieldName + "' within ROW type: " + operandType);
+        } else {
+          fieldType = field.getType();
         }
-        return fieldType;
+      } else if (SqlTypeFamily.INTEGER.contains(indexType)) {
+        Integer index = opBinding.getOperandLiteralValue(1, Integer.class);
+        if (index == null || index < 1 || index > operandType.getFieldCount()) {
+          throw new AssertionError("Cannot infer type of field at position "
+              + index + " within ROW type: " + operandType);
+        } else {
+          fieldType = operandType.getFieldList().get(index - 1).getType(); // 1 indexed
+        }
+      } else {
+        throw new AssertionError("Unsupported field identifier type: '"
+            + indexType + "'");
       }
+      if (fieldType != null && operandType.isNullable()) {
+        fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+      }
+      return fieldType;
     case ANY:
     case DYNAMIC_STAR:
       return typeFactory.createTypeWithNullability(

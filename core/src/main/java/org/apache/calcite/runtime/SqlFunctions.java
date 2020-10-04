@@ -2517,6 +2517,18 @@ public class SqlFunctions {
     if (object instanceof List && index instanceof Number) {
       return arrayItem((List) object, ((Number) index).intValue());
     }
+    if (index instanceof Number) {
+      return structAccess(object, ((Number) index).intValue() - 1, ""); // 1 indexed
+    }
+    if (index instanceof String) {
+      String indexAsStr = index.toString();
+      try {
+        return structAccess(object, Integer.parseInt(indexAsStr) - 1, ""); // 1 indexed
+      } catch (NumberFormatException e) {
+        return structAccess(object, -1, indexAsStr);
+      }
+    }
+
     return null;
   }
 
