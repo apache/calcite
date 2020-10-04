@@ -151,6 +151,12 @@ public class SqlBinaryOperator extends SqlOperator {
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("/")) {
+      if (call.isOperandNull(0, true)
+          || call.isOperandNull(1, true)) {
+        // null result => CONSTANT monotonicity
+        return SqlMonotonicity.CONSTANT;
+      }
+
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
       if (mono0 == null || mono1 == null) {
@@ -158,7 +164,11 @@ public class SqlBinaryOperator extends SqlOperator {
       }
       if (mono1 == SqlMonotonicity.CONSTANT) {
         if (call.isOperandLiteral(1, false)) {
-          switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
+          BigDecimal value = call.getOperandLiteralValue(1, BigDecimal.class);
+          if (value == null) {
+            return SqlMonotonicity.CONSTANT;
+          }
+          switch (value.signum()) {
           case -1:
 
             // mono / -ve constant --> reverse mono, unstrict

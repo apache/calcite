@@ -10214,6 +10214,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .monotonic(SqlMonotonicity.INCREASING);
     sql("select stream extract(year from rowtime) / 0 from orders")
         .monotonic(SqlMonotonicity.CONSTANT); // +inf is constant!
+    sql("select stream extract(year from rowtime) / null from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select stream null / extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select stream extract(year from rowtime) / cast(null as integer) from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select stream cast(null as integer) / extract(year from rowtime) from orders")
+        .monotonic(SqlMonotonicity.CONSTANT);
 
     // constant / <monotonic> is not monotonic (we don't know whether sign of
     // expression ever changes)
