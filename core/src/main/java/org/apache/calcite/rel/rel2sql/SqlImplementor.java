@@ -1167,8 +1167,18 @@ public abstract class SqlImplementor {
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
             SqlLiteral.createExactNumeric("0", POS));
       } else {
-        return withOrder(op.createCall(qualifier, POS, operands), orderList);
+        return withOrder(
+            withFilter(op.createCall(qualifier, POS, operands), aggCall.filterArg), orderList);
       }
+    }
+
+    /** Wraps a call in a {@link SqlKind#FILTER} call if
+     * {@code filterArg} is greater than zero. */
+    private SqlCall withFilter(SqlCall call, int filterArg) {
+      if (filterArg < 0) {
+        return call;
+      }
+      return SqlStdOperatorTable.FILTER.createCall(POS, call, field(filterArg));
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if

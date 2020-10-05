@@ -203,6 +203,21 @@ class RelToSqlConverterTest {
     sql(query).ok("SELECT *\nFROM \"foodmart\".\"product\"");
   }
 
+  @Test void testAggregateFilterWhereToSqlFromProductTable() {
+    String query = "select " +
+          "sum(\"shelf_width\") " +
+            "filter (where \"net_weight\" > 0), " +
+          "sum(\"shelf_width\")" +
+        "from \"foodmart\".\"product\"" +
+        "where \"product_id\" > 0 " +
+        "group by \"product_id\"";
+    sql(query).ok("SELECT SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE), SUM" +
+        "(\"shelf_width\")\n" +
+        "FROM \"foodmart\".\"product\"\n" +
+        "WHERE \"product_id\" > 0\n" +
+        "GROUP BY \"product_id\"");
+  }
+
   @Test void testSimpleSelectQueryFromProductTable() {
     String query = "select \"product_id\", \"product_class_id\" from \"product\"";
     final String expected = "SELECT \"product_id\", \"product_class_id\"\n"
