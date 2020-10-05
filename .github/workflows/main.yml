@@ -97,6 +97,10 @@ jobs:
     name: 'macOS (JDK 15)'
     runs-on: macos-latest
     steps:
+      - script:
+        title: time zone information
+        inputs:
+          - content: date -R
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50

@@ -639,6 +639,9 @@ public class Smalls {
       return time == null ? 0 : SqlFunctions.toLong(time);
     }
 
+    public static Timestamp timestampFunReturnsTimestamp(Timestamp timestamp) {
+      return timestamp;
+    }
   }
 
   /** Example of a user-defined aggregate function (UDAF). */
