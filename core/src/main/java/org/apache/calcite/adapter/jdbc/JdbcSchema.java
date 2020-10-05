@@ -41,6 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -78,6 +79,9 @@ public class JdbcSchema implements Schema {
   final JdbcConvention convention;
   private ImmutableMap<String, JdbcTable> tableMap;
   private final boolean snapshot;
+
+  @VisibleForTesting
+  public static boolean forceTableComputation = false;
 
   @Experimental
   public static final ThreadLocal<Foo> THREAD_METADATA = new ThreadLocal<>();
@@ -342,7 +346,7 @@ public class JdbcSchema implements Schema {
   }
 
   public Table getTable(String name) {
-    return getTableMap(false).get(name);
+    return getTableMap(forceTableComputation).get(name);
   }
 
   private synchronized ImmutableMap<String, JdbcTable> getTableMap(
