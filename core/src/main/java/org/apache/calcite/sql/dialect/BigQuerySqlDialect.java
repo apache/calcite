@@ -117,6 +117,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
+
   @Override public @Nonnull SqlParser.Config configureParser(
       SqlParser.Config configBuilder) {
     return super.configureParser(configBuilder)

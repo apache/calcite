@@ -1380,6 +1380,23 @@ from (values 0, null, 0, 1) as t(x);
 
 !ok
 
+# Composite COUNT and FILTER
+select count(*) as c,
+  count(*) filter (where z > 1) as cf,
+  count(x) as cx,
+  count(x) filter (where z > 1) as cxf,
+  count(x, y) as cxy,
+  count(x, y) filter (where z > 1) as cxyf
+from (values (1, 1, 1), (2, 2, 2), (3, null, 3), (null, 4, 4)) as t(x, y, z);
++---+----+----+-----+-----+------+
+| C | CF | CX | CXF | CXY | CXYF |
++---+----+----+-----+-----+------+
+| 4 |  3 |  3 |   2 |   2 |    1 |
++---+----+----+-----+-----+------+
+(1 row)
+
+!ok
+
 # [CALCITE-1293] Bad code generated when argument to COUNT(DISTINCT) is a
 # GROUP BY column
 select count(distinct deptno) as cd, count(*) as c

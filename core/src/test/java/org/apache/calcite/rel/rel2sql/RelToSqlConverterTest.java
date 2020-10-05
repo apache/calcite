@@ -203,6 +203,66 @@ class RelToSqlConverterTest {
     sql(query).ok("SELECT *\nFROM \"foodmart\".\"product\"");
   }
 
+  @Test void testAggregateFilterWhereToSqlFromProductTable() {
+    String query = "select\n"
+        + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
+        + "  sum(\"shelf_width\")\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "where \"product_id\" > 0\n"
+        + "group by \"product_id\"";
+    final String expected = "SELECT"
+        + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE),"
+        + " SUM(\"shelf_width\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" > 0\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test void testAggregateFilterWhereToBigQuerySqlFromProductTable() {
+    String query = "select\n"
+        + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
+        + "  sum(\"shelf_width\")\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "where \"product_id\" > 0\n"
+        + "group by \"product_id\"";
+    final String expected = "SELECT SUM(CASE WHEN net_weight > 0 IS TRUE"
+        + " THEN shelf_width ELSE NULL END), "
+        + "SUM(shelf_width)\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_id > 0\n"
+        + "GROUP BY product_id";
+    sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test void testPivotToSqlFromProductTable() {
+    String query = "select * from (\n"
+        + "  select \"shelf_width\", \"net_weight\", \"product_id\"\n"
+        + "  from \"foodmart\".\"product\")\n"
+        + "  pivot (sum(\"shelf_width\") as w, count(*) as c\n"
+        + "    for (\"product_id\") in (10, 20))";
+    final String expected = "SELECT \"net_weight\","
+        + " SUM(\"shelf_width\") FILTER (WHERE \"product_id\" = 10) AS \"10_W\","
+        + " COUNT(*) FILTER (WHERE \"product_id\" = 10) AS \"10_C\","
+        + " SUM(\"shelf_width\") FILTER (WHERE \"product_id\" = 20) AS \"20_W\","
+        + " COUNT(*) FILTER (WHERE \"product_id\" = 20) AS \"20_C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"net_weight\"";
+    // BigQuery does not support FILTER, so we generate CASE around the
+    // arguments to the aggregate functions.
+    final String expectedBigQuery = "SELECT net_weight,"
+        + " SUM(CASE WHEN product_id = 10 "
+        + "THEN shelf_width ELSE NULL END) AS `10_W`,"
+        + " COUNT(CASE WHEN product_id = 10 THEN 1 ELSE NULL END) AS `10_C`,"
+        + " SUM(CASE WHEN product_id = 20 "
+        + "THEN shelf_width ELSE NULL END) AS `20_W`,"
+        + " COUNT(CASE WHEN product_id = 20 THEN 1 ELSE NULL END) AS `20_C`\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY net_weight";
+    sql(query).ok(expected)
+        .withBigQuery().ok(expectedBigQuery);
+  }
+
   @Test void testSimpleSelectQueryFromProductTable() {
     String query = "select \"product_id\", \"product_class_id\" from \"product\"";
     final String expected = "SELECT \"product_id\", \"product_class_id\"\n"
@@ -4770,11 +4830,11 @@ class RelToSqlConverterTest {
   }
 
   @Test void testWithinGroup4() {
-    // filter in AggregateCall is not unparsed
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "FILTER (WHERE \"net_weight\" > 0 IS TRUE) "
         + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";

@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -1140,44 +1141,83 @@ public abstract class SqlImplementor {
 
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
-      final SqlOperator op = aggCall.getAggregation();
-      final List<SqlNode> operandList = Expressions.list();
-      for (int arg : aggCall.getArgList()) {
-        operandList.add(field(arg));
-      }
+      return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
+          Util.transform(aggCall.getArgList(), this::field),
+          aggCall.filterArg, aggCall.collation);
+    }
 
-      if ((op instanceof SqlCountAggFunction) && operandList.isEmpty()) {
-        // If there is no parameter in "count" function, add a star identifier to it
-        operandList.add(SqlIdentifier.STAR);
-      }
-
+    /** Converts a call to an aggregate function, with a given list of operands,
+     * to an expression. */
+    private SqlCall toSql(SqlOperator op, boolean distinct,
+        List<SqlNode> operandList, int filterArg, RelCollation collation) {
       final SqlLiteral qualifier =
-          aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
-      final SqlNode[] operands = operandList.toArray(new SqlNode[0]);
-      List<SqlNode> orderByList = Expressions.list();
-      for (RelFieldCollation field : aggCall.collation.getFieldCollations()) {
-        addOrderItem(orderByList, field);
-      }
-      SqlNodeList orderList = new SqlNodeList(orderByList, POS);
+          distinct ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
-        final SqlNode node =
-            withOrder(
-                SqlStdOperatorTable.SUM.createCall(qualifier, POS, operands),
-                orderList);
+        final SqlNode node = toSql(SqlStdOperatorTable.SUM, distinct,
+            operandList, filterArg, collation);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
             SqlLiteral.createExactNumeric("0", POS));
-      } else {
-        return withOrder(op.createCall(qualifier, POS, operands), orderList);
       }
+
+      // Handle filter on dialects that do support FILTER by generating CASE.
+      if (filterArg >= 0 && !dialect.supportsAggregateFunctionFilter()) {
+        // SUM(x) FILTER(WHERE b)  ==>  SUM(CASE WHEN b THEN x END)
+        // COUNT(*) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN 1 END)
+        // COUNT(x) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN x END)
+        // COUNT(x, y) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN x END, y)
+        final SqlNodeList whenList = SqlNodeList.of(field(filterArg));
+        final SqlNodeList thenList =
+            SqlNodeList.of(operandList.isEmpty()
+                ? SqlLiteral.createExactNumeric("1", POS)
+                : operandList.get(0));
+        final SqlNode elseList = SqlLiteral.createNull(POS);
+        final SqlCall caseCall =
+            SqlStdOperatorTable.CASE.createCall(null, POS, null, whenList,
+                thenList, elseList);
+        final List<SqlNode> newOperandList = new ArrayList<>();
+        newOperandList.add(caseCall);
+        if (operandList.size() > 1) {
+          newOperandList.addAll(Util.skip(operandList));
+        }
+        return toSql(op, distinct, newOperandList, -1, collation);
+      }
+
+      final SqlNode[] operands;
+      if (op instanceof SqlCountAggFunction && operandList.isEmpty()) {
+        // If there is no parameter in "count" function, add a star identifier to it
+        operands = new SqlNode[] {SqlIdentifier.STAR};
+      } else {
+        operands = operandList.toArray(new SqlNode[0]);
+      }
+      final SqlCall call =
+          op.createCall(qualifier, POS, operands);
+
+      // Handle filter by generating FILTER (WHERE ...)
+      final SqlCall call2;
+      if (filterArg < 0) {
+        call2 = call;
+      } else {
+        assert dialect.supportsAggregateFunctionFilter(); // we checked above
+        call2 = SqlStdOperatorTable.FILTER.createCall(POS, call,
+            field(filterArg));
+      }
+
+      // Handle collation
+      return withOrder(call2, collation);
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
-     * {@code orderList} is non-empty. */
-    private SqlNode withOrder(SqlCall call, SqlNodeList orderList) {
-      if (orderList == null || orderList.size() == 0) {
+     * {@code collation} is non-empty. */
+    private SqlCall withOrder(SqlCall call, RelCollation collation) {
+      if (collation.getFieldCollations().isEmpty()) {
         return call;
       }
-      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderList);
+      final List<SqlNode> orderByList = new ArrayList<>();
+      for (RelFieldCollation field : collation.getFieldCollations()) {
+        addOrderItem(orderByList, field);
+      }
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
+          new SqlNodeList(orderByList, POS));
     }
 
     /** Converts a collation to an ORDER BY item. */

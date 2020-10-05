@@ -47,6 +47,10 @@ public class HsqldbSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
+
   @Override public boolean supportsWindowFunctions() {
     return false;
   }
