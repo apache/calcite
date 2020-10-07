@@ -52,6 +52,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalExchange;
@@ -3130,6 +3131,36 @@ public class RelMetadataTest extends SqlToRelTestBase {
             .get(0)
             .toString(),
         is("=($0, $1)"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4315">[CALCITE-4315]
+   * NPE in RelMdUtil#checkInputForCollationAndLimit</a>. */
+  @Test void testCheckInputForCollationAndLimit() {
+    final Project rel = (Project) convertSql("select * from emp, dept");
+    final Join join = (Join) rel.getInput();
+    final RelOptTable empTable = join.getInput(0).getTable();
+    final RelOptTable deptTable = join.getInput(1).getTable();
+    Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      checkInputForCollationAndLimit(cluster, empTable, deptTable);
+      return null;
+    });
+  }
+
+  private void checkInputForCollationAndLimit(RelOptCluster cluster, RelOptTable empTable,
+      RelOptTable deptTable) {
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final List<RelHint> hints = ImmutableList.of();
+    final LogicalTableScan empScan = LogicalTableScan.create(cluster, empTable, hints);
+    final LogicalTableScan deptScan = LogicalTableScan.create(cluster, deptTable, hints);
+    final LogicalJoin join =
+        LogicalJoin.create(empScan, deptScan, ImmutableList.of(),
+            rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
+    assertTrue(
+        RelMdUtil.checkInputForCollationAndLimit(mq, join, join.getTraitSet().getCollation(),
+            null, null), () -> "we are checking a join against its own collation, "
+        + "fetch=null, offset=null => checkInputForCollationAndLimit must be true. join=" + join);
   }
 
   /**
