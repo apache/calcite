@@ -870,25 +870,41 @@ public class RelMdUtil {
    * {@link org.apache.calcite.rel.core.Sort} with limit and optional offset. */
   public static boolean checkInputForCollationAndLimit(RelMetadataQuery mq,
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
-    // Check if the input is already sorted
-    boolean alreadySorted = collation.getFieldCollations().isEmpty();
-    for (RelCollation inputCollation : mq.collations(input)) {
+    return alreadySorted(mq, input, collation) && alreadySmaller(mq, input, offset, fetch);
+  }
+
+  // Checks if the input is already sorted
+  private static boolean alreadySorted(RelMetadataQuery mq, RelNode input, RelCollation collation) {
+    if (collation.getFieldCollations().isEmpty()) {
+      return true;
+    }
+    final ImmutableList<RelCollation> collations = mq.collations(input);
+    if (collations == null) {
+      // Cannot be determined
+      return false;
+    }
+    for (RelCollation inputCollation : collations) {
       if (inputCollation.satisfies(collation)) {
-        alreadySorted = true;
-        break;
+        return true;
       }
     }
-    // Check if we are not reducing the number of tuples
-    boolean alreadySmaller = true;
+    return false;
+  }
+
+  // Checks if we are not reducing the number of tuples
+  private static boolean alreadySmaller(RelMetadataQuery mq, RelNode input,
+      RexNode offset, RexNode fetch) {
+    if (fetch == null) {
+      return true;
+    }
     final Double rowCount = mq.getMaxRowCount(input);
-    if (rowCount != null && fetch != null) {
-      final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
-      final int limit = RexLiteral.intValue(fetch);
-      if ((double) offsetVal + (double) limit < rowCount) {
-        alreadySmaller = false;
-      }
+    if (rowCount == null) {
+      // Cannot be determined
+      return false;
     }
-    return alreadySorted && alreadySmaller;
+    final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
+    final int limit = RexLiteral.intValue(fetch);
+    return (double) offsetVal + (double) limit >= rowCount;
   }
 
   /**
