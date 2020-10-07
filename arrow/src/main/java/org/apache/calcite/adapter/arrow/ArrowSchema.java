@@ -18,26 +18,19 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.UInt4Vector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.util.Sources;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Schema mapped onto a set of Arrow files.
@@ -77,7 +70,6 @@ class ArrowSchema extends AbstractSchema {
   }
 
   @Override protected Map<String, Table> getTableMap() {
-
     if (tables == null) {
       tables = new HashMap<>();
 
@@ -98,28 +90,9 @@ class ArrowSchema extends AbstractSchema {
         SeekableReadChannel seekableReadChannel = new SeekableReadChannel(fileInputStream.getChannel());
         RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
         ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
-
-        List<VectorSchemaRoot> list = null;
-        try {
-          list = arrowFileReader.getRecordBlocks().stream().map(block -> {
-            try {
-              if (!arrowFileReader.loadRecordBatch(block)) {
-                throw new IllegalStateException("Failed to load RecordBatch");
-              }
-              return arrowFileReader.getVectorSchemaRoot();
-            } catch (IOException e) {
-              throw new IllegalStateException();
-            }
-          }).collect(Collectors.toList());
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-        VectorSchemaRoot[] vectorSchemaRoots = new VectorSchemaRoot[list.size()];
-        list.toArray(vectorSchemaRoots);
-        UInt4Vector intVector = new UInt4Vector("vectorName", allocator);
         tables.put(
             trim(file.getName(), ".arrow").toUpperCase(),
-            new ArrowTable(vectorSchemaRoots, intVector, null));
+            new ArrowTable(null, arrowFileReader));
       }
     }
     return tables;

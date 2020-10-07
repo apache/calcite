@@ -17,8 +17,9 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+
+import org.apache.arrow.vector.ipc.ArrowFileReader;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -36,6 +37,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,20 +45,24 @@ import java.util.stream.Collectors;
 public class ArrowTable extends AbstractTable implements TranslatableTable, QueryableTable {
 
   private final RelProtoDataType protoRowType;
-  private final VectorSchemaRoot[] vectorSchemaRoots;
-  private UInt4Vector selectionVector;
+  private VectorSchemaRoot vectorSchemaRoot;
+  ArrowFileReader arrowFileReader;
 
-  public ArrowTable(VectorSchemaRoot[] vectorSchemaRoots, UInt4Vector selectionVector, RelProtoDataType protoRowType) {
-    this.vectorSchemaRoots = vectorSchemaRoots;
+  public ArrowTable(RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
+    try {
+      this.vectorSchemaRoot = arrowFileReader.getVectorSchemaRoot();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     this.protoRowType = protoRowType;
-    this.selectionVector = selectionVector;
+    this.arrowFileReader = arrowFileReader;
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (this.protoRowType != null) {
       return this.protoRowType.apply(typeFactory);
     }
-    return deduceRowType(this.vectorSchemaRoots[0], (JavaTypeFactory) typeFactory);
+    return deduceRowType(this.vectorSchemaRoot, (JavaTypeFactory) typeFactory);
   }
 
   public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
@@ -67,7 +73,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(vectorSchemaRoots, fields, selectionVector);
+          return new ArrowEnumerator(fields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
