@@ -238,7 +238,7 @@ public class JavaTypeFactoryImpl
     default:
       break;
     }
-    return null;
+    return Object.class;
   }
 
   @Override public RelDataType toSql(RelDataType type) {
