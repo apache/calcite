@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 
@@ -27,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package related to data types.
