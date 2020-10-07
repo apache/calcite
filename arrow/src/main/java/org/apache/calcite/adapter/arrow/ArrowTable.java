@@ -17,7 +17,7 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 
@@ -45,12 +45,12 @@ import java.util.stream.Collectors;
 public class ArrowTable extends AbstractTable implements TranslatableTable, QueryableTable {
 
   private final RelProtoDataType protoRowType;
-  private VectorSchemaRoot vectorSchemaRoot;
+  private Schema schema;
   ArrowFileReader arrowFileReader;
 
   public ArrowTable(RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
     try {
-      this.vectorSchemaRoot = arrowFileReader.getVectorSchemaRoot();
+      this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -62,7 +62,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     if (this.protoRowType != null) {
       return this.protoRowType.apply(typeFactory);
     }
-    return deduceRowType(this.vectorSchemaRoot, (JavaTypeFactory) typeFactory);
+    return deduceRowType(this.schema, (JavaTypeFactory) typeFactory);
   }
 
   public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
@@ -96,10 +96,10 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new ArrowTableScan(context.getCluster(), relOptTable, this, fields);
   }
 
-  private RelDataType deduceRowType(VectorSchemaRoot vectorSchemaRoot, JavaTypeFactory typeFactory) {
-    List<Pair<String, RelDataType>> ret = vectorSchemaRoot.getFieldVectors().stream().map(fieldVector -> {
-      RelDataType relDataType = ArrowFieldType.of(fieldVector.getField().getType()).toType(typeFactory);
-      return new Pair<>(fieldVector.getField().getName(), relDataType);
+  private RelDataType deduceRowType(Schema schema, JavaTypeFactory typeFactory) {
+    List<Pair<String, RelDataType>> ret = schema.getFields().stream().map(field -> {
+      RelDataType relDataType = ArrowFieldType.of(field.getType()).toType(typeFactory);
+      return new Pair<>(field.getName(), relDataType);
     }).collect(Collectors.toList());
     return typeFactory.createStructType(ret);
   }
