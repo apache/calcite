@@ -31,13 +31,15 @@ import java.util.List;
 
 public class ArrowEnumerator implements Enumerator<Object> {
   private final int[] fields;
+  private ArrowFileReader arrowFileReader;
   private VectorSchemaRoot vectorSchemaRoot;
   private int vectorIndex = -1;
 
   public ArrowEnumerator(int[] fields, ArrowFileReader arrowFileReader) {
     this.fields = fields;
+    this.arrowFileReader = arrowFileReader;
     try {
-      if (arrowFileReader.loadRecordBatch(arrowFileReader.getRecordBlocks().get(0))) {
+      if (arrowFileReader.loadNextBatch()) {
         vectorSchemaRoot = getProjectedVectorSchemaRoot(arrowFileReader.getVectorSchemaRoot());
       }
       else {
@@ -82,7 +84,17 @@ public class ArrowEnumerator implements Enumerator<Object> {
 
   public boolean moveNext() {
     if (vectorIndex >= (vectorSchemaRoot.getRowCount() - 1)) {
+      boolean hasBatch = false;
+      try {
+        hasBatch = arrowFileReader.loadNextBatch();
+      } catch (IOException e) {}
+
+      if (hasBatch) {
+        vectorIndex = 0;
+        return true;
+      } else {
         return false;
+      }
     }
     vectorIndex++;
     return true;
