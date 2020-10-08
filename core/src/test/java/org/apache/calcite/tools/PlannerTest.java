@@ -73,6 +73,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -145,6 +146,20 @@ class PlannerTest {
         SqlParser.config().withIdentifierMaxLength(512));
     planner.parse("select name as "
         + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
+  }
+
+  @Test void testCurrentDatetime() throws Exception {
+    Planner planner = getPlanner(null,
+        SqlParser.config());
+    SqlNode node = planner.parse("select current_datetime");
+    planner.validate(node);
+  }
+
+  @Test void testNiladicForBigQuery() throws Exception {
+    Planner planner = getPlanner(null,
+        SqlParser.config().withConformance(SqlConformanceEnum.BIG_QUERY));
+    SqlNode node = planner.parse("select current_time, current_time(), current_date, current_date(), current_timestamp, current_timestamp(), current_datetime, current_datetime()");
+    planner.validate(node);
   }
 
   /** Unit test that parses, validates and converts the query using
