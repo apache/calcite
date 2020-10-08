@@ -276,7 +276,7 @@ Accumulator merge(Accumulator a, Accumulator a2) {
   return new Accumulator(a.sum + a2.sum);
 }
 int result(Accumulator a) {
-  return new Accumulator(a.sum + x);
+  return a.sum;
 }
 {% endhighlight %}
 
