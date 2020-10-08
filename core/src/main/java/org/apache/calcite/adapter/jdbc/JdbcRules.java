@@ -196,7 +196,10 @@ public class JdbcRules {
       };
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
-   * create JDBC relational expressions for everything. */
+   * create JDBC relational expressions for everything.
+   * @deprecated very few factories are implemented, so refrain from using them
+   **/
+  @Deprecated
   public static final RelBuilderFactory JDBC_BUILDER =
       RelBuilder.proto(
           Contexts.of(PROJECT_FACTORY,
