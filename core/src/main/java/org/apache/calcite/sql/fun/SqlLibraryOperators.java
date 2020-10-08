@@ -212,6 +212,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE, null, OperandTypes.STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "CURRENT_DATETIME([timezone])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_DATETIME =
+      new SqlFunction("CURRENT_DATETIME", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE), null,
+          OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
    * a given number of seconds after 1970-01-01. */
   @LibraryOperator(libraries = {BIG_QUERY})

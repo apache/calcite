@@ -1314,6 +1314,7 @@ Not implemented:
 | LOCALTIMESTAMP(precision) | Returns the current date and time in the session time zone in a value of datatype TIMESTAMP, with *precision* digits of precision
 | CURRENT_TIME              | Returns the current time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
+| CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
 | CURRENT_TIMESTAMP         | Returns the current date and time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
@@ -2433,6 +2434,7 @@ semantics.
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| b | CURRENT_DATETIME([timezone])                   | Returns the currenttime as a DATETIME from *timzezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
