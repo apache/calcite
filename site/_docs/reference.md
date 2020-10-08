@@ -462,6 +462,7 @@ CONTINUE,
 **CURRENT**,
 **CURRENT_CATALOG**,
 **CURRENT_DATE**,
+**CURRENT_DATETIME**,
 **CURRENT_DEFAULT_TRANSFORM_GROUP**,
 **CURRENT_PATH**,
 **CURRENT_ROLE**,
@@ -1291,6 +1292,7 @@ Not implemented:
 | LOCALTIMESTAMP(precision) | Returns the current date and time in the session time zone in a value of datatype TIMESTAMP, with *precision* digits of precision
 | CURRENT_TIME              | Returns the current time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
+| CURRENT_DATETIME          | Returns the current datetime in the session time zone, in a value of datatype TIMESTAMP
 | CURRENT_TIMESTAMP         | Returns the current date and time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*

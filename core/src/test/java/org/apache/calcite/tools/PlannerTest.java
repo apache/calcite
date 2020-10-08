@@ -158,7 +158,8 @@ class PlannerTest {
   @Test void testNiladicForBigQuery() throws Exception {
     Planner planner = getPlanner(null,
         SqlParser.config().withConformance(SqlConformanceEnum.BIG_QUERY));
-    SqlNode node = planner.parse("select current_time, current_time(), current_date, current_date(), current_timestamp, current_timestamp(), current_datetime, current_datetime()");
+    SqlNode node = planner.parse("select current_time, current_time(), current_date, "
+            + "current_date(), current_timestamp, current_timestamp(), current_datetime, current_datetime()");
     planner.validate(node);
   }
 
