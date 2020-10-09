@@ -38,13 +38,7 @@ fun DependencyConstraintHandlerScope.runtimev(
 ) =
     "runtime"(notation + ":" + versionProp.v)
 
-javaPlatform {
-    allowDependencies()
-}
-
 dependencies {
-    api(platform("com.fasterxml.jackson:jackson-bom:${"jackson".v}"))
-
     // Parenthesis are needed here: https://github.com/gradle/gradle/issues/9248
     (constraints) {
         // api means "the dependency is for both compilation and runtime"
@@ -54,7 +48,10 @@ dependencies {
         apiv("com.beust:jcommander")
         apiv("com.datastax.cassandra:cassandra-driver-core")
         apiv("com.esri.geometry:esri-geometry-api")
+        apiv("com.fasterxml.jackson.core:jackson-annotations", "jackson")
+        apiv("com.fasterxml.jackson.core:jackson-core", "jackson")
         apiv("com.fasterxml.jackson.core:jackson-databind")
+        apiv("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", "jackson")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.stephenc.jcip:jcip-annotations")
         apiv("com.google.code.findbugs:jsr305", "findbugs.jsr305")
