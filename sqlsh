@@ -19,8 +19,9 @@
 # Example:
 # $ ./sqlsh select \* from du order by 1 limit 3
 
-# Build classpath on first call.
-# (To force rebuild, remove target/fullclasspath.txt.)
+# The script updates the classpath on each execution,
+# You might use CACHE_SQLLINE_CLASSPATH=Y environment variable to cache it
+# To build classpath jar manually use ./gradlew buildSqllineClasspath
 
 # Deduce whether we are running cygwin
 case $(uname -s) in
@@ -28,19 +29,20 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
-root=$(cd "$(dirname "$(readlink $0)")"; pwd)
+# readlink in macOS resolves only links, and it returns empty results if the path points to a file
+root=$0
+if [[ -L "$root" ]]; then
+  root=$(readlink "$root")
+fi
+root=$(cd "$(dirname "$root")"; pwd)
 
 CP=$root/build/libs/sqllineClasspath.jar
-if [ ! -f $CP ]; then
-  (
-    cd $root
-    ./gradlew :buildSqllineClasspath
-  )
+
+if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
+  $root/gradlew --console plain -q :buildSqllineClasspath
 fi
 
 VM_OPTS=
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
 
 exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS org.apache.calcite.adapter.os.SqlShell "$@"
-
-# End sqlsh

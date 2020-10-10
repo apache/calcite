@@ -30,6 +30,9 @@ import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
+    // java-base is needed for platform(...) resolution,
+    // see https://github.com/gradle/gradle/issues/14822
+    `java-base`
     publishing
     // Verification
     checkstyle
@@ -175,11 +178,19 @@ val dataSetsForSqlline = listOf(
 
 val sqllineClasspath by configurations.creating {
     isCanBeConsumed = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.CLASSES_AND_RESOURCES))
+        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, JavaVersion.current().majorVersion.toInt())
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
 }
 
 dependencies {
     sqllineClasspath(platform(project(":bom")))
     sqllineClasspath("sqlline:sqlline")
+    sqllineClasspath(platform("com.fasterxml.jackson:jackson-bom:2.11.2"))
+    sqllineClasspath("com.fasterxml.jackson.core:jackson-core")
     for (p in adaptersForSqlline) {
         sqllineClasspath(project(p))
     }
@@ -196,7 +207,12 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     manifest {
         attributes(
             "Main-Class" to "sqlline.SqlLine",
-            "Class-Path" to provider { sqllineClasspath.joinToString(" ") { it.absolutePath } }
+            "Class-Path" to provider {
+                // Class-Path is a list of URLs
+                sqllineClasspath.joinToString(" ") {
+                    it.toURI().toURL().toString()
+                }
+            }
         )
     }
 }

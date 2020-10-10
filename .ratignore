@@ -13,6 +13,7 @@
 **/data.txt
 **/data2.txt
 .idea/vcs.xml
+example/csv/src/test/resources/smoke_test.sql
 
 # TODO: remove when pom.xml files are removed
 src/main/config/licenses
