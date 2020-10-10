@@ -229,7 +229,7 @@ public abstract class Prepare {
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
     Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
     final SqlToRelConverter sqlToRelConverter =
-        getSqlToRelConverter(validator, catalogReader, config);
+        getSqlToRelConverter(validator, catalogReader, configHolder.get());
 
     SqlExplain sqlExplain = null;
     if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
