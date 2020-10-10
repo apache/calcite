@@ -142,7 +142,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
 
-    val sourceSets = allprojects
+    val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .map { it.named("main") }
 
@@ -156,7 +156,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
 
-    val sourceSets = allprojects
+    val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
