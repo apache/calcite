@@ -37,11 +37,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import org.apache.commons.collections.CollectionUtils;
 
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
-import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -172,6 +172,6 @@ public class InnodbToEnumerableConverter extends ConverterImpl
     if (CollectionUtils.isEmpty(values)) {
       return Collections.emptyList();
     }
-    return Lists.transform(values, Expressions::constant);
+    return Util.transform(values, Expressions::constant);
   }
 }
