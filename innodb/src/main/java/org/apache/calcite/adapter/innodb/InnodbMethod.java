@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.innodb;
 import org.apache.calcite.linq4j.tree.Types;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.Immutable;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -32,7 +31,6 @@ public enum InnodbMethod {
   INNODB_QUERYABLE_QUERY(InnodbTable.InnodbQueryable.class, "query",
       List.class, List.class, IndexCondition.class, Boolean.class);
 
-  @Immutable
   public final Method method;
 
   public static final ImmutableMap<Method, InnodbMethod> MAP;
