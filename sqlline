@@ -20,21 +20,27 @@
 # $ ./sqlline
 # sqlline> !connect jdbc:calcite: admin admin
 
+# The script updates the classpath on each execution,
+# You might use CACHE_SQLLINE_CLASSPATH=Y environment variable to cache it
+# To build classpath jar manually use ./gradlew buildSqllineClasspath
+
 # Deduce whether we are running cygwin
 case $(uname -s) in
 (CYGWIN*) cygwin=true;;
 (*) cygwin=;;
 esac
 
-# Build classpath on first call. To update it run ./gradlew buildSqllineClasspath
-root=$(cd "$(dirname "$(readlink $0)")"; pwd)
+# readlink in macOS resolves only links, and it returns empty results if the path points to a file
+root=$0
+if [[ -L "$root" ]]; then
+  root=$(readlink "$root")
+fi
+root=$(cd "$(dirname "$root")"; pwd)
 
 CP=$root/build/libs/sqllineClasspath.jar
-if [ ! -f $CP ]; then
-  (
-    cd $root
-    ./gradlew :buildSqllineClasspath
-  )
+
+if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
+  $root/gradlew --console plain -q :buildSqllineClasspath
 fi
 
 VM_OPTS=
@@ -45,6 +51,4 @@ fi
 
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
 
-exec java -Xmx1g $VM_OPTS $JAVA_OPTS -jar build/libs/sqllineClasspath.jar "$@"
-
-# End sqlline
+exec java -Xmx1g $VM_OPTS $JAVA_OPTS -jar "$root/build/libs/sqllineClasspath.jar" "$@"

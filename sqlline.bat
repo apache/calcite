@@ -21,10 +21,16 @@
 :: > sqlline.bat
 :: sqlline> !connect jdbc:calcite: admin admin
 
-:: Copy dependency jars on first call.
-:: To force jar refresh, remove core\target\dependencies)
-if not exist build\libs\sqllineClasspath.jar (call gradlew buildSqllineClasspath)
+:: The script updates the classpath on each execution,
+:: You might add CACHE_SQLLINE_CLASSPATH environment variable to cache it
+:: To build classpath jar manually use gradlew buildSqllineClasspath
+set DIRNAME=%~dp0
+if "%DIRNAME%" == "" set DIRNAME=.
+set CP=%DIRNAME%\build\libs\sqllineClasspath.jar
 
-java -Xmx1G -jar build\libs\sqllineClasspath.jar %*
+if not defined CACHE_SQLLINE_CLASSPATH (
+  if exist "%CP%" del "%CP%"
+)
+if not exist "%CP%" (call "%DIRNAME%\gradlew" --console plain -q :buildSqllineClasspath)
 
-:: End sqlline.bat
+java -Xmx1g -jar "%CP%" %*
