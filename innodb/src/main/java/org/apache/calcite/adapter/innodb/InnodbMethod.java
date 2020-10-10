@@ -31,6 +31,7 @@ public enum InnodbMethod {
   INNODB_QUERYABLE_QUERY(InnodbTable.InnodbQueryable.class, "query",
       List.class, List.class, IndexCondition.class, Boolean.class);
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   public static final ImmutableMap<Method, InnodbMethod> MAP;
