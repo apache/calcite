@@ -55,7 +55,7 @@ public class InnodbProject extends Project implements InnodbRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     final InnodbRules.RexToInnodbTranslator translator =
         new InnodbRules.RexToInnodbTranslator(

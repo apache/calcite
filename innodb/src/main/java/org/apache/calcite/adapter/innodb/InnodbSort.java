@@ -59,7 +59,7 @@ public class InnodbSort extends Sort implements InnodbRel {
     return new InnodbSort(getCluster(), traitSet, input, collation);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
 
     List<RelFieldCollation> sortCollations = collation.getFieldCollations();

@@ -79,7 +79,7 @@ public class InnodbTable extends AbstractQueryableTable
     this.tableName = tableName;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "InnodbTable {" + tableName + "}";
   }
 
@@ -87,7 +87,7 @@ public class InnodbTable extends AbstractQueryableTable
     return schema.getRelDataType(tableName);
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowTypeSupplier.get().apply(typeFactory);
   }
 
@@ -171,7 +171,7 @@ public class InnodbTable extends AbstractQueryableTable
     TableReader tableReader = tableReaderFactory.createTableReader(tableName);
     tableReader.open();
     return new AbstractEnumerable<Object>() {
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         Iterator<GenericRecord> resultIterator;
         LOGGER.debug("Create query iterator, queryType={}, indexName={}, "
                 + "pointQueryKey={}, projection={}, rangeQueryKey={}{} AND {}{}, "
@@ -220,12 +220,12 @@ public class InnodbTable extends AbstractQueryableTable
     };
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new InnodbQueryable<>(queryProvider, schema, this, tableName);
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
     return new InnodbTableScan(cluster, cluster.traitSetOf(InnodbRel.CONVENTION),
@@ -244,7 +244,7 @@ public class InnodbTable extends AbstractQueryableTable
       super(queryProvider, schema, table, tableName);
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       //noinspection unchecked
       final Enumerable<T> enumerable =
           (Enumerable<T>) getTable().query(getTableReaderFactory());

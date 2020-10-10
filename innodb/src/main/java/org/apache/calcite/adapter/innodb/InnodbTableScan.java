@@ -84,13 +84,13 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.innodbTable = innodbTable;
     implementor.table = table;
     implementor.setIndexCondition(indexCondition);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .itemIf("forceIndex", forceIndexName, forceIndexName != null);
   }

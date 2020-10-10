@@ -77,7 +77,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
         SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder list = new BlockBuilder();
     final InnodbRel.Implementor innodbImplementor = new InnodbRel.Implementor();
     innodbImplementor.visitChild(0, getInput());

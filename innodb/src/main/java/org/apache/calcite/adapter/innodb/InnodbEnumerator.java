@@ -66,7 +66,7 @@ class InnodbEnumerator implements Enumerator<Object> {
    *
    * @return a new row from the results
    */
-  public Object current() {
+  @Override public Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
       return currentRowField(fieldTypes.get(0));
@@ -119,7 +119,7 @@ class InnodbEnumerator implements Enumerator<Object> {
     }
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (iterator.hasNext()) {
       current = iterator.next();
       return true;
@@ -128,11 +128,11 @@ class InnodbEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     // Nothing to do here
   }
 

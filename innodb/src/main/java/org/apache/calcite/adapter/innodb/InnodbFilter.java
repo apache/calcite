@@ -68,18 +68,18 @@ public class InnodbFilter extends Filter implements InnodbRel {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  public InnodbFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public InnodbFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new InnodbFilter(getCluster(), traitSet, input, condition,
         indexCondition, tableDef, forceIndexName);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     implementor.setIndexCondition(indexCondition);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     pw.input("input", getInput());
     pw.itemIf("condition", indexCondition, indexCondition.canPushDown());
     return pw;
