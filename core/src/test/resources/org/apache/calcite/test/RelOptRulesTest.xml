@@ -8182,7 +8182,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($9)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject($f3=[CAST(*($1, $2)):INTEGER])
+  LogicalProject($f3=[*(CAST($1):INTEGER, $2)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{5}], agg#0=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8215,7 +8215,7 @@ LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
             <![CDATA[
 LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
   LogicalAggregate(group=[{0, 1, 2}], HIREDATE1=[MAX($3)], COMM1=[SUM($4)])
-    LogicalProject(JOB=[$0], DEPTNO=[$2], MGR=[$4], HIREDATE1=[$6], $f8=[CAST(*($3, $7)):INTEGER NOT NULL])
+    LogicalProject(JOB=[$0], DEPTNO=[$2], MGR=[$4], HIREDATE1=[$6], $f8=[*(CAST($3):INTEGER NOT NULL, $7)])
       LogicalJoin(condition=[=($1, $5)], joinType=[inner])
         LogicalAggregate(group=[{2, 5, 7}], agg#0=[COUNT()])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8245,7 +8245,7 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(JOB=[$0], EXPR$1=[$2])
-  LogicalProject(JOB=[$0], NAME=[$2], $f4=[CAST(*($1, $3)):INTEGER NOT NULL])
+  LogicalProject(JOB=[$0], NAME=[$2], $f4=[*($1, CAST($3):INTEGER NOT NULL)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$1=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -8275,7 +8275,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject($f4=[CAST(*($1, $3)):INTEGER])
+  LogicalProject($f4=[*($1, CAST($3):INTEGER)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$0=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -8306,7 +8306,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
             <![CDATA[
 LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
   LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)], agg#1=[$SUM0($1)])
-    LogicalProject($f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
+    LogicalProject($f5=[*($1, CAST($4):INTEGER NOT NULL)], $f6=[*($2, $4)])
       LogicalJoin(condition=[=($0, $3)], joinType=[inner])
         LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -9010,7 +9010,7 @@ LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)],
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)], MAX_SAL=[$5], SUM_SAL_2=[$4], COUNT_SAL=[$6], COUNT_MGR=[$7])
-  LogicalProject(JOB=[$0], NAME=[$7], MIN_SAL=[$1], MIN_DEPTNO=[$2], $f9=[CAST(*($3, $8)):INTEGER NOT NULL], MAX_SAL=[$4], $f10=[*($5, $8)], $f11=[*($6, $8)])
+  LogicalProject(JOB=[$0], NAME=[$7], MIN_SAL=[$1], MIN_DEPTNO=[$2], $f9=[*($3, CAST($8):INTEGER NOT NULL)], MAX_SAL=[$4], $f10=[*($5, $8)], $f11=[*($6, $8)])
     LogicalJoin(condition=[=($0, $7)], joinType=[inner])
       LogicalAggregate(group=[{2}], MIN_SAL=[MIN($5)], MIN_DEPTNO=[MIN($7)], SUM_SAL_2=[SUM($5)], MAX_SAL=[MAX($5)], COUNT_SAL=[COUNT()], COUNT_MGR=[COUNT($3)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -9060,7 +9060,7 @@ LogicalAggregate(group=[{}], VOLUME=[COUNT()], C1_SUM_SAL=[SUM($0)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
-  LogicalProject(VOLUME=[$3], $f4=[CAST(*($1, $3)):INTEGER])
+  LogicalProject(VOLUME=[$3], $f4=[*($1, CAST($3):INTEGER)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalProject(ENAME=[$1], SAL=[$0])
         LogicalProject(SAL=[$5], ENAME=[$1])

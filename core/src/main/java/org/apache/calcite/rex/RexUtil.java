@@ -66,6 +66,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -2594,6 +2595,24 @@ public class RexUtil {
   /** Transforms a list of expressions to the list of digests. */
   public static List<String> strings(List<RexNode> list) {
     return Util.transform(list, Object::toString);
+  }
+
+  /**
+   * Generate normalized rex call, with operands and the resulting expression
+   * being cast wherever necessary.
+   */
+  public static RexNode normalizedRexCall(
+      RexBuilder rexBuilder, SqlOperator op, List<RexNode> operands,
+      RelDataType returnType, RelDataType operandType) {
+    List<RexNode> newOperands = operands.stream()
+        .map(r -> r.getType().equals(operandType) ? r : rexBuilder.makeAbstractCast(operandType, r))
+        .collect(Collectors.toList());
+
+    RexNode node = rexBuilder.makeCall(op, newOperands);
+    if (!node.getType().equals(returnType)) {
+      node = rexBuilder.makeAbstractCast(returnType, node);
+    }
+    return node;
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */

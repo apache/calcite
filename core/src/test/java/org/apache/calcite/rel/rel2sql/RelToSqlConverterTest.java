@@ -2969,14 +2969,12 @@ class RelToSqlConverterTest {
         "select sum(e1.\"store_sales\"), sum(e2.\"store_sales\") from \"sales_fact_dec_1998\" as "
             + "e1 , \"sales_fact_dec_1998\" as e2 where e1.\"product_id\" = e2.\"product_id\"";
 
-    String expect = "SELECT SUM(CAST(\"t\".\"EXPR$0\" * \"t0\".\"$f1\" AS DECIMAL"
-        + "(19, 4))), SUM(CAST(\"t\".\"$f2\" * \"t0\".\"EXPR$1\" AS DECIMAL(19, 4)))\n"
-        + "FROM (SELECT \"product_id\", SUM(\"store_sales\") AS \"EXPR$0\", COUNT(*) AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"sales_fact_dec_1998\"\n"
-        + "GROUP BY \"product_id\") AS \"t\"\n"
-        + "INNER JOIN "
-        + "(SELECT \"product_id\", COUNT(*) AS \"$f1\", SUM(\"store_sales\") AS \"EXPR$1\"\n"
-        + "FROM \"foodmart\".\"sales_fact_dec_1998\"\n"
+    String expect = "SELECT SUM(CAST(\"t\".\"EXPR$0\" * CAST(\"t0\".\"$f1\" AS DECIMAL(19, 4)) "
+        + "AS DECIMAL(19, 4))), SUM(CAST(CAST(\"t\".\"$f2\" AS DECIMAL(19, 4)) * \"t0\".\"EXPR$1\" "
+        + "AS DECIMAL(19, 4)))\nFROM (SELECT \"product_id\", SUM(\"store_sales\") "
+        + "AS \"EXPR$0\", COUNT(*) AS \"$f2\"\nFROM \"foodmart\".\"sales_fact_dec_1998\"\nGROUP "
+        + "BY \"product_id\") AS \"t\"\nINNER JOIN (SELECT \"product_id\", COUNT(*) AS \"$f1\", "
+        + "SUM(\"store_sales\") AS \"EXPR$1\"\nFROM \"foodmart\".\"sales_fact_dec_1998\"\n"
         + "GROUP BY \"product_id\") AS \"t0\" ON \"t\".\"product_id\" = \"t0\".\"product_id\"";
 
     HepProgramBuilder builder = new HepProgramBuilder();
