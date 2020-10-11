@@ -30,20 +30,31 @@ import java.util.List;
 
 /**
  * Base class for table that reads CSV files.
+ *
+ * fixme 读取CSV文件的类。
  */
 public abstract class CsvTable extends AbstractTable {
+
   protected final Source source;
+
   protected final RelProtoDataType protoRowType;
+
   private RelDataType rowType;
+
   private List<CsvFieldType> fieldTypes;
 
-  /** Creates a CsvTable. */
+  /**
+   * Creates a CsvTable.
+   *
+   * 创建CSV表。
+   */
   CsvTable(Source source, RelProtoDataType protoRowType) {
     this.source = source;
     this.protoRowType = protoRowType;
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
@@ -54,7 +65,11 @@ public abstract class CsvTable extends AbstractTable {
     return rowType;
   }
 
-  /** Returns the field types of this CSV table. */
+  /**
+   * Returns the field types of this CSV table.
+   *
+   * 获取CSV表字段类型。
+   */
   public List<CsvFieldType> getFieldTypes(RelDataTypeFactory typeFactory) {
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();

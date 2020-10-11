@@ -21,5 +21,8 @@
  * <p>A Calcite schema maps onto a directory, and each CSV file in that
  * directory appears as a table.  Full SQL operations are available on
  * those tables.</p>
+ *
+ * <p>
+ *   从CSV文件中获取数据。
  */
 package org.apache.calcite.adapter.csv;

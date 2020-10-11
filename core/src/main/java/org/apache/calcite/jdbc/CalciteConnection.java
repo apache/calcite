@@ -42,6 +42,8 @@ public interface CalciteConnection extends Connection, QueryProvider {
   /**
    * Returns the root schema.
    *
+   * 获取根schema。
+   *
    * <p>You can define objects (such as relations) in this schema, and
    * also nested schemas.</p>
    *

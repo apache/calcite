@@ -57,7 +57,11 @@ public interface Table {
    */
   RelDataType getRowType(RelDataTypeFactory typeFactory);
 
-  /** Returns a provider of statistics about this table. */
+  /**
+   * Returns a provider of statistics about this table.
+   *
+   * 返回关于表的 统计数据provider。
+   */
   Statistic getStatistic();
 
   /** Type of table. */

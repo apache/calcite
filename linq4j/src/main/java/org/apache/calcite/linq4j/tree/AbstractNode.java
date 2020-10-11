@@ -21,6 +21,8 @@ import java.util.Objects;
 
 /**
  * Abstract implementation of {@link Node}.
+ *
+ * Node 的抽象实现。
  */
 public abstract class AbstractNode implements Node {
   public final ExpressionType nodeType;

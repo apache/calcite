@@ -33,26 +33,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Table based on a CSV file.
  *
+ * 基于CSV文件的表。
+ *
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */
-public class CsvScannableTable extends CsvTable
-    implements ScannableTable {
-  /** Creates a CsvScannableTable. */
+public class CsvScannableTable extends CsvTable implements ScannableTable {
+  /**
+   * Creates a CsvScannableTable.
+   */
   CsvScannableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "CsvScannableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override
+  public Enumerable<Object[]> scan(DataContext root) {
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+      @Override
+      public Enumerator<Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,
             CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }

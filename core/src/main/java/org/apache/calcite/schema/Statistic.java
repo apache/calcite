@@ -28,39 +28,64 @@ import java.util.List;
  *
  * <p>Each of the methods may return {@code null} meaning "not known".</p>
  *
+ * fixme 关于表的统计数据，每个方法都可能返回null、表示未知。
+ *
  * @see Statistics
  */
 public interface Statistic {
-  /** Returns the approximate number of rows in the table. */
+  /**
+   * Returns the approximate number of rows in the table.
+   *
+   * 表行数。
+   */
   default Double getRowCount() {
     return null;
   }
 
-  /** Returns whether the given set of columns is a unique key, or a superset
+  /**
+   * Returns whether the given set of columns is a unique key, or a superset
    * of a unique key, of the table.
+   *
+   * 给定的列是否是唯一键。
    */
   default boolean isKey(ImmutableBitSet columns) {
     return false;
   }
 
-  /** Returns a list of unique keys, or null if no key exist. */
+  /**
+   * Returns a list of unique keys, or null if no key exist.
+   *
+   * 返回唯一key列表。
+   *
+   * todo：查看调用这个方法的地方是不是判空了。
+   */
   default List<ImmutableBitSet> getKeys() {
     return null;
   }
 
-  /** Returns the collection of referential constraints (foreign-keys)
-   * for this table. */
+  /**
+   * Returns the collection of referential(引用) constraints(约束) (foreign-keys)
+   * for this table.
+   */
   default List<RelReferentialConstraint> getReferentialConstraints() {
     return null;
   }
 
-  /** Returns the collections of columns on which this table is sorted. */
+  /**
+   * Returns the collections of columns on which this table is sorted.
+   *
+   * 表中列的数量。
+   */
   default List<RelCollation> getCollations() {
     return null;
   }
 
-  /** Returns the distribution of the data in this table. */
-  default RelDistribution getDistribution()  {
+  /**
+   * Returns the distribution of the data in this table.
+   *
+   * 表中数据的分布。
+   */
+  default RelDistribution getDistribution() {
     return null;
   }
 }

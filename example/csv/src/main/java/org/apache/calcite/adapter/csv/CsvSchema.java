@@ -32,7 +32,10 @@ import java.util.Map;
  * is a CSV file in that directory.
  */
 public class CsvSchema extends AbstractSchema {
+
+  // 文件目录
   private final File directoryFile;
+
   private final CsvTable.Flavor flavor;
   private Map<String, Table> tableMap;
 

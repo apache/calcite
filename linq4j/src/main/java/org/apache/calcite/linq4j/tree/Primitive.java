@@ -33,7 +33,11 @@ import java.util.Map;
  *
  * <p>There are fields for the native class (e.g. <code>int</code>, also
  * known as {@link Integer#TYPE}) and the boxing class
- * (e.g. {@link Integer}).</p>
+ * (e.g. {@link Integer}).
+ *
+ * <p>
+ * fixme
+ *      java基本类型枚举：基本类型和包装类型。
  */
 public enum Primitive {
   BOOLEAN(Boolean.TYPE, Boolean.class, 1, false, false, null, null, true, -1),

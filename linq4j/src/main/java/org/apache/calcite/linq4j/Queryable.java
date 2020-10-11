@@ -20,9 +20,13 @@ package org.apache.calcite.linq4j;
  * Provides functionality to evaluate queries against a specific data source
  * wherein the type of the data is known.
  *
+ * fixme
+ *      接口是多继承；
+ *
  * <p>Analogous to LINQ's System.Linq.IQueryable.</p>
  *
  * @param <T> Element type
+ *            元素类型
  */
 public interface Queryable<T> extends RawQueryable<T>, ExtendedQueryable<T> {
 }

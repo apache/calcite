@@ -24,8 +24,12 @@ import java.net.URL;
 
 /**
  * Source of data.
+ *
+ * 数据源。
  */
 public interface Source {
+
+  // url、文件、路径、Reader、IO流、协议。
   URL url();
   File file();
   String path();

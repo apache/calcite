@@ -63,17 +63,23 @@ public enum ExpressionType {
   /**
    * An addition operation, such as a + b, without overflow
    * checking, for numeric operands.
+   *
+   * 普通加法。
    */
   Add(" + ", false, 4, false),
 
   /**
    * An addition operation, such as (a + b), with overflow
    * checking, for numeric operands.
+   *
+   * 加法，会检查溢出。
    */
   AddChecked(" + ", false, 4, false),
 
   /**
    * A bitwise or logical AND operation, such as {@code a & b} in Java.
+   *
+   * 与运算 &
    */
   And(" & ", false, 8, false),
 
@@ -81,40 +87,54 @@ public enum ExpressionType {
    * A conditional AND operation that evaluates the second operand
    * only if the first operand evaluates to true. It corresponds to
    * {@code a && b} in Java.
+   *
+   * 并运算 &&
    */
   AndAlso(" && ", false, 11, false),
 
   /**
    * An operation that obtains the length of a one-dimensional
    * array, such as array.Length.
+   *
+   * 一维数组的长度，例如 array.length。
    */
   ArrayLength,
 
   /**
    * An indexing operation in a one-dimensional array, such as
    * {@code array[index]} in Java.
+   *
+   * 从一维数组中取数据，例如 array[index]
    */
   ArrayIndex,
 
   /**
    * A method call, such as in the {@code obj.sampleMethod()}
    * expression.
+   *
+   * 方法调用。
    */
   Call(".", false, 1, false),
 
   /**
-   * A node that represents a null coalescing operation, such
+   * A node that represents a null coalescing(合并) operation, such
    * as (a ?? b) in C# or If(a, b) in Visual Basic.
+   *
+   * "表示空合并操作的节点"， C#里边的东西。
    */
   Coalesce,
 
   /**
    * A conditional operation, such as {@code a > b ? a : b} in Java.
+   *
+   * 三元操作。
    */
   Conditional(" ? ", " : ", false, 13, true),
 
   /**
    * A constant value.
+   *
+   * 常量值。
    */
   Constant,
 
@@ -123,6 +143,8 @@ public enum ExpressionType {
    * Java. For a numeric
    * conversion, if the converted value is too large for the
    * destination type, no exception is thrown.
+   *
+   * 强转操作：如果被强转的对象不符合目标类型、不会抛出异常。
    */
   Convert(null, false, 2, true),
 
@@ -131,29 +153,39 @@ public enum ExpressionType {
    * Java. For a numeric
    * conversion, if the converted value does not fit the
    * destination type, an exception is thrown.
+   *
+   * 强转并检查：如果被强转的对象不符合目标类型、会抛出异常。
    */
   ConvertChecked,
 
   /**
    * A division operation, such as (a / b), for numeric
    * operands.
+   *
+   * 除法
    */
   Divide(" / ", false, 3, false),
 
   /**
    * A percent remainder operation, such as (a % b), for numeric
    * operands.
+   *
+   * 取模。
    */
   Mod(" % ", false, 3, false),
 
   /**
    * A node that represents an equality comparison, such as {@code a == b} in
    * Java.
+   *
+   * 是否等于。
    */
   Equal(" == ", false, 7, false),
 
   /**
    * A bitwise or logical XOR operation, such as {@code a ^ b} in Java.
+   *
+   * 如果相对应位值相同、结果为0，否则为1
    */
   ExclusiveOr(" ^ ", false, 9, false),
 
@@ -596,9 +628,16 @@ public enum ExpressionType {
    */
   While;
 
+  // 第一个操作符号
   final String op;
+
+  // 第二个操作符号
   final String op2;
+
+  // 是否是前缀？
   final boolean postfix;
+
+
   final int lprec;
   final int rprec;
   final boolean modifiesLvalue;

@@ -36,8 +36,13 @@ import javax.annotation.Nonnull;
  * </ul>
  */
 public interface RelDistribution extends RelMultipleTrait {
-  /** Returns the type of distribution. */
-  @Nonnull Type getType();
+  /**
+   * Returns the type of distribution.
+   *
+   * 返回分布类型。
+   */
+  @Nonnull
+  Type getType();
 
   /**
    * Returns the ordinals of the key columns.

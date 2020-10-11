@@ -57,7 +57,11 @@ public interface Schema {
   /**
    * Returns a table with a given name, or null if not found.
    *
+   * 返回指定名称的表。
+   *
    * @param name Table name
+   *             表名称
+   *
    * @return Table, or null
    */
   Table getTable(String name);

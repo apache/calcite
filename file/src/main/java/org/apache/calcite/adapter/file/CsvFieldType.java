@@ -26,9 +26,10 @@ import java.util.Map;
 /**
  * Type of a field in a CSV file.
  *
- * <p>Usually, and unless specified explicitly in the header row, a field is
- * of type {@link #STRING}. But specifying the field type in the header row
- * makes it easier to write SQL.</p>
+ * <p>Usually, and unless specified explicitly in the header row, a field is of type {@link #STRING}.
+ * But specifying the field type in the header row makes it easier to write SQL.
+ *
+ * CSV文件字段类型：默认为STRING，但是在行首指定类型会使得编写sql更容易。
  */
 public enum CsvFieldType {
   STRING(String.class, "string"),
@@ -47,8 +48,8 @@ public enum CsvFieldType {
   private final Class clazz;
   private final String simpleName;
 
+  // 枚举名称和枚举值的map
   private static final Map<String, CsvFieldType> MAP = new HashMap<>();
-
   static {
     for (CsvFieldType value : values()) {
       MAP.put(value.simpleName, value);

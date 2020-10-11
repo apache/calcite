@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Represents a named parameter expression.
+ *
+ * 表示一个命名的参数表达式。
  */
 public class ParameterExpression extends Expression {
   private static final AtomicInteger SEQ = new AtomicInteger();

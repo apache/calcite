@@ -16,12 +16,19 @@
  */
 package org.apache.calcite.adapter.csv;
 
-/** Planner rules relating to the CSV adapter. */
+/**
+ * Planner rules relating to the CSV adapter.
+ *
+ * CSV适配器相关的规则
+ */
 public abstract class CsvRules {
-  private CsvRules() {}
+  private CsvRules() {
+  }
 
-  /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
-   * a {@link CsvTableScan} and pushes down projects if possible. */
+  /**
+   * Rule that matches a {@link org.apache.calcite.rel.core.Project} on
+   * a {@link CsvTableScan} and pushes down projects if possible.
+   */
   public static final CsvProjectTableScanRule PROJECT_SCAN =
       CsvProjectTableScanRule.Config.DEFAULT.toRule();
 }
