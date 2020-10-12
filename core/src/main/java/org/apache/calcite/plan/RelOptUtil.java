@@ -340,6 +340,9 @@ public abstract class RelOptUtil {
     for (Pair<RelDataTypeField, RelDataTypeField> pair : Pair.zip(f1, f2)) {
       final RelDataType type1 = pair.left.getType();
       final RelDataType type2 = pair.right.getType();
+      if (type1.isNullable() != type2.isNullable()) {
+        return false;
+      }
       // If one of the types is ANY comparison should succeed
       if (type1.getSqlTypeName() == SqlTypeName.ANY
           || type2.getSqlTypeName() == SqlTypeName.ANY) {
