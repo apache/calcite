@@ -5643,6 +5643,9 @@ public abstract class SqlOperatorBaseTest {
     // parser. In the regular parser, DATE is a reserved keyword.
     tester.checkNull("\"DATE\"(null)");
     tester.checkScalar("\"DATE\"('1985-12-06')", "1985-12-06", "DATE NOT NULL");
+    tester.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
+    tester.checkType("CURRENT_DATETIME('America/Los_Angeles')", "TIMESTAMP(0) NOT NULL");
+    tester.checkType("CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))", "TIMESTAMP(0)");
   }
 
   @Test void testAbsFunc() {

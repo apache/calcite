@@ -59,6 +59,7 @@ import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -1505,6 +1506,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withOperatorTable(postgresTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
             + "Was expecting 2 arguments");
+  }
+
+  @Test void testCurrentDatetime() throws SqlParseException, ValidationException {
+    final String currentDateTimeExpr = "select ^current_datetime^";
+    Sql shouldFail = sql(currentDateTimeExpr)
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
+    final String expectedError = "query [select CURRENT_DATETIME]; exception "
+        + "[Column 'CURRENT_DATETIME' not found in any table]; class "
+        + "[class org.apache.calcite.sql.validate.SqlValidatorException]; pos [line 1 col 8 thru line 1 col 8]";
+    shouldFail.fails("Column 'CURRENT_DATETIME' not found in any table");
+
+    final SqlOperatorTable bigqueryTable =
+        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+            SqlLibrary.STANDARD,
+            SqlLibrary.BIG_QUERY);
+    sql("select current_datetime()")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(bigqueryTable).ok();
+    sql("select CURRENT_DATETIME('America/Los_Angeles')")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(bigqueryTable).ok();
+    sql("select CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(bigqueryTable).ok();
   }
 
   @Test void testInvalidFunction() {
