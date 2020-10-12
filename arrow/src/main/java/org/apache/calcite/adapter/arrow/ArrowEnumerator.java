@@ -17,13 +17,20 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.arrow.gandiva.exceptions.GandivaException;
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import org.apache.arrow.vector.types.pojo.Field;
 
 import org.apache.calcite.linq4j.Enumerator;
+
+import org.apache.arrow.gandiva.evaluator.Projector;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,21 +38,36 @@ import java.util.List;
 
 public class ArrowEnumerator implements Enumerator<Object> {
   private final int[] fields;
-  private ArrowFileReader arrowFileReader;
+  private final ArrowFileReader arrowFileReader;
   private VectorSchemaRoot vectorSchemaRoot;
   private int vectorIndex = -1;
+  private Projector projector;
+  private int numRows = 0;
+  private List<ArrowBuf> arrowBuffs;
+  private List<ValueVector> valueVectors;
+  private int numFields;
 
-  public ArrowEnumerator(int[] fields, ArrowFileReader arrowFileReader) {
+  public ArrowEnumerator(Projector projector, int[] fields, ArrowFileReader arrowFileReader) {
     this.fields = fields;
+    this.projector = projector;
     this.arrowFileReader = arrowFileReader;
+
     try {
       if (arrowFileReader.loadNextBatch()) {
         vectorSchemaRoot = getProjectedVectorSchemaRoot(arrowFileReader.getVectorSchemaRoot());
+        VectorUnloader vectorUnloader = new VectorUnloader(vectorSchemaRoot);
+        ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
+        arrowBuffs = arrowRecordBatch.getBuffers();
       }
       else {
         throw new IllegalStateException();
       }
     } catch (IOException e) {
+      e.printStackTrace();
+    }
+    try {
+      projector.evaluate(numRows, arrowBuffs, valueVectors);
+    } catch (GandivaException e) {
       e.printStackTrace();
     }
   }
@@ -79,6 +101,7 @@ public class ArrowEnumerator implements Enumerator<Object> {
       FieldVector vector = vectorSchemaRoot.getFieldVectors().get(i);
       current[i] = vector.getObject(vectorIndex);
     }
+    numRows++;
     return current;
   }
 
