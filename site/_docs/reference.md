@@ -1170,7 +1170,7 @@ The operator precedence and associativity, highest to lowest.
 |:------------------------------------------------- |:-------------
 | .                                                 | left
 | ::                                                | left
-| [ ] (array element)                               | left
+| [ ] (collection element)                          | left
 | + - (unary plus, minus)                           | right
 | * / % &#124;&#124;                                | left
 | + -                                               | left
@@ -1549,8 +1549,10 @@ Implicit type coercion of following cases are ignored:
 |:--------------- |:-----------
 | ROW (value [, value ]*)  | Creates a row from a list of values.
 | (value [, value ]* )     | Creates a row from a list of values.
+| row '[' index ']'        | Returns the element at a particular location in a row (1-based index).
+| row '[' name ']'         | Returns the element of a row with a particular name.
 | map '[' key ']'     | Returns the element of a map with a particular key.
-| array '[' index ']' | Returns the element at a particular location in an array.
+| array '[' index ']' | Returns the element at a particular location in an array (1-based index).
 | ARRAY '[' value [, value ]* ']' | Creates an array from a list of values.
 | MAP '[' key, value [, key, value ]* ']' | Creates a map from a list of key-value pairs.
 

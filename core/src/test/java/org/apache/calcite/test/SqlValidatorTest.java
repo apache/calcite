@@ -8490,7 +8490,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^name[0]^ from dept")
         .fails("Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARCHAR\\(10\\)>, "
             +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
-            + "<MAP>\\[<VALUE>\\].*");
+            + "<MAP>\\[<ANY>\\]\n"
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\].*");
   }
 
   /** Test case for

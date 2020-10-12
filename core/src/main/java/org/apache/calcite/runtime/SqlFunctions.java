@@ -2517,6 +2517,13 @@ public class SqlFunctions {
     if (object instanceof List && index instanceof Number) {
       return arrayItem((List) object, ((Number) index).intValue());
     }
+    if (index instanceof Number) {
+      return structAccess(object, ((Number) index).intValue() - 1, null); // 1 indexed
+    }
+    if (index instanceof String) {
+      return structAccess(object, -1, index.toString());
+    }
+
     return null;
   }
 
@@ -2956,7 +2963,12 @@ public class SqlFunctions {
     } else {
       Class<?> beanClass = structObject.getClass();
       try {
-        Field structField = beanClass.getDeclaredField(fieldName);
+        Field structField;
+        if (fieldName == null) {
+          structField = beanClass.getDeclaredFields()[index];
+        } else {
+          structField = beanClass.getDeclaredField(fieldName);
+        }
         return structField.get(structObject);
       } catch (NoSuchFieldException | IllegalAccessException ex) {
         throw RESOURCE.failedToAccessField(fieldName, beanClass.getName()).ex(ex);

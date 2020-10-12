@@ -301,6 +301,10 @@ public abstract class QuidemTest {
                   }
                 });
         return connection;
+      case "bookstore":
+        return CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+            .connect();
       default:
         throw new RuntimeException("unknown connection '" + name + "'");
       }

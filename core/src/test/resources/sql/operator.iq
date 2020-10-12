@@ -234,4 +234,77 @@ order by 1,2;
 
 !ok
 
+select "T"."X"[1] as x1 from (VALUES (ROW(ROW(3, 7), ROW(4, 8)))) as T(x, y);
+
++----+
+| X1 |
++----+
+|  3 |
++----+
+(1 row)
+
+!ok
+
+select "T"."X"[CAST(2 AS BIGINT)] as x2 from (VALUES (ROW(ROW(3, 7), ROW(4, 8)))) as T(x, y);
+
++----+
+| X2 |
++----+
+|  7 |
++----+
+(1 row)
+
+!ok
+
+select "T"."Y"[CAST(1 AS TINYINT)] as y1 from (VALUES (ROW(ROW(3, 7), ROW(4, 8)))) as T(x, y);
+
++----+
+| Y1 |
++----+
+|  4 |
++----+
+(1 row)
+
+!ok
+
+select "T"."Y"[CAST(2 AS SMALLINT)] as y2 from (VALUES (ROW(ROW(3, 7), ROW(4, 8)))) as T(x, y);
+
++----+
+| Y2 |
++----+
+|  8 |
++----+
+(1 row)
+
+!ok
+
+!use bookstore
+
+select au."birthPlace"['city'] as city from "bookstore"."authors" au;
+
++-----------+
+| CITY      |
++-----------+
+| Besançon  |
+| Heraklion |
+| Ionia     |
++-----------+
+(3 rows)
+
+!ok
+
+# we have "birthPlace(coords, city, country)", so city has index 2
+select au."birthPlace"[2] as city from "bookstore"."authors" au;
+
++-----------+
+| CITY      |
++-----------+
+| Besançon  |
+| Heraklion |
+| Ionia     |
++-----------+
+(3 rows)
+
+!ok
+
 # End operator.iq

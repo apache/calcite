@@ -8072,7 +8072,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "^ARRAY ['foo', 'bar']['baz']^",
         "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
-            + "<MAP>\\[<VALUE>\\]",
+            + "<MAP>\\[<ANY>\\]\n"
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]",
         false);
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
@@ -8093,6 +8094,23 @@ public abstract class SqlOperatorBaseTest {
     tester.checkColumnType(
         "select cast(null as any)['x'] from (values(1))",
         "ANY");
+
+    // Row item
+    final String intStructQuery = "select \"T\".\"X\"[1] "
+        + "from (VALUES (ROW(ROW(3, 7), ROW(4, 8)))) as T(x, y)";
+    tester.check(intStructQuery, SqlTests.INTEGER_TYPE_CHECKER, 3, 0);
+    tester.checkColumnType(intStructQuery, "INTEGER NOT NULL");
+
+    tester.check("select \"T\".\"X\"[1] "
+            + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
+        SqlTests.INTEGER_TYPE_CHECKER, 3, 0);
+    tester.check("select \"T\".\"X\"[2] "
+            + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
+        SqlTests.ANY_TYPE_CHECKER, null, 0);
+    tester.checkFails("select \"T\".\"X\"[1 + CAST(NULL AS INTEGER)] "
+        + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
+        "Cannot infer type of field at position null within ROW type: "
+            + "RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)", false);
   }
 
   @Test void testMapValueConstructor() {
