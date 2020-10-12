@@ -17,6 +17,12 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.arrow.gandiva.exceptions.GandivaException;
+import org.apache.arrow.gandiva.expression.ExpressionTree;
+import org.apache.arrow.gandiva.expression.TreeBuilder;
+import org.apache.arrow.gandiva.expression.TreeNode;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 import org.apache.arrow.vector.ipc.ArrowFileReader;
@@ -70,10 +76,26 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   }
 
   public Enumerable<Object> project(DataContext root, final int[] fields) {
+    List<TreeNode> treeNodes = new ArrayList<>();
+    List<ExpressionTree> expressionTrees = new ArrayList<>();
+
+    for(int i = 0; i < fields.length; i++) {
+      Field field = schema.getFields().get(i);
+      treeNodes.add(TreeBuilder.makeField(field));
+      expressionTrees.add(TreeBuilder.makeExpression(treeNodes.get(i), field));
+    }
+
+    Projector projector = null;
+    try {
+      projector = Projector.make(schema, expressionTrees);
+    } catch (GandivaException e) {
+      e.printStackTrace();
+    }
+    Projector finalProjector = projector;
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(fields, arrowFileReader);
+          return new ArrowEnumerator(finalProjector, fields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
