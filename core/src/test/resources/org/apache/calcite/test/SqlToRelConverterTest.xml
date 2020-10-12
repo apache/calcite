@@ -548,6 +548,32 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortLimitWithCorrelateInput">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, ename
+    FROM
+        (SELECT DISTINCT deptno FROM emp) t1,
+          LATERAL (
+            SELECT ename, sal
+            FROM emp
+            WHERE deptno = t1.deptno)
+    ORDER BY ename DESC
+    LIMIT 3
+  )]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
+  LogicalProject(DEPTNO=[$0], ENAME=[$1])
+    LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInAggregate">
         <Resource name="sql">
             <![CDATA[SELECT SUM(
