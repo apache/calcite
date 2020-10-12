@@ -1889,12 +1889,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlAbstractTimeFunction("CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
   /**
-   * The <code>CURRENT_DATETIME [(<i>precision</i>)]</code> function.
-   */
-  public static final SqlFunction CURRENT_DATETIME =
-      new SqlAbstractTimeFunction("CURRENT_DATETIME", SqlTypeName.TIMESTAMP);
-
-  /**
    * The <code>CURRENT_DATE</code> function.
    */
   public static final SqlFunction CURRENT_DATE =
