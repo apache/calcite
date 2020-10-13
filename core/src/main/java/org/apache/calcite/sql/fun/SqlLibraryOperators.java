@@ -477,4 +477,16 @@ public abstract class SqlLibraryOperators {
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
 
+  /** The "COUNTIF(expression)  [OVER (...)]" function;
+   * Returns the count of TRUE values for expression. Returns 0 if there are
+   * zero input rows, or if expression evaluates to FALSE or NULL for all rows.
+    */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction COUNTIF =
+      new SqlFunction("COUNTIF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE,
+          null,
+          OperandTypes.BOOLEAN,
+          SqlFunctionCategory.SYSTEM);
+
 }

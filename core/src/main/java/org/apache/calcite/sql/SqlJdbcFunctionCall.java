@@ -393,7 +393,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all system function names defined by JDBC. */
   private static final String SYSTEM_FUNCTIONS = constructFuncList(
-      "CONVERT", "DATABASE", "IFNULL", "USER");
+      "CONVERT", "DATABASE", "IFNULL", "USER", "COUNTIF'");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -752,6 +752,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               return super.createCall(pos, operands);
             }
           });
+      map.put("COUNTIF", simple(SqlLibraryOperators.COUNTIF));
       map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
       map.put("CONVERT",
           new SimpleMakeCall(SqlStdOperatorTable.CAST) {
