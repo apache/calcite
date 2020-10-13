@@ -20,6 +20,7 @@ import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -613,6 +614,19 @@ class LatticeSuggesterTest {
         + "  avg(\"total_children\" - \"num_children_at_home\")\n"
         + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
         + "group by \"fname\", \"lname\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+  }
+
+  @Test void testBigQueryDialect() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true)
+        .withDialect(DatabaseProduct.BIG_QUERY.getDialect())
+        .withLibrary(SqlLibrary.BIG_QUERY);
+
+    final String q0 = "select\n"
+        + "  countif(unit_sales > 1000) as num_over_thousand\n"
+        + "from\n"
+        + "  `sales_fact_1997`";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
   }
