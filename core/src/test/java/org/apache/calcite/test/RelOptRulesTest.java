@@ -123,6 +123,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -6832,6 +6833,62 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTester(t -> createDynamicTester())
         .withRule(projectJoinTransposeRule)
         .check();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4317">[CALCITE-4317]
+   * RelFieldTrimmer after trimming all the fields in an aggregate
+   * should not return a zero field Aggregate</a>. */
+  @Test void testProjectJoinTransposeRuleOnAggWithNoFieldsWithTrimmer() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // Build a rel equivalent to sql:
+    // SELECT name FROM (SELECT count(*) cnt_star, count(empno) cnt_en FROM sales.emp)
+    // cross join sales.dept
+    // limit 10
+
+    RelNode left = relBuilder.scan("DEPT").build();
+    RelNode right = relBuilder.scan("EMP")
+        .project(
+            ImmutableList.of(relBuilder.getRexBuilder().makeExactLiteral(BigDecimal.ZERO)),
+            ImmutableList.of("DUMMY"))
+        .aggregate(
+            relBuilder.groupKey(),
+            relBuilder.count(relBuilder.field(0)).as("DUMMY_COUNT"))
+        .build();
+
+    RelNode plan = relBuilder.push(left)
+        .push(right)
+        .join(JoinRelType.INNER,
+            relBuilder.getRexBuilder().makeLiteral(true))
+        .project(relBuilder.field("DEPTNO"))
+        .build();
+
+    final String planBeforeTrimming = NL + RelOptUtil.toString(plan);
+    getDiffRepos().assertEquals("planBeforeTrimming", "${planBeforeTrimming}", planBeforeTrimming);
+
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+    Tester tester = createDynamicTester()
+        .withTrim(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    plan = tester.trimRelNode(plan);
+
+    final String planAfterTrimming = NL + RelOptUtil.toString(plan);
+    getDiffRepos().assertEquals("planAfterTrimming", "${planAfterTrimming}", planAfterTrimming);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(plan);
+    RelNode output = hepPlanner.findBestExp();
+    final String finalPlan = NL + RelOptUtil.toString(output);
+    getDiffRepos().assertEquals("finalPlan", "${finalPlan}", finalPlan);
   }
 
   @Test void testSimplifyItemIsNotNull() {

@@ -1015,7 +1015,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         trimChild(aggregate, input, inputFieldsUsed.build(), inputExtraFields);
     final RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
-
     // We have to return group keys and (if present) indicators.
     // So, pretend that the consumer asked for them.
     final int groupCount = aggregate.getGroupSet().cardinality();
@@ -1070,6 +1069,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         newAggCallList.add(relBuilder.aggregateCall(aggCall, inputMapping));
       }
       ++j;
+    }
+
+    if (newAggCallList.isEmpty() && newGroupSet.isEmpty()) {
+      // Add a dummy call if all the column fields have been trimmed
+      mapping = Mappings.create(
+          MappingType.INVERSE_SURJECTION,
+          mapping.getSourceCount(),
+          1);
+      newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
     final RelBuilder.GroupKey groupKey =

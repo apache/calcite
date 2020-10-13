@@ -13018,6 +13018,40 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$3])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectJoinTransposeRuleOnAggWithNoFieldsWithTrimmer">
+        <Resource name="planBeforeTrimming">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY_COUNT=[COUNT($0)])
+      LogicalProject(DUMMY=[0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfterTrimming">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(DUMMY=[0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+        <Resource name="finalPlan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(DUMMY=[0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    </TestCase>
     <TestCase name="testSimplifyItemIsNotNull">
         <Resource name="sql">
             <![CDATA[select *
