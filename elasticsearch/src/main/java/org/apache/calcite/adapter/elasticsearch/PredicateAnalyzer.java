@@ -135,7 +135,7 @@ class PredicateAnalyzer {
         RexNode child = call.getOperands().get(0);
         if (child.getKind() == SqlKind.LIKE) {
           return rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE,
-                  visitList(((RexCall) child).getOperands()));
+              visitList(((RexCall) child).getOperands()));
         }
       }
       return super.visitCall(call);
@@ -255,7 +255,7 @@ class PredicateAnalyzer {
         if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
           List<Expression> operands = visitList(call.getOperands());
           String query = convertQueryString(operands.subList(0, operands.size() - 1),
-                operands.get(operands.size() - 1));
+              operands.get(operands.size() - 1));
           return QueryExpression.create(new NamedFieldExpression()).queryString(query);
         }
       // fall through
@@ -269,7 +269,7 @@ class PredicateAnalyzer {
     private static String convertQueryString(List<Expression> fields, Expression query) {
       int index = 0;
       Preconditions.checkArgument(query instanceof LiteralExpression,
-              "Query string must be a string literal");
+           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
       @SuppressWarnings("ModifiedButNotUsed")
       Map<String, String> fieldMap = new LinkedHashMap<>();
@@ -289,7 +289,7 @@ class PredicateAnalyzer {
 
     private QueryExpression prefix(RexCall call) {
       Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
-              "Expected %s got %s", SqlKind.NOT, call.getKind());
+           "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported NOT operator: [%s]", call);
@@ -302,7 +302,7 @@ class PredicateAnalyzer {
 
     private QueryExpression postfix(RexCall call) {
       Preconditions.checkArgument(call.getKind() == SqlKind.IS_NULL
-              || call.getKind() == SqlKind.IS_NOT_NULL);
+          || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
@@ -356,15 +356,15 @@ class PredicateAnalyzer {
 
       // For _id and _index columns, only equals/not_equals work!
       if (isColumn(pair.getKey(), call, ElasticsearchConstants.ID, false)
-              || isColumn(pair.getKey(), call, ElasticsearchConstants.INDEX, false)
-              || isColumn(pair.getKey(), call, ElasticsearchConstants.UID, false)) {
+          || isColumn(pair.getKey(), call, ElasticsearchConstants.INDEX, false)
+          || isColumn(pair.getKey(), call, ElasticsearchConstants.UID, false)) {
         switch (call.getKind()) {
         case EQUALS:
         case NOT_EQUALS:
           break;
         default:
           throw new PredicateAnalyzerException(
-                    "Cannot handle " + call.getKind() + " expression for _id field, " + call);
+                "Cannot handle " + call.getKind() + " expression for _id field, " + call);
         }
       }
 
@@ -498,7 +498,7 @@ class PredicateAnalyzer {
 
       if (literal == null || terminal == null) {
         String message = String.format(Locale.ROOT,
-                "Unexpected combination of expressions [left: %s] [right: %s]", left, right);
+             "Unexpected combination of expressions [left: %s] [right: %s]", left, right);
         throw new PredicateAnalyzerException(message);
       }
 
@@ -666,7 +666,7 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression exists() {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['exists'] "
-              + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression contains(LiteralExpression literal) {
@@ -686,47 +686,47 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression like(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
-           + "cannot be applied to a compound expression");
+         + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression notLike(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notLike'] "
-           + "cannot be applied to a compound expression");
+         + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression equals(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['='] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression notEquals(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['not'] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression gt(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['>'] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression gte(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['>='] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression lt(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['<'] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression lte(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['<='] "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression queryString(String query) {
       throw new PredicateAnalyzerException("QueryString "
-           + "cannot be applied to a compound expression");
+          + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression isTrue() {
@@ -833,7 +833,7 @@ class PredicateAnalyzer {
     @Override public QueryExpression gt(LiteralExpression literal) {
       Object value = literal.value();
       builder = addFormatIfNecessary(literal,
-              rangeQuery(getFieldReference()).gt(value));
+          rangeQuery(getFieldReference()).gt(value));
       return this;
     }
 
@@ -1030,7 +1030,7 @@ class PredicateAnalyzer {
            || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
            || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
       throw new PredicateAnalyzerException("Cannot handle " + call.getKind()
-           + " expression for _id field, " + call);
+          + " expression for _id field, " + call);
     }
   }
 }
