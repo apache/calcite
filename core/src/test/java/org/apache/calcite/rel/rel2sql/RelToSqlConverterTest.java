@@ -211,11 +211,48 @@ class RelToSqlConverterTest {
         "from \"foodmart\".\"product\"" +
         "where \"product_id\" > 0 " +
         "group by \"product_id\"";
-    sql(query).ok("SELECT SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE), SUM" +
+    sql(query).ok("SELECT SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE), " +
+        "SUM" +
         "(\"shelf_width\")\n" +
         "FROM \"foodmart\".\"product\"\n" +
         "WHERE \"product_id\" > 0\n" +
         "GROUP BY \"product_id\"");
+  }
+
+  @Test void testAggregateFilterWhereToBigQuerySqlFromProductTable() {
+    String query = "select " +
+        "sum(\"shelf_width\") " +
+        "filter (where \"net_weight\" > 0), " +
+        "sum(\"shelf_width\")" +
+        "from \"foodmart\".\"product\"" +
+        "where \"product_id\" > 0 " +
+        "group by \"product_id\"";
+    sql(query).withBigQuery().ok("SELECT SUM(CASE WHEN net_weight > 0 IS TRUE THEN shelf_width " +
+        "ELSE NULL END), SUM(shelf_width)\nFROM foodmart.product\nWHERE product_id > 0\nGROUP" +
+        " BY product_id");
+  }
+
+  @Test void testPivotToSqlFromProductTable() {
+    String query = "select " +
+        "* from (select \"shelf_width\", \"net_weight\", \"product_id\" from \"foodmart\"." +
+        "\"product\") pivot (sum(\"shelf_width\") as sum_shelf_width for" +
+        " (\"product_id\") in (10, 20, 30))";
+    sql(query).ok("SELECT \"net_weight\", SUM(\"shelf_width\") FILTER (WHERE \"product_id\" = 10)" +
+        " AS \"10_SUM_SHELF_WIDTH\", SUM(\"shelf_width\") FILTER (WHERE \"product_id\" = 20) AS " +
+        "\"20_SUM_SHELF_WIDTH\", SUM(\"shelf_width\") FILTER (WHERE \"product_id\" = 30) AS " +
+        "\"30_SUM_SHELF_WIDTH\"\nFROM \"foodmart\".\"product\"\nGROUP BY \"net_weight\"");
+  }
+
+  @Test void testPivotToBigQuerySqlFromProductTable() {
+    String query = "select " +
+        "* from (select \"shelf_width\", \"net_weight\", \"product_id\" from \"foodmart\"." +
+        "\"product\") pivot (sum(\"shelf_width\") as sum_shelf_width for" +
+        " (\"product_id\") in (10, 20, 30))";
+    sql(query).withBigQuery().ok("SELECT net_weight, SUM(CASE WHEN product_id = 10 THEN " +
+        "shelf_width ELSE NULL END) AS `10_SUM_SHELF_WIDTH`, SUM(CASE WHEN product_id = 20 THEN " +
+        "shelf_width ELSE NULL END) AS `20_SUM_SHELF_WIDTH`, SUM(CASE WHEN product_id = 30 THEN " +
+        "shelf_width ELSE NULL END) AS `30_SUM_SHELF_WIDTH`\nFROM foodmart.product\nGROUP BY " +
+        "net_weight");
   }
 
   @Test void testSimpleSelectQueryFromProductTable() {
@@ -4785,12 +4822,11 @@ class RelToSqlConverterTest {
   }
 
   @Test void testWithinGroup4() {
-    // filter in AggregateCall is not unparsed
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FILTER (WHERE \"net_weight\" > 0 IS TRUE) WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
     sql(query).ok(expected);

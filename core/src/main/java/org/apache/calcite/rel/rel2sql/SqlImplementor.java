@@ -1168,17 +1168,30 @@ public abstract class SqlImplementor {
             SqlLiteral.createExactNumeric("0", POS));
       } else {
         return withOrder(
-            withFilter(op.createCall(qualifier, POS, operands), aggCall.filterArg), orderList);
+            withFilter(aggCall, op.createCall(qualifier, POS, operands), operands),
+            orderList);
       }
     }
 
     /** Wraps a call in a {@link SqlKind#FILTER} call if
      * {@code filterArg} is greater than zero. */
-    private SqlCall withFilter(SqlCall call, int filterArg) {
-      if (filterArg < 0) {
+    private SqlCall withFilter(AggregateCall aggCall, SqlCall call,
+        SqlNode[] operands) {
+      if (!aggCall.hasFilter()) {
         return call;
       }
-      return SqlStdOperatorTable.FILTER.createCall(POS, call, field(filterArg));
+      if (this.dialect.supportsAggregateFunctionFilter()) {
+        return SqlStdOperatorTable.FILTER.createCall(POS, call, field(aggCall.filterArg));
+      }
+
+      final SqlNodeList whenList = SqlNodeList.of(field(aggCall.filterArg));
+      final SqlNodeList thenList = new SqlNodeList(POS);
+      for (SqlNode operand : operands) {
+        thenList.add(operand);
+      }
+      final SqlNode elseList = SqlLiteral.createNull(POS);
+      return aggCall.getAggregation().createCall(POS, SqlStdOperatorTable.CASE.createCall(null, POS,
+              null, whenList, thenList, elseList));
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
