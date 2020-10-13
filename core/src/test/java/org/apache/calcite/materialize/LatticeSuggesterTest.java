@@ -620,13 +620,15 @@ class LatticeSuggesterTest {
   }
 
   /** Tests a number of features only available in BigQuery: back-ticks;
-   * GROUP BY ordinal; case-insensitive unquoted identifiers. */
+   * GROUP BY ordinal; case-insensitive unquoted identifiers;
+   * the {@code COUNTIF} aggregate function. */
   @Test void testBigQueryDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect())
         .withLibrary(SqlLibrary.BIG_QUERY);
 
     final String q0 = "select `product_id`,\n"
+        + "  countif(unit_sales > 1000) as num_over_thousand,\n"
         + "  SUM(unit_sales)\n"
         + "from\n"
         + "  `sales_fact_1997`"

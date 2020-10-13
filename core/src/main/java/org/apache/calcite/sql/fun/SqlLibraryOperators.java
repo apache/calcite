@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -268,6 +269,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlAggFunction LOGICAL_OR =
       new SqlMinMaxAggFunction("LOGICAL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
+
+  /** The "COUNTIF(condition) [OVER (...)]" function, in BigQuery,
+   * returns the count of TRUE values for expression.
+   *
+   * <p>{@code COUNTIF(b)} is equivalent to
+   * {@code COUNT(*) FILTER (WHERE b)}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction COUNTIF =
+      SqlBasicAggFunction
+          .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
+          .withDistinct(Optionality.FORBIDDEN);
 
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, gathers values into arrays. */

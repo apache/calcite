@@ -5437,6 +5437,7 @@ public class SqlToRelConverter {
       assert bb.agg == this;
       assert outerCall != null;
       final List<SqlNode> operands = call.getOperandList();
+      final SqlParserPos pos = call.getParserPosition();
       switch (call.getKind()) {
       case FILTER:
         assert filter == null;
@@ -5455,6 +5456,14 @@ public class SqlToRelConverter {
         translateAgg(call.operand(0), filter, orderList, ignoreNulls,
             outerCall);
         return;
+      case COUNTIF:
+        // COUNTIF(b)  ==> COUNT(*) FILTER (WHERE b)
+        // COUNTIF(b) FILTER (WHERE b2)  ==> COUNT(*) FILTER (WHERE b2 AND b)
+        final SqlCall call4 =
+            SqlStdOperatorTable.COUNT.createCall(pos, SqlIdentifier.star(pos));
+        final SqlNode filter2 = SqlUtil.andExpressions(filter, call.operand(0));
+        translateAgg(call4, filter2, orderList, ignoreNulls, outerCall);
+        return;
       case STRING_AGG:
         // Translate "STRING_AGG(s, sep ORDER BY x, y)"
         // as if it were "LISTAGG(s, sep) WITHIN GROUP (ORDER BY x, y)";
@@ -5469,8 +5478,7 @@ public class SqlToRelConverter {
         }
         final SqlCall call2 =
             SqlStdOperatorTable.LISTAGG.createCall(
-                call.getFunctionQuantifier(), call.getParserPosition(),
-                operands2);
+                call.getFunctionQuantifier(), pos, operands2);
         translateAgg(call2, filter, orderList, ignoreNulls, outerCall);
         return;
       case ARRAY_AGG:
@@ -5483,8 +5491,7 @@ public class SqlToRelConverter {
           orderList = (SqlNodeList) Util.last(operands);
           final SqlCall call3 =
               call.getOperator().createCall(
-                  call.getFunctionQuantifier(), call.getParserPosition(),
-                  Util.skipLast(operands));
+                  call.getFunctionQuantifier(), pos, Util.skipLast(operands));
           translateAgg(call3, filter, orderList, ignoreNulls, outerCall);
           return;
         }

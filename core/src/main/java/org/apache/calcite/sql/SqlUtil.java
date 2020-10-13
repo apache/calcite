@@ -66,6 +66,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -75,9 +77,13 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public abstract class SqlUtil {
   //~ Methods ----------------------------------------------------------------
 
-  static SqlNode andExpressions(
-      SqlNode node1,
-      SqlNode node2) {
+  /** Returns the AND of two expressions.
+   *
+   * <p>If {@code node1} is null, returns {@code node2}.
+   * Flattens if either node is an AND. */
+  public static @Nonnull SqlNode andExpressions(
+      @Nullable SqlNode node1,
+      @Nonnull SqlNode node2) {
     if (node1 == null) {
       return node2;
     }
