@@ -24,7 +24,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -56,9 +55,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -365,16 +361,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT +'abc' from (values(true))").ok();
   }
 
-  @Test void testNiladicForBigQuery() throws Exception {
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.config().withConformance(SqlConformanceEnum.BIG_QUERY))
-        .defaultSchema(rootSchema)
-        .build();
-    Planner planner = Frameworks.getPlanner(config);
-    SqlNode node = planner.parse("select current_time, current_time(), current_date, "
-        + "current_date(), current_timestamp, current_timestamp()");
-    planner.validate(node);
+  @Test void testNiladicForBigQuery() {
+    sql("select current_time, current_time(), current_date, "
+        + "current_date(), current_timestamp, current_timestamp()")
+        .withConformance(SqlConformanceEnum.BIG_QUERY).ok();
   }
 
   @Test void testEqualNotEqual() {
