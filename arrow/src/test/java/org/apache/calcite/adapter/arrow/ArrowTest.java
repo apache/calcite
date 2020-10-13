@@ -179,7 +179,7 @@ public class ArrowTest {
     }
   }
 
-  @Test void testJson() throws SQLException {
+  @Test void testArrow() throws SQLException {
     final String sql = "select * from test\n";
     final String[] lines = {
         "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
