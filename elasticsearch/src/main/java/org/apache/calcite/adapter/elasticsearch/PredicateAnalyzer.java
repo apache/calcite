@@ -676,57 +676,57 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression notExists() {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notExists'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression in(List literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['in'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression like(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression notLike(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notLike'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression equals(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['='] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression notEquals(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['not'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression gt(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['>'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression gte(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['>='] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression lt(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['<'] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression lte(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['<='] "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression queryString(String query) {
       throw new PredicateAnalyzerException("QueryString "
-              + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression isTrue() {
@@ -1022,15 +1022,15 @@ class PredicateAnalyzer {
     RelDataType op1 = call.getOperands().get(0).getType();
     RelDataType op2 = call.getOperands().get(1).getType();
     if ((SqlTypeFamily.DATETIME.contains(op1) && !SqlTypeFamily.DATETIME.contains(op2))
-            || (SqlTypeFamily.DATETIME.contains(op2) && !SqlTypeFamily.DATETIME.contains(op1))
-            || (SqlTypeFamily.DATE.contains(op1) && !SqlTypeFamily.DATE.contains(op2))
-            || (SqlTypeFamily.DATE.contains(op2) && !SqlTypeFamily.DATE.contains(op1))
-            || (SqlTypeFamily.TIMESTAMP.contains(op1) && !SqlTypeFamily.TIMESTAMP.contains(op2))
-            || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
-            || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
-            || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
+           || (SqlTypeFamily.DATETIME.contains(op2) && !SqlTypeFamily.DATETIME.contains(op1))
+           || (SqlTypeFamily.DATE.contains(op1) && !SqlTypeFamily.DATE.contains(op2))
+           || (SqlTypeFamily.DATE.contains(op2) && !SqlTypeFamily.DATE.contains(op1))
+           || (SqlTypeFamily.TIMESTAMP.contains(op1) && !SqlTypeFamily.TIMESTAMP.contains(op2))
+           || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
+           || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
+           || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
       throw new PredicateAnalyzerException("Cannot handle " + call.getKind()
-              + " expression for _id field, " + call);
+           + " expression for _id field, " + call);
     }
   }
 }
