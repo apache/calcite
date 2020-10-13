@@ -76,26 +76,24 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   }
 
   public Enumerable<Object> project(DataContext root, final int[] fields) {
-    List<TreeNode> treeNodes = new ArrayList<>();
-    List<ExpressionTree> expressionTrees = new ArrayList<>();
+    List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
 
     for(int i = 0; i < fields.length; i++) {
       Field field = schema.getFields().get(i);
-      treeNodes.add(TreeBuilder.makeField(field));
-      expressionTrees.add(TreeBuilder.makeExpression(treeNodes.get(i), field));
+      TreeNode node = TreeBuilder.makeField(field);
+      expressionTrees.add(TreeBuilder.makeExpression(node, field));
     }
 
-    Projector projector = null;
+    Projector projector;
     try {
       projector = Projector.make(schema, expressionTrees);
     } catch (GandivaException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
-    Projector finalProjector = projector;
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(finalProjector, fields, arrowFileReader);
+          return new ArrowEnumerator(projector, fields.length, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

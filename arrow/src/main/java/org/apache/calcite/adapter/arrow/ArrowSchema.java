@@ -88,7 +88,7 @@ class ArrowSchema extends AbstractSchema {
           e.printStackTrace();
         }
         SeekableReadChannel seekableReadChannel = new SeekableReadChannel(fileInputStream.getChannel());
-        RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+        RootAllocator allocator = new RootAllocator();
         ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
         tables.put(
             trim(file.getName(), ".arrow").toUpperCase(),
