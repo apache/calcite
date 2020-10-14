@@ -153,8 +153,11 @@ public abstract class Sources {
     }
   }
 
-  /** Implementation of {@link Source} on the top of a {@link File} or
-   * {@link URL}. */
+  /**
+   * Implementation of {@link Source} on the top of a {@link File} or {@link URL}.
+   *
+   * fixme 文件或者URL
+   */
   private static class FileSource implements Source {
     private final File file;
     private final URL url;

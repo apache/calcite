@@ -24,6 +24,5 @@ import org.apache.calcite.linq4j.function.Function1;
  *
  * @see org.apache.calcite.rel.type.RelDataTypeImpl#proto
  */
-public interface RelProtoDataType
-    extends Function1<RelDataTypeFactory, RelDataType> {
+public interface RelProtoDataType extends Function1<RelDataTypeFactory, RelDataType> {
 }

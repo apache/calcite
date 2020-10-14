@@ -25,6 +25,9 @@ import java.util.Set;
 /**
  * A namespace for tables and functions.
  *
+ * fixme
+ *    表和函数的命名空间。
+ *
  * <p>A schema can also contain sub-schemas, to any level of nesting. Most
  * providers have a limited number of levels; for example, most JDBC databases
  * have either one level ("schemas") or two levels ("database" and
@@ -99,6 +102,8 @@ public interface Schema {
 
   /**
    * Returns the names of the functions in this schema.
+   *
+   * fixme 返回该schema中的函数名称。
    *
    * @return Names of the functions in this schema
    */

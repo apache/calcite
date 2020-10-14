@@ -55,15 +55,18 @@ public class AbstractSchema implements Schema {
   public AbstractSchema() {
   }
 
-  @Override public boolean isMutable() {
+  @Override
+  public boolean isMutable() {
     return true;
   }
 
-  @Override public Schema snapshot(SchemaVersion version) {
+  @Override
+  public Schema snapshot(SchemaVersion version) {
     return this;
   }
 
-  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override
+  public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
 

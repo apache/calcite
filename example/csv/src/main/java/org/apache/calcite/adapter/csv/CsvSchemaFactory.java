@@ -27,34 +27,53 @@ import java.util.Map;
 
 /**
  * Factory that creates a {@link CsvSchema}.
+ * fixme
+ *      创建 CsvSchema 的工厂类，允许自定义包含 model 和 json 文件的schema。
  *
- * <p>Allows a custom schema to be included in a <code><i>model</i>.json</code>
- * file.
+ *
+ * <p>Allows a custom schema to be included in a <code><i>model</i>.json</code> file.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvSchemaFactory implements SchemaFactory {
-  /** Public singleton, per factory contract. */
+
+  /**
+   * Public singleton, per factory contract.
+   * 单例模式，final。
+   */
   public static final CsvSchemaFactory INSTANCE = new CsvSchemaFactory();
 
   private CsvSchemaFactory() {
   }
 
-  @Override public Schema create(SchemaPlus parentSchema, String name,
-      Map<String, Object> operand) {
+  @Override
+  public Schema create(SchemaPlus parentSchema,
+                       String name,
+                       Map<String, Object> operand) {
+
+    // directory：目录
     final String directory = (String) operand.get("directory");
-    final File base =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+
+    // operand： 操作数
+    final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+
+    // 使用指定目录创建 File 对象
     File directoryFile = new File(directory);
     if (base != null && !directoryFile.isAbsolute()) {
       directoryFile = new File(base, directory);
     }
+
+    // "特点"名称
     String flavorName = (String) operand.get("flavor");
+
+    // 默认 "可扫描的"
     CsvTable.Flavor flavor;
     if (flavorName == null) {
       flavor = CsvTable.Flavor.SCANNABLE;
     } else {
       flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     }
+
+    //
     return new CsvSchema(directoryFile, flavor);
   }
 }

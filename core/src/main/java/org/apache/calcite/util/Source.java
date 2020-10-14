@@ -31,15 +31,17 @@ public interface Source {
 
   // url、文件、路径、Reader、IO流、协议。
   URL url();
+
+  // CSV
   File file();
   String path();
   Reader reader() throws IOException;
   InputStream openStream() throws IOException;
   String protocol();
 
-  /** Looks for a suffix on a path and returns
-   * either the path with the suffix removed
-   * or the original path. */
+  /**
+   * Looks for a suffix on a path and returns either the path with the suffix removed or the original path.
+   */
   Source trim(String suffix);
 
   /** Looks for a suffix on a path and returns

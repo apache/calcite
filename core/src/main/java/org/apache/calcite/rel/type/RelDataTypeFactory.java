@@ -30,10 +30,13 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * RelDataTypeFactory is a factory for datatype descriptors. It defines methods
- * for instantiating and combining SQL, Java, and collection types. The factory
- * also provides methods for return type inference for arithmetic in cases where
+ * RelDataTypeFactory is a factory for datatype descriptors.
+ * It defines methods for instantiating and combining SQL, Java, and collection types.
+ * The factory also provides methods for return type inference for arithmetic in cases where
  * SQL 2003 is implementation defined or impractical.
+ *
+ * fixme
+ *    datatype descriptors 的工厂。
  *
  * <p>This interface is an example of the
  * {@link org.apache.calcite.util.Glossary#ABSTRACT_FACTORY_PATTERN abstract factory pattern}.

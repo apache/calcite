@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
- * is an HTML table on a URL.
+ * Schema mapped onto a set of URLs / HTML tables.
+ * Each table in the schema is an HTML table on a URL.
  */
 class FileSchema extends AbstractSchema {
   private final ImmutableList<Map<String, Object>> tables;

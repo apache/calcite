@@ -40,6 +40,8 @@ import java.util.Set;
 /**
  * A <code>RelNode</code> is a relational expression.
  *
+ *
+ *
  * <p>Relational expressions process data, so their names are typically verbs:
  * Sort, Join, Project, Filter, Scan, Sample.
  *

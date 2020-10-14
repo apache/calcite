@@ -28,6 +28,9 @@ import java.util.Map;
 /**
  * Factory that creates a {@link FileSchema}.
  *
+ * fixme
+ *      创建 FileSchema 的工厂类。
+ *
  * <p>Allows a custom schema to be included in a model.json file.
  * See <a href="http://calcite.apache.org/docs/file_adapter.html">File adapter</a>.
  */

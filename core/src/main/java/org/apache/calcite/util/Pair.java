@@ -38,8 +38,7 @@ import javax.annotation.Nonnull;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-public class Pair<T1, T2>
-    implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
+public class Pair<T1, T2> implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static final Comparator NULLS_FIRST_COMPARATOR =

@@ -39,23 +39,24 @@ import org.apache.calcite.util.ImmutableBeans;
 import java.util.List;
 
 /**
- * Planner rule that permutes the inputs to a
- * {@link org.apache.calcite.rel.core.Join}.
+ * Planner rule that permutes(重新排列) the inputs to a {@link Join}.
  *
- * <p>Permutation of outer joins can be turned on/off by specifying the
- * swapOuter flag in the constructor.
+ * <p>
+ *   Permutation of outer joins can be turned on/off by specifying the swapOuter flag in the constructor.
+ *   通过在构造函数中执行swapOuter标志位，外部join的重新排列(Permutation) 可以指定打开/关闭状态。
  *
- * <p>To preserve the order of columns in the output row, the rule adds a
- * {@link org.apache.calcite.rel.core.Project}.
+ * <p>
+ *   To preserve(保留) the order of columns in the output row, the rule adds a {@link org.apache.calcite.rel.core.Project}.
+ *   "为了保留输出行中列的顺序，该规则添加了一个项目"
  *
  * @see CoreRules#JOIN_COMMUTE
  * @see CoreRules#JOIN_COMMUTE_OUTER
  */
-public class JoinCommuteRule
-    extends RelRule<JoinCommuteRule.Config>
-    implements TransformationRule {
+public class JoinCommuteRule extends RelRule<JoinCommuteRule.Config> implements TransformationRule {
 
-  /** Creates a JoinCommuteRule. */
+  /**
+   * Creates a JoinCommuteRule.
+   */
   protected JoinCommuteRule(Config config) {
     super(config);
   }

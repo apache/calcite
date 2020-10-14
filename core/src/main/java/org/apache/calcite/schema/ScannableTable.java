@@ -20,11 +20,17 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 
 /**
- * Table that can be scanned without creating an intermediate relational
- * expression.
+ * Table that can be scanned without creating an intermediate relational expression.
+ *
+ * "不用创建关系表达式即可被扫描的表"
  */
 public interface ScannableTable extends Table {
-  /** Returns an enumerator over the rows in this Table. Each row is represented
-   * as an array of its column values. */
+
+  /**
+   * Returns an enumerator(枚举符) over the rows(行) in this Table.
+   * Each row is represented as an array of its column values.
+   *
+   * ？？返回该表每行的枚举符，每一行代表该列的值数组？？
+   */
   Enumerable<Object[]> scan(DataContext root);
 }

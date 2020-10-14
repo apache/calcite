@@ -35,12 +35,14 @@ import java.util.List;
  */
 public abstract class CsvTable extends AbstractTable {
 
+  // 数据源：文件目录
   protected final Source source;
 
   protected final RelProtoDataType protoRowType;
 
   private RelDataType rowType;
 
+  // 字段类型
   private List<CsvFieldType> fieldTypes;
 
   /**
@@ -73,19 +75,27 @@ public abstract class CsvTable extends AbstractTable {
   public List<CsvFieldType> getFieldTypes(RelDataTypeFactory typeFactory) {
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
-      CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          fieldTypes, isStream());
+      CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, fieldTypes, isStream());
     }
     return fieldTypes;
   }
 
-  /** Returns whether the table represents a stream. */
+  /**
+   * Returns whether the table represents a stream.
+   *
+   * 表是否是流。
+   */
   protected boolean isStream() {
     return false;
   }
 
-  /** Various degrees of table "intelligence". */
+  /**
+   * 表各种特点。
+   *
+   * Various degrees of table "intelligence".
+   */
   public enum Flavor {
+    // 特点：可扫描的、可过滤的、可传递的
     SCANNABLE, FILTERABLE, TRANSLATABLE
   }
 }

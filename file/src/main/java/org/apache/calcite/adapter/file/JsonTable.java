@@ -45,7 +45,9 @@ public class JsonTable extends AbstractTable {
     return rowType;
   }
 
-  /** Returns the data list of the table. */
+  /**
+   * Returns the data list of the table.
+   */
   public List<Object> getDataList(RelDataTypeFactory typeFactory) {
     if (dataList == null) {
       JsonDataConverter jsonDataConverter =

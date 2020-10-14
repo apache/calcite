@@ -19,6 +19,8 @@ package org.apache.calcite.linq4j.function;
 /**
  * Base interface for all functions.
  *
+ * 所有函数的接口。
+ *
  * @param <R> Result type
  */
 public interface Function<R> {

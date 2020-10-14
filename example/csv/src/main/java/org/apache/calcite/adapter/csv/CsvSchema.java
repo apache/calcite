@@ -36,15 +36,19 @@ public class CsvSchema extends AbstractSchema {
   // 文件目录
   private final File directoryFile;
 
+  // 特点：可扫描的、可过滤的、可传递的
   private final CsvTable.Flavor flavor;
+
   private Map<String, Table> tableMap;
 
   /**
    * Creates a CSV schema.
    *
    * @param directoryFile Directory that holds {@code .csv} files
-   * @param flavor     Whether to instantiate flavor tables that undergo
-   *                   query optimization
+   *                      保存scv文件的目录。
+   *
+   * @param flavor     Whether to instantiate flavor tables that undergo(经过) query optimization
+   *                   是否实例化经过查询优化的 flavor tables
    */
   public CsvSchema(File directoryFile, CsvTable.Flavor flavor) {
     super();
@@ -52,23 +56,28 @@ public class CsvSchema extends AbstractSchema {
     this.flavor = flavor;
   }
 
-  /** Looks for a suffix on a string and returns
+  /**
+   * Looks for a suffix on a string and returns
    * either the string with the suffix removed
-   * or the original string. */
+   * or the original string.
+   */
   private static String trim(String s, String suffix) {
     String trimmed = trimOrNull(s, suffix);
     return trimmed != null ? trimmed : s;
   }
 
-  /** Looks for a suffix on a string and returns
+  /**
+   * Looks for a suffix on a string and returns
    * either the string with the suffix removed
-   * or null. */
+   * or null.
+   */
   private static String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
   }
 
+  // 返回 表名称 到 表对象的映射。
   @Override protected Map<String, Table> getTableMap() {
     if (tableMap == null) {
       tableMap = createTableMap();
@@ -77,19 +86,23 @@ public class CsvSchema extends AbstractSchema {
   }
 
   private Map<String, Table> createTableMap() {
-    // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
-    // ".json.gz".
+    // Look for files in the directory ending in ".csv", ".csv.gz", ".json", ".json.gz".
+    // 查找指定目录下以 ".csv", ".csv.gz", ".json", ".json.gz" 结尾的文件。
     final Source baseSource = Sources.of(directoryFile);
     File[] files = directoryFile.listFiles((dir, name) -> {
       final String nameSansGz = trim(name, ".gz");
       return nameSansGz.endsWith(".csv")
           || nameSansGz.endsWith(".json");
     });
+
+    // 如果没有文件，则赋值为空数组。
     if (files == null) {
       System.out.println("directory " + directoryFile + " not found");
       files = new File[0];
     }
+
     // Build a map from table name to table; each file becomes a table.
+    // 将每个文件看作一个表：构造表名称到表的映射。
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (File file : files) {
       Source source = Sources.of(file);
@@ -108,8 +121,13 @@ public class CsvSchema extends AbstractSchema {
     return builder.build();
   }
 
-  /** Creates different sub-type of table based on the "flavor" attribute. */
+  /**
+   * Creates different sub-type of table based on the "flavor" attribute.
+   *
+   * fixme 基于flavor属性，创建 Table 具体的实现类。
+   */
   private Table createTable(Source source) {
+    // 可传递的
     switch (flavor) {
     case TRANSLATABLE:
       return new CsvTranslatableTable(source, null);

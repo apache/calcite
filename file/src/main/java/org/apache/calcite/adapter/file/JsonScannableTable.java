@@ -29,8 +29,8 @@ import org.apache.calcite.util.Source;
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */
-public class JsonScannableTable extends JsonTable
-    implements ScannableTable {
+public class JsonScannableTable extends JsonTable implements ScannableTable {
+
   /**
    * Creates a JsonScannableTable.
    */

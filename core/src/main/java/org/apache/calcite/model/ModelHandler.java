@@ -574,6 +574,7 @@ public class ModelHandler {
     /** Tables defined in this schema. */
     TABLES("tables");
 
+    // 驼峰名称：大小写、没有 _ 分隔符
     public final String camelName;
 
     ExtraOperand(String camelName) {

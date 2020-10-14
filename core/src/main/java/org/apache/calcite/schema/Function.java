@@ -21,6 +21,9 @@ import java.util.List;
 /**
  * Named expression that accepts parameters and returns a result.
  *
+ * fixme
+ *     命名表达式：接收参数、返回结果。
+ *
  * <p>The application may occur at compile time (for a macro) or at run time
  * (for a regular function). The result may be a relation, and so might any of
  * the parameters.</p>

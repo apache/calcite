@@ -46,9 +46,13 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.impl.StarTable;
 
-/** Rules that perform logical transformations on relational expressions.
+/**
+ * Rules that perform logical transformations on relational expressions.
  *
- * @see MaterializedViewRules */
+ * 在关系表达式上执行逻辑转换的规则。
+ *
+ * @see MaterializedViewRules
+ **/
 public class CoreRules {
 
   private CoreRules() {}

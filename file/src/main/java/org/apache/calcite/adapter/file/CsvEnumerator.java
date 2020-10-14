@@ -97,8 +97,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  public static RowConverter<Object[]> arrayConverter(
-      List<CsvFieldType> fieldTypes, List<Integer> fields, boolean stream) {
+  /**
+   * @param fieldTypes
+   * @param fields
+   * @param stream
+   * @return
+   */
+  public static RowConverter<Object[]> arrayConverter(List<CsvFieldType> fieldTypes, List<Integer> fields, boolean stream) {
     return new ArrayRowConverter(fieldTypes, fields, stream);
   }
 
@@ -109,10 +114,17 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return deduceRowType(typeFactory, source, fieldTypes, false);
   }
 
-  /** Deduces the names and types of a table's columns by reading the first line
-  * of a CSV file. */
-  public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
-      Source source, List<CsvFieldType> fieldTypes, Boolean stream) {
+  /**
+   * Deduces(推断) the names and types of a table's columns by reading the first line of a CSV file.
+   * 通过读取csv文件第一行，推断 schema 的名称和类型。
+   *
+   * @param typeFactory
+   * @param source
+   * @param fieldTypes 存放结果
+   * @param stream
+   * @return
+   */
+  public static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source, List<CsvFieldType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
