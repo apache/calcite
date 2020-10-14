@@ -18,22 +18,31 @@ package org.apache.calcite.sql.validate;
 
 
 /**
- * Enumeration of valid SQL compatibility modes.
+ * Enumeration of valid SQL compatibility(兼容) modes.
+ * fixme
+ *      有效sql兼容模式的枚举。
  *
- * <p>For most purposes, one of the built-in compatibility modes in enum
- * {@link SqlConformanceEnum} will suffice.
+ * <p>
+ *   For most purposes, one of the built-in compatibility modes in enum {@link SqlConformanceEnum} will suffice.
+ *   fixme
+ *        大多数情况下，sql一致性枚举/SqlConformanceEnum 中的内置枚举之一就可以满足要求。
  *
- * <p>If you wish to implement this interface to build your own conformance,
- * we strongly recommend that you extend {@link SqlAbstractConformance},
- * or use a {@link SqlDelegatingConformance},
- * so that you won't be broken by future changes.
+ * <p>
+ *   If you wish to implement this interface to build your own conformance,
+ *   we strongly recommend that you extend {@link SqlAbstractConformance},
+ *   or use a {@link SqlDelegatingConformance}, so that you won't be broken by future changes.
+ *   fixme
+ *        对于自定义的实现、不建议直接实现此接口，则可通过继承{@link SqlAbstractConformance}，或者使用{@link SqlDelegatingConformance}，
+ *        这样当未来接口变化的时候、就不会破坏自定义的实现了。
  *
  * @see SqlConformanceEnum
  * @see SqlAbstractConformance
  * @see SqlDelegatingConformance
  */
 public interface SqlConformance {
-  /** Short-cut for {@link SqlConformanceEnum#DEFAULT}. */
+  /**
+   * Short-cut for {@link SqlConformanceEnum#DEFAULT}.
+   */
   @SuppressWarnings("unused")
   @Deprecated // to be removed before 2.0
   SqlConformanceEnum DEFAULT = SqlConformanceEnum.DEFAULT;

@@ -38,9 +38,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A <code>RelNode</code> is a relational expression.
- *
- *
+ * A RelNode is a relational expression.
+ * fixme
+ *      RelNode 是关系表达式。
  *
  * <p>Relational expressions process data, so their names are typically verbs:
  * Sort, Join, Project, Filter, Scan, Sample.
@@ -253,6 +253,7 @@ public interface RelNode extends RelOptNode, Cloneable {
 
   /**
    * Returns a digest string of this {@code RelNode}.
+   * fixme default方法可用于继承。
    *
    * <p>Each call creates a new digest string,
    * so don't forget to cache the result if necessary.

@@ -85,13 +85,23 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
- * Structure that allows materialized views based upon a star schema to be
- * recognized and recommended.
+ * Structure that allows materialized views
+ * based upon a star schema
+ * to be recognized and recommended.
+ *
+ * fixme
+ *      该结构可用来识别可推荐，允许基于星schema的物化试图。
  */
 @ParametersAreNonnullByDefault
 public class Lattice {
+
+  // 包装用户自定义的schema，内部使用类。
   public final CalciteSchema rootSchema;
+
+  // 根节点，没有父节点
   public final LatticeRootNode rootNode;
+
+  //
   public final ImmutableList<Column> columns;
   public final boolean auto;
   public final boolean algorithm;
@@ -631,14 +641,30 @@ public class Lattice {
     }
   }
 
-  /** Column in a lattice. May be an a base column or an expression,
-   * and may have an additional alias that is unique
-   * within the entire lattice. */
+  /**
+   * Column in a lattice.
+   * May be an a base column or an expression,
+   * and may have an additional alias that is unique within the entire lattice.
+   *
+   * fixme 两个属性：序数、别名。
+   *     点阵中的列，可能是 基本列或者表达式，
+   *     可能在整个 点阵中 有额外的 唯一的别名。
+   */
   public abstract static class Column implements Comparable<Column> {
-    /** Ordinal of the column within the lattice. */
+
+    /**
+     * Ordinal of the column within the lattice.
+     *
+     * 点阵中列的序数。
+     */
     public final int ordinal;
-    /** Alias of the column, unique within the lattice. Derived from the column
-     * name, automatically disambiguated if necessary. */
+
+    /**
+     * Alias of the column, unique within the lattice.
+     * Derived from the column name, automatically disambiguated(消除歧义) if necessary.
+     *
+     * 列的别名，在点阵中是唯一的。取之列名，如果有必要则自动消除歧义。
+     */
     public final String alias;
 
     private Column(int ordinal, String alias) {
@@ -646,7 +672,11 @@ public class Lattice {
       this.alias = Objects.requireNonNull(alias);
     }
 
-    /** Converts a list of columns to a bit set of their ordinals. */
+    /**
+     * Converts a list of columns to a bit set of their ordinals.
+     *
+     * 将一个列集合转换为他们 序数 的 bit set。
+     */
     static ImmutableBitSet toBitSet(List<Column> columns) {
       final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
       for (Column column : columns) {
@@ -655,7 +685,8 @@ public class Lattice {
       return builder.build();
     }
 
-    @Override public int compareTo(Column column) {
+    @Override
+    public int compareTo(Column column) {
       return Utilities.compare(ordinal, column.ordinal);
     }
 
@@ -1148,7 +1179,9 @@ public class Lattice {
     }
   }
 
-  /** Tile builder. */
+  /**
+   * Tile builder.
+   */
   public static class TileBuilder {
     private final List<Measure> measureBuilder = new ArrayList<>();
     private final List<Column> dimensionListBuilder = new ArrayList<>();

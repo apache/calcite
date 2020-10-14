@@ -18,19 +18,34 @@ package org.apache.calcite.materialize;
 
 /**
  * Utilities for {@link Lattice}, {@link LatticeStatisticProvider}.
+ *
+ * fixme Lattice 和 LatticeStatisticProvider(数据统计) 的工具类。
  */
 public class Lattices {
+
+  // 防止被实例化，因为此类提供的都是全局静态实例。
   private Lattices() {}
 
-  /** Statistics provider that uses SQL. */
-  public static final LatticeStatisticProvider.Factory SQL =
-      SqlLatticeStatisticProvider.FACTORY;
+  /**
+   * Statistics provider that uses SQL.
+   *
+   * 使用sql的 统计类提供者。
+   */
+  public static final LatticeStatisticProvider.Factory SQL = SqlLatticeStatisticProvider.FACTORY;
 
-  /** Statistics provider that uses SQL then stores the results in a cache. */
-  public static final LatticeStatisticProvider.Factory CACHED_SQL =
-      SqlLatticeStatisticProvider.CACHED_FACTORY;
+  /**
+   * Statistics provider that uses SQL then stores the results in a cache.
+   *
+   * 使用说起来的统计提供者，将数据放到cache中。
+   */
+  public static final LatticeStatisticProvider.Factory CACHED_SQL = SqlLatticeStatisticProvider.CACHED_FACTORY;
 
-  /** Statistics provider that uses a profiler. */
-  public static final LatticeStatisticProvider.Factory PROFILER =
-      ProfilerLatticeStatisticProvider.FACTORY;
+  /**
+   * Statistics provider that uses a profiler.
+   *
+   * 使用 ProfilerLatticeStatisticProvider 的数据提供者。
+   *
+   * profiler n: 分析器。
+   */
+  public static final LatticeStatisticProvider.Factory PROFILER =  ProfilerLatticeStatisticProvider.FACTORY;
 }

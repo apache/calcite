@@ -20,12 +20,15 @@ import java.util.Map;
 
 /**
  * Factory for {@link Schema} objects.
+ * fixme
+ *      schema对象工厂。
  *
- * <p>A schema factory allows you to include a custom schema in a model file.
- * For example, here is a model that contains a custom schema whose tables
- * read CSV files. (See the
- * <a href="http://calcite.apache.org/apidocs/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
- * for more details about this particular adapter.)
+ *
+ * <p>
+ *   A schema factory allows you to include a custom schema in a model file.
+ *   For example, here is a model that contains a custom schema whose tables read CSV files.
+ *   (See the <a href="http://calcite.apache.org/apidocs/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
+ *   for more details about this particular adapter.)
  *
  * <blockquote><pre>{
  *   "version": "1.0",
@@ -58,15 +61,20 @@ import java.util.Map;
  * public default constructor.
  */
 public interface SchemaFactory {
-  /** Creates a Schema.
+  /**
+   * Creates a Schema.
+   * 使用指定配置创建schema.
    *
    * @param parentSchema Parent schema
-   * @param name Name of this schema
-   * @param operand The "operand" JSON property
+   *                     父schema
+   *
+   * @param name         Name of this schema
+   *                     schema名称
+   *
+   * @param operand      The "operand" JSON property
+   *                     JSON属性操作符
+   *
    * @return Created schema
    */
-  Schema create(
-      SchemaPlus parentSchema,
-      String name,
-      Map<String, Object> operand);
+  Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand);
 }

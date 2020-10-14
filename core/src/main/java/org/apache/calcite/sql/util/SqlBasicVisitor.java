@@ -35,13 +35,15 @@ import org.apache.calcite.sql.SqlNodeList;
  * @param <R> Return type
  */
 public class SqlBasicVisitor<R> implements SqlVisitor<R> {
-  //~ Methods ----------------------------------------------------------------
 
-  @Override public R visit(SqlLiteral literal) {
+  //~ Methods ----------------------------------------------------------------
+  @Override
+  public R visit(SqlLiteral literal) {
     return null;
   }
 
-  @Override public R visit(SqlCall call) {
+  @Override
+  public R visit(SqlCall call) {
     return call.getOperator().acceptCall(this, call);
   }
 

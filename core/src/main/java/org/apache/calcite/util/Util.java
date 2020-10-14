@@ -2470,9 +2470,9 @@ public class Util {
    *
    * <p>Does not use the default character set. */
   public static PrintWriter printWriter(OutputStream out) {
-    return new PrintWriter(
-        new BufferedWriter(
-            new OutputStreamWriter(out, StandardCharsets.UTF_8)));
+    OutputStreamWriter outputStreamWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+    BufferedWriter bufferedWriter = new BufferedWriter(outputStreamWriter);
+    return new PrintWriter(bufferedWriter);
   }
 
   /** Creates a {@link PrintWriter} to a given file using UTF-8

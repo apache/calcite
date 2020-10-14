@@ -65,16 +65,28 @@ import javax.sql.DataSource;
 
 /**
  * Reads a model and creates schema objects accordingly.
+ *
+ * 读取模型并创建相应的 schema 对象。
  */
 public class ModelHandler {
+
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+      // 允许唯一字段名称
       .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      // 允许单引号
       .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+      // 允许注释
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+
+  // yaml格式介绍：https://www.ruanyifeng.com/blog/2016/07/yaml.html
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
+  //  calcite 对 jdk sql 的拓展，允许自动定义 schema。
   private final CalciteConnection connection;
+
+  // 线性集合：允许在队列两端进行插入、移除；
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
+
   private final String modelUri;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;
@@ -558,20 +570,37 @@ public class ModelHandler {
     tileBuilder = null;
   }
 
-  /** Extra operands automatically injected into a
-   * {@link JsonCustomSchema#operand}, as extra context for the adapter. */
+  /**
+   * Extra operands automatically injected into a {@link JsonCustomSchema#operand},
+   * as extra context for the adapter.
+   *
+   * 自动注入到{@link JsonCustomSchema#operand} 中的额外操作。
+   */
   public enum ExtraOperand {
-    /** URI of model, e.g. "target/test-classes/model.json",
-     * "http://localhost/foo/bar.json", "inline:{...}",
-     * "target/test-classes/model.yaml",
-     * "http://localhost/foo/bar.yaml", "inline:..."
-     * */
+    /**
+     * URI of model,
+     * e.g.
+     *    "target/test-classes/model.json",
+     *    "http://localhost/foo/bar.json", "inline:{...}",
+     *    "target/test-classes/model.yaml",
+     *    "http://localhost/foo/bar.yaml", "inline:..."
+     *
+     * 模型的url，如上所示。
+     */
     MODEL_URI("modelUri"),
 
-    /** Base directory from which to read files. */
+    /**
+     * Base directory from which to read files.
+     *
+     * 从中读取文件的基本目录。
+     */
     BASE_DIRECTORY("baseDirectory"),
 
-    /** Tables defined in this schema. */
+    /**
+     * Tables defined in this schema.
+     *
+     * schema中定义的表。
+     */
     TABLES("tables");
 
     // 驼峰名称：大小写、没有 _ 分隔符

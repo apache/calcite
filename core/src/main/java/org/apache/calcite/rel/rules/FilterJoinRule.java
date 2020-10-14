@@ -43,16 +43,22 @@ import java.util.List;
 import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 
 /**
- * Planner rule that pushes filters above and
- * within a join node into the join node and/or its children nodes.
+ * Planner rule that pushes filters above and within a join node
+ * into the join node and/or its children nodes.
+ *
+ * 将 join 上的 filter 推进到 join及其子节点内。见论文示例；
  *
  * @param <C> Configuration type
+ *           配置类型
  */
-public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
-    extends RelRule<C>
-    implements TransformationRule {
-  /** Predicate that always returns true. With this predicate, every filter
-   * will be pushed into the ON clause. */
+public abstract class FilterJoinRule<C extends FilterJoinRule.Config> extends RelRule<C> implements TransformationRule {
+
+  /**
+   * Predicate that always returns true.
+   * With this predicate, every filter will be pushed into the ON clause.
+   *
+   * 总是返回 true 的断言：每个使用了此断言的过滤器都会推进到下一层的节点。
+   */
   @Deprecated // to be removed before 2.0
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 

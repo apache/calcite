@@ -31,8 +31,9 @@ import javax.annotation.Nullable;
 /**
  * Hint attached to a relation expression.
  *
- * <p>A hint can be used to:
+ * fixme 与表达式关联的提示。
  *
+ * <p>A hint can be used to:
  * <ul>
  *   <li>Enforce planner: there's no perfect planner, so it makes sense to implement hints to
  *   allow user better control the execution. For instance, "never merge this subquery with others",
@@ -47,6 +48,9 @@ import javax.annotation.Nullable;
  *   and so on, it would be very flexible to profile the resource with hints per query
  *   (instead of the Job).</li>
  * </ul>
+ * fixme
+ *      表达式可以用来：
+ *      1.
  *
  * <p>In order to support hint override, each hint has a {@code inheritPath} (integers list) to
  * record its propagate path from the root node, number `0` represents the hint was propagated

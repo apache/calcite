@@ -27,11 +27,16 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-/** Maze generator. */
+/**
+ * Maze generator.
+ *
+ * "迷宫"
+ */
 class Maze {
   private final int width;
   final int height;
   private final int[] regions;
+  // todo
   private final boolean[] ups;
   private final boolean[] lefts;
 
@@ -40,16 +45,24 @@ class Maze {
   private final boolean spiral = false;
 
   Maze(int width, int height) {
+    // 长、宽、region个数
     this.width = width;
     this.height = height;
+
+    // 从0递增。
     this.regions = new int[width * height];
     for (int i = 0; i < regions.length; i++) {
       regions[i] = i;
     }
+
+    // 长*宽+宽
     this.ups = new boolean[width * height + width];
+
+    // 长*宽+1
     this.lefts = new boolean[width * height + 1];
   }
 
+  //
   private int region(int cell) {
     int region = regions[cell];
     if (region == cell) {
@@ -58,7 +71,9 @@ class Maze {
     return regions[cell] = region(region);
   }
 
-  /** Prints the maze. Results are like this:
+  /**
+   * Prints the maze. Results are like this:
+   * fixme 打印迷宫，结果如下。
    *
    * <blockquote>
    * +--+--+--+--+--+
@@ -101,7 +116,11 @@ class Maze {
     pw.flush();
   }
 
-  /** Generates a list of lines representing the maze in text form. */
+  /**
+   * Generates a list of lines representing the maze in text form.
+   *
+   * 产生代表迷宫的文本列表。
+   */
   public Enumerator<String> enumerator(final Set<Integer> solutionSet) {
     final CellContent cellContent;
     if (solutionSet == null) {
@@ -158,6 +177,14 @@ class Maze {
     b2.append('|');
   }
 
+  /**
+   * layout：布局。
+   *
+   * @param random
+   * @param pw
+   *
+   * @return
+   */
   public Maze layout(Random random, PrintWriter pw) {
     int[] candidates =
         new int[width * height - width

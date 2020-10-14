@@ -16,6 +16,8 @@
  */
 
 /**
- * User-defined table function that generates a maze.
+ * User-defined table function that generates a maze(？迷宫？).
+ *
+ * 自定义的表函数、产生 maze.
  */
 package org.apache.calcite.example.maze;

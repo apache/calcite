@@ -24,30 +24,46 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Set;
 
-/** Named, built-in lexical policy. A lexical policy describes how
- * identifiers are quoted, whether they are converted to upper- or
- * lower-case when they are read, and whether they are matched
- * case-sensitively. */
+/**
+ * Named, built-in lexical policy.
+ *
+ * A lexical policy describes how identifiers are quoted(引用),
+ * whether they are converted to upper- or lower-case when they are read,
+ * and whether they are matched case-sensitively.
+ *
+ * fixme
+ *    命名的、内置的词法策略。
+ *    一个词法策略描述了识别符如何别引用；识别符被读取的时候、是否被转换成大写或者小写；他们是否是大小写敏感的。
+ */
 public enum Lex {
-  /** Lexical policy similar to BigQuery.
+
+  /**
+   * Lexical policy similar to BigQuery.
+   *
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
    * Back-ticks allow identifiers to contain non-alphanumeric characters.
-   * Character literals may be enclosed in single or double quotes. */
+   * Character literals may be enclosed in single or double quotes.
+   */
   BIG_QUERY(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true,
       CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
 
-  /** Lexical policy similar to Oracle. The case of identifiers enclosed in
+  /**
+   * Lexical policy similar to Oracle.
+   * The case of identifiers enclosed in
    * double-quotes is preserved; unquoted identifiers are converted to
-   * upper-case; after which, identifiers are matched case-sensitively. */
+   * upper-case; after which, identifiers are matched case-sensitively.
+   */
   ORACLE(Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED, true,
       CharLiteralStyle.STANDARD),
 
-  /** Lexical policy similar to MySQL. (To be precise: MySQL on Windows;
+  /**
+   * Lexical policy similar to MySQL. (To be precise: MySQL on Windows;
    * MySQL on Linux uses case-sensitive matching, like the Linux file system.)
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
-   * Back-ticks allow identifiers to contain non-alphanumeric characters. */
+   * Back-ticks allow identifiers to contain non-alphanumeric characters.
+   */
   MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false,
       CharLiteralStyle.STANDARD),
 

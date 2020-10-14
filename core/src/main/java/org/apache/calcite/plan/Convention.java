@@ -21,6 +21,8 @@ import org.apache.calcite.rel.core.RelFactories;
 
 /**
  * Calling convention trait.
+ *
+ * "约定特征"
  */
 public interface Convention extends RelTrait {
   /**

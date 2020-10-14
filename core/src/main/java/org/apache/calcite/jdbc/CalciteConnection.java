@@ -27,9 +27,10 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- * Extension to Calcite's implementation of
- * {@link java.sql.Connection JDBC connection} allows schemas to be defined
- * dynamically.
+ * Extension to Calcite's implementation of {@link java.sql.Connection JDBC connection}
+ * allows schemas to be defined dynamically.
+ * fixme
+ *      calcite 对 jdk sql 的拓展，允许自动定义 schema。
  *
  * <p>You can start off with an empty connection (no schemas), define one
  * or two schemas, and start querying them.</p>

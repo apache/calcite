@@ -35,9 +35,11 @@ import java.util.List;
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
  */
 public class SqlIdentifier extends SqlNode {
-  /** An identifier for star, "*".
+  /**
+   * An identifier for star, "*".
    *
-   * @see SqlNodeList#SINGLETON_STAR */
+   * @see SqlNodeList#SINGLETON_STAR
+   */
   public static final SqlIdentifier STAR = star(SqlParserPos.ZERO);
 
   //~ Instance fields --------------------------------------------------------

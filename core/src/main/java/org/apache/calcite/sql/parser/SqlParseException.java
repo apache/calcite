@@ -24,12 +24,13 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * SqlParseException defines a checked exception corresponding to
- * {@link SqlParser}.
+ * SqlParseException defines a checked exception corresponding to {@link SqlParser}.
+ *
+ * sql解析时发生的检查异常
  */
-public class SqlParseException extends Exception
-    implements CalciteParserException {
-  //~ Instance fields --------------------------------------------------------
+public class SqlParseException extends Exception implements CalciteParserException {
+
+  //~ Instance fields 实例字段 --------------------------------------------------------
 
   private final SqlParserPos pos;
   private final int[][] expectedTokenSequences;

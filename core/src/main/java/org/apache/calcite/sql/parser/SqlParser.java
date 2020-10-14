@@ -241,9 +241,15 @@ public class SqlParser {
 
   /**
    * Interface to define the configuration for a SQL parser.
+   *
+   * sql解析器配置。
    */
   public interface Config {
-    /** Default configuration. */
+    /**
+     * Default configuration.
+     *
+     * 默认配置：ORACLE解析策略、识别符最长128、默认一致性行为、默认sql解析工厂。
+     */
     Config DEFAULT = ImmutableBeans.create(Config.class)
         .withLex(Lex.ORACLE)
         .withIdentifierMaxLength(DEFAULT_IDENTIFIER_MAX_LENGTH)

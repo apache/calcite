@@ -280,13 +280,19 @@ class CachingCalciteSchema extends CalciteSchema {
    * @param <T> Type of cached object
    */
   private interface Cached<T> {
-    /** Returns the value; uses cached value if valid. */
+    /**
+     * Returns the value; uses cached value if valid.
+     */
     T get(long now);
 
-    /** Creates a new value. */
+    /**
+     * Creates a new value.
+     */
     T build();
 
-    /** Called when CalciteSchema caching is enabled or disabled. */
+    /**
+     * Called when CalciteSchema caching is enabled or disabled.
+     */
     void enable(long now, boolean enabled);
   }
 

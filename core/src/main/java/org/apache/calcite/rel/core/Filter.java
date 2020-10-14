@@ -42,17 +42,19 @@ import java.util.Objects;
 
 /**
  * Relational expression that iterates over its input
- * and returns elements for which <code>condition</code> evaluates to
- * <code>true</code>.
+ * and returns elements for which condition evaluates(vt 评估) to true.
+ * fixme
+ *      iterates over: 遍历；
+ *      在输入上进行遍历 关系表达式，并返回被评估为true的对象；
+ *      对于评估条件如果可以为null、则与false等价。
  *
- * <p>If the condition allows nulls, then a null value is treated the same as
- * false.</p>
+ * <p>
+ *   If the condition allows nulls, then a null value is treated the same as false.
  *
  * @see org.apache.calcite.rel.logical.LogicalFilter
  */
 public abstract class Filter extends SingleRel {
   //~ Instance fields --------------------------------------------------------
-
   protected final RexNode condition;
 
   //~ Constructors -----------------------------------------------------------
@@ -61,10 +63,16 @@ public abstract class Filter extends SingleRel {
    * Creates a filter.
    *
    * @param cluster   Cluster that this relational expression belongs to
+   *                  关系表达式 所属的集群
+   *
    * @param traits    the traits of this rel
+   *                  关系的特点
+   *
    * @param child     input relational expression
-   * @param condition boolean expression which determines whether a row is
-   *                  allowed to pass
+   *                  关系表达式的输入
+   *
+   * @param condition boolean expression which determines whether a row(行) is allowed to pass
+   *                  确认某行是否应该被pass的boolean类型表达式
    */
   protected Filter(
       RelOptCluster cluster,
@@ -81,6 +89,8 @@ public abstract class Filter extends SingleRel {
 
   /**
    * Creates a Filter by parsing serialized output.
+   *
+   * 通过序列化的输入创建 Filter
    */
   protected Filter(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),

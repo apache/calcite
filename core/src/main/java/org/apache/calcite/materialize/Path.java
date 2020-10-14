@@ -20,8 +20,12 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/** A sequence of {@link Step}s from a root node (fact table) to another node
- * (dimension table), possibly via intermediate dimension tables. */
+/**
+ * A sequence of {@link Step}s from a root node (fact table)
+ * to another node (dimension table), possibly via intermediate dimension tables.
+ *
+ * fixme 从根节点到另一个维度表中节点的序列，可能经过中间的维度表。
+ */
 class Path {
   final List<Step> steps;
   private final int id;
@@ -31,11 +35,13 @@ class Path {
     this.id = id;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     return id;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override
+  public boolean equals(Object obj) {
     return this == obj
         || obj instanceof Path
         && id == ((Path) obj).id;

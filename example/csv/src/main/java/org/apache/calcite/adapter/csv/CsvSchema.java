@@ -28,8 +28,10 @@ import java.io.File;
 import java.util.Map;
 
 /**
- * Schema mapped onto a directory of CSV files. Each table in the schema
- * is a CSV file in that directory.
+ * Schema mapped onto a directory of CSV files.
+ * Each table in the schema is a CSV file in that directory.
+ *
+ * 与某个目录下csv文件相对应的schema：一个csv文件代表一个表。
  */
 public class CsvSchema extends AbstractSchema {
 

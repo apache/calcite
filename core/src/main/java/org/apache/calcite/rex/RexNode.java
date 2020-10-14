@@ -23,10 +23,14 @@ import java.util.Collection;
 
 /**
  * Row expression.
+ * 行表达式。
  *
- * <p>Every row-expression has a type.
- * (Compare with {@link org.apache.calcite.sql.SqlNode}, which is created before
- * validation, and therefore types may not be available.)
+ * <p>
+ *   Every row-expression has a type.
+ *   (Compare with {@link org.apache.calcite.sql.SqlNode},
+ *   which is created before validation, and therefore types may not be available.)
+ *   fixme
+ *        每一个行表达式有一个类型，，，
  *
  * <p>Some common row-expressions are: {@link RexLiteral} (constant value),
  * {@link RexVariable} (variable), {@link RexCall} (call to operator with

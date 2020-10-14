@@ -36,27 +36,38 @@ import com.google.common.collect.ImmutableList;
  * Interface that describes how to configure planning sessions generated
  * using the Frameworks tools.
  *
+ * fixme 使用 框架工具 描述 配置计划sessions 如何生成的接口。
+ *
  * @see Frameworks#newConfigBuilder()
  */
 public interface FrameworkConfig {
+
   /**
    * The configuration of SQL parser.
+   *
+   * 获取 SQL 解析器配置。
    */
   SqlParser.Config getParserConfig();
 
   /**
    * The configuration of {@link SqlValidator}.
+   *
+   * SQL 验证器配置。
    */
   SqlValidator.Config getSqlValidatorConfig();
 
   /**
    * The configuration of {@link SqlToRelConverter}.
+   *
+   * SqlToRelConverter：将sql解析树转换成 关系代数表达式。
    */
   SqlToRelConverter.Config getSqlToRelConverterConfig();
 
   /**
-   * Returns the default schema that should be checked before looking at the
-   * root schema.  Returns null to only consult the root schema.
+   * Returns the default schema that should be checked
+   * before looking at the root schema.
+   *
+   * Returns null to only consult the root schema.
    */
   SchemaPlus getDefaultSchema();
 

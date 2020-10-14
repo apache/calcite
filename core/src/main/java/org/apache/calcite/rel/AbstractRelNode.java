@@ -50,11 +50,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
+ *
+ * 每一个关系表达式的基本类型。
  */
 public abstract class AbstractRelNode implements RelNode {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** Generator for {@link #id} values. */
+  /**
+   * Generator for {@link #id} values.
+   *
+   * 下一个id、 id属性的生产器。fixme 因为是静态的，所以可包装服务器全部示例的唯一性。
+   */
   private static final AtomicInteger NEXT_ID = new AtomicInteger(0);
 
   //~ Instance fields --------------------------------------------------------
@@ -72,10 +78,16 @@ public abstract class AbstractRelNode implements RelNode {
 
   private final RelOptCluster cluster;
 
-  /** Unique id of this object, for debugging. */
+  /**
+   * Unique id of this object, for debugging.
+   *
+   * 该对象的唯一id、用来debug。 generator是static、全局唯一的。
+   */
   protected final int id;
 
-  /** RelTraitSet that describes the traits of this RelNode. */
+  /**
+   * RelTraitSet that describes the traits of this RelNode.
+   */
   protected RelTraitSet traitSet;
 
   //~ Constructors -----------------------------------------------------------

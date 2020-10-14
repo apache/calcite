@@ -36,8 +36,10 @@ import java.util.List;
  * @see ScalarFunction
  */
 public interface Function {
+
   /**
    * Returns the parameters of this function.
+   * 返回函数的参数。
    *
    * @return Parameters; never null
    */

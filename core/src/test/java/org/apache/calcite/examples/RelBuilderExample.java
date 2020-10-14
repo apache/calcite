@@ -25,10 +25,14 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 
 /**
- * Example that uses {@link org.apache.calcite.tools.RelBuilder}
- * to create various relational expressions.
+ * Example that uses {@link RelBuilder} to create various relational expressions.
+ *
+ * 使用 {@link RelBuilder} 创建关系表达式的各种示例。
+ * todo 研究一下。
  */
 public class RelBuilderExample {
+
+  // 冗长的，啰嗦的
   private final boolean verbose;
 
   public RelBuilderExample(boolean verbose) {
@@ -40,8 +44,8 @@ public class RelBuilderExample {
   }
 
   public void runAllExamples() {
-    // Create a builder. The config contains a schema mapped
-    // to the SCOTT database, with tables EMP and DEPT.
+    // Create a builder.
+    // The config contains a schema mapped to the SCOTT database, with tables EMP and DEPT.
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     for (int i = 0; i < 4; i++) {
@@ -74,8 +78,11 @@ public class RelBuilderExample {
    * Creates a relational expression for a table scan.
    * It is equivalent to
    *
-   * <blockquote><pre>SELECT *
-   * FROM emp</pre></blockquote>
+   * <blockquote><pre>
+   *   SELECT *  FROM emp
+   * </pre></blockquote>
+   *
+   * fixme 为 table scan 创建关系代数，等价于 select * from emp.
    */
   private RelBuilder example0(RelBuilder builder) {
     return builder
@@ -110,11 +117,12 @@ public class RelBuilderExample {
   /**
    * Creates a relational expression for a table scan, aggregate, filter.
    * It is equivalent to
+   *    SELECT deptno, count(*) AS c, sum(sal) AS s
+   *    FROM emp
+   *    GROUP BY deptno
+   *    HAVING count(*) &gt; 10</pre></blockquote>
    *
-   * <blockquote><pre>SELECT deptno, count(*) AS c, sum(sal) AS s
-   * FROM emp
-   * GROUP BY deptno
-   * HAVING count(*) &gt; 10</pre></blockquote>
+   * fixme 带有聚合、过滤的关系表达式。
    */
   private RelBuilder example3(RelBuilder builder) {
     return builder

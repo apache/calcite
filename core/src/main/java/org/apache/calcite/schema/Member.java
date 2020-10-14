@@ -23,6 +23,8 @@ import java.util.List;
 
 /**
  * A named expression in a schema.
+ * fixme
+ *      schema中的命名表达式。
  *
  * <h2>Examples of members</h2>
  *
@@ -47,13 +49,15 @@ import java.util.List;
  * arguments, it is "evaluated" each time it is used in a query.</p>
  */
 public interface Member {
+
   /**
-   * The name of this function.
+   * 函数名称。The name of this function.
    */
   String getName();
 
   /**
    * Returns the parameters of this member.
+   * 表达式参数，否则为null。
    *
    * @return Parameters; never null
    */
@@ -61,23 +65,28 @@ public interface Member {
 
   /**
    * Returns the type of this function's result.
+   * 函数结果类型。
    *
    * @return Type of result; never null
    */
   RelDataType getType();
 
   /**
-   * Evaluates this member to yield a result. The result is a
-   * {@link org.apache.calcite.linq4j.Queryable}.
+   * Evaluates this member to yield(产生) a result.
+   * The result is a {@link org.apache.calcite.linq4j.Queryable}.
+   * fixme
+   *      评估 member 产生 Queryable 类型的结果。
    *
-   * @param schemaInstance Object that is an instance of the containing
-   *                       {@link Schema}
-   * @param arguments List of arguments to the call; must match
-   *                  {@link #getParameters() parameters} in number and type
+   * @param schemaInstance Object that is an instance of the containing {@link Schema}
+   *                       包含schema的实例。
+   *
+   * @param arguments      List of arguments to the call;
+   *                       must match {@link #getParameters() parameters} in number and type
+   *                       fixme 函数/表达式 参数列表，和 getParameters 返回的个数和类型必须相同。
+   *
    *
    * @return An instance of this schema object, as a Queryable
+   *         该schema对象的实例。
    */
-  Queryable evaluate(
-      Object schemaInstance,
-      List<Object> arguments);
+  Queryable evaluate(Object schemaInstance, List<Object> arguments);
 }

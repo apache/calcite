@@ -145,6 +145,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Default implementation of {@link SqlValidator}.
+ *
+ * fixme SqlValidator 的默认实现
  */
 public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Static fields/initializers ---------------------------------------------

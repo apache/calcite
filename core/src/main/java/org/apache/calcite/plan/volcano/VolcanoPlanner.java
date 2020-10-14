@@ -78,8 +78,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * VolcanoPlanner optimizes queries by transforming expressions selectively
+ * VolcanoPlanner optimizes queries
+ * by transforming expressions selectively
  * according to a dynamic programming algorithm.
+ *
+ * fixme VolcanoPlanner 通过使用动态规划算法、有选择的转换表达式来优化查询。
  */
 public class VolcanoPlanner extends AbstractRelOptPlanner {
 

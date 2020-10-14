@@ -21,17 +21,25 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.PhysicalNode;
 
 /**
- * Logical transformation rule, only logical operator can be rule operand,
- * and only generate logical alternatives. It is only visible to
- * {@link VolcanoPlanner}, {@link HepPlanner} will ignore this interface.
- * That means, in {@link HepPlanner}, the rule that implements
- * {@link TransformationRule} can still match with physical operator of
- * {@link PhysicalNode} and generate physical alternatives.
+ * Logical transformation rule,
+ * only logical operator can be rule operand,
+ * and only generate logical alternatives.
+ *
+ * It is only visible to {@link VolcanoPlanner},
+ * {@link HepPlanner} will ignore this interface.
+ *
+ * That means, in {@link HepPlanner}, the rule that implements {@link TransformationRule} can still match
+ * with physical operator of {@link PhysicalNode} and generate physical alternatives.
  *
  * <p>But in {@link VolcanoPlanner}, {@link TransformationRule} doesn't match
  * with physical operator that implements {@link PhysicalNode}. It is not
  * allowed to generate physical operators in {@link TransformationRule},
  * unless you are using it in {@link HepPlanner}.</p>
+ * fixme
+ *      逻辑转换规则：只有逻辑运算符可以是规则操作符、而且逻辑运算符只能生产逻辑替换。
+ *      只有对 VolcanoPlanner 是可见的，HepPlanner将会忽略此接口。
+ *      ... todo？
+ *
  *
  * @see VolcanoPlanner
  * @see SubstitutionRule

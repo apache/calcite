@@ -55,15 +55,21 @@ import javax.sql.DataSource;
  * Schema.
  *
  * <p>Wrapper around user-defined schema used internally.</p>
+ * fixme 包装用户自定义的schema，内部使用类。
  */
 public abstract class CalciteSchema {
 
   private final CalciteSchema parent;
   public final Schema schema;
   public final String name;
-  /** Tables explicitly defined in this schema. Does not include tables in
-   *  {@link #schema}. */
+
+  /**
+   * Tables explicitly defined in this schema. Does not include tables in {@link #schema}.
+   *
+   * 在此schema中明确定义的表，不包含在 {@link #schema} 中的表。
+   */
   protected final NameMap<TableEntry> tableMap;
+
   protected final NameMultimap<FunctionEntry> functionMap;
   protected final NameMap<TypeEntry> typeMap;
   protected final NameMap<LatticeEntry> latticeMap;
@@ -485,8 +491,9 @@ public abstract class CalciteSchema {
    *
    * @param addMetadataSchema Whether to add a "metadata" schema containing
    *              definitions of tables, columns etc.
+   *
    * @param cache If true create {@link CachingCalciteSchema};
-   *                if false create {@link SimpleCalciteSchema}
+   *              if false create {@link SimpleCalciteSchema}
    */
   public static CalciteSchema createRootSchema(boolean addMetadataSchema,
       boolean cache) {
@@ -572,7 +579,11 @@ public abstract class CalciteSchema {
     }
   }
 
-  /** Membership of a table in a schema. */
+  /**
+   * Membership of a table in a schema.
+   *
+   * schema中的table成员。
+   */
   public abstract static class TableEntry extends Entry {
     public final ImmutableList<String> sqls;
 
@@ -585,7 +596,11 @@ public abstract class CalciteSchema {
     public abstract Table getTable();
   }
 
-  /** Membership of a type in a schema. */
+  /**
+   * Membership of a type in a schema.
+   *
+   * schema中的类型成员
+   */
   public abstract static class TypeEntry extends Entry {
     protected TypeEntry(CalciteSchema schema, String name) {
       super(schema, name);
@@ -594,7 +609,11 @@ public abstract class CalciteSchema {
     public abstract RelProtoDataType getType();
   }
 
-  /** Membership of a function in a schema. */
+  /**
+   * Membership of a function in a schema.
+   *
+   * schema中的函数成员
+   */
   public abstract static class FunctionEntry extends Entry {
     protected FunctionEntry(CalciteSchema schema, String name) {
       super(schema, name);
@@ -602,8 +621,10 @@ public abstract class CalciteSchema {
 
     public abstract Function getFunction();
 
-    /** Whether this represents a materialized view. (At a given point in time,
-     * it may or may not be materialized as a table.) */
+    /**
+     * Whether this represents a materialized view. (At a given point in time,
+     * it may or may not be materialized as a table.)
+     */
     public abstract boolean isMaterialization();
   }
 
@@ -800,6 +821,8 @@ public abstract class CalciteSchema {
   /**
    * Implementation of {@link LatticeEntry}
    * where all properties are held in fields.
+   *
+   * LatticeEntry的实现，所有的属性都保存在field中。
    */
   public static class LatticeEntryImpl extends LatticeEntry {
     private final Lattice lattice;

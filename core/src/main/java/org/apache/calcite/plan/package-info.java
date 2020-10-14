@@ -16,7 +16,8 @@
  */
 
 /**
- * Defines interfaces for constructing rule-based optimizers of
- * relational expressions.
+ * Defines interfaces for constructing rule-based optimizers of relational expressions.
+ *
+ * 定义 关系表达式的优化器，该优化器基于规则。
  */
 package org.apache.calcite.plan;

@@ -39,9 +39,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Unit tests for example user-defined functions.
  */
 class ExampleFunctionTest {
+
+  // 迷宫方法
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
+
+  // 解决方法
   public static final Method SOLVE_METHOD =
       Types.lookupMethod(MazeTable.class, "solve", int.class, int.class,
           int.class);

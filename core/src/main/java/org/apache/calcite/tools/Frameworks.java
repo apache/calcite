@@ -68,24 +68,28 @@ public class Frameworks {
     return new PlannerImpl(config);
   }
 
-  /** Piece of code to be run in a context where a planner is available. The
-   * planner is accessible from the {@code cluster} parameter, as are several
-   * other useful objects.
+  /**
+   * Piece of code to be run in a context where a planner is available.
+   * The planner is accessible from the {@code cluster} parameter,
+   * as are several other useful objects.
    *
-   * @param <R> result type */
+   * @param <R> result type
+   */
   @FunctionalInterface
   public interface PlannerAction<R> {
     R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
         SchemaPlus rootSchema);
   }
 
-  /** Piece of code to be run in a context where a planner and statement are
+  /**
+   * Piece of code to be run in a context where a planner and statement are
    * available. The planner is accessible from the {@code cluster} parameter, as
    * are several other useful objects. The connection and
    * {@link org.apache.calcite.DataContext} are accessible from the
    * statement.
    *
-   * @param <R> result type */
+   * @param <R> result type
+   */
   @FunctionalInterface
   public interface BasePrepareAction<R> {
     R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
@@ -158,25 +162,25 @@ public class Frameworks {
   }
 
   /**
-   * Initializes a container then calls user-specified code with a planner
-   * and statement.
+   * Initializes a container then calls user-specified code with a planner and statement.
+   * fixme 初始化一个 container，然后使用 planner和 statement 调用用户指定的代码。
    *
    * @param action Callback containing user-specified code
    * @return Return value from action
    */
-  public static <R> R withPrepare(FrameworkConfig config,
-      BasePrepareAction<R> action) {
+  public static <R> R withPrepare(FrameworkConfig config, BasePrepareAction<R> action) {
     try {
+      // 初始化属性对象
       final Properties info = new Properties();
+
+      // 如果类型系统不是默认的、则设置类型系统的值<String,String>
       if (config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
         info.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
             config.getTypeSystem().getClass().getName());
       }
-      Connection connection =
-          DriverManager.getConnection("jdbc:calcite:", info);
+      Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
       final CalciteServerStatement statement =
-          connection.createStatement()
-              .unwrap(CalciteServerStatement.class);
+          connection.createStatement().unwrap(CalciteServerStatement.class);
       return new CalcitePrepareImpl().perform(statement, config, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -185,9 +189,10 @@ public class Frameworks {
 
   /**
    * Creates a root schema.
+   * 创建一个root schema。
    *
-   * @param addMetadataSchema Whether to add "metadata" schema containing
-   *    definitions of tables, columns etc.
+   * @param addMetadataSchema Whether to add "metadata" schema containing definitions of tables, columns etc.
+   *                          root schema中是否添加包含 表/列 的定义的元数据schema。
    */
   public static SchemaPlus createRootSchema(boolean addMetadataSchema) {
     return CalciteSchema.createRootSchema(addMetadataSchema).plus();

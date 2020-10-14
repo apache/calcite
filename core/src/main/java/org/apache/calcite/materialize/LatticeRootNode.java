@@ -23,10 +23,22 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Root node in a {@link Lattice}. It has no parent. */
+/**
+ * Root node in a {@link Lattice}. It has no parent.
+ *
+ * 点阵中的根节点，没有父节点。
+ */
 public class LatticeRootNode extends LatticeNode {
-  /** Descendants, in prefix order. This root node is at position 0. */
+
+  /**
+   * Descendants(后代), in prefix order.
+   * This root node is at position 0.
+   *
+   * 后代，前序遍历，跟节点的序列号是0。
+   */
   public final ImmutableList<LatticeNode> descendants;
+
+  // 不可更改的list
   final ImmutableList<Path> paths;
 
   LatticeRootNode(LatticeSpace space, MutableNode mutableNode) {
@@ -46,7 +58,10 @@ public class LatticeRootNode extends LatticeNode {
     return ImmutableList.copyOf(paths);
   }
 
-  @Override void use(List<LatticeNode> usedNodes) {
+  // 如果指定list中不包含当前节点，则将当前节点加入到list中。
+  @Override
+  void use(List<LatticeNode> usedNodes) {
+    // equals 用的 ==
     if (!usedNodes.contains(this)) {
       usedNodes.add(this);
     }

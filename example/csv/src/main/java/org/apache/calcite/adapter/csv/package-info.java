@@ -23,6 +23,6 @@
  * those tables.</p>
  *
  * <p>
- *   从CSV文件中获取数据。
+ * 从CSV文件中获取数据。
  */
 package org.apache.calcite.adapter.csv;

@@ -18,11 +18,14 @@ package org.apache.calcite.linq4j;
 
 /**
  * Supports a simple iteration over a collection.
+ * fixme 支持在集合上进行简单的迭代。
  *
- * <p>Analogous to LINQ's System.Collections.Enumerator. Unlike LINQ, if the
- * underlying collection has been modified it is only optional that an
- * implementation of the Enumerator interface detects it and throws a
- * {@link java.util.ConcurrentModificationException}.
+ * <p>
+ *    Analogous to LINQ's System.Collections.Enumerator.
+ *    Unlike LINQ, if the underlying collection has been modified it is only optional that an
+ *    implementation of the Enumerator interface detects it and throws a {@link java.util.ConcurrentModificationException}.
+ *    fixme
+ *        模拟 linq的 Enumerator...
  *
  * @param <T> Element type
  */

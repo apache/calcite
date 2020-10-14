@@ -28,8 +28,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/** Mutable version of {@link LatticeNode}, used while a graph is being
- * built. */
+/**
+ * Mutable version of {@link LatticeNode},
+ * used while a graph is being built.
+ *
+ * fixme {@link LatticeNode} 的可变版本，在构建图的时候使用。
+ */
 class MutableNode {
   final LatticeTable table;
   final MutableNode parent;

@@ -28,11 +28,16 @@ import java.util.List;
 
 /**
  * Base class for table that reads CSV files.
+ * fixme
+ *      将csv文件读取为 calcite 表的基本类。
+ *      {@link org.apache.calcite.adapter.csv.CsvFilterableTable} 实现了过滤功能。
  *
- * <p>Copied from {@code CsvFilterableTable} in demo CSV adapter,
- * with more advanced features.
+ *
+ * <p>
+ *   Copied from {@code CsvFilterableTable} in demo CSV adapter, with more advanced features.
  */
 public abstract class CsvTable extends AbstractTable {
+
   protected final Source source;
   protected final RelProtoDataType protoRowType;
   private RelDataType rowType;

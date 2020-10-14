@@ -39,9 +39,11 @@ import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Enumerator that reads from a CSV file.
+/**
+ * Enumerator that reads from a CSV file.
+ * 从 CSV 文件读取数据的枚举器。
  *
- * @param <E> Row type
+ * @param <E> Row type 行类型
  */
 public class CsvEnumerator<E> implements Enumerator<E> {
   private final CSVReader reader;

@@ -22,8 +22,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Specifies that function is deterministic (i.e. returns the same output
- * given the same inputs).
+ * Specifies that function is deterministic(确定的、稳定的) (i.e. returns the same output given the same inputs).
+ * fixme
+ *      标志 函数 是稳定的，例如 输出同输入；
+ *      稳定函数可以被优化器优化为静态字段。
  *
  * <p>Deterministic functions can be factored out by optimizer to static fields.
  */

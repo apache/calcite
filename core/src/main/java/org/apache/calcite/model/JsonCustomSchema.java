@@ -35,9 +35,13 @@ public class JsonCustomSchema extends JsonMapSchema {
    */
   public String factory;
 
-  /** Contains attributes to be passed to the factory.
+  /**
+   * Contains attributes to be passed to the factory.
+   * fixme 包含传递给工厂的属性。
    *
    * <p>May be a JSON object (represented as Map) or null.
+   *
+   * operand：操作符
    */
   public Map<String, Object> operand;
 

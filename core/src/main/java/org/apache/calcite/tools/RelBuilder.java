@@ -134,19 +134,29 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Builder for relational expressions.
+ * fixme
+ *      相关文档：https://calcite.apache.org/docs/algebra.html#algebra-builder
+ *      关系表达式的 builder ，
  *
- * <p>{@code RelBuilder} does not make possible anything that you could not
- * also accomplish by calling the factory methods of the particular relational
- * expression. But it makes common tasks more straightforward and concise.
  *
- * <p>{@code RelBuilder} uses factories to create relational expressions.
- * By default, it uses the default factories, which create logical relational
- * expressions ({@link LogicalFilter},
- * {@link LogicalProject} and so forth).
- * But you could override those factories so that, say, {@code filter} creates
- * instead a {@code HiveFilter}.
+ * <p>
+ *   {@code RelBuilder} does not make possible anything
+ *   that you could not also accomplish by calling the factory methods
+ *   of the particular relational expression.
+ *   But it makes common tasks more straightforward and concise.
+ *   todo 使用翻译软件都看不懂。
+ *
+ * <p>
+ *   {@code RelBuilder} uses factories to create relational expressions.
+ *   By default, it uses the default factories, which create logical relational
+ *   expressions ({@link LogicalFilter}, {@link LogicalProject} and so forth).
+ *   But you could override those factories so that, say, {@code filter} creates
+ *   instead a {@code HiveFilter}.
+ *   fixme
+ *       RelBuilder 使用工厂创建表达式。默认工厂创建逻辑表达式，但是这些工厂是可以被重写的。
  *
  * <p>It is not thread-safe.
+ * fixme 该类不是线程安全的。
  */
 public class RelBuilder {
   protected final RelOptCluster cluster;
@@ -205,15 +215,21 @@ public class RelBuilder {
     return config.withSimplify(simplify);
   }
 
-  /** Creates a RelBuilder. */
+  /**
+   * Creates a RelBuilder.
+   *
+   * 使用指定配置创建RelBuilder。
+   */
   public static RelBuilder create(FrameworkConfig config) {
     return Frameworks.withPrepare(config,
         (cluster, relOptSchema, rootSchema, statement) ->
             new RelBuilder(config.getContext(), cluster, relOptSchema));
   }
 
-  /** Creates a copy of this RelBuilder, with the same state as this, applying
-   * a transform to the config. */
+  /**
+   * Creates a copy of this RelBuilder, with the same state as this,
+   * applying a transform to the config.
+   */
   public RelBuilder transform(UnaryOperator<Config> transform) {
     final Context context =
         Contexts.of(struct, transform.apply(config));
@@ -351,7 +367,9 @@ public class RelBuilder {
 
   // Methods that return scalar expressions
 
-  /** Creates a literal (constant expression). */
+  /**
+   * Creates a literal (constant expression).
+   */
   public RexNode literal(Object value) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (value == null) {
@@ -378,18 +396,25 @@ public class RelBuilder {
     }
   }
 
-  /** Creates a correlation variable for the current input, and writes it into
-   * a Holder. */
+  /**
+   * Creates a correlation variable for the current input,
+   * and writes it into a Holder.
+   *
+   * 为当前的输入创建对应的变量、别写入到 ？Holder？
+   */
   public RelBuilder variable(Holder<RexCorrelVariable> v) {
-    v.set((RexCorrelVariable)
-        getRexBuilder().makeCorrel(peek().getRowType(),
-            cluster.createCorrel()));
+    RexCorrelVariable rexNode =
+        (RexCorrelVariable) getRexBuilder().makeCorrel(peek().getRowType(), cluster.createCorrel());
+    v.set(rexNode);
     return this;
   }
 
-  /** Creates a reference to a field by name.
+  /**
+   * Creates a reference to a field by name.
+   * fixme 通过 字段名称 创建一个字段的引用，与 field(1,0,fieldName) 等价。
    *
-   * <p>Equivalent to {@code field(1, 0, fieldName)}.
+   * <p>
+   * Equivalent to {@code field(1, 0, fieldName)}.
    *
    * @param fieldName Field name
    */
@@ -397,12 +422,15 @@ public class RelBuilder {
     return field(1, 0, fieldName);
   }
 
-  /** Creates a reference to a field of given input relational expression
-   * by name.
+  /**
+   * Creates a reference to a field of given input relational expression by name.
+   * fixme
+   *      通过 字段名称，为给定的输入关系表达式的字段 创建引用。
    *
-   * @param inputCount Number of inputs
+   *
+   * @param inputCount   Number of inputs
    * @param inputOrdinal Input ordinal
-   * @param fieldName Field name
+   * @param fieldName    Field name
    */
   public RexInputRef field(int inputCount, int inputOrdinal, String fieldName) {
     final Frame frame = peek_(inputCount, inputOrdinal);
@@ -1086,8 +1114,9 @@ public class RelBuilder {
 
   // Methods that create relational expressions
 
-  /** Creates a {@link TableScan} of the table
-   * with a given name.
+  /**
+   * Creates a {@link TableScan} of the table with a given name.
+   * fixme 使用给定的 表名称 创建{@link TableScan}。
    *
    * <p>Throws if the table does not exist.
    *
@@ -2184,9 +2213,10 @@ public class RelBuilder {
     }
   }
 
-  /** Creates a {@link Join} with an array of conditions. */
-  public RelBuilder join(JoinRelType joinType, RexNode condition0,
-      RexNode... conditions) {
+  /**
+   * Creates a {@link Join} with an array of conditions.
+   */
+  public RelBuilder join(JoinRelType joinType, RexNode condition0, RexNode... conditions) {
     return join(joinType, Lists.asList(condition0, conditions));
   }
 
@@ -2392,7 +2422,12 @@ public class RelBuilder {
     return antiJoin(ImmutableList.copyOf(conditions));
   }
 
-  /** Assigns a table alias to the top entry on the stack. */
+  /**
+   * Assigns a table alias to the top entry on the stack.
+   * 将表的别名赋值给 栈顶 的条目。
+   *
+   * @param alias 表的别名。
+   */
   public RelBuilder as(final String alias) {
     final Frame pair = stack.pop();
     List<Field> newFields =
@@ -2401,15 +2436,18 @@ public class RelBuilder {
     return this;
   }
 
-  /** Creates a {@link Values}.
+  /**
+   * Creates a {@link Values}.
+   * fixme demo: (new String[] {"a", "b"}, 1, true, null, false)
    *
-   * <p>The {@code values} array must have the same number of entries as
-   * {@code fieldNames}, or an integer multiple if you wish to create multiple
-   * rows.
+   * <p>
+   *   The {@code values} array must have the same number of entries as {@code fieldNames},
+   *   or an integer multiple if you wish to create multiple rows.
    *
-   * <p>If there are zero rows, or if all values of a any column are
-   * null, this method cannot deduce the type of columns. For these cases,
-   * call {@link #values(Iterable, RelDataType)}.
+   * <p>
+   *   If there are zero rows, or if all values of a any column are null,
+   *   this method cannot deduce the type of columns. For these cases,
+   *   call {@link #values(Iterable, RelDataType)}.
    *
    * @param fieldNames Field names
    * @param values Values
@@ -3320,10 +3358,16 @@ public class RelBuilder {
     }
   }
 
-  /** Builder stack frame.
+  /**
+   * Builder stack frame.
+   * 栈帧。
    *
-   * <p>Describes a previously created relational expression and
-   * information about how table aliases map into its row type. */
+   * <p>
+   *   Describes a previously created relational expression and information
+   *   about how table aliases map into its row type.
+   *   fixme
+   *        描述之前创建的 关系表达式 和 如何将表别名映射到 行类型 的信息。
+   */
   private static class Frame {
     final RelNode rel;
     final ImmutableList<Field> fields;

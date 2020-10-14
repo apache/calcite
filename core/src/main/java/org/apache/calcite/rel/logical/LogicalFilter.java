@@ -41,6 +41,8 @@ import java.util.Set;
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Filter}
  * not targeted at any particular engine or calling convention.
+ *
+ * Filter 的子类，不与特定的引擎或者调用约定绑定。
  */
 public final class LogicalFilter extends Filter {
   private final ImmutableSet<CorrelationId> variablesSet;
@@ -53,11 +55,18 @@ public final class LogicalFilter extends Filter {
    * <p>Use {@link #create} unless you know what you're doing.
    *
    * @param cluster   Cluster that this relational expression belongs to
+   *                  关系表达式所属的集群。
+   *
    * @param child     Input relational expression
-   * @param condition Boolean expression which determines whether a row is
-   *                  allowed to pass
-   * @param variablesSet Correlation variables set by this relational expression
-   *                     to be used by nested expressions
+   *                  内置的关系表达式
+   *
+   * @param condition Boolean expression which determines whether a row is allowed to pass
+   *                  确认关系表达式是否可以 pass 的关系表达式
+   *
+   *
+   *
+   * @param variablesSet Correlation variables set by this relational expression to be used by nested expressions
+   *                     关系表达式使用的变量集合
    */
   public LogicalFilter(
       RelOptCluster cluster,

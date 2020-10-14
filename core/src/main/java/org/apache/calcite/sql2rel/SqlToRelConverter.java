@@ -209,9 +209,10 @@ import javax.annotation.Nonnull;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 /**
- * Converts a SQL parse tree (consisting of
- * {@link org.apache.calcite.sql.SqlNode} objects) into a relational algebra
- * expression (consisting of {@link org.apache.calcite.rel.RelNode} objects).
+ * Converts a SQL parse tree (consisting of {@link org.apache.calcite.sql.SqlNode} objects)
+ * into a relational algebra expression (consisting of {@link org.apache.calcite.rel.RelNode} objects).
+ *
+ * fixme 将sql解析树转换成 关系代数表达式。
  *
  * <p>The public entry points are: {@link #convertQuery},
  * {@link #convertExpression(SqlNode)}.

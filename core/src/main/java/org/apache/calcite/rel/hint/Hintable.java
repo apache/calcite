@@ -29,6 +29,7 @@ import java.util.Set;
 
 /**
  * {@link Hintable} is a kind of {@link RelNode} that can attach {@link RelHint}s.
+ * fixme Hintable 是一种可以附加在 RelHint 上的关联表达式。
  *
  * <p>This interface is experimental, {@link RelNode}s that implement it
  * have a constructor parameter named "hints" used to construct relational expression

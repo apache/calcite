@@ -29,28 +29,39 @@ import org.apache.calcite.util.SourceStringReader;
 import java.io.Reader;
 
 /**
- * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
- * validate the parse tree, convert the parse tree to a relational expression,
- * and optimize the relational expression.
+ * A fa&ccedil;ade that covers Calcite's query planning process:
+ * parse SQL, validate the parse tree, convert the parse tree
+ * to a relational expression, and optimize the relational expression.
+ * fixme
+ *      Planner：解析表达式、验证解析树、将解析树转换为一个关系表达式，优化关系表达式。
  *
- * <p>Planner is NOT thread safe. However, it can be reused for
- * different queries. The consumer of this interface is responsible for calling
- * reset() after each use of Planner that corresponds to a different
- * query.
+ * <p>
+ *    Planner is NOT thread safe. However, it can be reused for different queries.
+ *    The consumer of this interface is responsible for calling reset()
+ *    after each use of Planner that corresponds to a different query.
+ *    fixme
+ *        Planner 不是线程安全的，但是可以被不同的查询重用；
+ *        该接口的使用者负责 在使用了不同查询的planner之后 调用reset() 。
  */
 public interface Planner extends AutoCloseable {
+
   /**
    * Parses and validates a SQL statement.
+   * fixme 解析和验证sql。
    *
    * @param sql The SQL statement to parse.
+   *            被解析验证的sql.
+   *
    * @return The root node of the SQL parse tree.
+   *         sql解析树的根节点。
+   *
    * @throws org.apache.calcite.sql.parser.SqlParseException on parse error
    */
   default SqlNode parse(String sql) throws SqlParseException {
     return parse(new SourceStringReader(sql));
   }
 
-  /**
+  /**同上
    * Parses and validates a SQL statement.
    *
    * @param source A reader which will provide the SQL statement to parse.
@@ -64,8 +75,13 @@ public interface Planner extends AutoCloseable {
    * Validates a SQL statement.
    *
    * @param sqlNode Root node of the SQL parse tree.
+   *                sql解析树的根节点。
+   *
    * @return Validated node
+   *         验证的节点。
+   *
    * @throws ValidationException if not valid
+   *         ？如果验证失败、则抛异常？
    */
   SqlNode validate(SqlNode sqlNode) throws ValidationException;
 
@@ -73,8 +89,12 @@ public interface Planner extends AutoCloseable {
    * Validates a SQL statement.
    *
    * @param sqlNode Root node of the SQL parse tree.
+   *                sql解析树的根节点。
+   *
    * @return Validated node and its validated type.
-   * @throws ValidationException if not valid
+   *         验证的节点和验证的类型。
+   *
+   * @throws ValidationException if not valid ？如果不合法？
    */
   Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode) throws ValidationException;
 

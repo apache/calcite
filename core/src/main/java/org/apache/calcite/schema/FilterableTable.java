@@ -23,20 +23,32 @@ import org.apache.calcite.rex.RexNode;
 import java.util.List;
 
 /**
- * Table that can be scanned, optionally applying supplied filter expressions,
+ * Table that can be scanned,
+ * optionally applying supplied filter expressions,
  * without creating an intermediate relational expression.
+ * fixme
+ *      可以被扫描的表；
+ *      可以用提供的过滤表达式，而不创建中间关系表达式。
  *
  * @see ScannableTable
  */
 public interface FilterableTable extends Table {
-  /** Returns an enumerator over the rows in this Table. Each row is represented
-   * as an array of its column values.
+
+  /**
+   * Returns an enumerator over the rows in this Table.
+   * Each row is represented as an array of its column values.
+   * fixme
+   *      返回代表 表中行 的枚举，每一行使用一个数组表示、数组值是对应的列值。
    *
-   * <p>The list of filters is mutable.
-   * If the table can implement a particular filter, it should remove that
-   * filter from the list.
-   * If it cannot implement a filter, it should leave it in the list.
-   * Any filters remaining will be implemented by the consuming Calcite
-   * operator. */
+   * <p>
+   *   The list of filters is mutable.
+   *   If the table can implement a particular filter, it should remove that
+   *   filter from the list.
+   *   If it cannot implement a filter, it should leave it in the list.
+   *   Any filters remaining will be implemented by the consuming Calcite
+   *   operator.
+   *   fixme
+   *        过滤器的列表是可变的。
+   */
   Enumerable<Object[]> scan(DataContext root, List<RexNode> filters);
 }

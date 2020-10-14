@@ -94,7 +94,11 @@ public class Geometries {
     return new SimpleGeom(g);
   }
 
-  /** Returns the OGC type of a geometry. */
+  /**
+   * Returns the OGC type of a geometry.
+   *
+   * 返回空间集合的 OGC类型。
+   */
   public static Type type(Geometry g) {
     switch (g.getType()) {
     case Point:
@@ -175,15 +179,24 @@ public class Geometries {
     }
   }
 
-  /** Geometry types, with the names and codes assigned by OGC. */
+  /**
+   * Geometry types, with the names and codes assigned by OGC.
+   *
+   * 空间集合类型。
+   */
   public enum Type {
     Geometry(0),
+
+    // 点、线、多边形
     POINT(1),
     LINESTRING(2),
     POLYGON(3),
+
+    // 多点、多线、多-多边形
     MULTIPOINT(4),
     MULTILINESTRING(5),
     MULTIPOLYGON(6),
+
     GEOMCOLLECTION(7),
     CURVE(13),
     SURFACE(14),
@@ -196,8 +209,10 @@ public class Geometries {
     }
   }
 
-  /** Geometry. It may or may not have a spatial reference
-   * associated with it. */
+  /**
+   * Geometry. It may or may not have a spatial reference
+   * associated with it.
+   */
   public interface Geom extends Comparable<Geom> {
     Geometry g();
 

@@ -125,28 +125,36 @@ class CsvTest {
 
   /**
    * Tests the vanity driver.
+   *
+   * 测试空驱动。
    */
   @Disabled
-  @Test void testVanityDriver() throws SQLException {
+  @Test
+  void testVanityDriver() throws SQLException {
     Properties info = new Properties();
-    Connection connection =
-        DriverManager.getConnection("jdbc:csv:", info);
+    Connection connection = DriverManager.getConnection("jdbc:csv:", info);
     connection.close();
   }
 
   /**
    * Tests the vanity driver with properties in the URL.
+   *
+   * 测试空驱动：URL中保存了一些属性。
    */
   @Disabled
-  @Test void testVanityDriverArgsInUrl() throws SQLException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:csv:"
-            + "directory='foo'");
+  @Test
+  void testVanityDriverArgsInUrl() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:csv:directory='foo'");
     connection.close();
   }
 
-  /** Tests an inline schema with a non-existent directory. */
-  @Test void testBadDirectory() throws SQLException {
+  /**
+   * Tests an inline schema with a non-existent directory.
+   *
+   * 使用不存在的文件夹测试内连的schema。
+   */
+  @Test
+  void testBadDirectory() throws SQLException {
     Properties info = new Properties();
     info.put("model",
         "inline:"
@@ -164,11 +172,10 @@ class CsvTest {
             + "   ]\n"
             + "}");
 
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:", info);
+    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+
     // must print "directory ... not found" to stdout, but not fail
-    ResultSet tables =
-        connection.getMetaData().getTables(null, null, null, null);
+    ResultSet tables = connection.getMetaData().getTables(null, null, null, null);
     tables.next();
     tables.close();
     connection.close();
@@ -1036,7 +1043,11 @@ class CsvTest {
     }
   }
 
-  /** Fluent API to perform test actions. */
+  /**
+   * Fluent API to perform test actions.
+   *
+   * 执行测试动作的api。
+   */
   private class Fluent {
     private final String model;
     private final String sql;
@@ -1048,7 +1059,11 @@ class CsvTest {
       this.expect = expect;
     }
 
-    /** Runs the test. */
+    /**
+     * Runs the test.
+     * <p>
+     * 进行测试
+     */
     Fluent ok() {
       try {
         checkSql(sql, model, expect);
@@ -1058,18 +1073,24 @@ class CsvTest {
       }
     }
 
-    /** Assigns a function to call to test whether output is correct. */
+    /**
+     * Assigns a function to call to test whether output is correct.
+     */
     Fluent checking(Consumer<ResultSet> expect) {
       return new Fluent(model, sql, expect);
     }
 
-    /** Sets the rows that are expected to be returned from the SQL query. */
+    /**
+     * Sets the rows that are expected to be returned from the SQL query.
+     */
     Fluent returns(String... expectedLines) {
       return checking(expect(expectedLines));
     }
 
-    /** Sets the rows that are expected to be returned from the SQL query,
-     * in no particular order. */
+    /**
+     * Sets the rows that are expected to be returned from the SQL query,
+     * in no particular order.
+     */
     Fluent returnsUnordered(String... expectedLines) {
       return checking(expectUnordered(expectedLines));
     }

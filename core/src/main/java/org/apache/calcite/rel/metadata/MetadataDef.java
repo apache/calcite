@@ -27,6 +27,7 @@ import java.util.List;
 
 /**
  * Definition of metadata.
+ * 元数据定义。
  *
  * @param <M> Kind of metadata
  */

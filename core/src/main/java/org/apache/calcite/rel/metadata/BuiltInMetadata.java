@@ -37,10 +37,16 @@ import java.util.Set;
 
 /**
  * Contains the interfaces for several common forms of metadata.
+ *
+ * fixme 该接口包含几种常见的 Metadata 实现；内置的 Metadata 实现。
  */
 public abstract class BuiltInMetadata {
 
-  /** Metadata about the selectivity of a predicate. */
+  /**
+   * Metadata about the selectivity of a predicate.
+   *
+   * ？关于谓词可选择性的元数据？
+   */
   public interface Selectivity extends Metadata {
     MetadataDef<Selectivity> DEF = MetadataDef.of(Selectivity.class,
         Selectivity.Handler.class, BuiltInMethod.SELECTIVITY.method);
@@ -63,7 +69,11 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata about which combinations of columns are unique identifiers. */
+  /**
+   * Metadata about which combinations of columns are unique identifiers.
+   *
+   *
+   */
   public interface UniqueKeys extends Metadata {
     MetadataDef<UniqueKeys> DEF = MetadataDef.of(UniqueKeys.class,
         UniqueKeys.Handler.class, BuiltInMethod.UNIQUE_KEYS.method);
@@ -90,7 +100,9 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata about whether a set of columns uniquely identifies a row. */
+  /**
+   * Metadata about whether a set of columns uniquely identifies a row.
+   */
   public interface ColumnUniqueness extends Metadata {
     MetadataDef<ColumnUniqueness> DEF = MetadataDef.of(ColumnUniqueness.class,
         ColumnUniqueness.Handler.class, BuiltInMethod.COLUMN_UNIQUENESS.method);
@@ -126,7 +138,9 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata about which columns are sorted. */
+  /**
+   * Metadata about which columns are sorted.
+   */
   public interface Collation extends Metadata {
     MetadataDef<Collation> DEF = MetadataDef.of(Collation.class,
         Collation.Handler.class, BuiltInMethod.COLLATIONS.method);
@@ -684,7 +698,9 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** The built-in forms of metadata. */
+  /**
+   * The built-in forms of metadata.
+   */
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
       PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
       Collation, Distribution, Size, Parallelism, Memory, AllPredicates,

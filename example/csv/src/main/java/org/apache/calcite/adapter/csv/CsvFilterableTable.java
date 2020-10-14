@@ -37,13 +37,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
+ * fixme
+ *      基于 CSV 文件的表，可以进行简单过滤。
+ *      该接口实现了 {@link FilterableTable} 接口，因此该类是通过 #scan(DataContext, List) 获取数据的。
  *
- * <p>It implements the {@link FilterableTable} interface, so Calcite gets
- * data by calling the {@link #scan(DataContext, List)} method.
+ *
+ * <p>
+ *   It implements the {@link FilterableTable} interface,
+ *   so Calcite gets data by calling the {@link #scan(DataContext, List)} method.
  */
-public class CsvFilterableTable extends CsvTable
-    implements FilterableTable {
-  /** Creates a CsvFilterableTable. */
+public class CsvFilterableTable extends CsvTable implements FilterableTable {
+
+  /**
+   * Creates a CsvFilterableTable.
+   *
+   * 创建CSV过滤表。
+   */
   public CsvFilterableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
@@ -52,14 +61,16 @@ public class CsvFilterableTable extends CsvTable
     return "CsvFilterableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
+  @Override
+  public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+      @Override
+      public Enumerator<Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
             CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }
@@ -68,8 +79,8 @@ public class CsvFilterableTable extends CsvTable
 
   private boolean addFilter(RexNode filter, Object[] filterValues) {
     if (filter.isA(SqlKind.AND)) {
-        // We cannot refine(remove) the operands of AND,
-        // it will cause o.a.c.i.TableScanNode.createFilterable filters check failed.
+      // We cannot refine(remove) the operands of AND,
+      // it will cause o.a.c.i.TableScanNode.createFilterable filters check failed.
       ((RexCall) filter).getOperands().forEach(subFilter -> addFilter(subFilter, filterValues));
     } else if (filter.isA(SqlKind.EQUALS)) {
       final RexCall call = (RexCall) filter;

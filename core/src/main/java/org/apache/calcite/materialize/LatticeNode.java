@@ -25,11 +25,18 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-/** Source relation of a lattice.
+/**
+ * Source relation of a lattice.
  *
- * <p>Relations form a tree; all relations except the root relation
- * (the fact table) have precisely one parent and an equi-join
- * condition on one or more pairs of columns linking to it. */
+ * <p>
+ *   Relations form a tree; all relations except the root relation
+ *   (the fact table) have precisely one parent and an equi-join
+ *   condition on one or more pairs of columns linking to it.
+ *
+ * fixme
+ *
+ *
+ */
 public abstract class LatticeNode {
   public final LatticeTable table;
   final int startCol;
@@ -38,7 +45,8 @@ public abstract class LatticeNode {
   private final ImmutableList<LatticeChildNode> children;
   public final String digest;
 
-  /** Creates a LatticeNode.
+  /**
+   * Creates a LatticeNode.
    *
    * <p>The {@code parent} and {@code mutableNode} arguments are used only
    * during construction. */

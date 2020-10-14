@@ -30,14 +30,15 @@ import java.util.RandomAccess;
 
 /**
  * Utility and factory methods for Linq4j.
+ *
+ * Linq4j 的工具和工厂方法。
  */
 public abstract class Linq4j {
   private Linq4j() {}
 
   private static final Object DUMMY = new Object();
 
-  public static Method getMethod(String className, String methodName,
-      Class... parameterTypes) {
+  public static Method getMethod(String className, String methodName, Class... parameterTypes) {
     try {
       return Class.forName(className).getMethod(methodName, parameterTypes);
     } catch (NoSuchMethodException | ClassNotFoundException e) {
@@ -74,7 +75,8 @@ public abstract class Linq4j {
 
   public static final Enumerable<?> EMPTY_ENUMERABLE =
       new AbstractEnumerable<Object>() {
-        @Override public Enumerator<Object> enumerator() {
+        @Override
+        public Enumerator<Object> enumerator() {
           return EMPTY_ENUMERATOR;
         }
       };

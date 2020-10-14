@@ -52,6 +52,8 @@ import static org.apache.calcite.runtime.Geometries.todo;
 
 /**
  * Helper methods to implement Geo-spatial functions in generated code.
+ * fixme
+ *      实现空间函数的方法。
  *
  * <p>Remaining tasks:
  *

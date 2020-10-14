@@ -45,6 +45,7 @@ public interface SqlVisitor<R> {
 
   /**
    * Visits a literal.
+   * 访问文本。
    *
    * @param literal Literal
    * @see SqlLiteral#accept(SqlVisitor)

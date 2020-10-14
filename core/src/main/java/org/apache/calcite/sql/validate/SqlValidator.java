@@ -56,8 +56,8 @@ import java.util.function.UnaryOperator;
 import javax.annotation.Nullable;
 
 /**
- * Validates the parse tree of a SQL statement, and provides semantic
- * information about the parse tree.
+ * Validates the parse tree of a SQL statement,
+ * and provides semantic information about the parse tree.
  *
  * <p>To create an instance of the default validator implementation, call
  * {@link SqlValidatorUtil#newValidator}.
@@ -128,8 +128,9 @@ public interface SqlValidator {
   SqlOperatorTable getOperatorTable();
 
   /**
-   * Validates an expression tree. You can call this method multiple times,
-   * but not reentrantly.
+   * Validates an expression tree.
+   * You can call this method multiple times, but not reentrantly.
+   *
    *
    * @param topNode top of expression tree to be validated
    * @return validated tree (possibly rewritten)
@@ -145,9 +146,7 @@ public interface SqlValidator {
    *                      resolve {@link SqlIdentifier} references
    * @return validated tree (possibly rewritten)
    */
-  SqlNode validateParameterizedExpression(
-      SqlNode topNode,
-      Map<String, RelDataType> nameToTypeMap);
+  SqlNode validateParameterizedExpression(SqlNode topNode, Map<String, RelDataType> nameToTypeMap);
 
   /**
    * Checks that a query is valid.

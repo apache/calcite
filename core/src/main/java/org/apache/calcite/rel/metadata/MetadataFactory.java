@@ -20,15 +20,24 @@ import org.apache.calcite.rel.RelNode;
 
 /**
  * Source of metadata about relational expressions.
+ * fixme
+ *      Metadata的工厂类。
+ *      ？元数据通常是用来评估性能开销的各种统计数据。？
+ *      每一个元数据都有一个继承了 Metadata 的接口，
+ *      实现 参考 {@link BuiltInMetadata.Selectivity} 和 {@link BuiltInMetadata.ColumnUniqueness}
  *
- * <p>The metadata is typically various kinds of statistics used to estimate
- * costs.</p>
  *
- * <p>Each kind of metadata has an interface that extends {@link Metadata} and
- * has a method. Some examples: {@link BuiltInMetadata.Selectivity},
- * {@link BuiltInMetadata.ColumnUniqueness}.</p>
+ * <p>
+ *   The metadata is typically various kinds of statistics used to estimate(评估，衡量) costs.
+ *
+ * <p>
+ *   Each kind of metadata has an interface that extends {@link Metadata} and
+ *   has a method. Some examples: {@link BuiltInMetadata.Selectivity},
+ *   {@link BuiltInMetadata.ColumnUniqueness}.
  */
+
 public interface MetadataFactory {
+
   /** Returns a metadata interface to get a particular kind of metadata
    * from a particular relational expression. Returns null if that kind of
    * metadata is not available.
@@ -40,6 +49,5 @@ public interface MetadataFactory {
    * @param metadataClazz Metadata class
    * @return Metadata bound to {@code rel} and {@code query}
    */
-  <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
-      Class<M> metadataClazz);
+  <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq, Class<M> metadataClazz);
 }

@@ -27,12 +27,15 @@ import static java.lang.annotation.ElementType.PACKAGE;
 import static java.lang.annotation.ElementType.TYPE;
 
 /**
- * Annotation that indicates that a class, interface, field or method
- * is experimental, not part of the public API, and subject to change
- * or removal.
+ * Annotation that indicates that a class, interface, field or method is experimental,
+ * not part of the public API, and subject to(从属于) change or removal(移除、搬迁、免职).
+ * fixme
+ *      实验性质的类、接口、字段和方法，可能会被修改或移除。
  *
- * <p>And yes, it is flagged experimental. We may move it elsewhere in future,
- * when we re-think the maturity model.
+ * <p>
+ *   And yes, it is flagged experimental. We may move it elsewhere in future, when we re-think
+ *   the maturity model.
+ *
  */
 @Target({PACKAGE, TYPE, FIELD, METHOD, CONSTRUCTOR })
 @Retention(RetentionPolicy.SOURCE)

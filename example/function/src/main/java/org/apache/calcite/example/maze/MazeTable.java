@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -33,12 +34,13 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * User-defined table function that generates a Maze and prints it in text
- * form.
+ * User-defined table function that generates a Maze and prints it in text form.
  */
 public class MazeTable extends AbstractTable implements ScannableTable {
+  //
   final int width;
   final int height;
+  // 负数则无效
   final int seed;
   final boolean solution;
 
@@ -49,25 +51,53 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     this.solution = solution;
   }
 
-  /** Table function that generates a maze.
+  /**
+   * Table function that generates a maze.
+   * fixme
+   *      表函数：产生一个迷宫。
+   *      通过schema中用户自定义的函数，通过反射调用该方法。
+   * +--+--+--+--+--+
+   * |        |     |
+   * +--+  +--+--+  +
+   * |     |  |     |
+   * +  +--+  +--+  +
+   * |              |
+   * +--+--+--+--+--+
    *
-   * <p>Called by reflection based on the definition of the user-defined
-   * function in the schema.
+   * <p>
+   *   Called by reflection(反射) based on the definition of the user-defined function in the schema.
    *
    * @param width Width of maze
+   *              迷宫宽度
+   *
    * @param height Height of maze
+   *               迷宫高度
+   *
    * @param seed Random number seed, or -1 to create an unseeded random
+   *             随机种子，小于0的时候以0为准
+   *
    * @return Table that prints the maze in text form
+   *         以文本格式打印的表格
    */
   @SuppressWarnings("unused") // called via reflection
   public static ScannableTable generate(int width, int height, int seed) {
     return new MazeTable(width, height, seed, false);
   }
 
-  /** Table function that generates a maze with a solution.
+  /**
+   * Table function that generates a maze with a solution.
+   * fixme
+   *     产生一个带有解决方案的迷宫。
+   * +--+--+--+--+--+
+   * |*  *    |     |
+   * +--+  +--+--+  +
+   * |*  * |  |     |
+   * +  +--+  +--+  +
+   * |*  *  *  *  * |
+   * +--+--+--+--+--+;
    *
-   * <p>Called by reflection based on the definition of the user-defined
-   * function in the schema.
+   * <p>
+   *   Called by reflection based on the definition of the user-defined function in the schema.
    *
    * @param width Width of maze
    * @param height Height of maze
@@ -85,24 +115,33 @@ public class MazeTable extends AbstractTable implements ScannableTable {
         .build();
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override
+  public Enumerable<Object[]> scan(DataContext root) {
     final Random random = seed >= 0 ? new Random(seed) : new Random();
-    final Maze maze = new Maze(width, height);
     final PrintWriter pw = Util.printWriter(System.out);
+
+    // 创建迷宫对象。
+    final Maze maze = new Maze(width, height);
+
     maze.layout(random, pw);
+
     if (Maze.DEBUG) {
       maze.print(pw, true);
     }
+
     return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+      @Override
+      public Enumerator<Object[]> enumerator() {
         final Set<Integer> solutionSet;
         if (solution) {
           solutionSet = maze.solve(0, 0);
         } else {
           solutionSet = null;
         }
-        return Linq4j.transform(maze.enumerator(solutionSet),
-            s -> new Object[] {s});
+
+        // 返回以 s 为唯一元素的数组。
+        Function1 func = s -> new Object[]{s};
+        return Linq4j.transform(maze.enumerator(solutionSet), func);
       }
     };
   }

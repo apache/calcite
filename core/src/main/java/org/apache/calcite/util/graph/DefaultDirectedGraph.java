@@ -228,9 +228,13 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   /**
    * Information about a vertex.
+   * 顶点类型
    *
    * @param <V> Vertex type
+   *            顶点类型
+   *
    * @param <E> Edge type
+   *            边类型
    */
   static class VertexInfo<V, E> {
     final List<E> outEdges = new ArrayList<>();

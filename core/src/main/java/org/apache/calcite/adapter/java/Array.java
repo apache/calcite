@@ -24,16 +24,31 @@ import static java.lang.annotation.ElementType.FIELD;
 
 /**
  * Annotation that indicates that a field is an array type.
+ *
+ * 代表该字段是个list。
  */
 @Target({FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Array {
-  /** Component type. */
+
+  /**
+   * Component type.
+   *
+   * 组件类型。
+   */
   Class component();
 
-  /** Whether components may be null. */
+  /**
+   * Whether components may be null.
+   *
+   * 组件是否可以为null。
+   */
   boolean componentIsNullable() default false;
 
-  /** Maximum number of elements in the array. -1 means no maximum. */
+  /**
+   * Maximum number of elements in the array. -1 means no maximum.
+   *
+   * 数组的最大容量，-1表示没有限制。
+   */
   long maximumCardinality() default -1L;
 }

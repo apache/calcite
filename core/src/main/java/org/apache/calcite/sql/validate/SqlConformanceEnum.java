@@ -18,17 +18,29 @@ package org.apache.calcite.sql.validate;
 
 /**
  * Enumeration of built-in SQL compatibility modes.
+ *
+ * 内置的sql一致性模型枚举。
  */
 public enum SqlConformanceEnum implements SqlConformance {
-  /** Calcite's default SQL behavior. */
+
+  /**
+   * Calcite's default SQL behavior.
+   *
+   * 默认的sql行为。
+   */
   DEFAULT,
 
-  /** Conformance value that allows just about everything supported by
-   * Calcite. */
+  /**
+   * Conformance value that allows just about everything supported by Calcite.
+   *
+   * lenient adj: 宽容的、仁慈的。
+   */
   LENIENT,
 
-  /** Conformance value that allows anything supported by any dialect.
-   * Even more liberal than {@link #LENIENT}. */
+  /**
+   * Conformance value that allows anything supported by any dialect.
+   * Even more liberal than {@link #LENIENT}.
+   */
   BABEL,
 
   /** Conformance value that instructs Calcite to use SQL semantics strictly

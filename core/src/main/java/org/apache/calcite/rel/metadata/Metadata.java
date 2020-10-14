@@ -21,25 +21,36 @@ import org.apache.calcite.rel.RelNode;
 /**
  * Metadata about a relational expression.
  *
- * <p>For particular types of metadata, a sub-class defines one of more methods
- * to query that metadata. Then a {@link RelMetadataProvider} can offer those
- * kinds of metadata for particular sub-classes of {@link RelNode}.
+ * <p>
+ *   For particular types of metadata, a sub-class defines one of more methods
+ *   to query that metadata. Then a {@link RelMetadataProvider} can offer those
+ *   kinds of metadata for particular sub-classes of {@link RelNode}.
  *
- * <p>User code (typically in a planner rule or an implementation of
- * {@link RelNode#computeSelfCost(org.apache.calcite.plan.RelOptPlanner, RelMetadataQuery)})
- * acquires a {@code Metadata} instance by calling {@link RelNode#metadata}.
+ * <p>
+ *   User code (typically in a planner rule or an implementation of
+ *   {@link RelNode#computeSelfCost(org.apache.calcite.plan.RelOptPlanner, RelMetadataQuery)})
+ *   acquires a {@code Metadata} instance by calling {@link RelNode#metadata}.
  *
- * <p>A {@code Metadata} instance already knows which particular {@code RelNode}
- * it is describing, so the methods do not pass in the {@code RelNode}. In fact,
- * quite a few metadata methods have no extra parameters. For instance, you can
- * get the row-count as follows:</p>
+ * <p>
+ *   A {@code Metadata} instance already knows which particular {@code RelNode}
+ *   it is describing, so the methods do not pass in the {@code RelNode}. In fact,
+ *   quite a few metadata methods have no extra parameters. For instance, you can
+ *   get the row-count as follows:</p>
  *
  * <blockquote><pre><code>
  * RelNode rel;
  * double rowCount = rel.metadata(RowCount.class).rowCount();
  * </code></pre></blockquote>
+ *
+ * fixme 关系表达式的元数据。
+ *       对于特定的元数据类型，子类定义了查询元数据的方法之一。
+ *       然后 关系表达式元数据/RelMetadataProvider 可以为RelNode的子类提供这些种类的元数据。
  */
 public interface Metadata {
-  /** Returns the relational expression that this metadata is about. */
+  /**
+   * Returns the relational expression that this metadata is about.
+   *
+   * 返回与此元数据相关的关系表达式。
+   */
   RelNode rel();
 }

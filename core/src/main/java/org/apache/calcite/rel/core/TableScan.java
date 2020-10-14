@@ -45,18 +45,23 @@ import java.util.Set;
 
 /**
  * Relational operator that returns the contents of a table.
+ *
+ * 返回 表内容 的关系表达式。
  */
-public abstract class TableScan
-    extends AbstractRelNode implements Hintable {
+public abstract class TableScan extends AbstractRelNode implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   /**
    * The table definition.
+   *
+   * 表定义。
    */
   protected final RelOptTable table;
 
   /**
    * The table hints.
+   *
+   * ？表提示？
    */
   protected final ImmutableList<RelHint> hints;
 

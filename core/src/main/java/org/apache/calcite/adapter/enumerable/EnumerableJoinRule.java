@@ -29,13 +29,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/** Planner rule that converts a
+/**
+ * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
  *
- * @see EnumerableRules#ENUMERABLE_JOIN_RULE */
+ * @see EnumerableRules#ENUMERABLE_JOIN_RULE
+ */
 class EnumerableJoinRule extends ConverterRule {
-  /** Default configuration. */
+
+  /**
+   * Default configuration.
+   *
+   * 默认配置
+   */
   public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalJoin.class, Convention.NONE,
           EnumerableConvention.INSTANCE, "EnumerableJoinRule")
@@ -46,7 +53,8 @@ class EnumerableJoinRule extends ConverterRule {
     super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  @Override
+  public RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
     List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {

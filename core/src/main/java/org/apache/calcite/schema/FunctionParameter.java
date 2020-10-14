@@ -21,14 +21,18 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 /**
  * Parameter to a {@link Function}.
+ * fixme
+ *      函数的参数。
  *
- * <p>NOTE: We'd have called it {@code Parameter} but the overlap with
- * {@link java.lang.reflect.Parameter} was too confusing.</p>
+ * <p>
+ *   NOTE: We'd have called it {@code Parameter}
+ *   but the overlap with {@link java.lang.reflect.Parameter} was too confusing.</p>
  */
 public interface FunctionParameter {
   /**
-   * Zero-based ordinal of this parameter within the member's parameter
-   * list.
+   * Zero-based ordinal of this parameter
+   * within the member's parameter list.
+   * fixme 参数在list中的序号，基于0开始。
    *
    * @return Parameter ordinal
    */
@@ -36,6 +40,7 @@ public interface FunctionParameter {
 
   /**
    * Name of the parameter.
+   * fixme 参数名称。
    *
    * @return Parameter name
    */
@@ -43,8 +48,10 @@ public interface FunctionParameter {
 
   /**
    * Returns the type of this parameter.
+   * fixme 参数类型
    *
    * @param typeFactory Type factory to be used to create the type
+   *                    用于创建参数类型的类型工厂。
    *
    * @return Parameter type.
    */

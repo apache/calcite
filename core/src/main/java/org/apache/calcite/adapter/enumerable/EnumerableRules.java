@@ -42,15 +42,23 @@ public class EnumerableRules {
   private EnumerableRules() {
   }
 
-  /** Rule that converts a
-   * {@link org.apache.calcite.rel.logical.LogicalJoin} to
-   * {@link EnumerableConvention enumerable calling convention}. */
+  /**
+   * Rule that converts a
+   * {@link org.apache.calcite.rel.logical.LogicalJoin}
+   * to {@link EnumerableConvention enumerable calling convention}.
+   *
+   * 将 LogicalJoin 转换为 "enumerable calling convention" 的规则。
+   */
   public static final RelOptRule ENUMERABLE_JOIN_RULE =
       EnumerableJoinRule.DEFAULT_CONFIG.toRule(EnumerableJoinRule.class);
 
-  /** Rule that converts a
+  /**
+   * Rule that converts a
    * {@link org.apache.calcite.rel.logical.LogicalJoin} to
-   * {@link EnumerableConvention enumerable calling convention}. */
+   * {@link EnumerableConvention enumerable calling convention}.
+   *
+   * 将 LogicalJoin 转换为 "enumerable calling convention" 的规则。
+   */
   public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
       EnumerableMergeJoinRule.DEFAULT_CONFIG
           .toRule(EnumerableMergeJoinRule.class);

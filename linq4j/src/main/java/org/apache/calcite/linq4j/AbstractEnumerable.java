@@ -19,8 +19,8 @@ package org.apache.calcite.linq4j;
 import java.util.Iterator;
 
 /**
- * Abstract implementation of the {@link Enumerable} interface that
- * implements the extension methods.
+ * Abstract implementation of the {@link Enumerable} interface
+ * that implements the extension methods.
  *
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Enumerable}, because {@code Enumerable} has so many extension methods,
@@ -29,7 +29,9 @@ import java.util.Iterator;
  * @param <T> Element type
  */
 public abstract class AbstractEnumerable<T> extends DefaultEnumerable<T> {
-  @Override public Iterator<T> iterator() {
+  
+  @Override
+  public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }
