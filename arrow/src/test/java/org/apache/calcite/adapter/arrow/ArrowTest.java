@@ -184,7 +184,10 @@ public class ArrowTest {
     final String[] lines = {
         "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
         + " fieldOne=2; fieldTwo=def; fieldThree=3.4,"
-        + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6"
+        + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6,"
+        + " fieldOne=4; fieldTwo=abcd; fieldThree=1.22,"
+        + " fieldOne=5; fieldTwo=defg; fieldThree=3.45,"
+        + " fieldOne=6; fieldTwo=xyza; fieldThree=5.67"
     };
     sql("bug", sql)
         .returns(lines)
