@@ -173,7 +173,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   }
 
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
-   * zeroes to a given precision. */
+   * zeros to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     return localTime.toString(precision) + " " + timeZone.getID();

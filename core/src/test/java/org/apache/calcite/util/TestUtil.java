@@ -49,6 +49,14 @@ public abstract class TestUtil {
   private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
       Suppliers.memoize(TestUtil::computeGuavaMajorVersion)::get;
 
+  /** Matches a number with at least four zeros after the point. */
+  private static final Pattern TRAILING_ZERO_PATTERN =
+      Pattern.compile("-?[0-9]+\\.([0-9]*[1-9])?(00000*[0-9][0-9]?)");
+
+  /** Matches a number with at least four nines after the point. */
+  private static final Pattern TRAILING_NINE_PATTERN =
+      Pattern.compile("-?[0-9]+\\.([0-9]*[0-8])?(99999*[0-9][0-9]?)");
+
   /** This is to be used by {@link #rethrow(Throwable, String)} to add extra information via
    * {@link Throwable#addSuppressed(Throwable)}. */
   private static class ExtraInformation extends Throwable {
@@ -196,6 +204,45 @@ public abstract class TestUtil {
         .replace(")", "\\)")
         .replace("[", "\\[")
         .replace("]", "\\]");
+  }
+
+  /** Removes floating-point rounding errors from the end of a string.
+   *
+   * <p>{@code 12.300000006} becomes {@code 12.3};
+   * {@code -12.37999999991} becomes {@code -12.38}. */
+  public static String correctRoundedFloat(String s) {
+    if (s == null) {
+      return s;
+    }
+    final Matcher m = TRAILING_ZERO_PATTERN.matcher(s);
+    if (m.matches()) {
+      s = s.substring(0, s.length() - m.group(2).length());
+    }
+    final Matcher m2 = TRAILING_NINE_PATTERN.matcher(s);
+    if (m2.matches()) {
+      s = s.substring(0, s.length() - m2.group(2).length());
+      if (s.length() > 0) {
+        final char c = s.charAt(s.length() - 1);
+        switch (c) {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case  '8':
+          // '12.3499999996' became '12.34', now we make it '12.35'
+          s = s.substring(0, s.length() - 1) + (char) (c + 1);
+          break;
+        case '.':
+          // '12.9999991' became '12.', which we leave as is.
+          break;
+        }
+      }
+    }
+    return s;
   }
 
   /**

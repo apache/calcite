@@ -181,7 +181,7 @@ public class TimestampString implements Comparable<TimestampString> {
   }
 
   /** Converts this TimestampString to a string, truncated or padded with
-   * zeroes to a given precision. */
+   * zeros to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     final int p = precision();

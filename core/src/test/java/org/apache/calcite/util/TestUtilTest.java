@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -92,5 +94,32 @@ class TestUtilTest {
     int majorVersion = TestUtil.getGuavaMajorVersion();
     assertTrue(majorVersion >= 2,
         "current GuavaMajorVersion is " + majorVersion + "; should exceed 2");
+  }
+
+  /** Tests {@link TestUtil#correctRoundedFloat(String)}. */
+  @Test void testCorrectRoundedFloat() {
+    // unchanged; no '.'
+    assertThat(TestUtil.correctRoundedFloat("1230000006"), is("1230000006"));
+    assertThat(TestUtil.correctRoundedFloat("12.300000006"), is("12.3"));
+    assertThat(TestUtil.correctRoundedFloat("53.742500000000014"),
+        is("53.7425"));
+    // unchanged; too few zeros
+    assertThat(TestUtil.correctRoundedFloat("12.30006"), is("12.30006"));
+    assertThat(TestUtil.correctRoundedFloat("12.300000"), is("12.3"));
+    assertThat(TestUtil.correctRoundedFloat("-12.30000006"), is("-12.3"));
+    assertThat(TestUtil.correctRoundedFloat("-12.349999991"), is("-12.35"));
+    assertThat(TestUtil.correctRoundedFloat("-12.349999999"), is("-12.35"));
+    assertThat(TestUtil.correctRoundedFloat("-12.3499999911"), is("-12.35"));
+    // unchanged; too many non-nines at the end
+    assertThat(TestUtil.correctRoundedFloat("-12.34999999118"),
+        is("-12.34999999118"));
+    // unchanged; too few nines
+    assertThat(TestUtil.correctRoundedFloat("-12.349991"), is("-12.349991"));
+    assertThat(TestUtil.correctRoundedFloat("95637.41489999992"),
+        is("95637.4149"));
+    assertThat(TestUtil.correctRoundedFloat("14181.569999999989"),
+        is("14181.57"));
+    // can't handle nines that start right after the point very well. oh well.
+    assertThat(TestUtil.correctRoundedFloat("12.999999"), is("12."));
   }
 }

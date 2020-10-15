@@ -3747,7 +3747,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // only seconds are allowed to have a fractional part
     expr("INTERVAL '1.0' SECOND")
         .columnType("INTERVAL SECOND NOT NULL");
-    // leading zeroes do not cause precision to be exceeded
+    // leading zeros do not cause precision to be exceeded
     expr("INTERVAL '0999' MONTH(3)")
         .columnType("INTERVAL MONTH(3) NOT NULL");
   }
