@@ -187,6 +187,16 @@ class QueryBuilders {
   }
 
   /**
+   * A query that wraps another query and simply returns a dismax score equal to the
+   * query boost for every document in the query.
+   *
+   * @param queryBuilder The query to wrap in a constant score query
+   */
+  static DisMaxQueryBuilder disMaxQueryBuilder(QueryBuilder queryBuilder) {
+    return new DisMaxQueryBuilder(queryBuilder);
+  }
+
+  /**
    * A filter to filter only documents where a field exists in them.
    *
    * @param name The name of the field
@@ -539,6 +549,33 @@ class QueryBuilders {
       generator.writeEndObject();
     }
   }
+
+  /**
+   * A query that wraps a filter and simply returns a dismax score equal to the
+   * query boost for every document in the filter.
+   */
+  static class DisMaxQueryBuilder extends QueryBuilder {
+
+    private final QueryBuilder builder;
+
+    private DisMaxQueryBuilder(final QueryBuilder builder) {
+      this.builder = Objects.requireNonNull(builder, "builder");
+    }
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeFieldName("dis_max");
+      generator.writeStartObject();
+      generator.writeFieldName("queries");
+      generator.writeStartArray();
+      builder.writeJson(generator);
+      generator.writeEndArray();
+      generator.writeEndObject();
+      generator.writeEndObject();
+    }
+  }
+
+
 
   /**
    * A query that matches on all documents.
