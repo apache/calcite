@@ -757,8 +757,7 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression notLike(LiteralExpression literal) {
       builder = boolQuery()
-              // NOT LIKE should return false when field is NULL
-              .must(existsQuery(getFieldReference()))
+              // Removed exists condition as it is not put by ElasticSearch. Keeping query in sync.
               .mustNot(regexpQuery(getFieldReference(), literal.stringValue()));
       return this;
     }
