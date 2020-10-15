@@ -325,18 +325,10 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(null);
   }
 
-  private SqlTester oracleTester() {
-    return libraryTester(SqlLibrary.ORACLE);
-  }
-
-  private SqlTester bigQueryTester() {
-    return libraryTester(SqlLibrary.BIG_QUERY);
-  }
-
   protected SqlTester libraryTester(SqlLibrary library) {
     return tester.withOperatorTable(
-            SqlLibraryOperatorTableFactory.INSTANCE
-                .getOperatorTable(SqlLibrary.STANDARD, library))
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, library))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
@@ -2028,7 +2020,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testChr() {
     tester.setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkScalar("chr(97)",
             "a", "CHAR(1) NOT NULL");
     tester1.checkScalar("chr(48)",
@@ -4214,7 +4206,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testTranslate3Func() {
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.setFor(SqlLibraryOperators.TRANSLATE3);
     tester1.checkString(
         "translate('aabbcc', 'ab', '+-')",
@@ -4517,7 +4509,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testSoundexFunc() {
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.setFor(SqlLibraryOperators.SOUNDEX);
     tester1.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
     tester1.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
@@ -5645,7 +5637,7 @@ public abstract class SqlOperatorBaseTest {
 
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
-    SqlTester tester = bigQueryTester();
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
     tester.setFor(SqlLibraryOperators.UNIX_SECONDS);
     tester.checkScalar("unix_seconds(timestamp '1970-01-01 00:00:00')", 0,
         "BIGINT NOT NULL");
@@ -6765,21 +6757,21 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testRtrimFunc() {
     tester.setFor(SqlLibraryOperators.RTRIM);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
     tester1.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
   }
 
   @Test void testLtrimFunc() {
     tester.setFor(SqlLibraryOperators.LTRIM);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
     tester1.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
   }
 
   @Test void testGreatestFunc() {
     tester.setFor(SqlLibraryOperators.GREATEST);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
     tester1.checkString("greatest('show', 'on', 'earth')", "show ",
         "CHAR(5) NOT NULL");
@@ -6794,7 +6786,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testLeastFunc() {
     tester.setFor(SqlLibraryOperators.LEAST);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
     tester1.checkString("least('show', 'on', 'earth')", "earth",
         "CHAR(5) NOT NULL");
@@ -6809,7 +6801,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testNvlFunc() {
     tester.setFor(SqlLibraryOperators.NVL);
-    final SqlTester tester1 = oracleTester();
+    final SqlTester tester1 = libraryTester(SqlLibrary.ORACLE);
     tester1.checkScalar("nvl(1, 2)", "1", "INTEGER NOT NULL");
     tester1.checkFails("^nvl(1, true)^", "Parameters must be of the same type",
         false);
@@ -6836,8 +6828,11 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testDecodeFunc() {
-    tester.setFor(SqlLibraryOperators.DECODE);
-    final SqlTester tester1 = oracleTester();
+    checkDecodeFunc(libraryTester(SqlLibrary.ORACLE));
+  }
+
+  void checkDecodeFunc(SqlTester tester1) {
+    this.tester.setFor(SqlLibraryOperators.DECODE);
     tester1.checkScalar("decode(0, 0, 'a', 1, 'b', 2, 'c')", "a", "CHAR(1)");
     tester1.checkScalar("decode(1, 0, 'a', 1, 'b', 2, 'c')", "b", "CHAR(1)");
     // if there are duplicates, take the first match

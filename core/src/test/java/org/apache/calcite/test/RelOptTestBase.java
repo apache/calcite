@@ -269,8 +269,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       return withTransform(tester -> tester.withConformance(conformance));
     }
 
-    public Sql withContext(final Context context) {
-      return withTransform(tester -> tester.withContext(context));
+    public Sql withContext(final UnaryOperator<Context> transform) {
+      return withTransform(tester -> tester.withContext(transform));
     }
 
     /**

@@ -6136,7 +6136,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final Context context =
         Contexts.of(CalciteConnectionConfig.DEFAULT);
     sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
-        .withContext(context)
+        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
         .check();
   }
 
@@ -6145,10 +6145,8 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp_b as e\n"
         + "where extract(year from birthdate) = 2014"
         + "and extract(month from birthdate) = 4";
-    final Context context =
-        Contexts.of(CalciteConnectionConfig.DEFAULT);
     sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
-        .withContext(context)
+        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
         .check();
   }
 

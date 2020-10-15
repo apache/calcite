@@ -3672,7 +3672,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final TesterImpl tester = new TesterImpl(getDiffRepos())
         .withDecorrelation(false)
         .withTrim(false)
-        .withContext(Contexts.of(connectionConfig));
+        .withContext(c -> Contexts.of(connectionConfig, c));
     sql(sql).with(tester).ok();
   }
 
