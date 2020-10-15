@@ -68,7 +68,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    *
    * @param parent Parent scope
    */
-  DelegatingScope(SqlValidatorScope parent) {
+  protected DelegatingScope(SqlValidatorScope parent) {
     super();
     assert parent != null;
     this.validator = (SqlValidatorImpl) parent.getValidator();

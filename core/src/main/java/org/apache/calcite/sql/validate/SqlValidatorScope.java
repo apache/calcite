@@ -206,7 +206,7 @@ public interface SqlValidatorScope {
 
   /** Returns whether this scope is enclosed within {@code scope2} in such
    * a way that it can see the contents of {@code scope2}. */
-  default boolean isWithin(SqlValidatorScope scope2)  {
+  default boolean isWithin(SqlValidatorScope scope2, SqlValidatorNamespace sqlValidatorNamespace) {
     return this == scope2;
   }
 

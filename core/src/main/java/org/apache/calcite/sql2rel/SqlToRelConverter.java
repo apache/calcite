@@ -2728,7 +2728,7 @@ public class SqlToRelConverter {
       final RelDataType rowType = resolve.rowType();
       final int childNamespaceIndex = resolve.path.steps().get(0).i;
       final SqlValidatorScope ancestorScope = resolve.scope;
-      boolean correlInCurrentScope = bb.scope.isWithin(ancestorScope);
+      boolean correlInCurrentScope = bb.scope.isWithin(ancestorScope, foundNs);
 
       if (!correlInCurrentScope) {
         continue;
@@ -2982,12 +2982,35 @@ public class SqlToRelConverter {
 
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
-    final RelNode newRightRel = bb.root == null || bb.registered.size() == 0
-        ? rightRel
-        : bb.reRegister(rightRel);
+    final RelNode newRightRel = createRightJoinRelNode(bb, join, rightRel);
     bb.setRoot(ImmutableList.of(leftRel, newRightRel));
     RexNode conditionExp =  bb.convertExpression(condition);
     return Pair.of(conditionExp, newRightRel);
+  }
+
+  private RelNode createRightJoinRelNode(Blackboard bb, SqlJoin join, RelNode baseRightRel){
+    if(bb.registered.isEmpty()){
+      return baseRightRel;
+    }
+    SqlValidatorNamespace rightNamespace = validator.getNamespace(join.getRight());
+    DelegatingScope phoRightScope = new DelegatingScope(bb.scope){
+
+      @Override
+      public SqlNode getNode() {
+        return join.getRight();
+      }
+
+      @Override
+      public boolean isWithin(SqlValidatorScope scope2,
+          SqlValidatorNamespace sqlValidatorNamespace) {
+        return rightNamespace == sqlValidatorNamespace && parent.isWithin(scope2, sqlValidatorNamespace);
+      }
+    };
+    Blackboard rightBlackboardForCorrelatedQueries = new Blackboard(phoRightScope, null, false);
+    rightBlackboardForCorrelatedQueries.setRoot(baseRightRel, false);
+    rightBlackboardForCorrelatedQueries.registered = bb.registered;
+    rightBlackboardForCorrelatedQueries.reRegister(baseRightRel);
+    return rightBlackboardForCorrelatedQueries.root;
   }
 
   /**
@@ -4489,10 +4512,11 @@ public class SqlToRelConverter {
       registered.add(new RegisterArgs(rel, joinType, leftKeys));
       if (root == null) {
         assert leftKeys == null;
+        int offset = inputs.stream().mapToInt(inputRel -> inputRel.getRowType().getFieldCount()).sum();
         setRoot(rel, false);
         return rexBuilder.makeRangeReference(
             root.getRowType(),
-            0,
+            offset,
             false);
       }
 
@@ -5171,7 +5195,7 @@ public class SqlToRelConverter {
     }
 
     public RexFieldAccess getFieldAccess(CorrelationId name) {
-      return (RexFieldAccess) bb.mapCorrelateToRex.get(name);
+      return bb.mapCorrelateToRex.get(name);
     }
 
     public String getOriginalRelName() {

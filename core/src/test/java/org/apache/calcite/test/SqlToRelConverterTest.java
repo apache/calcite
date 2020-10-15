@@ -4091,7 +4091,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testImplicitJoinExpandAndDecorrelation() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"
-        + "FROM dept, emp "
+        + "FROM dept, emp\n"
         + "WHERE emp.deptno = dept.deptno AND emp.sal < (\n"
         + "  SELECT AVG(emp.sal)\n"
         + "  FROM emp\n"
@@ -4104,9 +4104,216 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan_extended}");
     sql(sql)
         .withConfig(configBuilder -> configBuilder
-            .withDecorrelationEnabled(false)
-            .withExpand(false))
+            .withDecorrelationEnabled(true)
+            .withExpand(true))
+        .decorrelate(false)
         .convertsTo("${plan_not_extended}");
+  }
+
+  @Test void testJoinExpandAndDecorrelationWithCorrelatedVariablesOnBothSide() {
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM dept\n"
+        + "LEFT JOIN bonus ON bonus.job = (\n"
+        + "  SELECT emp.job\n"
+        + "  FROM  emp\n"
+        + "   WHERE  emp.deptno = dept.deptno\n"
+        +  ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(false)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "    LogicalFilter(condition=[=($1, $4)])\n"
+            + "      LogicalJoin(condition=[true], joinType=[left])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+            + "              LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_not_extended}");
+  }
+
+
+  @Test void testJoinExpandAndDecorrelationWithCorrelatedVariablesOnBothSideExists() {
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM dept\n"
+        + "LEFT JOIN bonus ON  EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM emp\n"
+        + "  WHERE  emp.deptno = dept.deptno AND bonus.job = emp.job\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(false)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "    LogicalFilter(condition=[IS NOT NULL($4)])\n"
+            + "      LogicalCorrelate(correlation=[$cor1], joinType=[left], "
+            + "requiredColumns=[{3}])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "        LogicalAggregate(group=[{}], agg#0=[MIN($0)])\n"
+            + "          LogicalProject($f0=[true])\n"
+            + "            LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($cor1.JOB, $2))])\n"
+            + "              LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalJoin(condition=[=($0, $7)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], $f0=[$6], "
+            + "DEPTNO=[$4])\n"
+            + "      LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], DEPTNO=[CAST($4)"
+            + ":INTEGER], JOB0=[CAST($5):VARCHAR(10)], $f2=[CAST($6):BOOLEAN])\n"
+            + "        LogicalJoin(condition=[=($1, $5)], joinType=[inner])\n"  // SHOULD be
+            + "          LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "          LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])\n"
+            + "            LogicalProject(DEPTNO=[$7], JOB=[$2], $f0=[true])\n"
+            + "              LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+  }
+
+  @Test void testImplicitJoinExpandAndDecorrelationWithCorrelatedVariablesOnBothSide() {
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM dept, bonus\n"
+        + "WHERE bonus.job = (\n"
+        + "  SELECT emp.job\n"
+        + "  FROM emp\n"
+        + "  WHERE  emp.deptno = dept.deptno\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(false)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalFilter(condition=[=($3, $6)])\n"
+            + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+            + "        LogicalProject(JOB=[$2])\n"
+            + "          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+            + "            LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], "
+            + "COMM=[$5], DEPTNO0=[CAST($6):INTEGER], $f1=[CAST($7):VARCHAR(10)])\n"
+            + "    LogicalJoin(condition=[AND(=($0, $6), =($3, $7))], joinType=[inner])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+            + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "          LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+  }
+
+
+  @Test void testManyToManyJoinExpandAndDecorrelation() {
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM dept d\n"
+        + "INNER JOIN bonus b ON EXISTS(\n"
+        + "  SELECT *\n"
+        + "  FROM emp e\n"
+        + "  WHERE d.deptno = e.deptno AND e.job = b.job\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(false)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalFilter(condition=[=($0, $0)])\n"
+            + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{3}])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+            + "        LogicalProject(DEPTNO=[$7])\n"
+            + "          LogicalFilter(condition=[=($2, $cor0.JOB)])\n"
+            + "            LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], "
+            + "COMM=[$5], DEPTNO0=[CAST($6):INTEGER], $f1=[CAST($7):VARCHAR(10)])\n"
+            + "    LogicalJoin(condition=[AND(=($0, $6), =($3, $7))], joinType=[inner])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+            + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "          LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+  }
+
+  @Test void testImplicitManyToManyJoinExpandAndDecorrelation() {
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM dept d\n"
+        + "WHERE d.deptno = (\n"
+        + "  SELECT e.deptno\n"
+        + "  FROM emp e\n"
+        + "  WHERE e.job = 'good'\n"
+        + ")";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(true)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], "
+            + "COMM=[$5], JOB0=[CAST($6):VARCHAR(10)], $f1=[CAST($7):INTEGER])\n"
+            + "    LogicalJoin(condition=[AND(=($3, $6), =($0, $7))], joinType=[inner])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+            + "        LogicalProject(JOB=[$2], DEPTNO=[$7])\n"
+            + "          LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .decorrelate(false)
+        .convertsTo("\n"
+            + "LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], JOB=[$3], SAL=[$4], COMM=[$5])\n"
+            + "  LogicalFilter(condition=[=($0, $6)])\n"
+            + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{3}])\n"
+            + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])\n"
+            + "      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+            + "        LogicalProject(DEPTNO=[$7])\n"
+            + "          LogicalFilter(condition=[=($2, $cor0.JOB)])\n"
+            + "            LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n");
   }
 
   /**

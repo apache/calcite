@@ -50,11 +50,12 @@ class TableScope extends ListScope {
     return node;
   }
 
-  @Override public boolean isWithin(SqlValidatorScope scope2) {
+  @Override public boolean isWithin(SqlValidatorScope scope2,
+      SqlValidatorNamespace sqlValidatorNamespace) {
     if (this == scope2) {
       return true;
     }
     SqlValidatorScope s = getValidator().getSelectScope((SqlSelect) node);
-    return s.isWithin(scope2);
+    return s.isWithin(scope2, sqlValidatorNamespace);
   }
 }

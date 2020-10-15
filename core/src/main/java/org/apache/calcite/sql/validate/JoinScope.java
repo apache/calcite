@@ -93,11 +93,12 @@ public class JoinScope extends ListScope {
     return usingScope;
   }
 
-  @Override public boolean isWithin(SqlValidatorScope scope2) {
+  @Override public boolean isWithin(SqlValidatorScope scope2,
+      SqlValidatorNamespace sqlValidatorNamespace) {
     if (this == scope2) {
       return true;
     }
     // go from the JOIN to the enclosing SELECT
-    return usingScope.isWithin(scope2);
+    return usingScope.isWithin(scope2, sqlValidatorNamespace);
   }
 }
