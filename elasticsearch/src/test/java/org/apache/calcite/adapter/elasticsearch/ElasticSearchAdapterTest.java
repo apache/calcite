@@ -297,6 +297,19 @@ class ElasticSearchAdapterTest {
 
     CalciteAssert.that()
         .with(newConnectionFactory())
+        .query("select * from elastic.zips where _MAP['state'] = 'NY' or "
+            + "_MAP['city'] = 'BROOKLYN'"
+            + " order by _MAP['city']")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+                "query:{'dis_max':{'queries':[{'bool':{'should':"
+                    + "[{'term':{'state':'NY'}},{'term':"
+                    + "{'city':'BROOKLYN'}}]}}]}},'sort':[{'city':'asc'}]",
+                String.format(Locale.ROOT, "size:%s",
+                    ElasticsearchTransport.DEFAULT_FETCH_SIZE)));
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
         .query("select _MAP['city'] from elastic.zips where _MAP['state'] = 'NY' "
             + "order by _MAP['city']")
         .returnsOrdered("EXPR$0=BROOKLYN",
@@ -418,6 +431,34 @@ class ElasticSearchAdapterTest {
                     + "id:{script: 'params._source.id'}}",
                 "sort: [ {state: 'asc'}, {pop: 'asc'}]",
                 String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
+        .explainContains(explain);
+  }
+
+  @Test public void testDismaxQuery() {
+    final String sql = "select * from zips\n"
+        + "where state = 'CA' or pop >= 94000\n"
+        + "order by state, pop";
+    final String explain = "PLAN=ElasticsearchToEnumerableConverter\n"
+        + "  ElasticsearchSort(sort0=[$4], sort1=[$3], dir0=[ASC], dir1=[ASC])\n"
+        + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
+        + "      ElasticsearchFilter(condition=[OR(=(CAST(ITEM($0, 'state')):VARCHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
+        + "        ElasticsearchTableScan(table=[[elastic, zips]])\n\n";
+    calciteAssert()
+        .query(sql)
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("'query' : "
+                    + "{'dis_max':{'queries':[{bool:"
+                    + "{should:[{term:{state:'CA'}},"
+                    + "{range:{pop:{gte:94000}}}]}}]}}",
+                "'script_fields': {longitude:{script:'params._source.loc[0]'}, "
+                    + "latitude:{script:'params._source.loc[1]'}, "
+                    + "city:{script: 'params._source.city'}, "
+                    + "pop:{script: 'params._source.pop'}, "
+                    + "state:{script: 'params._source.state'}, "
+                    + "id:{script: 'params._source.id'}}",
+                "sort: [ {state: 'asc'}, {pop: 'asc'}]",
+                String.format(Locale.ROOT, "size:%s",
+                    ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
         .explainContains(explain);
   }
 
