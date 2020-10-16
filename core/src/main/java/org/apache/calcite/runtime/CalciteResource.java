@@ -937,4 +937,7 @@ public interface CalciteResource {
 
   @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
   ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
+
+  @BaseMessage("Subqueries in on clauses are not supported.")
+  ExInst<CalciteException> subqueryInOnClauses();
 }

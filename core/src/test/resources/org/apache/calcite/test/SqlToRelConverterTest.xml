@@ -7276,63 +7276,6 @@ LogicalProject(EMPNO=[$0])
 
         </Resource>
     </TestCase>
-    <TestCase name="testJoinExpandAndDecorrelation">
-        <Resource name="plan_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $0))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
-      LogicalJoin(condition=[=($0, $9)], joinType=[left])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-          LogicalProject(DEPTNO=[$7], SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="plan_not_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
-LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
-  LogicalProject(SAL=[$5])
-    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testImplicitJoinExpandAndDecorrelation">
-        <Resource name="plan_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], DEPTNO1=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
-    LogicalJoin(condition=[AND(=($0, $11), <($7, $12))], joinType=[inner])
-      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-        LogicalProject(DEPTNO=[$7], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="plan_not_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalFilter(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
-LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
-  LogicalProject(SAL=[$5])
-    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], variablesSet=[[$cor0]])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testCompositeOfCountRange">
         <Resource name="sql">
             <![CDATA[select COMPOSITE(deptno)

@@ -41,6 +41,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -56,6 +57,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -4085,7 +4087,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
-  @Test void testJoinExpandAndDecorrelation() {
+  @Test void testOnClaseSubQueryNotSupportec() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"
         + "FROM dept\n"
@@ -4094,37 +4096,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  FROM emp\n"
         + "  WHERE  emp.deptno = dept.deptno\n"
         + ")";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(true)
-            .withDecorrelationEnabled(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(false)
-            .withDecorrelationEnabled(false))
-        .convertsTo("${plan_not_extended}");
-  }
-
-  @Test void testImplicitJoinExpandAndDecorrelation() {
-    String sql = ""
-        + "SELECT emp.deptno, emp.sal\n"
-        + "FROM dept, emp "
-        + "WHERE emp.deptno = dept.deptno AND emp.sal < (\n"
-        + "  SELECT AVG(emp.sal)\n"
-        + "  FROM emp\n"
-        + "  WHERE  emp.deptno = dept.deptno\n"
-        + ")";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withDecorrelationEnabled(true)
-            .withExpand(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withDecorrelationEnabled(false)
-            .withExpand(false))
-        .convertsTo("${plan_not_extended}");
+    try {
+      sql(sql)
+          .withConfig(configBuilder -> configBuilder
+              .withExpand(true)
+              .withDecorrelationEnabled(true))
+          .convertsTo("Failure");
+    } catch (CalciteException calciteException) {
+      String expectedMessage = ""
+          + "From line 3, column 1 to line 3, column 4: Subqueries in on clauses are not supported.";
+      Assertions.assertEquals(expectedMessage, calciteException.getMessage());
+    }
   }
 
   /**
