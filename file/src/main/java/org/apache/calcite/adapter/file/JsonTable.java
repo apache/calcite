@@ -28,9 +28,13 @@ import java.util.List;
 
 /**
  * Table based on a JSON file.
+ *
+ * 基于 json 格式的文件。
  */
 public class JsonTable extends AbstractTable {
+  // 数据源
   private final Source source;
+
   private RelDataType rowType;
   protected List<Object> dataList;
 

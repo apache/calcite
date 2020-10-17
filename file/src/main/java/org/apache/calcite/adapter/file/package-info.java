@@ -18,8 +18,12 @@
 /**
  * Query provider that reads from files and web pages in various formats.
  *
- * <p>A Calcite schema that maps onto multiple URLs / HTML Tables.  Each HTML
- * table appears as a table.  Full select SQL operations are available on those
- * tables.
+ * <p>
+ *   A Calcite schema that maps onto multiple URLs / HTML Tables.
+ *   Each HTML table appears as a table. Full select SQL operations
+ *   are available on those tables.
+ *
+ * fixme
+ *      从文件和 网页 中读取各种形式数据。
  */
 package org.apache.calcite.adapter.file;
