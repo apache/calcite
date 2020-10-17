@@ -45,7 +45,5 @@ cache:
     - $HOME/.gradle/wrapper/
 
 before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-
-# End .travis.yml
+  - ./gradlew --stop
+  - F=CleanupGradleCache sh -x -c 'curl -O https://raw.githubusercontent.com/vlsi/cleanup-gradle-cache/v1.x/$F.java && javac -J-Xmx128m $F.java && java -Xmx128m $F'
