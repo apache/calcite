@@ -109,6 +109,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -1506,7 +1507,7 @@ public class CalciteAssert {
                       s = s.substring(0, s.length() - " 00:00:00".length());
                     }
                   }
-                  return s;
+                  return super.adjustValue(s);
                 }
               }));
     }
@@ -2104,7 +2105,13 @@ public class CalciteAssert {
       return this;
     }
 
+    static final Pattern TRAILING_ZERO_PATTERN =
+        Pattern.compile("\\.[0-9]*[1-9]\\(0000*[1-9]\\)$");
+
     protected String adjustValue(String string) {
+      if (string != null) {
+        string = TestUtil.correctRoundedFloat(string);
+      }
       return string;
     }
 

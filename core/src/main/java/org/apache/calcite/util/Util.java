@@ -562,7 +562,7 @@ public class Util {
             Math.min(truncateAt, len));
     ret.append(unscaled.charAt(0));
     if (scale == 0) {
-      // trim trailing zeroes since they aren't significant
+      // trim trailing zeros since they aren't significant
       int i = unscaled.length();
       while (i > 1) {
         if (unscaled.charAt(i - 1) != '0') {

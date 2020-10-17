@@ -386,6 +386,9 @@ public enum SqlKind {
   /** {@code GREATEST} function (Oracle). */
   GREATEST,
 
+  /** The "IF" function (BigQuery, Hive, Spark). */
+  IF,
+
   /** {@code LEAST} function (Oracle). */
   LEAST,
 

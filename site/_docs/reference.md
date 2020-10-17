@@ -140,7 +140,7 @@ explain:
       EXPLAIN PLAN
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
-      [ AS JSON | AS XML ]
+      [ AS JSON | AS XML | AS DOT ]
       FOR ( query | insert | update | merge | delete )
 
 describe:
@@ -532,6 +532,7 @@ DIAGNOSTICS,
 DISPATCH,
 **DISTINCT**,
 DOMAIN,
+DOT,
 **DOUBLE**,
 DOW,
 DOY,
@@ -1206,7 +1207,7 @@ completeness.
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
 | value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
-| value comparison ANY (sub-query)                  | Synonym for SOME
+| value comparison ANY (sub-query)                  | Synonym for `SOME`
 | value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
 
@@ -1797,8 +1798,8 @@ and `LISTAGG`).
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
-| SOME(condition)                               | Returns true if any condition is true.
-| EVERY(condition)                              | Returns true if all conditions are true.
+| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
+| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none; integer and binary types are supported
 | BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none; integer and binary types are supported
@@ -2044,7 +2045,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
-| p | ST_AsText(geom) | Alias for `ST_AsWKT`
+| p | ST_AsText(geom) | Synonym for `ST_AsWKT`
 | o | ST_AsWKT(geom) | Converts *geom* → WKT
 | o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
@@ -2084,7 +2085,7 @@ Not implemented:
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
 | o | ST_MakeLine(point1 [, point ]*) | Creates a line-string from the given POINTs (or MULTIPOINTs)
-| p | ST_MakePoint(x, y [, z ]) | Alias for `ST_Point`
+| p | ST_MakePoint(x, y [, z ]) | Synonym for `ST_Point`
 | o | ST_Point(x, y [, z ]) | Constructs a point from two or three coordinates
 
 Not implemented:
@@ -2142,7 +2143,7 @@ Not implemented:
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
 * ST_NPoints(geom) Returns the number of points in *geom*
 * ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
-* ST_NumInteriorRing(geom) Alias for `ST_NumInteriorRings`
+* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
 * ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
 * ST_NumPoints(lineString) Returns the number of points in *lineString*
 * ST_PointN(geom, n) Returns the *n*th point of a *lineString*
@@ -2325,7 +2326,7 @@ Not implemented:
 Not implemented:
 
 * ST_Accum(geom) Accumulates *geom* into a GEOMETRYCOLLECTION (or MULTIPOINT, MULTILINESTRING or MULTIPOLYGON if possible)
-* ST_Collect(geom) Alias for `ST_Accum`
+* ST_Collect(geom) Synonym for `ST_Accum`
 * ST_Union(geom) Computes the union of geometries
 
 ### JSON Functions
@@ -2415,11 +2416,13 @@ To enable an operator table, set the
 [fun]({{ site.baseurl }}/docs/adapter.html#jdbc-connect-string-parameters)
 connect string parameter.
 
-The 'C' (compatibility) column contains value
-'b' for BigQuery ('fun=bigquery' in the connect string),
-'m' for MySQL ('fun=mysql' in the connect string),
-'o' for Oracle ('fun=oracle' in the connect string),
-'p' for PostgreSQL ('fun=postgresql' in the connect string).
+The 'C' (compatibility) column contains value:
+* 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'h' for Apache Hive ('fun=hive' in the connect string),
+* 'm' for MySQL ('fun=mysql' in the connect string),
+* 'o' for Oracle ('fun=oracle' in the connect string),
+* 'p' for PostgreSQL ('fun=postgresql' in the connect string),
+* 's' for Apache Spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2433,6 +2436,7 @@ semantics.
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
@@ -2442,6 +2446,7 @@ semantics.
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
@@ -2479,7 +2484,7 @@ semantics.
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
-| o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied XML
+| o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:
 
@@ -2503,6 +2508,15 @@ Note:
 * `JSON_LENGTH` defines a JSON value's length as follows:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
+
+Dialect-specific aggregate functions.
+
+| C | Operator syntax                                | Description
+|:- |:-----------------------------------------------|:-----------
+| p | BOOL_AND(condition)                            | Synonym for `EVERY`
+| p | BOOL_OR(condition)                             | Synonym for `SOME`
+| b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
+| b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 
 Usage Examples:
 

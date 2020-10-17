@@ -4915,6 +4915,36 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushBoolAndBoolOrThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select ename, bool_and(empbol), bool_or(empbol) from
+(select ename, case when mod(empno, 2) = 1 then true else false end as empbol from emp as e1 union all
+ select ename, case when mod(empno, 2) = 1 then true else false end as empbol from emp as e2)
+group by ename]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[BOOL_AND($1)], EXPR$2=[BOOL_OR($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(ENAME=[$1], EMPBOL=[=(MOD($0, 2), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1], EMPBOL=[=(MOD($0, 2), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[BOOL_AND($1)], EXPR$2=[BOOL_OR($2)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[BOOL_AND($1)], EXPR$2=[BOOL_OR($1)])
+      LogicalProject(ENAME=[$1], EMPBOL=[=(MOD($0, 2), 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[BOOL_AND($1)], EXPR$2=[BOOL_OR($1)])
+      LogicalProject(ENAME=[$1], EMPBOL=[=(MOD($0, 2), 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPullFilterThroughAggregate">
         <Resource name="sql">
             <![CDATA[select ename, sal, deptno from (  select ename, sal, deptno  from emp  where sal > 5000)group by ename, sal, deptno]]>

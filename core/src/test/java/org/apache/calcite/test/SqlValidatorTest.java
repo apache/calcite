@@ -56,6 +56,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -168,6 +169,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     return "Cannot stream results of a query with no streaming inputs: '"
         + inputs
         + "'. At least one input should be convertible to a stream";
+  }
+
+  static SqlOperatorTable operatorTableFor(SqlLibrary library) {
+    return SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+        SqlLibrary.STANDARD, library);
   }
 
   @Test void testMultipleSameAsPass() {
@@ -359,6 +365,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply '\\+' to arguments of type '\\+<CHAR.3.>'.*");
     sql("SELECT +'abc' from (values(true))").ok();
+  }
+
+  @Test void testNiladicForBigQuery() {
+    sql("select current_time, current_time(), current_date, "
+        + "current_date(), current_timestamp, current_timestamp()")
+        .withConformance(SqlConformanceEnum.BIG_QUERY).ok();
   }
 
   @Test void testEqualNotEqual() {
@@ -708,8 +720,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testConcatFunction() {
     // CONCAT is not in the library operator table
     final Sql s = sql("?")
-        .withOperatorTable(SqlLibraryOperatorTableFactory.INSTANCE
-            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
     s.expr("concat('a', 'b')").ok();
     s.expr("concat(x'12', x'34')").ok();
     s.expr("concat(_UTF16'a', _UTF16'b', _UTF16'c')").ok();
@@ -896,27 +907,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature "
             + "TRANSLATE3\\(<CHARACTER>, <CHARACTER>, <CHARACTER>\\)");
 
-    final SqlOperatorTable oracleTable =
-        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-            SqlLibrary.STANDARD, SqlLibrary.ORACLE);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
 
     expr("translate('aabbcc', 'ab', '+-')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR(6) NOT NULL");
     wholeExpr("translate('abc', 'ab')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TRANSLATE3'. "
             + "Was expecting 3 arguments");
     wholeExpr("translate('abc', 'ab', 123)")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'TRANSLATE3' to arguments of type "
             + "'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
     expr("translate('abc', 'ab', 123)")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR(3) NOT NULL");
     wholeExpr("translate('abc', 'ab', '+-', 'four')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TRANSLATE3'. "
             + "Was expecting 3 arguments");
   }
@@ -1405,27 +1414,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature "
             + "CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <TIMESTAMP>\\)");
 
-    final SqlOperatorTable postgresTable =
-        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-            SqlLibrary.STANDARD,
-            SqlLibrary.POSTGRESQL);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles',\n"
         + "  CAST('2000-01-01' AS TIMESTAMP))")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .columnType("DATE NOT NULL");
     wholeExpr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'CONVERT_TIMEZONE'. "
             + "Was expecting 3 arguments");
     wholeExpr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', '2000-01-01')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Cannot apply 'CONVERT_TIMEZONE' to arguments of type "
             + "'CONVERT_TIMEZONE\\(<CHAR\\(3\\)>, <CHAR\\(19\\)>, "
             + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): "
             + "'CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <DATETIME>\\)'");
     wholeExpr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', "
         + "'UTC', CAST('2000-01-01' AS TIMESTAMP))")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'CONVERT_TIMEZONE'. "
             + "Was expecting 3 arguments");
   }
@@ -1435,28 +1441,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature "
             + "TO_DATE\\(<CHARACTER>, <CHARACTER>\\)");
 
-    final SqlOperatorTable postgresTable =
-        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-            SqlLibrary.STANDARD,
-            SqlLibrary.POSTGRESQL);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("TO_DATE('2000-01-01', 'YYYY-MM-DD')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .columnType("DATE NOT NULL");
     wholeExpr("TO_DATE('2000-01-01')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_DATE'. "
             + "Was expecting 2 arguments");
     expr("TO_DATE(2000, 'YYYY')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .columnType("DATE NOT NULL");
     wholeExpr("TO_DATE(2000, 'YYYY')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .withTypeCoercion(false)
         .fails("Cannot apply 'TO_DATE' to arguments of type "
             + "'TO_DATE\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
             + "Supported form\\(s\\): 'TO_DATE\\(<STRING>, <STRING>\\)'");
     wholeExpr("TO_DATE('2000-01-01', 'YYYY-MM-DD', 'YYYY-MM-DD')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_DATE'. "
             + "Was expecting 2 arguments");
   }
@@ -1466,30 +1469,49 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature "
             + "TO_TIMESTAMP\\(<CHARACTER>, <CHARACTER>\\)");
 
-    final SqlOperatorTable postgresTable =
-        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-            SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .columnType("DATE NOT NULL");
     wholeExpr("TO_TIMESTAMP('2000-01-01 01:00:00')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
             + "Was expecting 2 arguments");
     expr("TO_TIMESTAMP(2000, 'YYYY')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .columnType("DATE NOT NULL");
     wholeExpr("TO_TIMESTAMP(2000, 'YYYY')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .withTypeCoercion(false)
         .fails("Cannot apply 'TO_TIMESTAMP' to arguments of type "
             + "'TO_TIMESTAMP\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
             + "Supported form\\(s\\): 'TO_TIMESTAMP\\(<STRING>, <STRING>\\)'");
     wholeExpr("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS',"
         + " 'YYYY-MM-DD')")
-        .withOperatorTable(postgresTable)
+        .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
             + "Was expecting 2 arguments");
+  }
+
+  @Test void testCurrentDatetime() throws SqlParseException, ValidationException {
+    final String currentDateTimeExpr = "select ^current_datetime^";
+    Sql shouldFail = sql(currentDateTimeExpr)
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
+    final String expectedError = "query [select CURRENT_DATETIME]; exception "
+        + "[Column 'CURRENT_DATETIME' not found in any table]; class "
+        + "[class org.apache.calcite.sql.validate.SqlValidatorException]; pos [line 1 col 8 thru line 1 col 8]";
+    shouldFail.fails("Column 'CURRENT_DATETIME' not found in any table");
+
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    sql("select current_datetime()")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable).ok();
+    sql("select CURRENT_DATETIME('America/Los_Angeles')")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable).ok();
+    sql("select CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable).ok();
   }
 
   @Test void testInvalidFunction() {
@@ -3716,7 +3738,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // only seconds are allowed to have a fractional part
     expr("INTERVAL '1.0' SECOND")
         .columnType("INTERVAL SECOND NOT NULL");
-    // leading zeroes do not cause precision to be exceeded
+    // leading zeros do not cause precision to be exceeded
     expr("INTERVAL '0999' MONTH(3)")
         .columnType("INTERVAL MONTH(3) NOT NULL");
   }
@@ -5604,7 +5626,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*");
     sql("select sum(ename), deptno from emp group by deptno")
-        .type("RecordType(DECIMAL(19, 19) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
+        .type("RecordType(DECIMAL(19, 9) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
   }
 
   @Test void testSumTooManyArgs() {
@@ -8069,6 +8091,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testAnyValueFunction() {
     sql("SELECT any_value(ename) from emp").ok();
+  }
+
+  @Test void testBoolAndBoolOrFunction() {
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
+    s.sql("SELECT bool_and(true) from emp").ok();
+    s.sql("SELECT bool_or(true) from emp").ok();
+
+    s.sql("select bool_and(col)\n"
+        + "from (values(true), (false), (true)) as tbl(col)").ok();
+    s.sql("select bool_or(col)\n"
+        + "from (values(true), (false), (true)) as tbl(col)").ok();
+
+    s.sql("select bool_and(col)\n"
+        + "from (values(true), (false), (null)) as tbl(col)").ok();
+    s.sql("select bool_or(col)\n"
+        + "from (values(true), (false), (null)) as tbl(col)").ok();
+
+    s.sql("SELECT ^bool_and(ename)^ from emp")
+        .fails("(?s).*Cannot apply 'BOOL_AND' to arguments of type "
+            + "'BOOL_AND\\(<VARCHAR\\(20\\)>\\)'.*");
+    s.sql("SELECT ^bool_or(ename)^ from emp")
+        .fails("(?s).*Cannot apply 'BOOL_OR' to arguments of type "
+            + "'BOOL_OR\\(<VARCHAR\\(20\\)>\\)'.*");
   }
 
   @Test void testFunctionalDistinct() {
@@ -11784,42 +11830,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testRegexpReplace() {
-    final SqlOperatorTable oracleTable =
-        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-            SqlLibrary.STANDARD, SqlLibrary.ORACLE);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
 
     expr("REGEXP_REPLACE('a b c', 'a', 'X')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 2)")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 1, 3)")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     // Implicit type coercion.
     expr("REGEXP_REPLACE(null, '(-)', '###')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR");
     expr("REGEXP_REPLACE('100-200', null, '###')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR");
     expr("REGEXP_REPLACE('100-200', '(-)', null)")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR");
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '2')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '1', '3')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
     // The last argument to REGEXP_REPLACE should be specific character, but with
     // implicit type coercion, the validation still passes.
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '1', '3', '1')")
-        .withOperatorTable(oracleTable)
+        .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
   }
 

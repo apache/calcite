@@ -1356,7 +1356,10 @@ SqlNode SqlExplain() :
         LOOKAHEAD(2)
         <AS> <XML> { format = SqlExplainFormat.XML; }
     |
+        LOOKAHEAD(2)
         <AS> <JSON> { format = SqlExplainFormat.JSON; }
+    |
+        <AS> <DOT_FORMAT> { format = SqlExplainFormat.DOT; }
     |
         { format = SqlExplainFormat.TEXT; }
     )
@@ -7242,6 +7245,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DISPATCH: "DISPATCH" >
 |   < DISTINCT: "DISTINCT" >
 |   < DOMAIN: "DOMAIN" >
+|   < DOT_FORMAT: "DOT" >
 |   < DOUBLE: "DOUBLE" >
 |   < DOW: "DOW" >
 |   < DOY: "DOY" >

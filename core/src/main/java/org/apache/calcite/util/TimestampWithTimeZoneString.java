@@ -171,7 +171,7 @@ public class TimestampWithTimeZoneString
   }
 
   /** Converts this TimestampWithTimeZoneString to a string, truncated or padded with
-   * zeroes to a given precision. */
+   * zeros to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     return localDateTime.toString(precision) + " " + timeZone.getID();

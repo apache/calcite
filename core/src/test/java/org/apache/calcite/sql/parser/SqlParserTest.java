@@ -3857,6 +3857,15 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testExplainAsDot() {
+    final String sql = "explain plan as dot for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS DOT FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testExplainAsJson() {
     final String sql = "explain plan as json for select * from emps";
     final String expected = "EXPLAIN PLAN"
@@ -4264,7 +4273,7 @@ public class SqlParserTest {
     expr("x'1234567890abcdef'=X'fFeEdDcCbBaA'")
         .ok("(X'1234567890ABCDEF' = X'FFEEDDCCBBAA')");
 
-    // Check the inital zeroes don't get trimmed somehow
+    // Check the inital zeros don't get trimmed somehow
     expr("x'001'=X'000102'")
         .ok("(X'001' = X'000102')");
   }

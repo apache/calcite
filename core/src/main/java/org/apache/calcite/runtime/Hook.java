@@ -64,6 +64,9 @@ public enum Hook {
    * Janino. */
   JAVA_PLAN,
 
+  /** Called before SqlToRelConverter is built. */
+  SQL2REL_CONVERTER_CONFIG_BUILDER,
+
   /** Called with the output of sql-to-rel-converter. */
   CONVERTED,
 

@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -53,7 +52,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -159,7 +157,7 @@ public class RelSubset extends AbstractRelNode {
    * <ol>
    * <li>If the are no subsuming subsets, the subset is initially empty.</li>
    * <li>After creation, {@code best} and {@code bestCost} are maintained
-   *    incrementally by {@link #propagateCostImprovements0} and
+   *    incrementally by {@link VolcanoPlanner#propagateCostImprovements} and
    *    {@link RelSet#mergeWith(VolcanoPlanner, RelSet)}.</li>
    * </ol>
    */
@@ -373,76 +371,6 @@ public class RelSubset extends AbstractRelNode {
     }
 
     return cheapest;
-  }
-
-  /**
-   * Checks whether a relexp has made its subset cheaper, and if it so,
-   * propagate new cost to parent rel nodes using breadth first manner.
-   *
-   * @param planner   Planner
-   * @param mq        Metadata query
-   * @param rel       Relational expression whose cost has improved
-   * @param activeSet Set of active subsets, for cycle detection
-   */
-  void propagateCostImprovements(VolcanoPlanner planner, RelMetadataQuery mq,
-      RelNode rel, Set<RelSubset> activeSet) {
-    Queue<Pair<RelSubset, RelNode>> propagationQueue = new ArrayDeque<>();
-    for (RelSubset subset : set.subsets) {
-      if (rel.getTraitSet().satisfies(subset.traitSet)) {
-        propagationQueue.offer(Pair.of(subset, rel));
-      }
-    }
-
-    while (!propagationQueue.isEmpty()) {
-      Pair<RelSubset, RelNode> p = propagationQueue.poll();
-      p.left.propagateCostImprovements0(planner, mq, p.right, activeSet, propagationQueue);
-    }
-  }
-
-  void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
-      RelNode rel, Set<RelSubset> activeSet,
-      Queue<Pair<RelSubset, RelNode>> propagationQueue) {
-    ++timestamp;
-
-    if (!activeSet.add(this)) {
-      // This subset is already in the chain being propagated to. This
-      // means that the graph is cyclic, and therefore the cost of this
-      // relational expression - not this subset - must be infinite.
-      LOGGER.trace("cyclic: {}", this);
-      return;
-    }
-    try {
-      RelOptCost cost = planner.getCost(rel, mq);
-
-      // Update subset best cost when we find a cheaper rel or the current
-      // best's cost is changed
-      if (cost.isLt(bestCost)) {
-        LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
-            this, bestCost, cost);
-
-        bestCost = cost;
-        best = rel;
-        upperBound = bestCost;
-        // since best was changed, cached metadata for this subset should be removed
-        mq.clearCache(this);
-
-        // Propagate cost change to parents
-        for (RelNode parent : getParents()) {
-          // removes parent cached metadata since its input was changed
-          mq.clearCache(parent);
-          final RelSubset parentSubset = planner.getSubset(parent);
-
-          // parent subset will clear its cache in propagateCostImprovements0 method itself
-          for (RelSubset subset : parentSubset.set.subsets) {
-            if (parent.getTraitSet().satisfies(subset.traitSet)) {
-              propagationQueue.offer(Pair.of(subset, parent));
-            }
-          }
-        }
-      }
-    } finally {
-      activeSet.remove(this);
-    }
   }
 
   @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {

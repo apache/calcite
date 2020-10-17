@@ -18,25 +18,34 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.Litmus;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -86,6 +95,36 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DECODE =
       new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+
+  /** The "IF(condition, thenValue, elseValue)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
+  public static final SqlFunction IF =
+      new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
+          null,
+          OperandTypes.and(
+              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+                  SqlTypeFamily.ANY),
+              // Arguments 1 and 2 must have same type
+              new SameOperandTypeChecker(3) {
+                @Override protected List<Integer>
+                getOperandList(int operandCount) {
+                  return ImmutableList.of(1, 2);
+                }
+              }),
+          SqlFunctionCategory.SYSTEM) {
+        @Override public boolean validRexOperands(int count, Litmus litmus) {
+          // IF is translated to RexNode by expanding to CASE.
+          return litmus.fail("not a rex operator");
+        }
+      };
+
+  /** Infers the return type of {@code IF(b, x, y)},
+   * namely the least restrictive of the types of x and y.
+   * Similar to {@link ReturnTypes#LEAST_RESTRICTIVE}. */
+  private static RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
+    return opBinding.getTypeFactory()
+        .leastRestrictive(opBinding.collectOperandTypes().subList(1, 3));
+  }
 
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
@@ -205,11 +244,43 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
           OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
 
+  /** The "BOOL_AND(condition)" aggregate function, PostgreSQL and Redshift's
+   * equivalent to {@link SqlStdOperatorTable#EVERY}. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlAggFunction BOOL_AND =
+      new SqlMinMaxAggFunction("BOOL_AND", SqlKind.MIN, OperandTypes.BOOLEAN);
+
+  /** The "BOOL_OR(condition)" aggregate function, PostgreSQL and Redshift's
+   * equivalent to {@link SqlStdOperatorTable#SOME}. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlAggFunction BOOL_OR =
+      new SqlMinMaxAggFunction("BOOL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
+
+  /** The "LOGICAL_AND(condition)" aggregate function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#EVERY}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction LOGICAL_AND =
+      new SqlMinMaxAggFunction("LOGICAL_AND", SqlKind.MIN, OperandTypes.BOOLEAN);
+
+  /** The "LOGICAL_OR(condition)" aggregate function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#SOME}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction LOGICAL_OR =
+      new SqlMinMaxAggFunction("LOGICAL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
+
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =
       new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE, null, OperandTypes.STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "CURRENT_DATETIME([timezone])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_DATETIME =
+      new SqlFunction("CURRENT_DATETIME", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE), null,
+          OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
@@ -476,5 +547,4 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
-
 }
