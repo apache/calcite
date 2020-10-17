@@ -190,7 +190,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           return;
         }
 
-        if (subset.set.equivalentSet != null) {
+        if ((subset.set.equivalentSet != null)
+            // When rename RelNode via VolcanoPlanner#rename(RelNode rel),
+            // we may remove rel from its subset: "subset.set.rels.remove(rel)".
+            // Skip rule match when the rel has been removed from set.
+            || (subset != rel && !subset.getRelList().contains(rel))) {
           LOGGER.debug(
               "Rule [{}] not fired because operand #{} ({}) belongs to obsolete set",
               getRule(), i, rel);
