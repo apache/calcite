@@ -240,6 +240,12 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.redis", true);
 
   /**
+   * Whether to use Docker with TestContainers (https://www.testcontainers.org/) when available
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_WITH_DOCKER_CONTAINER =
+      booleanProperty("calcite.test.docker", true);
+
+  /**
    * A list of ids designating the queries
    * (from query.json in new.hydromatic:foodmart-queries:0.4.1)
    * that should be run as part of FoodmartTest.

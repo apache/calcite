@@ -16,11 +16,22 @@
  */
 package org.apache.calcite.adapter.redis;
 
+import org.apache.calcite.config.CalciteSystemProperty;
+
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.logging.Logger;
+
+import redis.embedded.RedisServer;
 
 /**
  * RedisITCaseBase.
@@ -28,13 +39,67 @@ import org.testcontainers.containers.GenericContainer;
 @Execution(ExecutionMode.SAME_THREAD)
 public abstract class RedisCaseBase {
 
+  public static final int PORT = getAvailablePort();
+  public static final String HOST = "127.0.0.1";
+  private static final String MAX_HEAP = "maxheap 51200000";
 
+  // If Docker is running, a container will be used
   public static final GenericContainer<?> REDIS_CONTAINER =
-      new GenericContainer<>("redis:6.0.6").withExposedPorts(6379);
+      new GenericContainer<>("redis").withExposedPorts(6379);
+
+  // If docker is not running use a fake server
+  private static RedisServer redisServer;
 
   @BeforeAll
   public static void startRedisContainer() {
-    REDIS_CONTAINER.start();
+    // Check if docker is running, and start container if possible
+    if (CalciteSystemProperty.TEST_WITH_DOCKER_CONTAINER.value()
+        && DockerClientFactory.instance().isDockerAvailable()) {
+      REDIS_CONTAINER.start();
+    }
+  }
+
+  @BeforeEach
+  public void createRedisServer() throws IOException {
+    if (!REDIS_CONTAINER.isRunning()) {
+      if (isWindows()) {
+        redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
+      } else {
+        redisServer = new RedisServer(PORT);
+      }
+      Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
+      redisServer.start();
+    }
+  }
+
+  private static boolean isWindows() {
+    return System.getProperty("os.name").startsWith("Windows");
+  }
+
+  @AfterEach
+  public void stopRedisServer() {
+    if (!REDIS_CONTAINER.isRunning()) {
+      redisServer.stop();
+    }
+  }
+
+  /**
+   * Find a non-occupied port.
+   *
+   * @return A non-occupied port.
+   */
+  public static int getAvailablePort() {
+    for (int i = 0; i < 50; i++) {
+      try (ServerSocket serverSocket = new ServerSocket(0)) {
+        int port = serverSocket.getLocalPort();
+        if (port != 0) {
+          return port;
+        }
+      } catch (IOException ignored) {
+      }
+    }
+
+    throw new RuntimeException("Could not find an available port on the host.");
   }
 
   @AfterAll
@@ -45,10 +110,11 @@ public abstract class RedisCaseBase {
   }
 
   public static int getRedisServerPort() {
-    return REDIS_CONTAINER.getMappedPort(6379);
+    return  REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getMappedPort(6379) : PORT;
   }
 
   public static String getRedisServerHost() {
-    return REDIS_CONTAINER.getContainerIpAddress();
+    return REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getContainerIpAddress() : HOST;
   }
+
 }
