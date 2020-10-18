@@ -16,15 +16,11 @@
  */
 package org.apache.calcite.adapter.redis;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
-import java.io.IOException;
-import java.net.ServerSocket;
-
-import redis.embedded.RedisServer;
+import org.testcontainers.containers.GenericContainer;
 
 /**
  * RedisITCaseBase.
@@ -32,47 +28,27 @@ import redis.embedded.RedisServer;
 @Execution(ExecutionMode.SAME_THREAD)
 public abstract class RedisCaseBase {
 
-  public static final int PORT = getAvailablePort();
-  public static final String HOST = "127.0.0.1";
-  private static final String MAX_HEAP = "maxheap 51200000";
 
-  private static RedisServer redisServer;
+  public static final GenericContainer<?> container =
+      new GenericContainer<>("redis:6.0.6").withExposedPorts(6379);
 
-  @BeforeEach
-  public void createRedisServer() throws IOException {
-    if (isWindows()) {
-      redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
-    } else {
-      redisServer = new RedisServer(PORT);
+  @BeforeAll
+  public static void startRedisContainer() {
+    container.start();
+  }
+
+  @AfterAll
+  public static void stopRedisContainer() {
+    if (container != null && container.isRunning()) {
+      container.stop();
     }
-    redisServer.start();
   }
 
-  private static boolean isWindows() {
-    return System.getProperty("os.name").startsWith("Windows");
+  public static int getRedisServerPort() {
+    return container.getMappedPort(6379);
   }
 
-  @AfterEach
-  public void stopRedisServer() {
-    redisServer.stop();
-  }
-
-  /**
-   * Find a non-occupied port.
-   *
-   * @return A non-occupied port.
-   */
-  public static int getAvailablePort() {
-    for (int i = 0; i < 50; i++) {
-      try (ServerSocket serverSocket = new ServerSocket(0)) {
-        int port = serverSocket.getLocalPort();
-        if (port != 0) {
-          return port;
-        }
-      } catch (IOException ignored) {
-      }
-    }
-
-    throw new RuntimeException("Could not find an available port on the host.");
+  public static String getRedisServerHost() {
+    return container.getContainerIpAddress();
   }
 }

@@ -43,8 +43,14 @@ public class RedisDataCaseBase extends RedisCaseBase {
     try {
       JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
       jedisPoolConfig.setMaxTotal(10);
-      pool = new JedisPool(jedisPoolConfig, HOST, PORT);
-    } catch (Exception e) {
+      pool = new JedisPool(jedisPoolConfig,  getRedisServerHost() , getRedisServerPort());
+
+      // Flush all data
+      try (Jedis jedis = pool.getResource()) {
+        jedis.flushAll();
+      }
+
+      } catch (Exception e) {
       throw e;
     }
   }
