@@ -29,26 +29,26 @@ import org.testcontainers.containers.GenericContainer;
 public abstract class RedisCaseBase {
 
 
-  public static final GenericContainer<?> container =
+  public static final GenericContainer<?> REDIS_CONTAINER =
       new GenericContainer<>("redis:6.0.6").withExposedPorts(6379);
 
   @BeforeAll
   public static void startRedisContainer() {
-    container.start();
+    REDIS_CONTAINER.start();
   }
 
   @AfterAll
   public static void stopRedisContainer() {
-    if (container != null && container.isRunning()) {
-      container.stop();
+    if (REDIS_CONTAINER != null && REDIS_CONTAINER.isRunning()) {
+      REDIS_CONTAINER.stop();
     }
   }
 
   public static int getRedisServerPort() {
-    return container.getMappedPort(6379);
+    return REDIS_CONTAINER.getMappedPort(6379);
   }
 
   public static String getRedisServerHost() {
-    return container.getContainerIpAddress();
+    return REDIS_CONTAINER.getContainerIpAddress();
   }
 }
