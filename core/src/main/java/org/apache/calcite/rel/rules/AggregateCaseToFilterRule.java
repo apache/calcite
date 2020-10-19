@@ -269,7 +269,8 @@ public class AggregateCaseToFilterRule
 
   private static boolean isIntLiteral(final RexNode rexNode) {
     return rexNode instanceof RexLiteral
-        && SqlTypeName.INT_TYPES.contains(rexNode.getType().getSqlTypeName());
+        && SqlTypeName.INT_TYPES.contains(rexNode.getType().getSqlTypeName())
+        && !RexLiteral.isNullLiteral(rexNode);
   }
 
   /** Rule configuration. */
