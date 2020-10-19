@@ -6,6 +6,7 @@
 *.html   text diff=html
 *.kt     text diff=kotlin
 *.kts    text diff=kotlin
+*.md     text diff=markdown
 *.py     text diff=python executable
 *.pl     text diff=perl executable
 *.pm     text diff=perl
