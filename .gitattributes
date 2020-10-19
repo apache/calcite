@@ -9,7 +9,7 @@
 *.py     text diff=python executable
 *.pl     text diff=perl executable
 *.pm     text diff=perl
-*.css    text
+*.css    text diff=css
 *.js     text
 *.sql    text
 *.q      text
