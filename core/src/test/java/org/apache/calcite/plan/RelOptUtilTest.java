@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -128,6 +129,71 @@ class RelOptUtilTest {
             "  f0 DECIMAL(5, 2) NOT NULL,",
             "  f1 VARCHAR(10) NOT NULL) NOT NULL MULTISET NOT NULL"),
         Util.toLinux(RelOptUtil.dumpType(t2) + "\n"));
+  }
+
+  @Test void testTypeDifference() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+
+    final RelDataType t0 =
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 5, 2)
+            .build();
+
+    final RelDataType t1 =
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 5, 2)
+            .add("f1", SqlTypeName.VARCHAR, 10)
+            .build();
+
+    TestUtil.assertEqualsVerbose(
+        TestUtil.fold(
+            "Type mismatch: the field sizes are not equal.",
+            "source: RecordType(DECIMAL(5, 2) NOT NULL f0) NOT NULL",
+            "target: RecordType(DECIMAL(5, 2) NOT NULL f0, VARCHAR(10) NOT NULL f1) NOT NULL"),
+        Util.toLinux(RelOptUtil.getFullTypeDifferenceString("source", t0, "target", t1) + "\n"));
+
+    RelDataType t2 =
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 5, 2)
+            .add("f1", SqlTypeName.VARCHAR, 5)
+            .build();
+
+    TestUtil.assertEqualsVerbose(
+        TestUtil.fold(
+            "Type mismatch:",
+            "source: RecordType(DECIMAL(5, 2) NOT NULL f0, VARCHAR(10) NOT NULL f1) NOT NULL",
+            "target: RecordType(DECIMAL(5, 2) NOT NULL f0, VARCHAR(5) NOT NULL f1) NOT NULL",
+            "Difference:",
+            "f1: VARCHAR(10) NOT NULL -> VARCHAR(5) NOT NULL",
+            ""),
+        Util.toLinux(RelOptUtil.getFullTypeDifferenceString("source", t1, "target", t2) + "\n"));
+
+    t2 =
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 4, 2)
+            .add("f1", SqlTypeName.BIGINT)
+            .build();
+
+    TestUtil.assertEqualsVerbose(
+        TestUtil.fold(
+            "Type mismatch:",
+            "source: RecordType(DECIMAL(5, 2) NOT NULL f0, VARCHAR(10) NOT NULL f1) NOT NULL",
+            "target: RecordType(DECIMAL(4, 2) NOT NULL f0, BIGINT NOT NULL f1) NOT NULL",
+            "Difference:",
+            "f0: DECIMAL(5, 2) NOT NULL -> DECIMAL(4, 2) NOT NULL",
+            "f1: VARCHAR(10) NOT NULL -> BIGINT NOT NULL",
+            ""),
+        Util.toLinux(RelOptUtil.getFullTypeDifferenceString("source", t1, "target", t2) + "\n"));
+
+    t2 =
+        typeFactory.builder()
+            .add("f0", SqlTypeName.DECIMAL, 5, 2)
+            .add("f1", SqlTypeName.VARCHAR, 10)
+            .build();
+    // Test identical types.
+    assertThat(RelOptUtil.getFullTypeDifferenceString("source", t1, "target", t2), equalTo(""));
+    assertThat(RelOptUtil.getFullTypeDifferenceString("source", t1, "target", t1), equalTo(""));
   }
 
   /**

@@ -50,6 +50,7 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rel.rules.TransformationRule;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
@@ -578,12 +579,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (equivRel == null) {
       set = null;
     } else {
-      assert RelOptUtil.equal(
-          "rel rowtype",
-          rel.getRowType(),
-          "equivRel rowtype",
-          equivRel.getRowType(),
-          Litmus.THROW);
+      final RelDataType relType = rel.getRowType();
+      final RelDataType equivRelType = equivRel.getRowType();
+      if (!RelOptUtil.areRowTypesEqual(relType,
+          equivRelType, false)) {
+        throw new IllegalArgumentException(
+            RelOptUtil.getFullTypeDifferenceString("rel rowtype", relType,
+                "equiv rowtype", equivRelType));
+      }
       equivRel = ensureRegistered(equivRel, null);
       set = getSet(equivRel);
     }
@@ -1211,10 +1214,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     } else if (equivExp == rel) {
       return getSubset(rel);
     } else {
-      assert RelOptUtil.equal(
-          "left", equivExp.getRowType(),
-          "right", rel.getRowType(),
-          Litmus.THROW);
+      if (!RelOptUtil.areRowTypesEqual(equivExp.getRowType(),
+          rel.getRowType(), false)) {
+        throw new IllegalArgumentException(
+            RelOptUtil.getFullTypeDifferenceString("equiv rowtype",
+                equivExp.getRowType(), "rel rowtype", rel.getRowType()));
+      }
       checkPruned(equivExp, rel);
 
       RelSet equivSet = getSet(equivExp);

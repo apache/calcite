@@ -2199,11 +2199,59 @@ public abstract class RelOptUtil {
       RelDataType type2,
       Litmus litmus) {
     if (!areRowTypesEqual(type1, type2, false)) {
-      return litmus.fail("Type mismatch:\n{}:\n{}\n{}:\n{}",
-          desc1, type1.getFullTypeString(),
-          desc2, type2.getFullTypeString());
+      return litmus.fail(getFullTypeDifferenceString(desc1, type1, desc2, type2));
     }
     return litmus.succeed();
+  }
+
+  public static String getFullTypeDifferenceString(
+      final String sourceDesc,
+      RelDataType sourceType,
+      final String targetDesc,
+      RelDataType targetType
+  ) {
+    if (sourceType == targetType) {
+      return "";
+    }
+
+    final int sourceFieldCount = sourceType.getFieldCount();
+    final int targetFieldCount = targetType.getFieldCount();
+    if (sourceFieldCount != targetFieldCount) {
+      return "Type mismatch: the field sizes are not equal.\n"
+          + sourceDesc + ": " + sourceType.getFullTypeString() + "\n"
+          + targetDesc + ": " + targetType.getFullTypeString();
+    }
+
+    final StringBuilder stringBuilder = new StringBuilder();
+    final List<RelDataTypeField> f1 = sourceType.getFieldList();
+    final List<RelDataTypeField> f2 = targetType.getFieldList();
+    for (Pair<RelDataTypeField, RelDataTypeField> pair : Pair.zip(f1, f2)) {
+      final RelDataType t1 = pair.left.getType();
+      final RelDataType t2 = pair.right.getType();
+      // If one of the types is ANY comparison should succeed
+      if (sourceType.getSqlTypeName() == SqlTypeName.ANY
+          || targetType.getSqlTypeName() == SqlTypeName.ANY) {
+        continue;
+      }
+      if (!t1.equals(t2)) {
+        stringBuilder.append(pair.left.getName());
+        stringBuilder.append(": ");
+        stringBuilder.append(t1.getFullTypeString());
+        stringBuilder.append(" -> ");
+        stringBuilder.append(t2.getFullTypeString());
+        stringBuilder.append("\n");
+      }
+    }
+    final String difference = stringBuilder.toString();
+    if (!difference.isEmpty()) {
+      return "Type mismatch:\n"
+          + sourceDesc + ": " + sourceType.getFullTypeString() + "\n"
+          + targetDesc + ": " + targetType.getFullTypeString() + "\n"
+          + "Difference:\n"
+          + difference;
+    } else {
+      return "";
+    }
   }
 
   /** Returns whether two relational expressions have the same row-type. */
