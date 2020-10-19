@@ -246,6 +246,52 @@ class PlannerTests {
     }
   }
 
+  /** Planner rule that converts {@link NoneLeafRel} to PHYS convention with different type. */
+  public static class MockPhysLeafRule extends RelRule<MockPhysLeafRule.Config> {
+    static final MockPhysLeafRule INSTANCE =
+        Config.EMPTY
+            .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
+            .as(Config.class)
+            .toRule();
+
+    /** Relational expression with zero inputs and convention PHYS. */
+    public static class MockPhysLeafRel extends PhysLeafRel {
+      MockPhysLeafRel(RelOptCluster cluster, String label) {
+        super(cluster, PHYS_CALLING_CONVENTION, label);
+      }
+
+      @Override protected RelDataType deriveRowType() {
+        final RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+        return typeFactory.builder()
+            .add("this", typeFactory.createJavaType(Integer.class))
+            .build();
+      }
+    }
+
+    protected MockPhysLeafRule(Config config) {
+      super(config);
+    }
+
+    @Override public Convention getOutConvention() {
+      return PHYS_CALLING_CONVENTION;
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      NoneLeafRel leafRel = call.rel(0);
+
+      // It would throw exception.
+      call.transformTo(
+          new MockPhysLeafRel(leafRel.getCluster(), leafRel.label));
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default MockPhysLeafRule toRule() {
+        return new MockPhysLeafRule(this);
+      }
+    }
+  }
+
   /** Planner rule that matches a {@link NoneSingleRel} and succeeds. */
   public static class GoodSingleRule
       extends RelRule<GoodSingleRule.Config> {

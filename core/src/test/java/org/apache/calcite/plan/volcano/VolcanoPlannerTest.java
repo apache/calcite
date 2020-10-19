@@ -43,6 +43,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +57,7 @@ import java.util.List;
 
 import static org.apache.calcite.plan.volcano.PlannerTests.AssertOperandsDifferentRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
+import static org.apache.calcite.plan.volcano.PlannerTests.MockPhysLeafRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
@@ -69,10 +72,12 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -294,6 +299,36 @@ class VolcanoPlannerTest {
                 "NoneSingleRel:RelSubset#0.NONE.[]",
                 "PhysSingleRel:RelSubset#0.PHYS.[0]",
                 "PhysSingleRel:RelSubset#0.PHYS.[]")));
+  }
+
+  @Test void testTypeMismatch() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRule(MockPhysLeafRule.INSTANCE);
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel =
+        new NoneLeafRel(
+            cluster,
+            "a");
+    RelNode convertedRel =
+        planner.changeTraits(
+            leafRel,
+            cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    planner.setRoot(convertedRel);
+
+    RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+      planner.chooseDelegate().findBestExp();
+    }, "Should throw exception fail since the type mismatches after applying rule.");
+
+    Throwable exception = ExceptionUtils.getRootCause(ex);
+    assertThat(exception, instanceOf(IllegalArgumentException.class));
+    assertThat(
+        exception.getMessage(), isLinux("Type mismatch:\n"
+            + "rel rowtype: RecordType(JavaType(class java.lang.Integer) this) NOT NULL\n"
+            + "equiv rowtype: RecordType(JavaType(void) NOT NULL this) NOT NULL\n"
+            + "Difference:\n"
+            + "this: JavaType(class java.lang.Integer) -> JavaType(void) NOT NULL\n"));
   }
 
   private static <E extends Comparable> List<E> sort(List<E> list) {
