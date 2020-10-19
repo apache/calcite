@@ -3826,6 +3826,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + " sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,\n"
         + " sum(case when deptno = 30 then 1 else 0 end) as count_d30,\n"
         + " count(case when deptno = 40 then 'x' end) as count_d40,\n"
+        + " sum(case when deptno = 45 then 1 end) as count_d45,\n"
+        + " sum(case when deptno = 50 then 1 else null end) as count_d50,\n"
+        + " sum(case when deptno = 60 then null end) as sum_null_d60,\n"
+        + " sum(case when deptno = 70 then null else 1 end) as sum_null_d70,\n"
         + " count(case when deptno = 20 then 1 end) as count_d20\n"
         + "from emp";
     sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).check();
