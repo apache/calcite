@@ -485,7 +485,6 @@ class VolcanoPlannerTest {
         resultLeaf.label);
   }
 
-  @Disabled("CALCITE-2592 EnumerableMergeJoin is never taken")
   @Test void testMergeJoin() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -519,8 +518,8 @@ class VolcanoPlannerTest {
         + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
         + "    EnumerableValues(tuples=[[{ '2', 'a' }, { '1', 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ '1', 'x' }, { '2', 'y' }]])\n";
-    assertThat("Merge join + sort is expected", plan,
-        isLinux(RelOptUtil.toString(bestExp)));
+    assertThat("Merge join + sort is expected", RelOptUtil.toString(bestExp),
+        isLinux(plan));
   }
 
   @Test public void testPruneNode() {
