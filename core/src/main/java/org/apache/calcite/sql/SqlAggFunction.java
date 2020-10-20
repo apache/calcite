@@ -208,4 +208,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   public boolean allowsNullTreatment() {
     return false;
   }
+
+  /**
+   * Gets rollup aggregation function.
+   */
+  public @Nullable SqlAggFunction getRollup() {
+    return null;
+  }
 }

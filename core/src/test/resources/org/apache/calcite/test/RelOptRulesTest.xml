@@ -8225,6 +8225,62 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushAggregateThroughJoin7">
+        <Resource name="sql">
+            <![CDATA[select any_value(B.sal)
+from sales.emp as A
+join (select distinct sal from sales.emp) as B
+on A.sal=B.sal
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($9)])
+  LogicalJoin(condition=[=($5, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushAggregateThroughJoin8">
+        <Resource name="sql">
+            <![CDATA[select single_value(B.sal)
+from sales.emp as A
+join (select distinct sal from sales.emp) as B
+on A.sal=B.sal
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($9)])
+  LogicalJoin(condition=[=($5, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushAggregateThroughJoinWithUniqueInput">
         <Resource name="sql">
             <![CDATA[select A.job, B.mgr, A.deptno,
