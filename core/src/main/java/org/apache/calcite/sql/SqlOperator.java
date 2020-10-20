@@ -37,6 +37,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.util.Arrays;
 import java.util.List;
@@ -231,14 +232,14 @@ public abstract class SqlOperator {
   public abstract SqlSyntax getSyntax();
 
   /**
-   * Creates a call to this operand with an array of operands.
+   * Creates a call to this operator with an array of operands.
    *
-   * <p>The position of the resulting call is the union of the <code>
-   * pos</code> and the positions of all of the operands.
+   * <p>The position of the resulting call is the union of the {@code pos}
+   * and the positions of all of the operands.
    *
-   * @param functionQualifier function qualifier (e.g. "DISTINCT"), may be
-   * @param pos               parser position of the identifier of the call
-   * @param operands          array of operands
+   * @param functionQualifier Function qualifier (e.g. "DISTINCT"), or null
+   * @param pos               Parser position of the identifier of the call
+   * @param operands          Array of operands
    */
   public SqlCall createCall(
       SqlLiteral functionQualifier,
@@ -249,7 +250,25 @@ public abstract class SqlOperator {
   }
 
   /**
-   * Creates a call to this operand with an array of operands.
+   * Creates a call to this operator with a list of operands.
+   *
+   * <p>The position of the resulting call is the union of the {@code pos}
+   * and the positions of all of the operands.
+   *
+   * @param functionQualifier Function qualifier (e.g. "DISTINCT"), or null
+   * @param pos               Parser position of the identifier of the call
+   * @param operands          List of operands
+   */
+  public final SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      Iterable<? extends SqlNode> operands) {
+    return createCall(functionQualifier, pos,
+        Iterables.toArray(operands, SqlNode.class));
+  }
+
+  /**
+   * Creates a call to this operator with an array of operands.
    *
    * <p>The position of the resulting call is the union of the <code>
    * pos</code> and the positions of all of the operands.
@@ -265,10 +284,10 @@ public abstract class SqlOperator {
   }
 
   /**
-   * Creates a call to this operand with a list of operands contained in a
+   * Creates a call to this operator with a list of operands contained in a
    * {@link SqlNodeList}.
    *
-   * <p>The position of the resulting call inferred from the SqlNodeList.
+   * <p>The position of the resulting call is inferred from the SqlNodeList.
    *
    * @param nodeList List of arguments
    * @return call to this operator
@@ -282,10 +301,10 @@ public abstract class SqlOperator {
   }
 
   /**
-   * Creates a call to this operand with a list of operands.
+   * Creates a call to this operator with a list of operands.
    *
-   * <p>The position of the resulting call is the union of the <code>
-   * pos</code> and the positions of all of the operands.
+   * <p>The position of the resulting call is the union of the {@code pos}
+   * and the positions of all of the operands.
    */
   public final SqlCall createCall(
       SqlParserPos pos,

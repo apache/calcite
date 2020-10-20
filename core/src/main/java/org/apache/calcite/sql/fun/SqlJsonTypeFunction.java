@@ -51,9 +51,4 @@ public class SqlJsonTypeFunction extends SqlFunction {
       SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() == 1;
   }
-
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
-    return super.createCall(functionQualifier, pos, operands);
-  }
 }

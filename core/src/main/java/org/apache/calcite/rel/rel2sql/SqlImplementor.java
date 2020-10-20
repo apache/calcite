@@ -1182,15 +1182,13 @@ public abstract class SqlImplementor {
         return toSql(op, distinct, newOperandList, -1, collation);
       }
 
-      final SqlNode[] operands;
       if (op instanceof SqlCountAggFunction && operandList.isEmpty()) {
-        // If there is no parameter in "count" function, add a star identifier to it
-        operands = new SqlNode[] {SqlIdentifier.STAR};
-      } else {
-        operands = operandList.toArray(new SqlNode[0]);
+        // If there is no parameter in "count" function, add a star identifier
+        // to it.
+        operandList = ImmutableList.of(SqlIdentifier.STAR);
       }
       final SqlCall call =
-          op.createCall(qualifier, POS, operands);
+          op.createCall(qualifier, POS, operandList);
 
       // Handle filter by generating FILTER (WHERE ...)
       final SqlCall call2;
