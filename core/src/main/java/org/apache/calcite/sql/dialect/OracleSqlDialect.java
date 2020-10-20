@@ -140,7 +140,7 @@ public class OracleSqlDialect extends SqlDialect {
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-      SqlUtil.unparseFunctionSyntax(SqlLibraryOperators.SUBSTR, writer, call);
+      SqlUtil.unparseFunctionSyntax(SqlLibraryOperators.SUBSTR, writer, call, false);
     } else {
       switch (call.getKind()) {
       case FLOOR:

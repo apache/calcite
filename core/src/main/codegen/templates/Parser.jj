@@ -870,23 +870,16 @@ List UnquantifiedFunctionParameterList(
 List FunctionParameterList(
     ExprContext exprContext) :
 {
-    SqlNode e = null;
-    List list = new ArrayList();
+    final SqlLiteral qualifier;
+    final List list = new ArrayList();
 }
 {
     <LPAREN>
-    [
-        <DISTINCT> {
-            e = SqlSelectKeyword.DISTINCT.symbol(getPos());
-        }
+    (
+        qualifier = AllOrDistinct() { list.add(qualifier); }
     |
-        <ALL> {
-            e = SqlSelectKeyword.ALL.symbol(getPos());
-        }
-    ]
-    {
-        list.add(e);
-    }
+        { list.add(null); }
+    )
     Arg0(list, exprContext)
     (
         <COMMA> {
@@ -899,6 +892,15 @@ List FunctionParameterList(
     {
         return list;
     }
+}
+
+SqlLiteral AllOrDistinct() :
+{
+}
+{
+    <DISTINCT> { return SqlSelectKeyword.DISTINCT.symbol(getPos()); }
+|
+    <ALL> { return SqlSelectKeyword.ALL.symbol(getPos()); }
 }
 
 void Arg0(List list, ExprContext exprContext) :
@@ -1269,6 +1271,7 @@ SqlNode TableRefWithHintsOpt() :
 SqlSelect SqlSelect() :
 {
     final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
+    final SqlLiteral keyword;
     final SqlNodeList keywordList;
     List<SqlNode> selectList;
     final SqlNode fromClause;
@@ -1296,12 +1299,7 @@ SqlSelect SqlSelect() :
         }
     )?
     (
-        <DISTINCT> {
-            keywords.add(SqlSelectKeyword.DISTINCT.symbol(getPos()));
-        }
-    |   <ALL> {
-            keywords.add(SqlSelectKeyword.ALL.symbol(getPos()));
-        }
+        keyword = AllOrDistinct() { keywords.add(keyword); }
     )?
     {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
@@ -3838,6 +3836,59 @@ SqlNode RowExpressionExtension() :
 }
 
 /**
+ * Parses a call to the STRING_AGG aggregate function.
+ */
+SqlCall StringAggFunctionCall() :
+{
+    final Span s;
+    final SqlOperator op;
+    final List<SqlNode> args = new ArrayList();
+    final SqlLiteral qualifier;
+    final SqlNodeList orderBy;
+    final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+    (
+        <ARRAY_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_AGG; }
+    |   <ARRAY_CONCAT_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_CONCAT_AGG; }
+    |   <STRING_AGG> { s = span(); op = SqlLibraryOperators.STRING_AGG; }
+    )
+    <LPAREN>
+    (
+        qualifier = AllOrDistinct()
+    |
+        { qualifier = null; }
+    )
+    Arg(args, ExprContext.ACCEPT_SUB_QUERY)
+    (
+        <COMMA> {
+            // a comma-list can't appear where only a query is expected
+            checkNonQueryExpression(ExprContext.ACCEPT_SUB_QUERY);
+        }
+        Arg(args, ExprContext.ACCEPT_SUB_QUERY)
+    )*
+    (
+        nullTreatment = NullTreatment()
+    |
+        { nullTreatment = null; }
+    )
+    [
+        orderBy = OrderBy(true) {
+            args.add(orderBy);
+        }
+    ]
+    <RPAREN>
+    {
+        SqlCall call = op.createCall(qualifier, s.end(this), args);
+        if (nullTreatment != null) {
+            // Wrap in RESPECT_NULLS or IGNORE_NULLS.
+            call = nullTreatment.right.createCall(nullTreatment.left, call);
+        }
+        return call;
+    }
+}
+
+/**
  * Parses an atomic row expression.
  */
 SqlNode AtomicRowExpression() :
@@ -6285,7 +6336,7 @@ SqlNodeList JsonArrayAggOrderByClause() :
 SqlCall JsonArrayAggFunctionCall() :
 {
     final SqlNode valueExpr;
-    SqlNodeList orderList = null;
+    final SqlNodeList orderList;
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
@@ -6537,22 +6588,26 @@ SqlCall withinGroup(SqlNode arg) :
     }
 }
 
-SqlCall nullTreatment(SqlCall arg) :
+Pair<SqlParserPos, SqlOperator> NullTreatment() :
 {
     final Span span;
 }
 {
-    (
-        <IGNORE> { span = span(); } <NULLS> {
-            return SqlStdOperatorTable.IGNORE_NULLS.createCall(
-                span.end(this), arg);
-        }
-    |
-        <RESPECT> { span = span(); } <NULLS> {
-            return SqlStdOperatorTable.RESPECT_NULLS.createCall(
-                span.end(this), arg);
-        }
-    )
+    <IGNORE> { span = span(); } <NULLS> {
+        return Pair.of(span.end(this), SqlStdOperatorTable.IGNORE_NULLS);
+    }
+|
+    <RESPECT> { span = span(); } <NULLS> {
+        return Pair.of(span.end(this), SqlStdOperatorTable.RESPECT_NULLS);
+    }
+}
+
+SqlCall nullTreatment(SqlCall arg) :
+{
+    final Pair<SqlParserPos, SqlOperator> pair;
+}
+{
+    pair = NullTreatment() { return pair.right.createCall(pair.left, arg); }
 }
 
 /**
@@ -6572,17 +6627,59 @@ SqlCall nullTreatment(SqlCall arg) :
  */
 SqlNode NamedFunctionCall() :
 {
+    SqlCall call;
+    final Span filterSpan;
+    final SqlNode filter;
+    final Span overSpan;
+    final SqlNode over;
+    final Span withinGroupSpan;
+}
+{
+    (
+        LOOKAHEAD(2)
+        call = StringAggFunctionCall()
+    |
+        call = NamedCall()
+    )
+    [
+        LOOKAHEAD(2) call = nullTreatment(call)
+    ]
+    [
+        call = withinGroup(call)
+    ]
+    [
+        <FILTER> { filterSpan = span(); }
+        <LPAREN>
+        <WHERE>
+        filter = Expression(ExprContext.ACCEPT_SUB_QUERY)
+        <RPAREN> {
+            call = SqlStdOperatorTable.FILTER.createCall(
+                filterSpan.end(this), call, filter);
+        }
+    ]
+    [
+        <OVER> { overSpan = span(); }
+        (
+            over = SimpleIdentifier()
+        |
+            over = WindowSpecification()
+        )
+        {
+            call = SqlStdOperatorTable.OVER.createCall(overSpan.end(over), call, over);
+        }
+    ]
+    {
+        return call;
+    }
+}
+
+SqlCall NamedCall() :
+{
     final SqlFunctionCategory funcType;
     final SqlIdentifier qualifiedName;
     final Span s;
     final List<SqlNode> args;
-    SqlCall call;
-    final Span filterSpan;
-    final SqlNode filter;
-    final SqlNode over;
     SqlLiteral quantifier = null;
-    SqlNodeList orderList = null;
-    final Span withinGroupSpan;
 }
 {
     (
@@ -6611,40 +6708,9 @@ SqlNode NamedFunctionCall() :
         }
     )
     {
-        call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
-    }
-    [
-        LOOKAHEAD(2) call = nullTreatment(call)
-    ]
-    [
-        call = withinGroup(call)
-    ]
-    [
-        <FILTER> { filterSpan = span(); }
-        <LPAREN>
-        <WHERE>
-        filter = Expression(ExprContext.ACCEPT_SUB_QUERY)
-        <RPAREN> {
-            call = SqlStdOperatorTable.FILTER.createCall(
-                filterSpan.end(this), call, filter);
-        }
-    ]
-    [
-        <OVER>
-        (
-            over = SimpleIdentifier()
-        |
-            over = WindowSpecification()
-        )
-        {
-            call = SqlStdOperatorTable.OVER.createCall(s.end(over), call, over);
-        }
-    ]
-    {
-        return call;
+        return createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
 }
-
 
 /*
 * Parse Floor/Ceil function parameters
@@ -7101,6 +7167,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < APPLY: "APPLY" >
 |   < ARE: "ARE" >
 |   < ARRAY: "ARRAY" >
+|   < ARRAY_AGG: "ARRAY_AGG" >
+|   < ARRAY_CONCAT_AGG: "ARRAY_CONCAT_AGG" >
 |   < ARRAY_MAX_CARDINALITY: "ARRAY_MAX_CARDINALITY" >
 |   < AS: "AS" >
 |   < ASC: "ASC" >
@@ -7657,6 +7725,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < STDDEV_POP: "STDDEV_POP" >
 |   < STDDEV_SAMP: "STDDEV_SAMP" >
 |   < STREAM: "STREAM" >
+|   < STRING_AGG: "STRING_AGG" >
 |   < STRUCTURE: "STRUCTURE" >
 |   < STYLE: "STYLE" >
 |   < SUBCLASS_ORIGIN: "SUBCLASS_ORIGIN" >

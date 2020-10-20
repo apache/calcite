@@ -2138,9 +2138,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
             SqlCall call,
             int leftPrec,
             int rightPrec) {
-          SqlUtil.unparseFunctionSyntax(
-              this,
-              writer, call);
+          SqlUtil.unparseFunctionSyntax(this, writer, call, false);
         }
       };
 
@@ -2213,18 +2211,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       };
 
   /**
-   * The LISTAGG operator. Multiset aggregator function.
+   * The LISTAGG operator. String aggregator function.
    */
   public static final SqlAggFunction LISTAGG =
-      new SqlAggFunction("LISTAGG",
-          null,
-          SqlKind.LISTAGG,
-          ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.OPTIONAL) {
-      };
+      new SqlListaggAggFunction(SqlKind.LISTAGG, ReturnTypes.ARG0_NULLABLE);
 
   /**
    * The FUSION operator. Multiset aggregator function.

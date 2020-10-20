@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -39,6 +40,12 @@ public class SqlNullTreatmentOperator extends SqlSpecialOperator {
     super(kind.sql, kind, 20, true, ReturnTypes.ARG0, null, OperandTypes.ANY);
     Preconditions.checkArgument(kind == SqlKind.RESPECT_NULLS
         || kind == SqlKind.IGNORE_NULLS);
+  }
+
+  @Override public SqlCall createCall(SqlLiteral functionQualifier,
+      SqlParserPos pos, SqlNode... operands) {
+    // As super.createCall, but don't union the positions
+    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

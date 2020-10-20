@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
+import java.util.Objects;
+
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
  */
@@ -33,7 +35,7 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
     }
   },
 
@@ -48,7 +50,17 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
+    }
+  },
+
+  /**
+   * Function syntax with optional ORDER BY, as in "STRING_AGG(x, y ORDER BY z)".
+   */
+  ORDERED_FUNCTION(FUNCTION) {
+    @Override public void unparse(SqlWriter writer, SqlOperator operator,
+        SqlCall call, int leftPrec, int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, true);
     }
   },
 
@@ -130,7 +142,7 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
     }
   },
 
@@ -148,6 +160,17 @@ public enum SqlSyntax {
           + operator + "' " + "cannot be un-parsed");
     }
   };
+
+  /** Syntax to treat this syntax as equivalent to when resolving operators. */
+  public final SqlSyntax family;
+
+  SqlSyntax() {
+    this(null);
+  }
+
+  SqlSyntax(SqlSyntax family) {
+    this.family = Objects.requireNonNull(family == null ? this : family);
+  }
 
   /**
    * Converts a call to an operator of this syntax into a string.

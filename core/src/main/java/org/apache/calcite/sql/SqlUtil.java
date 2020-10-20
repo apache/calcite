@@ -266,17 +266,24 @@ public abstract class SqlUtil {
     }
   }
 
-  /**
-   * Unparses a call to an operator which has function syntax.
-   *
-   * @param operator    The operator
-   * @param writer      Writer
-   * @param call    List of 0 or more operands
-   */
+  @Deprecated // to be removed before 2.0
   public static void unparseFunctionSyntax(
       SqlOperator operator,
       SqlWriter writer,
       SqlCall call) {
+    unparseFunctionSyntax(operator, writer, call, false);
+  }
+
+  /**
+   * Unparses a call to an operator that has function syntax.
+   *
+   * @param operator    The operator
+   * @param writer      Writer
+   * @param call        List of 0 or more operands
+   * @param ordered     Whether argument list may end with ORDER BY
+   */
+  public static void unparseFunctionSyntax(SqlOperator operator,
+      SqlWriter writer, SqlCall call, boolean ordered) {
     if (operator instanceof SqlFunction) {
       SqlFunction function = (SqlFunction) operator;
 
@@ -300,6 +307,7 @@ public abstract class SqlUtil {
         return;
       case FUNCTION_STAR: // E.g. "COUNT(*)"
       case FUNCTION: // E.g. "RANK()"
+      case ORDERED_FUNCTION: // E.g. "STRING_AGG(x)"
         // fall through - dealt with below
         break;
       default:
@@ -322,7 +330,11 @@ public abstract class SqlUtil {
       }
     }
     for (SqlNode operand : call.getOperandList()) {
-      writer.sep(",");
+      if (ordered && operand instanceof SqlNodeList) {
+        writer.sep("ORDER BY");
+      } else {
+        writer.sep(",");
+      }
       operand.unparse(writer, 0, 0);
     }
     writer.endList(frame);

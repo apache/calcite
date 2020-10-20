@@ -7053,19 +7053,19 @@ public abstract class SqlOperatorBaseTest {
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
     tester.checkAgg("collect(x)", values,
-        Collections.singletonList("[0, 2, 2]"), (double) 0);
+        Collections.singletonList("[0, 2, 2]"), 0d);
     tester.checkAgg("collect(x) within group(order by x desc)", values,
-        Collections.singletonList("[2, 2, 0]"), (double) 0);
+        Collections.singletonList("[2, 2, 0]"), 0d);
     Object result1 = -3;
     if (!enable) {
       return;
     }
     tester.checkAgg("collect(CASE x WHEN 0 THEN NULL ELSE -1 END)", values,
-        result1, (double) 0);
+        result1, 0d);
     Object result = -1;
     tester.checkAgg("collect(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
-        values, result, (double) 0);
-    tester.checkAgg("collect(DISTINCT x)", values, 2, (double) 0);
+        values, result, 0d);
+    tester.checkAgg("collect(DISTINCT x)", values, 2, 0d);
   }
 
   @Test void testListAggFunc() {
@@ -7086,9 +7086,121 @@ public abstract class SqlOperatorBaseTest {
     checkAggType(tester, "listagg('test')", "CHAR(4) NOT NULL");
     checkAggType(tester, "listagg('test', ', ')", "CHAR(4) NOT NULL");
     final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
-    tester.checkAgg("listagg(x)", values1, "hello,world,!", (double) 0);
+    tester.checkAgg("listagg(x)", values1, "hello,world,!", 0d);
     final String[] values2 = {"0", "1", "2", "3"};
-    tester.checkAgg("listagg(cast(x as CHAR))", values2, "0,1,2,3", (double) 0);
+    tester.checkAgg("listagg(cast(x as CHAR))", values2, "0,1,2,3", 0d);
+  }
+
+  @Test void testStringAggFunc() {
+    checkStringAggFunc(libraryTester(SqlLibrary.POSTGRESQL));
+    checkStringAggFunc(libraryTester(SqlLibrary.BIG_QUERY));
+    checkStringAggFuncFails(libraryTester(SqlLibrary.MYSQL));
+  }
+
+  private void checkStringAggFunc(SqlTester t) {
+    final String[] values = {"'x'", "null", "'yz'"};
+    t.checkAgg("string_agg(x)", values, "x,yz", 0);
+    t.checkAgg("string_agg(x,':')", values, "x:yz", 0);
+    t.checkAgg("string_agg(x,':' order by x)", values, "x:yz", 0);
+    t.checkAgg("string_agg(x order by char_length(x) desc)", values,
+        "yz,x", 0);
+    t.checkAggFails("^string_agg(x respect nulls order by x desc)^", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'STRING_AGG'",
+        false);
+    t.checkAggFails("^string_agg(x order by x desc)^ respect nulls", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'STRING_AGG'",
+        false);
+  }
+
+  private void checkStringAggFuncFails(SqlTester t) {
+    final String[] values = {"'x'", "'y'"};
+    t.checkAggFails("^string_agg(x)^", values,
+        "No match found for function signature STRING_AGG\\(<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^string_agg(x, ',')^", values,
+        "No match found for function signature STRING_AGG\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^string_agg(x, ',' order by x desc)^", values,
+        "No match found for function signature STRING_AGG\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+  }
+
+  @Test void testArrayAggFunc() {
+    checkArrayAggFunc(libraryTester(SqlLibrary.POSTGRESQL));
+    checkArrayAggFunc(libraryTester(SqlLibrary.BIG_QUERY));
+    checkArrayAggFuncFails(libraryTester(SqlLibrary.MYSQL));
+  }
+
+  private void checkArrayAggFunc(SqlTester t) {
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    final String[] values = {"'x'", "null", "'yz'"};
+    t.checkAgg("array_agg(x)", values, "[x, yz]", 0);
+    t.checkAgg("array_agg(x ignore nulls)", values, "[x, yz]", 0);
+    t.checkAgg("array_agg(x respect nulls)", values, "[x, yz]", 0);
+    final String expectedError = "Invalid number of arguments "
+        + "to function 'ARRAY_AGG'. Was expecting 1 arguments";
+    t.checkAggFails("^array_agg(x,':')^", values, expectedError, false);
+    t.checkAggFails("^array_agg(x,':' order by x)^", values, expectedError,
+        false);
+    t.checkAgg("array_agg(x order by char_length(x) desc)", values,
+        "[yz, x]", 0);
+  }
+
+  private void checkArrayAggFuncFails(SqlTester t) {
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    final String[] values = {"'x'", "'y'"};
+    final String expectedError = "No match found for function signature "
+        + "ARRAY_AGG\\(<CHARACTER>\\)";
+    final String expectedError2 = "No match found for function signature "
+        + "ARRAY_AGG\\(<CHARACTER>, <CHARACTER>\\)";
+    t.checkAggFails("^array_agg(x)^", values, expectedError, false);
+    t.checkAggFails("^array_agg(x, ',')^", values, expectedError2, false);
+    t.checkAggFails("^array_agg(x, ',' order by x desc)^", values,
+        expectedError2, false);
+  }
+
+  @Test void testArrayConcatAggFunc() {
+    checkArrayConcatAggFunc(libraryTester(SqlLibrary.POSTGRESQL));
+    checkArrayConcatAggFunc(libraryTester(SqlLibrary.BIG_QUERY));
+    checkArrayConcatAggFuncFails(libraryTester(SqlLibrary.MYSQL));
+  }
+
+  void checkArrayConcatAggFunc(SqlTester t) {
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    t.checkFails("array_concat_agg(^*^)", "(?s)Encountered \"\\*\" at .*", false);
+    checkAggType(t, "array_concat_agg(ARRAY[1,2,3])",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+
+    final String expectedError = "Cannot apply 'ARRAY_CONCAT_AGG' to arguments "
+        + "of type 'ARRAY_CONCAT_AGG\\(<INTEGER MULTISET>\\)'. Supported "
+        + "form\\(s\\): 'ARRAY_CONCAT_AGG\\(<ARRAY>\\)'";
+    t.checkFails("^array_concat_agg(multiset[1,2])^", expectedError, false);
+
+    final String expectedError1 = "Cannot apply 'ARRAY_CONCAT_AGG' to "
+        + "arguments of type 'ARRAY_CONCAT_AGG\\(<INTEGER>\\)'\\. Supported "
+        + "form\\(s\\): 'ARRAY_CONCAT_AGG\\(<ARRAY>\\)'";
+    t.checkFails("^array_concat_agg(12)^", expectedError1, false);
+
+    final String[] values1 = {"ARRAY[0]", "ARRAY[1]", "ARRAY[2]", "ARRAY[3]"};
+    t.checkAgg("array_concat_agg(x)", values1, "[0, 1, 2, 3]", 0);
+
+    final String[] values2 = {"ARRAY[0,1]", "ARRAY[1, 2]"};
+    t.checkAgg("array_concat_agg(x)", values2, "[0, 1, 1, 2]", 0);
+  }
+
+  void checkArrayConcatAggFuncFails(SqlTester t) {
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    final String[] values = {"'x'", "'y'"};
+    final String expectedError = "No match found for function signature "
+        + "ARRAY_CONCAT_AGG\\(<CHARACTER>\\)";
+    final String expectedError2 = "No match found for function signature "
+        + "ARRAY_CONCAT_AGG\\(<CHARACTER>, <CHARACTER>\\)";
+    t.checkAggFails("^array_concat_agg(x)^", values, expectedError, false);
+    t.checkAggFails("^array_concat_agg(x, ',')^", values, expectedError2, false);
+    t.checkAggFails("^array_concat_agg(x, ',' order by x desc)^", values,
+        expectedError2, false);
   }
 
   @Test void testFusionFunc() {
@@ -8457,30 +8569,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("count(1, 2)", "BIGINT NOT NULL");
     tester.checkType("count(1, 2, 'x', 'y')", "BIGINT NOT NULL");
     final String[] values = {"0", "CAST(null AS INTEGER)", "1", "0"};
-    tester.checkAgg(
-        "COUNT(x)",
-        values,
-        3,
-        (double) 0);
-    tester.checkAgg(
-        "COUNT(CASE x WHEN 0 THEN NULL ELSE -1 END)",
-        values,
-        2,
-        (double) 0);
-    tester.checkAgg(
-        "COUNT(DISTINCT x)",
-        values,
-        2,
-        (double) 0);
+    tester.checkAgg("COUNT(x)", values, 3, 0d);
+    tester.checkAgg("COUNT(CASE x WHEN 0 THEN NULL ELSE -1 END)", values, 2,
+        0d);
+    tester.checkAgg("COUNT(DISTINCT x)", values, 2, 0d);
 
     // string values -- note that empty string is not null
     final String[] stringValues = {
         "'a'", "CAST(NULL AS VARCHAR(1))", "''"
     };
-    tester.checkAgg("COUNT(*)", stringValues, 3, (double) 0);
-    tester.checkAgg("COUNT(x)", stringValues, 2, (double) 0);
-    tester.checkAgg("COUNT(DISTINCT x)", stringValues, 2, (double) 0);
-    tester.checkAgg("COUNT(DISTINCT 123)", stringValues, 1, (double) 0);
+    tester.checkAgg("COUNT(*)", stringValues, 3, 0d);
+    tester.checkAgg("COUNT(x)", stringValues, 2, 0d);
+    tester.checkAgg("COUNT(DISTINCT x)", stringValues, 2, 0d);
+    tester.checkAgg("COUNT(DISTINCT 123)", stringValues, 1, 0d);
   }
 
   @Test void testApproxCountDistinctFunc() {
@@ -8500,32 +8601,20 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
     final String[] values = {"0", "CAST(null AS INTEGER)", "1", "0"};
     // currently APPROX_COUNT_DISTINCT(x) returns the same as COUNT(DISTINCT x)
-    tester.checkAgg(
-        "APPROX_COUNT_DISTINCT(x)",
-        values,
-        2,
-        (double) 0);
+    tester.checkAgg("APPROX_COUNT_DISTINCT(x)", values, 2, 0d);
     tester.checkAgg(
         "APPROX_COUNT_DISTINCT(CASE x WHEN 0 THEN NULL ELSE -1 END)",
-        values,
-        1,
-        (double) 0);
+        values, 1, 0d);
     // DISTINCT keyword is allowed but has no effect
-    tester.checkAgg(
-        "APPROX_COUNT_DISTINCT(DISTINCT x)",
-        values,
-        2,
-        (double) 0);
+    tester.checkAgg("APPROX_COUNT_DISTINCT(DISTINCT x)", values, 2, 0d);
 
     // string values -- note that empty string is not null
     final String[] stringValues = {
         "'a'", "CAST(NULL AS VARCHAR(1))", "''"
     };
-    tester.checkAgg("APPROX_COUNT_DISTINCT(x)", stringValues, 2, (double) 0);
-    tester.checkAgg("APPROX_COUNT_DISTINCT(DISTINCT x)", stringValues, 2,
-        (double) 0);
-    tester.checkAgg("APPROX_COUNT_DISTINCT(DISTINCT 123)", stringValues, 1,
-        (double) 0);
+    tester.checkAgg("APPROX_COUNT_DISTINCT(x)", stringValues, 2, 0d);
+    tester.checkAgg("APPROX_COUNT_DISTINCT(DISTINCT x)", stringValues, 2, 0d);
+    tester.checkAgg("APPROX_COUNT_DISTINCT(DISTINCT 123)", stringValues, 1, 0d);
   }
 
   @Test void testSumFunc() {
@@ -8554,17 +8643,17 @@ public abstract class SqlOperatorBaseTest {
         false);
     tester.checkType("sum(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    tester.checkAgg("sum(x)", values, 4, (double) 0);
+    tester.checkAgg("sum(x)", values, 4, 0d);
     Object result1 = -3;
     if (!enable) {
       return;
     }
     tester.checkAgg("sum(CASE x WHEN 0 THEN NULL ELSE -1 END)", values, result1,
-        (double) 0);
+        0d);
     Object result = -1;
     tester.checkAgg("sum(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)", values,
-        result, (double) 0);
-    tester.checkAgg("sum(DISTINCT x)", values, 2, (double) 0);
+        result, 0d);
+    tester.checkAgg("sum(DISTINCT x)", values, 2, 0d);
   }
 
   /** Very similar to {@code tester.checkType}, but generates inside a SELECT
@@ -9071,9 +9160,6 @@ public abstract class SqlOperatorBaseTest {
         "Invalid number of arguments to function 'EVERY'. Was expecting 1 arguments",
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    if (!enable) {
-      return;
-    }
     tester.checkAgg(
         "every(x = 2)",
         values,
@@ -9099,9 +9185,6 @@ public abstract class SqlOperatorBaseTest {
         "Invalid number of arguments to function 'SOME'. Was expecting 1 arguments",
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    if (!enable) {
-      return;
-    }
     tester.checkAgg(
         "some(x = 2)",
         values,

@@ -802,6 +802,15 @@ public enum SqlKind {
   /** The {@code LISTAGG} aggregate function. */
   LISTAGG,
 
+  /** The {@code STRING_AGG} aggregate function. */
+  STRING_AGG,
+
+  /** The {@code ARRAY_AGG} aggregate function. */
+  ARRAY_AGG,
+
+  /** The {@code ARRAY_CONCAT_AGG} aggregate function. */
+  ARRAY_CONCAT_AGG,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
@@ -1031,7 +1040,8 @@ public enum SqlKind {
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, INTERSECTION, ANY_VALUE);
+          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG,
+          INTERSECTION, ANY_VALUE);
 
   /**
    * Category consisting of all DML operators.

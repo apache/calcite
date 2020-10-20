@@ -58,7 +58,7 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher) {
     for (SqlOperator operator : this.operatorList) {
-      if (operator.getSyntax() != syntax) {
+      if (operator.getSyntax().family != syntax) {
         continue;
       }
       if (!opName.isSimple()

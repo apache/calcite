@@ -145,7 +145,7 @@ public class MssqlSqlDialect extends SqlDialect {
       if (call.operandCount() != 3) {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
-      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
+      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
       case FLOOR:

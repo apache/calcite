@@ -23,16 +23,20 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -88,6 +92,44 @@ public abstract class ReturnTypes {
   public static ExplicitReturnTypeInference explicit(SqlTypeName typeName,
       int precision) {
     return explicit(RelDataTypeImpl.proto(typeName, precision, false));
+  }
+
+  /** Returns a return-type inference that first transforms a binding and
+   * then applies an inference.
+   *
+   * <p>{@link #stripOrderBy} is an example of {@code bindingTransform}. */
+  public static SqlReturnTypeInference andThen(
+      UnaryOperator<SqlOperatorBinding> bindingTransform,
+      SqlReturnTypeInference typeInference) {
+    return opBinding ->
+        typeInference.inferReturnType(bindingTransform.apply(opBinding));
+  }
+
+  /** Converts a binding of {@code FOO(x, y ORDER BY z)} to a binding of
+   * {@code FOO(x, y)}. Used for {@code STRING_AGG}. */
+  public static SqlOperatorBinding stripOrderBy(
+      SqlOperatorBinding operatorBinding) {
+    if (operatorBinding instanceof SqlCallBinding) {
+      final SqlCallBinding callBinding = (SqlCallBinding) operatorBinding;
+      final SqlCall call2 = stripOrderBy(callBinding.getCall());
+      if (call2 != callBinding.getCall()) {
+        return new SqlCallBinding(callBinding.getValidator(),
+            callBinding.getScope(), call2);
+      }
+    }
+    return operatorBinding;
+  }
+
+  public static SqlCall stripOrderBy(SqlCall call) {
+    if (!call.getOperandList().isEmpty()
+        && Util.last(call.getOperandList()) instanceof SqlNodeList) {
+      // Remove the last argument if it is "ORDER BY". The parser stashes the
+      // ORDER BY clause in the argument list but it does not take part in
+      // type derivation.
+      return call.getOperator().createCall(call.getFunctionQuantifier(),
+          call.getParserPosition(), Util.skipLast(call.getOperandList()));
+    }
+    return call;
   }
 
   /**
@@ -433,6 +475,15 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference MULTISET_PROJECT_ONLY =
       MULTISET.andThen(SqlTypeTransforms.ONLY_COLUMN);
+
+  /**
+   * Returns an ARRAY type.
+   *
+   * <p>For example, given <code>INTEGER</code>, returns
+   * <code>INTEGER ARRAY</code>.
+   */
+  public static final SqlReturnTypeInference TO_ARRAY =
+      ARG0.andThen(SqlTypeTransforms.TO_ARRAY);
 
   /**
    * Type-inference strategy whereby the result type of a call is

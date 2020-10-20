@@ -16,36 +16,37 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import static org.apache.calcite.sql.type.ReturnTypes.stripOrderBy;
 
 /**
- * The <code>JSON_TYPE</code> function.
+ * <code>STRING_AGG</code> aggregate function
+ * returns the concatenation of its group rows;
+ * it is the PostgreSQL and BigQuery equivalent of {@code LISTAGG}.
+ *
+ * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
+ * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}.
+ *
+ * @see SqlListaggAggFunction
  */
-public class SqlJsonTypeFunction extends SqlFunction {
-  public SqlJsonTypeFunction() {
-    super("JSON_TYPE", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.explicit(SqlTypeName.VARCHAR, 20)
-            .andThen(SqlTypeTransforms.FORCE_NULLABLE),
-        null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
+class SqlStringAggAggFunction extends SqlListaggAggFunction {
+  SqlStringAggAggFunction() {
+    super(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE);
   }
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(1);
+  @Override public SqlSyntax getSyntax() {
+    return SqlSyntax.ORDERED_FUNCTION;
   }
 
-  @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
-    assert call.operandCount() == 1;
+  @Override public RelDataType deriveType(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
+    return super.deriveType(validator, scope, stripOrderBy(call));
   }
 }

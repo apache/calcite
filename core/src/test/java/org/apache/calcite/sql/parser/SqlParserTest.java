@@ -8830,6 +8830,42 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testStringAgg() {
+    final String sql = "select\n"
+        + "  string_agg(ename order by deptno, ename) as c1,\n"
+        + "  string_agg(ename, '; ' order by deptno, ename desc) as c2,\n"
+        + "  string_agg(ename) as c3,\n"
+        + "  string_agg(ename, ':') as c4,\n"
+        + "  string_agg(ename, ':' ignore nulls) as c5\n"
+        + "from emp group by gender";
+    final String expected = "SELECT"
+        + " STRING_AGG(`ENAME` ORDER BY `DEPTNO`, `ENAME`) AS `C1`,"
+        + " STRING_AGG(`ENAME`, '; ' ORDER BY `DEPTNO`, `ENAME` DESC) AS `C2`,"
+        + " STRING_AGG(`ENAME`) AS `C3`,"
+        + " STRING_AGG(`ENAME`, ':') AS `C4`,"
+        + " STRING_AGG(`ENAME`, ':') IGNORE NULLS AS `C5`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `GENDER`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testArrayAgg() {
+    final String sql = "select\n"
+        + "  array_agg(ename respect nulls order by deptno, ename) as c1,\n"
+        + "  array_concat_agg(ename order by deptno, ename desc) as c2,\n"
+        + "  array_agg(ename) as c3,\n"
+        + "  array_concat_agg(ename) within group (order by ename) as c4\n"
+        + "from emp group by gender";
+    final String expected = "SELECT"
+        + " ARRAY_AGG(`ENAME` ORDER BY `DEPTNO`, `ENAME`) RESPECT NULLS AS `C1`,"
+        + " ARRAY_CONCAT_AGG(`ENAME` ORDER BY `DEPTNO`, `ENAME` DESC) AS `C2`,"
+        + " ARRAY_AGG(`ENAME`) AS `C3`,"
+        + " ARRAY_CONCAT_AGG(`ENAME`) WITHIN GROUP (ORDER BY `ENAME`) AS `C4`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `GENDER`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     expr("foo format json")
         .ok("`FOO` FORMAT JSON");

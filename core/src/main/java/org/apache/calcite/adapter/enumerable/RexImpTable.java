@@ -101,6 +101,8 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -643,8 +645,10 @@ public class RexImpTable {
     aggMap.put(BIT_XOR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    aggMap.put(ARRAY_AGG, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
+    aggMap.put(ARRAY_CONCAT_AGG, constructorSupplier(FusionImplementor.class));
     aggMap.put(INTERSECTION, constructorSupplier(IntersectionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
@@ -1136,7 +1140,8 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code COLLECT} aggregate function. */
+  /** Implementor for the {@code COLLECT} and {@code ARRAY_AGG}
+   * aggregate functions. */
   static class CollectImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
@@ -1218,7 +1223,8 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code FUSION} aggregate function. */
+  /** Implementor for the {@code FUSION} and {@code ARRAY_CONCAT_AGG}
+   * aggregate functions. */
   static class FusionImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {

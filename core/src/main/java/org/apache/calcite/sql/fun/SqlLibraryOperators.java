@@ -19,12 +19,14 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -33,7 +35,10 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -46,6 +51,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.type.ReturnTypes.stripOrderBy;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -267,6 +273,51 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlAggFunction LOGICAL_OR =
       new SqlMinMaxAggFunction("LOGICAL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
+
+  /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
+   * in BigQuery and PostgreSQL, gathers values into arrays. */
+  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  public static final SqlAggFunction ARRAY_AGG =
+      new SqlAggFunction("ARRAY_AGG", null, SqlKind.ARRAY_AGG,
+          ReturnTypes.andThen(ReturnTypes::stripOrderBy, ReturnTypes.TO_ARRAY),
+          null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.OPTIONAL) {
+        @Override public SqlSyntax getSyntax() {
+          return SqlSyntax.ORDERED_FUNCTION;
+        }
+
+        @Override public boolean allowsNullTreatment() {
+          return true;
+        }
+
+        @Override public RelDataType deriveType(SqlValidator validator,
+            SqlValidatorScope scope, SqlCall call) {
+          return super.deriveType(validator, scope, stripOrderBy(call));
+        }
+      };
+
+  /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
+   * in BigQuery and PostgreSQL, concatenates array values into arrays. */
+  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  public static final SqlAggFunction ARRAY_CONCAT_AGG =
+      new SqlAggFunction("ARRAY_CONCAT_AGG", null, SqlKind.ARRAY_CONCAT_AGG,
+          ReturnTypes.ARG0, null, OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
+        @Override public SqlSyntax getSyntax() {
+          return SqlSyntax.ORDERED_FUNCTION;
+        }
+
+        @Override public RelDataType deriveType(SqlValidator validator,
+            SqlValidatorScope scope, SqlCall call) {
+          return super.deriveType(validator, scope, stripOrderBy(call));
+        }
+      };
+
+  /** The "STRING_AGG(value [, separator ] [ ORDER BY ...])" aggregate function,
+   * BigQuery and PostgreSQL's equivalent of
+   * {@link SqlStdOperatorTable#LISTAGG}. */
+  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  public static final SqlAggFunction STRING_AGG = new SqlStringAggAggFunction();
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
