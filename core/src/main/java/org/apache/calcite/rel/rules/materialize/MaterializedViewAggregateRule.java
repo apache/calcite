@@ -336,8 +336,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         // Cannot ROLLUP distinct
         return null;
       }
-      SqlAggFunction rollupAgg =
-          getRollup(aggCall.getAggregation());
+      SqlAggFunction rollupAgg = aggCall.getAggregation().getRollup();
       if (rollupAgg == null) {
         // Cannot rollup this aggregate, bail out
         return null;
@@ -592,8 +591,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           return null;
         }
         final AggregateCall queryAggCall = ord.e;
-        SqlAggFunction rollupAgg =
-            getRollup(queryAggCall.getAggregation());
+        SqlAggFunction rollupAgg = queryAggCall.getAggregation().getRollup();
         if (rollupAgg == null) {
           // Cannot rollup this aggregate, bail out
           return null;
@@ -859,6 +857,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
   /**
    * Get rollup aggregation function.
    */
+  @Deprecated // to be removed before 2.0
   protected @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.SUM0

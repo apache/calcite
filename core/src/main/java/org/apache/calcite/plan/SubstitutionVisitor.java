@@ -1962,7 +1962,7 @@ public class SubstitutionVisitor {
         }
         // When an SqlAggFunction does not support roll up, it will return null, which means that
         // it cannot do secondary aggregation and the materialization recognition will fail.
-        final SqlAggFunction aggFunction = getRollup(aggregateCall.getAggregation());
+        final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
         if (aggFunction == null) {
           return null;
         }
@@ -1992,6 +1992,7 @@ public class SubstitutionVisitor {
     return result;
   }
 
+  @Deprecated // to be removed before 2.0
   public static @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN

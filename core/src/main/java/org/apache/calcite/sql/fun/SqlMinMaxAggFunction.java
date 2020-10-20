@@ -151,4 +151,8 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     }
     return super.unwrap(clazz);
   }
+
+  @Override public SqlAggFunction getRollup() {
+    return this;
+  }
 }

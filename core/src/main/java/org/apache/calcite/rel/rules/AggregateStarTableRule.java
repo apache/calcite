@@ -28,7 +28,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.core.Aggregate;
@@ -208,7 +207,7 @@ public class AggregateStarTableRule
     final int i = find(measures, seek);
   tryRoll:
     if (i >= 0) {
-      final SqlAggFunction roll = SubstitutionVisitor.getRollup(aggregation);
+      final SqlAggFunction roll = aggregation.getRollup();
       if (roll == null) {
         break tryRoll;
       }
