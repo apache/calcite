@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * A rule queue that manage rule matches for cascade planner.
+ * A rule queue that manages rule matches for cascades planner.
  */
 class TopDownRuleQueue extends RuleQueue {
 
@@ -53,7 +53,7 @@ class TopDownRuleQueue extends RuleQueue {
       return;
     }
 
-    if (!planner.isSubstituteRule(match)) {
+    if (planner.isSubstituteRule(match)) {
       queue.addFirst(match);
     } else {
       queue.addLast(match);
