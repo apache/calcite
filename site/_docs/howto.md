@@ -625,6 +625,10 @@ the permission to update the `KEYS` file, ask PMC for help.
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
+In order to be able to make a release candidate, make sure you upload
+your key to [https://keyserver.ubuntu.com](https://keyserver.ubuntu.com) and/or
+[http://pool.sks-keyservers.net:11371](http://pool.sks-keyservers.net:11371) (keyservers used by Nexus).
+
 ## Set up Nexus repository credentials
 
 Gradle provides multiple ways to [configure project properties](https://docs.gradle.org/current/userguide/build_environment.html#sec:gradle_configuration_properties).
@@ -684,8 +688,13 @@ Note: release artifacts (dist.apache.org and repository.apache.org) are managed 
 
 Before you start:
 
+* Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
+  is starting and therefore `master` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
+* Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
+  been applied also to `master`.
+  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `NOTICE` has the current copyright year.
 * Check that `calcite.version` has the proper value in `/gradle.properties`.
@@ -707,10 +716,6 @@ Before you start:
   * `-Dcalcite.test.splunk`
 * Optional tests using tasks:
   * `./gradlew testSlow`
-* Trigger a
-  <a href="https://scan.coverity.com/projects/julianhyde-calcite">Coverity scan</a>
-  by merging the latest code into the `julianhyde/coverity_scan` branch,
-  and when it completes, make sure that there are no important issues.
 * Add release notes to `site/_docs/history.md`. Include the commit history,
   and say which versions of Java, Guava and operating systems the release is
   tested against.
@@ -762,6 +767,14 @@ git clean -xn
 # Push release candidate to ASF servers
 ./gradlew prepareVote -Prc=1 -Pasf
 {% endhighlight %}
+
+prepareVote troubleshooting:
+* `net.rubygrapefruit.platform.NativeException: Could not start 'svnmucc'`: Make sure you have `svnmucc` command
+installed in your machine.
+* `Execution failed for task ':closeRepository' ... Possible staging rules violation. Check repository status using Nexus UI`:
+Log into [Nexus UI](https://repository.apache.org/#stagingRepositories) to see the actual error. In case of
+`Failed: Signature Validation. No public key: Key with id: ... was not able to be located`, make sure you have uploaded
+your key to the keyservers used by Nexus, see above.
 
 #### Checking the artifacts
 
@@ -989,6 +1002,13 @@ After 24 hours, announce the release by sending an email to
 address. You can use
 [the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
+
+Increase the `calcite.version` value in `/gradle.properties` and commit & push
+the change with the message "Prepare for next development iteration"
+(see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
+
+Re-open the `master` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
+that `master` code freeze is over and commits can resume.
 
 ## Publishing the web site
 {: #publish-the-web-site}
