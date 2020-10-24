@@ -7989,6 +7989,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL KEY, INTEGER NOT NULL VALUE) NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4305">[CALCITE-4305]
+   * Implicit column alias for single-column UNNEST</a>. */
+  @Test void testUnnestAlias() {
+    final String expectedType = "RecordType(CHAR(6) NOT NULL FRUIT) NOT NULL";
+
+    // When UNNEST produces a single column, and you use an alias for the
+    // relation, that alias becomes the name of the column.
+    sql("select fruit.* from UNNEST(array ['apple', 'banana']) as fruit")
+        .type(expectedType);
+
+    // The magic doesn't happen if the query is not an UNNEST.
+    // In this case, the query is a SELECT.
+    sql("SELECT fruit.*\n"
+        + "FROM (\n"
+        + "  SELECT * FROM UNNEST(array ['apple', 'banana']) as x) as fruit")
+        .type("RecordType(CHAR(6) NOT NULL X) NOT NULL");
+
+    // The magic doesn't happen if the UNNEST yields more than one column.
+    sql("select * from UNNEST(array [('apple', 1), ('banana', 2)]) as fruit")
+        .type("RecordType(CHAR(6) NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
+            + "NOT NULL");
+
+    // VALUES gets the same treatment as ARRAY. (Unlike PostgreSQL.)
+    sql("select * from (values ('apple'), ('banana')) as fruit")
+        .type("RecordType(CHAR(6) NOT NULL FRUIT) NOT NULL");
+
+    // UNNEST MULTISET gets the same treatment as UNNEST ARRAY.
+    sql("select * from unnest(multiset [1, 2, 1]) as f")
+        .type("RecordType(INTEGER NOT NULL F) NOT NULL");
+  }
+
   @Test void testCorrelationJoin() {
     sql("select *,"
         + "         multiset(select * from emp where deptno=dept.deptno) "
@@ -10336,7 +10368,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testStreamValues() {
-    sql("select stream * from (^values 1^) as e")
+    sql("select stream * from (^values 1) as e^")
+        .fails(cannotConvertToStream("E"));
+    sql("select stream * from (^values 1) as e (c)^")
         .fails(cannotConvertToStream("E"));
     sql("select stream orderId from orders\n"
         + "union all\n"
