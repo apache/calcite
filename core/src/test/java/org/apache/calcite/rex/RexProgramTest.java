@@ -1555,7 +1555,7 @@ class RexProgramTest extends RexProgramTestBase {
             eq(aRef, literal(3)),
             or(eq(aRef, literal(3)),
                 eq(aRef, literal(4)))),
-        "AND(SEARCH(?0.b, Sarg[2]), SEARCH(?0.a, Sarg[3]))");
+        "AND(=(?0.b, 2), =(?0.a, 3))");
 
     checkSimplify3(
         or(lt(vInt(), nullInt),
@@ -1650,8 +1650,7 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode bRef = input(tInt(true), 1);
     // a in (1, 2) or b is null
     RexNode expr = or(eq(aRef, literal(1)), eq(aRef, literal(2)), isNull(bRef));
-    final String simplified =
-        "OR(SEARCH($1, Sarg[, null]), SEARCH($0, Sarg[1, 2]))";
+    final String simplified = "OR(IS NULL($1), SEARCH($0, Sarg[1, 2]))";
     final String expanded = "OR(IS NULL($1), OR(=($0, 1), =($0, 2)))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
@@ -1666,6 +1665,43 @@ class RexProgramTest extends RexProgramTestBase {
         lt(aRef, literal(10)));
     final String simplified = "SEARCH($0, Sarg[(3..10)])";
     final String expanded = "AND(>($0, 3), <($0, 10))";
+    checkSimplify(expr, simplified)
+        .expandedSearch(expanded);
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4352">[CALCITE-4352]
+   * OR simplification incorrectly loses term</a>. */
+  @Test void testSimplifyAndIsNotNull() {
+    final RexNode aRef = input(tInt(true), 0);
+    final RexNode bRef = input(tInt(true), 1);
+    // (0 < a and a < 10) and b is not null
+    RexNode expr = and(
+        and(lt(literal(0), aRef),
+            lt(aRef, literal(10))),
+        isNotNull(bRef));
+    // [CALCITE-4352] causes "and b is not null" to disappear from the expanded
+    // form.
+    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]),"
+            + " SEARCH($1, Sarg[(-\u221e..+\u221e)]))";
+    final String expanded =
+        "AND(AND(>($0, 0), <($0, 10)), IS NOT NULL($1))";
+    checkSimplify(expr, simplified)
+        .expandedSearch(expanded);
+  }
+
+  @Test void testSimplifyAndIsNull() {
+    final RexNode aRef = input(tInt(true), 0);
+    final RexNode bRef = input(tInt(true), 1);
+    // (0 < a and a < 10) and b is null
+    RexNode expr = and(
+        and(lt(literal(0), aRef),
+            lt(aRef, literal(10))),
+        isNull(bRef));
+    // [CALCITE-4352] causes "and b is null" to disappear from the expanded
+    // form.
+    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]), IS NULL($1))";
+    final String expanded = "AND(AND(>($0, 0), <($0, 10)), IS NULL($1))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
   }
@@ -1717,7 +1753,7 @@ class RexProgramTest extends RexProgramTestBase {
             or(eq(vInt(), literal(20)),
                 isNull(vInt())),
         eq(vInt(), literal(10)));
-    checkSimplify2(e, "SEARCH(?0.int0, Sarg[])", "false");
+    checkSimplify(e, "false");
   }
 
   @Test void testSimplifyEqOrIsNullAndEqSame() {

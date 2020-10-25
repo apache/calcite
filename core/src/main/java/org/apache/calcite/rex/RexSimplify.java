@@ -2651,7 +2651,7 @@ public class RexSimplify {
           map.computeIfAbsent(e, e2 ->
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
       if (negate) {
-        kind = kind.negateNullSafe();
+        kind = kind.negateNullSafe2();
       }
       final Comparable value = literal.getValueAs(Comparable.class);
       switch (kind) {
@@ -2687,6 +2687,7 @@ public class RexSimplify {
         } else {
           ++b.notNullTermCount;
         }
+        b.addAll();
         return true;
       case SEARCH:
         final Sarg sarg = literal.getValueAs(Sarg.class);
@@ -2702,9 +2703,19 @@ public class RexSimplify {
     RexNode fix(RexBuilder rexBuilder, RexNode term) {
       if (term instanceof RexSargBuilder) {
         RexSargBuilder sargBuilder = (RexSargBuilder) term;
-        return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
-            rexBuilder.makeSearchArgumentLiteral(sargBuilder.build(),
-                term.getType()));
+        final Sarg sarg = sargBuilder.build();
+        if (sarg.rangeSet.isEmpty()) {
+          if (sarg.containsNull) {
+            return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+                sargBuilder.ref);
+          } else {
+            return rexBuilder.makeLiteral(false);
+          }
+        } else {
+          return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH,
+              sargBuilder.ref,
+              rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
+        }
       }
       return term;
     }
@@ -2788,6 +2799,10 @@ public class RexSimplify {
 
     @Override public int hashCode() {
       throw new UnsupportedOperationException();
+    }
+
+    void addAll() {
+      rangeSet.add(Range.all());
     }
 
     void addRange(Range<Comparable> range, RelDataType type) {

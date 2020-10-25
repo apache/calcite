@@ -299,5 +299,32 @@ select s, (s or s is null), (s and s is not null) from ax;
 
 !ok
 
+!use scott
+
+# Test case for [CALCITE-4352] "IS NOT NULL" condition gets dropped
+select *
+from "scott".emp
+where deptno > 5 AND deptno < 20 AND mgr IS NOT NULL;
++-------+--------+---------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+---------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7934 | MILLER | CLERK   | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+---------+------+------------+---------+------+--------+
+(2 rows)
+
+!ok
+
+select *
+from "scott".emp
+where deptno > 5 AND deptno < 20 AND mgr IS NULL;
++-------+-------+-----------+-----+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+-----+------------+---------+------+--------+
+|  7839 | KING  | PRESIDENT |     | 1981-11-17 | 5000.00 |      |     10 |
++-------+-------+-----------+-----+------------+---------+------+--------+
+(1 row)
+
+!ok
 
 # End conditions.iq

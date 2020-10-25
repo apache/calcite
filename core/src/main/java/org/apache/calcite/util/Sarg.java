@@ -147,6 +147,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * or {@code ref NOT IN (value1, ...)}. */
   public boolean isComplementedPoints() {
     return rangeSet.span().encloses(Range.all())
+        && !rangeSet.equals(RangeSets.rangeSetAll())
         && rangeSet.complement().asRanges().stream()
             .allMatch(RangeSets::isPoint);
   }
@@ -181,5 +182,9 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       ++complexity;
     }
     return complexity;
+  }
+
+  public boolean isAll() {
+    return rangeSet.equals(RangeSets.rangeSetAll());
   }
 }

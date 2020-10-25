@@ -594,7 +594,11 @@ public class RexUtil {
     if (sarg.containsNull) {
       orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref));
     }
-    if (sarg.isPoints()) {
+    if (sarg.isAll()) {
+      if (!sarg.containsNull) {
+        orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref));
+      }
+    } else if (sarg.isPoints()) {
       // Generate 'ref = value1 OR ... OR ref = valueN'
       sarg.rangeSet.asRanges().forEach(range ->
           orList.add(
