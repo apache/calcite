@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -45,6 +46,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -97,6 +99,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -604,6 +607,94 @@ public class RelBuilderTest {
 
     final String expected = "LogicalValues(tuples=[[]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testFilterAndOrWithNull3() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30 AND mgr IS NOT NULL
+    // Should stay the same
+    // With [CALCITE-4325], is incorrectly simplified to:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.and(
+                    b.call(SqlStdOperatorTable.GREATER_THAN,
+                        b.field("DEPTNO"),
+                        b.literal(20)
+                    ),
+                    b.call(SqlStdOperatorTable.LESS_THAN,
+                        b.field("DEPTNO"),
+                        b.literal(30)
+                    ),
+                    b.isNotNull(b.field("MGR"))
+                )
+            )
+            .build();
+
+    // To explain what is wrong
+    Filter query = (Filter) f.apply(createBuilder());
+    RexNode simplifiedRexNode = RexUtil.expandSearch(createBuilder().getRexBuilder(), null,
+        query.getCondition());
+
+    // Actual: "AND(AND(>($7, 20), <($7, 30)), true)"
+    assertEquals(
+        "AND(AND(>($7, 20), <($7, 30)), IS_NOT_NULL($3))",
+        simplifiedRexNode.toString()
+    );
+
+    // Actual: LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞), null]:SMALLINT))])
+    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT))])\n" +
+        "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testFilterAndOrWithNull4() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30 AND mgr IS NULL
+    // Should stay the same
+    // With [CALCITE-4325], is incorrectly simplified (with RexUtil.expandSearch) to:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.and(
+                    b.call(SqlStdOperatorTable.GREATER_THAN,
+                        b.field("DEPTNO"),
+                        b.literal(20)
+                    ),
+                    b.call(SqlStdOperatorTable.LESS_THAN,
+                        b.field("DEPTNO"),
+                        b.literal(30)
+                    ),
+                    b.isNull(b.field("MGR"))
+                )
+            )
+            .build();
+
+    // Sarg representation is correct
+    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT))])\n" +
+        "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+
+    // RexUtil#expandSearch incorrectly expand SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT)) to TRUE
+    Filter query = (Filter) f.apply(createBuilder());
+    RexNode simplifiedRexNode = RexUtil.expandSearch(createBuilder().getRexBuilder(), null,
+        query.getCondition());
+
+    // Actual: "AND(AND(>($7, 20), <($7, 30)), true)"
+    assertEquals(
+        "AND(AND(>($7, 20), <($7, 30)), IS_NULL($3))",
+        simplifiedRexNode.toString()
+    );
   }
 
   @Test void testBadFieldName() {
