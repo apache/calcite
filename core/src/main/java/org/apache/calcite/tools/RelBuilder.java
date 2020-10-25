@@ -1460,8 +1460,13 @@ public class RelBuilder {
 
     // Simplify expressions.
     if (config.simplify()) {
+      final RexShuttle shuttle =
+          RexUtil.searchShuttle(getRexBuilder(), null, 2);
       for (int i = 0; i < nodeList.size(); i++) {
-        nodeList.set(i, simplifier.simplifyPreservingType(nodeList.get(i)));
+        final RexNode node0 = nodeList.get(i);
+        final RexNode node1 = simplifier.simplifyPreservingType(node0);
+        final RexNode node2 = node1.accept(shuttle);
+        nodeList.set(i, node2);
       }
     }
 
