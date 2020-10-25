@@ -643,7 +643,7 @@ public class RelBuilderTest {
 
     // Actual: "AND(AND(>($7, 20), <($7, 30)), true)"
     assertEquals(
-        "AND(AND(>($7, 20), <($7, 30)), IS_NOT_NULL($3))",
+        "AND(AND(>($7, 20), <($7, 30)), IS NOT NULL($3))",
         simplifiedRexNode.toString()
     );
 
@@ -681,7 +681,7 @@ public class RelBuilderTest {
             .build();
 
     // Sarg representation is correct
-    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT))])\n" +
+    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), IS NULL($3))])\n" +
         "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
 
@@ -692,7 +692,7 @@ public class RelBuilderTest {
 
     // Actual: "AND(AND(>($7, 20), <($7, 30)), true)"
     assertEquals(
-        "AND(AND(>($7, 20), <($7, 30)), IS_NULL($3))",
+        "AND(AND(>($7, 20), <($7, 30)), IS NULL($3))",
         simplifiedRexNode.toString()
     );
   }
@@ -772,7 +772,7 @@ public class RelBuilderTest {
                         builder.equals(builder.field("DEPTNO"),
                             builder.literal(10)),
                         builder.and(builder.isNull(builder.field(6)),
-                            builder.not(builder.isNotNull(builder.field(7))))),
+                            builder.not(builder.isNotNull(builder.field(5))))),
                     builder.equals(builder.field("DEPTNO"),
                         builder.literal(20)),
                     builder.equals(builder.field("DEPTNO"),
