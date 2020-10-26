@@ -226,7 +226,7 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 }
 
 allprojects {
-    group = "org.apache.calcite"
+    group = "com.sisense.be"
     version = buildVersion
 
     apply(plugin = "com.github.vlsi.gradle-extensions")
