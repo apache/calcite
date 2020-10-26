@@ -1415,6 +1415,10 @@ public abstract class SqlImplementor {
 
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(RelNode rel, Clause[] clauses) {
+      if (dialect.isNewSubQueryNeeded(rel, clauses, this.clauses)) {
+        return true;
+      }
+
       final Clause maxClause = maxClause();
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required

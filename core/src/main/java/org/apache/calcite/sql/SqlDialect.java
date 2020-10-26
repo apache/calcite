@@ -23,6 +23,8 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -1161,6 +1163,11 @@ public class SqlDialect {
   /** Returns whether matching of identifiers is case-sensitive. */
   public boolean isCaseSensitive() {
     return caseSensitive;
+  }
+
+  /** Returns whether a new sub-query is required. */
+  public boolean isNewSubQueryNeeded(RelNode relNode, SqlImplementor.Clause[] currentLevelClauses, List<SqlImplementor.Clause> allClauses) {
+    return false;
   }
 
   /**
