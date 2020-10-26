@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.Arrays;
 
@@ -129,10 +130,10 @@ class SqlItemOperator extends SqlSpecialOperator {
       return typeFactory.createTypeWithNullability(operandType.getValueType(),
           true);
     case ROW:
-      RelDataType fieldType = null;
+      RelDataType fieldType;
       RelDataType indexType = opBinding.getOperandType(1);
 
-      if (SqlTypeFamily.STRING.contains(indexType)) {
+      if (SqlTypeUtil.isString(indexType)) {
         String fieldName = opBinding.getOperandLiteralValue(1, String.class);
         RelDataTypeField field = operandType.getField(fieldName, false, false);
         if (field == null) {
@@ -141,7 +142,7 @@ class SqlItemOperator extends SqlSpecialOperator {
         } else {
           fieldType = field.getType();
         }
-      } else if (SqlTypeFamily.INTEGER.contains(indexType)) {
+      } else if (SqlTypeUtil.isIntType(indexType)) {
         Integer index = opBinding.getOperandLiteralValue(1, Integer.class);
         if (index == null || index < 1 || index > operandType.getFieldCount()) {
           throw new AssertionError("Cannot infer type of field at position "
