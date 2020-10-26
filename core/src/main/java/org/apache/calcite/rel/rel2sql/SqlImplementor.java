@@ -26,25 +26,12 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexFieldAccess;
-import org.apache.calcite.rex.RexFieldCollation;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
-import org.apache.calcite.rex.RexPatternFieldRef;
-import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexSubQuery;
-import org.apache.calcite.rex.RexWindow;
-import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -99,7 +86,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -1451,6 +1440,33 @@ public abstract class SqlImplementor {
         }
       }
 
+      if (isOrderByWithCalculatedColumns(rel, clauses)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    private boolean isOrderByWithCalculatedColumns(RelNode rel, Clause[] clauses) {
+      if (rel instanceof LogicalSort
+        && ((LogicalSort) rel).getInput() instanceof LogicalProject
+        && clauses.length == 1 && clauses[0].equals(Clause.ORDER_BY)) {
+
+        LogicalProject logicalProject = (LogicalProject) ((LogicalSort) rel).getInput();
+        AtomicInteger rexIndex = new AtomicInteger(0);
+        Set<Integer> orderByRelevantRexIndexes = ((LogicalSort) rel).getChildExps().stream()
+          .map(RexInputRef.class::cast)
+          .map(RexSlot::getIndex)
+          .collect(Collectors.toSet());
+
+        // We do not want anything other than RexInputRef to appear in the order by clause.
+        // Many engines have limited support for these kind of expressions in the order by clause.
+        if (logicalProject.getChildExps().stream()
+          .filter(rexNode -> orderByRelevantRexIndexes.contains(rexIndex.getAndIncrement()))
+          .anyMatch(rexNode -> !(rexNode instanceof RexInputRef))) {
+          return true;
+        }
+      }
       return false;
     }
 
