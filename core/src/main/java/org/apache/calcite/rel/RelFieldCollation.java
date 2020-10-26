@@ -159,11 +159,13 @@ public class RelFieldCollation {
     @Nonnull public Direction reverse() {
       switch (this) {
       case ASCENDING:
-      case STRICTLY_ASCENDING:
         return DESCENDING;
+      case STRICTLY_ASCENDING:
+        return STRICTLY_DESCENDING;
       case DESCENDING:
-      case STRICTLY_DESCENDING:
         return ASCENDING;
+      case STRICTLY_DESCENDING:
+        return STRICTLY_ASCENDING;
       default:
         return this;
       }
