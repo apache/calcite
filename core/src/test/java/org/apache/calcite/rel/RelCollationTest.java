@@ -29,6 +29,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.rel.RelCollations.EMPTY;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.ASCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.CLUSTERED;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.DESCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_ASCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_DESCENDING;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -43,8 +48,8 @@ class RelCollationTest {
   @Test void testCollationContains() {
     final RelCollation collation21 =
         RelCollations.of(
-            new RelFieldCollation(2, RelFieldCollation.Direction.ASCENDING),
-            new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
+            new RelFieldCollation(2, ASCENDING),
+            new RelFieldCollation(1, DESCENDING));
     assertThat(RelCollations.contains(collation21, Arrays.asList(2)), is(true));
     assertThat(RelCollations.contains(collation21, Arrays.asList(1)),
         is(false));
@@ -73,7 +78,7 @@ class RelCollationTest {
 
     final RelCollation collation1 =
         RelCollations.of(
-            new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
+            new RelFieldCollation(1, DESCENDING));
     assertThat(RelCollations.contains(collation1, Arrays.asList(1, 1)),
         is(true));
     assertThat(RelCollations.contains(collation1, Arrays.asList(2, 2)),
@@ -202,6 +207,17 @@ class RelCollationTest {
     assertThat(collation9.apply(mapping(n, 1)), is(EMPTY));
     assertThat(collation9.apply(mapping(n, 2)), is(EMPTY));
     assertThat(collation9.apply(mapping(n, n - 1)), is(collation(0)));
+  }
+
+  /**
+   * Unit test for {@link RelFieldCollation.Direction#reverse()}.
+   */
+  @Test void testDirectionReverse() {
+    assertThat(ASCENDING.reverse(), is(DESCENDING));
+    assertThat(DESCENDING.reverse(), is(ASCENDING));
+    assertThat(STRICTLY_ASCENDING.reverse(), is(STRICTLY_DESCENDING));
+    assertThat(STRICTLY_DESCENDING.reverse(), is(STRICTLY_ASCENDING));
+    assertThat(CLUSTERED.reverse(), is(CLUSTERED));
   }
 
   private static RelCollation collation(int... ordinals) {
