@@ -8073,7 +8073,7 @@ public abstract class SqlOperatorBaseTest {
         "^ARRAY ['foo', 'bar']['baz']^",
         "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<VALUE>\\]\n"
-            + "<ROW>\\[<VALUE>\\]",
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]",
         false);
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
