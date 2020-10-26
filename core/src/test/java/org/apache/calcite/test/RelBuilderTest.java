@@ -647,9 +647,11 @@ public class RelBuilderTest {
         simplifiedRexNode.toString()
     );
 
-    // Actual: LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞), null]:SMALLINT))])
-    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT))])\n" +
-        "  LogicalTableScan(table=[[scott, EMP]])\n";
+    // Actual: LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]),
+    // SEARCH($3, Sarg[(-∞..+∞) OR NULL]:SMALLINT))])
+    final String expected = ""
+        + "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[NOT NULL]:SMALLINT))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
@@ -681,8 +683,9 @@ public class RelBuilderTest {
             .build();
 
     // Sarg representation is correct
-    final String expected = "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), IS NULL($3))])\n" +
-        "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expected = ""
+        + "LogicalFilter(condition=[AND(SEARCH($7, Sarg[(20..30)]), SEARCH($3, Sarg[NULL]:SMALLINT))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // RexUtil#expandSearch incorrectly expand SEARCH($3, Sarg[(-∞..+∞)]:SMALLINT)) to TRUE
@@ -785,7 +788,7 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], "
-        + "$f2=[OR(SEARCH($7, Sarg[20, 30]), AND(null:NULL, SEARCH($7, Sarg[10]), "
+        + "$f2=[OR(SEARCH($7, Sarg[20, 30]), AND(null:NULL, =($7, 10), "
         + "IS NULL($6), IS NULL($5)))], n2=[IS NULL($2)], "
         + "nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";

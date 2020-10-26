@@ -565,58 +565,58 @@ public class RexUtil {
     };
   }
 
+  /** Expands calls to {@link SqlStdOperatorTable#SEARCH} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
       @Nullable RexProgram program, RexNode node) {
-    final RexShuttle shuttle = new RexShuttle() {
-      @Override public RexNode visitCall(RexCall call) {
-        switch (call.getKind()) {
-        case SEARCH:
-          return visitSearch(rexBuilder, program, call);
-        default:
-          return super.visitCall(call);
-        }
-      }
-    };
-    return node.accept(shuttle);
+    return node.accept(searchShuttle(rexBuilder, program, -1));
+  }
+
+  /** Creates a shuttle that expands calls to
+   * {@link SqlStdOperatorTable#SEARCH}.
+   *
+   * <p>If {@code maxComplexity} is non-negative, a {@link Sarg} whose
+   * complexity is greater than {@code maxComplexity} is retained (not
+   * expanded); this gives a means to simplify simple expressions such as
+   * {@code x IS NULL} or {@code x > 10} while keeping more complex expressions
+   * such as {@code x IN (3, 5, 7) OR x IS NULL} as a Sarg. */
+  public static RexShuttle searchShuttle(RexBuilder rexBuilder,
+      RexProgram program, int maxComplexity) {
+    return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
   }
 
   @SuppressWarnings("BetaApi")
-  private static <C extends Comparable<C>> RexNode
-      visitSearch(RexBuilder rexBuilder,
-          @Nullable RexProgram program, RexCall call) {
-    final RexNode ref = call.operands.get(0);
-    final RexLiteral literal =
-        (RexLiteral) deref(program, call.operands.get(1));
-    @SuppressWarnings("unchecked")
-    final Sarg<C> sarg = literal.getValueAs(Sarg.class);
+  private static <C extends Comparable<C>> RexNode sargRef(
+      RexBuilder rexBuilder, RexNode ref, Sarg<C> sarg, RelDataType type) {
+    if (sarg.isAll()) {
+      if (sarg.containsNull) {
+        return rexBuilder.makeLiteral(true);
+      } else {
+        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref);
+      }
+    }
     final List<RexNode> orList = new ArrayList<>();
-
     if (sarg.containsNull) {
       orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref));
     }
-    if (sarg.isAll()) {
-      if (!sarg.containsNull) {
-        orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref));
-      }
-    } else if (sarg.isPoints()) {
+    if (sarg.isPoints()) {
       // Generate 'ref = value1 OR ... OR ref = valueN'
       sarg.rangeSet.asRanges().forEach(range ->
           orList.add(
               rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
-                      literal.getType(), true, true))));
+                      type, true, true))));
     } else if (sarg.isComplementedPoints()) {
       // Generate 'ref <> value1 AND ... AND ref <> valueN'
       final List<RexNode> list = sarg.rangeSet.complement().asRanges().stream()
           .map(range ->
               rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
-                      literal.getType(), true, true)))
+                      type, true, true)))
           .collect(Util.toImmutableList());
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =
-          new RangeToRex<>(ref, orList, rexBuilder, literal.getType());
+          new RangeToRex<>(ref, orList, rexBuilder, type);
       RangeSets.forEach(sarg.rangeSet, consumer);
     }
     return composeDisjunction(rexBuilder, orList);
@@ -2989,6 +2989,40 @@ public class RexUtil {
     @Override public void open(C lower, C upper) {
       addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
           op(SqlStdOperatorTable.LESS_THAN, upper));
+    }
+  }
+
+  /** Shuttle that expands calls to
+   * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#SEARCH}.
+   *
+   * <p>Calls whose complexity is greater than {@link #maxComplexity}
+   * are retained (not expanded). */
+  private static class SearchExpandingShuttle extends RexShuttle {
+    private final RexBuilder rexBuilder;
+    private final RexProgram program;
+    private final int maxComplexity;
+
+    SearchExpandingShuttle(RexProgram program, RexBuilder rexBuilder,
+        int maxComplexity) {
+      this.program = program;
+      this.rexBuilder = rexBuilder;
+      this.maxComplexity = maxComplexity;
+    }
+
+    @Override public RexNode visitCall(RexCall call) {
+      switch (call.getKind()) {
+      case SEARCH:
+        final RexNode ref = call.operands.get(0);
+        final RexLiteral literal =
+            (RexLiteral) deref(program, call.operands.get(1));
+        final Sarg sarg = literal.getValueAs(Sarg.class);
+        if (maxComplexity < 0 || sarg.complexity() < maxComplexity) {
+          return sargRef(rexBuilder, ref, sarg, literal.getType());
+        }
+        // Sarg is complex (therefore useful); fall through
+      default:
+        return super.visitCall(call);
+      }
     }
   }
 }

@@ -52,6 +52,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -983,19 +984,22 @@ class RexProgramTest extends RexProgramTestBase {
     // "x <> x" simplifies to "false"
     checkSimplify(ne(literal(1), literal(1)), "false");
     checkSimplify(ne(hRef, hRef), "false");
-    checkSimplify3(ne(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
+    checkSimplify3(ne(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(ne(iRef, hRef));
 
     // "x < x" simplifies to "false"
     checkSimplify(lt(literal(1), literal(1)), "false");
     checkSimplify(lt(hRef, hRef), "false");
-    checkSimplify3(lt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
+    checkSimplify3(lt(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(lt(iRef, hRef));
 
     // "x > x" simplifies to "false"
     checkSimplify(gt(literal(1), literal(1)), "false");
     checkSimplify(gt(hRef, hRef), "false");
-    checkSimplify3(gt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
+    checkSimplify3(gt(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(gt(iRef, hRef));
 
     // "(not x) is null" to "x is null"
@@ -1588,7 +1592,7 @@ class RexProgramTest extends RexProgramTestBase {
     // a is null or a >= 15
     RexNode expr = or(isNull(aRef),
         ge(aRef, literal(15)));
-    checkSimplify(expr, "SEARCH($0, Sarg[[15..+\u221e), null])")
+    checkSimplify(expr, "SEARCH($0, Sarg[[15..+\u221e) OR NULL])")
         .expandedSearch("OR(IS NULL($0), >=($0, 15))");
   }
 
@@ -1607,7 +1611,7 @@ class RexProgramTest extends RexProgramTestBase {
         ge(aRef, literal(15)));
     // [CALCITE-4190] causes "or a >= 15" to disappear from the simplified form.
     final String simplified =
-        "SEARCH($0, Sarg[(0..12), [15..+\u221e), null])";
+        "SEARCH($0, Sarg[(0..12), [15..+\u221e) OR NULL])";
     final String expanded =
         "OR(IS NULL($0), AND(>($0, 0), <($0, 12)), >=($0, 15))";
     checkSimplify(expr, simplified)
@@ -1636,7 +1640,7 @@ class RexProgramTest extends RexProgramTestBase {
                 eq(aRef, literal(5)))),
         isNull(aRef));
     final String simplified =
-        "SEARCH($0, Sarg[(-\u221e..3), (3..5), (5..+\u221e), null])";
+        "SEARCH($0, Sarg[(-\u221e..3), (3..5), (5..+\u221e) OR NULL])";
     final String expanded = "OR(IS NULL($0), AND(<>($0, 3), <>($0, 5)))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
@@ -1650,7 +1654,8 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode bRef = input(tInt(true), 1);
     // a in (1, 2) or b is null
     RexNode expr = or(eq(aRef, literal(1)), eq(aRef, literal(2)), isNull(bRef));
-    final String simplified = "OR(IS NULL($1), SEARCH($0, Sarg[1, 2]))";
+    final String simplified =
+        "OR(SEARCH($1, Sarg[NULL]), SEARCH($0, Sarg[1, 2]))";
     final String expanded = "OR(IS NULL($1), OR(=($0, 1), =($0, 2)))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
@@ -1683,7 +1688,7 @@ class RexProgramTest extends RexProgramTestBase {
     // [CALCITE-4352] causes "and b is not null" to disappear from the expanded
     // form.
     final String simplified = "AND(SEARCH($0, Sarg[(0..10)]),"
-            + " SEARCH($1, Sarg[(-\u221e..+\u221e)]))";
+        + " SEARCH($1, Sarg[NOT NULL]))";
     final String expanded =
         "AND(AND(>($0, 0), <($0, 10)), IS NOT NULL($1))";
     checkSimplify(expr, simplified)
@@ -1700,7 +1705,8 @@ class RexProgramTest extends RexProgramTestBase {
         isNull(bRef));
     // [CALCITE-4352] causes "and b is null" to disappear from the expanded
     // form.
-    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]), IS NULL($1))";
+    final String simplified =
+        "AND(SEARCH($0, Sarg[(0..10)]), SEARCH($1, Sarg[NULL]))";
     final String expanded = "AND(AND(>($0, 0), <($0, 10)), IS NULL($1))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
@@ -2400,9 +2406,9 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))",
         "true");
     checkSimplify3(and(ne(vInt(), vInt()), ne(vInt(1), vInt(1))),
-        "AND(null, IS NULL(?0.int0), IS NULL(?0.int1))",
+        "AND(null, SEARCH(?0.int0, Sarg[NULL]), SEARCH(?0.int1, Sarg[NULL]))",
         "false",
-        "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
+        "AND(SEARCH(?0.int0, Sarg[NULL]), SEARCH(?0.int1, Sarg[NULL]))");
   }
 
   @Test void testBooleanComparisons() {
@@ -2694,15 +2700,17 @@ class RexProgramTest extends RexProgramTestBase {
     //    -> "x = x AND y < y" (treating unknown as unknown)
     //    -> false (treating unknown as false)
     checkSimplify3(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "AND(OR(null, IS NOT NULL(?0.int1)), null, IS NULL(?0.int2))",
+        "AND(OR(null, IS NOT NULL(?0.int1)), null,"
+            + " SEARCH(?0.int2, Sarg[NULL]))",
         "false",
-        "IS NULL(?0.int2)");
+        "SEARCH(?0.int2, Sarg[NULL])");
 
     // "NOT(x = x AND NOT (y = y))"
     //   -> "OR(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "y IS NOT NULL" (treating unknown as false)
     checkSimplify3(not(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "OR(AND(null, IS NULL(?0.int1)), null, IS NOT NULL(?0.int2))",
+        "OR(AND(null, SEARCH(?0.int1, Sarg[NULL])), null,"
+            + " IS NOT NULL(?0.int2))",
         "IS NOT NULL(?0.int2)",
         "true");
   }
@@ -2710,10 +2718,10 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testSimplifyOrIsNull() {
     // x = 10 OR x IS NULL
     checkSimplify(or(eq(vInt(0), literal(10)), isNull(vInt(0))),
-        "SEARCH(?0.int0, Sarg[10, null])");
+        "SEARCH(?0.int0, Sarg[10 OR NULL])");
     // 10 = x OR x IS NULL
     checkSimplify(or(eq(literal(10), vInt(0)), isNull(vInt(0))),
-        "SEARCH(?0.int0, Sarg[10, null])");
+        "SEARCH(?0.int0, Sarg[10 OR NULL])");
   }
 
   @Test void testSimplifyOrNot() {
@@ -2725,7 +2733,8 @@ class RexProgramTest extends RexProgramTestBase {
     //    -> "x = x OR y < y" (treating unknown as unknown)
     //    -> "x IS NOT NULL" (treating unknown as false)
     checkSimplify3(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "OR(null, IS NOT NULL(?0.int1), AND(null, IS NULL(?0.int2)))",
+        "OR(null, IS NOT NULL(?0.int1),"
+            + " AND(null, SEARCH(?0.int2, Sarg[NULL])))",
         "IS NOT NULL(?0.int1)",
         "true");
 
@@ -2733,60 +2742,69 @@ class RexProgramTest extends RexProgramTestBase {
     //   -> "AND(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "FALSE" (treating unknown as false)
     checkSimplify3(not(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "AND(null, IS NULL(?0.int1), OR(null, IS NOT NULL(?0.int2)))",
+        "AND(null, SEARCH(?0.int1, Sarg[NULL]),"
+            + " OR(null, IS NOT NULL(?0.int2)))",
         "false",
-        "IS NULL(?0.int1)");
+        "SEARCH(?0.int1, Sarg[NULL])");
+  }
+
+  private void checkSarg(String message, Sarg sarg,
+      Matcher<Integer> complexityMatcher, Matcher<String> stringMatcher) {
+    assertThat(message, sarg.complexity(), complexityMatcher);
+    assertThat(message, sarg.toString(), stringMatcher);
   }
 
   /** Tests {@link Sarg#complexity()}. */
   @SuppressWarnings("UnstableApiUsage")
   @Test void testSargComplexity() {
-    assertThat("complexity of 'x is not null'",
-        Sarg.of(false, RangeSets.<Integer>rangeSetAll()).complexity(),
-        is(1));
-    assertThat("complexity of 'x is null'",
-        Sarg.of(true, ImmutableRangeSet.<Integer>of()).complexity(),
-        is(1));
+    checkSarg("complexity of 'x is not null'",
+        Sarg.of(false, RangeSets.<Integer>rangeSetAll()),
+        is(1), is("Sarg[NOT NULL]"));
+    checkSarg("complexity of 'x is null'",
+        Sarg.of(true, ImmutableRangeSet.<Integer>of()),
+        is(1), is("Sarg[NULL]"));
+    checkSarg("complexity of 'false'",
+        Sarg.of(false, ImmutableRangeSet.<Integer>of()),
+        is(0), is("Sarg[FALSE]"));
+    checkSarg("complexity of 'true'",
+        Sarg.of(true, RangeSets.<Integer>rangeSetAll()),
+        is(2), is("Sarg[TRUE]"));
 
-    assertThat("complexity of 'x = 1'",
-        Sarg.of(false, ImmutableRangeSet.of(Range.singleton(1))).complexity(),
-        is(1));
-    assertThat("complexity of 'x > 1'",
-        Sarg.of(false, ImmutableRangeSet.of(Range.greaterThan(1)))
-            .complexity(),
-        is(1));
-    assertThat("complexity of 'x >= 1'",
-        Sarg.of(false, ImmutableRangeSet.of(Range.atLeast(1))).complexity(),
-        is(1));
-    assertThat("complexity of 'x > 1 or x is null'",
-        Sarg.of(true, ImmutableRangeSet.of(Range.greaterThan(1))).complexity(),
-        is(2));
-    assertThat("complexity of 'x <> 1'",
-        Sarg.of(false, ImmutableRangeSet.of(Range.singleton(1)).complement())
-            .complexity(),
-        is(1));
-    assertThat("complexity of 'x <> 1 or x is null'",
-        Sarg.of(true, ImmutableRangeSet.of(Range.singleton(1)).complement())
-            .complexity(),
-        is(2));
-    assertThat("complexity of 'x < 10 or x >= 20'",
+    checkSarg("complexity of 'x = 1'",
+        Sarg.of(false, ImmutableRangeSet.of(Range.singleton(1))),
+        is(1), is("Sarg[1]"));
+    checkSarg("complexity of 'x > 1'",
+        Sarg.of(false, ImmutableRangeSet.of(Range.greaterThan(1))),
+        is(1), is("Sarg[(1..+\u221E)]"));
+    checkSarg("complexity of 'x >= 1'",
+        Sarg.of(false, ImmutableRangeSet.of(Range.atLeast(1))),
+        is(1), is("Sarg[[1..+\u221E)]"));
+    checkSarg("complexity of 'x > 1 or x is null'",
+        Sarg.of(true, ImmutableRangeSet.of(Range.greaterThan(1))),
+        is(2), is("Sarg[(1..+\u221E) OR NULL]"));
+    checkSarg("complexity of 'x <> 1'",
+        Sarg.of(false, ImmutableRangeSet.of(Range.singleton(1)).complement()),
+        is(1), is("Sarg[(-\u221E..1), (1..+\u221E)]"));
+    checkSarg("complexity of 'x <> 1 or x is null'",
+        Sarg.of(true, ImmutableRangeSet.of(Range.singleton(1)).complement()),
+        is(2), is("Sarg[(-\u221E..1), (1..+\u221E) OR NULL]"));
+    checkSarg("complexity of 'x < 10 or x >= 20'",
         Sarg.of(false,
             ImmutableRangeSet.copyOf(
-                ImmutableList.of(Range.lessThan(10), Range.atLeast(20))))
-            .complexity(),
-        is(2));
-    assertThat("complexity of 'x in (2, 4, 6) or x > 20'",
+                ImmutableList.of(Range.lessThan(10), Range.atLeast(20)))),
+        is(2), is("Sarg[(-\u221E..10), [20..+\u221E)]"));
+    checkSarg("complexity of 'x in (2, 4, 6) or x > 20'",
         Sarg.of(false,
             ImmutableRangeSet.copyOf(
                 Arrays.asList(Range.singleton(2), Range.singleton(4),
-                    Range.singleton(6), Range.greaterThan(20)))).complexity(),
-        is(4));
-    assertThat("complexity of 'x between 3 and 8 or x between 10 and 20'",
+                    Range.singleton(6), Range.greaterThan(20)))),
+        is(4), is("Sarg[2, 4, 6, (20..+\u221E)]"));
+    checkSarg("complexity of 'x between 3 and 8 or x between 10 and 20'",
         Sarg.of(false,
             ImmutableRangeSet.copyOf(
                 Arrays.asList(Range.closed(3, 8),
-                    Range.closed(10, 20)))).complexity(),
-        is(2));
+                    Range.closed(10, 20)))),
+        is(2), is("Sarg[[3..8], [10..20]]"));
   }
 
   @Test void testInterpreter() {

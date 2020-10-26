@@ -583,6 +583,18 @@ public class RexSimplify {
     case NOT:
       // NOT NOT x ==> x
       return simplify(((RexCall) a).getOperands().get(0), unknownAs);
+    case SEARCH:
+      // NOT SEARCH(x, Sarg[(-inf, 10) OR NULL) ==> SEARCH(x, Sarg[[10, +inf)])
+      final RexCall call2 = (RexCall) a;
+      final RexNode ref = call2.operands.get(0);
+      final RexLiteral literal = (RexLiteral) call2.operands.get(1);
+      final Sarg sarg = literal.getValueAs(Sarg.class);
+      return simplifySearch(
+          call2.clone(call2.type,
+              ImmutableList.of(ref,
+                  rexBuilder.makeLiteral(sarg.negate(), literal.getType(),
+                      literal.getTypeName()))),
+          unknownAs.negate());
     case LITERAL:
       if (a.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
           && !RexLiteral.isNullLiteral(a)) {
@@ -2703,19 +2715,9 @@ public class RexSimplify {
     RexNode fix(RexBuilder rexBuilder, RexNode term) {
       if (term instanceof RexSargBuilder) {
         RexSargBuilder sargBuilder = (RexSargBuilder) term;
-        final Sarg sarg = sargBuilder.build();
-        if (sarg.rangeSet.isEmpty()) {
-          if (sarg.containsNull) {
-            return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
-                sargBuilder.ref);
-          } else {
-            return rexBuilder.makeLiteral(false);
-          }
-        } else {
-          return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH,
-              sargBuilder.ref,
-              rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
-        }
+        return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
+            rexBuilder.makeSearchArgumentLiteral(sargBuilder.build(),
+                term.getType()));
       }
       return term;
     }

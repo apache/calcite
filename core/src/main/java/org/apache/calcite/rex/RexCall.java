@@ -25,6 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sarg;
 
 import com.google.common.collect.ImmutableList;
 
@@ -196,6 +197,10 @@ public class RexCall extends RexNode {
     case IS_TRUE:
     case CAST:
       return operands.get(0).isAlwaysTrue();
+    case SEARCH:
+      final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
+      return sarg.isAll()
+          && (sarg.containsNull || !operands.get(0).getType().isNullable());
     default:
       return false;
     }
@@ -213,6 +218,10 @@ public class RexCall extends RexNode {
     case IS_TRUE:
     case CAST:
       return operands.get(0).isAlwaysFalse();
+    case SEARCH:
+      final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
+      return sarg.isNone()
+          && (!sarg.containsNull || !operands.get(0).getType().isNullable());
     default:
       return false;
     }
