@@ -39,7 +39,8 @@ import java.util.Arrays;
 
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
- * array or map. For example, {@code myArray[3]} or {@code "myMap['foo']"}.
+ * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
+ * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
 class SqlItemOperator extends SqlSpecialOperator {
 

@@ -2521,12 +2521,7 @@ public class SqlFunctions {
       return structAccess(object, ((Number) index).intValue() - 1, ""); // 1 indexed
     }
     if (index instanceof String) {
-      String indexAsStr = index.toString();
-      try {
-        return structAccess(object, Integer.parseInt(indexAsStr) - 1, ""); // 1 indexed
-      } catch (NumberFormatException e) {
-        return structAccess(object, -1, indexAsStr);
-      }
+      return structAccess(object, -1, index.toString());
     }
 
     return null;

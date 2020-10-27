@@ -320,6 +320,13 @@ public class ReflectiveSchemaTest {
             "value=true");
   }
 
+  @Test void testSelectRecordTypeFieldViaItemOperator() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"birthPlace\"['city'] as city from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("CITY=Heraklion", "CITY=Besançon", "CITY=Ionia");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
