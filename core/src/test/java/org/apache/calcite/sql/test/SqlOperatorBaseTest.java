@@ -8072,7 +8072,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "^ARRAY ['foo', 'bar']['baz']^",
         "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
-            + "<MAP>\\[<KEY>\\]\n"
+            + "<MAP>\\[<ANY>\\]\n"
             + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]",
         false);
 
