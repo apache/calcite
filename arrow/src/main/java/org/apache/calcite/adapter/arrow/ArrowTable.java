@@ -93,7 +93,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(projector, fields.length, arrowFileReader);
+          return new ArrowEnumerator(projector, fields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
