@@ -34,7 +34,7 @@ import com.microsoft.z3.Sort;
  **/
 
 public class SymbolicColumn {
-  /** Each SymbolicColumn is unique **/
+  /** Each SymbolicColumn is unique. **/
   private static int count = 0;
 
   private Expr symbolicValue;
