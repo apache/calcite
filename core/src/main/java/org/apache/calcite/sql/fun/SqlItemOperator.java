@@ -116,7 +116,7 @@ class SqlItemOperator extends SqlSpecialOperator {
 
   @Override public String getAllowedSignatures(String name) {
     return "<ARRAY>[<INTEGER>]\n"
-        + "<MAP>[<VALUE>]\n"
+        + "<MAP>[<KEY>]\n"
         + "<ROW>[<CHARACTER>|<INTEGER>]";
   }
 
