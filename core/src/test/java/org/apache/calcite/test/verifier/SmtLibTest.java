@@ -49,7 +49,6 @@ public class SmtLibTest {
 
   @Test void testZ3Lib2() {
     try {
-      /** need to specify the local native library **/
       //System.load("/usr/local/lib/libz3java.dylib");
       Context z3Context = new Context();
       Expr x = z3Context.mkIntConst("x");
