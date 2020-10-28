@@ -65,7 +65,14 @@ public class SymbolicColumn {
     }
   }
 
-  private SymbolicColumn(Expr symbolicValue, BoolExpr symbolicNull) {
+  public static Expr dummyValue(RexNode node, Context z3Context) {
+    RelDataType type = node.getType();
+    Expr dummyValue = z3Context.mkConst("value" + count, type2Sort(type, z3Context));
+    count++;
+    return dummyValue;
+  }
+
+  public SymbolicColumn(Expr symbolicValue, BoolExpr symbolicNull) {
     this.symbolicValue = symbolicValue;
     this.symbolicNull = symbolicNull;
   }
