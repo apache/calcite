@@ -27,6 +27,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Simple Test for testing dynamic library for z3.
+ **/
 
 public class SmtLibTest {
   @Test void testZ3Lib1() {
