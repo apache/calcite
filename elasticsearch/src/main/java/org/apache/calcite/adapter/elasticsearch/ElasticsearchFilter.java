@@ -23,7 +23,9 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+import java.util.Iterator;
 import java.util.Objects;
 
 /**
@@ -82,7 +85,19 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
 
       StringWriter writer = new StringWriter();
       JsonGenerator generator = mapper.getFactory().createGenerator(writer);
-      QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+      boolean disMax = condition.isA(SqlKind.OR);
+      Iterator<RexNode> operands = ((RexCall) condition).getOperands().iterator();
+      while (operands.hasNext() && !disMax) {
+        if (operands.next().isA(SqlKind.OR)) {
+          disMax = true;
+          break;
+        }
+      }
+      if (disMax) {
+        QueryBuilders.disMaxQueryBuilder(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+      } else {
+        QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+      }
       generator.flush();
       generator.close();
       return "{\"query\" : " + writer.toString() + "}";
