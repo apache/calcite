@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.vector.ValueVector;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 import org.apache.arrow.vector.VectorUnloader;
@@ -39,13 +40,16 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private final Projector projector;
   private int rowIndex = -1;
   private List<ValueVector> valueVectors;
+  private int[] fields;
   private final int numFields;
+  private int rowSize;
 
-  public ArrowEnumerator(Projector projector, int numFields, ArrowFileReader arrowFileReader) {
+  public ArrowEnumerator(Projector projector, int[] fields, ArrowFileReader arrowFileReader) {
     this.projector = projector;
     this.arrowFileReader = arrowFileReader;
+    this.fields = fields;
+    this.numFields = fields.length;
     this.valueVectors = new ArrayList<ValueVector>(numFields);
-    this.numFields = numFields;
 
     try {
       if (arrowFileReader.loadNextBatch()) {
@@ -76,7 +80,7 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public boolean moveNext() {
-    if (rowIndex >= this.valueVectors.size() - 1) {
+    if (rowIndex >= this.rowSize - 1) {
       boolean hasNextBatch = false;
       try {
         hasNextBatch = arrowFileReader.loadNextBatch();
@@ -101,7 +105,10 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private void loadNextArrowBatch() {
     try {
       VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
-      this.valueVectors.addAll(vsr.getFieldVectors());
+      for (int i : fields) {
+        this.valueVectors.add(vsr.getVector(i));
+      }
+      this.rowSize = vsr.getRowCount();
       VectorUnloader vectorUnloader = new VectorUnloader(vsr);
       ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
       projector.evaluate(arrowRecordBatch, valueVectors);
