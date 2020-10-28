@@ -320,10 +320,17 @@ public class ReflectiveSchemaTest {
             "value=true");
   }
 
-  @Test void testSelectRecordTypeFieldViaItemOperator() {
+  @Test void testSelectRecordTypeFieldViaItemOperatorAndFieldName() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"birthPlace\"['city'] as city from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("CITY=Heraklion", "CITY=Besançon", "CITY=Ionia");
+  }
+
+  @Test void testSelectRecordTypeFieldViaItemOperatorAndFieldIndex() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"birthPlace\"[2] as city from \"bookstore\".\"authors\" au\n")
         .returnsUnordered("CITY=Heraklion", "CITY=Besançon", "CITY=Ionia");
   }
 
