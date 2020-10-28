@@ -2963,7 +2963,12 @@ public class SqlFunctions {
     } else {
       Class<?> beanClass = structObject.getClass();
       try {
-        Field structField = beanClass.getDeclaredField(fieldName);
+        Field structField;
+        if (index >= 0 && index < beanClass.getDeclaredFields().length) {
+          structField = beanClass.getDeclaredFields()[index];
+        } else {
+          structField = beanClass.getDeclaredField(fieldName);
+        }
         return structField.get(structObject);
       } catch (NoSuchFieldException | IllegalAccessException ex) {
         throw RESOURCE.failedToAccessField(fieldName, beanClass.getName()).ex(ex);
