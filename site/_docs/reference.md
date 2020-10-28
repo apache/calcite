@@ -1549,6 +1549,8 @@ Implicit type coercion of following cases are ignored:
 |:--------------- |:-----------
 | ROW (value [, value ]*)  | Creates a row from a list of values.
 | (value [, value ]* )     | Creates a row from a list of values.
+| row '[' index ']'        | Returns the element at a particular location in a row.
+| row '[' name ']'         | Returns the element of a row with a particular name.
 | map '[' key ']'     | Returns the element of a map with a particular key.
 | array '[' index ']' | Returns the element at a particular location in an array.
 | ARRAY '[' value [, value ]* ']' | Creates an array from a list of values.
