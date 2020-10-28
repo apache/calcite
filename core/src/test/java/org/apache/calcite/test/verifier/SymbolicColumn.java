@@ -34,7 +34,7 @@ import com.microsoft.z3.Sort;
  **/
 
 public class SymbolicColumn {
-  /** Each SymbolicColumn is unique **/
+  /** Each SymbolicColumn is unique. **/
   private static int count = 0;
 
   private Expr symbolicValue;
@@ -65,7 +65,14 @@ public class SymbolicColumn {
     }
   }
 
-  private SymbolicColumn(Expr symbolicValue, BoolExpr symbolicNull) {
+  public static Expr dummyValue(RexNode node, Context z3Context) {
+    RelDataType type = node.getType();
+    Expr dummyValue = z3Context.mkConst("value" + count, type2Sort(type, z3Context));
+    count++;
+    return dummyValue;
+  }
+
+  public SymbolicColumn(Expr symbolicValue, BoolExpr symbolicNull) {
     this.symbolicValue = symbolicValue;
     this.symbolicNull = symbolicNull;
   }
