@@ -73,7 +73,7 @@ public class RexToSymbolicColumn {
 
   private static SymbolicColumn constantToColumn(RexLiteral constant, Context z3Context) {
     SqlTypeName type = constant.getTypeName();
-    if (type == SqlTypeName.NULL) {
+    if (type.equals(SqlTypeName.NULL)) {
       Expr dummyValue = SymbolicColumn.dummyValue(constant, z3Context);
       return new SymbolicColumn(dummyValue, z3Context.mkTrue());
     } else {
@@ -92,7 +92,7 @@ public class RexToSymbolicColumn {
       int intConstant = value.intValue();
       return z3Context.mkInt(intConstant);
     }
-    if (type == SqlTypeName.DECIMAL) {
+    if (type.equals(SqlTypeName.DECIMAL)) {
       BigDecimal value = (BigDecimal) constant.getValue();
       return z3Context.mkReal(value.toString());
     }
@@ -213,10 +213,10 @@ public class RexToSymbolicColumn {
     RexNode operand = rexCall.getOperands().get(0);
     SqlKind sqlKind = rexCall.getKind();
     SymbolicColumn symbolicColumn = rexToColumn(operand, columns, z3Context, env);
-    if (sqlKind == SqlKind.IS_NULL) {
+    if (sqlKind.equals(SqlKind.IS_NULL)) {
       return new SymbolicColumn(symbolicColumn.getSymbolicNull(), z3Context.mkFalse());
     }
-    if (sqlKind == SqlKind.IS_NOT_NULL) {
+    if (sqlKind.equals(SqlKind.IS_NOT_NULL)) {
       Expr negationValue = z3Context.mkNot(symbolicColumn.getSymbolicNull());
       return new SymbolicColumn(negationValue, z3Context.mkFalse());
     }
