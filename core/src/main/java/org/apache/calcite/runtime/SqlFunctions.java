@@ -2518,7 +2518,7 @@ public class SqlFunctions {
       return arrayItem((List) object, ((Number) index).intValue());
     }
     if (index instanceof Number) {
-      return structAccess(object, ((Number) index).intValue() - 1, ""); // 1 indexed
+      return structAccess(object, ((Number) index).intValue() - 1, null); // 1 indexed
     }
     if (index instanceof String) {
       return structAccess(object, -1, index.toString());
@@ -2964,7 +2964,7 @@ public class SqlFunctions {
       Class<?> beanClass = structObject.getClass();
       try {
         Field structField;
-        if (index >= 0 && index < beanClass.getDeclaredFields().length) {
+        if (fieldName == null) {
           structField = beanClass.getDeclaredFields()[index];
         } else {
           structField = beanClass.getDeclaredField(fieldName);
