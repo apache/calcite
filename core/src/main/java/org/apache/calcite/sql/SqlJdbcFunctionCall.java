@@ -752,7 +752,6 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               return super.createCall(pos, operands);
             }
           });
-      map.put("COUNTIF", simple(SqlLibraryOperators.COUNTIF));
       map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
       map.put("CONVERT",
           new SimpleMakeCall(SqlStdOperatorTable.CAST) {

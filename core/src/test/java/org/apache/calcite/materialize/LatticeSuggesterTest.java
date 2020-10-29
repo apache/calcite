@@ -624,9 +624,11 @@ class LatticeSuggesterTest {
         .withLibrary(SqlLibrary.BIG_QUERY);
 
     final String q0 = "select\n"
+        + "  sum(unit_sales),"
         + "  countif(unit_sales > 1000) as num_over_thousand\n"
         + "from\n"
-        + "  `sales_fact_1997`";
+        + "  `sales_fact_1997`"
+        + "group by product_id";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
   }

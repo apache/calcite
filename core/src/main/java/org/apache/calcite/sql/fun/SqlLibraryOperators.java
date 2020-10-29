@@ -605,9 +605,5 @@ public abstract class SqlLibraryOperators {
     */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction COUNTIF =
-      new SqlFunction("COUNTIF", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BIGINT_NULLABLE,
-          null,
-          OperandTypes.BOOLEAN,
-          SqlFunctionCategory.SYSTEM);
+      new SqlCountAggFunction("COUNTIF", null);
 }
