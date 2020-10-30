@@ -1576,7 +1576,11 @@ SqlNode SqlInsert() :
     SqlInsertKeywords(keywords) {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
-    <INTO> table = TableRefWithHintsOpt()
+    (
+      <INTO> table = TableRefWithHintsOpt()
+    |
+      <OVERWRITE> <TABLE> table = TableRefWithHintsOpt()
+    )
     [
         LOOKAHEAD(5)
         [ <EXTEND> ]
@@ -7533,6 +7537,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < OVERLAPS: "OVERLAPS" >
 |   < OVERLAY: "OVERLAY" >
 |   < OVERRIDING: "OVERRIDING" >
+|   < OVERWRITE: "OVERWRITE" > 
 |   < PAD: "PAD" >
 |   < PARAMETER: "PARAMETER" >
 |   < PARAMETER_MODE: "PARAMETER_MODE" >
