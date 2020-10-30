@@ -756,7 +756,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (returnType == null) {
       RexCallBinding binding =
           new RexCallBinding(cx.getTypeFactory(), fun, exprs,
-              ImmutableList.of()) {
+              ImmutableList.of(), ImmutableList.of()) {
             @Override public int getGroupCount() {
               return groupCount;
             }

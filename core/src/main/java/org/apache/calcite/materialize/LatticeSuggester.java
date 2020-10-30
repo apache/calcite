@@ -17,7 +17,9 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -30,12 +32,24 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -64,7 +78,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -89,6 +105,15 @@ public class LatticeSuggester {
 
   /** Whether to try to extend an existing lattice when adding a lattice. */
   private final boolean evolve;
+
+  /** Generates unique names. */
+  private final Supplier<String> nameGenerator = new Supplier<String>() {
+    final AtomicInteger nextInt = new AtomicInteger();
+
+    @Override public String get() {
+      return "$table" + nextInt.incrementAndGet();
+    }
+  };
 
   /** Creates a LatticeSuggester. */
   public LatticeSuggester(FrameworkConfig config) {
@@ -526,13 +551,39 @@ public class LatticeSuggester {
     } else if (r instanceof TableScan) {
       final TableScan scan = (TableScan) r;
       final TableRef tableRef = q.tableRef(scan);
-      final int fieldCount = r.getRowType().getFieldCount();
-      return new Frame(fieldCount, ImmutableList.of(),
+      final RelDataType rowType = r.getRowType();
+      return new Frame(rowType.getFieldCount(), ImmutableList.of(),
           ImmutableList.of(), ImmutableSet.of(tableRef)) {
         @Override ColRef column(int offset) {
-          if (offset >= scan.getTable().getRowType().getFieldCount()) {
+          if (offset >= rowType.getFieldCount()) {
             throw new IndexOutOfBoundsException("field " + offset
-                + " out of range in " + scan.getTable().getRowType());
+                + " out of range in " + rowType);
+          }
+          return new BaseColRef(tableRef, offset);
+        }
+      };
+    } else if (r instanceof TableFunctionScan) {
+      final TableFunctionScan scan = (TableFunctionScan) r;
+      final RelNode input = scan.getInputs().get(0);
+      String name = null;
+      if (scan.getCall() instanceof RexCall) {
+        final RexCall call = (RexCall) scan.getCall();
+        if (call.getOperator() == WrapFunction.INSTANCE) {
+          name = ((RexLiteral) call.operands.get(1)).getValueAs(String.class);
+        }
+      }
+      if (name == null) {
+        name = nameGenerator.get();
+      }
+      final RelOptTable dummyTable = new DummyTable(input, name);
+      final TableRef tableRef = q.tableRef(scan, dummyTable);
+      final RelDataType rowType = r.getRowType();
+      return new Frame(rowType.getFieldCount(), ImmutableList.of(),
+          ImmutableList.of(), ImmutableSet.of(tableRef)) {
+        @Override ColRef column(int offset) {
+          if (offset >= rowType.getFieldCount()) {
+            throw new IndexOutOfBoundsException("field " + offset
+                + " out of range in " + rowType);
           }
           return new BaseColRef(tableRef, offset);
         }
@@ -554,11 +605,15 @@ public class LatticeSuggester {
     }
 
     TableRef tableRef(TableScan scan) {
+      return tableRef(scan, scan.getTable());
+    }
+
+    TableRef tableRef(RelNode scan, RelOptTable table) {
       final TableRef r = tableRefs.get(scan.getId());
       if (r != null) {
         return r;
       }
-      final LatticeTable t = space.register(scan.getTable());
+      final LatticeTable t = space.register(table);
       final TableRef r2 = new TableRef(t, tableRefs.size());
       tableRefs.put(scan.getId(), r2);
       return r2;
@@ -812,4 +867,43 @@ public class LatticeSuggester {
     }
   }
 
+  /** Dummy table that represents a RelNode that is to be treated as a leaf
+   * by the lattice suggester. The name is unique within this run of the
+   * suggester. */
+  private static class DummyTable extends RelOptAbstractTable {
+    final RelNode scan;
+
+    DummyTable(RelNode scan, String name) {
+      super(null, name, scan.getRowType());
+      this.scan = scan;
+    }
+
+    @Override public <T> T unwrap(Class<T> clazz) {
+      if (RelNode.class.isAssignableFrom(clazz)
+          && clazz.isInstance(scan)) {
+        return clazz.cast(scan);
+      }
+      return super.unwrap(clazz);
+    }
+  }
+
+  /** "WRAP" user-defined table function. */
+  public static class WrapFunction extends SqlFunction
+      implements SqlTableFunction {
+    public static final WrapFunction INSTANCE = new WrapFunction();
+
+    WrapFunction() {
+      super("WRAP", SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR,
+          null, OperandTypes.VARIADIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return WrapFunction::cursor0;
+    }
+
+    private static RelDataType cursor0(SqlOperatorBinding opBinding) {
+      return opBinding.getCursorOperand(0);
+    }
+  }
 }

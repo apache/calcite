@@ -511,7 +511,7 @@ public class RelFactories {
       if (call.getOperator() instanceof SqlTableFunction) {
         final SqlOperatorBinding callBinding =
             new RexCallBinding(cluster.getTypeFactory(), call.getOperator(),
-                call.operands, ImmutableList.of());
+                call.operands, ImmutableList.of(), inputs);
         final SqlTableFunction operator = (SqlTableFunction) call.getOperator();
         final SqlReturnTypeInference rowTypeInference =
             operator.getRowTypeInference();

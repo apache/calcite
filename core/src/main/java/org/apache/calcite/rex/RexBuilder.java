@@ -281,7 +281,7 @@ public class RexBuilder {
       SqlOperator op,
       List<? extends RexNode> exprs) {
     return op.inferReturnType(
-        new RexCallBinding(typeFactory, op, exprs,
+        new RexCallBinding(typeFactory, op, exprs, ImmutableList.of(),
             ImmutableList.of()));
   }
 

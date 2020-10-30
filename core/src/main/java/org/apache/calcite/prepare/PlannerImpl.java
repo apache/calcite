@@ -109,7 +109,9 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.programs = config.getPrograms();
     this.parserConfig = config.getParserConfig();
     this.sqlValidatorConfig = config.getSqlValidatorConfig();
-    this.sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
+    this.sqlToRelConverterConfig = config.getSqlToRelConverterConfig()
+        .addPostStep(SqlToRelConverter::flattenTypesStep)
+        .addPostStep(RelDecorrelator::decorrelateQueryStep);
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
     this.convertletTable = config.getConvertletTable();
@@ -252,7 +254,6 @@ public class PlannerImpl implements Planner, ViewExpander {
             createCatalogReader(), cluster, convertletTable, config);
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
-    root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
         config.getRelBuilderFactory().create(cluster, null);
     root = root.withRel(
