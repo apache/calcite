@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql.fun;
 
-import java.util.List;
-
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -35,6 +33,8 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Optionality;
+
+import java.util.List;
 
 /**
  * Definition of the SQL <code>COUNTIF</code> aggregation function.
