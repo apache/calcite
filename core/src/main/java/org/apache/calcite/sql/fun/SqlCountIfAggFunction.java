@@ -71,7 +71,8 @@ public class SqlCountIfAggFunction extends SqlAggFunction {
     SqlNodeList thenList = new SqlNodeList(pos);
     whenList.add(operands.get(0));
     thenList.add(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO));
-    return SqlCase.createSwitched(pos, null, whenList, thenList, SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));
+    return SqlCase.createSwitched(pos, null, whenList, thenList,
+        SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
