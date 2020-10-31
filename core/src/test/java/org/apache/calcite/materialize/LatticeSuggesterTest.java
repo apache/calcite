@@ -597,6 +597,8 @@ class LatticeSuggesterTest {
     assertThat(derivedColumns.get(1).tables, is(tables));
   }
 
+  /** Tests a number of features only available in Redshift: the {@code CONCAT}
+   * and {@code CONVERT_TIMEZONE} functions. */
   @Test void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
@@ -613,6 +615,22 @@ class LatticeSuggesterTest {
         + "  avg(\"total_children\" - \"num_children_at_home\")\n"
         + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
         + "group by \"fname\", \"lname\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+  }
+
+  /** Tests a number of features only available in BigQuery: back-ticks;
+   * GROUP BY ordinal; case-insensitive unquoted identifiers. */
+  @Test void testBigQueryDialect() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true)
+        .withDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect())
+        .withLibrary(SqlLibrary.BIG_QUERY);
+
+    final String q0 = "select `product_id`,\n"
+        + "  SUM(unit_sales)\n"
+        + "from\n"
+        + "  `sales_fact_1997`"
+        + "group by 1";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
   }

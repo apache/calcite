@@ -106,6 +106,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#PRESTO};

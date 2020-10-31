@@ -117,6 +117,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   @Override public boolean isGroupByOrdinal() {
     switch (this) {
     case BABEL:
+    case BIG_QUERY:
     case LENIENT:
     case MYSQL_5:
     case PRESTO:
