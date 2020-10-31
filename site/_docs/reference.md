@@ -1793,6 +1793,7 @@ and `LISTAGG`).
 | LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
+| COUNTIF(boolean)                   | Returns the number of input rows that fulfil given boolean expression
 | FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
 | INTERSECTION(multiset)             | Returns the multiset intersection of *multiset* across all input values
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
