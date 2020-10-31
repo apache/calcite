@@ -7091,6 +7091,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("listagg(cast(x as CHAR))", values2, "0,1,2,3", 0d);
   }
 
+  @Test void testCountIf() {
+    tester.setFor(SqlLibraryOperators.COUNTIF, VM_FENNEL, VM_JAVA);
+    final SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    final String sql = "select"
+        + "  countif(a > 0) + countif(a > 1) + countif(c > 1)"
+        + "from"
+        + "  (select 1 as a, 2 as b, 3 as c)";
+    tester.check(sql, new SqlTests.StringTypeChecker("INTEGER NOT NULL"), "2", 0);
+  }
+
   @Test void testStringAggFunc() {
     checkStringAggFunc(libraryTester(SqlLibrary.POSTGRESQL));
     checkStringAggFunc(libraryTester(SqlLibrary.BIG_QUERY));

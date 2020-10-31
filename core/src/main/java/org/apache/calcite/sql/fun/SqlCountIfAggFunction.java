@@ -16,33 +16,74 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.config.CalciteSystemProperty;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Optionality;
 
 /**
- * Definition of the SQL <code>COUNT</code> aggregation function.
+ * Definition of the SQL <code>COUNTIF</code> aggregation function.
  *
- * <p><code>COUNT</code> is an aggregator which returns the number of rows which
- * have gone into it. With one argument (or more), it returns the number of rows
- * for which that argument (or all) is not <code>null</code>.
+ * <p><code>COUNTIF</code> is an aggregator which returns the number of rows which
+ * fulfil its boolean expression.
  */
 public class SqlCountIfAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCountIfAggFunction(String name) {
-    this(name, CalciteSystemProperty.STRICT.value() ? OperandTypes.ANY : OperandTypes.ONE_OR_MORE);
+    this(name, OperandTypes.BOOLEAN);
   }
 
   public SqlCountIfAggFunction(String name,
       SqlOperandTypeChecker sqlOperandTypeChecker) {
-    super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
+    super(name, null, SqlKind.COUNT_IF, ReturnTypes.BIGINT, null,
         sqlOperandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
         Optionality.FORBIDDEN);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    List<SqlNode> operands = call.getOperandList();
+    SqlParserPos pos = call.getParserPosition();
+
+    checkOperandCount(
+        validator,
+        getOperandTypeChecker(),
+        call);
+
+    SqlNodeList whenList = new SqlNodeList(pos);
+    SqlNodeList thenList = new SqlNodeList(pos);
+    whenList.add(operands.get(0));
+    thenList.add(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO));
+    return SqlCase.createSwitched(pos, null, whenList, thenList, SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));
+  }
+
+  @Override public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(1);
+  }
+
+  @Override public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    final SqlNode node = callBinding.operand(0);
+    final FamilyOperandTypeChecker checker = OperandTypes.BOOLEAN;
+    return checker.checkSingleOperandType(callBinding, node, 0,
+        throwOnFailure);
   }
 }

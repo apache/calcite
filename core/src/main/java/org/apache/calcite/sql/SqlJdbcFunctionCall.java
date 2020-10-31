@@ -393,7 +393,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all system function names defined by JDBC. */
   private static final String SYSTEM_FUNCTIONS = constructFuncList(
-      "CONVERT", "DATABASE", "IFNULL", "USER", "COUNTIF'");
+      "CONVERT", "DATABASE", "IFNULL", "USER");
 
   //~ Instance fields --------------------------------------------------------
 

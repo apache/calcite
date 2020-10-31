@@ -805,6 +805,9 @@ public enum SqlKind {
   /** The {@code STRING_AGG} aggregate function. */
   STRING_AGG,
 
+  /** The {@code COUNT_IF} aggregate function. */
+  COUNT_IF,
+
   /** The {@code ARRAY_AGG} aggregate function. */
   ARRAY_AGG,
 
@@ -1041,7 +1044,7 @@ public enum SqlKind {
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
           LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG,
-          INTERSECTION, ANY_VALUE);
+          COUNT_IF, INTERSECTION, ANY_VALUE);
 
   /**
    * Category consisting of all DML operators.
