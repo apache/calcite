@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -33,6 +34,8 @@ import javax.annotation.Nonnull;
 /**
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
+ *
+ * @see SqlBasicAggFunction
  */
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;

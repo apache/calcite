@@ -2200,15 +2200,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The COLLECT operator. Multiset aggregator function.
    */
   public static final SqlAggFunction COLLECT =
-      new SqlAggFunction("COLLECT",
-          null,
-          SqlKind.COLLECT,
-          ReturnTypes.TO_MULTISET,
-          null,
-          OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.OPTIONAL) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.COLLECT, ReturnTypes.TO_MULTISET, OperandTypes.ANY)
+      .withFunctionType(SqlFunctionCategory.SYSTEM)
+      .withGroupOrder(Optionality.OPTIONAL);
 
   /**
    * The LISTAGG operator. String aggregator function.
@@ -2220,27 +2215,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The FUSION operator. Multiset aggregator function.
    */
   public static final SqlAggFunction FUSION =
-      new SqlAggFunction("FUSION", null,
-          SqlKind.FUSION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.FORBIDDEN) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.FUSION, ReturnTypes.ARG0, OperandTypes.MULTISET)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /**
    * The INTERSECTION operator. Multiset aggregator function.
    */
   public static final SqlAggFunction INTERSECTION =
-      new SqlAggFunction("INTERSECTION", null,
-          SqlKind.INTERSECTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.FORBIDDEN) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.INTERSECTION, ReturnTypes.ARG0, OperandTypes.MULTISET)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /** The sequence next value function: <code>NEXT VALUE FOR sequence</code>. */
   public static final SqlOperator NEXT_VALUE =

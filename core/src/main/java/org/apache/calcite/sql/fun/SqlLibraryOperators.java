@@ -19,7 +19,6 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -35,10 +34,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -51,7 +47,6 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.type.ReturnTypes.stripOrderBy;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -278,46 +273,37 @@ public abstract class SqlLibraryOperators {
    * in BigQuery and PostgreSQL, gathers values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
   public static final SqlAggFunction ARRAY_AGG =
-      new SqlAggFunction("ARRAY_AGG", null, SqlKind.ARRAY_AGG,
-          ReturnTypes.andThen(ReturnTypes::stripOrderBy, ReturnTypes.TO_ARRAY),
-          null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.OPTIONAL) {
-        @Override public SqlSyntax getSyntax() {
-          return SqlSyntax.ORDERED_FUNCTION;
-        }
-
-        @Override public boolean allowsNullTreatment() {
-          return true;
-        }
-
-        @Override public RelDataType deriveType(SqlValidator validator,
-            SqlValidatorScope scope, SqlCall call) {
-          return super.deriveType(validator, scope, stripOrderBy(call));
-        }
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.ARRAY_AGG,
+              ReturnTypes.andThen(ReturnTypes::stripOrderBy,
+                  ReturnTypes.TO_ARRAY), OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION)
+          .withAllowsNullTreatment(true);
 
   /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, concatenates array values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
   public static final SqlAggFunction ARRAY_CONCAT_AGG =
-      new SqlAggFunction("ARRAY_CONCAT_AGG", null, SqlKind.ARRAY_CONCAT_AGG,
-          ReturnTypes.ARG0, null, OperandTypes.ARRAY,
-          SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
-        @Override public SqlSyntax getSyntax() {
-          return SqlSyntax.ORDERED_FUNCTION;
-        }
-
-        @Override public RelDataType deriveType(SqlValidator validator,
-            SqlValidatorScope scope, SqlCall call) {
-          return super.deriveType(validator, scope, stripOrderBy(call));
-        }
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.ARRAY_CONCAT_AGG, ReturnTypes.ARG0,
+              OperandTypes.ARRAY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
   /** The "STRING_AGG(value [, separator ] [ ORDER BY ...])" aggregate function,
    * BigQuery and PostgreSQL's equivalent of
-   * {@link SqlStdOperatorTable#LISTAGG}. */
+   * {@link SqlStdOperatorTable#LISTAGG}.
+   *
+   * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
+   * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
-  public static final SqlAggFunction STRING_AGG = new SqlStringAggAggFunction();
+  public static final SqlAggFunction STRING_AGG =
+      SqlBasicAggFunction
+          .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
