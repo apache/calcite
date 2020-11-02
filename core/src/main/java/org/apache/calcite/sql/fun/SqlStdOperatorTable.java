@@ -70,8 +70,16 @@ import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -155,6 +163,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical <code>AND</code> operator.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator AND =
       new SqlBinaryOperator(
           "AND",
@@ -250,6 +259,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Arithmetic division operator, '<code>/</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator DIVIDE =
       new SqlBinaryOperator(
           "/",
@@ -292,6 +302,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * computation, whereas for the internal scaling use of division, we always
    * want integer division.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator DIVIDE_INTEGER =
       new SqlBinaryOperator(
           "/INT",
@@ -310,6 +321,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical equals operator, '<code>=</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator EQUALS =
       new SqlBinaryOperator(
           "=",
@@ -323,6 +335,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical greater-than operator, '<code>&gt;</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator GREATER_THAN =
       new SqlBinaryOperator(
           ">",
@@ -379,6 +392,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical greater-than-or-equal operator, '<code>&gt;=</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator GREATER_THAN_OR_EQUAL =
       new SqlBinaryOperator(
           ">=",
@@ -393,12 +407,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>IN</code> operator tests for a value's membership in a sub-query or
    * a list of values.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator IN = new SqlInOperator(SqlKind.IN);
 
   /**
    * <code>NOT IN</code> operator tests for a value's membership in a sub-query
    * or a list of values.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator NOT_IN =
       new SqlInOperator(SqlKind.NOT_IN);
 
@@ -453,6 +469,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator LESS_THAN =
       new SqlBinaryOperator(
           "<",
@@ -466,6 +483,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical less-than-or-equal operator, '<code>&lt;=</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator LESS_THAN_OR_EQUAL =
       new SqlBinaryOperator(
           "<=",
@@ -482,6 +500,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Its precedence is less than the prefix {@link #UNARY_PLUS +}
    * and {@link #UNARY_MINUS -} operators.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator MINUS =
       new SqlMonotonicBinaryOperator(
           "-",
@@ -497,6 +516,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Arithmetic multiplication operator, '<code>*</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator MULTIPLY =
       new SqlMonotonicBinaryOperator(
           "*",
@@ -510,6 +530,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical not-equals operator, '<code>&lt;&gt;</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator NOT_EQUALS =
       new SqlBinaryOperator(
           "<>",
@@ -523,6 +544,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Logical <code>OR</code> operator.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator OR =
       new SqlBinaryOperator(
           "OR",
@@ -536,6 +558,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Infix arithmetic plus operator, '<code>+</code>'.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBinaryOperator PLUS =
       new SqlMonotonicBinaryOperator(
           "+",
@@ -617,6 +640,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   POSTFIX OPERATORS
   //-------------------------------------------------------------
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPostfixOperator DESC =
       new SqlPostfixOperator(
           "DESC",
@@ -644,6 +668,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.RETURN_TYPE,
           OperandTypes.ANY);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPostfixOperator IS_NOT_NULL =
       new SqlPostfixOperator(
           "IS NOT NULL",
@@ -653,6 +678,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.VARCHAR_1024,
           OperandTypes.ANY);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPostfixOperator IS_NULL =
       new SqlPostfixOperator(
           "IS NULL",
@@ -831,6 +857,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
   //-------------------------------------------------------------
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPrefixOperator EXISTS =
       new SqlPrefixOperator(
           "EXISTS",
@@ -851,6 +878,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPrefixOperator NOT =
       new SqlPrefixOperator(
           "NOT",
@@ -866,6 +894,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Its precedence is greater than the infix '{@link #PLUS +}' and
    * '{@link #MINUS -}' operators.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPrefixOperator UNARY_MINUS =
       new SqlPrefixOperator(
           "-",
@@ -881,6 +910,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Its precedence is greater than the infix '{@link #PLUS +}' and
    * '{@link #MINUS -}' operators.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlPrefixOperator UNARY_PLUS =
       new SqlPrefixOperator(
           "+",
@@ -930,11 +960,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction SUM = new SqlSumAggFunction(null);
 
   /**
    * <code>COUNT</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction COUNT = new SqlCountAggFunction("COUNT");
 
   /**
@@ -946,12 +978,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>MIN</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction MIN =
       new SqlMinMaxAggFunction(SqlKind.MIN);
 
   /**
    * <code>MAX</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction MAX =
       new SqlMinMaxAggFunction(SqlKind.MAX);
 
@@ -1018,6 +1052,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>AVG</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction AVG =
       new SqlAvgAggFunction(SqlKind.AVG);
 
@@ -1030,60 +1065,70 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>REGR_COUNT</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction REGR_COUNT =
       new SqlRegrCountAggFunction(SqlKind.REGR_COUNT);
 
   /**
    * <code>REGR_SXX</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction REGR_SXX =
       new SqlCovarAggFunction(SqlKind.REGR_SXX);
 
   /**
    * <code>REGR_SYY</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction REGR_SYY =
       new SqlCovarAggFunction(SqlKind.REGR_SYY);
 
   /**
    * <code>COVAR_POP</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction COVAR_POP =
       new SqlCovarAggFunction(SqlKind.COVAR_POP);
 
   /**
    * <code>COVAR_SAMP</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction COVAR_SAMP =
       new SqlCovarAggFunction(SqlKind.COVAR_SAMP);
 
   /**
    * <code>STDDEV_SAMP</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction STDDEV_SAMP =
       new SqlAvgAggFunction(SqlKind.STDDEV_SAMP);
 
   /**
    * <code>STDDEV</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction STDDEV =
       new SqlAvgAggFunction("STDDEV", SqlKind.STDDEV_SAMP);
 
   /**
    * <code>VAR_POP</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction VAR_POP =
       new SqlAvgAggFunction(SqlKind.VAR_POP);
 
   /**
    * <code>VAR_SAMP</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction VAR_SAMP =
       new SqlAvgAggFunction(SqlKind.VAR_SAMP);
 
   /**
    * <code>VARIANCE</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
@@ -1166,6 +1211,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM0</code> aggregate function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlAggFunction SUM0 =
       new SqlSumEmptyIsZeroAggFunction();
 
@@ -1187,6 +1233,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>PERCENT_RANK</code> window function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlRankFunction PERCENT_RANK =
       new SqlRankFunction(SqlKind.PERCENT_RANK,
           ReturnTypes.FRACTIONAL_RANK,
@@ -1201,6 +1248,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>ROW_NUMBER</code> window function.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlRankFunction ROW_NUMBER =
       new SqlRankFunction(SqlKind.ROW_NUMBER, ReturnTypes.RANK, false);
 
@@ -1369,6 +1417,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
           SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.ASYMMETRIC,
@@ -1379,6 +1428,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlBetweenOperator.Flag.SYMMETRIC,
           false);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlBetweenOperator NOT_BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.ASYMMETRIC,
@@ -1389,9 +1439,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlBetweenOperator.Flag.SYMMETRIC,
           true);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlSpecialOperator NOT_LIKE =
       new SqlLikeOperator("NOT LIKE", SqlKind.LIKE, true);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlSpecialOperator LIKE =
       new SqlLikeOperator("LIKE", SqlKind.LIKE, false);
 
@@ -1490,6 +1542,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>It is defined in the SQL standard. See also the non-standard
    * {@link SqlLibraryOperators#TRANSLATE3}, which has a different purpose.
    */
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");
 
@@ -1498,8 +1551,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The "TRIM" function. */
   public static final SqlFunction TRIM = SqlTrimFunction.INSTANCE;
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction POSITION = new SqlPositionFunction();
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction CHAR_LENGTH =
       new SqlFunction(
           "CHAR_LENGTH",
@@ -1509,6 +1564,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
@@ -2598,4 +2654,44 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   }
 
+  /**
+   * The mapping from a SQL operator to the libraries it belongs to.
+   */
+  volatile Map<SqlOperator, Set<SqlLibrary>> operatorLibraries;
+
+  /**
+   * Given a sql operator, gets the libraries it belongs to.
+   */
+  public Set<SqlLibrary> getOperatorLibraries(SqlOperator sqlOperator) {
+    if (operatorLibraries == null) {
+      synchronized (this) {
+        if (operatorLibraries == null) {
+          operatorLibraries = new HashMap<>();
+          Set<Class<?>> candidateClasses = Sets.newHashSet(
+              SqlStdOperatorTable.class, SqlLibraryOperators.class);
+
+          try {
+            for (Class clazz : candidateClasses) {
+              for (Field field : clazz.getDeclaredFields()) {
+                if (Modifier.isPublic(field.getModifiers())
+                    && Modifier.isStatic(field.getModifiers())
+                    && SqlOperator.class.isAssignableFrom(field.getType())) {
+
+                  if (field.isAnnotationPresent(LibraryOperator.class)) {
+                    SqlOperator operator = (SqlOperator) field.get(null);
+                    LibraryOperator libraryOperator = field.getAnnotation(LibraryOperator.class);
+                    Set<SqlLibrary> libraries = Sets.newHashSet(libraryOperator.libraries());
+                    operatorLibraries.put(operator, libraries);
+                  }
+                }
+              }
+            }
+          } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+    return operatorLibraries.get(sqlOperator);
+  }
 }
