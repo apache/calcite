@@ -18,6 +18,7 @@ package org.pentaho.aggdes.model;
 
 import org.checkerframework.checker.nullness.qual.*;
 
-interface Table {
-  @Nullable Table getParent();
+interface Attribute {
+  @Nullable String getCandidateColumnName();
+  @Nullable String getDatatype(Dialect dialect);
 }
