@@ -29,7 +29,6 @@ import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Solver;
-import com.microsoft.z3.Status;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -38,24 +37,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Testing for integrating z3 with calcite to verify equivalence.
  **/
 
 public class SmtLibTest extends RexProgramBuilderBase {
-
+  static boolean z3Loads;
   /**
    * Check z3 dynamic library exits before run all other tests.
    */
-  @BeforeAll static void testZ3Lib() throws Error {
-    Context z3Context = new Context();
-    Expr x = z3Context.mkIntConst("x");
-    Expr one = z3Context.mkInt(1);
-    BoolExpr eq = z3Context.mkEq(x, one);
-    Solver solver = z3Context.mkSolver();
-    solver.add(eq);
-    assertEquals(solver.check(), Status.SATISFIABLE);
+  @BeforeAll static void testZ3Lib() {
+    try {
+      Context z3Context = new Context();
+      Expr x = z3Context.mkIntConst("x");
+      Expr one = z3Context.mkInt(1);
+      BoolExpr eq = z3Context.mkEq(x, one);
+      Solver solver = z3Context.mkSolver();
+      solver.add(eq);
+      solver.check();
+      z3Loads = true;
+    } catch (Error e) {
+      z3Loads = false;
+    }
   }
 
   /** Converts a SQL string to a relational expression using mock schema. */
@@ -96,12 +101,14 @@ public class SmtLibTest extends RexProgramBuilderBase {
   }
 
   @Test void rexNodeEq1() {
+    assumeTrue(z3Loads);
     final String cond1 = " empno > 10 and deptno = 5";
     final String cond2 = " empno + deptno > 15 and deptno = 5";
     assertEquals(checkEqual(cond1, cond2), true);
   }
 
   @Test void rexNodeNotEq1() {
+    assumeTrue(z3Loads);
     final String cond1 = " empno > 10 and deptno = 10";
     final String cond2 = " empno + deptno > 15 and deptno = 10";
     assertEquals(checkEqual(cond1, cond2), false);
