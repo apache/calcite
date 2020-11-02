@@ -209,20 +209,20 @@ public class ArrowTest {
         .ok();
   }
 
-//  @Test void testArrowProjectOneField() throws SQLException {
-//    final String sql = "select \"fieldOne\" from test\n";
-//    final String[] lines = {
-//        "fieldOne=1,"
-//        + " fieldOne=2,"
-//        + " fieldOne=3,"
-//        + " fieldOne=4,"
-//        + " fieldOne=5,"
-//        + " fieldOne=6"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
+  @Test void testArrowProjectOneField() throws SQLException {
+    final String sql = "select \"fieldOne\" from test\n";
+    final String[] lines = {
+        "fieldOne=1,"
+        + " fieldOne=2,"
+        + " fieldOne=3,"
+        + " fieldOne=4,"
+        + " fieldOne=5,"
+        + " fieldOne=6"
+    };
+    sql("bug", sql)
+        .returns(lines)
+        .ok();
+  }
 
   /** Fluent API to perform test actions. */
   private class Fluent {

@@ -71,6 +71,9 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public Object current() {
+    if (numFields == 1) {
+      return this.valueVectors.get(0).getObject(rowIndex);
+    }
     Object[] current = new Object[numFields];
     for (int i = 0; i < numFields; i++) {
       ValueVector vector = this.valueVectors.get(i);
