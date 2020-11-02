@@ -2204,12 +2204,20 @@ public abstract class RelOptUtil {
     return litmus.succeed();
   }
 
+  /**
+   * Returns the detailed difference of two types.
+   *
+   * @param sourceDesc description of role of source type
+   * @param sourceType source type
+   * @param targetDesc description of role of target type
+   * @param targetType target type
+   * @return the detailed difference of two types
+   */
   public static String getFullTypeDifferenceString(
       final String sourceDesc,
       RelDataType sourceType,
       final String targetDesc,
-      RelDataType targetType
-  ) {
+      RelDataType targetType) {
     if (sourceType == targetType) {
       return "";
     }
