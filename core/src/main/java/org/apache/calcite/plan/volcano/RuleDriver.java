@@ -29,12 +29,13 @@ interface RuleDriver {
   RuleQueue getRuleQueue();
 
   /**
-   * Apply rules.
+   * Applies rules.
    */
   void drive();
 
   /**
    * Callback when new RelNodes are added into RelSet.
+   *
    * @param rel the new RelNode
    * @param subset subset to add
    */
@@ -42,12 +43,13 @@ interface RuleDriver {
 
   /**
    * Callback when RelSets are merged.
+   *
    * @param set the merged result set
    */
   void onSetMerged(RelSet set);
 
   /**
-   * Clear this RuleDriver.
+   * Clears this RuleDriver.
    */
   void clear();
 }
