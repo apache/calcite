@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelTraitSet;
@@ -335,6 +336,14 @@ class TopDownRuleDriver implements RuleDriver {
           physicals.add(rel);
         }
       }
+
+      // No need to apply O_INPUTS if the group has not been implemented yet.
+      // It only happens when enabling AbstractConverter.
+      if (group.getConvention() == Convention.NONE) {
+        LOGGER.debug("Skip optimizing because of none convention: {}", group);
+        return;
+      }
+
       // always apply O_INPUTS first so as to get an valid upper bound
       for (RelNode rel : physicals) {
         Task task = getOptimizeInputTask(rel, group);
