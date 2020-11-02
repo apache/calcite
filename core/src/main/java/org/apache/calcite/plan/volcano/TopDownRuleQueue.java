@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * A rule queue that manage rule matches for cascade planner.
+ * A rule queue that manages rule matches for cascades planner.
  */
 class TopDownRuleQueue extends RuleQueue {
 
@@ -53,6 +53,13 @@ class TopDownRuleQueue extends RuleQueue {
       return;
     }
 
+    // The substitution rule would be applied first though it is added at the end of the queue.
+    // The process loos like:
+    //   1) put the non-substitution rule at the front and substitution rule at the end of the queue
+    //   2) get each rule from the queue in order from first to last and generate an ApplyRule task
+    //   3) push each ApplyRule task into the task stack
+    // As a result, substitution rule is executed first since the ApplyRule(substitution) task is
+    // popped earlier than the ApplyRule(non-substitution) task from the stack.
     if (!planner.isSubstituteRule(match)) {
       queue.addFirst(match);
     } else {
