@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
@@ -536,7 +537,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         BigDecimal sourceValue =
             (BigDecimal) sourceInterval.getValue();
         final BigDecimal multiplier = intervalQualifier.getUnit().multiplier;
-        sourceValue = sourceValue.multiply(multiplier);
+        sourceValue = SqlFunctions.multiply(sourceValue, multiplier);
         RexLiteral castedInterval =
             cx.getRexBuilder().makeIntervalLiteral(
                 sourceValue,
@@ -840,10 +841,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private RexNode convertCall(
       SqlRexContext cx, SqlOperator op, List<SqlNode> operands) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
+    SqlOperandTypeChecker operandTypeChecker = op.getOperandTypeChecker();
     final SqlOperandTypeChecker.Consistency consistency =
-        op.getOperandTypeChecker() == null
+        operandTypeChecker == null
             ? SqlOperandTypeChecker.Consistency.NONE
-            : op.getOperandTypeChecker().getConsistency();
+            : operandTypeChecker.getConsistency();
     final List<RexNode> exprs =
         convertExpressionList(cx, operands, consistency);
     RelDataType type = rexBuilder.deriveReturnType(op, exprs);
@@ -986,9 +988,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlRexContext cx,
       SqlBetweenOperator op,
       SqlCall call) {
+    SqlOperandTypeChecker operandTypeChecker = op.getOperandTypeChecker();
+    final SqlOperandTypeChecker.Consistency consistency =
+        operandTypeChecker == null
+            ? SqlOperandTypeChecker.Consistency.NONE
+            : operandTypeChecker.getConsistency();
     final List<RexNode> list =
         convertExpressionList(cx, call.getOperandList(),
-            op.getOperandTypeChecker().getConsistency());
+            consistency);
     final RexNode x = list.get(SqlBetweenOperator.VALUE_OPERAND);
     final RexNode y = list.get(SqlBetweenOperator.LOWER_OPERAND);
     final RexNode z = list.get(SqlBetweenOperator.UPPER_OPERAND);

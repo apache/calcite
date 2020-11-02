@@ -98,12 +98,12 @@ public class SqlJsonValueFunction extends SqlFunction {
   }
 
   /** Returns whether there is an explicit return type specification. */
-  public static boolean hasExplicitTypeSpec(SqlNode[] operands) {
+  public static boolean hasExplicitTypeSpec(@Nullable SqlNode[] operands) {
     return operands.length > 2
         && isReturningTypeSymbol(operands[2]);
   }
 
-  private static boolean isReturningTypeSymbol(SqlNode node) {
+  private static boolean isReturningTypeSymbol(@Nullable SqlNode node) {
     return node instanceof SqlLiteral
         && ((SqlLiteral) node).getValue() instanceof SqlJsonValueReturning;
   }

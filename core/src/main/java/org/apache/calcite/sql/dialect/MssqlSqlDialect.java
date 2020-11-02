@@ -38,6 +38,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
  * database.
@@ -131,6 +133,7 @@ public class MssqlSqlDialect extends SqlDialect {
       // Note that "fetch" is ignored.
       writer.keyword("TOP");
       writer.keyword("(");
+      requireNonNull(fetch, "fetch");
       fetch.unparse(writer, -1, -1);
       writer.keyword(")");
     }

@@ -40,6 +40,8 @@ import com.google.common.base.Preconditions;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
  */
@@ -132,7 +134,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null);
+    requireNonNull(fetch, "fetch");
 
     writer.newlineAndIndent();
     final SqlWriter.Frame frame =

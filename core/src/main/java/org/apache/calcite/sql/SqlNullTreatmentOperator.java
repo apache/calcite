@@ -24,6 +24,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -42,8 +44,8 @@ public class SqlNullTreatmentOperator extends SqlSpecialOperator {
         || kind == SqlKind.IGNORE_NULLS);
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+      SqlParserPos pos, @Nullable SqlNode... operands) {
     // As super.createCall, but don't union the positions
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }

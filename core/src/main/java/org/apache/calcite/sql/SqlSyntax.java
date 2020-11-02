@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -162,6 +163,7 @@ public enum SqlSyntax {
   };
 
   /** Syntax to treat this syntax as equivalent to when resolving operators. */
+  @NotOnlyInitialized
   public final SqlSyntax family;
 
   SqlSyntax() {
@@ -169,7 +171,7 @@ public enum SqlSyntax {
   }
 
   SqlSyntax(@Nullable SqlSyntax family) {
-    this.family = Util.first(family, this);
+    this.family = family == null ? this : family;
   }
 
   /**

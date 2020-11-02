@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.schema;
+package java.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.function.Supplier;
+import org.checkerframework.checker.nullness.qual.*;
 
-import java.util.List;
-
-/**
- * Function that returns a {@link Table}.
- *
- * <p>As the name "macro" implies, this is invoked at "compile time", that is,
- * during query preparation. Compile-time expansion of table expressions allows
- * for some very powerful query-optimizations.</p>
- */
-public interface TableMacro extends Function {
-  /**
-   * Applies arguments to yield a table.
-   *
-   * @param arguments Arguments
-   * @return Table
-   */
-  TranslatableTable apply(List<? extends @Nullable Object> arguments);
+interface Collection<E> {
+  boolean contains(@Nullable Object o);
+  boolean remove(@Nullable Object o);
 }

@@ -37,6 +37,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,7 +92,7 @@ public class CloneSchema extends AbstractSchema {
   @Deprecated // to be removed before 2.0
   public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
       final RelProtoDataType protoRowType,
-      final List<ColumnMetaData.Rep> repList,
+      final @Nullable List<ColumnMetaData.Rep> repList,
       final Enumerable<T> source) {
     return createCloneTable(typeFactory, protoRowType, ImmutableList.of(),
         repList, source);
@@ -98,7 +100,7 @@ public class CloneSchema extends AbstractSchema {
 
   public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
       final RelProtoDataType protoRowType, final List<RelCollation> collations,
-      final List<ColumnMetaData.Rep> repList, final Enumerable<T> source) {
+      final @Nullable List<ColumnMetaData.Rep> repList, final Enumerable<T> source) {
     final Type elementType;
     if (source instanceof QueryableTable) {
       elementType = ((QueryableTable) source).getElementType();

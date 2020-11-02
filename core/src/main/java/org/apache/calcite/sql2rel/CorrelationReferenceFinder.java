@@ -25,11 +25,15 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+
 /**
  * Shuttle that finds references to a given {@link CorrelationId} within a tree
  * of {@link RelNode}s.
  */
 public abstract class CorrelationReferenceFinder extends RelHomogeneousShuttle {
+  @NotOnlyInitialized
   private final MyRexVisitor rexVisitor;
 
   /** Creates CorrelationReferenceFinder. */
@@ -48,9 +52,10 @@ public abstract class CorrelationReferenceFinder extends RelHomogeneousShuttle {
    * Replaces alternative names of correlation variable to its canonical name.
    */
   private static class MyRexVisitor extends RexShuttle {
+    @NotOnlyInitialized
     private final CorrelationReferenceFinder finder;
 
-    private MyRexVisitor(CorrelationReferenceFinder finder) {
+    private MyRexVisitor(@UnderInitialization CorrelationReferenceFinder finder) {
       this.finder = finder;
     }
 

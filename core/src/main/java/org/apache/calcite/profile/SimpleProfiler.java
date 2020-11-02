@@ -27,7 +27,9 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -89,7 +91,7 @@ public class SimpleProfiler implements Profiler {
   static class Run {
     private final List<Column> columns;
     final List<Space> spaces = new ArrayList<>();
-    final List<Space> singletonSpaces;
+    final List<@Nullable Space> singletonSpaces;
     final List<Statistic> statistics = new ArrayList<>();
     final PartiallyOrderedSet.Ordering<Space> ordering =
         (e1, e2) -> e2.columnOrdinals.contains(e1.columnOrdinals);
@@ -279,7 +281,10 @@ public class SimpleProfiler implements Profiler {
       return false;
     }
 
-    private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
+    @RequiresNonNull("columns")
+    private ImmutableSortedSet<Column> toColumns(
+        @UnknownInitialization Run this,
+        Iterable<Integer> ordinals) {
       return ImmutableSortedSet.copyOf(
           Util.transform(ordinals, columns::get));
     }

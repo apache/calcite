@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
@@ -40,6 +41,7 @@ import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getNamespace;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -445,7 +447,8 @@ public abstract class ReturnTypes {
     RelDataType biggestElementType =
         LEAST_RESTRICTIVE.inferReturnType(newBinding);
     return opBinding.getTypeFactory().createMultisetType(
-        biggestElementType,
+        requireNonNull(biggestElementType,
+            () -> "can't infer element type for multiset of " + newBinding),
         -1);
   };
 
@@ -821,8 +824,8 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference SCOPE = opBinding -> {
     SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-    return callBinding.getValidator().getNamespace(
-        callBinding.getCall()).getRowType();
+    SqlValidatorNamespace ns = getNamespace(callBinding);
+    return ns.getRowType();
   };
 
   /**

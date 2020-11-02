@@ -80,7 +80,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
   }
 
   private RelDataType inferRowType(SqlOperatorBinding callBinding) {
-    List<Object> arguments =
+    List<@Nullable Object> arguments =
         SqlUserDefinedTableMacro.convertArguments(callBinding, function,
             getNameAsId(), false);
     return getFunction().getRowType(callBinding.getTypeFactory(), arguments);
@@ -95,7 +95,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
    * @return element type of the table (e.g. {@code Object[].class})
    */
   public Type getElementType(SqlOperatorBinding callBinding) {
-    List<Object> arguments =
+    List<@Nullable Object> arguments =
         SqlUserDefinedTableMacro.convertArguments(callBinding, function,
             getNameAsId(), false);
     return getFunction().getElementType(arguments);

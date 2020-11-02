@@ -97,11 +97,11 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+      List<? extends @Nullable Object> arguments) {
     return apply(arguments).getRowType(typeFactory);
   }
 
-  @Override public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<? extends @Nullable Object> arguments) {
     final Table table = apply(arguments);
     if (table instanceof QueryableTable) {
       QueryableTable queryableTable = (QueryableTable) table;
@@ -144,7 +144,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         }, NullPolicy.NONE, false);
   }
 
-  private Table apply(List<Object> arguments) {
+  private Table apply(List<? extends @Nullable Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {

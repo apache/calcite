@@ -36,6 +36,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -78,11 +80,11 @@ public class SqlAdvisorGetHintsFunction2
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+      List<? extends @Nullable Object> arguments) {
     return typeFactory.createJavaType(SqlAdvisorHint2.class);
   }
 
-  @Override public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<? extends @Nullable Object> arguments) {
     return SqlAdvisorHint2.class;
   }
 

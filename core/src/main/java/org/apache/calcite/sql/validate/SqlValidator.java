@@ -272,7 +272,7 @@ public interface SqlValidator {
   void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
-      SqlCall call);
+      @Nullable SqlCall call);
 
   /**
    * Validates a MATCH_RECOGNIZE clause.

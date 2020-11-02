@@ -68,7 +68,7 @@ class ColumnLoader<T> {
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
-      List<ColumnMetaData.Rep> repList) {
+      @Nullable List<ColumnMetaData.Rep> repList) {
     this.typeFactory = typeFactory;
     final RelDataType rowType = protoRowType.apply(typeFactory);
     if (repList == null) {

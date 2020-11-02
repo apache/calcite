@@ -55,11 +55,14 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
       @Nullable SqlCallBinding callBinding) {
+    if (throwOnFailure && callBinding == null) {
+      throw new IllegalArgumentException(
+          "callBinding must be non-null in case throwOnFailure=true");
+    }
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
     }
-    assert !(throwOnFailure && (callBinding == null));
     RelDataType[] types = new RelDataType[nOperandsActual];
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());

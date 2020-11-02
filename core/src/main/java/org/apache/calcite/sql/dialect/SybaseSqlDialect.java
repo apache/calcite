@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlWriter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
@@ -50,6 +52,7 @@ public class SybaseSqlDialect extends SqlDialect {
     // Note that "fetch" is ignored.
     writer.keyword("TOP");
     writer.keyword("(");
+    requireNonNull(fetch, "fetch");
     fetch.unparse(writer, -1, -1);
     writer.keyword(")");
   }

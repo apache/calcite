@@ -399,7 +399,7 @@ public class SqlLiteral extends SqlNode {
 
   /** Returns the value as a boolean. */
   public boolean booleanValue() {
-    return (Boolean) requireNonNull(value);
+    return getValueAs(Boolean.class);
   }
 
   /**
@@ -409,7 +409,7 @@ public class SqlLiteral extends SqlNode {
    * @see #createSymbol(Enum, SqlParserPos)
    */
   public static SqlSampleSpec sampleValue(SqlNode node) {
-    return (SqlSampleSpec) requireNonNull(((SqlLiteral) node).value);
+    return ((SqlLiteral) node).getValueAs(SqlSampleSpec.class);
   }
 
   /**
@@ -451,11 +451,11 @@ public class SqlLiteral extends SqlNode {
         return (BigDecimal) literal.value;
       case INTERVAL_YEAR_MONTH:
         final SqlIntervalLiteral.IntervalValue valMonth =
-            (SqlIntervalLiteral.IntervalValue) requireNonNull(literal.value);
+            literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
         return valMonth.getSign() * SqlParserUtil.intervalToMonths(valMonth);
       case INTERVAL_DAY_TIME:
         final SqlIntervalLiteral.IntervalValue valTime =
-            (SqlIntervalLiteral.IntervalValue) requireNonNull(literal.value);
+            literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
         return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime);
       default:
         break;

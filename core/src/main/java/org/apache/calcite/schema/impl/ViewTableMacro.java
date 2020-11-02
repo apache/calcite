@@ -70,7 +70,7 @@ public class ViewTableMacro implements TableMacro {
     return Collections.emptyList();
   }
 
-  @Override public TranslatableTable apply(List<Object> arguments) {
+  @Override public TranslatableTable apply(List<? extends @Nullable Object> arguments) {
     final CalciteConnection connection =
         MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =

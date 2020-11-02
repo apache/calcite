@@ -96,7 +96,11 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     for (Pair<@Nullable Double, RelDataTypeField> p
         : Pair.zip(averageColumnSizes, fields)) {
       if (p.left == null) {
-        d += averageFieldValueSize(p.right);
+        Double fieldValueSize = averageFieldValueSize(p.right);
+        if (fieldValueSize == null) {
+          return null;
+        }
+        d += fieldValueSize;
       } else {
         d += p.left;
       }

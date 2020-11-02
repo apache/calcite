@@ -403,7 +403,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   private final @Nullable MakeCall lookupMakeCallObj;
   private @Nullable SqlCall lookupCall;
 
-  private SqlNode @Nullable [] thisOperands;
+  private @Nullable SqlNode[] thisOperands;
 
   //~ Constructors -----------------------------------------------------------
 

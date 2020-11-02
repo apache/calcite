@@ -25,9 +25,13 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that gets statistics by
@@ -45,7 +49,7 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a SqlLatticeStatisticProvider. */
   private SqlLatticeStatisticProvider(Lattice lattice) {
-    this.lattice = Objects.requireNonNull(lattice);
+    this.lattice = requireNonNull(lattice);
   }
 
   @Override public double cardinality(List<Lattice.Column> columns) {
@@ -61,11 +65,13 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     final Table table =
         new MaterializationService.DefaultTableFactory()
             .createTable(lattice.rootSchema, sql, ImmutableList.of());
-    final Object[] values =
+    final @Nullable Object[] values =
         Iterables.getOnlyElement(
             ((ScannableTable) table).scan(
             Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
                 lattice.rootSchema.plus())));
-    return ((Number) values[0]).doubleValue();
+    Number value = (Number) values[0];
+    requireNonNull(value, () -> "count(*) produced null in " + sql);
+    return value.doubleValue();
   }
 }

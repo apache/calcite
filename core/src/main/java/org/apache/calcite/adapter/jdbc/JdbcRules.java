@@ -1088,7 +1088,7 @@ public class JdbcRules {
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
-      return new JdbcValues(getCluster(), rowType, tuples, traitSet);
+      return new JdbcValues(getCluster(), getRowType(), tuples, traitSet);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {

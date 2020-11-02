@@ -86,7 +86,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
 
   /** Returns the table in this UDF, or null if there is no table. */
   public TranslatableTable getTable(SqlOperatorBinding callBinding) {
-    List<Object> arguments =
+    List<@Nullable Object> arguments =
         convertArguments(callBinding, tableMacro, getNameAsId(), true);
     return tableMacro.apply(arguments);
   }
@@ -101,10 +101,10 @@ public class SqlUserDefinedTableMacro extends SqlFunction
    * @param failOnNonLiteral true when conversion should fail on non-literal
    * @return converted list of arguments
    */
-  static List<Object> convertArguments(SqlOperatorBinding callBinding,
+  static List<@Nullable Object> convertArguments(SqlOperatorBinding callBinding,
       Function function, SqlIdentifier opName, boolean failOnNonLiteral) {
     RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
-    List<Object> arguments = new ArrayList<>(callBinding.getOperandCount());
+    List<@Nullable Object> arguments = new ArrayList<>(callBinding.getOperandCount());
     Ord.forEach(function.getParameters(), (parameter, i) -> {
       final RelDataType type = parameter.getType(typeFactory);
       final Object value;

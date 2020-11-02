@@ -154,6 +154,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   // map built during translation
   protected CorelMap cm;
 
+  @SuppressWarnings("method.invocation.invalid")
   protected final ReflectUtil.MethodDispatcher<@Nullable Frame> dispatcher =
       ReflectUtil.createMethodDispatcher(Frame.class, getVisitor(), "decorrelateRel",
           RelNode.class);

@@ -360,7 +360,7 @@ public class ReflectiveSchema
       return "Member {method=" + method + "}";
     }
 
-    @Override public TranslatableTable apply(final List<Object> arguments) {
+    @Override public TranslatableTable apply(final List<? extends @Nullable Object> arguments) {
       try {
         final Object o = requireNonNull(
             method.invoke(schema.getTarget(), arguments.toArray()),

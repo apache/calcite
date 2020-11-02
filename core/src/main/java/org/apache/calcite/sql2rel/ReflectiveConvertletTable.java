@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -62,7 +63,10 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * c. has a return type of "RexNode" or a subtype d. has a 2 parameters with
    * types ConvertletContext and SqlNode (or a subtype) respectively.
    */
-  private void registerNodeTypeMethod(final Method method) {
+  @RequiresNonNull("map")
+  private void registerNodeTypeMethod(
+      @UnderInitialization ReflectiveConvertletTable this,
+      final Method method) {
     if (!Modifier.isPublic(method.getModifiers())) {
       return;
     }
@@ -101,7 +105,10 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    * types: ConvertletContext; SqlOperator (or a subtype), SqlCall (or a
    * subtype).
    */
-  private void registerOpTypeMethod(final Method method) {
+  @RequiresNonNull("map")
+  private void registerOpTypeMethod(
+      @UnderInitialization ReflectiveConvertletTable this,
+      final Method method) {
     if (!Modifier.isPublic(method.getModifiers())) {
       return;
     }

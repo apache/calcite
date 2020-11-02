@@ -67,10 +67,12 @@ public class ArraySqlType extends AbstractSqlType {
   @Override public RelDataTypePrecedenceList getPrecedenceList() {
     return new RelDataTypePrecedenceList() {
       @Override public boolean containsType(RelDataType type) {
-        return type.getSqlTypeName() == getSqlTypeName()
-            && type.getComponentType() != null
-            && getComponentType().getPrecedenceList().containsType(
-                type.getComponentType());
+        if (type.getSqlTypeName() != getSqlTypeName()) {
+          return false;
+        }
+        RelDataType otherComponentType = type.getComponentType();
+        return otherComponentType != null
+            && getComponentType().getPrecedenceList().containsType(otherComponentType);
       }
 
       @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {

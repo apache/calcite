@@ -603,7 +603,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   private void flattenProjections(RewriteRexShuttle shuttle,
       List<? extends RexNode> exps,
-      @Nullable List<String> fieldNames,
+      @Nullable List<? extends @Nullable String> fieldNames,
       String prefix,
       List<Pair<RexNode, String>> flattenedExps) {
     for (int i = 0; i < exps.size(); ++i) {
@@ -613,7 +613,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  private String extractName(@Nullable List<String> fieldNames, String prefix, int i) {
+  private String extractName(@Nullable List<? extends @Nullable String> fieldNames, String prefix, int i) {
     String fieldName = (fieldNames == null || fieldNames.get(i) == null)
         ? ("$" + i)
         : fieldNames.get(i);
@@ -673,8 +673,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             // why we're trying to get range from to. For primitive just one field will be in range.
             int from = 0;
             for (RelDataTypeField field : firstOp.getType().getFieldList()) {
-              if (Objects.equals(literalString, field.getName())
-                  || String.CASE_INSENSITIVE_ORDER.compare(literalString, field.getName()) == 0) {
+              if (field.getName().equalsIgnoreCase(literalString)) {
                 int oldOrdinal = ((RexInputRef) firstOp).getIndex();
                 int to = from + postFlattenSize(field.getType());
                 for (int newInnerOrdinal = from; newInnerOrdinal < to; newInnerOrdinal++) {
@@ -1045,10 +1044,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   }
 
-  private int getNewInnerOrdinal(RexNode firstOp, String literalString) {
+  private int getNewInnerOrdinal(RexNode firstOp, @Nullable String literalString) {
     int newInnerOrdinal = 0;
     for (RelDataTypeField field : firstOp.getType().getFieldList()) {
-      if (literalString.equalsIgnoreCase(field.getName())) {
+      if (field.getName().equalsIgnoreCase(literalString)) {
         break;
       } else {
         newInnerOrdinal += postFlattenSize(field.getType());

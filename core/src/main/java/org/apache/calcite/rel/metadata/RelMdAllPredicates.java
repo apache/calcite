@@ -99,7 +99,11 @@ public class RelMdAllPredicates
 
   public @Nullable RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
-    return mq.getAllPredicates(Util.first(rel.getBest(), rel.getOriginal()));
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getAllPredicates(bestOrOriginal);
   }
 
   /**

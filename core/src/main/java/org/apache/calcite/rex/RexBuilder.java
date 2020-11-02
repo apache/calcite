@@ -1029,7 +1029,7 @@ public class RexBuilder {
   /**
    * Creates a BIGINT literal.
    */
-  public RexLiteral makeBigintLiteral(BigDecimal bd) {
+  public RexLiteral makeBigintLiteral(@Nullable BigDecimal bd) {
     RelDataType bigintType =
         typeFactory.createSqlType(
             SqlTypeName.BIGINT);
@@ -1072,7 +1072,7 @@ public class RexBuilder {
    * @param type approximate numeric type
    * @return new literal
    */
-  public RexLiteral makeApproxLiteral(BigDecimal bd, RelDataType type) {
+  public RexLiteral makeApproxLiteral(@Nullable BigDecimal bd, RelDataType type) {
     assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
         type.getSqlTypeName());
     return makeLiteral(bd, type, SqlTypeName.DOUBLE);
@@ -1266,7 +1266,7 @@ public class RexBuilder {
    * {@code INTERVAL '3-7' YEAR TO MONTH}.
    */
   public RexLiteral makeIntervalLiteral(
-      BigDecimal v,
+      @Nullable BigDecimal v,
       SqlIntervalQualifier intervalQualifier) {
     return makeLiteral(
         v,

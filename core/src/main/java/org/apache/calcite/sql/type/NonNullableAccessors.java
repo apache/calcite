@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNodeList;
 
 import org.apiguardian.api.API;
 
@@ -46,5 +47,11 @@ public class NonNullableAccessors {
             ? "collation is null for " + type
             : "RelDataType object should have been assigned "
                 + "a (default) collation when calling deriveType, type=" + type);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public static RelDataType getComponentTypeOrThrow(RelDataType type) {
+    return requireNonNull(type.getComponentType(),
+        () -> "componentType is null for " + type);
   }
 }

@@ -48,7 +48,7 @@ import java.util.stream.Collector;
 public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final SqlNode[] EMPTY_ARRAY = new SqlNode[0];
+  public static final @Nullable SqlNode[] EMPTY_ARRAY = new SqlNode[0];
 
   //~ Instance fields --------------------------------------------------------
 

@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlOperator;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -65,10 +66,8 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(
-                SqlTypeUtil.deriveType(callBinding, op0)
-                    .getComponentType(),
-                SqlTypeUtil.deriveType(callBinding, op1)
-                    .getComponentType()));
+                getComponentTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0)),
+                getComponentTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op1))));
     if (null == biggest) {
       if (throwOnFailure) {
         throw callBinding.newError(

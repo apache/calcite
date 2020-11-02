@@ -108,7 +108,11 @@ public class RelMdExpressionLineage
 
   public @Nullable Set<RexNode> getExpressionLineage(RelSubset rel,
       RelMetadataQuery mq, RexNode outputExpression) {
-    return mq.getExpressionLineage(Util.first(rel.getBest(), rel.getOriginal()),
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getExpressionLineage(bestOrOriginal,
         outputExpression);
   }
 

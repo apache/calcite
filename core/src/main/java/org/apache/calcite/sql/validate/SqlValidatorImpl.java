@@ -5284,7 +5284,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateWindow(
       SqlNode windowOrId,
       SqlValidatorScope scope,
-      SqlCall call) {
+      @Nullable SqlCall call) {
     // Enable nested aggregates with window aggregates (OVER operator)
     inWindow = true;
 
@@ -5302,6 +5302,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw Util.unexpected(windowOrId.getKind());
     }
 
+    requireNonNull(call, () -> "call is null when validating windowOrId " + windowOrId);
     assert targetWindow.getWindowCall() == null;
     targetWindow.setWindowCall(call);
     targetWindow.validate(this, scope);

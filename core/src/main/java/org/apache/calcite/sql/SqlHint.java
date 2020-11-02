@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlHint</code> is a node of a parse tree which represents
  * a sql hint expression.
@@ -119,10 +121,8 @@ public class SqlHint extends SqlCall {
       final List<String> attrs = options.getList().stream()
           .map(node -> {
             SqlLiteral literal = (SqlLiteral) node;
-            Comparable<?> comparable = SqlLiteral.value(literal);
-            return comparable instanceof NlsString
-                ? ((NlsString) comparable).getValue()
-                : comparable.toString();
+            return requireNonNull(literal.toValue(),
+                () -> "null hint literal in " + options);
           })
           .collect(Collectors.toList());
       return ImmutableList.copyOf(attrs);

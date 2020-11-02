@@ -428,7 +428,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     @Override public Object freeze(ColumnLoader.ValueSet valueSet, int @Nullable [] sources) {
       final int n = valueSet.map.keySet().size();
       int extra = valueSet.containsNull ? 1 : 0;
-      Comparable[] codeValues =
+      @Nullable Comparable[] codeValues =
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
       Arrays.sort(codeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =

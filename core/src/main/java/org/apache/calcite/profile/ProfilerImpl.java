@@ -114,7 +114,7 @@ public class ProfilerImpl implements Profiler {
             PartiallyOrderedSet.BIT_SET_INCLUSION_ORDERING);
     final Map<ImmutableBitSet, Distribution> distributions = new HashMap<>();
     /** List of spaces that have one column. */
-    final List<Space> singletonSpaces;
+    final List<@Nullable Space> singletonSpaces;
     /** Combinations of columns that we have computed but whose successors have
      * not yet been computed. We may add some of those successors to
      * {@link #spaceQueue}. */
@@ -303,7 +303,10 @@ public class ProfilerImpl implements Profiler {
       // and [x, y] => [a] is a functional dependency but not interesting,
       // and [x, y, z] is not an interesting distribution.
       for (Space space : spaces) {
-        space.collector.finish();
+        Collector collector = space.collector;
+        if (collector != null) {
+          collector.finish();
+        }
         space.collector = null;
 //        results.add(space);
 

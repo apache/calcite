@@ -51,6 +51,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getScope;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 
@@ -654,12 +655,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           targetType);
     case UPDATE:
       SqlUpdate update = (SqlUpdate) query;
-      if (update.getSourceExpressionList() != null) {
-        final SqlNodeList sourceExpressionList = update.getSourceExpressionList();
+      final SqlNodeList sourceExpressionList = update.getSourceExpressionList();
+      if (sourceExpressionList != null) {
         return coerceColumnType(sourceScope, sourceExpressionList, columnIndex, targetType);
       } else {
+        // Note: this is dead code since sourceExpressionList is always non-null
         return coerceSourceRowType(sourceScope,
-            update.getSourceSelect(),
+            castNonNull(update.getSourceSelect()),
             columnIndex,
             targetType);
       }
