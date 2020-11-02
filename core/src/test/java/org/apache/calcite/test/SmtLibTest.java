@@ -17,14 +17,11 @@
 package org.apache.calcite.test;
 
 
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilderBase;
 import org.apache.calcite.test.verifier.RexToSymbolicColumn;
 import org.apache.calcite.test.verifier.SymbolicColumn;
 
@@ -46,14 +43,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Testing for integrating z3 with calcite to verify equivalence.
  **/
 
-public class SmtLibTest {
-
-  static RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+public class SmtLibTest extends RexProgramBuilderBase {
 
   /**
    * Check z3 dynamic library exits before run all other tests.
    */
-  @BeforeAll static void testZ3Lib() throws Exception {
+  @BeforeAll static void testZ3Lib() throws Error {
     Context z3Context = new Context();
     Expr x = z3Context.mkIntConst("x");
     Expr one = z3Context.mkInt(1);
@@ -64,14 +59,14 @@ public class SmtLibTest {
   }
 
   /** Converts a SQL string to a relational expression using mock schema. */
-  private static RelNode toRel(String sql) {
+  private RelNode toRel(String sql) {
     final SqlToRelTestBase test = new SqlToRelTestBase() {
     };
     return test.createTester().convertSqlToRel(sql).rel;
   }
 
   /** Converts a where condition string to a RexNode using mock schema on emp table. */
-  private static RexNode toRex(String cond) {
+  private RexNode toRex(String cond) {
     final String sql = "select *\n"
         + "from emp where"
         + cond;
@@ -81,15 +76,14 @@ public class SmtLibTest {
     return filter.getCondition();
   }
 
-  private static boolean checkEqual(String cond1, String cond2) {
+  private boolean checkEqual(String cond1, String cond2) {
     RexNode rexNode1 = toRex(cond1);
     RexNode rexNode2 = toRex(cond2);
     Context z3Context = new Context();
     List<SymbolicColumn> inputSymbolicColumns = new ArrayList<>();
     /** mock emp table, 8 columns with int type, since we only support numerical type for now **/
     for (int i = 0; i < 8; i++) {
-      RelDataType intType = typeFactory.createJavaType(int.class);
-      SymbolicColumn inputColumn = SymbolicColumn.mkNewSymbolicColumn(z3Context, intType);
+      SymbolicColumn inputColumn = SymbolicColumn.mkNewSymbolicColumn(z3Context, tInt());
       inputSymbolicColumns.add(inputColumn);
     }
     List<BoolExpr> env = new ArrayList<>();
