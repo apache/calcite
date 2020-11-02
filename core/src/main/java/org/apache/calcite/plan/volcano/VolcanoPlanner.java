@@ -1442,9 +1442,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Check whether a rule match is a substitute rule match.
+   * Checks whether a rule match is a substitution rule match.
+   *
    * @param match The rule match to check
-   * @return True if the rule match is a substitute rule match
+   * @return True if the rule match is a substitution rule match
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isSubstituteRule(VolcanoRuleCall match) {
@@ -1452,7 +1453,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Check whether a rule match is a transformation rule match.
+   * Checks whether a rule match is a transformation rule match.
+   *
    * @param match The rule match to check
    * @return True if the rule match is a transformation rule match
    */
@@ -1472,6 +1474,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Gets the lower bound cost of a relational operator.
+   *
    * @param rel The rel node
    * @return The lower bound cost of the given rel. The value is ensured NOT NULL.
    */
