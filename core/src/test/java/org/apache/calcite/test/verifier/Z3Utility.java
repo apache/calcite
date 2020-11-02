@@ -18,6 +18,8 @@ package org.apache.calcite.test.verifier;
 
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
+import com.microsoft.z3.Solver;
+import com.microsoft.z3.Status;
 
 import java.util.List;
 
@@ -41,5 +43,17 @@ public class Z3Utility {
     BoolExpr[] orC = new BoolExpr[constraints.size()];
     constraints.toArray(orC);
     return (BoolExpr) z3Context.mkOr(orC).simplify();
+  }
+
+  public static boolean isCondEq(List<BoolExpr> env,
+      BoolExpr cond1Hold, BoolExpr cond2Hold, Context z3Context) {
+    BoolExpr[] equation = new BoolExpr[env.size() + 1];
+    for (int i = 0; i < env.size(); i++) {
+      equation[i] = env.get(i);
+    }
+    equation[env.size()] = z3Context.mkNot(z3Context.mkEq(cond1Hold, cond2Hold));
+    Solver s = z3Context.mkSolver();
+    s.add(equation);
+    return s.check() == Status.UNSATISFIABLE;
   }
 }

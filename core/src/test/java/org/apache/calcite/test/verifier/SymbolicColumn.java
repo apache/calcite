@@ -25,6 +25,9 @@ import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
 import com.microsoft.z3.Sort;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * A Symbolic column symbolically represent a column.
@@ -35,7 +38,7 @@ import com.microsoft.z3.Sort;
 
 public class SymbolicColumn {
   /** Each SymbolicColumn is unique. **/
-  private static int count = 0;
+  private static AtomicInteger count = new AtomicInteger();
 
   private Expr symbolicValue;
   private BoolExpr symbolicNull;
@@ -45,9 +48,9 @@ public class SymbolicColumn {
   }
 
   public static SymbolicColumn mkNewSymbolicColumn(Context z3Context, RelDataType type) {
-    Expr value = z3Context.mkConst("value" + count, type2Sort(type, z3Context));
-    BoolExpr valueNull = z3Context.mkBoolConst("isN" + count);
-    count++;
+    int id = count.getAndIncrement();
+    Expr value = z3Context.mkConst("value" + id, type2Sort(type, z3Context));
+    BoolExpr valueNull = z3Context.mkBoolConst("isN" + id);
     return new SymbolicColumn(value, valueNull);
   }
 
@@ -66,10 +69,17 @@ public class SymbolicColumn {
   }
 
   public static Expr dummyValue(RexNode node, Context z3Context) {
+    int id = count.getAndIncrement();
     RelDataType type = node.getType();
-    Expr dummyValue = z3Context.mkConst("value" + count, type2Sort(type, z3Context));
-    count++;
+    Expr dummyValue = z3Context.mkConst("value" + id, type2Sort(type, z3Context));
     return dummyValue;
+  }
+
+  public static boolean checkCondEq(SymbolicColumn cond1,
+      SymbolicColumn cond2, List<BoolExpr> env, Context z3Context) {
+    BoolExpr cond1Hold = cond1.getValueTrue(z3Context);
+    BoolExpr cond2Hold = cond2.getValueTrue(z3Context);
+    return Z3Utility.isCondEq(env, cond1Hold, cond2Hold, z3Context);
   }
 
   public SymbolicColumn(Expr symbolicValue, BoolExpr symbolicNull) {
@@ -83,6 +93,11 @@ public class SymbolicColumn {
 
   public BoolExpr getSymbolicNull() {
     return this.symbolicNull;
+  }
+
+  // return the boolean formula indicates the symbolic condition holds
+  public BoolExpr getValueTrue(Context z3Context) {
+    return z3Context.mkAnd((BoolExpr) symbolicValue, z3Context.mkNot(symbolicNull));
   }
 
   @Override public String toString() {
