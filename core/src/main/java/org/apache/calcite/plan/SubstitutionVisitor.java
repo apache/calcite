@@ -1895,10 +1895,9 @@ public class SubstitutionVisitor {
       // Same level of aggregation. Generate a project.
       final List<Integer> projects = new ArrayList<>();
       final int groupCount = query.groupSet.cardinality();
-      final List<Integer> targetGroupList = target.groupSet.asList();
       for (Integer inputIndex : query.groupSet.asList()) {
         // Use the index in target group by.
-        int i = targetGroupList.indexOf(inputIndex);
+        int i = targetGroupByIndexList.indexOf(inputIndex);
         projects.add(i);
       }
       for (AggregateCall aggregateCall : query.aggCalls) {
@@ -1930,7 +1929,19 @@ public class SubstitutionVisitor {
       }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
-        if (aggregateCall.isDistinct()) {
+        if (aggregateCall.isDistinct() && aggregateCall.getArgList().size() == 1) {
+          final int aggIndex = aggregateCall.getArgList().get(0);
+          final int newIndex = targetGroupByIndexList.indexOf(aggIndex);
+          if (newIndex >= 0) {
+            aggregateCalls.add(
+                AggregateCall.create(aggregateCall.getAggregation(),
+                    aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+                    aggregateCall.ignoreNulls(),
+                    ImmutableList.of(newIndex), -1,
+                    aggregateCall.collation, aggregateCall.type,
+                    aggregateCall.name));
+            continue;
+          }
           return null;
         }
         int i = target.aggCalls.indexOf(aggregateCall);
