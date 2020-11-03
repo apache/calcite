@@ -236,7 +236,7 @@ They are straightforward to write (you just write a Java class and register it
 in your schema) but do not offer much flexibility in the number and type of
 arguments, resolving overloaded functions, or deriving the return type.
 
-It you want that flexibility, you probably need to write you a
+If you want that flexibility, you probably need to write you a
 *user-defined operator*
 (see [<code>interface SqlOperator</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlOperator.html)).
 
