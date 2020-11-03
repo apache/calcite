@@ -221,7 +221,7 @@ runnable as a service), repository persistence, authorization and security.
 
 There are many other APIs that allow you to extend Calcite's capabilities.
 
-In this section, we briefly describe those APIs, to give you an idea what is
+In this section, we briefly describe those APIs, to give you an idea of what is
 possible. To fully use these APIs you will need to read other documentation
 such as the javadoc for the interfaces, and possibly seek out the tests that
 we have written for them.
