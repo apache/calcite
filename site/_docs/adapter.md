@@ -303,7 +303,7 @@ appear in more than one window. For example, 10:37 appears in both the
 
 Window functions are computed incrementally: when the clock ticks from
 10:14 to 10:15, two rows might enter the window and three rows leave.
-For this, window functions have have an extra life-cycle operation:
+For this, window functions have an extra life-cycle operation:
 
 * `remove` removes a value from an accumulator.
 
