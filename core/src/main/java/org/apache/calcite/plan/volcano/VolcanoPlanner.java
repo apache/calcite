@@ -716,7 +716,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.noneConventionHasInfiniteCost = infinite;
   }
 
-  @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
@@ -726,19 +726,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return costFactory.makeInfiniteCost();
     }
     RelOptCost cost = mq.getNonCumulativeCost(rel);
-    if (cost == null) {
-      return null;
-    }
     if (!zeroCost.isLt(cost)) {
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
     for (RelNode input : rel.getInputs()) {
-      RelOptCost inputCost = getCost(input, mq);
-      if (inputCost == null) {
-        return null;
-      }
-      cost = cost.plus(inputCost);
+      cost = cost.plus(getCost(input, mq));
     }
     return cost;
   }
