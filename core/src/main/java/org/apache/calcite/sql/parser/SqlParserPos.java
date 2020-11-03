@@ -171,7 +171,7 @@ public class SqlParserPos implements Serializable {
   /**
    * Combines this parser position with a list of positions.
    */
-  public SqlParserPos plusAll(Collection<@Nullable SqlNode> nodeList) {
+  public SqlParserPos plusAll(Collection<? extends @Nullable SqlNode> nodeList) {
     int line = getLineNum();
     int column = getColumnNum();
     int endLine = getEndLineNum();

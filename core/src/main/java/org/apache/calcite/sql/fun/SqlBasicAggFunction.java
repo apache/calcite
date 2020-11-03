@@ -31,7 +31,11 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Concrete implementation of {@link SqlAggFunction}.
@@ -51,20 +55,20 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
 
   //~ Constructors -----------------------------------------------------------
 
-  private SqlBasicAggFunction(String name, SqlIdentifier sqlIdentifier,
+  private SqlBasicAggFunction(String name, @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind, SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,
       SqlSyntax syntax, boolean allowsNullTreatment) {
     super(name, sqlIdentifier, kind,
-        Objects.requireNonNull(returnTypeInference), operandTypeInference,
-        Objects.requireNonNull(operandTypeChecker),
-        Objects.requireNonNull(funcType), requiresOrder, requiresOver,
+        requireNonNull(returnTypeInference), operandTypeInference,
+        requireNonNull(operandTypeChecker),
+        requireNonNull(funcType), requiresOrder, requiresOver,
         requiresGroupOrder);
-    this.distinctOptionality = Objects.requireNonNull(distinctOptionality);
-    this.syntax = Objects.requireNonNull(syntax);
+    this.distinctOptionality = requireNonNull(distinctOptionality);
+    this.syntax = requireNonNull(syntax);
     this.allowsNullTreatment = allowsNullTreatment;
   }
 
@@ -96,6 +100,16 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
 
   @Override public Optionality getDistinctOptionality() {
     return distinctOptionality;
+  }
+
+  @Override public SqlReturnTypeInference getReturnTypeInference() {
+    // constructor ensures it is non-null
+    return requireNonNull(super.getReturnTypeInference(), "returnTypeInference");
+  }
+
+  @Override public SqlOperandTypeChecker getOperandTypeChecker() {
+    // constructor ensures it is non-null
+    return requireNonNull(super.getOperandTypeChecker(), "operandTypeChecker");
   }
 
   /** Sets {@link #getDistinctOptionality()}. */

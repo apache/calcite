@@ -42,6 +42,8 @@ import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of
  * {@link RelMetadataProvider} for the set of relational expression metadata
@@ -146,7 +148,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
       RelMetadataQuery prototype) {
-    super(Objects.requireNonNull(metadataProvider));
+    super(requireNonNull(metadataProvider));
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;
@@ -268,10 +270,12 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public @Nullable RelOptCost getCumulativeCost(RelNode rel) {
+  public RelOptCost getCumulativeCost(RelNode rel) {
     for (;;) {
       try {
-        return cumulativeCostHandler.getCumulativeCost(rel, this);
+        RelOptCost cost = cumulativeCostHandler.getCumulativeCost(rel, this);
+        return requireNonNull(cost,
+            () -> "getCumulativeCost must be non-null, rel = " + rel);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         cumulativeCostHandler =
             revise(e.relClass, BuiltInMetadata.CumulativeCost.DEF);
@@ -287,10 +291,12 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public @Nullable RelOptCost getNonCumulativeCost(RelNode rel) {
+  public RelOptCost getNonCumulativeCost(RelNode rel) {
     for (;;) {
       try {
-        return nonCumulativeCostHandler.getNonCumulativeCost(rel, this);
+        RelOptCost cost = nonCumulativeCostHandler.getNonCumulativeCost(rel, this);
+        return requireNonNull(cost,
+            () -> "getNonCumulativeCost must be non-null, rel = " + rel);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         nonCumulativeCostHandler =
             revise(e.relClass, BuiltInMetadata.NonCumulativeCost.DEF);

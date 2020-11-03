@@ -68,6 +68,8 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility methods relating to parsing SQL.
  */
@@ -141,7 +143,7 @@ public final class SqlParserUtil {
   public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     final String dateStr = parseString(s);
     final Calendar cal =
-        DateTimeUtils.parseDateFormat(dateStr, Format.PER_THREAD.get().date,
+        DateTimeUtils.parseDateFormat(dateStr, Format.get().date,
             DateTimeUtils.UTC_ZONE);
     if (cal == null) {
       throw SqlUtil.newContextException(pos,
@@ -156,7 +158,7 @@ public final class SqlParserUtil {
     final String dateStr = parseString(s);
     final DateTimeUtils.PrecisionTime pt =
         DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
-            Format.PER_THREAD.get().time, DateTimeUtils.UTC_ZONE, -1);
+            Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalLiteral("TIME", s,
@@ -170,7 +172,7 @@ public final class SqlParserUtil {
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
     final String dateStr = parseString(s);
-    final Format format = Format.PER_THREAD.get();
+    final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
@@ -588,7 +590,7 @@ public final class SqlParserUtil {
       int start,
       int end,
       T o) {
-    Objects.requireNonNull(list);
+    requireNonNull(list);
     Preconditions.checkArgument(start < end);
     for (int i = end - 1; i > start; --i) {
       list.remove(i);
@@ -651,14 +653,14 @@ public final class SqlParserUtil {
     return node;
   }
 
-  private static SqlNode convert(PrecedenceClimbingParser.Token token) {
+  private static @Nullable SqlNode convert(PrecedenceClimbingParser.Token token) {
     switch (token.type) {
     case ATOM:
       return (SqlNode) token.o;
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
-      final List<SqlNode> list = new ArrayList<>();
+      final List<@Nullable SqlNode> list = new ArrayList<>();
       for (PrecedenceClimbingParser.Token arg : call.args) {
         list.add(convert(arg));
       }
@@ -929,6 +931,11 @@ public final class SqlParserUtil {
   private static class Format {
     private static final ThreadLocal<@Nullable Format> PER_THREAD =
         ThreadLocal.withInitial(Format::new);
+
+    private static Format get() {
+      return requireNonNull(PER_THREAD.get(), "PER_THREAD.get()");
+    }
+
     final DateFormat timestamp =
         new SimpleDateFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING,
             Locale.ROOT);

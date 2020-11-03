@@ -182,11 +182,12 @@ public class SqlSelectOperator extends SqlOperator {
       writer.endList(fromFrame);
     }
 
-    if (select.where != null) {
+    SqlNode where = select.where;
+    if (where != null) {
       writer.sep("WHERE");
 
       if (!writer.isAlwaysUseParentheses()) {
-        SqlNode node = select.where;
+        SqlNode node = where;
 
         // decide whether to split on ORs or ANDs
         SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
@@ -207,9 +208,9 @@ public class SqlSelectOperator extends SqlOperator {
 
         // unparse in a WHERE_LIST frame
         writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
-            new SqlNodeList(list, select.where.getParserPosition()));
+            new SqlNodeList(list, where.getParserPosition()));
       } else {
-        select.where.unparse(writer, 0, 0);
+        where.unparse(writer, 0, 0);
       }
     }
     if (select.groupBy != null) {

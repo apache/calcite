@@ -356,7 +356,7 @@ public class RelMdCollation
        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-       RexNode interval) {
+       @Nullable RexNode interval) {
     return mq.collations(input);
   }
 

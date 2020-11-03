@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -76,7 +75,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -607,10 +605,7 @@ public class RelMdPredicates
       // Only process equivalences found in the join conditions. Processing
       // Equivalences from the left or right side infer predicates that are
       // already present in the Tree below the join.
-      RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
-      List<RexNode> exprs =
-          RelOptUtil.conjunctions(
-              compose(rexBuilder, ImmutableList.of(joinRel.getCondition())));
+      List<RexNode> exprs = RelOptUtil.conjunctions(joinRel.getCondition());
 
       final EquivalenceFinder eF = new EquivalenceFinder();
       exprs.forEach(input -> input.accept(eF));
@@ -770,11 +765,6 @@ public class RelMdPredicates
 
       b = equivalence.get(p2);
       b.set(p1);
-    }
-
-    RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
-      exprs = Linq4j.asEnumerable(exprs).where(Objects::nonNull);
-      return RexUtil.composeConjunction(rexBuilder, exprs);
     }
 
     /**

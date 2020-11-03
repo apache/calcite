@@ -211,13 +211,13 @@ public interface RelOptPlanner {
    * @param mq Metadata query
    * @return estimated cost
    */
-  @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
+  RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
 
   // CHECKSTYLE: IGNORE 2
   /** @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
    * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}. */
   @Deprecated // to be removed before 2.0
-  @Nullable RelOptCost getCost(RelNode rel);
+  RelOptCost getCost(RelNode rel);
 
   /**
    * Registers a relational expression in the expression bank.
