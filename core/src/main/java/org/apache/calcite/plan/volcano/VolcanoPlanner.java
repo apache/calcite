@@ -80,7 +80,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -667,7 +666,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           // Make sure bestCost is up-to-date
           try {
             RelOptCost bestCost = getCost(subset.best, metaQuery);
-            if (!Objects.equals(subset.bestCost, bestCost)) {
+            if (!subset.bestCost.equals(bestCost)) {
               return litmus.fail("RelSubset [" + subset
                       + "] has wrong best cost "
                       + subset.bestCost + ". Correct cost is " + bestCost);
