@@ -352,7 +352,7 @@ SELECT * FROM TABLE(Ramp(3, 4))
 {% endhighlight %}
 
 *User-defined table macros* use the same SQL syntax as table functions,
-but are defined differently. Rather than generating data, they generate an
+but are defined differently. Rather than generating data, they generate a
 relational expression.
 Table macros are invoked during query preparation and the relational expression
 they produce can then be optimized.
