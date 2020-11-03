@@ -37,7 +37,7 @@ planner engine generates an alternative expression that has the same
 semantics as the original but a lower cost.
 
 The planning process is extensible. You can add your own relational
-operators, planner rules, cost model, and statistics.
+operators, planner rules, cost models, and statistics.
 
 ## Algebra builder
 
