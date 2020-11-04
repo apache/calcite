@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,6 +76,11 @@ public final class Span {
 
   /** Creates a Span of a list of nodes. */
   public static Span of(Collection<? extends SqlNode> nodes) {
+    return new Span().addAll(nodes);
+  }
+
+  /** Creates a Span of a list of nodes. */
+  public static Span of(SqlNodeList nodes) {
     return new Span().addAll(nodes);
   }
 

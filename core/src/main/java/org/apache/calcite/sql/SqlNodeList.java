@@ -35,7 +35,7 @@ import java.util.List;
  *
  * @see SqlNode#toList()
  */
-public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
+public class SqlNodeList extends SqlNode implements Collection<SqlNode> {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -43,7 +43,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    */
   public static final SqlNodeList EMPTY =
       new SqlNodeList(SqlParserPos.ZERO) {
-        @Override public void add(SqlNode node) {
+        @Override public boolean add(SqlNode node) {
           throw new UnsupportedOperationException();
         }
       };
@@ -87,6 +87,52 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   //~ Methods ----------------------------------------------------------------
 
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public boolean contains(Object o) {
+    return false;
+  }
+
+  @Override
+  public <T> T[] toArray(T[] a) {
+    return null;
+  }
+
+  @Override
+  public boolean remove(Object o) {
+    return false;
+  }
+
+  @Override
+  public boolean containsAll(Collection<?> c) {
+    return false;
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends SqlNode> c) {
+    return false;
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> c) {
+    return false;
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> c) {
+    return false;
+  }
+
+  @Override
+  public void clear() {
+
+  }
+
   // implement Iterable<SqlNode>
   @Override public Iterator<SqlNode> iterator() {
     return list.iterator();
@@ -96,8 +142,8 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return list;
   }
 
-  public void add(SqlNode node) {
-    list.add(node);
+  public boolean add(SqlNode node) {
+    return list.add(node);
   }
 
   @Override public SqlNodeList clone(SqlParserPos pos) {
