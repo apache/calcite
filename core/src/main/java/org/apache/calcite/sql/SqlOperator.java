@@ -232,6 +232,24 @@ public abstract class SqlOperator {
   public abstract SqlSyntax getSyntax();
 
   /**
+   * Creates a call to this operator with a list of operands.
+   *
+   * <p>The position of the resulting call is the union of the {@code pos}
+   * and the positions of all of the operands.
+   *
+   * @param functionQualifier Function qualifier (e.g. "DISTINCT"), or null
+   * @param pos               Parser position of the identifier of the call
+   * @param operands          List of operands
+   */
+  public final SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      Iterable<? extends SqlNode> operands) {
+    return createCall(functionQualifier, pos,
+        Iterables.toArray(operands, SqlNode.class));
+  }
+
+  /**
    * Creates a call to this operator with an array of operands.
    *
    * <p>The position of the resulting call is the union of the {@code pos}
@@ -249,22 +267,17 @@ public abstract class SqlOperator {
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
-  /**
-   * Creates a call to this operator with a list of operands.
-   *
-   * <p>The position of the resulting call is the union of the {@code pos}
-   * and the positions of all of the operands.
-   *
-   * @param functionQualifier Function qualifier (e.g. "DISTINCT"), or null
-   * @param pos               Parser position of the identifier of the call
-   * @param operands          List of operands
-   */
+  /** Not supported. Choose between
+   * {@link #createCall(SqlLiteral, SqlParserPos, SqlNode...)} and
+   * {@link #createCall(SqlParserPos, List)}. The ambiguity arises because
+   * {@link SqlNodeList} extends {@link SqlNode}
+   * and also implements {@code List<SqlNode>}. */
+  @Deprecated
   public final SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
-      Iterable<? extends SqlNode> operands) {
-    return createCall(functionQualifier, pos,
-        Iterables.toArray(operands, SqlNode.class));
+      SqlNodeList operands) {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -297,7 +310,7 @@ public abstract class SqlOperator {
     return createCall(
         null,
         nodeList.getParserPosition(),
-        nodeList.toArray());
+        nodeList.toArray(new SqlNode[0]));
   }
 
   /**
@@ -313,6 +326,18 @@ public abstract class SqlOperator {
         null,
         pos,
         operandList.toArray(new SqlNode[0]));
+  }
+
+  /** Not supported. Choose between
+   * {@link #createCall(SqlParserPos, SqlNode...)} and
+   * {@link #createCall(SqlParserPos, List)}. The ambiguity arises because
+   * {@link SqlNodeList} extends {@link SqlNode}
+   * and also implements {@code List<SqlNode>}. */
+  @Deprecated
+  public SqlCall createCall(
+      SqlParserPos pos,
+      SqlNodeList operands) {
+    throw new UnsupportedOperationException();
   }
 
   /**

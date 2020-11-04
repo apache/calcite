@@ -26,8 +26,13 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
+import java.util.RandomAccess;
+import javax.annotation.Nonnull;
 
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
@@ -35,18 +40,14 @@ import java.util.List;
  *
  * @see SqlNode#toList()
  */
-public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
+public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
    * An immutable, empty SqlNodeList.
    */
   public static final SqlNodeList EMPTY =
-      new SqlNodeList(SqlParserPos.ZERO) {
-        @Override public void add(SqlNode node) {
-          throw new UnsupportedOperationException();
-        }
-      };
+      new SqlNodeList(ImmutableList.of(), SqlParserPos.ZERO);
 
   /**
    * A SqlNodeList that has a single element that is an empty list.
@@ -66,12 +67,20 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   //~ Constructors -----------------------------------------------------------
 
+  /** Creates a SqlNodeList with a given backing list.
+   *
+   * <p>Because SqlNodeList implements {@link RandomAccess}, the backing list
+   * should allow O(1) access to elements. */
+  private SqlNodeList(SqlParserPos pos, List<SqlNode> list) {
+    super(pos);
+    this.list = Objects.requireNonNull(list);
+  }
+
   /**
-   * Creates an empty <code>SqlNodeList</code>.
+   * Creates a SqlNodeList that is initially empty.
    */
   public SqlNodeList(SqlParserPos pos) {
-    super(pos);
-    list = new ArrayList<>();
+    this(pos, new ArrayList<>());
   }
 
   /**
@@ -81,39 +90,134 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
   public SqlNodeList(
       Collection<? extends SqlNode> collection,
       SqlParserPos pos) {
-    super(pos);
-    list = new ArrayList<>(collection);
+    this(pos, new ArrayList<>(collection));
+  }
+
+  /**
+   * Creates a SqlNodeList with a given backing list.
+   * Does not copy the list.
+   */
+  public static SqlNodeList of(SqlParserPos pos, List<SqlNode> list) {
+    return new SqlNodeList(pos, list);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement Iterable<SqlNode>
-  @Override public Iterator<SqlNode> iterator() {
+  // List, Collection and Iterable methods
+
+
+  @Override public int hashCode() {
+    return list.hashCode();
+  }
+
+  @Override public boolean equals(Object o) {
+    return this == o
+        || o instanceof SqlNodeList && list.equals(((SqlNodeList) o).list)
+        || o instanceof List && list.equals(o);
+  }
+
+  @Override public boolean isEmpty() {
+    return list.isEmpty();
+  }
+
+  @Override public int size() {
+    return list.size();
+  }
+
+  @Override public @Nonnull Iterator<SqlNode> iterator() {
     return list.iterator();
   }
+
+  @Override public ListIterator<SqlNode> listIterator() {
+    return list.listIterator();
+  }
+
+  @Override public ListIterator<SqlNode> listIterator(int index) {
+    return list.listIterator(index);
+  }
+
+  @Override public List<SqlNode> subList(int fromIndex, int toIndex) {
+    return list.subList(fromIndex, toIndex);
+  }
+
+  @Override public SqlNode get(int n) {
+    return list.get(n);
+  }
+
+  @Override public SqlNode set(int n, SqlNode node) {
+    return list.set(n, node);
+  }
+
+  @Override public boolean contains(Object o) {
+    return list.contains(o);
+  }
+
+  @Override public boolean containsAll(Collection<?> c) {
+    return list.containsAll(c);
+  }
+
+  @Override public int indexOf(Object o) {
+    return list.indexOf(o);
+  }
+
+  @Override public int lastIndexOf(Object o) {
+    return list.lastIndexOf(o);
+  }
+
+  @Override public @Nonnull Object[] toArray() {
+    // Per JDK specification, must return an Object[] not SqlNode[]; see e.g.
+    // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6260652
+    return list.toArray();
+  }
+
+  @Override public @Nonnull <T> T[] toArray(T[] a) {
+    return list.toArray(a);
+  }
+
+  @Override public boolean add(SqlNode node) {
+    return list.add(node);
+  }
+
+  @Override public void add(int index, SqlNode element) {
+    list.add(index, element);
+  }
+
+  @Override public boolean addAll(Collection<? extends SqlNode> c) {
+    return list.addAll(c);
+  }
+
+  @Override public boolean addAll(int index, Collection<? extends SqlNode> c) {
+    return list.addAll(index, c);
+  }
+
+  @Override public void clear() {
+    list.clear();
+  }
+
+  @Override public boolean remove(Object o) {
+    return list.remove(o);
+  }
+
+  @Override public SqlNode remove(int index) {
+    return list.remove(index);
+  }
+
+  @Override public boolean removeAll(Collection<?> c) {
+    return list.removeAll(c);
+  }
+
+  @Override public boolean retainAll(Collection<?> c) {
+    return list.retainAll(c);
+  }
+
+  // SqlNodeList-specific methods
 
   public List<SqlNode> getList() {
     return list;
   }
 
-  public void add(SqlNode node) {
-    list.add(node);
-  }
-
   @Override public SqlNodeList clone(SqlParserPos pos) {
     return new SqlNodeList(list, pos);
-  }
-
-  public SqlNode get(int n) {
-    return list.get(n);
-  }
-
-  public SqlNode set(int n, SqlNode node) {
-    return list.set(n, node);
-  }
-
-  public int size() {
-    return list.size();
   }
 
   @Override public void unparse(
@@ -165,40 +269,30 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return litmus.succeed();
   }
 
-  public SqlNode[] toArray() {
-    return list.toArray(new SqlNode[0]);
-  }
-
   public static boolean isEmptyList(final SqlNode node) {
-    if (node instanceof SqlNodeList) {
-      if (0 == ((SqlNodeList) node).size()) {
-        return true;
-      }
-    }
-    return false;
+    return node instanceof SqlNodeList
+        && ((SqlNodeList) node).isEmpty();
   }
 
   public static SqlNodeList of(SqlNode node1) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final List<SqlNode> list = new ArrayList<>(1);
     list.add(node1);
-    return list;
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
   public static SqlNodeList of(SqlNode node1, SqlNode node2) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final List<SqlNode> list = new ArrayList<>(2);
     list.add(node1);
     list.add(node2);
-    return list;
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
   public static SqlNodeList of(SqlNode node1, SqlNode node2, SqlNode... nodes) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final List<SqlNode> list = new ArrayList<>(nodes.length + 2);
     list.add(node1);
     list.add(node2);
-    for (SqlNode node : nodes) {
-      list.add(node);
-    }
-    return list;
+    Collections.addAll(list, nodes);
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
   @Override public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {

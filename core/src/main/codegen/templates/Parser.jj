@@ -1934,7 +1934,7 @@ SqlNode JoinTable(SqlNode e) :
                 joinType,
                 e2,
                 using,
-                new SqlNodeList(list.getList(), Span.of(using).end(this)));
+                new SqlNodeList(list, Span.of(using).end(this)));
         }
     |
         {
@@ -2161,7 +2161,7 @@ SqlNode TableRef2(boolean lateral) :
             }
         ]
         {
-            tableRef = unnestOp.createCall(s.end(this), args.toArray());
+            tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
         }
     |
         [<LATERAL> { lateral = true; } ]
@@ -2461,7 +2461,7 @@ SqlNode RowConstructor() :
         // sub-queries inside of ROW and row sub-queries?  The standard does,
         // but the distinction seems to be purely syntactic.
         return SqlStdOperatorTable.ROW.createCall(s.end(valueList),
-            valueList.toArray());
+            (List<SqlNode>) valueList);
     }
 }
 
@@ -3680,7 +3680,7 @@ SqlNode Expression3(ExprContext exprContext) :
         if (rowSpan != null) {
             // interpret as row constructor
             return SqlStdOperatorTable.ROW.createCall(rowSpan.end(list1),
-                list1.toArray());
+                (List<SqlNode>) list1);
         }
     }
     [
@@ -3734,7 +3734,7 @@ SqlNode Expression3(ExprContext exprContext) :
         } else {
             // interpret as row constructor
             return SqlStdOperatorTable.ROW.createCall(span().end(list1),
-                list1.toArray());
+                (List<SqlNode>) list1);
         }
     }
 }

@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -25,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * A <code>SqlHint</code> is a node of a parse tree which represents
@@ -111,12 +111,9 @@ public class SqlHint extends SqlCall {
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
-      final List<String> attrs = options.getList().stream()
-          .map(node -> ((SqlIdentifier) node).getSimple())
-          .collect(Collectors.toList());
-      return ImmutableList.copyOf(attrs);
+      return ImmutableList.copyOf(SqlIdentifier.simpleNames(options));
     } else if (optionFormat == HintOptionFormat.LITERAL_LIST) {
-      final List<String> attrs = options.getList().stream()
+      return options.stream()
           .map(node -> {
             SqlLiteral literal = (SqlLiteral) node;
             Comparable<?> comparable = SqlLiteral.value(literal);
@@ -124,8 +121,7 @@ public class SqlHint extends SqlCall {
                 ? ((NlsString) comparable).getValue()
                 : comparable.toString();
           })
-          .collect(Collectors.toList());
-      return ImmutableList.copyOf(attrs);
+          .collect(Util.toImmutableList());
     } else {
       return ImmutableList.of();
     }

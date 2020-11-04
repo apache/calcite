@@ -543,7 +543,7 @@ public final class SqlParserUtil {
   }
 
   public static SqlNode[] toNodeArray(SqlNodeList list) {
-    return list.toArray();
+    return list.toArray(new SqlNode[0]);
   }
 
   /** Converts "ROW (1, 2)" to "(1, 2)"

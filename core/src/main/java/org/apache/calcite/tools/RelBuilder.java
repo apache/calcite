@@ -126,6 +126,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -218,6 +219,41 @@ public class RelBuilder {
     final Context context =
         Contexts.of(struct, transform.apply(config));
     return new RelBuilder(context, cluster, relOptSchema);
+  }
+
+  /** Performs an action on this RelBuilder if a condition is true.
+   *
+   * <p>For example, consider the following code:
+   *
+   * <blockquote><pre>
+   *   RelNode filterAndRename(RelBuilder relBuilder, RelNode rel,
+   *       RexNode condition, List&lt;String&gt; fieldNames) {
+   *     relBuilder.push(rel)
+   *         .filter(condition);
+   *     if (fieldNames != null) {
+   *       relBuilder.rename(fieldNames);
+   *     }
+   *     return relBuilder
+   *         .build();</pre>
+   * </blockquote>
+   *
+   * <p>The pipeline is disrupted by the 'if'. The {@code let} method
+   * allows you to perform the flow as a single pipeline:
+   *
+   * <blockquote><pre>
+   *   RelNode filterAndRename(RelBuilder relBuilder, RelNode rel,
+   *       RexNode condition, List&lt;String&gt; fieldNames) {
+   *     return relBuilder.push(rel)
+   *         .filter(condition)
+   *         .let(r -&gt; fieldNames == null ? r : r.rename(fieldNames))
+   *         .build();</pre>
+   * </blockquote>
+   *
+   * <p>In pipelined cases such as this one, the lambda must return this
+   * RelBuilder. But {@code let} return values of other types.
+   */
+  public <R> R let(Function<RelBuilder, R> consumer) {
+    return consumer.apply(this);
   }
 
   /** Converts this RelBuilder to a string.
@@ -837,7 +873,7 @@ public class RelBuilder {
     }
     Objects.requireNonNull(groupSets);
     final ImmutableList<RexNode> nodes = fields(groupSet);
-    return groupKey_(nodes, Util.transform(groupSets, bitSet -> fields(bitSet)));
+    return groupKey_(nodes, Util.transform(groupSets, this::fields));
   }
 
   @Deprecated // to be removed before 2.0

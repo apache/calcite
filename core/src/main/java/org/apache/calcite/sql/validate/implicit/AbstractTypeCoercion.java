@@ -153,7 +153,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     // when expanding star/dynamic-star.
 
     // See SqlToRelConverter#convertSelectList for details.
-    if (index >= nodeList.getList().size()) {
+    if (index >= nodeList.size()) {
       // Can only happen when there is a star(*) in the column,
       // just return true.
       return true;

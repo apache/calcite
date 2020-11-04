@@ -231,8 +231,7 @@ public class SqlCaseOperator extends SqlOperator {
     final SqlNodeList whenOperands = caseCall.getWhenOperands();
     final RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
 
-    final int size = thenList.getList().size();
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < thenList.size(); i++) {
       SqlNode node = thenList.get(i);
       RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
       SqlNode operand = whenOperands.get(i);

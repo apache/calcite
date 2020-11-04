@@ -69,10 +69,8 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
 
   @Override public SqlNode visit(SqlNodeList nodeList) {
     boolean update = false;
-    List<SqlNode> exprs = nodeList.getList();
-    int exprCount = exprs.size();
-    List<SqlNode> newList = new ArrayList<>(exprCount);
-    for (SqlNode operand : exprs) {
+    final List<SqlNode> newList = new ArrayList<>(nodeList.size());
+    for (SqlNode operand : nodeList) {
       SqlNode clonedOperand;
       if (operand == null) {
         clonedOperand = null;
@@ -85,7 +83,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       newList.add(clonedOperand);
     }
     if (update) {
-      return new SqlNodeList(newList, nodeList.getParserPosition());
+      return SqlNodeList.of(nodeList.getParserPosition(), newList);
     } else {
       return nodeList;
     }

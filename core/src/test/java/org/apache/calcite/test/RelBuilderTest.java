@@ -86,6 +86,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -1032,6 +1033,24 @@ public class RelBuilderTest {
             .build();
     assertThat(root, hasTree(expected));
     assertThat(root.getRowType().getFieldNames().toString(), is("[x, y z]"));
+  }
+
+  /** Tests conditional rename using {@link RelBuilder#let}. */
+  @Test void testLetRename() {
+    final AtomicInteger i = new AtomicInteger();
+    final Function<RelBuilder, String> f = builder ->
+        builder.values(new String[]{"a", "b"}, 1, true)
+            .rename(Arrays.asList("p", "q"))
+            .let(r -> i.getAndIncrement() == 0
+                ? r.rename(Arrays.asList("x", "y")) : r)
+            .let(r -> i.getAndIncrement() == 1
+                ? r.project(r.field(1), r.field(0)) : r)
+            .let(r -> i.getAndIncrement() == 0
+                ? r.rename(Arrays.asList("c", "d")) : r)
+            .let(r -> r.build().getRowType().toString());
+    final String expected = "RecordType(BOOLEAN y, INTEGER x)";
+    assertThat(f.apply(createBuilder()), is(expected));
+    assertThat(i.get(), is(3));
   }
 
   @Test void testPermute() {

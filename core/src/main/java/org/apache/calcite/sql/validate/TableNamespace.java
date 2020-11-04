@@ -86,7 +86,7 @@ class TableNamespace extends AbstractNamespace {
    * be present if you ask for them. Phoenix uses them, for instance, to access
    * rarely used fields in the underlying HBase table. */
   public TableNamespace extend(SqlNodeList extendList) {
-    final List<SqlNode> identifierList = Util.quotientList(extendList.getList(), 2, 0);
+    final List<SqlNode> identifierList = Util.quotientList(extendList, 2, 0);
     SqlValidatorUtil.checkIdentifierListForDuplicates(
         identifierList, validator.getValidationErrorFunction());
     final ImmutableList.Builder<RelDataTypeField> builder =
@@ -147,7 +147,7 @@ class TableNamespace extends AbstractNamespace {
         if (!extType.equals(baseType)) {
           // Get the extended column node that failed validation.
           final SqlNode extColNode =
-              Iterables.find(extendList.getList(),
+              Iterables.find(extendList,
                   sqlNode -> sqlNode instanceof SqlIdentifier
                       && Util.last(((SqlIdentifier) sqlNode).names).equals(
                           extendedField.getName()));

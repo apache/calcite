@@ -363,7 +363,7 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@code Collector} that collects all the input elements into a
    * {@link SqlNodeList}, in encounter order
    */
-  public static <T extends SqlNode> Collector<T, ArrayList<T>, SqlNodeList>
+  public static <T extends SqlNode> Collector<T, ArrayList<SqlNode>, SqlNodeList>
       toList() {
     return toList(SqlParserPos.ZERO);
   }
@@ -377,9 +377,9 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@code Collector} that collects all the input elements into a
    * {@link SqlNodeList}, in encounter order
    */
-  public static <T extends SqlNode> Collector<T, ArrayList<T>, SqlNodeList>
+  public static <T extends SqlNode> Collector<T, ArrayList<SqlNode>, SqlNodeList>
       toList(SqlParserPos pos) {
     return Collector.of(ArrayList::new, ArrayList::add, Util::combine,
-        list -> new SqlNodeList(list, pos));
+        list -> SqlNodeList.of(pos, list));
   }
 }
