@@ -3348,8 +3348,7 @@ public class RelBuilderTest {
                         b.literal(11), b.literal(10))))
             .build();
     final String expected = ""
-        + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), "
-        + "SEARCH($2, Sarg['CLERK']:CHAR(5)))])\n"
+        + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), =($2, 'CLERK'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
@@ -3773,8 +3772,7 @@ public class RelBuilderTest {
             builder.equals(builder.field("DEPTNO"), builder.literal(10)));
     final RelNode root3 = builder.build();
     final String expectedRel3 = ""
-        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg[[1..3), (3..5]]), "
-        + "SEARCH($7, Sarg[10]))])\n"
+        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg[[1..3), (3..5]]), =($7, 10))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root3, hasTree(expectedRel3));
   }

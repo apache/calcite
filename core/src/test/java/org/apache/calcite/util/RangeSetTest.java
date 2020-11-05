@@ -100,6 +100,38 @@ class RangeSetTest {
     assertThat(RangeSets.isPoint(Range.atLeast(0)), is(false));
   }
 
+  /** Tests {@link RangeSets#isOpenInterval(RangeSet)}. */
+  @Test void testRangeSetIsOpenInterval() {
+    final RangeSet<Integer> setGt0 = ImmutableRangeSet.of(Range.greaterThan(0));
+    final RangeSet<Integer> setAl0 = ImmutableRangeSet.of(Range.atLeast(0));
+    final RangeSet<Integer> setLt0 = ImmutableRangeSet.of(Range.lessThan(0));
+    final RangeSet<Integer> setAm0 = ImmutableRangeSet.of(Range.atMost(0));
+
+    assertThat(RangeSets.isOpenInterval(setGt0), is(true));
+    assertThat(RangeSets.isOpenInterval(setAl0), is(true));
+    assertThat(RangeSets.isOpenInterval(setLt0), is(true));
+    assertThat(RangeSets.isOpenInterval(setAm0), is(true));
+
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> multiRanges = ImmutableRangeSet.<Integer>builder()
+        .add(Range.lessThan(0))
+        .add(Range.greaterThan(3))
+        .build();
+
+    assertThat(RangeSets.isOpenInterval(setNone), is(false));
+    assertThat(RangeSets.isOpenInterval(multiRanges), is(false));
+
+    final RangeSet<Integer> open = ImmutableRangeSet.of(Range.open(0, 3));
+    final RangeSet<Integer> closed = ImmutableRangeSet.of(Range.closed(0, 3));
+    final RangeSet<Integer> openClosed = ImmutableRangeSet.of(Range.openClosed(0, 3));
+    final RangeSet<Integer> closedOpen = ImmutableRangeSet.of(Range.closedOpen(0, 3));
+
+    assertThat(RangeSets.isOpenInterval(open), is(false));
+    assertThat(RangeSets.isOpenInterval(closed), is(false));
+    assertThat(RangeSets.isOpenInterval(openClosed), is(false));
+    assertThat(RangeSets.isOpenInterval(closedOpen), is(false));
+  }
+
   /** Tests {@link RangeSets#countPoints(RangeSet)}. */
   @Test void testRangeCountPoints() {
     final Fixture f = new Fixture();

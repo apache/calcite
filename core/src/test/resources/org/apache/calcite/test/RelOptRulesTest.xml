@@ -6159,7 +6159,7 @@ where d.deptno in (7, 9) or d.comm > 10]]>
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), SEARCH($6, Sarg[(10..+∞)]))])
+    LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -6168,7 +6168,7 @@ LogicalProject(EXPR$0=[1])
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[OR(=($7, 7), =($7, 9), >($6, 10))])
+    LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -6217,7 +6217,7 @@ LogicalProject(EXPR$0=[1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($7, 1)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalFilter(condition=[OR(>($7, 7), >($7, 1))])
+    LogicalFilter(condition=[>($7, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -11180,7 +11180,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[7], SLACKER=[$8])
-  LogicalFilter(condition=[AND(SEARCH($7, Sarg[7]), SEARCH($0, Sarg[10]), SEARCH($3, Sarg[NULL]))])
+  LogicalFilter(condition=[AND(=($7, 7), =($0, 10), IS NULL($3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -11714,7 +11714,7 @@ LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
             <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalFilter(condition=[<($0, CASE(OR(AND(IS NOT NULL($12), <>($9, 0)), AND(<($10, $9), null, SEARCH($9, Sarg[(-∞..0), (0..+∞)]), SEARCH($12, Sarg[NULL]))), 10, AND(OR(IS NULL($12), =($9, 0)), OR(>=($10, $9), =($9, 0), SEARCH($12, Sarg[NOT NULL]))), 20, 30))])
+    LogicalFilter(condition=[<($0, CASE(OR(AND(IS NOT NULL($12), <>($9, 0)), AND(<($10, $9), null, SEARCH($9, Sarg[(-∞..0), (0..+∞)]), IS NULL($12))), 10, AND(OR(IS NULL($12), =($9, 0)), OR(>=($10, $9), =($9, 0), IS NOT NULL($12))), 20, 30))])
       LogicalJoin(condition=[=($7, $11)], joinType=[left])
         LogicalJoin(condition=[true], joinType=[inner])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
