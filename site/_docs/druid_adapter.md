@@ -179,7 +179,7 @@ Currently there are two types:
   but can be used to perform set operations as well.
 
 In the model definition, there is an array of Strings called `complexMetrics` that declares
-the alias for each complex metric defined. The alias is used in SQL, but it's real column name
+the alias for each complex metric defined. The alias is used in SQL, but its real column name
 is used when Calcite generates the JSON query for druid.
 
 # Foodmart data set
