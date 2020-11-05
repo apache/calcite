@@ -4443,11 +4443,7 @@ SqlLiteral DateTimeLiteral() :
         return SqlParserUtil.parseTimestampLiteral(p, s.end(this));
     }
 |
-    <DATE> { s = span(); } <QUOTED_STRING> {
-        return SqlParserUtil.parseDateLiteral(token.image, s.end(this));
-    }
-|
-    <TIME> { s = span(); } <QUOTED_STRING> {
+     <TIME> { s = span(); } <QUOTED_STRING> {
         return SqlParserUtil.parseTimeLiteral(token.image, s.end(this));
     }
 |
@@ -5664,11 +5660,13 @@ SqlNode BuiltinFunctionCall() :
     TimeUnit interval;
     final TimeUnit unit;
     final SqlNode node;
+    SqlTypeNameSpec typeName;
+    final String  p;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
-    (
-        <CAST> { s = span(); }
+    (   
+       <CAST> { s = span(); }
         <LPAREN> e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args = startList(e); }
         <AS>
         (
@@ -5680,6 +5678,16 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.CAST.createCall(s.end(this), args);
         }
     |
+    <DATE>(
+    <QUOTED_STRING>  { s = span(); return SqlParserUtil.parseDateLiteral(token.image, s.end(this)); }
+    |
+    <LPAREN>
+    (
+             <QUOTED_STRING> { s = span(); p = token.image;} <RPAREN> { return SqlParserUtil.parseDateLiteral(p, s.end(this)); }
+         |   typeName = TypeName() {s = Span.of(typeName.getParserPos());} <RPAREN> { return new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());}
+    )
+    )
+    |    
         <EXTRACT> {
             s = span();
         }
@@ -6816,6 +6824,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <CURRENT_TIME>
     |   <CURRENT_TIMESTAMP>
     |   <DENSE_RANK>
+    |   <DATE>
     |   <ELEMENT>
     |   <EVERY>
     |   <EXP>
