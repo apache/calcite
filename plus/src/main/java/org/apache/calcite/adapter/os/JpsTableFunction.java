@@ -43,7 +43,9 @@ public class JpsTableFunction {
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
       @Override public Enumerable<Object[]> scan(DataContext root) {
-        return Processes.processLines("jps", "-mlvV")
+        // https://github.com/eclipse/openj9/issues/11036
+        // openj9 jps doesn't handle multiple flags in one argument
+        return Processes.processLines("jps", "-m", "-l", "-v")
             .select(a0 -> {
               final String[] fields = a0.split(" ");
               return new Object[]{Long.valueOf(fields[0]), fields[1]};

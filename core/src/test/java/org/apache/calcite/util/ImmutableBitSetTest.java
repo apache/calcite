@@ -36,7 +36,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -546,8 +545,8 @@ class ImmutableBitSetTest {
     try {
       final ImmutableBitSet x = bitSet.shift(-5);
       fail("Expected error, got " + x);
-    } catch (ArrayIndexOutOfBoundsException e) {
-      assertThat(e.getMessage(), anyOf(is("-1"), is("Index -1 out of bounds for length 0")));
+    } catch (ArrayIndexOutOfBoundsException ignored) {
+      // Exact message is not specified by Java
     }
     final ImmutableBitSet empty = ImmutableBitSet.of();
     assertThat(empty.shift(-100), is(empty));
