@@ -129,7 +129,7 @@ sqlline> SELECT
 +------------+----------------+------------+
 {% endhighlight %}
 
-Will result into two separate OQL queries:
+Will result in two separate OQL queries:
 
 {% highlight sql %}
 SELECT  itemNumber AS itemNumber, retailCost AS retailCost, author AS author
