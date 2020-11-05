@@ -162,7 +162,7 @@ sqlline> SELECT "primaryAddress" ['postalCode'] AS "postalCode"
 {% endhighlight %}
 This will project `BookCustomer.primaryAddress.postalCode` value field.
 
-The following presentations and video tutorials provide further dails
+The following presentations and video tutorials provide further details
 about Geode adapter:
 
 * [Enable SQL/JDBC Access to Apache Geode/GemFire Using Apache Calcite](https://www.slideshare.net/slideshow/embed_code/key/2Mil7I0ZPMLuJU)
