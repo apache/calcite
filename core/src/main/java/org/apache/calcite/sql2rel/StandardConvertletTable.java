@@ -1037,10 +1037,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final List<RexNode> columns = new ArrayList<>();
-    for (SqlNode operand : call.getOperandList()) {
-      columns.add(
-          rexBuilder.makeLiteral(
-              ((SqlIdentifier) operand).getSimple()));
+    for (String operand : SqlIdentifier.simpleNames(call.getOperandList())) {
+      columns.add(rexBuilder.makeLiteral(operand));
     }
     final RelDataType type =
         rexBuilder.deriveReturnType(SqlStdOperatorTable.COLUMN_LIST, columns);

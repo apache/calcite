@@ -111,9 +111,7 @@ public class SqlHint extends SqlCall {
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
-      return options.stream()
-          .map(node -> ((SqlIdentifier) node).getSimple())
-          .collect(Util.toImmutableList());
+      return ImmutableList.copyOf(SqlIdentifier.simpleNames(options));
     } else if (optionFormat == HintOptionFormat.LITERAL_LIST) {
       return options.stream()
           .map(node -> {

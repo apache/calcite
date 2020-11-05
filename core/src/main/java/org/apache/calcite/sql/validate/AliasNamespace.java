@@ -95,9 +95,7 @@ public class AliasNamespace extends AbstractNamespace {
     } else {
       // Alias is 'AS t (c0, ..., cN)'
       final List<SqlNode> columnNames = Util.skip(operands, 2);
-      final List<String> nameList =
-          Util.transform(columnNames, operand ->
-              ((SqlIdentifier) operand).getSimple());
+      final List<String> nameList = SqlIdentifier.simpleNames(columnNames);
       final int i = Util.firstDuplicate(nameList);
       if (i >= 0) {
         final SqlIdentifier id = (SqlIdentifier) columnNames.get(i);

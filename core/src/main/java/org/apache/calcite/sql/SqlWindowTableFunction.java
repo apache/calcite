@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -233,13 +234,13 @@ public class SqlWindowTableFunction extends SqlFunction
     void validateColumnNames(SqlValidator validator,
         List<String> fieldNames, List<SqlNode> columnNames) {
       final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
-      for (SqlNode columnName : columnNames) {
-        final String name = ((SqlIdentifier) columnName).getSimple();
+      Ord.forEach(SqlIdentifier.simpleNames(columnNames), (name, i) -> {
         if (matcher.indexOf(fieldNames, name) < 0) {
+          final SqlIdentifier columnName = (SqlIdentifier) columnNames.get(i);
           throw SqlUtil.newContextException(columnName.getParserPosition(),
               RESOURCE.unknownIdentifier(name));
         }
-      }
+      });
     }
   }
 }

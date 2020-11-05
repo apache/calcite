@@ -220,6 +220,39 @@ public class RelBuilder {
     return new RelBuilder(context, cluster, relOptSchema);
   }
 
+  /** Performs an action on this RelBuilder if a condition is true.
+   *
+   * <p>For example, consider the following code:
+   *
+   * <blockquote><pre>
+   *   RelNode filterAndRename(RelBuilder relBuilder, RelNode rel,
+   *       RexNode condition, List&lt;String&gt; fieldNames) {
+   *     relBuilder.push(rel)
+   *         .filter(condition);
+   *     if (fieldNames != null) {
+   *       relBuilder.rename(fieldNames);
+   *     }
+   *     return relBuilder
+   *         .build();</pre>
+   * </blockquote>
+   *
+   * <p>The pipeline is disruptived by the 'if'. The {@code applyIf} method
+   * allows you to perform the flow as a single pipeline:
+   *
+   * <blockquote><pre>
+   *   RelNode filterAndRename(RelBuilder relBuilder, RelNode rel,
+   *       RexNode condition, List&lt;String&gt; fieldNames) {
+   *     return relBuilder.push(rel)
+   *         .filter(condition)
+   *         .applyIf(fieldNames != null, r -> r.rename(fieldNames))
+   *         .build();</pre>
+   * </blockquote>
+   */
+  public RelBuilder applyIf(boolean condition,
+      UnaryOperator<RelBuilder> action) {
+    return condition ? action.apply(this) : this;
+  }
+
   /** Converts this RelBuilder to a string.
    * The string is the string representation of all of the RelNodes on the stack. */
   @Override public String toString() {

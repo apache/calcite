@@ -449,8 +449,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return identifier;
     }
 
-    for (SqlNode node : (SqlNodeList) join.getCondition()) {
-      final String name = ((SqlIdentifier) node).getSimple();
+    for (String name
+        : SqlIdentifier.simpleNames((SqlNodeList) join.getCondition())) {
       if (identifier.getSimple().equals(name)) {
         final List<SqlNode> qualifiedNode = new ArrayList<>();
         for (ScopeChild child : scope.children) {
@@ -492,8 +492,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case USING:
       final ImmutableList.Builder<String> list = ImmutableList.builder();
       final Set<String> names = catalogReader.nameMatcher().createSet();
-      for (SqlNode node : (SqlNodeList) join.getCondition()) {
-        final String name = ((SqlIdentifier) node).getSimple();
+      for (String name
+          : SqlIdentifier.simpleNames((SqlNodeList) join.getCondition())) {
         if (names.add(name)) {
           list.add(name);
         }
@@ -4541,21 +4541,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlValidatorUtil.mapNameToIndex(tableRowType.getFieldList());
 
       // Validate update values against the view constraint.
-      final List<SqlNode> targets = update.getTargetColumnList();
+      final List<String> targetNames =
+          SqlIdentifier.simpleNames(update.getTargetColumnList());
       final List<SqlNode> sources = update.getSourceExpressionList();
-      for (final Pair<SqlNode, SqlNode> column : Pair.zip(targets, sources)) {
-        final String columnName = ((SqlIdentifier) column.left).getSimple();
+      Pair.forEach(targetNames, sources, (columnName, expr) -> {
         final Integer columnIndex = nameToIndex.get(columnName);
         if (projectMap.containsKey(columnIndex)) {
           final RexNode columnConstraint = projectMap.get(columnIndex);
           final ValidationError validationError =
-              new ValidationError(column.right,
+              new ValidationError(expr,
                   RESOURCE.viewConstraintNotSatisfied(columnName,
                       Util.last(validatorTable.getQualifiedName())));
-          RelOptUtil.validateValueAgainstConstraint(column.right,
+          RelOptUtil.validateValueAgainstConstraint(expr,
               columnConstraint, validationError);
         }
-      }
+      });
     }
   }
 

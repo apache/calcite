@@ -329,6 +329,18 @@ public class SqlIdentifier extends SqlNode {
     return names.get(0);
   }
 
+  /** Returns the simple names in a list of identifiers.
+   * Assumes that the list consists of are not-null, simple identifiers. */
+  public static List<String> simpleNames(List<? extends SqlNode> list) {
+    return Util.transform(list, n -> ((SqlIdentifier) n).getSimple());
+  }
+
+  /** Returns the simple names in a iterable of identifiers.
+   * Assumes that the iterable consists of not-null, simple identifiers. */
+  public static Iterable<String> simpleNames(Iterable<? extends SqlNode> list) {
+    return Util.transform(list, n -> ((SqlIdentifier) n).getSimple());
+  }
+
   /**
    * Returns whether this identifier is a star, such as "*" or "foo.bar.*".
    */
