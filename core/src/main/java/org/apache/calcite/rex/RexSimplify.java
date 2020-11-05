@@ -326,6 +326,8 @@ public class RexSimplify {
     if (e.operands.equals(operands)) {
       return e;
     }
+    // Still keep the original return type even if the operands type may change,
+    // in order to keep the type equivalence of the nodes.
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 
@@ -900,13 +902,12 @@ public class RexSimplify {
     case ANY:
       List<RexNode> operands = ((RexCall) rexNode).getOperands();
       if (rexNode.getType().isNullable()) {
-        assert operands.stream()
-            .map(RexNode::getType)
-            .anyMatch(RelDataType::isNullable);
+        // Ignores the nullability change when all the operands are literals
+        // which come from the simplification.
+        assert operands.stream().map(RexNode::getType).anyMatch(RelDataType::isNullable)
+            || operands.stream().allMatch(p -> RexUtil.isLiteral(p, false));
       } else {
-        assert operands.stream()
-            .map(RexNode::getType)
-            .noneMatch(RelDataType::isNullable);
+        assert operands.stream().map(RexNode::getType).noneMatch(RelDataType::isNullable);
       }
       break;
     default:
