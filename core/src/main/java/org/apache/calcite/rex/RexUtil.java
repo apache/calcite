@@ -565,10 +565,17 @@ public class RexUtil {
     };
   }
 
-  /** Expands calls to {@link SqlStdOperatorTable#SEARCH} in an expression. */
+  /** Expands all the calls to {@link SqlStdOperatorTable#SEARCH} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
       @Nullable RexProgram program, RexNode node) {
-    return node.accept(searchShuttle(rexBuilder, program, -1));
+    return expandSearch(rexBuilder, program, node, -1);
+  }
+
+  /** Expands calls to {@link SqlStdOperatorTable#SEARCH}
+   * whose complexity is greater than {@code maxComplexity} in an expression. */
+  public static RexNode expandSearch(RexBuilder rexBuilder,
+       @Nullable RexProgram program, RexNode node, int maxComplexity) {
+    return node.accept(searchShuttle(rexBuilder, program, maxComplexity));
   }
 
   /** Creates a shuttle that expands calls to
@@ -585,7 +592,7 @@ public class RexUtil {
   }
 
   @SuppressWarnings("BetaApi")
-  private static <C extends Comparable<C>> RexNode sargRef(
+  public static <C extends Comparable<C>> RexNode sargRef(
       RexBuilder rexBuilder, RexNode ref, Sarg<C> sarg, RelDataType type) {
     if (sarg.isAll()) {
       if (sarg.containsNull) {
@@ -3010,7 +3017,24 @@ public class RexUtil {
     }
 
     @Override public RexNode visitCall(RexCall call) {
+      final boolean[] update = {false};
+      final List<RexNode> clonedOperands;
       switch (call.getKind()) {
+      // Flatten AND/OR operands.
+      case OR:
+        clonedOperands = visitList(call.operands, update);
+        if (update[0]) {
+          return composeDisjunction(rexBuilder, clonedOperands);
+        } else {
+          return call;
+        }
+      case AND:
+        clonedOperands = visitList(call.operands, update);
+        if (update[0]) {
+          return composeConjunction(rexBuilder, clonedOperands);
+        } else {
+          return call;
+        }
       case SEARCH:
         final RexNode ref = call.operands.get(0);
         final RexLiteral literal =
