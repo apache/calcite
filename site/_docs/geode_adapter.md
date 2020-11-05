@@ -61,7 +61,7 @@ A basic example of a model file is given below:
 {% endhighlight %}
 
 This adapter is targeted for Geode 1.3.x. The `regions` field allows to list (comma separated)
-all Geode regions to be appear as relational tables.
+all Geode regions to appear as relational tables.
 
 Assuming this file is stored as `model.json`, you can connect to
 Geode via [`sqlline`](https://github.com/julianhyde/sqlline) as
