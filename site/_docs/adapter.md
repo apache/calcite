@@ -221,7 +221,7 @@ runnable as a service), repository persistence, authorization and security.
 
 There are many other APIs that allow you to extend Calcite's capabilities.
 
-In this section, we briefly describe those APIs, to give you an idea what is
+In this section, we briefly describe those APIs, to give you an idea of what is
 possible. To fully use these APIs you will need to read other documentation
 such as the javadoc for the interfaces, and possibly seek out the tests that
 we have written for them.
@@ -236,7 +236,7 @@ They are straightforward to write (you just write a Java class and register it
 in your schema) but do not offer much flexibility in the number and type of
 arguments, resolving overloaded functions, or deriving the return type.
 
-It you want that flexibility, you probably need to write you a
+If you want that flexibility, you probably need to write a
 *user-defined operator*
 (see [<code>interface SqlOperator</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlOperator.html)).
 
@@ -303,7 +303,7 @@ appear in more than one window. For example, 10:37 appears in both the
 
 Window functions are computed incrementally: when the clock ticks from
 10:14 to 10:15, two rows might enter the window and three rows leave.
-For this, window functions have have an extra life-cycle operation:
+For this, window functions have an extra life-cycle operation:
 
 * `remove` removes a value from an accumulator.
 
@@ -352,7 +352,7 @@ SELECT * FROM TABLE(Ramp(3, 4))
 {% endhighlight %}
 
 *User-defined table macros* use the same SQL syntax as table functions,
-but are defined differently. Rather than generating data, they generate an
+but are defined differently. Rather than generating data, they generate a
 relational expression.
 Table macros are invoked during query preparation and the relational expression
 they produce can then be optimized.

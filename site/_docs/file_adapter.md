@@ -275,7 +275,7 @@ sqlline> select distinct deptno from depts;
 
 ## JSON files and model-free browsing
 
-Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
+Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
 
 {% highlight json %}
 [
