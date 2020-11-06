@@ -66,23 +66,25 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 2000);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
-      Integer.getInteger("rex.fuzzing.max.failures", 1);
+      Integer.getInteger("calcite.rex.fuzzing.max.failures", 1);
   // Number of slowest to simplify expressions to show
   private static final int TOPN_SLOWEST =
-      Integer.getInteger("rex.fuzzing.max.slowest", 0);
+      Integer.getInteger("calcite.rex.fuzzing.max.slowest", 0);
   // 0 means use random seed
   // 42 is used to make sure tests pass in CI
   private static final long SEED =
-      Long.getLong("rex.fuzzing.seed", 44);
+      Long.getLong("calcite.rex.fuzzing.seed", 44);
 
   private static final long DEFAULT_FUZZ_TEST_SEED =
-      Long.getLong("rex.fuzzing.default.seed", 0);
+      Long.getLong("calcite.rex.fuzzing.default.seed", 0);
   private static final Duration DEFAULT_FUZZ_TEST_DURATION =
-      Duration.of(Integer.getInteger("rex.fuzzing.default.duration", 5), ChronoUnit.SECONDS);
+      Duration.of(
+          Integer.getInteger("calcite.rex.fuzzing.default.duration", 120),
+          ChronoUnit.SECONDS);
   private static final long DEFAULT_FUZZ_TEST_ITERATIONS =
-      Long.getLong("rex.fuzzing.default.iterations", 0);
+      Long.getLong("calcite.rex.fuzzing.default.iterations", 0);
   private static final boolean DEFAULT_FUZZ_TEST_FAIL =
-      Boolean.getBoolean("rex.fuzzing.default.fail");
+      Boolean.parseBoolean(System.getProperty("calcite.rex.fuzzing.default.fail", "true"));
 
   private PriorityQueue<SimplifyTask> slowestTasks;
 
@@ -171,7 +173,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private void checkUnknownAsAndShrink(RexNode node, RexUnknownAs unknownAs) {
     try {
       checkUnknownAs(node, unknownAs);
-    } catch (Exception e) {
+    } catch (Throwable e) {
       // Try shrink the example so human can understand it better
       Random rnd = new Random();
       rnd.setSeed(currentSeed);
@@ -184,7 +186,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
         try {
           checkUnknownAs(newNode, unknownAs);
           // bad shrink
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
           // Good shrink
           node = newNode;
           String str = nodeToString(node);
@@ -217,6 +219,11 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     } catch (AssertionError a) {
       String message = a.getMessage();
       if (message != null && message.startsWith("result mismatch")) {
+        a.addSuppressed(new Throwable("node: " + nodeToString(node)) {
+          @Override public synchronized Throwable fillInStackTrace() {
+            return this;
+          }
+        });
         throw a;
       }
       throw new IllegalStateException("Unable to simplify " + uaf + nodeToString(node), a);
@@ -338,7 +345,6 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     t.setStackTrace(stackTrace);
   }
 
-  @Disabled("Ignore for now: CALCITE-3457")
   @Test void defaultFuzzTest() {
     try {
       runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
@@ -354,7 +360,6 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @Disabled("Ignore for now: CALCITE-3457")
   @Test void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }

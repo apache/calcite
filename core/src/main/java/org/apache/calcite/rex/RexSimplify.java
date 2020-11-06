@@ -326,7 +326,7 @@ public class RexSimplify {
     if (e.operands.equals(operands)) {
       return e;
     }
-    return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
+    return rexBuilder.makeCall(e.getOperator(), operands);
   }
 
   private RexNode simplifyLike(RexCall e) {
@@ -902,11 +902,15 @@ public class RexSimplify {
       if (rexNode.getType().isNullable()) {
         assert operands.stream()
             .map(RexNode::getType)
-            .anyMatch(RelDataType::isNullable);
+            .anyMatch(RelDataType::isNullable)
+            : "RexNode is nullable, and Policy is ANY,"
+            + " so at least one operands must be nullable in " + rexNode;
       } else {
         assert operands.stream()
             .map(RexNode::getType)
-            .noneMatch(RelDataType::isNullable);
+            .noneMatch(RelDataType::isNullable)
+            : "RexNode is non-nullable, and Policy is ANY,"
+            + " so all operands must be non-nullable in " + rexNode;
       }
       break;
     default:
@@ -1118,8 +1122,10 @@ public class RexSimplify {
         ret.add(branch.value);
       }
       CaseBranch lastBranch = Util.last(branches);
-      assert lastBranch.cond.isAlwaysTrue();
       ret.add(lastBranch.value);
+      assert lastBranch.cond.isAlwaysTrue()
+          : "lastBranch condition not be alwaysTrue, lastBranch.cond: " + lastBranch.cond
+          + "; all branches: " + ret;
       return ret;
     }
   }
@@ -1328,13 +1334,7 @@ public class RexSimplify {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
 
-    final SargCollector sargCollector = new SargCollector(rexBuilder, true);
-    operands.forEach(t -> sargCollector.accept(t, terms));
-    if (sargCollector.map.values().stream().anyMatch(b -> b.complexity() > 1)) {
-      operands.clear();
-      terms.forEach(t -> operands.add(sargCollector.fix(rexBuilder, t)));
-    }
-    terms.clear();
+    operands = simplifySarg(operands);
 
     for (RexNode o : operands) {
       RelOptUtil.decomposeConjunction(o, terms, notTerms);
@@ -1791,16 +1791,21 @@ public class RexSimplify {
     }
   }
 
+  private List<RexNode> simplifySarg(List<? extends RexNode> terms) {
+    final SargCollector sargCollector = new SargCollector(rexBuilder, false);
+    final List<RexNode> newTerms = new ArrayList<>(terms.size());
+    terms.forEach(t -> sargCollector.accept(t, newTerms));
+    for (int i = 0; i < newTerms.size(); i++) {
+      RexNode term = newTerms.get(i);
+      newTerms.set(i, sargCollector.fix(rexBuilder, term));
+    }
+    return newTerms;
+  }
+
   /** Simplifies a list of terms and combines them into an OR.
    * Modifies the list in place. */
   private RexNode simplifyOrs(List<RexNode> terms, RexUnknownAs unknownAs) {
-    final SargCollector sargCollector = new SargCollector(rexBuilder, false);
-    final List<RexNode> newTerms = new ArrayList<>();
-    terms.forEach(t -> sargCollector.accept(t, newTerms));
-    if (sargCollector.map.values().stream().anyMatch(b -> b.complexity() > 1)) {
-      terms.clear();
-      newTerms.forEach(t -> terms.add(sargCollector.fix(rexBuilder, t)));
-    }
+    terms = simplifySarg(terms);
 
     // CALCITE-3198 Auxiliary map to simplify cases like:
     //   X <> A OR X <> B => X IS NOT NULL or NULL
@@ -2620,6 +2625,12 @@ public class RexSimplify {
         return accept1(arg, e.getKind(),
             rexBuilder.makeNullLiteral(arg.getType()), newTerms);
       default:
+        // bool0 OR (bool0 IS NULL) should be treated as SEARCH(bool0, [null, true])
+        // So we convert boolean expressions to SEARCH(x, true) so they can be expanded later
+        if (e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+            && !RexUtil.isLiteral(e, true)) {
+          return accept1(e, SqlKind.EQUALS, rexBuilder.makeLiteral(true), newTerms);
+        }
         return false;
       }
     }
@@ -2666,6 +2677,10 @@ public class RexSimplify {
         kind = kind.negateNullSafe2();
       }
       final Comparable value = literal.getValueAs(Comparable.class);
+      if (value == null && kind != SqlKind.IS_NULL && kind != SqlKind.IS_NOT_NULL) {
+        // x > null can't be simplified via Sarg
+        return false;
+      }
       switch (kind) {
       case LESS_THAN:
         b.addRange(Range.lessThan(value), literal.getType());
@@ -2715,9 +2730,14 @@ public class RexSimplify {
     RexNode fix(RexBuilder rexBuilder, RexNode term) {
       if (term instanceof RexSargBuilder) {
         RexSargBuilder sargBuilder = (RexSargBuilder) term;
-        return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
+        RexNode search = rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
             rexBuilder.makeSearchArgumentLiteral(sargBuilder.build(),
                 term.getType()));
+        if (sargBuilder.complexity() <= 1) {
+          // Expand simple conditions (e.g. SEARCH(x, [null]) to IS NULL(x)
+          return RexUtil.expandSearch(rexBuilder, null, search);
+        }
+        return search;
       }
       return term;
     }
