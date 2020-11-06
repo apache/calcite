@@ -152,7 +152,7 @@ public class SqlPivot extends SqlCall {
 
   private static String pivotAlias(SqlNode node) {
     if (node instanceof SqlNodeList) {
-      return ((SqlNodeList) node).getList().stream()
+      return ((SqlNodeList) node).stream()
           .map(SqlPivot::pivotAlias).collect(Collectors.joining("_"));
     }
     return node.toString();

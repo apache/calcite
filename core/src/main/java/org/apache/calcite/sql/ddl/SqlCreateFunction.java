@@ -82,7 +82,7 @@ public class SqlCreateFunction extends SqlCreate {
 
   @SuppressWarnings("unchecked")
   private List<Pair<SqlLiteral, SqlLiteral>> pairs() {
-    return Util.pairs((List) usingList.getList());
+    return Util.pairs((List) usingList);
   }
 
   @Override public SqlOperator getOperator() {

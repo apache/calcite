@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.util.Util;
 
@@ -62,6 +63,12 @@ class AggFinder extends AggVisitor {
       Util.swallow(e, null);
       return (SqlCall) e.getNode();
     }
+  }
+
+  // SqlNodeList extends SqlNode and implements List<SqlNode>, so this method
+  // disambiguates
+  public SqlCall findAgg(SqlNodeList nodes) {
+    return findAgg(nodes.getList());
   }
 
   public SqlCall findAgg(List<SqlNode> nodes) {

@@ -79,9 +79,11 @@ public final class Span {
     return new Span().addAll(nodes);
   }
 
-  /** Creates a Span of a list of nodes. */
-  public static Span of(SqlNodeList nodes) {
-    return new Span().addAll(nodes);
+  /** Creates a Span of a node list. */
+  public static Span of(SqlNodeList nodeList) {
+    // SqlNodeList has its own position, so just that position, not all of the
+    // constituent nodes.
+    return new Span().add(nodeList);
   }
 
   /** Adds a node's position to the list,
