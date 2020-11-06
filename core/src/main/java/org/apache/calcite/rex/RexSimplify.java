@@ -322,7 +322,7 @@ public class RexSimplify {
     if (e.operands.equals(operands)) {
       return e;
     }
-    return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
+    return rexBuilder.makeCall(e.getOperator(), operands);
   }
 
   private RexNode simplifyLike(RexCall e) {
@@ -886,11 +886,15 @@ public class RexSimplify {
       if (rexNode.getType().isNullable()) {
         assert operands.stream()
             .map(RexNode::getType)
-            .anyMatch(RelDataType::isNullable);
+            .anyMatch(RelDataType::isNullable)
+            : "RexNode is nullable, and Policy is ANY,"
+            + " so at least one operands must be nullable in " + rexNode;
       } else {
         assert operands.stream()
             .map(RexNode::getType)
-            .noneMatch(RelDataType::isNullable);
+            .noneMatch(RelDataType::isNullable)
+            : "RexNode is non-nullable, and Policy is ANY,"
+            + " so all operands must be non-nullable in " + rexNode;
       }
       break;
     default:
@@ -1102,8 +1106,10 @@ public class RexSimplify {
         ret.add(branch.value);
       }
       CaseBranch lastBranch = Util.last(branches);
-      assert lastBranch.cond.isAlwaysTrue();
       ret.add(lastBranch.value);
+      assert lastBranch.cond.isAlwaysTrue()
+          : "lastBranch condition not be alwaysTrue, lastBranch.cond: " + lastBranch.cond
+          + "; all branches: " + ret;
       return ret;
     }
   }
@@ -1168,6 +1174,11 @@ public class RexSimplify {
 
     @Override public Boolean visitCall(RexCall call) {
       if (!safeOps.contains(call.getKind())) {
+        // Assume cast that widens only nullability is safe
+        if (call.getKind() == SqlKind.CAST && call.getType().isNullable()
+            && SqlTypeUtil.equalSansNullability(call.getType(), call.operands.get(0).getType())) {
+          return true;
+        }
         return false;
       }
       return RexVisitorImpl.visitArrayAnd(this, call.operands);
@@ -1765,7 +1776,9 @@ public class RexSimplify {
     final List<RexNode> terms0 = RelOptUtil.disjunctions(call);
     final List<RexNode> terms;
     if (predicateElimination) {
-      terms = Util.moveToHead(terms0, e -> e.getKind() == SqlKind.IS_NULL);
+      terms = Util.moveToHead(terms0, e ->
+          e.getKind() == SqlKind.IS_NULL
+          || e.getKind() == SqlKind.IS_UNKNOWN);
       simplifyOrTerms(terms, unknownAs);
     } else {
       terms = terms0;
@@ -2456,6 +2469,7 @@ public class RexSimplify {
       switch (e.getKind()) {
       case IS_NULL:
       case IS_NOT_NULL:
+      case IS_UNKNOWN:
         RexNode pA = ((RexCall) e).getOperands().get(0);
         if (!RexUtil.isReferenceOrAccess(pA, true)) {
           return null;

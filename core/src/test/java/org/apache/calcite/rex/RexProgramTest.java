@@ -51,7 +51,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -505,7 +504,6 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
-  @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
   @Test void reproducerFor3457() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(
@@ -1538,10 +1536,11 @@ class RexProgramTest extends RexProgramTestBase {
 
     // "b is null or b is not false" => "b is null or b"
     // (because after the first term we know that b cannot be null)
+    // Note: ?0.b is "nullable int", not boolean.
     checkSimplifyFilter(
-        or(isNull(bRef),
-            isNotFalse(bRef)),
-        "OR(IS NULL(?0.b), ?0.b)");
+        or(isNull(vBool()),
+            isNotFalse(vBool())),
+        "OR(IS NULL(?0.bool0), ?0.bool0)");
 
     // multiple predicates are handled correctly
     checkSimplifyFilter(

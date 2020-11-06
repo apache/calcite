@@ -2116,7 +2116,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)]
     EnumerableSort(sort0=[$4], dir0=[ASC])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], m=[$t1], c=[$t2], d=[$t3], trueLiteral=[$t4], DEPTNO0=[$t0])
         EnumerableAggregate(group=[{0}], m=[MIN($1)], c=[COUNT()], d=[COUNT($1)])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], expr#5=[null:BOOLEAN], expr#6=[IS NOT NULL($t3)], expr#7=[OR($t5, $t6)], expr#8=[CAST($t7):BOOLEAN NOT NULL], DEPTNO0=[$t3], EXPR$0=[$t4], $condition=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
  EMPNO | EXPR$1

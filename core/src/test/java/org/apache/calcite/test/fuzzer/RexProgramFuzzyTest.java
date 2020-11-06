@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,23 +67,29 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 2000);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
-      Integer.getInteger("rex.fuzzing.max.failures", 1);
+      Integer.getInteger("calcite.rex.fuzzing.max.failures", 1);
   // Number of slowest to simplify expressions to show
   private static final int TOPN_SLOWEST =
-      Integer.getInteger("rex.fuzzing.max.slowest", 0);
+      Integer.getInteger("calcite.rex.fuzzing.max.slowest", 0);
   // 0 means use random seed
   // 42 is used to make sure tests pass in CI
   private static final long SEED =
-      Long.getLong("rex.fuzzing.seed", 44);
+      Long.getLong("calcite.rex.fuzzing.seed", 44);
 
   private static final long DEFAULT_FUZZ_TEST_SEED =
-      Long.getLong("rex.fuzzing.default.seed", 0);
+      Long.getLong("calcite.rex.fuzzing.default.seed", 0);
   private static final Duration DEFAULT_FUZZ_TEST_DURATION =
-      Duration.of(Integer.getInteger("rex.fuzzing.default.duration", 5), ChronoUnit.SECONDS);
+      Duration.of(
+          Integer.getInteger("calcite.rex.fuzzing.default.duration", 5),
+          ChronoUnit.SECONDS);
+  private static final Duration SLOW_FUZZ_TEST_DURATION =
+      Duration.of(
+          Integer.getInteger("calcite.rex.fuzzing.slow.duration", 120),
+          ChronoUnit.SECONDS);
   private static final long DEFAULT_FUZZ_TEST_ITERATIONS =
-      Long.getLong("rex.fuzzing.default.iterations", 0);
+      Long.getLong("calcite.rex.fuzzing.default.iterations", 0);
   private static final boolean DEFAULT_FUZZ_TEST_FAIL =
-      Boolean.getBoolean("rex.fuzzing.default.fail");
+      Boolean.parseBoolean(System.getProperty("calcite.rex.fuzzing.default.fail", "true"));
 
   private PriorityQueue<SimplifyTask> slowestTasks;
 
@@ -171,7 +178,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private void checkUnknownAsAndShrink(RexNode node, RexUnknownAs unknownAs) {
     try {
       checkUnknownAs(node, unknownAs);
-    } catch (Exception e) {
+    } catch (Throwable e) {
       // Try shrink the example so human can understand it better
       Random rnd = new Random();
       rnd.setSeed(currentSeed);
@@ -184,14 +191,15 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
         try {
           checkUnknownAs(newNode, unknownAs);
           // bad shrink
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
           // Good shrink
           node = newNode;
           String str = nodeToString(node);
           int newLen = str.length();
           if (newLen < len) {
             long remaining = deadline - System.currentTimeMillis();
-            System.out.println("Shrinked to " + newLen + " chars, time remaining " + remaining);
+            System.out.println("Reduced to " + newLen + " chars, time remaining " + remaining + "\n"
+                + str);
             len = newLen;
           }
         }
@@ -217,6 +225,11 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     } catch (AssertionError a) {
       String message = a.getMessage();
       if (message != null && message.startsWith("result mismatch")) {
+        a.addSuppressed(new Throwable("node: " + nodeToString(node)) {
+          @Override public synchronized Throwable fillInStackTrace() {
+            return this;
+          }
+        });
         throw a;
       }
       throw new IllegalStateException("Unable to simplify " + uaf + nodeToString(node), a);
@@ -298,13 +311,18 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
         }
       }
     }
-    if (unknownAs == RexUnknownAs.UNKNOWN
-        && opt.getType().isNullable()
-        && !node.getType().isNullable()) {
-      fail(nodeToString(node) + " had non-nullable type " + opt.getType()
-          + ", and it was optimized to " + nodeToString(opt)
-          + " that has nullable type " + opt.getType());
-    }
+    // See CALCITE-4387, RexSimplify.simplify is allowed to both narrow and widen nullability
+    // That might happen in case the newer expression is simpler (e.g. less nodes),
+    // however, the more compact expression might be harder to reason an it might be
+    // not that obvious that the expression never returns null.
+    // The code is present here to avoid accidental re-addition of the same check
+    // if (unknownAs == RexUnknownAs.UNKNOWN
+    //     && opt.getType().isNullable()
+    //     && !node.getType().isNullable()) {
+    //   fail(nodeToString(node) + " had non-nullable type " + opt.getType()
+    //       + ", and it was optimized to " + nodeToString(opt)
+    //       + " that has nullable type " + opt.getType());
+    // }
     if (!SqlTypeUtil.equalSansNullability(typeFactory, node.getType(), opt.getType())) {
       assertEquals(node.getType(), opt.getType(),
           () -> nodeToString(node)
@@ -338,14 +356,22 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     t.setStackTrace(stackTrace);
   }
 
-  @Disabled("Ignore for now: CALCITE-3457")
+  @Tag("slow")
+  @Test void slowFuzzTest() {
+    runFuzzAndReportShortStack(SLOW_FUZZ_TEST_DURATION);
+  }
+
   @Test void defaultFuzzTest() {
+    runFuzzAndReportShortStack(DEFAULT_FUZZ_TEST_DURATION);
+  }
+
+  private void runFuzzAndReportShortStack(Duration defaultFuzzTestDuration) {
     try {
-      runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
+      runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, defaultFuzzTestDuration, 1,
           DEFAULT_FUZZ_TEST_ITERATIONS, 0);
     } catch (Throwable e) {
       for (Throwable t = e; t != null; t = t.getCause()) {
-        trimStackTrace(t, DEFAULT_FUZZ_TEST_FAIL ? 8 : 4);
+        trimStackTrace(t, 8);
       }
       if (DEFAULT_FUZZ_TEST_FAIL) {
         throw e;
@@ -354,7 +380,6 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @Disabled("Ignore for now: CALCITE-3457")
   @Test void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }
@@ -454,6 +479,19 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private void generateRexAndCheckTrueFalse(RexFuzzer fuzzer, Random r) {
     RexNode expression = fuzzer.getExpression(r, r.nextInt(10));
     checkUnknownAs(expression);
+  }
+
+  @Test void simplifyIsNullNonNullableWithCast() {
+    checkUnknownAs(
+        isNull(
+            coalesce(
+                case_(
+                    case_(
+                        vBool(0), vBoolNotNull(1),
+                        vBoolNotNull(0)),
+                    nullInt,
+                    abstractCast(literal(1), tInt(true))),
+                vIntNotNull(1))));
   }
 
   @Disabled("This is just a scaffold for quick investigation of a single fuzz test")

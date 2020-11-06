@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -43,7 +44,7 @@ public class RexShrinker extends RexShuttle {
   @Override public RexNode visitCall(RexCall call) {
     RelDataType type = call.getType();
     if (didWork || r.nextInt(100) > 80) {
-      return super.visitCall(call);
+      return visitCallAndRewrite(call);
     }
     if (r.nextInt(100) < 10 && !call.operands.isEmpty()) {
       // Replace with its argument
@@ -75,9 +76,6 @@ public class RexShrinker extends RexShuttle {
       }
       if (res != null) {
         didWork = true;
-        if (!res.getType().equals(type)) {
-          return rexBuilder.makeCast(type, res);
-        }
         return res;
       }
     }
@@ -95,7 +93,10 @@ public class RexShrinker extends RexShuttle {
         return call.operands.get(0);
       }
       didWork = true;
-      return call.clone(type, newOperands);
+      // Note: operand removal might alter return type, so .clone(type...) can't be used here
+      // For instance coalesce(null, null, 1) is non-nullable, however if we remove 1, then
+      // it becomes nullable.
+      return rexBuilder.makeCall(call.op, newOperands);
     }
     if ((kind == SqlKind.MINUS_PREFIX || kind == SqlKind.PLUS_PREFIX)
         && r.nextInt(100) < 10) {
@@ -112,8 +113,23 @@ public class RexShrinker extends RexShuttle {
       if (newOperands.size() == 1) {
         return newOperands.get(0);
       }
-      return call.clone(type, newOperands);
+      // Note: operand removal might alter return type, so .clone(type...) can't be used here
+      // For instance coalesce(null, null, 1) is non-nullable, however if we remove 1, then
+      // it becomes nullable.
+      return rexBuilder.makeCall(call.op, newOperands);
     }
-    return super.visitCall(call);
+    return visitCallAndRewrite(call);
+  }
+
+  private RexNode visitCallAndRewrite(final RexCall call) {
+    // This is an improved version of RexShuttle.visitCall: it uses proper makeCall to
+    // adjust call type
+    boolean[] update = {false};
+    List<RexNode> clonedOperands = visitList(call.operands, update);
+    if (update[0]) {
+      return rexBuilder.makeCall(call.getOperator(), clonedOperands);
+    } else {
+      return call;
+    }
   }
 }
