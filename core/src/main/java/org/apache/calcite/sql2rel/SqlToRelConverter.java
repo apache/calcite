@@ -833,7 +833,7 @@ public class SqlToRelConverter {
       SqlNode fetch) {
     if (removeSortInSubQuery(bb.top)
         || select.getOrderList() == null
-        || select.getOrderList().getList().isEmpty()) {
+        || select.getOrderList().isEmpty()) {
       assert removeSortInSubQuery(bb.top) || collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
@@ -1389,7 +1389,7 @@ public class SqlToRelConverter {
   }
 
   private static boolean containsNullLiteral(SqlNodeList valueList) {
-    for (SqlNode node : valueList.getList()) {
+    for (SqlNode node : valueList) {
       if (node instanceof SqlLiteral) {
         SqlLiteral lit = (SqlLiteral) node;
         if (lit.getValue() == null) {
@@ -1627,7 +1627,7 @@ public class SqlToRelConverter {
       return convertRowValues(
           bb,
           seek,
-          ((SqlNodeList) seek).getList(),
+          (SqlNodeList) seek,
           false,
           targetRowType);
     } else {
@@ -2481,7 +2481,7 @@ public class SqlToRelConverter {
     pivot.forEachNameValues((alias, nodeList) ->
         valueList.add(
             Pair.of(alias,
-                nodeList.getList().stream().map(bb::convertExpression)
+                nodeList.stream().map(bb::convertExpression)
                     .collect(Util.toImmutableList()))));
 
     final RelNode rel =
@@ -5562,8 +5562,7 @@ public class SqlToRelConverter {
         collation = RelCollations.EMPTY;
       } else {
         collation = RelCollations.of(
-            orderList.getList()
-                .stream()
+            orderList.stream()
                 .map(order ->
                     bb.convertSortExpression(order,
                         RelFieldCollation.Direction.ASCENDING,
@@ -5938,7 +5937,7 @@ public class SqlToRelConverter {
         final SqlNode aggCall = call.getOperandList().get(0);
         final SqlNodeList orderList = (SqlNodeList) call.getOperandList().get(1);
         list.add(aggCall);
-        orderList.getList().forEach(this.orderList::add);
+        this.orderList.addAll(orderList);
         return null;
       }
 

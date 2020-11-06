@@ -93,6 +93,14 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     this(pos, new ArrayList<>(collection));
   }
 
+  /**
+   * Creates a SqlNodeList with a given backing list.
+   * Does not copy the list.
+   */
+  public static SqlNodeList of(SqlParserPos pos, List<SqlNode> list) {
+    return new SqlNodeList(pos, list);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   // List, Collection and Iterable methods

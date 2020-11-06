@@ -22,6 +22,7 @@ import org.apache.calcite.util.Util;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -33,12 +34,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 class SqlNodeTest {
   @Test void testSqlNodeList() {
-    SqlNodeList emptyList = new SqlNodeList(SqlParserPos.ZERO);
-    checkLists(emptyList, emptyList.getList(), 0);
+    SqlParserPos zero = SqlParserPos.ZERO;
+    checkList(new SqlNodeList(zero));
+    checkList(SqlNodeList.SINGLETON_STAR);
+    checkList(SqlNodeList.SINGLETON_EMPTY);
+    checkList(
+        SqlNodeList.of(zero,
+            Arrays.asList(SqlLiteral.createCharString("x", zero),
+                new SqlIdentifier("y", zero))));
   }
 
-  private void checkLists(List<SqlNode> list0, List<SqlNode> list1,
-      int depth) {
+  /** Compares a list to its own backing list. */
+  private void checkList(SqlNodeList nodeList) {
+    checkLists(nodeList, nodeList.getList(), 0);
+  }
+
+  /** Checks that two lists are identical. */
+  private <E> void checkLists(List<E> list0, List<E> list1, int depth) {
     assertThat(list0.hashCode(), is(list1.hashCode()));
     assertThat(list0.equals(list1), is(true));
     assertThat(list0.size(), is(list1.size()));

@@ -9607,7 +9607,7 @@ public class SqlParserTest {
 
     private String toSqlString(SqlNodeList sqlNodeList,
         UnaryOperator<SqlWriterConfig> transform) {
-      return sqlNodeList.getList().stream()
+      return sqlNodeList.stream()
           .map(node -> node.toSqlString(transform).getSql())
           .collect(Collectors.joining(";"));
     }

@@ -175,11 +175,10 @@ public class SqlValidatorUtil {
   /** Converts a list of extended columns
    * (of the form [name0, type0, name1, type1, ...])
    * into a list of (name, type) pairs. */
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private static List<Pair<SqlIdentifier, SqlDataTypeSpec>> pairs(
       SqlNodeList extendedColumns) {
-    final List list = extendedColumns.getList();
-    //noinspection unchecked
-    return Util.pairs(list);
+    return Util.pairs((List) extendedColumns);
   }
 
   /**

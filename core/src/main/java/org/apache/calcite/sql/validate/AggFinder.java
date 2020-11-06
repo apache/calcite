@@ -68,7 +68,7 @@ class AggFinder extends AggVisitor {
   // SqlNodeList extends SqlNode and implements List<SqlNode>, so this method
   // disambiguates
   public SqlCall findAgg(SqlNodeList nodes) {
-    return findAgg(nodes.getList());
+    return findAgg((List<SqlNode>) nodes);
   }
 
   public SqlCall findAgg(List<SqlNode> nodes) {

@@ -1229,8 +1229,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return null;
     }
 
-    SqlNode newOperand;
-
     // first transform operands and invoke generic call rewrite
     if (node instanceof SqlCall) {
       if (node instanceof SqlMerge) {
@@ -1251,7 +1249,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         } else {
           childUnderFrom = false;
         }
-        newOperand =
+        SqlNode newOperand =
             performUnconditionalRewrites(operand, childUnderFrom);
         if (newOperand != null && newOperand != operand) {
           call.setOperand(i, newOperand);
@@ -1278,15 +1276,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         node = call.getOperator().rewriteCall(this, call);
       }
     } else if (node instanceof SqlNodeList) {
-      SqlNodeList list = (SqlNodeList) node;
-      for (int i = 0, count = list.size(); i < count; i++) {
+      final SqlNodeList list = (SqlNodeList) node;
+      for (int i = 0; i < list.size(); i++) {
         SqlNode operand = list.get(i);
-        newOperand =
+        SqlNode newOperand =
             performUnconditionalRewrites(
                 operand,
                 false);
         if (newOperand != null) {
-          list.getList().set(i, newOperand);
+          list.set(i, newOperand);
         }
       }
     }
@@ -1915,11 +1913,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       final RelDataType whenType =
           caseCall.getValueOperand() == null ? booleanType : unknownType;
-      for (SqlNode sqlNode : caseCall.getWhenOperands().getList()) {
+      for (SqlNode sqlNode : caseCall.getWhenOperands()) {
         inferUnknownTypes(whenType, scope, sqlNode);
       }
       RelDataType returnType = deriveType(scope, node);
-      for (SqlNode sqlNode : caseCall.getThenOperands().getList()) {
+      for (SqlNode sqlNode : caseCall.getThenOperands()) {
         inferUnknownTypes(returnType, scope, sqlNode);
       }
 
@@ -3840,11 +3838,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   protected void validateWindowClause(SqlSelect select) {
     final SqlNodeList windowList = select.getWindowList();
-    @SuppressWarnings("unchecked") final List<SqlWindow> windows =
-        (List) windowList.getList();
-    if (windows.isEmpty()) {
+    if (windowList.isEmpty()) {
       return;
     }
 
@@ -3853,7 +3850,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 1. ensure window names are simple
     // 2. ensure they are unique within this scope
-    for (SqlWindow window : windows) {
+    for (SqlWindow window : (List<SqlWindow>) (List) windowList) {
       SqlIdentifier declName = window.getDeclName();
       if (!declName.isSimple()) {
         throw newValidationError(declName, RESOURCE.windowNameMustBeSimple());
@@ -3868,17 +3865,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 7.10 rule 2
     // Check for pairs of windows which are equivalent.
-    for (int i = 0; i < windows.size(); i++) {
-      SqlNode window1 = windows.get(i);
-      for (int j = i + 1; j < windows.size(); j++) {
-        SqlNode window2 = windows.get(j);
+    for (int i = 0; i < windowList.size(); i++) {
+      SqlNode window1 = windowList.get(i);
+      for (int j = i + 1; j < windowList.size(); j++) {
+        SqlNode window2 = windowList.get(j);
         if (window1.equalsDeep(window2, Litmus.IGNORE)) {
           throw newValidationError(window2, RESOURCE.dupWindowSpec());
         }
       }
     }
 
-    for (SqlWindow window : windows) {
+    for (SqlWindow window : (List<SqlWindow>) (List) windowList) {
       final SqlNodeList expandedOrderList =
           (SqlNodeList) expand(window.getOrderList(), windowScope);
       window.setOrderList(expandedOrderList);
@@ -3908,7 +3905,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             RESOURCE.columnCountMismatch());
       }
       SqlValidatorUtil.checkIdentifierListForDuplicates(
-          withItem.columnList.getList(), validationErrorFunction);
+          withItem.columnList, validationErrorFunction);
     } else {
       // Luckily, field names have not been make unique yet.
       final List<String> fieldNames =
@@ -4544,8 +4541,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlValidatorUtil.mapNameToIndex(tableRowType.getFieldList());
 
       // Validate update values against the view constraint.
-      final List<SqlNode> targets = update.getTargetColumnList().getList();
-      final List<SqlNode> sources = update.getSourceExpressionList().getList();
+      final List<SqlNode> targets = update.getTargetColumnList();
+      final List<SqlNode> sources = update.getSourceExpressionList();
       for (final Pair<SqlNode, SqlNode> column : Pair.zip(targets, sources)) {
         final String columnName = ((SqlIdentifier) column.left).getSimple();
         final Integer columnIndex = nameToIndex.get(columnName);
@@ -5261,7 +5258,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           RESOURCE.cannotUseWithinWithoutOrderBy());
       }
 
-      SqlNode firstOrderByColumn = orderBy.getList().get(0);
+      SqlNode firstOrderByColumn = orderBy.get(0);
       SqlIdentifier identifier;
       if (firstOrderByColumn instanceof SqlBasicCall) {
         identifier = (SqlIdentifier) ((SqlBasicCall) firstOrderByColumn).getOperands()[0];
@@ -5388,7 +5385,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void validateDefinitions(SqlMatchRecognize mr,
       MatchRecognizeScope scope) {
     final Set<String> aliases = catalogReader.nameMatcher().createSet();
-    for (SqlNode item : mr.getPatternDefList().getList()) {
+    for (SqlNode item : mr.getPatternDefList()) {
       final String alias = alias(item);
       if (!aliases.add(alias)) {
         throw newValidationError(item,
@@ -5398,7 +5395,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     final List<SqlNode> sqlNodes = new ArrayList<>();
-    for (SqlNode item : mr.getPatternDefList().getList()) {
+    for (SqlNode item : mr.getPatternDefList()) {
       final String alias = alias(item);
       SqlNode expand = expand(item, scope);
       expand = navigationInDefine(expand, alias);
@@ -5581,7 +5578,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case IGNORED:
       // rewrite the order list to empty
       if (orderList != null) {
-        orderList.getList().clear();
+        orderList.clear();
       }
       break;
     case FORBIDDEN:

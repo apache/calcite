@@ -101,7 +101,7 @@ public class SqlPivot extends SqlCall {
   }
 
   private static SqlNodeList stripList(SqlNodeList list) {
-    return list.getList().stream().map(SqlPivot::strip)
+    return list.stream().map(SqlPivot::strip)
         .collect(SqlNode.toList(list.pos));
   }
 

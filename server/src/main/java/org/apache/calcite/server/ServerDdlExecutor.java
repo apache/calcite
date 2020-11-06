@@ -433,7 +433,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     }
     final List<SqlNode> columnList;
     if (create.columnList != null) {
-      columnList = create.columnList.getList();
+      columnList = create.columnList;
     } else {
       if (queryRowType == null) {
         // "CREATE TABLE t" is invalid; because there is no "AS query" we need
