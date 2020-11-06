@@ -73,6 +73,7 @@ public class RelOptRules {
           : CoreRules.PROJECT_MERGE,
       CoreRules.FILTER_SCAN,
       CoreRules.PROJECT_FILTER_TRANSPOSE,
+      CoreRules.PROJECT_JOIN_TRANSPOSE,
       CoreRules.FILTER_PROJECT_TRANSPOSE,
       CoreRules.FILTER_INTO_JOIN,
       CoreRules.JOIN_PUSH_EXPRESSIONS,
