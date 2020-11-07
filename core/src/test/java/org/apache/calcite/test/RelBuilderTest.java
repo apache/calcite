@@ -682,7 +682,7 @@ public class RelBuilderTest {
                         builder.equals(builder.field("DEPTNO"),
                             builder.literal(10)),
                         builder.and(builder.isNull(builder.field(6)),
-                            builder.not(builder.isNotNull(builder.field(5))))),
+                            builder.not(builder.isNotNull(builder.field(7))))),
                     builder.equals(builder.field("DEPTNO"),
                         builder.literal(20)),
                     builder.equals(builder.field("DEPTNO"),
@@ -696,7 +696,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], "
         + "$f2=[OR(SEARCH($7, Sarg[20, 30]), AND(null:NULL, =($7, 10), "
-        + "IS NULL($6), IS NULL($5)))], n2=[IS NULL($2)], "
+        + "IS NULL($6), IS NULL($7)))], n2=[IS NULL($2)], "
         + "nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));

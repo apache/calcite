@@ -1388,17 +1388,6 @@ public enum SqlKind {
     }
   }
 
-  public SqlKind negateNullSafe2() {
-    switch (this) {
-    case IS_NOT_NULL:
-      return IS_NULL;
-    case IS_NULL:
-      return IS_NOT_NULL;
-    default:
-      return this.negateNullSafe();
-    }
-  }
-
   /**
    * Returns whether this {@code SqlKind} belongs to a given category.
    *
