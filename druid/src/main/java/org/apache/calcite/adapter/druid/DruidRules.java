@@ -198,9 +198,8 @@ public class DruidRules {
       final RexNode cond =
           simplify.simplifyUnknownAsFalse(filter.getCondition());
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
-        DruidJsonFilter druidJsonFilter =
-            DruidJsonFilter.toDruidFilters(e, filter.getInput().getRowType(),
-                query, rexBuilder);
+        DruidJsonFilter druidJsonFilter = DruidJsonFilter
+            .toDruidFilters(e, filter.getInput().getRowType(), query);
         if (druidJsonFilter != null) {
           validPreds.add(e);
         } else {
@@ -305,17 +304,14 @@ public class DruidRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Filter filter = call.rel(0);
       final DruidQuery query = call.rel(1);
-      final RelOptCluster cluster = filter.getCluster();
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
 
       if (!DruidQuery.isValidSignature(query.signature() + 'h')) {
         return;
       }
 
       final RexNode cond = filter.getCondition();
-      final DruidJsonFilter druidJsonFilter =
-          DruidJsonFilter.toDruidFilters(cond, query.getTopNode().getRowType(),
-              query, rexBuilder);
+      final DruidJsonFilter druidJsonFilter = DruidJsonFilter
+          .toDruidFilters(cond, query.getTopNode().getRowType(), query);
       if (druidJsonFilter != null) {
         final RelNode newFilter = filter
             .copy(filter.getTraitSet(), Util.last(query.rels), filter.getCondition());
