@@ -546,7 +546,7 @@ public class RelBuilderTest {
         .filter(condition, condition2, condition, condition)
         .build();
     final String expected2 = ""
-        + "LogicalFilter(condition=[SEARCH($7, Sarg[(20..30)])])\n"
+        + "LogicalFilter(condition=[SEARCH($7, Sarg[(20\u202530)])])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root2, hasTree(expected2));
   }
@@ -3311,7 +3311,7 @@ public class RelBuilderTest {
                         b.literal(11), b.literal(10))))
             .build();
     final String expected = ""
-        + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), "
+        + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15‥+∞)]), "
         + "SEARCH($2, Sarg['CLERK']:CHAR(5)))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
@@ -3348,7 +3348,7 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[OR("
-        + "SEARCH($cor0.DEPTNO, Sarg[(20..30)]), "
+        + "SEARCH($cor0.DEPTNO, Sarg[(20\u202530)]), "
         + "IS NULL($2))], variablesSet=[[$cor0]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
 
@@ -3692,7 +3692,7 @@ public class RelBuilderTest {
   @Test void testCallBetweenOperator() {
     final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
 
-    final String expected = "SEARCH($0, Sarg[[1..5]])";
+    final String expected = "SEARCH($0, Sarg[[1\u20255]])";
     final RexNode call =
         builder.call(SqlStdOperatorTable.BETWEEN,
             builder.field("EMPNO"),
@@ -3708,7 +3708,7 @@ public class RelBuilderTest {
 
     final RelNode root = builder.filter(call2).build();
     final String expectedRel = ""
-        + "LogicalFilter(condition=[SEARCH($0, Sarg[[1..5]])])\n"
+        + "LogicalFilter(condition=[SEARCH($0, Sarg[[1\u20255]])])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expectedRel));
 
@@ -3721,7 +3721,7 @@ public class RelBuilderTest {
     final RelNode root2 = builder.build();
     final String expectedRel2 = ""
         + "LogicalFilter(condition=[AND(<>($0, 3), =($7, 10))])\n"
-        + "  LogicalFilter(condition=[SEARCH($0, Sarg[[1..5]])])\n"
+        + "  LogicalFilter(condition=[SEARCH($0, Sarg[[1\u20255]])])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root2, hasTree(expectedRel2));
 
@@ -3736,7 +3736,7 @@ public class RelBuilderTest {
             builder.equals(builder.field("DEPTNO"), builder.literal(10)));
     final RelNode root3 = builder.build();
     final String expectedRel3 = ""
-        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg[[1..3), (3..5]]), "
+        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg[[1\u20253), (3\u20255]]), "
         + "SEARCH($7, Sarg[10]))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root3, hasTree(expectedRel3));

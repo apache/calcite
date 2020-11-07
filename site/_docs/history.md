@@ -103,7 +103,7 @@ In `RelBuilder`, add an option to not simplify `LIMIT 0` to an empty relation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4208">CALCITE-4208</a>]
 Improve metadata row count for `Join`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4210">CALCITE-4210</a>]
-Replaying subqueries in `ON` clauses (James Starr) 
+Replaying subqueries in `ON` clauses (James Starr)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4214">CALCITE-4214</a>]
 Make `RelDataType.getSqlTypeName` non-nullable
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4217">CALCITE-4217</a>]

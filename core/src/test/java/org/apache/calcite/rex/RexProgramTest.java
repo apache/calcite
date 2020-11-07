@@ -62,8 +62,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 
-import static org.apache.calcite.test.Matchers.isRangeSet;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -1134,7 +1132,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(
         and(lt(literal(1), aRef), lt(aRef, literal(5))),
         RelOptPredicateList.EMPTY,
-        "SEARCH(?0.a, Sarg[(1..5)])");
+        "SEARCH(?0.a, Sarg[(1\u20255)])");
 
     // condition "1 > a && 5 > x" yields "1 > a"
     checkSimplifyFilter(
@@ -1153,7 +1151,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(
         and(gt(aRef, literal(1)), lt(aRef, literal(10)), lt(aRef, literal(5))),
         RelOptPredicateList.EMPTY,
-        "SEARCH(?0.a, Sarg[(1..5)])");
+        "SEARCH(?0.a, Sarg[(1\u20255)])");
 
     // condition "a > 1 && a < 10 && a < 5"
     // with pre-condition "a > 5"
@@ -1181,7 +1179,7 @@ class RexProgramTest extends RexProgramTestBase {
         and(gt(aRef, literal(1)), lt(aRef, literal(10)), lt(aRef, literal(5))),
         RelOptPredicateList.of(rexBuilder,
             ImmutableList.of(lt(bRef, literal(10)), ge(aRef, literal(1)))),
-        "SEARCH(?0.a, Sarg[(1..5)])");
+        "SEARCH(?0.a, Sarg[(1\u20255)])");
 
     // condition "a > 1"
     // with pre-condition "b < 10 && a > 5"
@@ -1362,28 +1360,29 @@ class RexProgramTest extends RexProgramTestBase {
             .add(Range.singleton(3))
             .add(Range.greaterThan(5))
             .build();
-    assertThat(setComplex, isRangeSet("[[0..2], [3..3], (5..+\u221e)]"));
+    assertThat(setComplex.toString(),
+        is("[[0\u20252], [3\u20253], (5\u2025+\u221e)]"));
 
-    assertThat(RangeSets.minus(setAll, Range.singleton(1)),
-        isRangeSet("[(-\u221e..1), (1..+\u221e)]"));
+    assertThat(RangeSets.minus(setAll, Range.singleton(1)).toString(),
+        is("[(-\u221e\u20251), (1\u2025+\u221e)]"));
     assertThat(RangeSets.minus(setNone, Range.singleton(1)), is(setNone));
     assertThat(RangeSets.minus(setGt2, Range.singleton(1)), is(setGt2));
     assertThat(RangeSets.minus(setGt1, Range.singleton(1)), is(setGt1));
     assertThat(RangeSets.minus(setGe1, Range.singleton(1)), is(setGt1));
-    assertThat(RangeSets.minus(setGt0, Range.singleton(1)),
-        isRangeSet("[(0..1), (1..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(1)),
-        isRangeSet("[[0..1), (1..2], [3..3], (5..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(2)),
-        isRangeSet("[[0..2), [3..3], (5..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(3)),
-        isRangeSet("[[0..2], (5..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)),
-        isRangeSet("[[0..2], [3..3], (5..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)),
-        isRangeSet("[[0..2), (5..+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)),
-        isRangeSet("[[0..2), (7..+\u221e)]"));
+    assertThat(RangeSets.minus(setGt0, Range.singleton(1)).toString(),
+        is("[(0\u20251), (1\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(1)).toString(),
+        is("[[0\u20251), (1\u20252], [3\u20253], (5\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(2)).toString(),
+        is("[[0\u20252), [3\u20253], (5\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(3)).toString(),
+        is("[[0\u20252], (5\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)).toString(),
+        is("[[0\u20252], [3\u20253], (5\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)).toString(),
+        is("[[0\u20252), (5\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)).toString(),
+        is("[[0\u20252), (7\u2025+\u221e)]"));
   }
 
   @Test void testSimplifyOrTerms() {
@@ -1575,7 +1574,7 @@ class RexProgramTest extends RexProgramTestBase {
         ne(aRef, literal(6)),
         ne(aRef, literal(12)));
     final String simplified =
-        "SEARCH($0, Sarg[(0..6), (6..10], [15..+\u221e)])";
+        "SEARCH($0, Sarg[(0\u20256), (6\u202510], [15\u2025+\u221e)])";
     final String expanded = "OR(AND(>($0, 0), <($0, 6)), AND(>($0, 6),"
         + " <=($0, 10)), >=($0, 15))";
     checkSimplify(expr, simplified)
@@ -1587,7 +1586,7 @@ class RexProgramTest extends RexProgramTestBase {
     // a is null or a >= 15
     RexNode expr = or(isNull(aRef),
         ge(aRef, literal(15)));
-    checkSimplify(expr, "SEARCH($0, Sarg[[15..+\u221e), null])")
+    checkSimplify(expr, "SEARCH($0, Sarg[[15\u2025+\u221e), null])")
         .expandedSearch("OR(IS NULL($0), >=($0, 15))");
   }
 
@@ -1606,7 +1605,7 @@ class RexProgramTest extends RexProgramTestBase {
         ge(aRef, literal(15)));
     // [CALCITE-4190] causes "or a >= 15" to disappear from the simplified form.
     final String simplified =
-        "SEARCH($0, Sarg[(0..12), [15..+\u221e), null])";
+        "SEARCH($0, Sarg[(0\u202512), [15\u2025+\u221e), null])";
     final String expanded =
         "OR(IS NULL($0), AND(>($0, 0), <($0, 12)), >=($0, 15))";
     checkSimplify(expr, simplified)
@@ -1620,7 +1619,7 @@ class RexProgramTest extends RexProgramTestBase {
         or(eq(aRef, literal(3)),
             eq(aRef, literal(5))));
     final String expected =
-        "SEARCH($0, Sarg[(-\u221e..3), (3..5), (5..+\u221e)])";
+        "SEARCH($0, Sarg[(-\u221e\u20253), (3\u20255), (5\u2025+\u221e)])";
     final String expanded = "AND(<>($0, 3), <>($0, 5))";
     checkSimplify(expr, expected)
         .expandedSearch(expanded);
@@ -1635,7 +1634,7 @@ class RexProgramTest extends RexProgramTestBase {
                 eq(aRef, literal(5)))),
         isNull(aRef));
     final String simplified =
-        "SEARCH($0, Sarg[(-\u221e..3), (3..5), (5..+\u221e), null])";
+        "SEARCH($0, Sarg[(-\u221e\u20253), (3\u20255), (5\u2025+\u221e), null])";
     final String expanded = "OR(IS NULL($0), AND(<>($0, 3), <>($0, 5)))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);

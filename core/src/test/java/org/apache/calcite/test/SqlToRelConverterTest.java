@@ -1256,8 +1256,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4206">[CALCITE-4206]
-   * RelDecorrelator outputs wrong plan for correlate sort with fetch
-   * limit</a>. */
+   * RelDecorrelator outputs wrong plan for correlate sort with fetch limit</a>. */
   @Test void testCorrelateSortWithLimit() {
     final String sql = "SELECT deptno, ename\n"
         + "FROM\n"

@@ -366,17 +366,17 @@ public class RangeSets {
     }
 
     @Override public void all() {
-      sb.append("(-\u221e..+\u221e)");
+      sb.append("(-\u221e\u2025+\u221e)");
     }
 
     @Override public void atLeast(C lower) {
       sb.append('[');
       valuePrinter.accept(sb, lower);
-      sb.append("..+\u221e)");
+      sb.append("\u2025+\u221e)");
     }
 
     @Override public void atMost(C upper) {
-      sb.append("(-\u221e..");
+      sb.append("(-\u221e\u2025");
       valuePrinter.accept(sb, upper);
       sb.append("]");
     }
@@ -384,11 +384,11 @@ public class RangeSets {
     @Override public void greaterThan(C lower) {
       sb.append('(');
       valuePrinter.accept(sb, lower);
-      sb.append("..+\u221e)");
+      sb.append("\u2025+\u221e)");
     }
 
     @Override public void lessThan(C upper) {
-      sb.append("(-\u221e..");
+      sb.append("(-\u221e\u2025");
       valuePrinter.accept(sb, upper);
       sb.append(")");
     }
@@ -400,7 +400,7 @@ public class RangeSets {
     @Override public void closed(C lower, C upper) {
       sb.append('[');
       valuePrinter.accept(sb, lower);
-      sb.append("..");
+      sb.append('\u2025');
       valuePrinter.accept(sb, upper);
       sb.append(']');
     }
@@ -408,7 +408,7 @@ public class RangeSets {
     @Override public void closedOpen(C lower, C upper) {
       sb.append('[');
       valuePrinter.accept(sb, lower);
-      sb.append("..");
+      sb.append('\u2025');
       valuePrinter.accept(sb, upper);
       sb.append(')');
     }
@@ -416,7 +416,7 @@ public class RangeSets {
     @Override public void openClosed(C lower, C upper) {
       sb.append('(');
       valuePrinter.accept(sb, lower);
-      sb.append("..");
+      sb.append('\u2025');
       valuePrinter.accept(sb, upper);
       sb.append(']');
     }
@@ -424,7 +424,7 @@ public class RangeSets {
     @Override public void open(C lower, C upper) {
       sb.append('(');
       valuePrinter.accept(sb, lower);
-      sb.append("..");
+      sb.append('\u2025');
       valuePrinter.accept(sb, upper);
       sb.append(')');
     }
