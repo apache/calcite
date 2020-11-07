@@ -551,62 +551,6 @@ public class RelBuilderTest {
     assertThat(root2, hasTree(expected2));
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4325">[CALCITE-4325]
-   * RexSimplify incorrectly simplifies complex expressions with Sarg and
-   * NULL</a>. */
-  @Test void testFilterAndOrWithNull() {
-    // Equivalent SQL:
-    //   SELECT *
-    //   FROM emp
-    //   WHERE (deptno <> 20 OR deptno IS NULL) AND deptno = 10
-    // Should be simplified to:
-    //   SELECT *
-    //   FROM emp
-    //   WHERE deptno = 10
-    // With [CALCITE-4325], is incorrectly simplified to:
-    //   SELECT *
-    //   FROM emp
-    //   WHERE deptno = 10 OR deptno IS NULL
-    final Function<RelBuilder, RelNode> f = b ->
-        b.scan("EMP")
-            .filter(
-                b.and(
-                    b.or(
-                        b.notEquals(b.field("DEPTNO"), b.literal(20)),
-                        b.isNull(b.field("DEPTNO"))),
-                    b.equals(b.field("DEPTNO"), b.literal(10))))
-            .build();
-
-    final String expected = "LogicalFilter(condition=[=($7, 10)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder()), hasTree(expected));
-  }
-
-  @Test void testFilterAndOrWithNull2() {
-    // Equivalent SQL:
-    //   SELECT *
-    //   FROM emp
-    //   WHERE (deptno = 20 OR deptno IS NULL) AND deptno = 10
-    // Should be simplified to:
-    //   No rows (WHERE FALSE)
-    // With [CALCITE-4325], is incorrectly simplified to:
-    //   SELECT *
-    //   FROM emp
-    //   WHERE deptno IS NULL
-    final Function<RelBuilder, RelNode> f = b ->
-        b.scan("EMP")
-            .filter(
-                b.and(
-                    b.or(b.equals(b.field("DEPTNO"), b.literal(20)),
-                        b.isNull(b.field("DEPTNO"))),
-                    b.equals(b.field("DEPTNO"), b.literal(10))))
-            .build();
-
-    final String expected = "LogicalValues(tuples=[[]])\n";
-    assertThat(f.apply(createBuilder()), hasTree(expected));
-  }
-
   @Test void testBadFieldName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {

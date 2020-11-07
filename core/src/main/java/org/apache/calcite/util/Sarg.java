@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
@@ -149,37 +148,5 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return rangeSet.span().encloses(Range.all())
         && rangeSet.complement().asRanges().stream()
             .allMatch(RangeSets::isPoint);
-  }
-
-  /** Returns a measure of the complexity of this expression.
-   *
-   * <p>It is basically the number of values that need to be checked against
-   * (including NULL).
-   *
-   * <p>Examples:
-   * <ul>
-   *   <li>{@code x = 1}, {@code x <> 1}, {@code x > 1} have complexity 1
-   *   <li>{@code x > 1 or x is null} has complexity 2
-   *   <li>{@code x in (2, 4, 6) or x > 20} has complexity 4
-   *   <li>{@code x between 3 and 8 or x between 10 and 20} has complexity 2
-   * </ul>
-   */
-  public int complexity() {
-    int complexity;
-    if (rangeSet.asRanges().size() == 2
-        && rangeSet.complement().asRanges().size() == 1
-        && RangeSets.isPoint(
-            Iterables.getOnlyElement(rangeSet.complement().asRanges()))) {
-      // The complement of a point is a range set with two elements.
-      // For example, "x <> 1" is "[(-inf, 1), (1, inf)]".
-      // We want this to have complexity 1.
-      complexity = 1;
-    } else {
-      complexity = rangeSet.asRanges().size();
-    }
-    if (containsNull) {
-      ++complexity;
-    }
-    return complexity;
   }
 }
