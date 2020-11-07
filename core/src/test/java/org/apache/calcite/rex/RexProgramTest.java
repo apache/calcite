@@ -1641,21 +1641,6 @@ class RexProgramTest extends RexProgramTestBase {
         .expandedSearch(expanded);
   }
 
-  @Test void testSimplifyRange6() {
-    // An IS NULL condition would not usually become a Sarg,
-    // but here it is combined with another condition, and together they cross
-    // the complexity threshold.
-    final RexNode aRef = input(tInt(true), 0);
-    final RexNode bRef = input(tInt(true), 1);
-    // a in (1, 2) or b is null
-    RexNode expr = or(eq(aRef, literal(1)), eq(aRef, literal(2)), isNull(bRef));
-    final String simplified =
-        "OR(SEARCH($1, Sarg[, null]), SEARCH($0, Sarg[1, 2]))";
-    final String expanded = "OR(IS NULL($1), OR(=($0, 1), =($0, 2)))";
-    checkSimplify(expr, simplified)
-        .expandedSearch(expanded);
-  }
-
   @Test void testSimplifyItemRangeTerms() {
     RexNode item = item(input(tArray(tInt()), 3), literal(1));
     // paranoid validation doesn't support array types, disable it for a moment

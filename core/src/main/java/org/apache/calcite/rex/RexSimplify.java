@@ -2599,9 +2599,8 @@ public class RexSimplify {
         if (negate) {
           return false;
         }
-        final RexNode arg = ((RexCall) e).operands.get(0);
-        return accept1(arg, e.getKind(),
-            rexBuilder.makeNullLiteral(arg.getType()), newTerms);
+        return accept1(((RexCall) e).operands.get(0), e.getKind(),
+            rexBuilder.makeNullLiteral(e.getType()), newTerms);
       default:
         return false;
       }
@@ -2675,7 +2674,7 @@ public class RexSimplify {
         return true;
       case IS_NULL:
         if (negate) {
-          throw new AssertionError("negate is not supported for IS_NULL");
+          throw new AssertionError();
         }
         b.containsNull = true;
         return true;
@@ -2754,14 +2753,7 @@ public class RexSimplify {
     }
 
     @Override public RelDataType getType() {
-      if (this.types.isEmpty()) {
-        // Expression is "x IS NULL"
-        return ref.getType();
-      }
-      final List<RelDataType> distinctTypes = Util.distinctList(this.types);
-      return Objects.requireNonNull(
-          rexBuilder.typeFactory.leastRestrictive(distinctTypes),
-          () -> "Can't find leastRestrictive type among " + distinctTypes);
+      return rexBuilder.typeFactory.leastRestrictive(Util.distinctList(types));
     }
 
     @Override public <R> R accept(RexVisitor<R> visitor) {
