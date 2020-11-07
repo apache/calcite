@@ -24,12 +24,10 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -70,8 +68,7 @@ public class MongoFilter extends Filter implements MongoRel {
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     Translator translator =
-        new Translator(implementor.rexBuilder,
-            MongoRules.mongoFieldNames(getRowType()));
+        new Translator(MongoRules.mongoFieldNames(getRowType()));
     String match = translator.translateMatch(condition);
     implementor.add(null, match);
   }
@@ -83,11 +80,9 @@ public class MongoFilter extends Filter implements MongoRel {
         HashMultimap.create();
     final Map<String, RexLiteral> eqMap =
         new LinkedHashMap<>();
-    private final RexBuilder rexBuilder;
     private final List<String> fieldNames;
 
-    Translator(RexBuilder rexBuilder, List<String> fieldNames) {
-      this.rexBuilder = rexBuilder;
+    Translator(List<String> fieldNames) {
       this.fieldNames = fieldNames;
     }
 
@@ -98,11 +93,8 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     private Object translateOr(RexNode condition) {
-      final RexNode condition2 =
-          RexUtil.expandSearch(rexBuilder, null, condition);
-
       List<Object> list = new ArrayList<>();
-      for (RexNode node : RelOptUtil.disjunctions(condition2)) {
+      for (RexNode node : RelOptUtil.disjunctions(condition)) {
         list.add(translateAnd(node));
       }
       switch (list.size()) {

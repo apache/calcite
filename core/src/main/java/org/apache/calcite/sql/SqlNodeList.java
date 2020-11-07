@@ -37,8 +37,6 @@ import javax.annotation.Nonnull;
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
  * {@link SqlNode}, so may appear in a parse tree.
- *
- * @see SqlNode#toList()
  */
 public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess {
   //~ Static fields/initializers ---------------------------------------------

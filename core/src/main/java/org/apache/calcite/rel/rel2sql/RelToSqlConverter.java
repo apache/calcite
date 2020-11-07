@@ -95,7 +95,6 @@ import com.google.common.collect.Ordering;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -105,6 +104,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -648,10 +648,10 @@ public class RelToSqlConverter extends SqlImplementor
         // In case of empty values, we need to build:
         // select * from VALUES(NULL, NULL ...) as T (C1, C2 ...)
         // where 1=0.
-        selects.add(
-            ANONYMOUS_ROW.createCall(POS,
-                Collections.nCopies(fieldNames.size(),
-                    SqlLiteral.createNull(POS))));
+        List<SqlNode> nulls = IntStream.range(0, fieldNames.size())
+            .mapToObj(i ->
+                SqlLiteral.createNull(POS)).collect(Collectors.toList());
+        selects.add(ANONYMOUS_ROW.createCall(new SqlNodeList(nulls, POS)));
       } else {
         for (List<RexLiteral> tuple : e.getTuples()) {
           selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));

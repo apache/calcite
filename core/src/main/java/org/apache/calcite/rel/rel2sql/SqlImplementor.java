@@ -79,8 +79,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.RangeSets;
-import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -90,7 +88,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -109,7 +106,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -682,7 +678,6 @@ public abstract class SqlImplementor {
     public SqlNode toSql(RexProgram program, RexNode rex) {
       final RexSubQuery subQuery;
       final SqlNode sqlSubQuery;
-      final RexLiteral literal;
       switch (rex.getKind()) {
       case LOCAL_REF:
         final int index = ((RexLocalRef) rex).getIndex();
@@ -735,7 +730,7 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        return SqlImplementor.toSql(program, (RexLiteral) rex);
+        return SqlImplementor.toSql((RexLiteral) rex);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;
@@ -770,24 +765,25 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
-        subQuery = (RexSubQuery) rex;
-        sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
-        final List<RexNode> operands = subQuery.operands;
-        SqlNode op0;
-        if (operands.size() == 1) {
-          op0 = toSql(program, operands.get(0));
+        if (rex instanceof RexSubQuery) {
+          subQuery = (RexSubQuery) rex;
+          sqlSubQuery =
+              implementor().visitRoot(subQuery.rel).asQueryOrValues();
+          final List<RexNode> operands = subQuery.operands;
+          SqlNode op0;
+          if (operands.size() == 1) {
+            op0 = toSql(program, operands.get(0));
+          } else {
+            final List<SqlNode> cols = toSql(program, operands);
+            op0 = new SqlNodeList(cols, POS);
+          }
+          return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
         } else {
-          final List<SqlNode> cols = toSql(program, operands);
-          op0 = new SqlNodeList(cols, POS);
+          final RexCall call = (RexCall) rex;
+          final List<SqlNode> cols = toSql(program, call.operands);
+          return call.getOperator().createCall(POS, cols.get(0),
+              new SqlNodeList(cols.subList(1, cols.size()), POS));
         }
-        return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
-
-      case SEARCH:
-        final RexCall search = (RexCall) rex;
-        literal = (RexLiteral) search.operands.get(1);
-        final Sarg sarg = literal.getValueAs(Sarg.class);
-        //noinspection unchecked
-        return toSql(program, search.operands.get(0), literal.getType(), sarg);
 
       case EXISTS:
       case SCALAR_QUERY:
@@ -799,19 +795,17 @@ public abstract class SqlImplementor {
       case NOT:
         RexNode operand = ((RexCall) rex).operands.get(0);
         final SqlNode node = toSql(program, operand);
-        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
-        if (inverseOperator != null) {
-          switch (operand.getKind()) {
-          case IN:
-            assert operand instanceof RexSubQuery
-                : "scalar IN is no longer allowed in RexCall: " + rex;
-            break;
-          default:
-            break;
-          }
-          return inverseOperator.createCall(POS,
-              ((SqlCall) node).getOperandList());
-        } else {
+        switch (operand.getKind()) {
+        case IN:
+          return SqlStdOperatorTable.NOT_IN
+              .createCall(POS, ((SqlCall) node).getOperandList());
+        case LIKE:
+          return SqlStdOperatorTable.NOT_LIKE
+              .createCall(POS, ((SqlCall) node).getOperandList());
+        case SIMILAR:
+          return SqlStdOperatorTable.NOT_SIMILAR_TO
+              .createCall(POS, ((SqlCall) node).getOperandList());
+        default:
           return SqlStdOperatorTable.NOT.createCall(POS, node);
         }
 
@@ -854,42 +848,6 @@ public abstract class SqlImplementor {
         }
         return SqlUtil.createCall(op, POS, nodeList);
       }
-    }
-
-    /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
-     * ranges are all points. */
-    @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
-    private <C extends Comparable<C>> SqlNode toSql(RexProgram program,
-        RexNode operand, RelDataType type, Sarg<C> sarg) {
-      final List<SqlNode> orList = new ArrayList<>();
-      final SqlNode operandSql = toSql(program, operand);
-      if (sarg.containsNull) {
-        orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
-      }
-      if (sarg.isPoints()) {
-        final SqlNodeList list = sarg.rangeSet.asRanges().stream()
-            .map(range ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
-                        type, true, true)))
-            .collect(SqlNode.toList());
-        switch (list.size()) {
-        case 1:
-          orList.add(
-              SqlStdOperatorTable.EQUALS.createCall(POS, operandSql,
-                  list.get(0)));
-          break;
-        default:
-          orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
-        }
-      } else {
-        final RangeSets.Consumer<C> consumer =
-            new RangeToSql<>(operandSql, orList, v ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type, false)));
-        RangeSets.forEach(sarg.rangeSet, consumer);
-      }
-      return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
     }
 
     /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}
@@ -1244,125 +1202,16 @@ public abstract class SqlImplementor {
       return node;
     }
 
-    public abstract SqlImplementor implementor();
-
-    /** Converts a {@link Range} to a SQL expression.
-     *
-     * @param <C> Value type */
-    private static class RangeToSql<C extends Comparable<C>>
-        implements RangeSets.Consumer<C> {
-      private final List<SqlNode> list;
-      private final Function<C, SqlNode> literalFactory;
-      private final SqlNode arg;
-
-      RangeToSql(SqlNode arg, List<SqlNode> list,
-          Function<C, SqlNode> literalFactory) {
-        this.arg = arg;
-        this.list = list;
-        this.literalFactory = literalFactory;
-      }
-
-      private void addAnd(SqlNode... nodes) {
-        list.add(
-            SqlUtil.createCall(SqlStdOperatorTable.AND, POS,
-                ImmutableList.copyOf(nodes)));
-      }
-
-      private SqlNode op(SqlOperator op, C value) {
-        return op.createCall(POS, arg, literalFactory.apply(value));
-      }
-
-      @Override public void all() {
-        list.add(SqlLiteral.createBoolean(true, POS));
-      }
-
-      @Override public void atLeast(C lower) {
-        list.add(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
-      }
-
-      @Override public void atMost(C upper) {
-        list.add(op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-      }
-
-      @Override public void greaterThan(C lower) {
-        list.add(op(SqlStdOperatorTable.GREATER_THAN, lower));
-      }
-
-      @Override public void lessThan(C upper) {
-        list.add(op(SqlStdOperatorTable.LESS_THAN, upper));
-      }
-
-      @Override public void singleton(C value) {
-        list.add(op(SqlStdOperatorTable.EQUALS, value));
-      }
-
-      @Override public void closed(C lower, C upper) {
-        addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-            op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-      }
-
-      @Override public void closedOpen(C lower, C upper) {
-        addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-            op(SqlStdOperatorTable.LESS_THAN, upper));
-      }
-
-      @Override public void openClosed(C lower, C upper) {
-        addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-            op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-      }
-
-      @Override public void open(C lower, C upper) {
-        addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-            op(SqlStdOperatorTable.LESS_THAN, upper));
-      }
-    }
-  }
-
-  /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
-   * to a {@link SqlNode}. */
-  public static SqlNode toSql(RexProgram program, RexLiteral literal) {
-    switch (literal.getTypeName()) {
-    case SYMBOL:
-      final Enum symbol = (Enum) literal.getValue();
-      return SqlLiteral.createSymbol(symbol, POS);
-
-    case ROW:
-      //noinspection unchecked
-      final List<RexLiteral> list = literal.getValueAs(List.class);
-      return SqlStdOperatorTable.ROW.createCall(POS,
-          list.stream().map(e -> toSql(program, e))
-              .collect(Util.toImmutableList()));
-
-    case SARG:
-      final Sarg arg = literal.getValueAs(Sarg.class);
-      throw new AssertionError("sargs [" + arg
-          + "] should be handled as part of predicates, not as literals");
-
-    default:
-      return toSql(literal);
+    public SqlImplementor implementor() {
+      throw new UnsupportedOperationException();
     }
   }
 
   /** Converts a {@link RexLiteral} to a {@link SqlLiteral}. */
-  public static SqlNode toSql(RexLiteral literal) {
-    switch (literal.getTypeName()) {
-    case SYMBOL:
+  public static SqlLiteral toSql(RexLiteral literal) {
+    if (literal.getTypeName() == SqlTypeName.SYMBOL) {
       final Enum symbol = (Enum) literal.getValue();
       return SqlLiteral.createSymbol(symbol, POS);
-
-    case ROW:
-      //noinspection unchecked
-      final List<RexLiteral> list = literal.getValueAs(List.class);
-      return SqlStdOperatorTable.ROW.createCall(POS,
-          list.stream().map(e -> toSql(e))
-              .collect(Util.toImmutableList()));
-
-    case SARG:
-      final Sarg arg = literal.getValueAs(Sarg.class);
-      throw new AssertionError("sargs [" + arg
-          + "] should be handled as part of predicates, not as literals");
-    default:
-      break;
     }
     switch (literal.getTypeName().getFamily()) {
     case CHARACTER:

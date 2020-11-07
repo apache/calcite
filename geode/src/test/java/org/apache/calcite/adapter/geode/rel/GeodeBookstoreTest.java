@@ -94,7 +94,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
-            + "  GeodeFilter(condition=[SEARCH($0, Sarg[(122\u2025123]])])\n"
+            + "  GeodeFilter(condition=[AND(>($0, 122), <=($0, 123))])\n"
             + "    GeodeTableScan(table=[[geode, BookMaster]])")
         .queryContains(
             GeodeAssertions.query("SELECT * FROM /BookMaster "

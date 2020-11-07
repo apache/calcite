@@ -42,8 +42,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.RangeSets;
-import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -51,7 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
 
 import org.apiguardian.api.API;
 
@@ -67,8 +64,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 
 /**
  * Utility methods concerning row-expressions.
@@ -563,66 +558,6 @@ public class RexUtil {
         return super.visitInputRef(inputRef);
       }
     };
-  }
-
-  public static RexNode expandSearch(RexBuilder rexBuilder,
-      @Nullable RexProgram program, RexNode node) {
-    final RexShuttle shuttle = new RexShuttle() {
-      @Override public RexNode visitCall(RexCall call) {
-        switch (call.getKind()) {
-        case SEARCH:
-          return visitSearch(rexBuilder, program, call);
-        default:
-          return super.visitCall(call);
-        }
-      }
-    };
-    return node.accept(shuttle);
-  }
-
-  @SuppressWarnings("BetaApi")
-  private static <C extends Comparable<C>> RexNode
-      visitSearch(RexBuilder rexBuilder,
-          @Nullable RexProgram program, RexCall call) {
-    final RexNode ref = call.operands.get(0);
-    final RexLiteral literal =
-        (RexLiteral) deref(program, call.operands.get(1));
-    @SuppressWarnings("unchecked")
-    final Sarg<C> sarg = literal.getValueAs(Sarg.class);
-    final List<RexNode> orList = new ArrayList<>();
-
-    if (sarg.containsNull) {
-      orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref));
-    }
-    if (sarg.isPoints()) {
-      // Generate 'ref = value1 OR ... OR ref = valueN'
-      sarg.rangeSet.asRanges().forEach(range ->
-          orList.add(
-              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref,
-                  rexBuilder.makeLiteral(range.lowerEndpoint(),
-                      literal.getType(), true, true))));
-    } else if (sarg.isComplementedPoints()) {
-      // Generate 'ref <> value1 AND ... AND ref <> valueN'
-      final List<RexNode> list = sarg.rangeSet.complement().asRanges().stream()
-          .map(range ->
-              rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
-                  rexBuilder.makeLiteral(range.lowerEndpoint(),
-                      literal.getType(), true, true)))
-          .collect(Util.toImmutableList());
-      orList.add(composeConjunction(rexBuilder, list));
-    } else {
-      final RangeSets.Consumer<C> consumer =
-          new RangeToRex<>(ref, orList, rexBuilder, literal.getType());
-      RangeSets.forEach(sarg.rangeSet, consumer);
-    }
-    return composeDisjunction(rexBuilder, orList);
-  }
-
-  private static RexNode deref(RexProgram program, RexNode node) {
-    while (node instanceof RexLocalRef) {
-      node = program.getExprList().get(((RexLocalRef) node).index);
-    }
-    return node;
   }
 
   /**
@@ -2916,75 +2851,4 @@ public class RexUtil {
     }
   }
 
-  /** Converts a {@link Range} to a {@link RexNode} expression.
-   *
-   * @param <C> Value type */
-  private static class RangeToRex<C extends Comparable<C>>
-      implements RangeSets.Consumer<C> {
-    private final List<RexNode> list;
-    private final RexBuilder rexBuilder;
-    private final RelDataType type;
-    private final RexNode ref;
-
-    RangeToRex(RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
-        RelDataType type) {
-      this.ref = Objects.requireNonNull(ref);
-      this.list = Objects.requireNonNull(list);
-      this.rexBuilder = Objects.requireNonNull(rexBuilder);
-      this.type = Objects.requireNonNull(type);
-    }
-
-    private void addAnd(RexNode... nodes) {
-      list.add(rexBuilder.makeCall(SqlStdOperatorTable.AND, nodes));
-    }
-
-    private RexNode op(SqlOperator op, C value) {
-      return rexBuilder.makeCall(op, ref,
-          rexBuilder.makeLiteral(value, type, true, true));
-    }
-
-    @Override public void all() {
-      list.add(rexBuilder.makeLiteral(true));
-    }
-
-    @Override public void atLeast(C lower) {
-      list.add(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
-    }
-
-    @Override public void atMost(C upper) {
-      list.add(op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-    }
-
-    @Override public void greaterThan(C lower) {
-      list.add(op(SqlStdOperatorTable.GREATER_THAN, lower));
-    }
-
-    @Override public void lessThan(C upper) {
-      list.add(op(SqlStdOperatorTable.LESS_THAN, upper));
-    }
-
-    @Override public void singleton(C value) {
-      list.add(op(SqlStdOperatorTable.EQUALS, value));
-    }
-
-    @Override public void closed(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-    }
-
-    @Override public void closedOpen(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlStdOperatorTable.LESS_THAN, upper));
-    }
-
-    @Override public void openClosed(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
-    }
-
-    @Override public void open(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlStdOperatorTable.LESS_THAN, upper));
-    }
-  }
 }

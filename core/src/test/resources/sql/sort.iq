@@ -51,7 +51,7 @@ select * from "days" where "day" between 2 and 4 order by "day";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[2‥4]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>=($t0, $t2)], expr#4=[4], expr#5=[<=($t0, $t4)], expr#6=[AND($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 

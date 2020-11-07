@@ -38,9 +38,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
@@ -235,7 +235,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
       StructImpl struct = (StructImpl) s;
       return struct.get("state");
     })
-        .collect(Collectors.toCollection(TreeSet::new));
+        .collect(Collectors.toCollection(LinkedHashSet::new));
 
     String stateListPredicate = stateList.stream()
         .map(s -> String.format(Locale.ROOT, "state = '%s'", s))

@@ -34,7 +34,6 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -47,7 +46,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <blockquote><code>X [NOT] BETWEEN [ASYMMETRIC | SYMMETRIC] Y AND
  * Z</code></blockquote>
  *
- * <p>If the asymmetric/symmetric keywords are left out ASYMMETRIC is default.
+ * <p>If the asymmetric/symmeteric keywords are left out ASYMMETRIC is default.
  *
  * <p>This operator is always expanded (into something like <code>Y &lt;= X AND
  * X &lt;= Z</code>) before being converted into Rex nodes.
@@ -110,10 +109,6 @@ public class SqlBetweenOperator extends SqlInfixOperator {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override public boolean validRexOperands(int count, Litmus litmus) {
-    return litmus.fail("not a rex operator");
-  }
 
   public boolean isNegated() {
     return negated;

@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.Hintable;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -207,18 +206,6 @@ public class Matchers {
     return compose(StringContains.containsString(value), input -> {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
-    });
-  }
-
-  /**
-   * Creates a Matcher that matches a {@link RexNode} if its string
-   * representation, after converting Windows-style line endings ("\r\n")
-   * to Unix-style line endings ("\n"), is equal to the given {@code value}.
-   */
-  public static Matcher<RexNode> hasRex(final String value) {
-    return compose(Is.is(value), input -> {
-      // Convert RexNode to a string with Linux line-endings
-      return Util.toLinux(input.toString());
     });
   }
 

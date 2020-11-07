@@ -428,15 +428,15 @@ public class SubQueryRemoveRule
         builder.distinct();
         break;
       default:
-        List<RexNode> isNullOperands = fields.stream()
+        List<RexNode> isNullOpperands = fields.stream()
             .map(builder::isNull)
             .collect(Collectors.toList());
         // uses keyIsNulls conditions in the filter to avoid empty results
-        isNullOperands.addAll(keyIsNulls);
+        isNullOpperands.addAll(keyIsNulls);
         builder.filter(
             builder.or(
                 builder.and(conditions),
-                builder.or(isNullOperands)));
+                builder.or(isNullOpperands)));
         RexNode project = builder.and(
             fields.stream()
                 .map(builder::isNotNull)

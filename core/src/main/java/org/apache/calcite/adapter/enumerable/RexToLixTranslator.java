@@ -46,7 +46,6 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Geometries;
@@ -79,7 +78,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PREV;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SEARCH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 
@@ -1113,9 +1111,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     if (operator == CASE) {
       return implementCaseWhen(call);
-    }
-    if (operator == SEARCH) {
-      return RexUtil.expandSearch(builder, program, call).accept(this);
     }
     final RexImpTable.RexCallImplementor implementor =
         RexImpTable.INSTANCE.get(operator);

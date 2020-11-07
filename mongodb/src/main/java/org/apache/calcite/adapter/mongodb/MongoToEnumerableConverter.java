@@ -78,8 +78,7 @@ public class MongoToEnumerableConverter
     //     "{$filter: {state: 'CA'}}",
     //     "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: "$pop"}}")
     final BlockBuilder list = new BlockBuilder();
-    final MongoRel.Implementor mongoImplementor =
-        new MongoRel.Implementor(getCluster().getRexBuilder());
+    final MongoRel.Implementor mongoImplementor = new MongoRel.Implementor();
     mongoImplementor.visitChild(0, getInput());
     final RelDataType rowType = getRowType();
     final PhysType physType =

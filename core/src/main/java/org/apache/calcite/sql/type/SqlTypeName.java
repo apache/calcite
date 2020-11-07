@@ -120,10 +120,7 @@ public enum SqlTypeName {
       SqlTypeFamily.COLUMN_LIST),
   DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
       Types.JAVA_OBJECT, SqlTypeFamily.ANY),
-  /** Spatial type. Though not standard, it is common to several DBs, so we
-   * do not flag it 'special' (internal). */
-  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
-  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
+  GEOMETRY(PrecScale.NO_NO, true, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 

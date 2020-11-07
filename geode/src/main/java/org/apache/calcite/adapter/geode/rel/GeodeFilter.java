@@ -30,7 +30,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -134,14 +133,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return OQL predicate string
      */
     private String translateMatch(RexNode condition) {
-      // Remove SEARCH calls because current translation logic cannot handle it.
-      // However, it would efficient to handle SEARCH explicitly; a Geode
-      // 'IN SET' would always manifest as a SEARCH.
-      final RexNode condition2 =
-          RexUtil.expandSearch(rexBuilder, null, condition);
-
       // Returns condition decomposed by OR
-      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition2);
+      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
       } else {

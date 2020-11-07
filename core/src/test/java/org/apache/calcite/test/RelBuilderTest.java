@@ -546,7 +546,7 @@ public class RelBuilderTest {
         .filter(condition, condition2, condition, condition)
         .build();
     final String expected2 = ""
-        + "LogicalFilter(condition=[SEARCH($7, Sarg[(20\u202530)])])\n"
+        + "LogicalFilter(condition=[AND(>($7, 20), <($7, 30))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root2, hasTree(expected2));
   }
@@ -638,10 +638,10 @@ public class RelBuilderTest {
                 builder.alias(builder.field(6), "C"))
             .build();
     final String expected = ""
-        + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], "
-        + "$f2=[OR(SEARCH($7, Sarg[20, 30]), AND(null:NULL, =($7, 10), "
-        + "IS NULL($6), IS NULL($7)))], n2=[IS NULL($2)], "
-        + "nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
+        + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
+        + " $f2=[OR(=($7, 20), AND(null:NULL, =($7, 10), IS NULL($6),"
+        + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
+        + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
@@ -3307,12 +3307,10 @@ public class RelBuilderTest {
         .build();
 
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], "
-        + "requiredColumns=[{7}])\n"
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
-        + "    LogicalFilter(condition=[OR("
-        + "SEARCH($cor0.DEPTNO, Sarg[(20\u202530)]), "
+        + "    LogicalFilter(condition=[OR(AND(<($cor0.DEPTNO, 30), >($cor0.DEPTNO, 20)), "
         + "IS NULL($2))], variablesSet=[[$cor0]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
 
@@ -3647,63 +3645,16 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3747">[CALCITE-3747]
-   * Constructing BETWEEN with RelBuilder throws class cast exception</a>.
-   *
-   * <p>BETWEEN is no longer allowed in RexCall. 'a BETWEEN b AND c' is expanded
-   * 'a >= b AND a <= c', whether created via
-   * {@link RelBuilder#call(SqlOperator, RexNode...)} or
-   * {@link RelBuilder#between(RexNode, RexNode, RexNode)}.*/
+   * Constructing BETWEEN with RelBuilder throws class cast exception</a>. */
   @Test void testCallBetweenOperator() {
-    final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
-
-    final String expected = "SEARCH($0, Sarg[[1\u20255]])";
-    final RexNode call =
-        builder.call(SqlStdOperatorTable.BETWEEN,
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexNode call = builder.scan("EMP")
+        .call(
+            SqlStdOperatorTable.BETWEEN,
             builder.field("EMPNO"),
             builder.literal(1),
             builder.literal(5));
-    assertThat(call.toString(), is(expected));
-
-    final RexNode call2 =
-        builder.between(builder.field("EMPNO"),
-            builder.literal(1),
-            builder.literal(5));
-    assertThat(call2.toString(), is(expected));
-
-    final RelNode root = builder.filter(call2).build();
-    final String expectedRel = ""
-        + "LogicalFilter(condition=[SEARCH($0, Sarg[[1\u20255]])])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expectedRel));
-
-    // Consecutive filters are not merged. (For now, anyway.)
-    builder.push(root)
-        .filter(
-            builder.not(
-                builder.equals(builder.field("EMPNO"), builder.literal(3))),
-            builder.equals(builder.field("DEPTNO"), builder.literal(10)));
-    final RelNode root2 = builder.build();
-    final String expectedRel2 = ""
-        + "LogicalFilter(condition=[AND(<>($0, 3), =($7, 10))])\n"
-        + "  LogicalFilter(condition=[SEARCH($0, Sarg[[1\u20255]])])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root2, hasTree(expectedRel2));
-
-    // The conditions in one filter are simplified.
-    builder.scan("EMP")
-        .filter(
-            builder.between(builder.field("EMPNO"),
-                builder.literal(1),
-                builder.literal(5)),
-            builder.not(
-                builder.equals(builder.field("EMPNO"), builder.literal(3))),
-            builder.equals(builder.field("DEPTNO"), builder.literal(10)));
-    final RelNode root3 = builder.build();
-    final String expectedRel3 = ""
-        + "LogicalFilter(condition=[AND(SEARCH($0, Sarg[[1\u20253), (3\u20255]]), "
-        + "SEARCH($7, Sarg[10]))])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root3, hasTree(expectedRel3));
+    assertThat(call.toString(), is("BETWEEN ASYMMETRIC($0, 1, 5)"));
   }
 
   /** Test case for
