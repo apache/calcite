@@ -87,6 +87,7 @@ import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -798,7 +799,7 @@ public class RelBuilderTest {
   }
 
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
-    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelBuilder builder = createBuilder(c -> c.withSimplifyValues(false));
     RexBuilder rex = builder.getRexBuilder();
     RelNode actual =
         builder.values(new String[]{"x"}, 42)
@@ -2891,6 +2892,64 @@ public class RelBuilderTest {
     final String expectedType =
         "RecordType(BIGINT NOT NULL a, VARCHAR(10) NOT NULL a) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
+  }
+
+  @Test void testValuesRename() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.values(new String[] {"a", "b"}, 1, true, 2, false)
+            .rename(Arrays.asList("x", "y"))
+            .build();
+    final String expected =
+        "LogicalValues(tuples=[[{ 1, true }, { 2, false }]])\n";
+    final String expectedRowType = "RecordType(INTEGER x, BOOLEAN y)";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder()).getRowType().toString(),
+        is(expectedRowType));
+  }
+
+  /** Tests that {@code Union(Project(Values), ... Project(Values))} is
+   * simplified to {@code Values}. It occurs commonly: people write
+   * {@code SELECT 1 UNION SELECT 2}. */
+  @Test void testUnionProjectValues() {
+    // Equivalent SQL:
+    //   SELECT 'a', 1
+    //   UNION ALL
+    //   SELECT 'b', 2
+    final BiFunction<RelBuilder, Boolean, RelNode> f = (b, all) ->
+        b.values(new String[] {"zero"}, 0)
+            .project(b.literal("a"), b.literal(1))
+            .values(new String[] {"zero"}, 0)
+            .project(b.literal("b"), b.literal(2))
+            .union(all, 2)
+            .build();
+    final String expected =
+        "LogicalValues(tuples=[[{ 'a', 1 }, { 'b', 2 }]])\n";
+
+    // Same effect with and without ALL because tuples are distinct
+    assertThat(f.apply(createBuilder(), true), hasTree(expected));
+    assertThat(f.apply(createBuilder(), false), hasTree(expected));
+  }
+
+  @Test void testUnionProjectValues2() {
+    // Equivalent SQL:
+    //   SELECT 'a', 1 FROM (VALUES (0), (0))
+    //   UNION ALL
+    //   SELECT 'b', 2
+    final BiFunction<RelBuilder, Boolean, RelNode> f = (b, all) ->
+        b.values(new String[] {"zero"}, 0)
+            .project(b.literal("a"), b.literal(1))
+            .values(new String[] {"zero"}, 0, 0)
+            .project(b.literal("b"), b.literal(2))
+            .union(all, 2)
+            .build();
+
+    // Different effect with and without ALL because tuples are not distinct.
+    final String expectedAll =
+        "LogicalValues(tuples=[[{ 'a', 1 }, { 'b', 2 }, { 'b', 2 }]])\n";
+    final String expectedDistinct =
+        "LogicalValues(tuples=[[{ 'a', 1 }, { 'b', 2 }]])\n";
+    assertThat(f.apply(createBuilder(), true), hasTree(expectedAll));
+    assertThat(f.apply(createBuilder(), false), hasTree(expectedDistinct));
   }
 
   @Test void testSort() {

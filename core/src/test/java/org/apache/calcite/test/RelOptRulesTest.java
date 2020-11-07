@@ -2484,6 +2484,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select p1 is not distinct from p0\n"
         + "from (values (2, cast(null as integer))) as t(p0, p1)";
     sql(sql)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
         .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
             CoreRules.FILTER_REDUCE_EXPRESSIONS,
             CoreRules.JOIN_REDUCE_EXPRESSIONS)
@@ -2667,7 +2668,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "    select 'foreign table' from (values (true))\n"
         + "  )\n"
         + ") where u = 'TABLE'";
-    sql(sql).with(program).check();
+    sql(sql)
+        .withRelBuilderConfig(c -> c.withSimplifyValues(false))
+        .with(program).check();
   }
 
   @Test void testRemoveSemiJoin() {

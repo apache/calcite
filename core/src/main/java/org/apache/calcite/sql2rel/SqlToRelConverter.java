@@ -4330,7 +4330,6 @@ public class SqlToRelConverter {
       return;
     }
 
-    final List<RelNode> unionRels = new ArrayList<>();
     for (SqlNode rowConstructor1 : values.getOperandList()) {
       SqlCall rowConstructor = (SqlCall) rowConstructor1;
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
@@ -4347,22 +4346,14 @@ public class SqlToRelConverter {
           (null == tmpBb.root)
               ? LogicalValues.createOneRow(cluster)
               : tmpBb.root;
-      unionRels.add(relBuilder.push(in)
-          .project(Pair.left(exps), Pair.right(exps))
-          .build());
+      relBuilder.push(in)
+          .project(Pair.left(exps), Pair.right(exps));
     }
 
-    if (unionRels.size() == 0) {
-      throw new AssertionError("empty values clause");
-    } else if (unionRels.size() == 1) {
-      bb.setRoot(
-          unionRels.get(0),
-          true);
-    } else {
-      bb.setRoot(
-          LogicalUnion.create(unionRels, true),
-          true);
-    }
+    bb.setRoot(
+        relBuilder.union(true, values.getOperandList().size())
+            .build(),
+        true);
   }
 
   //~ Inner Classes ----------------------------------------------------------

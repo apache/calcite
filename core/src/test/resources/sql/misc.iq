@@ -1671,8 +1671,7 @@ values cast('1969-07-21 12:34:56' as timestamp);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 12:34:56], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 1969-07-21 12:34:56 }]])
 !plan
 
 # Cast a character literal without time to a timestamp; note: the plan does not contain CAST
@@ -1685,8 +1684,7 @@ values cast('1969-07-21' as timestamp);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 00:00:00], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 1969-07-21 00:00:00 }]])
 !plan
 
 # Cast a character literal to a date; note: the plan does not contain CAST
@@ -1699,8 +1697,7 @@ values cast('1969-07-21' as date);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 1969-07-21 }]])
 !plan
 
 # Slightly different format
@@ -1725,8 +1722,7 @@ values cast('196907' as integer);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[196907], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 196907 }]])
 !plan
 
 # Cast an integer literal to a bigint; note: the plan does not contain CAST
@@ -1739,8 +1735,7 @@ values cast(123 as bigint);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123:BIGINT], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 123 }]])
 !plan
 
 # Cast an integer literal to a decimal; note: the plan does not contain CAST
@@ -1753,8 +1748,7 @@ values cast('123.45' as decimal(5, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(5, 2)], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 123.45 }]])
 !plan
 
 # Cast a character literal to a decimal; note: the plan does not contain CAST
@@ -1767,8 +1761,7 @@ values cast('123.45' as decimal(5, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(5, 2)], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 123.45 }]])
 !plan
 
 # Cast a character literal to a double; note: the plan does not contain CAST
@@ -1781,8 +1774,7 @@ values cast('-123.45' as double);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2:DOUBLE], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ -1.2345E2 }]])
 !plan
 
 values cast('false' as boolean);
@@ -1794,8 +1786,7 @@ values cast('false' as boolean);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[false], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ false }]])
 !plan
 
 values cast('TRUE' as boolean);
@@ -1807,8 +1798,7 @@ values cast('TRUE' as boolean);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR$0=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ true }]])
 !plan
 
 values cast('TR' || 'UE' as boolean);
@@ -2091,8 +2081,7 @@ select TIMESTAMP '2016-02-26 19:06:00.123456789',
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123:TIMESTAMP(3)], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1:TIMESTAMP(1)], expr#4=[2016-02-26 19:06:00.12:TIMESTAMP(2)], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t1], EXPR$7=[$t1])
-  EnumerableValues(tuples=[[{ 0 }]])
+EnumerableValues(tuples=[[{ 2016-02-26 19:06:00.123, 2016-02-26 19:06:00, 2016-02-26 19:06:00, 2016-02-26 19:06:00.1, 2016-02-26 19:06:00.12, 2016-02-26 19:06:00.123, 2016-02-26 19:06:00.123, 2016-02-26 19:06:00.123 }]])
 !plan
 
 # [CALCITE-1664] CAST('<string>' as TIMESTAMP) adds part of sub-second fraction to the value
