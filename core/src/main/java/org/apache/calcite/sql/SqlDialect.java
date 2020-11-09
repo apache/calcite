@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -431,28 +432,25 @@ public class SqlDialect {
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    SqlOperator operator = call.getOperator();
     switch (call.getKind()) {
     case ROW:
       // Remove the ROW keyword if the dialect does not allow that.
       if (!getConformance().allowExplicitRowValueConstructor()) {
-        // Fix the syntax when there is no parentheses after VALUES keyword.
-        if (!writer.isAlwaysUseParentheses()) {
-          writer.print(" ");
+        if (writer.isAlwaysUseParentheses()) {
+          // If writer always uses parentheses, it will have started parentheses
+          // that we now regret. Use a special variant of the operator that does
+          // not print parentheses, so that we can use the ones already started.
+          operator = SqlInternalOperators.ANONYMOUS_ROW_NO_PARENTHESES;
+        } else {
+          // Use an operator that prints "(a, b, c)" rather than
+          // "ROW (a, b, c)".
+          operator = SqlInternalOperators.ANONYMOUS_ROW;
         }
-        final SqlWriter.Frame frame = writer.isAlwaysUseParentheses()
-                ? writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL)
-                : writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-        for (SqlNode operand : call.getOperandList()) {
-          writer.sep(",");
-          operand.unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endList(frame);
-        break;
       }
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
-      break;
+      // fall through
     default:
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      operator.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 

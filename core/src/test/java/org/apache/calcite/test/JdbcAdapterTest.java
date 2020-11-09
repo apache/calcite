@@ -811,7 +811,8 @@ class JdbcAdapterTest {
         + "(SELECT 666 AS \"store_id\", 666 AS \"account_id\", "
         + "TIMESTAMP '1997-01-01 00:00:00' AS \"exp_date\", 666 AS \"time_id\", "
         + "'666' AS \"category_id\", 666 AS \"currency_id\", "
-        + "666 AS \"amount\"\nFROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+        + "666 AS \"amount\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
@@ -846,11 +847,11 @@ class JdbcAdapterTest {
         + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\","
         + " \"amount\")\n"
         + "SELECT 666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 666, 777, "
         + "TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB

@@ -133,10 +133,10 @@ public class CodeGenerationBenchmark {
       RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
       // Generates queries of the following form depending on the configuration parameters.
       // SELECT `t`.`name`
-      // FROM (VALUES  (1, 'Value0')) AS `t` (`id`, `name`)
-      // INNER JOIN (VALUES  (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
-      // INNER JOIN (VALUES  (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
-      // INNER JOIN (VALUES  (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
+      // FROM (VALUES (1, 'Value0')) AS `t` (`id`, `name`)
+      // INNER JOIN (VALUES (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
+      // INNER JOIN (VALUES (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
+      // INNER JOIN (VALUES (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
       // INNER JOIN ...
       // WHERE
       //  `t`.`name` = 'name0' OR
