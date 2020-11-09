@@ -119,7 +119,7 @@ jobs:
         name: Test
         with:
           job-id: jdk8-openj9
-          arguments: test --tests org.apache.calcite.sql.CircularDependencyTest
+          arguments: :core:test --tests org.apache.calcite.sql.CircularDependencyTest
       - name: 'sqlline and sqllsh'
         run: |
           ./sqlline -e '!quit'
