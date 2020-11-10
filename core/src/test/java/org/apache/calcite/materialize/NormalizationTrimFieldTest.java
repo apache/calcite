@@ -20,14 +20,17 @@ import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
@@ -58,6 +61,13 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
         return typeFactory.builder()
             .add("deptno", SqlTypeName.INTEGER)
             .add("count_sal", SqlTypeName.BIGINT)
+            .build();
+      }
+    });
+    rootSchema.add("mv1", new AbstractTable() {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("empno", SqlTypeName.SMALLINT)
             .build();
       }
     });
@@ -105,4 +115,41 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
     final String relOptimizedStr = RelOptUtil.toString(relOptimized.get(0).getKey());
     assertThat(relOptimizedStr, isLinux(optimized));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4391">[CALCITE-4391]
+   * Materialized view recognition fails when the order of join conditions is different</a>. */
+  @Test void testJoinToJoinConditionReorder() {
+    final RelBuilder relBuilder = RelBuilder.create(config().build());
+    final RelNode query =
+        relBuilder.scan("EMP")
+            .scan("DEPT")
+            .join(JoinRelType.INNER,
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, "EMP", "DEPTNO"),
+                    relBuilder.field(2, "DEPT", "DEPTNO")),
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, "EMP", "ENAME"),
+                    relBuilder.field(2, "DEPT", "DNAME"))).project(relBuilder.field(0)).build();
+
+    final RelNode target =
+        relBuilder.scan("EMP")
+            .scan("DEPT")
+            .join(JoinRelType.INNER,
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, "EMP", "ENAME"),
+                    relBuilder.field(2, "DEPT", "DNAME")),
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, "EMP", "DEPTNO"),
+                    relBuilder.field(2, "DEPT", "DEPTNO"))).project(relBuilder.field(0)).build();
+
+    final RelNode replacement = relBuilder.scan("mv1").build();
+    final List<RelNode> relOptimized = new SubstitutionVisitor(target, query).go(replacement);
+
+    final String optimized = ""
+        + "LogicalTableScan(table=[[mv1]])\n";
+    final String relOptimizedStr = RelOptUtil.toString(relOptimized.get(0));
+    assertThat(relOptimizedStr, isLinux(optimized));
+  }
+
 }

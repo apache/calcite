@@ -84,6 +84,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
 import static org.apache.calcite.rex.RexUtil.removeAll;
@@ -131,6 +132,7 @@ public class SubstitutionVisitor {
           TrivialRule.INSTANCE,
           ScanToCalcUnifyRule.INSTANCE,
           CalcToCalcUnifyRule.INSTANCE,
+          JoinToJoinUnifyRule.INSTANCE,
           JoinOnLeftCalcToJoinUnifyRule.INSTANCE,
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
@@ -1547,6 +1549,41 @@ public class SubstitutionVisitor {
       } else {
         return tryMergeParentCalcAndGenResult(call, unifiedAggregate);
       }
+    }
+  }
+
+  /** A {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link org.apache.calcite.rel.core.Join} to a
+   * {@link org.apache.calcite.rel.core.Join}, provided
+   * that they have the same child. */
+  private static class JoinToJoinUnifyRule extends AbstractUnifyRule {
+    public static final JoinToJoinUnifyRule INSTANCE = new JoinToJoinUnifyRule();
+    private JoinToJoinUnifyRule() {
+      super(operand(MutableJoin.class, query(0)),
+          operand(MutableJoin.class, target(0)), 1);
+    }
+
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
+      MutableJoin query = (MutableJoin) call.query;
+      MutableJoin target = (MutableJoin) call.target;
+
+      // same join type
+      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
+      if (joinRelType == null) {
+        return null;
+      }
+      List<RexNode> queryCondition = RelOptUtil.conjunctions(query.condition);
+      List<RexNode> targetCondition = RelOptUtil.conjunctions(target.condition);
+      // same join condition
+      if (queryCondition.size() == targetCondition.size()) {
+        Set<RexNode> queryConditionDigest = queryCondition.stream().collect(Collectors.toSet());
+        Set<RexNode> targetConditionDigest = targetCondition.stream().collect(Collectors.toSet());
+        if (queryConditionDigest.equals(targetConditionDigest)) {
+          return call.result(target);
+        }
+      }
+
+      return null;
     }
   }
 
