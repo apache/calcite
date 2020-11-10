@@ -17,6 +17,9 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -35,6 +38,7 @@ import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.mutable.MutableSetOp;
+import org.apache.calcite.rel.mutable.MutableSort;
 import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -134,6 +138,7 @@ public class SubstitutionVisitor {
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnCalcToAggregateUnifyRule.INSTANCE,
+          SortOnCalcToSortUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE,
           IntersectToIntersectUnifyRule.INSTANCE,
@@ -1574,6 +1579,78 @@ public class SubstitutionVisitor {
       }
       return tryMergeParentCalcAndGenResult(call, result);
     }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableSort}
+   * which has {@link MutableCalc} as child to a {@link MutableAggregate}.
+   * We try to pull up the {@link MutableCalc} to top of {@link MutableSort},
+   * then match the {@link MutableSort} in query to {@link MutableSort} in target.
+   */
+  private static class SortOnCalcToSortUnifyRule extends AbstractUnifyRule {
+
+    public static final SortOnCalcToSortUnifyRule INSTANCE =
+        new SortOnCalcToSortUnifyRule();
+
+    SortOnCalcToSortUnifyRule() {
+      super(operand(MutableSort.class, operand(MutableCalc.class, query(0))),
+          operand(MutableSort.class, target(0)), 1);
+    }
+
+    protected UnifyResult apply(UnifyRuleCall call) {
+      MutableRel result;
+
+      final MutableSort query = (MutableSort) call.query;
+      MutableCalc qInput = (MutableCalc) query.getInput();
+      Pair<RexNode, List<RexNode>> qInputExplained = explainCalc(qInput);
+      final RexNode qInputCond = qInputExplained.left;
+      final List<RexNode> qInputProjs = qInputExplained.right;
+
+      MutableSort target = (MutableSort) call.target;
+      RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+
+
+      final Mappings.TargetMapping mapping =
+          Project.getMapping(fieldCnt(qInput.getInput()), qInputProjs);
+      if (mapping == null) {
+        return null;
+      }
+
+      Mapping inverseMapping = mapping.inverse();
+      MutableSort sort2 = permute(query, qInput.getInput(), inverseMapping);
+
+      RexProgram compenRexProgram = RexProgram.create(target.rowType,
+          rexBuilder.identityProjects(target.rowType),
+          qInputCond, target.rowType, rexBuilder);
+      result = MutableCalc.of(target, compenRexProgram);
+
+      RelCollation queryCollation = sort2.collation;
+      RelCollation targetCollation = target.collation;
+
+      if (targetCollation.compareTo(queryCollation) != 0) {
+        result = MutableSort.of(result, queryCollation,
+          sort2.offset, sort2.offset);
+      }
+
+      return tryMergeParentCalcAndGenResult(call, result);
+    }
+  }
+
+  public static MutableSort permute(MutableSort sort,
+      MutableRel input, Mapping mapping) {
+    RelCollation collation = sort.collation;
+
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      int source = fieldCollation.getFieldIndex();
+      int target = mapping.getTarget(source);
+      if (target < 0) {
+        return null;
+      }
+      fieldCollations.add(fieldCollation.withFieldIndex(target));
+    }
+    return MutableSort.of(input,
+      RelCollations.of(fieldCollations), sort.offset, sort.fetch);
   }
 
   /**
