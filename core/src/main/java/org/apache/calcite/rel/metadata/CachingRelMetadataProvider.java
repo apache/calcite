@@ -18,6 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -32,13 +33,13 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Implementation of the {@link RelMetadataProvider}
- * interface that caches results from an underlying provider.
+ * Implementation of the {@link RelMetadataProvider} interface that caches results from an
+ * underlying provider.
  */
 public class CachingRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
 
-  private final Map<List, CacheEntry> cache = new HashMap<>();
+  private final Map<List<Object>, CacheEntry> cache;
 
   private final RelMetadataProvider underlyingProvider;
 
@@ -48,9 +49,17 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
   public CachingRelMetadataProvider(
       RelMetadataProvider underlyingProvider,
-      RelOptPlanner planner) {
+      RelOptPlanner planner,
+      Map<List<Object>, CacheEntry> cache) {
     this.underlyingProvider = underlyingProvider;
     this.planner = planner;
+    this.cache = cache;
+  }
+
+  public CachingRelMetadataProvider(
+      RelMetadataProvider underlyingProvider,
+      RelOptPlanner planner) {
+    this(underlyingProvider, planner, new HashMap<>());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -67,7 +76,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
     return (rel, mq) -> {
-      final Metadata metadata = function.bind(rel, mq);
+      final M metadata = function.bind(rel, mq);
       return metadataClass.cast(
           Proxy.newProxyInstance(metadataClass.getClassLoader(),
               new Class[]{metadataClass},
@@ -86,10 +95,14 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
    * when the entry is valid. If read at a later timestamp, the entry will be
    * invalid and will be re-computed as if it did not exist. The net effect is a
    * lazy-flushing cache. */
-  private static class CacheEntry {
-    long timestamp;
+  public static class CacheEntry {
+    private long timestamp;
+    private Object result;
 
-    Object result;
+    public CacheEntry(long timestamp, Object result) {
+      this.timestamp = timestamp;
+      this.result = result;
+    }
   }
 
   /** Implementation of {@link InvocationHandler} for calls to a
@@ -105,6 +118,11 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
     @Override public Object invoke(Object proxy, Method method, Object[] args)
         throws Throwable {
+      //Do not cache trivial functions
+      if (method.getDeclaringClass() == Object.class
+          || BuiltInMethod.METADATA_REL.method.equals(method)) {
+        return method.invoke(metadata, args);
+      }
       // Compute hash key.
       final ImmutableList.Builder<Object> builder = ImmutableList.builder();
       builder.add(method);
@@ -130,12 +148,8 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       // Cache miss or stale.
       try {
         Object result = method.invoke(metadata, args);
-        if (result != null) {
-          entry = new CacheEntry();
-          entry.timestamp = timestamp;
-          entry.result = result;
-          cache.put(key, entry);
-        }
+        entry = new CacheEntry(timestamp, result);
+        cache.put(key, entry);
         return result;
       } catch (InvocationTargetException e) {
         throw e.getCause();
