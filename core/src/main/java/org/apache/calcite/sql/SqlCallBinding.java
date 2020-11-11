@@ -56,8 +56,17 @@ import static java.util.Objects.requireNonNull;
  * analyzing to the operands of a {@link SqlCall} with a {@link SqlValidator}.
  */
 public class SqlCallBinding extends SqlOperatorBinding {
-  private static final SqlCall DEFAULT_CALL =
-      SqlStdOperatorTable.DEFAULT.createCall(SqlParserPos.ZERO);
+
+  /** Static nested class required due to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4393">[CALCITE-4393]
+   * ExceptionInInitializerError due to NPE in SqlCallBinding caused by circular dependency</a>.
+   * The static field inside it cannot be part of the outer class: it must be defined
+   * within a nested class in order to break the cycle during class loading. */
+  private static class DefaultCallHolder {
+    private static final SqlCall DEFAULT_CALL =
+        SqlStdOperatorTable.DEFAULT.createCall(SqlParserPos.ZERO);
+  }
+
   //~ Instance fields --------------------------------------------------------
 
   private final SqlValidator validator;
@@ -148,7 +157,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
       while (list.size() < range.getMax()
           && checker.isOptional(list.size())
           && checker.isFixedParameters()) {
-        list.add(DEFAULT_CALL);
+        list.add(DefaultCallHolder.DEFAULT_CALL);
       }
       return list;
     }
@@ -201,7 +210,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
             // with DEFAULT and then convert to nulls during sql-to-rel conversion.
             // Thus, there is no need to show the optional operands in the plan and
             // decide if the optional operand is null when code generation.
-            permuted.add(DEFAULT_CALL);
+            permuted.add(DefaultCallHolder.DEFAULT_CALL);
           }
         }
       }
