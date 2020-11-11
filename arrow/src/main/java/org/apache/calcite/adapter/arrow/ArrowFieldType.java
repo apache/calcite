@@ -26,10 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 enum ArrowFieldType {
-  INT(Primitive.INT),
+  INT(Primitive.LONG),
   BOOLEAN(Primitive.BOOLEAN),
   STRING(String.class, null),
-  FLOAT(Primitive.FLOAT);
+  FLOAT(Primitive.DOUBLE);
 
   private final Class clazz;
   private final Primitive primitive;

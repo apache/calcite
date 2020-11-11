@@ -17,7 +17,13 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.arrow.gandiva.evaluator.Filter;
+import org.apache.arrow.gandiva.evaluator.SelectionVector;
+import org.apache.arrow.gandiva.evaluator.SelectionVectorInt16;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
+import org.apache.arrow.memory.ArrowBuf;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -38,14 +44,16 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private final ArrowFileReader arrowFileReader;
   private VectorSchemaRoot vectorSchemaRoot;
   private final Projector projector;
+  private final Filter filter;
   private int rowIndex = -1;
   private List<ValueVector> valueVectors;
   private int[] fields;
   private final int numFields;
   private int rowSize;
 
-  public ArrowEnumerator(Projector projector, int[] fields, ArrowFileReader arrowFileReader) {
+  public ArrowEnumerator(Projector projector, Filter filter, int[] fields, ArrowFileReader arrowFileReader) {
     this.projector = projector;
+    this.filter = filter;
     this.arrowFileReader = arrowFileReader;
     this.fields = fields;
     this.numFields = fields.length;
@@ -114,7 +122,11 @@ public class ArrowEnumerator implements Enumerator<Object> {
       this.rowSize = vsr.getRowCount();
       VectorUnloader vectorUnloader = new VectorUnloader(vsr);
       ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
-      projector.evaluate(arrowRecordBatch, valueVectors);
+      BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+      ArrowBuf buf = allocator.buffer(rowSize * 2);
+      SelectionVector selectionVector = new SelectionVectorInt16(buf);
+//      projector.evaluate(arrowRecordBatch, valueVectors);
+      filter.evaluate(arrowRecordBatch, selectionVector);
     } catch (IOException | GandivaException e) {
       e.printStackTrace();
     }
