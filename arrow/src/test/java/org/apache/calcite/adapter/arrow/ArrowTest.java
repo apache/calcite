@@ -179,7 +179,7 @@ public class ArrowTest {
     }
   }
 
-  @Test void testArrowProjectAllFields() throws SQLException {
+  @Test void testArrowProjectAllFieldsWithFilter() throws SQLException {
     final String sql = "select * from test where \"fieldOne\"=1";
     final String[] lines = {"fieldOne=1; fieldTwo=abc; fieldThree=1.2"};
     sql("bug", sql)
@@ -187,50 +187,50 @@ public class ArrowTest {
         .ok();
   }
 
-//  @Test void testArrowProjectAllFields() throws SQLException {
-//    final String sql = "select * from test\n";
-//    final String[] lines = {
-//        "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
-//            + " fieldOne=2; fieldTwo=def; fieldThree=3.4,"
-//            + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6,"
-//            + " fieldOne=4; fieldTwo=abcd; fieldThree=1.22,"
-//            + " fieldOne=5; fieldTwo=defg; fieldThree=3.45,"
-//            + " fieldOne=6; fieldTwo=xyza; fieldThree=5.67"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
+  @Test void testArrowProjectAllFields() throws SQLException {
+    final String sql = "select * from test\n";
+    final String[] lines = {
+        "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
+            + " fieldOne=2; fieldTwo=def; fieldThree=3.4,"
+            + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6,"
+            + " fieldOne=4; fieldTwo=abcd; fieldThree=1.22,"
+            + " fieldOne=5; fieldTwo=defg; fieldThree=3.45,"
+            + " fieldOne=6; fieldTwo=xyza; fieldThree=5.67"
+    };
+    sql("bug", sql)
+        .returns(lines)
+        .ok();
+  }
 
-//  @Test void testArrowProjectTwoFields() throws SQLException {
-//    final String sql = "select \"fieldOne\", \"fieldTwo\" from test\n";
-//    final String[] lines = {
-//        "fieldOne=1; fieldTwo=abc,"
-//            + " fieldOne=2; fieldTwo=def,"
-//            + " fieldOne=3; fieldTwo=xyz,"
-//            + " fieldOne=4; fieldTwo=abcd,"
-//            + " fieldOne=5; fieldTwo=defg,"
-//            + " fieldOne=6; fieldTwo=xyza"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
-//
-//  @Test void testArrowProjectOneField() throws SQLException {
-//    final String sql = "select \"fieldOne\" from test\n";
-//    final String[] lines = {
-//        "fieldOne=1,"
-//        + " fieldOne=2,"
-//        + " fieldOne=3,"
-//        + " fieldOne=4,"
-//        + " fieldOne=5,"
-//        + " fieldOne=6"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
+  @Test void testArrowProjectTwoFields() throws SQLException {
+    final String sql = "select \"fieldOne\", \"fieldTwo\" from test\n";
+    final String[] lines = {
+        "fieldOne=1; fieldTwo=abc,"
+            + " fieldOne=2; fieldTwo=def,"
+            + " fieldOne=3; fieldTwo=xyz,"
+            + " fieldOne=4; fieldTwo=abcd,"
+            + " fieldOne=5; fieldTwo=defg,"
+            + " fieldOne=6; fieldTwo=xyza"
+    };
+    sql("bug", sql)
+        .returns(lines)
+        .ok();
+  }
+
+  @Test void testArrowProjectOneField() throws SQLException {
+    final String sql = "select \"fieldOne\" from test\n";
+    final String[] lines = {
+        "fieldOne=1,"
+        + " fieldOne=2,"
+        + " fieldOne=3,"
+        + " fieldOne=4,"
+        + " fieldOne=5,"
+        + " fieldOne=6"
+    };
+    sql("bug", sql)
+        .returns(lines)
+        .ok();
+  }
 
   /** Fluent API to perform test actions. */
   private class Fluent {
