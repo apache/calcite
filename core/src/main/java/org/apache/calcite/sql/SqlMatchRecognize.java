@@ -105,7 +105,8 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList, after, subsetList, partitionList, orderList);
+        patternDefList, measureList, after, subsetList, rowsPerMatch, partitionList, orderList,
+        interval);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
