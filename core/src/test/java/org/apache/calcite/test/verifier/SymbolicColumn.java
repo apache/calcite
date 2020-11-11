@@ -51,6 +51,16 @@ public class SymbolicColumn {
     int id = count.getAndIncrement();
     Expr value = z3Context.mkConst("value" + id, type2Sort(type, z3Context));
     BoolExpr valueNull = z3Context.mkBoolConst("isN" + id);
+    if (!type.isNullable()) {
+      valueNull = z3Context.mkFalse();
+    }
+    return new SymbolicColumn(value, valueNull);
+  }
+
+  public static SymbolicColumn mkUnusedColumn(Context z3Context) {
+    int id = count.getAndIncrement();
+    Expr value = z3Context.mkConst("value" + id, z3Context.mkIntSort());
+    BoolExpr valueNull = z3Context.mkBoolConst("isN" + id);
     return new SymbolicColumn(value, valueNull);
   }
 

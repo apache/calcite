@@ -20,10 +20,13 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilderBase;
-import org.apache.calcite.test.verifier.RexToSymbolicColumn;
-import org.apache.calcite.test.verifier.SymbolicColumn;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.verifier.RexVerifier;
 
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
@@ -32,9 +35,6 @@ import com.microsoft.z3.Solver;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -59,6 +59,8 @@ public class SmtLibTest extends RexProgramBuilderBase {
       solver.check();
       z3Loads = true;
     } catch (Error e) {
+      /** skip all tests if z3 is loaded **/
+      assumeTrue(false);
       z3Loads = false;
     }
   }
@@ -84,33 +86,42 @@ public class SmtLibTest extends RexProgramBuilderBase {
   private boolean checkEqual(String cond1, String cond2) {
     RexNode rexNode1 = toRex(cond1);
     RexNode rexNode2 = toRex(cond2);
-    Context z3Context = new Context();
-    List<SymbolicColumn> inputSymbolicColumns = new ArrayList<>();
-    /** mock emp table, 8 columns with int type, since we only support numerical type for now **/
-    for (int i = 0; i < 8; i++) {
-      SymbolicColumn inputColumn = SymbolicColumn.mkNewSymbolicColumn(z3Context, tInt());
-      inputSymbolicColumns.add(inputColumn);
-    }
-    List<BoolExpr> env = new ArrayList<>();
-    SymbolicColumn symbolicCond1 =
-        RexToSymbolicColumn.rexToColumn(rexNode1, inputSymbolicColumns, z3Context, env);
-    SymbolicColumn symbolicCond2 =
-        RexToSymbolicColumn.rexToColumn(rexNode2, inputSymbolicColumns, z3Context, env);
-
-    return SymbolicColumn.checkCondEq(symbolicCond1, symbolicCond2, env, z3Context);
+    return RexVerifier.logicallyEquivalent(rexNode1, rexNode2);
   }
 
   @Test void rexNodeEq1() {
-    assumeTrue(z3Loads);
     final String cond1 = " empno > 10 and deptno = 5";
     final String cond2 = " empno + deptno > 15 and deptno = 5";
     assertEquals(checkEqual(cond1, cond2), true);
   }
 
   @Test void rexNodeNotEq1() {
-    assumeTrue(z3Loads);
     final String cond1 = " empno > 10 and deptno = 10";
     final String cond2 = " empno + deptno > 15 and deptno = 10";
     assertEquals(checkEqual(cond1, cond2), false);
+  }
+
+  @Test void testSimplifyIsNotNull() {
+    RelDataType intType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+    RelDataType intNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+    final RexInputRef i0 = rexBuilder.makeInputRef(intNullableType, 0);
+    final RexInputRef i1 = rexBuilder.makeInputRef(intNullableType, 1);
+    final RexInputRef i2 = rexBuilder.makeInputRef(intType, 2);
+    final RexInputRef i3 = rexBuilder.makeInputRef(intType, 3);
+    final RexLiteral null_ = rexBuilder.makeNullLiteral(intType);
+    checkSimplify(isNotNull(lt(i0, i1)));
+    checkSimplify(isNotNull(lt(i0, i2)));
+    checkSimplify(isNotNull(lt(i2, i3)));
+    checkSimplify(isNotNull(lt(i0, literal(1))));
+    checkSimplify(isNotNull(lt(i0, null_)));
+  }
+
+  private void checkSimplify(RexNode node) {
+    RexNode newNode = simplify.simplify(node);
+    assertEquals(RexVerifier.logicallyEquivalent(node, newNode), true);
   }
 }
