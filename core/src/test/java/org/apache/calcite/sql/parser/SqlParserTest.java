@@ -6186,6 +6186,25 @@ public class SqlParserTest {
     assertEquals(linux(sqlNodeVisited1.toString()), str1);
   }
 
+  @Test void testVisitSqlMatchRecognizeWithSqlShuttle() throws Exception {
+    final String sql = "select *\n"
+        + "from emp \n"
+        + "match_recognize (\n"
+        + "  pattern (strt down+ up+)\n"
+        + "  define\n"
+        + "    down as down.sal < PREV(down.sal),\n"
+        + "    up as up.sal > PREV(up.sal)\n"
+        + ") mr";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    assertNotSame(sqlNodeVisited, sqlNode);
+  }
+
   /**
    * Runs tests for INTERVAL... DAY TO HOUR that should pass parser but fail
    * validator. A substantially identical set of tests exists in
