@@ -17,14 +17,16 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.arrow.gandiva.evaluator.Filter;
 import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
+import org.apache.arrow.gandiva.expression.Condition;
 import org.apache.arrow.gandiva.expression.ExpressionTree;
 import org.apache.arrow.gandiva.expression.TreeBuilder;
 import org.apache.arrow.gandiva.expression.TreeNode;
+import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 
 import org.apache.calcite.DataContext;
@@ -33,6 +35,7 @@ import org.apache.calcite.linq4j.*;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -53,6 +56,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   private final RelProtoDataType protoRowType;
   private Schema schema;
   ArrowFileReader arrowFileReader;
+  private LogicalFilter filter;
 
   public ArrowTable(RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
     try {
@@ -75,13 +79,27 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> project(DataContext root, final int[] fields) {
+  public Enumerable<Object> project(DataContext root, final int[] fields, LogicalFilter logicalFilter) {
     List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
+    List<TreeNode> treeNodes = new ArrayList<>(2);
+    this.filter = logicalFilter;
 
     for(int i = 0; i < fields.length; i++) {
       Field field = schema.getFields().get(i);
       TreeNode node = TreeBuilder.makeField(field);
       expressionTrees.add(TreeBuilder.makeExpression(node, field));
+    }
+
+    treeNodes.add(TreeBuilder.makeField(schema.getFields().get(0)));
+    treeNodes.add(TreeBuilder.makeLiteral(2L));
+    TreeNode treeNode = TreeBuilder.makeFunction("equal", treeNodes, new ArrowType.Bool());
+    Condition condition = TreeBuilder.makeCondition(treeNode);
+
+    Filter filter;
+    try {
+      filter = Filter.make(schema, condition);
+    } catch (GandivaException e) {
+      throw new RuntimeException(e);
     }
 
     Projector projector;
@@ -90,10 +108,11 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     } catch (GandivaException e) {
       throw new RuntimeException(e);
     }
+
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(projector, fields, arrowFileReader);
+          return new ArrowEnumerator(projector, filter, fields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -113,7 +132,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = ArrowEnumerator.identityList(fieldCount);
-    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields);
+    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields, filter);
   }
 
   private RelDataType deduceRowType(Schema schema, JavaTypeFactory typeFactory) {

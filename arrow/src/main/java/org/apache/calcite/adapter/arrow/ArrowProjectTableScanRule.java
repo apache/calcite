@@ -52,7 +52,8 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
             scan.getCluster(),
             scan.getTable(),
             scan.arrowTable,
-            fields));
+            fields,
+            null));
   }
 
   private int[] getProjectFields(List<RexNode> exps) {

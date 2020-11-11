@@ -17,12 +17,30 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.List;
+
 /** Planner rules relating to the Arrow adapter. */
-public abstract class ArrowRules {
+public class ArrowRules {
   private ArrowRules() {}
 
   /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
    * a {@link ArrowTableScan} and pushes down projects if possible. */
   public static final ArrowProjectTableScanRule PROJECT_SCAN =
       ArrowProjectTableScanRule.Config.DEFAULT.toRule();
+  public static final ArrowFilterTableScanRule FILTER_SCAN =
+      ArrowFilterTableScanRule.Config.DEFAULT.toRule();
+
+  public static final RelOptRule[] RULES = {
+      FILTER_SCAN,
+      PROJECT_SCAN
+  };
+
+  static List<String> arrowFieldNames(final RelDataType rowType) {
+    return SqlValidatorUtil.uniquify(rowType.getFieldNames(),
+        SqlValidatorUtil.EXPR_SUGGESTER, true);
+  }
 }
