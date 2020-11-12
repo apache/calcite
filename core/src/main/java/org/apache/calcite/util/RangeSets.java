@@ -23,7 +23,6 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import java.util.Iterator;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -127,17 +126,6 @@ public class RangeSets {
         && range.hasUpperBound()
         && range.lowerEndpoint().equals(range.upperEndpoint())
         && !range.isEmpty();
-  }
-
-  /** Returns whether a range set is a single open interval. */
-  public static <C extends Comparable<C>> boolean isOpenInterval(RangeSet<C> rangeSet) {
-    if (rangeSet.isEmpty()) {
-      return false;
-    }
-    final Set<Range<C>> ranges = rangeSet.asRanges();
-    final Range<C> range = ranges.iterator().next();
-    return ranges.size() == 1
-        && (!range.hasLowerBound() || !range.hasUpperBound());
   }
 
   /** Returns the number of ranges in a range set that are points.

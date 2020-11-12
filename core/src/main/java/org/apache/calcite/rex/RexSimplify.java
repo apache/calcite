@@ -1330,7 +1330,7 @@ public class RexSimplify {
 
     final SargCollector sargCollector = new SargCollector(rexBuilder, true);
     operands.forEach(t -> sargCollector.accept(t, terms));
-    if (sargCollector.needToFix(unknownAs)) {
+    if (sargCollector.map.values().stream().anyMatch(b -> b.complexity() > 1)) {
       operands.clear();
       terms.forEach(t -> operands.add(sargCollector.fix(rexBuilder, t)));
     }
@@ -1797,7 +1797,7 @@ public class RexSimplify {
     final SargCollector sargCollector = new SargCollector(rexBuilder, false);
     final List<RexNode> newTerms = new ArrayList<>();
     terms.forEach(t -> sargCollector.accept(t, newTerms));
-    if (sargCollector.needToFix(unknownAs)) {
+    if (sargCollector.map.values().stream().anyMatch(b -> b.complexity() > 1)) {
       terms.clear();
       newTerms.forEach(t -> terms.add(sargCollector.fix(rexBuilder, t)));
     }
@@ -2591,12 +2591,6 @@ public class RexSimplify {
     final Map<RexNode, RexSargBuilder> map = new HashMap<>();
     private final RexBuilder rexBuilder;
     private final boolean negate;
-    /**
-     * Count of the new terms after converting all the operands to
-     * {@code SEARCH} on a {@link Sarg}. It is used to decide whether
-     * the new terms are simpler.
-     */
-    private int newTermsCount;
 
     SargCollector(RexBuilder rexBuilder, boolean negate) {
       this.rexBuilder = rexBuilder;
@@ -2607,7 +2601,6 @@ public class RexSimplify {
       if (!accept_(term, newTerms)) {
         newTerms.add(term);
       }
-      newTermsCount = newTerms.size();
     }
 
     private boolean accept_(RexNode e, List<RexNode> newTerms) {
@@ -2717,76 +2710,14 @@ public class RexSimplify {
       }
     }
 
-    /**
-     * Returns whether the merged {@code sarg} with given {@code unknownAs} keeps the semantics,
-     * The merge can not go ahead if the semantics change.
-     *
-     * @return true if the semantics does not change
-     */
-    private static boolean canMerge(Sarg sarg, RexUnknownAs unknownAs) {
-      final boolean isAllOrNone = sarg.isAll() || sarg.isNone();
-      final boolean containsNull = sarg.containsNull;
-      switch (unknownAs) {
-      case UNKNOWN:
-        // "unknown as unknown" can not be simplified to
-        // "IS NULL"/"IS NOT NULL"/"TRUE"/"FALSE"
-        return !isAllOrNone;
-      case TRUE:
-        // "unknown as true" can not be simplified to
-        // "false" or "IS NOT NULL"
-        return containsNull || !isAllOrNone;
-      case FALSE:
-        // "unknown as false" can not be simplified to
-        // "true" or "IS NULL"
-        return !containsNull || !isAllOrNone;
-      default:
-        return true;
-      }
-    }
-
-    /** Returns whether it is worth to fix and convert to {@code SEARCH} calls. */
-    boolean needToFix(RexUnknownAs unknownAs) {
-      // Fix and converts to SEARCH if:
-      // 1. A Sarg has complexity greater than 1;
-      // 2. The terms are reduced as simpler Sarg points;
-      // 3. The terms are reduced as simpler Sarg comparison.
-
-      // Ignore 'negate' just to be compatible with previous versions of this
-      // method. "build().complexity()" would be a better estimate, if we could
-      // switch to it breaking lots of plans.
-      final Collection<RexSargBuilder> builders = map.values();
-      if (builders.stream().anyMatch(b -> b.build(false).complexity() > 1)) {
-        return true;
-      }
-      if (builders.size() == 1
-          && !canMerge(builders.iterator().next().build(), unknownAs)) {
-        return false;
-      }
-      return newTermsCount == 1
-          && map.values().stream().allMatch(b -> simpleSarg(b.build()));
-    }
-
-    /**
-     * Returns whether this Sarg can be expanded to more simple form, e.g.
-     * the IN call or single comparison.
-     */
-    private static boolean simpleSarg(Sarg sarg) {
-      return sarg.isPoints() || RangeSets.isOpenInterval(sarg.rangeSet);
-    }
-
     /** If a term is a call to {@code SEARCH} on a {@link RexSargBuilder},
      * converts it to a {@code SEARCH} on a {@link Sarg}. */
     RexNode fix(RexBuilder rexBuilder, RexNode term) {
       if (term instanceof RexSargBuilder) {
-        final RexSargBuilder sargBuilder = (RexSargBuilder) term;
-        final Sarg sarg = sargBuilder.build();
-        if (sarg.complexity() <= 1 && simpleSarg(sarg)) {
-          // Expand small sargs into comparisons in order to avoid plan changes
-          // and better readability.
-          return RexUtil.sargRef(rexBuilder, sargBuilder.ref, sarg, term.getType());
-        }
+        RexSargBuilder sargBuilder = (RexSargBuilder) term;
         return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
-            rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
+            rexBuilder.makeSearchArgumentLiteral(sargBuilder.build(),
+                term.getType()));
       }
       return term;
     }
@@ -2818,6 +2749,17 @@ public class RexSimplify {
       return "SEARCH(" + ref + ", " + (negate ? "NOT " : "") + rangeSet
           + ", " + (nullTermCount + notNullTermCount)
           + " terms of which " + nullTermCount + " allow null)";
+    }
+
+    /** Returns a rough estimate of whether it is worth converting to a Sarg.
+     *
+     * @see Sarg#complexity()
+     */
+    int complexity() {
+      // Ignore 'negate' just to be compatible with previous versions of this
+      // method. "build().complexity()" would be a better estimate, if we could
+      // switch to it breaking lots of plans.
+      return build(false).complexity();
     }
 
     <C extends Comparable<C>> Sarg<C> build() {

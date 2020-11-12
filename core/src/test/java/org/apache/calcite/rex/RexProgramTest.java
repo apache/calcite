@@ -936,7 +936,9 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(<=(?0.h, 1), >(?0.h, 1))",
         "false");
 
-    checkSimplify(and(le(hRef, literal(1)), ge(hRef, literal(1))), "=(?0.h, 1)");
+    checkSimplify2(and(le(hRef, literal(1)), ge(hRef, literal(1))),
+        "AND(<=(?0.h, 1), >=(?0.h, 1))",
+        "=(?0.h, 1)");
 
     checkSimplify2(and(lt(hRef, literal(1)), eq(hRef, literal(1)), ge(hRef, literal(1))),
         "AND(<(?0.h, 1), =(?0.h, 1), >=(?0.h, 1))",
@@ -982,22 +984,22 @@ class RexProgramTest extends RexProgramTestBase {
     // "x <> x" simplifies to "false"
     checkSimplify(ne(literal(1), literal(1)), "false");
     checkSimplify(ne(hRef, hRef), "false");
-    checkSimplify3(ne(iRef, iRef), "AND(null, IS NULL(?0.i))",
-        "false", "IS NULL(?0.i)");
+    checkSimplify3(ne(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(ne(iRef, hRef));
 
     // "x < x" simplifies to "false"
     checkSimplify(lt(literal(1), literal(1)), "false");
     checkSimplify(lt(hRef, hRef), "false");
-    checkSimplify3(lt(iRef, iRef), "AND(null, IS NULL(?0.i))",
-        "false", "IS NULL(?0.i)");
+    checkSimplify3(lt(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(lt(iRef, hRef));
 
     // "x > x" simplifies to "false"
     checkSimplify(gt(literal(1), literal(1)), "false");
     checkSimplify(gt(hRef, hRef), "false");
-    checkSimplify3(gt(iRef, iRef), "AND(null, IS NULL(?0.i))",
-        "false", "IS NULL(?0.i)");
+    checkSimplify3(gt(iRef, iRef), "AND(null, SEARCH(?0.i, Sarg[NULL]))",
+        "false", "SEARCH(?0.i, Sarg[NULL])");
     checkSimplifyUnchanged(gt(iRef, hRef));
 
     // "(not x) is null" to "x is null"
@@ -1131,7 +1133,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(
         and(lt(literal(1), aRef), lt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
-        ">(?0.a, 5)");
+        "<(5, ?0.a)");
 
     // condition "1 < a && a < 5" is converted to a Sarg
     checkSimplifyFilter(
@@ -1143,7 +1145,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(
         and(gt(literal(1), aRef), gt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
-        "<(?0.a, 1)");
+        ">(1, ?0.a)");
 
     // condition "1 > a && a > 5" yields false
     checkSimplifyFilter(
@@ -1266,9 +1268,7 @@ class RexProgramTest extends RexProgramTestBase {
         or(
             ne(vInt(), literal(1)),
             ne(vInt(), literal(2))),
-        "OR(IS NOT NULL(?0.int0), null)",
-        "IS NOT NULL(?0.int0)",
-        "true");
+        "OR(IS NOT NULL(?0.int0), null)", "IS NOT NULL(?0.int0)", "true");
   }
 
   /** Test case for
@@ -1475,11 +1475,11 @@ class RexProgramTest extends RexProgramTestBase {
             ne(aRef, literal4)),
         "<>(?0.a, 4)");
 
-    // "b <> 1 or b = 1" ==> "b is not null" with unknown as false
+    // "b <> 1 or b = 1" cannot be simplified, because b might be null
     final RexNode neOrEq =
         or(ne(bRef, literal(1)),
             eq(bRef, literal(1)));
-    checkSimplifyFilter(neOrEq, "IS NOT NULL(?0.b)");
+    checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), =(?0.b, 1))");
 
     // Careful of the excluded middle!
     // We cannot simplify "b <> 1 or b = 1" to "true" because if b is null, the
@@ -1655,8 +1655,8 @@ class RexProgramTest extends RexProgramTestBase {
     // a in (1, 2) or b is null
     RexNode expr = or(eq(aRef, literal(1)), eq(aRef, literal(2)), isNull(bRef));
     final String simplified =
-        "OR(IS NULL($1), SEARCH($0, Sarg[1, 2]))";
-    final String expanded = "OR(IS NULL($1), =($0, 1), =($0, 2))";
+        "OR(SEARCH($1, Sarg[NULL]), SEARCH($0, Sarg[1, 2]))";
+    final String expanded = "OR(IS NULL($1), OR(=($0, 1), =($0, 2)))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
   }
@@ -1687,8 +1687,10 @@ class RexProgramTest extends RexProgramTestBase {
         isNotNull(bRef));
     // [CALCITE-4352] causes "and b is not null" to disappear from the expanded
     // form.
-    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]), IS NOT NULL($1))";
-    final String expanded = "AND(>($0, 0), <($0, 10), IS NOT NULL($1))";
+    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]),"
+        + " SEARCH($1, Sarg[NOT NULL]))";
+    final String expanded =
+        "AND(AND(>($0, 0), <($0, 10)), IS NOT NULL($1))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
   }
@@ -1703,8 +1705,9 @@ class RexProgramTest extends RexProgramTestBase {
         isNull(bRef));
     // [CALCITE-4352] causes "and b is null" to disappear from the expanded
     // form.
-    final String simplified = "AND(SEARCH($0, Sarg[(0..10)]), IS NULL($1))";
-    final String expanded = "AND(>($0, 0), <($0, 10), IS NULL($1))";
+    final String simplified =
+        "AND(SEARCH($0, Sarg[(0..10)]), SEARCH($1, Sarg[NULL]))";
+    final String expanded = "AND(AND(>($0, 0), <($0, 10)), IS NULL($1))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
   }
@@ -1744,7 +1747,7 @@ class RexProgramTest extends RexProgramTestBase {
             or(ne(vInt(), literal(20)),
                 isNull(vInt())),
         eq(vInt(), literal(10)));
-    checkSimplify(e, "=(?0.int0, 10)");
+    checkSimplify2(e, "SEARCH(?0.int0, Sarg[10])", "=(?0.int0, 10)");
   }
 
   @Test void testSimplifyEqOrIsNullAndEq() {
@@ -1768,65 +1771,7 @@ class RexProgramTest extends RexProgramTestBase {
             or(eq(vInt(), literal(10)),
                 isNull(vInt())),
         eq(vInt(), literal(10)));
-    checkSimplify(e, "=(?0.int0, 10)");
-  }
-
-  @Test void testSimplifyInAnd() {
-    // deptno in (20, 10) and deptno = 10
-    //   ==>
-    // deptno = 10
-    checkSimplify(
-        and(
-            in(vInt(), literal(20), literal(10)),
-            eq(vInt(), literal(10))),
-        "=(?0.int0, 10)");
-
-    // deptno in (20, 10) and deptno = 30
-    //   ==>
-    // false
-    checkSimplify2(
-        and(
-        in(vInt(), literal(20), literal(10)),
-        eq(vInt(), literal(30))),
-        "AND(SEARCH(?0.int0, Sarg[10, 20]), =(?0.int0, 30))",
-        "false");
-  }
-
-  @Test void testSimplifyInOr() {
-    // deptno > 0 or deptno in (20, 10)
-    //   ==>
-    // deptno > 0
-    checkSimplify(
-        or(
-            gt(vInt(), literal(0)),
-            in(vInt(), literal(20), literal(10))),
-        ">(?0.int0, 0)");
-  }
-
-  /** Test strategies for {@code SargCollector.canMerge(Sarg, RexUnknownAs)}. */
-  @Test void testSargMerge() {
-    checkSimplify2(
-        or(
-            ne(vInt(), literal(1)),
-            eq(vInt(), literal(1))),
-        "OR(<>(?0.int0, 1), =(?0.int0, 1))",
-        "IS NOT NULL(?0.int0)");
-    checkSimplify2(
-        and(
-            gt(vInt(), literal(5)),
-            lt(vInt(), literal(3))),
-        "AND(>(?0.int0, 5), <(?0.int0, 3))",
-        "false");
-    checkSimplify(
-        or(
-            falseLiteral,
-            isNull(vInt())),
-        "IS NULL(?0.int0)");
-    checkSimplify(
-        and(
-            trueLiteral,
-            isNotNull(vInt())),
-        "IS NOT NULL(?0.int0)");
+    checkSimplify2(e, "SEARCH(?0.int0, Sarg[10])", "=(?0.int0, 10)");
   }
 
   @Test void testSimplifyUnknown() {
@@ -1893,7 +1838,7 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testNestedAndSimplification() {
     // to have the correct mode for the AND at the bottom,
     // both the OR and AND parent should retain the UnknownAs mode
-    checkSimplify(
+    checkSimplify2(
         and(
             eq(vInt(2), literal(2)),
             or(
@@ -1901,6 +1846,7 @@ class RexProgramTest extends RexProgramTestBase {
                 and(
                     ge(vInt(), literal(1)),
                     le(vInt(), literal(1))))),
+        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), AND(>=(?0.int0, 1), <=(?0.int0, 1))))",
         "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))");
   }
 
@@ -2460,9 +2406,9 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))",
         "true");
     checkSimplify3(and(ne(vInt(), vInt()), ne(vInt(1), vInt(1))),
-        "AND(null, IS NULL(?0.int0), IS NULL(?0.int1))",
+        "AND(null, SEARCH(?0.int0, Sarg[NULL]), SEARCH(?0.int1, Sarg[NULL]))",
         "false",
-        "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
+        "AND(SEARCH(?0.int0, Sarg[NULL]), SEARCH(?0.int1, Sarg[NULL]))");
   }
 
   @Test void testBooleanComparisons() {
@@ -2754,15 +2700,17 @@ class RexProgramTest extends RexProgramTestBase {
     //    -> "x = x AND y < y" (treating unknown as unknown)
     //    -> false (treating unknown as false)
     checkSimplify3(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "AND(OR(null, IS NOT NULL(?0.int1)), null, IS NULL(?0.int2))",
+        "AND(OR(null, IS NOT NULL(?0.int1)), null,"
+            + " SEARCH(?0.int2, Sarg[NULL]))",
         "false",
-        "IS NULL(?0.int2)");
+        "SEARCH(?0.int2, Sarg[NULL])");
 
     // "NOT(x = x AND NOT (y = y))"
     //   -> "OR(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "y IS NOT NULL" (treating unknown as false)
     checkSimplify3(not(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "OR(AND(null, IS NULL(?0.int1)), null, IS NOT NULL(?0.int2))",
+        "OR(AND(null, SEARCH(?0.int1, Sarg[NULL])), null,"
+            + " IS NOT NULL(?0.int2))",
         "IS NOT NULL(?0.int2)",
         "true");
   }
@@ -2785,7 +2733,8 @@ class RexProgramTest extends RexProgramTestBase {
     //    -> "x = x OR y < y" (treating unknown as unknown)
     //    -> "x IS NOT NULL" (treating unknown as false)
     checkSimplify3(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "OR(null, IS NOT NULL(?0.int1), AND(null, IS NULL(?0.int2)))",
+        "OR(null, IS NOT NULL(?0.int1),"
+            + " AND(null, SEARCH(?0.int2, Sarg[NULL])))",
         "IS NOT NULL(?0.int1)",
         "true");
 
@@ -2793,9 +2742,10 @@ class RexProgramTest extends RexProgramTestBase {
     //   -> "AND(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "FALSE" (treating unknown as false)
     checkSimplify3(not(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "AND(null, IS NULL(?0.int1), OR(null, IS NOT NULL(?0.int2)))",
+        "AND(null, SEARCH(?0.int1, Sarg[NULL]),"
+            + " OR(null, IS NOT NULL(?0.int2)))",
         "false",
-        "IS NULL(?0.int1)");
+        "SEARCH(?0.int1, Sarg[NULL])");
   }
 
   private void checkSarg(String message, Sarg sarg,

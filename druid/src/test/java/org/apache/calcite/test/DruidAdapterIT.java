@@ -1295,9 +1295,9 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND("
-        + "=($3, 'High Top Dried Mushrooms'), "
+        + "SEARCH($3, Sarg['High Top Dried Mushrooms':VARCHAR]:VARCHAR), "
         + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
-        + "=($30, 'WA'))], "
+        + "SEARCH($30, Sarg['WA':VARCHAR]:VARCHAR))], "
         + "projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
         .queryContains(new DruidChecker(druidQuery1, druidQuery2))
@@ -1337,9 +1337,9 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND("
-        + "=($3, 'High Top Dried Mushrooms'), "
+        + "SEARCH($3, Sarg['High Top Dried Mushrooms':VARCHAR]:VARCHAR), "
         + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
-        + "=($30, 'WA'))], "
+        + "SEARCH($30, Sarg['WA':VARCHAR]:VARCHAR))], "
         + "projects=[[$30, $29, $3]])\n";
     sql(sql)
         .queryContains(new DruidChecker(druidQuery))
