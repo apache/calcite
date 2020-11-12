@@ -369,9 +369,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.ROW)) {
       return null;
     }
-    for (SqlNode id : ((SqlCall) operand).getOperandList()) {
-      columnList.add(((SqlIdentifier) id).getSimple());
-    }
+    columnList.addAll(
+        SqlIdentifier.simpleNames(((SqlCall) operand).getOperandList()));
     return validator.getParentCursor(paramName);
   }
 

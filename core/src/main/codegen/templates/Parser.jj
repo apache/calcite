@@ -1934,7 +1934,7 @@ SqlNode JoinTable(SqlNode e) :
                 joinType,
                 e2,
                 using,
-                new SqlNodeList(list.getList(), Span.of(using).end(this)));
+                new SqlNodeList(list, Span.of(using).end(this)));
         }
     |
         {

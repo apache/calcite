@@ -219,8 +219,6 @@ public abstract class SqlOperatorBinding {
    * Returns the rowtype of the <code>ordinal</code>th operand, which is a
    * cursor.
    *
-   * <p>This is only implemented for {@link SqlCallBinding}.
-   *
    * @param ordinal Ordinal of the operand
    * @return Rowtype of the query underlying the cursor
    */

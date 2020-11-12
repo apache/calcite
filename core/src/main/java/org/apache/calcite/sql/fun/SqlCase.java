@@ -71,16 +71,15 @@ public class SqlCase extends SqlCall {
   public static SqlCase createSwitched(SqlParserPos pos, SqlNode value,
       SqlNodeList whenList, SqlNodeList thenList, SqlNode elseClause) {
     if (null != value) {
-      List<SqlNode> list = whenList.getList();
-      for (int i = 0; i < list.size(); i++) {
-        SqlNode e = list.get(i);
+      for (int i = 0; i < whenList.size(); i++) {
+        SqlNode e = whenList.get(i);
         final SqlCall call;
         if (e instanceof SqlNodeList) {
           call = SqlStdOperatorTable.IN.createCall(pos, value, e);
         } else {
           call = SqlStdOperatorTable.EQUALS.createCall(pos, value, e);
         }
-        list.set(i, call);
+        whenList.set(i, call);
       }
     }
 

@@ -171,10 +171,8 @@ class SqlTypeUtilTest {
 
     SqlRowTypeNameSpec rowSpec =
         (SqlRowTypeNameSpec) convertTypeToSpec(f.structOfInt).getTypeNameSpec();
-    List<String> fieldNames = rowSpec.getFieldNames()
-        .stream()
-        .map(SqlIdentifier::getSimple)
-        .collect(Collectors.toList());
+    List<String> fieldNames =
+        SqlIdentifier.simpleNames(rowSpec.getFieldNames());
     List<String> fieldTypeNames = rowSpec.getFieldTypes()
         .stream()
         .map(f -> f.getTypeName().getSimple())

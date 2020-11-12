@@ -83,9 +83,9 @@ public class SqlCreateTable extends SqlCreate {
 
   /** Calls an action for each (name, type) pair from {@code columnList}, in which
    * they alternate. */
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void forEachNameType(BiConsumer<SqlIdentifier, SqlDataTypeSpec> consumer) {
-    final List list = columnList.getList();
+    final List list = columnList;
     Pair.forEach((List<SqlIdentifier>) Util.quotientList(list, 2, 0),
         Util.quotientList((List<SqlDataTypeSpec>) list, 2, 1), consumer);
   }

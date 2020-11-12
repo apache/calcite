@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
@@ -41,19 +42,28 @@ public class RexCallBinding extends SqlOperatorBinding {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RexNode> operands;
-
   private final List<RelCollation> inputCollations;
+  private final List<RelNode> inputs;
 
   //~ Constructors -----------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   public RexCallBinding(
       RelDataTypeFactory typeFactory,
       SqlOperator sqlOperator,
       List<? extends RexNode> operands,
       List<RelCollation> inputCollations) {
+    this(typeFactory, sqlOperator, operands, inputCollations,
+        ImmutableList.of());
+  }
+
+  public RexCallBinding(RelDataTypeFactory typeFactory, SqlOperator sqlOperator,
+      List<? extends RexNode> operands, List<RelCollation> inputCollations,
+      List<RelNode> inputs) {
     super(typeFactory, sqlOperator);
     this.operands = ImmutableList.copyOf(operands);
     this.inputCollations = ImmutableList.copyOf(inputCollations);
+    this.inputs = ImmutableList.copyOf(inputs);
   }
 
   /** Creates a binding of the appropriate type. */
@@ -68,7 +78,7 @@ public class RexCallBinding extends SqlOperatorBinding {
       break;
     }
     return new RexCallBinding(typeFactory, call.getOperator(),
-        call.getOperands(), inputCollations);
+        call.getOperands(), inputCollations, ImmutableList.of());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -128,14 +138,16 @@ public class RexCallBinding extends SqlOperatorBinding {
     return operands;
   }
 
-  // implement SqlOperatorBinding
   @Override public int getOperandCount() {
     return operands.size();
   }
 
-  // implement SqlOperatorBinding
   @Override public RelDataType getOperandType(int ordinal) {
     return operands.get(ordinal).getType();
+  }
+
+  @Override public RelDataType getCursorOperand(int ordinal) {
+    return inputs.get(ordinal).getRowType();
   }
 
   @Override public CalciteException newError(
@@ -153,7 +165,8 @@ public class RexCallBinding extends SqlOperatorBinding {
         SqlOperator sqlOperator, List<? extends RexNode> operands,
         RelDataType type,
         List<RelCollation> inputCollations) {
-      super(typeFactory, sqlOperator, operands, inputCollations);
+      super(typeFactory, sqlOperator, operands, inputCollations,
+          ImmutableList.of());
       this.type = type;
     }
 

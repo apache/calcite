@@ -17,15 +17,28 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.prepare.PlannerImpl;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
@@ -33,8 +46,11 @@ import org.apache.calcite.test.FoodMartQuerySet;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -47,17 +63,22 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.isA;
 
 /**
  * Unit tests for {@link LatticeSuggester}.
@@ -66,7 +87,7 @@ class LatticeSuggesterTest {
 
   /** Some basic query patterns on the Scott schema with "EMP" and "DEPT"
    * tables. */
-  @Test void testEmpDept() throws Exception {
+  @Test void testEmpDept() {
     final Tester t = new Tester();
     final String q0 = "select dept.dname, count(*), sum(sal)\n"
         + "from emp\n"
@@ -137,7 +158,7 @@ class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test void testFoodmart() throws Exception {
+  @Test void testFoodmart() {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"t\".\"quarter\" as \"c1\",\n"
@@ -177,7 +198,7 @@ class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test void testAggregateExpression() throws Exception {
+  @Test void testAggregateExpression() {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"pc\".\"product_family\" as \"c1\",\n"
@@ -234,7 +255,7 @@ class LatticeSuggesterTest {
         final List<String> actualNameList =
             lattice.columns.stream()
                 .filter(c -> c instanceof Lattice.DerivedColumn)
-                .map(c -> ((Lattice.DerivedColumn) c).alias)
+                .map(c -> c.alias)
                 .collect(Collectors.toList());
         return actualNameList.equals(nameList);
       }
@@ -242,7 +263,7 @@ class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test void testSharedSnowflake() throws Exception {
+  @Test void testSharedSnowflake() {
     final Tester t = new Tester().foodmart();
     // foodmart query 5827 (also 5828, 5830, 5832) uses the "region" table
     // twice: once via "store" and once via "customer";
@@ -273,17 +294,27 @@ class LatticeSuggesterTest {
         isGraphs(g, "[SUM(sales_fact_1997.unit_sales)]"));
   }
 
-  @Test void testExpressionInAggregate() throws Exception {
+  @Test void testExpressionInAggregate() {
     final Tester t = new Tester().withEvolve(true).foodmart();
-    final FoodMartQuerySet set = FoodMartQuerySet.instance();
+    final FoodMartQuerySet set;
+    try {
+      set = FoodMartQuerySet.instance();
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
     for (int id : new int[]{392, 393}) {
       t.addQuery(set.queries.get(id).sql);
     }
   }
 
-  private void checkFoodMartAll(boolean evolve) throws Exception {
+  private void checkFoodMartAll(boolean evolve) {
     final Tester t = new Tester().foodmart().withEvolve(evolve);
-    final FoodMartQuerySet set = FoodMartQuerySet.instance();
+    final FoodMartQuerySet set;
+    try {
+      set = FoodMartQuerySet.instance();
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
     for (FoodMartQuerySet.FoodmartQuery query : set.queries.values()) {
       if (query.sql.contains("\"agg_10_foo_fact\"")
           || query.sql.contains("\"agg_line_class\"")
@@ -394,16 +425,16 @@ class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test void testFoodMartAll() throws Exception {
+  @Test void testFoodMartAll() {
     checkFoodMartAll(false);
   }
 
   @Tag("slow")
-  @Test void testFoodMartAllEvolve() throws Exception {
+  @Test void testFoodMartAllEvolve() {
     checkFoodMartAll(true);
   }
 
-  @Test void testContains() throws Exception {
+  @Test void testContains() {
     final Tester t = new Tester().foodmart();
     final LatticeRootNode fNode = t.node("select *\n"
         + "from \"sales_fact_1997\"");
@@ -425,7 +456,7 @@ class LatticeSuggesterTest {
     assertThat(fcpNode.contains(fcpNode), is(true));
   }
 
-  @Test void testEvolve() throws Exception {
+  @Test void testEvolve() {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select count(*)\n"
@@ -488,7 +519,7 @@ class LatticeSuggesterTest {
         is(l3));
   }
 
-  @Test void testExpression() throws Exception {
+  @Test void testExpression() {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -515,7 +546,7 @@ class LatticeSuggesterTest {
 
   /** As {@link #testExpression()} but with multiple queries.
    * Some expressions are measures in one query and dimensions in another. */
-  @Test void testExpressionEvolution() throws Exception {
+  @Test void testExpressionEvolution() {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     // q0 uses n10 as a measure, n11 as a measure, n12 as a dimension
@@ -571,7 +602,7 @@ class LatticeSuggesterTest {
     assertThat(lattice.isAlwaysMeasure(dc0), is(alwaysMeasure));
   }
 
-  @Test void testExpressionInJoin() throws Exception {
+  @Test void testExpressionInJoin() {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -599,7 +630,7 @@ class LatticeSuggesterTest {
 
   /** Tests a number of features only available in Redshift: the {@code CONCAT}
    * and {@code CONVERT_TIMEZONE} functions. */
-  @Test void testRedshiftDialect() throws Exception {
+  @Test void testRedshiftDialect() {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
         .withLibrary(SqlLibrary.POSTGRESQL);
@@ -622,7 +653,7 @@ class LatticeSuggesterTest {
   /** Tests a number of features only available in BigQuery: back-ticks;
    * GROUP BY ordinal; case-insensitive unquoted identifiers;
    * the {@code COUNTIF} aggregate function. */
-  @Test void testBigQueryDialect() throws Exception {
+  @Test void testBigQueryDialect() {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect())
         .withLibrary(SqlLibrary.BIG_QUERY);
@@ -639,7 +670,7 @@ class LatticeSuggesterTest {
 
   /** A tricky case involving a CTE (WITH), a join condition that references an
    * expression, a complex WHERE clause, and some other queries. */
-  @Test void testJoinUsingExpression() throws Exception {
+  @Test void testJoinUsingExpression() {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "with c as (select\n"
@@ -675,12 +706,91 @@ class LatticeSuggesterTest {
     assertThat(t.s.latticeMap.size(), is(3));
   }
 
-  @Test void testDerivedColRef() throws Exception {
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .defaultSchema(Tester.schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
-        .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
-        .build();
-    final Tester t = new Tester(config).foodmart().withEvolve(true);
+  /** UNION in sub-query in FROM clause becomes a table. */
+  @Test void testInlineUnion() {
+    final Foo foo = new Foo();
+    final Tester t = new Tester().foodmart().withConfig(b ->
+        b.sqlToRelConverterConfig(
+            SqlToRelConverter.config()
+                .withFromTrace(foo::fromTrace)
+                .withPostStep(foo::postStep)));
+
+    final String q0 = "select min(c2.\"fname\") as \"customer.min_name\"\n"
+        + "from (select \"customer_id\", \"fname\" from \"customer\"\n"
+        + "      where \"customer_id\" < 100\n"
+        + "      union all\n"
+        + "      select \"customer_id\", \"lname\" from \"customer\"\n"
+        + "      where \"customer_id\" > 1000) as c2\n"
+        + "join \"sales_fact_1997\" as s\n"
+        + "on c2.\"customer_id\" = s.\"customer_id\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+    final Map.Entry<String, Lattice> entry =
+        Iterables.getOnlyElement(t.s.latticeMap.entrySet());
+    assertThat(entry.getKey(),
+        is("sales_fact_1997 ($table1:customer_id):[MIN($table1.fname)]"));
+    assertThat(entry.getValue().rootNode.descendants.size(), is(2));
+    final LatticeNode node = entry.getValue().rootNode.descendants.get(1);
+    assertThat(node.alias, is("$table1"));
+    assertThat(node.table.t.getRowType().toString(),
+        is("RecordType(INTEGER customer_id, VARCHAR(30) fname)"));
+    assertThat(node.table.t.unwrap(RelNode.class), isA(LogicalUnion.class));
+    assertThat(t.s.space.g.toString(),
+        is("graph(vertices: [[$table1], [foodmart, sales_fact_1997]], "
+            + "edges: [Step([foodmart, sales_fact_1997],"
+            + " [$table1], customer_id:customer_id)])"));
+  }
+
+  /** UNION in WITH clause becomes a table.
+   *
+   * <p>Very similar to {@link #testInlineUnion()} except that the
+   * row type is different, and the alias "c" is reused. */
+  @Test void testWithUnion() {
+    final Foo foo = new Foo();
+    final Tester t = new Tester().foodmart().withConfig(b ->
+        b.sqlToRelConverterConfig(
+            SqlToRelConverter.config()
+                .withFromTrace(foo::fromTrace)
+                .withPostStep(foo::postStep)));
+
+    final String q0 = "with c (id, name)\n"
+        + "  as (select \"customer_id\", \"fname\" from \"customer\"\n"
+        + "      where \"customer_id\" < 100\n"
+        + "      union all\n"
+        + "      select \"customer_id\", \"lname\" from \"customer\"\n"
+        + "      where \"customer_id\" > 1000)\n"
+        + "select min(c2.name) as \"customer.min_name\"\n"
+        + "from c as c2\n"
+        + "join \"sales_fact_1997\" as s on c2.id = s.\"customer_id\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+    final Map.Entry<String, Lattice> entry =
+        Iterables.getOnlyElement(t.s.latticeMap.entrySet());
+    assertThat(entry.getKey(),
+        is("sales_fact_1997 (C:customer_id):[MIN(C.NAME)]"));
+    assertThat(entry.getValue().rootNode.descendants.size(), is(2));
+
+    // Alias and row type are different from testInlineUnion
+    final LatticeNode node = entry.getValue().rootNode.descendants.get(1);
+    assertThat(node.alias, is("C"));
+    assertThat(node.table.t.getRowType().toString(),
+        is("RecordType(INTEGER ID, VARCHAR(30) NAME)"));
+    RelNode r = node.table.t.unwrap(RelNode.class);
+    if (r instanceof LogicalProject) {
+      r = r.getInput(0);
+    }
+    assertThat(r, isA(LogicalTableFunctionScan.class));
+    assertThat(t.s.space.g.toString(),
+        is("graph(vertices: [[C], [foodmart, sales_fact_1997]], "
+            + "edges: [Step([foodmart, sales_fact_1997],"
+            + " [C], customer_id:ID)])"));
+  }
+
+  @Test void testDerivedColRef() {
+    final Tester t = new Tester().foodmart()
+        .withConfig(b ->
+            b.statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE))
+        .withEvolve(true);
 
     final String q0 = "select\n"
         + "  min(c.\"fname\") as \"customer.count\"\n"
@@ -709,18 +819,17 @@ class LatticeSuggesterTest {
    * <p>The query has a join, and so we have to execute statistics queries
    * to deduce the direction of the foreign key.
    */
-  @Test void testFoodmartSimpleJoin() throws Exception {
+  @Test void testFoodmartSimpleJoin() {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
   }
 
-  private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)
-      throws Exception {
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .defaultSchema(Tester.schemaFrom(schemaSpec))
-        .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
-        .build();
-    final Tester t = new Tester(config);
+  private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec) {
+    final Tester t = new Tester()
+        .withConfig(b ->
+            b.defaultSchema(Tester.schemaFrom(schemaSpec))
+                .statisticProvider(
+                    QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE));
     final String q = "select *\n"
         + "from \"time_by_day\" as \"t\",\n"
         + " \"sales_fact_1997\" as \"s\"\n"
@@ -729,14 +838,14 @@ class LatticeSuggesterTest {
     assertThat(t.addQuery(q), isGraphs(g, "[]"));
   }
 
-  @Test void testUnion() throws Exception {
+  @Test void testUnion() {
     checkUnion("union");
     checkUnion("union all");
     checkUnion("intersect");
     checkUnion("except");
   }
 
-  private void checkUnion(String setOp) throws Exception {
+  private void checkUnion(String setOp) {
     final Tester t = new Tester().foodmart().withEvolve(true);
     final String q = "select \"t\".\"time_id\"\n"
         + "from \"time_by_day\" as \"t\",\n"
@@ -793,17 +902,75 @@ class LatticeSuggesterTest {
     };
   }
 
+  /** Collects the names of WITH items, and applies those names when we later
+   * see the relational expressions generated from those items. */
+  private static class Foo {
+    final Map<Integer, Pair<SqlNode, SqlValidatorNamespace>> map =
+        new HashMap<>();
+
+    void fromTrace(SqlNode node, SqlValidatorNamespace namespace,
+        List<String> fieldNames, RelNode r) {
+      map.put(r.getId(), Pair.of(node, namespace));
+    }
+
+    /** A {@link SqlToRelConverter.PostStep} that wraps each {@link Union}
+     * in a {@link TableFunctionScan}. */
+    RelRoot postStep(RelBuilder relBuilder, RelRoot root) {
+      return root.withRel(root.rel.accept(new WrapUnionShuttle(relBuilder)));
+    }
+
+    /** Shuttle that replaces UNION and VALUES with a wrapper table function. */
+    class WrapUnionShuttle extends RelShuttleImpl {
+      final RelBuilder builder;
+
+      private WrapUnionShuttle(RelBuilder builder) {
+        this.builder = builder;
+      }
+
+      @Override public RelNode visit(LogicalValues values) {
+        return wrap(values, null, null);
+      }
+
+      @Override public RelNode visit(LogicalUnion union) {
+        final Pair<SqlNode, SqlValidatorNamespace> p = map.get(union.getId());
+        if (p == null) {
+          return wrap(union, null, null);
+        }
+        final SqlNode node = p.left;
+        String name = node.getKind() == SqlKind.AS
+            && ((SqlCall) node).operand(0) instanceof SqlIdentifier
+            ? ((SqlCall) node).<SqlIdentifier>operand(0).getSimple()
+            : null;
+        return wrap(union, name, p.right);
+      }
+
+      private RelNode wrap(RelNode r, String name,
+          @Nullable SqlValidatorNamespace namespace) {
+        builder.push(r);
+        if (namespace != null) {
+          builder.rename(namespace.getRowType().getFieldNames());
+        }
+        return builder
+            .functionScan(LatticeSuggester.WrapFunction.INSTANCE, 1,
+                builder.cursor(1, 0), builder.literal(name))
+            .build();
+      }
+    }
+  }
+
   /** Test helper. */
   private static class Tester {
     final LatticeSuggester s;
     private final FrameworkConfig config;
 
+    private static final FrameworkConfig CONFIG =
+        Frameworks.newConfigBuilder()
+            .defaultSchema(schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
+            .statisticProvider(MapSqlStatisticProvider.INSTANCE)
+            .build();
+
     Tester() {
-      this(
-          Frameworks.newConfigBuilder()
-              .defaultSchema(schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
-              .statisticProvider(MapSqlStatisticProvider.INSTANCE)
-              .build());
+      this(CONFIG);
     }
 
     private Tester(FrameworkConfig config) {
@@ -811,36 +978,36 @@ class LatticeSuggesterTest {
       s = new LatticeSuggester(config);
     }
 
-    Tester withConfig(FrameworkConfig config) {
-      return new Tester(config);
+    Tester withConfig(UnaryOperator<Frameworks.ConfigBuilder> transform) {
+      return new Tester(
+          transform.apply(Frameworks.newConfigBuilder(config))
+              .build());
     }
 
     Tester foodmart() {
       return schema(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     }
 
-    private Tester schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return withConfig(builder()
-          .defaultSchema(schemaFrom(schemaSpec))
-          .build());
+    Tester schema(CalciteAssert.SchemaSpec schemaSpec) {
+      return withConfig(b -> b.defaultSchema(schemaFrom(schemaSpec)));
     }
 
-    private Frameworks.ConfigBuilder builder() {
-      return Frameworks.newConfigBuilder(config);
-    }
-
-    List<Lattice> addQuery(String q) throws SqlParseException,
-        ValidationException, RelConversionException {
+    List<Lattice> addQuery(String q) {
       final Planner planner = new PlannerImpl(config);
-      final SqlNode node = planner.parse(q);
-      final SqlNode node2 = planner.validate(node);
-      final RelRoot root = planner.rel(node2);
-      return s.addQuery(root.project());
+      try {
+        final SqlNode node = planner.parse(q);
+        final SqlNode node2 = planner.validate(node);
+        final RelRoot root = planner.rel(node2);
+        return s.addQuery(root.project());
+      } catch (SqlParseException
+          | ValidationException
+          | RelConversionException e) {
+        throw TestUtil.rethrow(e);
+      }
     }
 
     /** Parses a query returns its graph. */
-    LatticeRootNode node(String q) throws SqlParseException,
-        ValidationException, RelConversionException {
+    LatticeRootNode node(String q) {
       final List<Lattice> list = addQuery(q);
       assertThat(list.size(), is(1));
       return list.get(0).rootNode;
@@ -852,14 +1019,12 @@ class LatticeSuggesterTest {
     }
 
     Tester withEvolve(boolean evolve) {
-      return withConfig(builder().evolveLattice(evolve).build());
+      return withConfig(b -> b.evolveLattice(evolve));
     }
 
     private Tester withParser(UnaryOperator<SqlParser.Config> transform) {
-      return withConfig(
-          builder()
-              .parserConfig(transform.apply(config.getParserConfig()))
-              .build());
+      return withConfig(b ->
+          b.parserConfig(transform.apply(config.getParserConfig())));
     }
 
     Tester withDialect(SqlDialect dialect) {
@@ -869,7 +1034,7 @@ class LatticeSuggesterTest {
     Tester withLibrary(SqlLibrary library) {
       SqlOperatorTable opTab = SqlLibraryOperatorTableFactory.INSTANCE
           .getOperatorTable(EnumSet.of(SqlLibrary.STANDARD, library));
-      return withConfig(builder().operatorTable(opTab).build());
+      return withConfig(b -> b.operatorTable(opTab));
     }
   }
 }

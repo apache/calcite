@@ -33,6 +33,7 @@ import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -226,6 +227,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
 
     return newRootRel;
+  }
+
+  /** A {@link SqlToRelConverter.PostStep} that decorrelates a query. */
+  public static RelRoot decorrelateQueryStep(RelBuilder relBuilder,
+      RelRoot root) {
+    return root.withRel(decorrelateQuery(root.rel, relBuilder));
   }
 
   private void setCurrent(RelNode root, Correlate corRel) {

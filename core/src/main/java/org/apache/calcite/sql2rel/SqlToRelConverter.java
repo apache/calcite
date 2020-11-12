@@ -205,6 +205,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -225,6 +226,8 @@ public class SqlToRelConverter {
       ImmutableBeans.create(Config.class)
           .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
           .withRelBuilderConfigTransform(c -> c.withPushJoinCondition(true))
+          .withPostStep(PostStep::identity)
+          .withFromTrace(FromTrace::noOp)
           .withHintStrategyTable(HintStrategyTable.EMPTY);
 
   protected static final Logger SQL2REL_LOGGER =
@@ -467,6 +470,18 @@ public class SqlToRelConverter {
     }
   }
 
+  /** A {@link PostStep} that flattens types.
+   *
+   * <p>Similar to {@link #flattenTypes(RelNode, boolean)} but static, and
+   * therefore cannot expand views. */
+  public static RelRoot flattenTypesStep(RelBuilder relBuilder, RelRoot root) {
+    final RelOptCluster cluster = relBuilder.getCluster();
+    RelStructuredTypeFlattener typeFlattener =
+        new RelStructuredTypeFlattener(relBuilder, relBuilder.getRexBuilder(),
+            ViewExpanders.simpleContext(cluster), true);
+    return root.withRel(typeFlattener.rewrite(root.rel));
+  }
+
   public RelNode flattenTypes(
       RelNode rootRel,
       boolean restructure) {
@@ -597,9 +612,12 @@ public class SqlToRelConverter {
     }
     // propagate the hints.
     result = RelOptUtil.propagateRelHints(result, false);
-    return RelRoot.of(result, validatedRowType, query.getKind())
+    final RelRoot root = RelRoot.of(result, validatedRowType, query.getKind())
         .withCollation(collation)
         .withHints(hints);
+
+    // Apply post-steps. The default post-steps flatten types and decorrelate.
+    return config.postStep().apply(relBuilder, root);
   }
 
   private static boolean isStream(SqlNode query) {
@@ -833,7 +851,7 @@ public class SqlToRelConverter {
       SqlNode fetch) {
     if (removeSortInSubQuery(bb.top)
         || select.getOrderList() == null
-        || select.getOrderList().getList().isEmpty()) {
+        || select.getOrderList().isEmpty()) {
       assert removeSortInSubQuery(bb.top) || collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
@@ -1389,7 +1407,7 @@ public class SqlToRelConverter {
   }
 
   private static boolean containsNullLiteral(SqlNodeList valueList) {
-    for (SqlNode node : valueList.getList()) {
+    for (SqlNode node : valueList) {
       if (node instanceof SqlLiteral) {
         SqlLiteral lit = (SqlLiteral) node;
         if (lit.getValue() == null) {
@@ -1627,7 +1645,7 @@ public class SqlToRelConverter {
       return convertRowValues(
           bb,
           seek,
-          ((SqlNodeList) seek).getList(),
+          (SqlNodeList) seek,
           false,
           targetRowType);
     } else {
@@ -2060,10 +2078,20 @@ public class SqlToRelConverter {
     }
   }
 
-  protected void convertFrom(
+  protected final void convertFrom(
       Blackboard bb,
       SqlNode from) {
-    convertFrom(bb, from, Collections.emptyList());
+    convertFrom2(bb, from, null);
+  }
+
+  protected final void convertFrom2(
+      Blackboard bb,
+      SqlNode from,
+      List<String> fieldNames) {
+    convertFrom(bb, from, fieldNames);
+    final SqlValidatorNamespace namespace =
+        from == null ? null : validator.getNamespace(from);
+    config.fromTrace().apply(from, namespace, fieldNames, bb.root);
   }
 
   /**
@@ -2082,12 +2110,12 @@ public class SqlToRelConverter {
    *             <li>a query ("(SELECT * FROM EMP WHERE GENDER = 'F')"),
    *             <li>or any combination of the above.
    *             </ul>
-   * @param fieldNames Field aliases, usually come from AS clause
+   * @param fieldNames Field aliases, usually come from AS clause, or null
    */
   protected void convertFrom(
       Blackboard bb,
       SqlNode from,
-      List<String> fieldNames) {
+      @Nullable List<String> fieldNames) {
     if (from == null) {
       bb.setRoot(LogicalValues.createOneRow(cluster), false);
       return;
@@ -2099,14 +2127,10 @@ public class SqlToRelConverter {
     case AS:
       call = (SqlCall) from;
       SqlNode firstOperand = call.operand(0);
-      final List<String> fieldNameList = new ArrayList<>();
-      if (call.operandCount() > 2) {
-        for (SqlNode node : Util.skip(call.getOperandList(), 2)) {
-          fieldNameList.add(((SqlIdentifier) node).getSimple());
-        }
-
-      }
-      convertFrom(bb, firstOperand, fieldNameList);
+      final List<String> fieldNameList = call.operandCount() > 2
+          ? SqlIdentifier.simpleNames(Util.skip(call.getOperandList(), 2))
+          : null;
+      convertFrom2(bb, firstOperand, fieldNameList);
       return;
 
     case MATCH_RECOGNIZE:
@@ -2118,7 +2142,8 @@ public class SqlToRelConverter {
       return;
 
     case WITH_ITEM:
-      convertFrom(bb, ((SqlWithItem) from).query);
+      final SqlWithItem withItem = (SqlWithItem) from;
+      convertFrom2(bb, withItem.query, null);
       return;
 
     case WITH:
@@ -2188,7 +2213,7 @@ public class SqlToRelConverter {
 
     case VALUES:
       convertValuesImpl(bb, (SqlCall) from, null);
-      if (fieldNames.size() > 0) {
+      if (fieldNames != null) {
         bb.setRoot(relBuilder.push(bb.root).rename(fieldNames).build(), true);
       }
       return;
@@ -2237,7 +2262,7 @@ public class SqlToRelConverter {
           .push(child)
           .project(exprs)
           .uncollect(Collections.emptyList(), operator.withOrdinality)
-          .rename(fieldNames)
+          .applyIf(fieldNames != null, r -> r.rename(fieldNames))
           .build();
     }
     bb.setRoot(uncollect, true);
@@ -2335,12 +2360,9 @@ public class SqlToRelConverter {
       List<SqlNode> operands = ((SqlCall) node).getOperandList();
       SqlIdentifier left = (SqlIdentifier) operands.get(0);
       patternVarsSet.add(left.getSimple());
-      SqlNodeList rights = (SqlNodeList) operands.get(1);
-      final TreeSet<String> list = new TreeSet<>();
-      for (SqlNode right : rights) {
-        assert right instanceof SqlIdentifier;
-        list.add(((SqlIdentifier) right).getSimple());
-      }
+      final SqlNodeList rights = (SqlNodeList) operands.get(1);
+      final TreeSet<String> list =
+          new TreeSet<>(SqlIdentifier.simpleNames(rights.getList()));
       subsetMap.put(left.getSimple(), list);
     }
 
@@ -2481,7 +2503,7 @@ public class SqlToRelConverter {
     pivot.forEachNameValues((alias, nodeList) ->
         valueList.add(
             Pair.of(alias,
-                nodeList.getList().stream().map(bb::convertExpression)
+                nodeList.stream().map(bb::convertExpression)
                     .collect(Util.toImmutableList()))));
 
     final RelNode rel =
@@ -2936,16 +2958,9 @@ public class SqlToRelConverter {
       SqlJoin join,
       SqlValidatorNamespace leftNamespace,
       SqlValidatorNamespace rightNamespace) {
-    SqlNode condition = join.getCondition();
-
-    final SqlNodeList list = (SqlNodeList) condition;
-    final List<String> nameList = new ArrayList<>();
-    for (SqlNode columnName : list) {
-      final SqlIdentifier id = (SqlIdentifier) columnName;
-      String name = id.getSimple();
-      nameList.add(name);
-    }
-    return convertUsing(leftNamespace, rightNamespace, nameList);
+    final SqlNodeList list = (SqlNodeList) join.getCondition();
+    return convertUsing(leftNamespace, rightNamespace,
+        ImmutableList.copyOf(SqlIdentifier.simpleNames(list)));
   }
 
   /**
@@ -5562,8 +5577,7 @@ public class SqlToRelConverter {
         collation = RelCollations.EMPTY;
       } else {
         collation = RelCollations.of(
-            orderList.getList()
-                .stream()
+            orderList.stream()
                 .map(order ->
                     bb.convertSortExpression(order,
                         RelFieldCollation.Direction.ASCENDING,
@@ -5791,7 +5805,7 @@ public class SqlToRelConverter {
                 rexBuilder.getTypeFactory(),
                 SqlStdOperatorTable.HISTOGRAM_AGG,
                 exprs,
-                ImmutableList.of());
+                ImmutableList.of(), ImmutableList.of());
 
         RexNode over =
             rexBuilder.makeOver(
@@ -5938,7 +5952,7 @@ public class SqlToRelConverter {
         final SqlNode aggCall = call.getOperandList().get(0);
         final SqlNodeList orderList = (SqlNodeList) call.getOperandList().get(1);
         list.add(aggCall);
-        orderList.getList().forEach(this.orderList::add);
+        this.orderList.addAll(orderList);
         return null;
       }
 
@@ -6100,6 +6114,59 @@ public class SqlToRelConverter {
 
     /** Sets {@link #getHintStrategyTable()}. */
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
+
+    /** Returns the transform to apply at the end.
+     * Default is the identity. */
+    @ImmutableBeans.Property(required = true)
+    PostStep postStep();
+
+    /** Sets {@link #postStep()}. */
+    Config withPostStep(PostStep step);
+
+    /** Adds a transform to {@link #postStep()}. */
+    default Config addPostStep(PostStep step) {
+      return withPostStep((RelBuilder b, RelRoot r) ->
+          step.apply(b, postStep().apply(b, r)));
+    }
+
+    /** Returns the tracer to be called after converting a FROM item.
+     * Default is a no-op. */
+    @ImmutableBeans.Property(required = true)
+    FromTrace fromTrace();
+
+    /** Sets {@link #fromTrace()}. */
+    Config withFromTrace(FromTrace fromTrace);
+  }
+
+  /** A transform that is applied by SqlToRelConverter just before returning
+   * the relational expression.
+   *
+   * <p>The list of post-steps is defined in the Config by calling
+   * {@link Config#withPostStep(PostStep)}. The default post-step returns root
+   * unchanged.
+   *
+   * <p>You can {@link Config#addPostStep add} built-in post-steps to
+   * {@link #flattenTypesStep flatten types} and
+   * {@link RelDecorrelator#decorrelateQueryStep decorrelate}.
+   */
+  @FunctionalInterface
+  public interface PostStep {
+    RelRoot apply(RelBuilder relBuilder, RelRoot root);
+
+    static RelRoot identity(RelBuilder relBuilder, RelRoot root) {
+      return root;
+    }
+  }
+
+  /** Called after converting an item in the FROM clause. */
+  @FunctionalInterface
+  public interface FromTrace {
+    void apply(SqlNode node, SqlValidatorNamespace namespace,
+        List<String> fieldNames, RelNode root);
+
+    static void noOp(SqlNode node, SqlValidatorNamespace namespace,
+        List<String> fieldNames, RelNode r) {
+    }
   }
 
   /** Builder for a {@link Config}. */
