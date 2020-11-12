@@ -175,24 +175,27 @@ public final class EnumUtilsTest {
     // test for Object.class method parameter type
     final ConstantExpression arg0 = Expressions.constant(1, int.class);
     final ConstantExpression arg1 = Expressions.constant("x", String.class);
-    final MethodCallExpression arrayMethodCall = EnumUtils.call(SqlFunctions.class,
-        BuiltInMethod.ARRAY.getMethodName(), Arrays.asList(arg0, arg1));
+    final MethodCallExpression arrayMethodCall =
+        EnumUtils.call(null, SqlFunctions.class,
+            BuiltInMethod.ARRAY.getMethodName(), Arrays.asList(arg0, arg1));
     assertThat(Expressions.toString(arrayMethodCall),
         is("org.apache.calcite.runtime.SqlFunctions.array(1, \"x\")"));
 
     // test for Object.class argument type
     final ConstantExpression nullLiteral = Expressions.constant(null);
-    final MethodCallExpression xmlExtractMethodCall = EnumUtils.call(
-        XmlFunctions.class, BuiltInMethod.EXTRACT_VALUE.getMethodName(),
-        Arrays.asList(arg1, nullLiteral));
+    final MethodCallExpression xmlExtractMethodCall =
+        EnumUtils.call(null, XmlFunctions.class,
+            BuiltInMethod.EXTRACT_VALUE.getMethodName(),
+            Arrays.asList(arg1, nullLiteral));
     assertThat(Expressions.toString(xmlExtractMethodCall),
         is("org.apache.calcite.runtime.XmlFunctions.extractValue(\"x\", (String) null)"));
 
     // test "mod(decimal, long)" match to "mod(decimal, decimal)"
     final ConstantExpression arg2 = Expressions.constant(12.5, BigDecimal.class);
     final ConstantExpression arg3 = Expressions.constant(3, long.class);
-    final MethodCallExpression modMethodCall = EnumUtils.call(
-        SqlFunctions.class, "mod", Arrays.asList(arg2, arg3));
+    final MethodCallExpression modMethodCall =
+        EnumUtils.call(null, SqlFunctions.class, "mod",
+            Arrays.asList(arg2, arg3));
     assertThat(Expressions.toString(modMethodCall),
         is("org.apache.calcite.runtime.SqlFunctions.mod("
             + "java.math.BigDecimal.valueOf(125L, 1), "
@@ -201,8 +204,9 @@ public final class EnumUtilsTest {
     // test "ST_MakePoint(int, int)" match to "ST_MakePoint(decimal, decimal)"
     final ConstantExpression arg4 = Expressions.constant(1, int.class);
     final ConstantExpression arg5 = Expressions.constant(2, int.class);
-    final MethodCallExpression geoMethodCall = EnumUtils.call(
-        GeoFunctions.class, "ST_MakePoint", Arrays.asList(arg4, arg5));
+    final MethodCallExpression geoMethodCall =
+        EnumUtils.call(null, GeoFunctions.class, "ST_MakePoint",
+            Arrays.asList(arg4, arg5));
     assertThat(Expressions.toString(geoMethodCall),
         is("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
             + "new java.math.BigDecimal(\n  1), "

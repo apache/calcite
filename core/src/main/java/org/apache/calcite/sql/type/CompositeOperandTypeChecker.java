@@ -25,6 +25,7 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -374,5 +375,22 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       }
     }
     return false;
+  }
+
+  @Nullable @Override public SqlOperandTypeInference typeInference() {
+    if (composition == Composition.REPEAT) {
+      if (Iterables.getOnlyElement(allowedRules) instanceof SqlOperandTypeInference) {
+        final SqlOperandTypeInference rule =
+            (SqlOperandTypeInference) Iterables.getOnlyElement(allowedRules);
+        return (callBinding, returnType, operandTypes) -> {
+          for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            final RelDataType[] operandTypes0 = new RelDataType[1];
+            rule.inferOperandTypes(callBinding, returnType, operandTypes0);
+            operandTypes[i] = operandTypes0[0];
+          }
+        };
+      }
+    }
+    return null;
   }
 }

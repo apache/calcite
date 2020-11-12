@@ -64,7 +64,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -2179,35 +2178,40 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
     tester.checkString("cast('a' as varchar) || cast('b' as varchar) "
         + "|| cast('c' as varchar)", "abc", "VARCHAR NOT NULL");
+  }
 
-    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
-    final SqlTester tester2 = tester(SqlLibrary.POSTGRESQL);
-    final SqlTester tester3 = tester(SqlLibrary.ORACLE);
-    for (SqlTester sqlTester: ImmutableList.of(tester1, tester2)) {
-      sqlTester.setFor(SqlLibraryOperators.CONCAT_FUNCTION);
-      sqlTester.checkString("concat('a', 'b', 'c')", "abc",
-          "VARCHAR(3) NOT NULL");
-      sqlTester.checkString("concat(cast('a' as varchar), cast('b' as varchar), "
-          + "cast('c' as varchar))", "abc", "VARCHAR NOT NULL");
-      sqlTester.checkNull("concat('a', 'b', cast(null as char(2)))");
-      sqlTester.checkNull("concat(cast(null as ANY), 'b', cast(null as char(2)))");
-      sqlTester.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
-      sqlTester.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
-      sqlTester.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
-    }
-    tester3.setFor(SqlLibraryOperators.CONCAT2);
-    tester3.checkString("concat(cast('fe' as char(2)), cast('df' as varchar(65535)))",
+  @Test void testConcatFunc() {
+    checkConcatFunc(tester(SqlLibrary.MYSQL));
+    checkConcatFunc(tester(SqlLibrary.POSTGRESQL));
+    checkConcat2Func(tester(SqlLibrary.ORACLE));
+  }
+
+  private void checkConcatFunc(SqlTester t) {
+    t.setFor(SqlLibraryOperators.CONCAT_FUNCTION);
+    t.checkString("concat('a', 'b', 'c')", "abc", "VARCHAR(3) NOT NULL");
+    t.checkString("concat(cast('a' as varchar), cast('b' as varchar), "
+        + "cast('c' as varchar))", "abc", "VARCHAR NOT NULL");
+    t.checkNull("concat('a', 'b', cast(null as char(2)))");
+    t.checkNull("concat(cast(null as ANY), 'b', cast(null as char(2)))");
+    t.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
+    t.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
+    t.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
+  }
+
+  private void checkConcat2Func(SqlTester t) {
+    t.setFor(SqlLibraryOperators.CONCAT2);
+    t.checkString("concat(cast('fe' as char(2)), cast('df' as varchar(65535)))",
         "fedf", "VARCHAR NOT NULL");
-    tester3.checkString("concat(cast('fe' as char(2)), cast('df' as varchar))",
+    t.checkString("concat(cast('fe' as char(2)), cast('df' as varchar))",
         "fedf", "VARCHAR NOT NULL");
-    tester3.checkString("concat(cast('fe' as char(2)), cast('df' as varchar(33333)))",
+    t.checkString("concat(cast('fe' as char(2)), cast('df' as varchar(33333)))",
         "fedf", "VARCHAR(33335) NOT NULL");
-    tester3.checkString("concat('', '')", "", "VARCHAR(0) NOT NULL");
-    tester3.checkString("concat('', 'a')", "a", "VARCHAR(1) NOT NULL");
-    tester3.checkString("concat('a', 'b')", "ab", "VARCHAR(2) NOT NULL");
-    tester3.checkNull("concat('a', cast(null as varchar))");
-    tester3.checkFails("^concat('a', 'b', 'c')^", INVALID_ARGUMENTS_NUMBER, false);
-    tester3.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
+    t.checkString("concat('', '')", "", "VARCHAR(0) NOT NULL");
+    t.checkString("concat('', 'a')", "a", "VARCHAR(1) NOT NULL");
+    t.checkString("concat('a', 'b')", "ab", "VARCHAR(2) NOT NULL");
+    t.checkNull("concat('a', cast(null as varchar))");
+    t.checkFails("^concat('a', 'b', 'c')^", INVALID_ARGUMENTS_NUMBER, false);
+    t.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
   @Test void testModOperator() {

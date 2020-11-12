@@ -69,6 +69,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Utilities for generating programs in the Enumerable (functional)
@@ -622,26 +623,22 @@ public class EnumUtils {
     return convert(argument, targetType);
   }
 
-  public static MethodCallExpression call(Class clazz, String methodName,
-      List<? extends Expression> arguments) {
-    return call(clazz, methodName, arguments, null);
-  }
-
   /**
-   * The powerful version of {@code org.apache.calcite.linq4j.tree.Expressions#call(
-   * Type, String, Iterable<? extends Expression>)}. Try best effort to convert the
+   * A more powerful version of
+   * {@link org.apache.calcite.linq4j.tree.Expressions#call(Type, String, Iterable)}.
+   * Tries best effort to convert the
    * accepted arguments to match parameter type.
    *
+   * @param targetExpression Target expression, or null if method is static
    * @param clazz Class against which method is invoked
    * @param methodName Name of method
-   * @param arguments argument expressions
-   * @param targetExpression target expression
+   * @param arguments Argument expressions
    *
    * @return MethodCallExpression that call the given name method
    * @throws RuntimeException if no suitable method found
    */
-  public static MethodCallExpression call(Class clazz, String methodName,
-       List<? extends Expression> arguments, Expression targetExpression) {
+  public static MethodCallExpression call(@Nullable Expression targetExpression,
+      Class clazz, String methodName, List<? extends Expression> arguments) {
     Class[] argumentTypes = Types.toClassArray(arguments);
     try {
       Method candidate = clazz.getMethod(methodName, argumentTypes);

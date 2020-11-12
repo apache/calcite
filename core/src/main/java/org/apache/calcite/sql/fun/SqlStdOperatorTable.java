@@ -236,6 +236,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * String concatenation operator, '<code>||</code>'.
+   *
+   * @see SqlLibraryOperators#CONCAT_FUNCTION
    */
   public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(

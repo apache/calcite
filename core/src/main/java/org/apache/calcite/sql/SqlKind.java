@@ -386,6 +386,9 @@ public enum SqlKind {
   /** {@code GREATEST} function (Oracle). */
   GREATEST,
 
+  /** The two-argument {@code CONCAT} function (Oracle). */
+  CONCAT2,
+
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 

@@ -49,12 +49,13 @@ public class SqlJsonObjectFunction extends SqlFunction {
         (callBinding, returnType, operandTypes) -> {
           RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
           for (int i = 0; i < operandTypes.length; i++) {
-            if (i % 2 == 0) {
-              operandTypes[i] = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-              continue;
-            }
-            operandTypes[i] = typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.ANY), true);
+              operandTypes[i] =
+                  i == 0
+                      ? typeFactory.createSqlType(SqlTypeName.SYMBOL)
+                      : i % 2 == 1
+                          ? typeFactory.createSqlType(SqlTypeName.VARCHAR)
+                          : typeFactory.createTypeWithNullability(
+                              typeFactory.createSqlType(SqlTypeName.ANY), true);
           }
         }, null, SqlFunctionCategory.SYSTEM);
   }
@@ -126,19 +127,11 @@ public class SqlJsonObjectFunction extends SqlFunction {
     writer.endList(listFrame);
 
     SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(0));
-    switch (nullClause) {
-    case ABSENT_ON_NULL:
-      writer.keyword("ABSENT ON NULL");
-      break;
-    case NULL_ON_NULL:
-      writer.keyword("NULL ON NULL");
-      break;
-    default:
-      throw new IllegalStateException("unreachable code");
-    }
+    writer.keyword(nullClause.sql);
     writer.endFunCall(frame);
   }
 
+  @SuppressWarnings("unchecked")
   private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
     return (E) ((SqlLiteral) operand).getValue();
   }

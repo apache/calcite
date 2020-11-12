@@ -1970,15 +1970,28 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      final Expression expression;
-      Class clazz = method.getDeclaringClass();
       if (Modifier.isStatic(method.getModifiers())) {
-        expression = EnumUtils.call(clazz, method.getName(), argValueList);
+        return call(method, null, argValueList);
       } else {
-        expression = EnumUtils.call(clazz, method.getName(),
-            Util.skip(argValueList, 1), argValueList.get(0));
+        return call(method, argValueList.get(0), Util.skip(argValueList, 1));
       }
-      return expression;
+    }
+
+    static Expression call(Method method, Expression target,
+        List<Expression> args) {
+      if (method.isVarArgs()) {
+        final int last = method.getParameterCount() - 1;
+        ImmutableList<Expression> vargs = ImmutableList.<Expression>builder()
+            .addAll(args.subList(0, last))
+            .add(
+                Expressions.newArrayInit(method.getParameterTypes()[last],
+                    args.subList(last, args.size()).toArray(new Expression[0])))
+            .build();
+        return Expressions.call(target, method, vargs);
+      } else {
+        final Class<?> clazz = method.getDeclaringClass();
+        return EnumUtils.call(target, clazz, method.getName(), args);
+      }
     }
   }
 
@@ -2041,7 +2054,7 @@ public class RexImpTable {
       newOperands.add(errorBehavior);
       newOperands.add(defaultValueOnError);
       Class clazz = method.getDeclaringClass();
-      expression = EnumUtils.call(clazz, method.getName(), newOperands);
+      expression = EnumUtils.call(null, clazz, method.getName(), newOperands);
 
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
@@ -2068,10 +2081,7 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      return EnumUtils.call(
-          SqlFunctions.class,
-          methodName,
-          argValueList);
+      return EnumUtils.call(null, SqlFunctions.class, methodName, argValueList);
     }
   }
 

@@ -233,6 +233,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private final Map<SqlNode, RelDataType> nodeToTypeMap =
       new IdentityHashMap<>();
+
+  /** Provides the data for {@link #getValidatedOperandTypes(SqlCall)}. */
+  public final Map<SqlCall, List<RelDataType>> callToOperandTypesMap =
+      new IdentityHashMap<>();
+
   private final AggFinder aggFinder;
   private final AggFinder aggOrOverFinder;
   private final AggFinder aggOrOverOrGroupFinder;
@@ -1688,6 +1693,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return getCatalogReader().getNamedType((SqlIdentifier) node);
     }
     return null;
+  }
+
+  @Override public List<RelDataType> getValidatedOperandTypes(SqlCall call) {
+    return callToOperandTypesMap.get(call);
   }
 
   /**

@@ -134,6 +134,10 @@ public abstract class SqlOperator {
     this.leftPrec = leftPrecedence;
     this.rightPrec = rightPrecedence;
     this.returnTypeInference = returnTypeInference;
+    if (operandTypeInference == null
+        && operandTypeChecker != null) {
+      operandTypeInference = operandTypeChecker.typeInference();
+    }
     this.operandTypeInference = operandTypeInference;
     this.operandTypeChecker = operandTypeChecker;
   }
@@ -491,7 +495,7 @@ public abstract class SqlOperator {
 
     // Now infer the result type.
     RelDataType ret = inferReturnType(opBinding);
-    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
+    validator.setValidatedNodeType(call, ret);
     return ret;
   }
 
@@ -529,6 +533,21 @@ public abstract class SqlOperator {
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
       }
+
+      if (operandTypeInference != null
+          && opBinding instanceof SqlCallBinding
+          && this instanceof SqlFunction) {
+        final SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+        final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+        if (operandTypes.stream().anyMatch(t -> t.getSqlTypeName() == SqlTypeName.ANY)) {
+          final RelDataType[] operandTypes2 = operandTypes.toArray(new RelDataType[0]);
+          operandTypeInference.inferOperandTypes(callBinding, returnType, operandTypes2);
+          ((SqlValidatorImpl) callBinding.getValidator())
+              .callToOperandTypesMap
+              .put(callBinding.getCall(), ImmutableList.copyOf(operandTypes2));
+        }
+      }
+
       return returnType;
     }
 

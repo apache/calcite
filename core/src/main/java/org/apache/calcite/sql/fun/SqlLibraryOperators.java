@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -429,19 +430,22 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("CONCAT",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          null,
+          InferTypes.RETURN_TYPE,
           OperandTypes.repeat(SqlOperandCountRanges.from(2),
               OperandTypes.STRING),
           SqlFunctionCategory.STRING);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
-   * For example, "CONCAT('a', 'bc')" returns "abc". */
+   * For example, "CONCAT('a', 'bc')" returns "abc".
+   *
+   * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
+   * {@link #CONCAT_FUNCTION}. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CONCAT2 =
       new SqlFunction("CONCAT",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CONCAT2,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          null,
+          InferTypes.RETURN_TYPE,
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING);
 
