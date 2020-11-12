@@ -243,6 +243,12 @@ public class RexSimplify {
     if (paranoid) {
       verify(e, simplified, unknownAs);
     }
+    Bug.remark("Remove when CALCITE-4398 is fixed");
+    if (e.isAlwaysFalse()) {
+      return rexBuilder.makeLiteral(false);
+    } else if (e.isAlwaysTrue()) {
+      return rexBuilder.makeLiteral(true);
+    }
     return simplified;
   }
 

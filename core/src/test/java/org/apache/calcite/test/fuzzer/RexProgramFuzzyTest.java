@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.junit.jupiter.api.Disabled;
@@ -492,6 +493,18 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
                     nullInt,
                     abstractCast(literal(1), tInt(true))),
                 vIntNotNull(1))));
+  }
+
+  @Test void calcite4398() {
+    Bug.remark("Remove when CALCITE-4398 is fixed");
+    checkUnknownAs(
+        isNotNull(
+            case_(
+                case_(
+                    trueLiteral, isFalse(lt(vInt(1), literal(0))),
+                    trueLiteral),
+                trueLiteral,
+                falseLiteral)));
   }
 
   @Disabled("This is just a scaffold for quick investigation of a single fuzz test")
