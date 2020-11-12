@@ -197,4 +197,35 @@ class SqlTypeUtilTest {
     }
     return builder.build();
   }
+
+  private void compareTypesIgnoringNullability(
+      String comment, RelDataType type1, RelDataType type2, boolean expectedResult) {
+    String typeString1 = type1.getFullTypeString();
+    String typeString2 = type2.getFullTypeString();
+
+    assertThat(
+        "The result of SqlTypeUtil.equalSansNullability"
+            + "(typeFactory, " + typeString1 + ", " + typeString2 + ") is incorrect: " + comment,
+        SqlTypeUtil.equalSansNullability(f.typeFactory, type1, type2), is(expectedResult));
+    assertThat("The result of SqlTypeUtil.equalSansNullability"
+            + "(" + typeString1 + ", " + typeString2 + ") is incorrect: " + comment,
+        SqlTypeUtil.equalSansNullability(type1, type2), is(expectedResult));
+  }
+
+  @Test public void testEqualSansNullability() {
+    RelDataType bigIntType = f.sqlBigInt;
+    RelDataType nullableBigIntType = f.sqlBigIntNullable;
+    RelDataType varCharType = f.sqlVarchar;
+    RelDataType bigIntType1 =
+        f.typeFactory.createTypeWithNullability(nullableBigIntType, false);
+
+    compareTypesIgnoringNullability("different types should return false. ",
+        bigIntType, varCharType, false);
+
+    compareTypesIgnoringNullability("types differing only in nullability should return true.",
+        bigIntType, nullableBigIntType, true);
+
+    compareTypesIgnoringNullability("identical types should return true.",
+        bigIntType, bigIntType1, true);
+  }
 }

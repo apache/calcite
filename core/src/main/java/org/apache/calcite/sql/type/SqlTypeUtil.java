@@ -1155,14 +1155,8 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2) {
-    if (type1.equals(type2)) {
-      return true;
-    }
-
     if (type1.isNullable() == type2.isNullable()) {
-      // If types have the same nullability and they weren't equal above,
-      // they must be different.
-      return false;
+      return type1.equals(type2);
     }
     return type1.equals(
         factory.createTypeWithNullability(type2, type1.isNullable()));
@@ -1214,9 +1208,9 @@ public abstract class SqlTypeUtil {
       RelDataType type1,
       RelDataType type2) {
     Preconditions.checkArgument(isCollection(type1),
-        "Input type must be collection type");
+        "Input type1 must be collection type");
     Preconditions.checkArgument(isCollection(type2),
-        "Input type must be collection type");
+        "Input type2 must be collection type");
 
     return (type1 == type2)
         || (type1.getSqlTypeName() == type2.getSqlTypeName()
@@ -1237,8 +1231,8 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2) {
-    Preconditions.checkArgument(isMap(type1), "Input type must be map type");
-    Preconditions.checkArgument(isMap(type2), "Input type must be map type");
+    Preconditions.checkArgument(isMap(type1), "Input type1 must be map type");
+    Preconditions.checkArgument(isMap(type2), "Input type2 must be map type");
 
     MapSqlType mType1 = (MapSqlType) type1;
     MapSqlType mType2 = (MapSqlType) type2;
@@ -1265,8 +1259,8 @@ public abstract class SqlTypeUtil {
       RelDataType type1,
       RelDataType type2,
       SqlNameMatcher nameMatcher) {
-    Preconditions.checkArgument(type1.isStruct(), "Input type must be struct type");
-    Preconditions.checkArgument(type2.isStruct(), "Input type must be struct type");
+    Preconditions.checkArgument(type1.isStruct(), "Input type1 must be struct type");
+    Preconditions.checkArgument(type2.isStruct(), "Input type2 must be struct type");
 
     if (type1 == type2) {
       return true;
