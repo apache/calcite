@@ -10214,7 +10214,7 @@ LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(NEWCOL=[+($0, 1)])
+LogicalProject(NEWCOL=[CAST(+($0, 1)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

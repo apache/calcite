@@ -186,15 +186,20 @@ public class RexCall extends RexNode {
     // This reduction allows us to convert it to a semi-join.
     switch (getKind()) {
     case IS_NOT_NULL:
-      return !operands.get(0).getType().isNullable();
+      // TODO: optimize as a part of CALCITE-4388
+      return !operands.get(0).getType().isNullable()
+          && operands.get(0).accept(RexSimplify.SafeRexVisitor.INSTANCE);
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
       return operands.get(0).isAlwaysFalse();
     case IS_NOT_FALSE:
     case IS_TRUE:
-    case CAST:
       return operands.get(0).isAlwaysTrue();
+    case CAST:
+      // TODO: optimize as a part of CALCITE-4388
+      return operands.get(0).isAlwaysTrue()
+          && accept(RexSimplify.SafeRexVisitor.INSTANCE);
     default:
       return false;
     }
@@ -203,15 +208,20 @@ public class RexCall extends RexNode {
   @Override public boolean isAlwaysFalse() {
     switch (getKind()) {
     case IS_NULL:
-      return !operands.get(0).getType().isNullable();
+      // TODO: optimize as a part of CALCITE-4388
+      return !operands.get(0).getType().isNullable()
+          && operands.get(0).accept(RexSimplify.SafeRexVisitor.INSTANCE);
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
       return operands.get(0).isAlwaysTrue();
     case IS_NOT_FALSE:
     case IS_TRUE:
-    case CAST:
       return operands.get(0).isAlwaysFalse();
+    case CAST:
+      // TODO: optimize as a part of CALCITE-4388
+      return operands.get(0).isAlwaysFalse()
+          && accept(RexSimplify.SafeRexVisitor.INSTANCE);
     default:
       return false;
     }
