@@ -26,6 +26,7 @@ import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -321,6 +322,14 @@ public class RexSimplify {
     simplifyList(operands, UNKNOWN);
     if (e.operands.equals(operands)) {
       return e;
+    }
+    if (e.getOperator() instanceof SqlDatetimeSubtractionOperator) {
+      // See CALCITE-4397 StandardConvertletTable#convertDatetimeMinus is inconsistent
+      // with MINUS_DATE return type
+      return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
+    }
+    if (e.getKind() == SqlKind.REINTERPRET) {
+      return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
     }
     return rexBuilder.makeCall(e.getOperator(), operands);
   }
