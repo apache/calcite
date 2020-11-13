@@ -72,7 +72,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -111,6 +111,9 @@ import java.util.stream.Collectors;
  */
 public class RelToSqlConverter extends SqlImplementor
     implements ReflectiveVisitor {
+  /** Similar to {@link SqlStdOperatorTable#ROW}, but does not print "ROW". */
+  private static final SqlRowOperator ANONYMOUS_ROW = new SqlRowOperator(" ");
+
   private final ReflectUtil.MethodDispatcher<Result> dispatcher;
 
   private final Deque<Frame> stack = new ArrayDeque<>();
@@ -643,18 +646,15 @@ public class RelToSqlConverter extends SqlImplementor
       final boolean isEmpty = Values.isEmpty(e);
       if (isEmpty) {
         // In case of empty values, we need to build:
-        //   SELECT *
-        //   FROM (VALUES (NULL, NULL ...)) AS T (C1, C2 ...)
-        //   WHERE 1 = 0
+        // select * from VALUES(NULL, NULL ...) as T (C1, C2 ...)
+        // where 1=0.
         selects.add(
-            SqlInternalOperators.ANONYMOUS_ROW.createCall(POS,
+            ANONYMOUS_ROW.createCall(POS,
                 Collections.nCopies(fieldNames.size(),
                     SqlLiteral.createNull(POS))));
       } else {
         for (List<RexLiteral> tuple : e.getTuples()) {
-          selects.add(
-              SqlInternalOperators.ANONYMOUS_ROW.createCall(
-                  exprList(context, tuple)));
+          selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
         }
       }
       query = SqlStdOperatorTable.VALUES.createCall(selects);

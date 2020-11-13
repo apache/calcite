@@ -46,7 +46,6 @@ import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -83,7 +82,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -195,21 +193,9 @@ class RelToSqlConverterTest {
 
   /** Converts a relational expression to SQL in a given dialect. */
   private static String toSql(RelNode root, SqlDialect dialect) {
-    return toSql(root, dialect, c ->
-        c.withAlwaysUseParentheses(false)
-            .withSelectListItemsOnSeparateLines(false)
-            .withUpdateSetListNewline(false)
-            .withIndentation(0));
-  }
-
-  /** Converts a relational expression to SQL in a given dialect
-   * and with a particular writer configuration. */
-  private static String toSql(RelNode root, SqlDialect dialect,
-      UnaryOperator<SqlWriterConfig> transform) {
     final RelToSqlConverter converter = new RelToSqlConverter(dialect);
     final SqlNode sqlNode = converter.visitRoot(root).asStatement();
-    return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
-        .getSql();
+    return sqlNode.toSqlString(dialect).getSql();
   }
 
   @Test void testSimpleSelectStarFromProductTable() {
@@ -2557,7 +2543,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"customer\") AS \"t\",\n"
         + "(SELECT 0 AS \"G\"\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")) AS \"t1\"\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")) AS \"t1\"\n"
         + "GROUP BY \"t1\".\"G\"";
     sql(query).ok(expected);
   }
@@ -2934,7 +2920,7 @@ class RelToSqlConverterTest {
     sql("VALUES " + expression)
         .withHsqldb()
         .ok("SELECT *\n"
-            + "FROM (VALUES (" + expected + ")) AS t (EXPR$0)");
+            + "FROM (VALUES  (" + expected + ")) AS t (EXPR$0)");
   }
 
   /** Test case for
@@ -4592,15 +4578,15 @@ class RelToSqlConverterTest {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
     final String expectedHsqldb = "SELECT a\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS t (a, b)";
+        + "FROM (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS t (a, b)";
     final String expectedMysql = "SELECT `a`\n"
         + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
         + "UNION ALL\n"
         + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
+        + "FROM (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS \"t\" (\"a\", \"b\")";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -4649,7 +4635,7 @@ class RelToSqlConverterTest {
         + "FROM \"DUAL\"\n"
         + "WHERE 1 = 0";
     final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
+        + "FROM (VALUES  (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
         + "WHERE 1 = 0";
     sql(sql)
         .optimize(rules, null)
@@ -4674,22 +4660,11 @@ class RelToSqlConverterTest {
         .project(builder.field("a"))
         .build();
     final String expectedSql = "SELECT \"t\".\"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
-        + "FULL JOIN (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
+        + "FROM (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
+        + "FULL JOIN (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
     assertThat(toSql(root), isLinux(expectedSql));
-
-    // Now with indentation.
-    final String expectedSql2 = "SELECT \"t\".\"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "        (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
-        + "  FULL JOIN (VALUES (1, 'x '),\n"
-        + "        (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
-    assertThat(
-        toSql(root, DatabaseProduct.CALCITE.getDialect(),
-            c -> c.withIndentation(2)),
-        isLinux(expectedSql2));
   }
 
   @Test void testSelectWithoutFromEmulationForHiveAndBigQuery() {
@@ -4780,7 +4755,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
         + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
         + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
     sql(sql).ok(expected);
   }
 
@@ -5116,7 +5091,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
         + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
-        + "FROM (SELECT *\nFROM (VALUES (NULL, NULL))"
+        + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
         + " AS \"t\" (\"department_id\", \"department_description\")"
         + "\nWHERE 1 = 0) AS \"t\","
         + "\n(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\""
@@ -5216,7 +5191,7 @@ class RelToSqlConverterTest {
   @Test void testSelectNullWithCast() {
     final String query = "SELECT CAST(NULL AS INT)";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5225,7 +5200,7 @@ class RelToSqlConverterTest {
   @Test void testSelectNullWithCount() {
     final String query = "SELECT COUNT(CAST(NULL AS INT))";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5236,8 +5211,8 @@ class RelToSqlConverterTest {
         + "FROM (VALUES  (0))AS \"t\"\n"
         + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"EXPR$0\")\n"
-        + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+        + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5267,7 +5242,7 @@ class RelToSqlConverterTest {
         + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
         + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
         + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5370,10 +5345,10 @@ class RelToSqlConverterTest {
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
@@ -5392,17 +5367,17 @@ class RelToSqlConverterTest {
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES (0)) AS [t] ([ZERO])\n"
+        + "FROM (VALUES  (0)) AS [t] ([ZERO])\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES (0)) AS [t] ([ZERO])";
+        + "FROM (VALUES  (0)) AS [t] ([ZERO])";
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expectedDefault)
@@ -5418,10 +5393,10 @@ class RelToSqlConverterTest {
     final String expected = ""
         + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected);
@@ -5434,10 +5409,10 @@ class RelToSqlConverterTest {
     final String expected = ""
         + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected);
