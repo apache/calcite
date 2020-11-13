@@ -50,6 +50,7 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -74,6 +75,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.Is.isA;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -2346,6 +2348,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     visitor.visit(calc);
     assertThat(rels.size(), is(1));
     assertThat(rels.get(0), isA(LogicalCalc.class));
+  }
+
+  @Test void testExplainCalc() {
+    final String sql = "select empno, ename from emp where empno > 100";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.FILTER_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.CALC_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final LogicalCalc calc = (LogicalCalc) planner.findBestExp();
+    Pair<RexNode, List<RexNode>> pair = RelOptUtil.explainCalc(calc);
+    assertEquals(pair.getKey().toString(), ">($0, 100)");
+    assertThat(pair.getValue().size(), is(2));
   }
 
   @Test void testRelShuttleForLogicalTableModify() {

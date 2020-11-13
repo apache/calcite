@@ -3276,6 +3276,24 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Explain filtering condition and projections from Calc.
+   */
+  public static Pair<RexNode, List<RexNode>> explainCalc(final Calc calc) {
+    final RexProgram rexProgram = calc.getProgram();
+    final RexShuttle expandShuttle = new RexShuttle() {
+      @Override public RexNode visitLocalRef(RexLocalRef localRef) {
+        return calc.getProgram().expandLocalRef(localRef);
+      }
+    };
+    final RexNode condition = expandShuttle.apply(calc.getProgram().getCondition());
+    final List<RexNode> projects = new ArrayList<>();
+    for (RexNode rex : expandShuttle.apply(rexProgram.getProjectList())) {
+      projects.add(rex);
+    }
+    return Pair.of(condition, projects);
+  }
+
+  /**
    * Creates a relational expression that projects the given fields of the
    * input.
    *

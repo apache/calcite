@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -30,14 +31,12 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -141,16 +140,8 @@ public class RelMdColumnOrigins
   public Set<RelColumnOrigin> getColumnOrigins(Calc rel,
       final RelMetadataQuery mq, int iOutputColumn) {
     final RelNode input = rel.getInput();
-    final RexShuttle rexShuttle = new RexShuttle() {
-      @Override public RexNode visitLocalRef(RexLocalRef localRef) {
-        return rel.getProgram().expandLocalRef(localRef);
-      }
-    };
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex: rexShuttle.apply(rel.getProgram().getProjectList())) {
-      projects.add(rex);
-    }
-    final RexNode rexNode = projects.get(iOutputColumn);
+    final Pair<RexNode, List<RexNode>> pair = RelOptUtil.explainCalc(rel);
+    final RexNode rexNode = pair.getValue().get(iOutputColumn);
     if (rexNode instanceof RexInputRef) {
       // Direct reference:  no derivation added.
       RexInputRef inputRef = (RexInputRef) rexNode;
