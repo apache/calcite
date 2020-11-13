@@ -2703,8 +2703,8 @@ LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
         <Resource name="planBefore">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[false])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
-    LogicalValues(tuples=[[{ 0, 'null', null }]])
+  LogicalProject(EMPNO=[0], ENAME=['null'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
+    LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="planAfter">
@@ -7760,7 +7760,11 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$3], EXPR$1=[$4])
     LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[CAST($1):INTEGER NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(NAME=[$0], EXPR$1=[IS NOT NULL($1)])
-      LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
+      LogicalUnion(all=[true])
+        LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
+          LogicalValues(tuples=[[{ 0 }]])
+        LogicalProject(EXPR$0=[2], EXPR$1=[1])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="planAfter">

@@ -33,13 +33,28 @@ where t1.x not in (select t2.x from t2);
 
 !ok
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[IS NULL($t4)], expr#8=[>=($t2, $t1)], expr#9=[IS NOT NULL($t0)], expr#10=[AND($t7, $t8, $t9)], expr#11=[OR($t6, $t10)], X=[$t0], $condition=[$t11])
-  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-      EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[2], EXPR$0=[$t1])
+          EnumerableValues(tuples=[[{ 0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], EXPR$0=[$t1])
+          EnumerableValues(tuples=[[{ 0 }]])
       EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
-        EnumerableValues(tuples=[[{ 1 }, { null }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
-      EnumerableValues(tuples=[[{ 1 }, { null }]])
+        EnumerableUnion(all=[true])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+            EnumerableValues(tuples=[[{ 0 }]])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], EXPR$0=[$t1])
+            EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableAggregate(group=[{0, 1}])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
+        EnumerableUnion(all=[true])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
+            EnumerableValues(tuples=[[{ 0 }]])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], EXPR$0=[$t1])
+            EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Use of case is to get around issue with directly specifying null in values

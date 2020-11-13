@@ -131,7 +131,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
-import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -1562,22 +1561,6 @@ public class RelBuilder {
       }
       return this;
     }
-
-    // If the expressions are all literals, and the input is a Values with N
-    // rows, replace with a Values with same tuple N times.
-    if (config.simplifyValues()
-        && frame.rel instanceof Values
-        && nodeList.stream().allMatch(e -> e instanceof RexLiteral)) {
-      final Values values = (Values) build();
-      final RelDataTypeFactory.Builder typeBuilder = getTypeFactory().builder();
-      Pair.forEach(fieldNameList, nodeList, (name, expr) ->
-          typeBuilder.add(name, expr.getType()));
-      @SuppressWarnings({"unchecked", "rawtypes"})
-      final List<RexLiteral> tuple = (List<RexLiteral>) (List) nodeList;
-      return values(Collections.nCopies(values.tuples.size(), tuple),
-          typeBuilder.build());
-    }
-
     final RelNode project =
         struct.projectFactory.createProject(frame.rel,
             ImmutableList.copyOf(hints),
@@ -1626,20 +1609,6 @@ public class RelBuilder {
         final Project newInput = childProject.copy(childProject.getTraitSet(),
             childProject.getInput(), childProject.getProjects(), rowType);
         stack.push(new Frame(newInput.attachHints(childProject.getHints()), frame.fields));
-      }
-      if (input instanceof Values && fieldNames != null) {
-        // Rename columns of child values if desired field names are given.
-        final Frame frame = stack.pop();
-        final Values values = (Values) frame.rel;
-        final RelDataTypeFactory.Builder typeBuilder =
-            getTypeFactory().builder();
-        Pair.forEach(fieldNameList, rowType.getFieldList(), (name, field) ->
-            typeBuilder.add(name, field.getType()));
-        final RelDataType newRowType = typeBuilder.build();
-        final RelNode newValues =
-            struct.valuesFactory.createValues(cluster, newRowType,
-                values.tuples);
-        stack.push(new Frame(newValues, frame.fields));
       }
     } else {
       project(nodeList, rowType.getFieldNames(), force);
@@ -2064,26 +2033,12 @@ public class RelBuilder {
     default:
       throw new AssertionError("bad setOp " + kind);
     }
-
-    if (n == 1) {
+    switch (n) {
+    case 1:
       return push(inputs.get(0));
+    default:
+      return push(struct.setOpFactory.createSetOp(kind, inputs, all));
     }
-
-    if (config.simplifyValues()
-        && kind == UNION
-        && inputs.stream().allMatch(r -> r instanceof Values)) {
-      RelDataType rowType = getTypeFactory()
-          .leastRestrictive(Util.transform(inputs, RelNode::getRowType));
-      final List<List<RexLiteral>> tuples = new ArrayList<>();
-      for (RelNode input : inputs) {
-        tuples.addAll(((Values) input).tuples);
-      }
-      final List<List<RexLiteral>> tuples2 =
-          all ? tuples : Util.distinctList(tuples);
-      return values(tuples2, rowType);
-    }
-
-    return push(struct.setOpFactory.createSetOp(kind, inputs, all));
   }
 
   /** Creates a {@link Union} of the two most recent
@@ -2102,7 +2057,7 @@ public class RelBuilder {
    * @param n Number of inputs to the UNION operator
    */
   public RelBuilder union(boolean all, int n) {
-    return setOp(all, UNION, n);
+    return setOp(all, SqlKind.UNION, n);
   }
 
   /** Creates an {@link Intersect} of the two most
@@ -2647,7 +2602,7 @@ public class RelBuilder {
         ++changeCount;
       }
     }
-    if (changeCount == 0 && tupleList instanceof ImmutableList) {
+    if (changeCount == 0) {
       // don't make a copy if we don't have to
       //noinspection unchecked
       return (ImmutableList<ImmutableList<E>>) tupleList;
@@ -3601,15 +3556,6 @@ public class RelBuilder {
 
     /** Sets {@link #simplifyLimit()}. */
     Config withSimplifyLimit(boolean simplifyLimit);
-
-    /** Whether to simplify {@code Union(Values, Values)} or
-     * {@code Union(Project(Values))} to {@code Values}; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean simplifyValues();
-
-    /** Sets {@link #simplifyValues()}. */
-    Config withSimplifyValues(boolean simplifyValues);
 
     /** Whether to create an Aggregate even if we know that the input is
      * already unique; default false. */

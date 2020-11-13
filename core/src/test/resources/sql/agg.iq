@@ -2239,7 +2239,8 @@ from (values (1,2),(3,4));
 EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
   EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
     EnumerableAggregate(group=[{0}])
-      EnumerableValues(tuples=[[{ '1' }, { '1' }]])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
+        EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
 !plan
 
 !use scott
@@ -2775,7 +2776,25 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0])], EXPR$2=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0 DESC])])
-  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
+  EnumerableUnion(all=[true])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # [CALCITE-2787] Json aggregate calls with different null clause get incorrectly merged
@@ -2794,7 +2813,25 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($0)])
-  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
+  EnumerableUnion(all=[true])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 select gender,
@@ -2811,7 +2848,25 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+  EnumerableUnion(all=[true])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 select listagg(ename) as combined_name from emp;
@@ -2834,8 +2889,26 @@ select listagg(ename) within group(order by gender, ename) as combined_name from
 
 !ok
 
-EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([2, 0])])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])])
+  EnumerableUnion(all=[true])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 select

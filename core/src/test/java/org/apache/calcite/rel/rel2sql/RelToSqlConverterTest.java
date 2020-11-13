@@ -99,12 +99,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for {@link RelToSqlConverter}.
  */
 class RelToSqlConverterTest {
+  static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
+      SqlToRelConverter.config()
+          .withTrimUnusedFields(false);
+
+  static final SqlToRelConverter.Config NO_EXPAND_CONFIG =
+      SqlToRelConverter.config()
+          .withTrimUnusedFields(false)
+          .withExpand(false);
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        UnaryOperator.identity(), null, ImmutableList.of());
+        DEFAULT_REL_CONFIG, null, ImmutableList.of());
   }
 
   /** Initiates a test case with a given {@link RelNode} supplier. */
@@ -2545,10 +2553,12 @@ class RelToSqlConverterTest {
         + "  (SELECT 0 AS g) AS v\n"
         + "GROUP BY v.g";
     final String expected = "SELECT"
-        + " CASE WHEN \"t0\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
-        + "FROM (SELECT *\nFROM \"foodmart\".\"customer\") AS \"t\",\n"
-        + "(VALUES (0)) AS \"t0\" (\"G\")\n"
-        + "GROUP BY \"t0\".\"G\"";
+        + " CASE WHEN \"t1\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t\",\n"
+        + "(SELECT 0 AS \"G\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")) AS \"t1\"\n"
+        + "GROUP BY \"t1\".\"G\"";
     sql(query).ok(expected);
   }
 
@@ -3480,7 +3490,7 @@ class RelToSqlConverterTest {
         + "WHERE EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
   }
 
   @Test void testNotExistsWithExpand() {
@@ -3493,7 +3503,7 @@ class RelToSqlConverterTest {
         + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
   }
 
   @Test void testSubQueryInWithExpand() {
@@ -3506,7 +3516,7 @@ class RelToSqlConverterTest {
         + "WHERE \"product_id\" IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
   }
 
   @Test void testSubQueryInWithExpand2() {
@@ -3515,7 +3525,7 @@ class RelToSqlConverterTest {
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" = 1 OR \"product_id\" = 2";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
   }
 
   @Test void testSubQueryNotInWithExpand() {
@@ -3528,7 +3538,7 @@ class RelToSqlConverterTest {
         + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
   }
 
   @Test void testLike() {
@@ -5205,8 +5215,8 @@ class RelToSqlConverterTest {
 
   @Test void testSelectNullWithCast() {
     final String query = "SELECT CAST(NULL AS INT)";
-    final String expected = "SELECT *\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"EXPR$0\")";
+    final String expected = "SELECT CAST(NULL AS INTEGER)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5214,8 +5224,8 @@ class RelToSqlConverterTest {
 
   @Test void testSelectNullWithCount() {
     final String query = "SELECT COUNT(CAST(NULL AS INT))";
-    final String expected = "SELECT COUNT(\"$f0\")\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"$f0\")";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5225,9 +5235,9 @@ class RelToSqlConverterTest {
     final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
         + "FROM (VALUES  (0))AS \"t\"\n"
         + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
-    final String expected = "SELECT COUNT(\"$f1\")\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"$f0\", \"$f1\")\n"
-        + "GROUP BY \"$f0\"";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"EXPR$0\")\n"
+        + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5252,16 +5262,12 @@ class RelToSqlConverterTest {
     final String expected = "INSERT INTO \"foodmart\".\"account\" ("
         + "\"account_id\", \"account_parent\", \"account_description\", "
         + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT \"EXPR$0\" AS \"account_id\","
-        + " \"EXPR$1\" AS \"account_parent\","
-        + " CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\") "
-        + "AS \"account_description\","
-        + " \"EXPR$2\" AS \"account_type\","
-        + " \"EXPR$3\" AS \"account_rollup\","
-        + " CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") "
-        + "AS \"Custom_Members\"\n"
-        + "FROM (VALUES (1, NULL, '123', '123')) "
-        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\"))";
+        + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
+        + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
+        + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
+        + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
+        + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5360,13 +5366,8 @@ class RelToSqlConverterTest {
 
   @Test void testRowValueExpression() {
     String sql = "insert into \"DEPT\"\n"
-        + "values ROW(1,'Fred', 'San Francisco'),\n"
-        + "  ROW(2, 'Eric', 'Washington')";
+        + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
-        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedDefaultX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
@@ -5374,25 +5375,14 @@ class RelToSqlConverterTest {
         + "SELECT 2, 'Eric', 'Washington'\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedHiveX = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
     final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
-        + " (`DEPTNO`, `DNAME`, `LOC`)\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedMysqlX = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\nSELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
     final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
-        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedOracleX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM \"DUAL\"\n"
@@ -5401,20 +5391,12 @@ class RelToSqlConverterTest {
         + "FROM \"DUAL\"";
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
-        + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM (VALUES (0)) AS [t] ([ZERO])\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
         + "FROM (VALUES (0)) AS [t] ([ZERO])";
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
-        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
-    final String expectedCalciteX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
@@ -5428,16 +5410,7 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
         .withMssql().ok(expectedMssql)
-        .withCalcite().ok(expectedCalcite)
-        .withConfig(c ->
-            c.withRelBuilderConfigTransform(b ->
-                b.withSimplifyValues(false)))
-        .withCalcite().ok(expectedDefaultX)
-        .withHive().ok(expectedHiveX)
-        .withMysql().ok(expectedMysqlX)
-        .withOracle().ok(expectedOracleX)
-        .withMssql().ok(expectedMssqlX)
-        .withCalcite().ok(expectedCalciteX);
+        .withCalcite().ok(expectedCalcite);
   }
 
   @Test void testInsertValuesWithDynamicParams() {
@@ -5545,11 +5518,10 @@ class RelToSqlConverterTest {
     private final Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
-    private final UnaryOperator<SqlToRelConverter.Config> config;
+    private final SqlToRelConverter.Config config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
-        UnaryOperator<SqlToRelConverter.Config> config,
+        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -5563,8 +5535,7 @@ class RelToSqlConverterTest {
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
-        UnaryOperator<SqlToRelConverter.Config> config,
+        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
@@ -5709,7 +5680,7 @@ class RelToSqlConverterTest {
           transforms);
     }
 
-    Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
+    Sql config(SqlToRelConverter.Config config) {
       return new Sql(schema, sql, dialect, parserConfig, config, relFn,
           transforms);
     }
@@ -5750,8 +5721,6 @@ class RelToSqlConverterTest {
         if (relFn != null) {
           rel = relFn.apply(relBuilder());
         } else {
-          final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
-              .withTrimUnusedFields(false));
           final Planner planner =
               getPlanner(null, parserConfig, schema, config);
           SqlNode parse = planner.parse(sql);
