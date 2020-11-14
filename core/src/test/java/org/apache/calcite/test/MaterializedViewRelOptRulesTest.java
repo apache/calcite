@@ -452,7 +452,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
                 "EnumerableUnion(all=[true])",
                 "EnumerableAggregate(group=[{2}])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10\u202511]]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..11]]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -494,7 +494,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
                 "EnumerableUnion(all=[true])",
                 "EnumerableAggregate(group=[{2}])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10\u202511], [19\u202520)]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -710,7 +710,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
                 "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
                 "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10\u202511], [19\u202520)]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 
@@ -888,7 +888,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .withChecker(
             resultContains("EnumerableUnion(all=[true])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10\u202530]]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..30]]], expr#6=[SEARCH($t0, $t5)]"))
         .ok();
   }
 

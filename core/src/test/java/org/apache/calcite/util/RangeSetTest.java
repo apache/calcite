@@ -32,6 +32,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+import static org.apache.calcite.test.Matchers.isRangeSet;
+
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -56,28 +59,28 @@ class RangeSetTest {
             .add(Range.singleton(3))
             .add(Range.greaterThan(5))
             .build();
-    assertThat(setComplex.toString(), is("[[0\u20252], [3\u20253], (5\u2025+\u221e)]"));
+    assertThat(setComplex, isRangeSet("[[0..2], [3..3], (5..+\u221e)]"));
 
-    assertThat(RangeSets.minus(setAll, Range.singleton(1)).toString(),
-        is("[(-\u221e\u20251), (1\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setAll, Range.singleton(1)),
+        isRangeSet("[(-\u221e..1), (1..+\u221e)]"));
     assertThat(RangeSets.minus(setNone, Range.singleton(1)), is(setNone));
     assertThat(RangeSets.minus(setGt2, Range.singleton(1)), is(setGt2));
     assertThat(RangeSets.minus(setGt1, Range.singleton(1)), is(setGt1));
     assertThat(RangeSets.minus(setGe1, Range.singleton(1)), is(setGt1));
-    assertThat(RangeSets.minus(setGt0, Range.singleton(1)).toString(),
-        is("[(0\u20251), (1\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(1)).toString(),
-        is("[[0\u20251), (1\u20252], [3\u20253], (5\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(2)).toString(),
-        is("[[0\u20252), [3\u20253], (5\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.singleton(3)).toString(),
-        is("[[0\u20252], (5\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)).toString(),
-        is("[[0\u20252], [3\u20253], (5\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)).toString(),
-        is("[[0\u20252), (5\u2025+\u221e)]"));
-    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)).toString(),
-        is("[[0\u20252), (7\u2025+\u221e)]"));
+    assertThat(RangeSets.minus(setGt0, Range.singleton(1)),
+        isRangeSet("[(0..1), (1..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(1)),
+        isRangeSet("[[0..1), (1..2], [3..3], (5..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(2)),
+        isRangeSet("[[0..2), [3..3], (5..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.singleton(3)),
+        isRangeSet("[[0..2], (5..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.open(2, 3)),
+        isRangeSet("[[0..2], [3..3], (5..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 3)),
+        isRangeSet("[[0..2), (5..+\u221e)]"));
+    assertThat(RangeSets.minus(setComplex, Range.closed(2, 7)),
+        isRangeSet("[[0..2), (7..+\u221e)]"));
   }
 
   /** Tests {@link RangeSets#isPoint(Range)}. */
@@ -295,13 +298,18 @@ class RangeSetTest {
   @Test void testRangePrint() {
     final Fixture f = new Fixture();
 
-    // RangeSet's native printing
+    // RangeSet's native printing; format used a unicode symbol up to 28.2, and
+    // ".." 29.0 and later.
     final List<String> list = new ArrayList<>();
     f.ranges.forEach(r -> list.add(r.toString()));
-    final String expected = "[(-\u221e\u2025+\u221e), (-\u221e\u20253], "
+    final String expectedGuava28 = "[(-\u221e\u2025+\u221e), (-\u221e\u20253], "
         + "[4\u2025+\u221e), (-\u221e\u20255), (6\u2025+\u221e), [7\u20257], "
         + "(8\u20259), (10\u202511], [12\u202513], [14\u202515)]";
-    assertThat(list.toString(), is(expected));
+    final String expectedGuava29 = "[(-\u221e..+\u221e), (-\u221e..3], "
+        + "[4..+\u221e), (-\u221e..5), (6..+\u221e), [7..7], "
+        + "(8..9), (10..11], [12..13], [14..15)]";
+    assertThat(list.toString(),
+        anyOf(is(expectedGuava28), is(expectedGuava29)));
     list.clear();
 
     final StringBuilder sb = new StringBuilder();
@@ -311,9 +319,9 @@ class RangeSetTest {
       sb.setLength(0);
     });
     // our format matches Guava's, except points ("7" vs "[7, 7]")
-    final String expected2 = "[(-\u221e\u2025+\u221e), (-\u221e\u20253], "
-        + "[4\u2025+\u221e), (-\u221e\u20255), (6\u2025+\u221e), 7, "
-        + "(8\u20259), (10\u202511], [12\u202513], [14\u202515)]";
+    final String expected2 = "[(-\u221e..+\u221e), (-\u221e..3], "
+        + "[4..+\u221e), (-\u221e..5), (6..+\u221e), 7, "
+        + "(8..9), (10..11], [12..13], [14..15)]";
     assertThat(list.toString(), is(expected2));
     list.clear();
   }

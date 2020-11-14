@@ -25,6 +25,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.RangeSet;
 
 import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
@@ -231,6 +232,22 @@ public class Matchers {
         input -> input instanceof Hintable
             ? ((Hintable) input).getHints().toString()
             : "[]");
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RangeSet} if its string
+   * representation, after changing "&#2025;" to "..",
+   * is equal to the given {@code value}.
+   *
+   * <p>This method is necessary because {@link RangeSet#toString()} changed
+   * behavior. Guava 19 - 28 used a unicode symbol;Guava 29 onwards uses "..".
+   */
+  public static Matcher<RangeSet> isRangeSet(final String value) {
+    return compose(Is.is(value), input -> {
+      // Change all '\u2025' (a unicode symbol denoting a range) to '..',
+      // consistent with Guava 29+.
+      return input.toString().replace("\u2025", "..");
+    });
   }
 
   /**
