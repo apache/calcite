@@ -146,7 +146,10 @@ public abstract class SqlCall extends SqlNode {
       return litmus.fail("{} != {}", this, node);
     }
     SqlCall that = (SqlCall) node;
-
+    SqlCall that = (SqlCall) node;
+    if (!equalDeep(this.getFunctionQuantifier(), that.getFunctionQuantifier(), litmus)) {
+      return litmus.fail("{} != {}", this, node);
+    }
     // Compare operators by name, not identity, because they may not
     // have been resolved yet. Use case insensitive comparison since
     // this may be a case insensitive system.
