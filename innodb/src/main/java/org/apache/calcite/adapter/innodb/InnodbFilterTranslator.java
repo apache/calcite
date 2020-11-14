@@ -23,6 +23,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -52,8 +53,7 @@ import javax.annotation.Nullable;
  * which might be pushed down to an InnoDB data source.
  */
 class InnodbFilterTranslator {
-  @SuppressWarnings("unused")
-  private final RexBuilder rexBuilder; // will be useful for expandSearch
+  private final RexBuilder rexBuilder;
   /** Field names per row type. */
   private final List<String> fieldNames;
   /** Primary key metadata. */
@@ -96,8 +96,9 @@ class InnodbFilterTranslator {
    * @return push down condition
    */
   private IndexCondition translateAnd(RexNode condition) {
-    // TODO: expand calls to SEARCH(..., Sarg()) to >, =, etc.
-    final RexNode condition2 = condition;
+    // expand calls to SEARCH(..., Sarg()) to >, =, etc.
+    final RexNode condition2 =
+        RexUtil.expandSearch(rexBuilder, null, condition);
     // decompose condition by AND, flatten row expression
     List<RexNode> rexNodeList = RelOptUtil.conjunctions(condition2);
 
