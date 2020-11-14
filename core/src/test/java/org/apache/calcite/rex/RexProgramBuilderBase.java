@@ -351,14 +351,15 @@ public abstract class RexProgramBuilderBase {
   }
 
   /**
-   * Generates {@code x IN (y, z)} expression when called as {@code in(x, y, z)}.
+   * Generates {@code x IN (y, z)} expression when called as
+   * {@code in(x, y, z)}.
+   *
    * @param node left side of the IN expression
    * @param nodes nodes in the right side of IN expression
    * @return IN expression
    */
   protected RexNode in(RexNode node, RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.IN,
-        ImmutableList.<RexNode>builder().add(node).add(nodes).build());
+    return rexBuilder.makeIn(node, ImmutableList.copyOf(nodes));
   }
 
   // Types

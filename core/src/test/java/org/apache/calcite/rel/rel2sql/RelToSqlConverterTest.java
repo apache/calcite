@@ -886,8 +886,7 @@ class RelToSqlConverterTest {
         .build();
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE (\"EMPNO\" = 0 OR \"EMPNO\" = 1 OR \"EMPNO\" = 2 OR \"EMPNO\" = 3)"
-        + " AND (\"DEPTNO\" = 5 OR \"DEPTNO\" = 6 OR \"DEPTNO\" = 7)";
+        + "WHERE \"EMPNO\" IN (0, 1, 2, 3) AND \"DEPTNO\" IN (5, 6, 7)";
     relFn(relFn).ok(expected);
   }
 
@@ -1514,22 +1513,18 @@ class RelToSqlConverterTest {
   @Test void testUnparseIn1() {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
-            .filter(
-                b.call(SqlStdOperatorTable.IN, b.field("DEPTNO"),
-                    b.literal(21)))
+            .filter(b.in(b.field("DEPTNO"), b.literal(21)))
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" IN (21)";
+        + "WHERE \"DEPTNO\" = 21";
     relFn(relFn).ok(expectedSql);
   }
 
   @Test void testUnparseIn2() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
-        .filter(
-            b.call(SqlStdOperatorTable.IN, b.field("DEPTNO"),
-                b.literal(20), b.literal(21)))
+        .filter(b.in(b.field("DEPTNO"), b.literal(20), b.literal(21)))
         .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
@@ -1541,7 +1536,7 @@ class RelToSqlConverterTest {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
             .filter(
-                b.call(SqlStdOperatorTable.IN,
+                b.in(
                     b.call(SqlStdOperatorTable.ROW,
                         b.field("DEPTNO"), b.field("JOB")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(1),
@@ -1549,7 +1544,7 @@ class RelToSqlConverterTest {
             .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -1557,11 +1552,11 @@ class RelToSqlConverterTest {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
             .filter(
-                b.call(SqlStdOperatorTable.IN,
+                b.in(
                     b.call(SqlStdOperatorTable.ROW,
                         b.field("DEPTNO"), b.field("JOB")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                b.literal("PRESIDENT")),
+                        b.literal("PRESIDENT")),
                     b.call(SqlStdOperatorTable.ROW, b.literal(2),
                         b.literal("PRESIDENT"))))
             .build();
@@ -2544,7 +2539,7 @@ class RelToSqlConverterTest {
         + "  (SELECT 0 AS g) AS v\n"
         + "GROUP BY v.g";
     final String expected = "SELECT"
-        + " CASE WHEN \"t1\".\"G\" = 0 OR \"t1\".\"G\" = 1 THEN 0 ELSE 1 END\n"
+        + " CASE WHEN \"t1\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"customer\") AS \"t\",\n"
         + "(SELECT 0 AS \"G\"\n"

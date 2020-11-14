@@ -80,6 +80,7 @@ public class RexCall extends RexNode {
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
     assert op.getKind() != null : op;
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
+    assert op.kind != SqlKind.IN || this instanceof RexSubQuery;
   }
 
   //~ Methods ----------------------------------------------------------------
