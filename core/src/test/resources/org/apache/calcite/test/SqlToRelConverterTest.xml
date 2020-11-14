@@ -55,8 +55,7 @@ LogicalProject(COLLECT_SKILL=[$1], COUNT_SKILL=[$2], COUNT_STAR=[$2], APPROX_COU
     <TestCase name="testCase">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[1])
-  LogicalValues(tuples=[[{ 0 }]])
+LogicalValues(tuples=[[{ 1 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -558,8 +557,7 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
             FROM emp
             WHERE deptno = t1.deptno)
     ORDER BY ename DESC
-    LIMIT 3
-  )]]>
+    LIMIT 3]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -927,8 +925,7 @@ LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[34])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[30])
-      LogicalValues(tuples=[[{ 0 }]])
+    LogicalValues(tuples=[[{ 30 }]])
     LogicalProject(EXPR$0=[+(45, 10)])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -967,11 +964,7 @@ LogicalProject(DEPTNO=[$7])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[AND(OR(IS NOT NULL($0), IS NOT NULL($1)), IS NOT TRUE(=($0, $1)))])
-  LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[1])
-      LogicalValues(tuples=[[{ 0 }]])
-    LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
-      LogicalValues(tuples=[[{ 0 }]])
+  LogicalValues(tuples=[[{ null, 1 }, { 2, null }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -984,11 +977,7 @@ from (values (cast(null as int), 1),
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
-  LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[1])
-      LogicalValues(tuples=[[{ 0 }]])
-    LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
-      LogicalValues(tuples=[[{ 0 }]])
+  LogicalValues(tuples=[[{ null, 1 }, { 2, null }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -3101,8 +3090,7 @@ group by rollup(a, b)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
-  LogicalProject(A=[null:INTEGER], B=[2])
-    LogicalValues(tuples=[[{ 0 }]])
+  LogicalValues(tuples=[[{ null, 2 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -7273,7 +7261,6 @@ LogicalProject(EMPNO=[$0])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
-
         </Resource>
     </TestCase>
     <TestCase name="testJoinExpandAndDecorrelation">
@@ -7303,6 +7290,15 @@ LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
+        <Resource name="sql">
+            <![CDATA[SELECT emp.deptno, emp.sal
+FROM dept
+JOIN emp ON emp.deptno = dept.deptno AND emp.sal < (
+  SELECT AVG(emp.sal)
+  FROM emp
+  WHERE  emp.deptno = dept.deptno
+)]]>
+        </Resource>
     </TestCase>
     <TestCase name="testImplicitJoinExpandAndDecorrelation">
         <Resource name="plan_extended">
@@ -7331,6 +7327,14 @@ LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[SELECT emp.deptno, emp.sal
+FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
+  SELECT AVG(emp.sal)
+  FROM emp
+  WHERE  emp.deptno = dept.deptno
+)]]>
         </Resource>
     </TestCase>
     <TestCase name="testCompositeOfCountRange">

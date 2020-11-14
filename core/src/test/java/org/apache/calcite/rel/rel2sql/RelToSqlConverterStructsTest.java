@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple
@@ -163,7 +164,7 @@ class RelToSqlConverterStructsTest {
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        RelToSqlConverterTest.DEFAULT_REL_CONFIG, null, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of());
   }
 
   @Test void testNestedSchemaSelectStar() {
