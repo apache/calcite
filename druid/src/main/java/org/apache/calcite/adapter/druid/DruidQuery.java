@@ -483,8 +483,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         if (r instanceof Filter) {
           final Filter filter = (Filter) r;
-          final DruidJsonFilter druidJsonFilter = DruidJsonFilter
-              .toDruidFilters(filter.getCondition(), filter.getInput().getRowType(), this);
+          final DruidJsonFilter druidJsonFilter =
+              DruidJsonFilter.toDruidFilters(filter.getCondition(),
+                  filter.getInput().getRowType(), this,
+                  getCluster().getRexBuilder());
           if (druidJsonFilter == null) {
             return litmus.fail("invalid filter [{}]", filter.getCondition());
           }
@@ -723,20 +725,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * Currently Filter rel input has to be Druid Table scan
    *
    * @param filterRel input filter rel
-   * @param druidQuery Druid query
    *
    * @return DruidJson Filter or null if cannot translate one of filters
    */
   @Nullable
-  private static DruidJsonFilter computeFilter(@Nullable Filter filterRel,
-      DruidQuery druidQuery) {
+  private DruidJsonFilter computeFilter(@Nullable Filter filterRel) {
     if (filterRel == null) {
       return null;
     }
     final RexNode filter = filterRel.getCondition();
     final RelDataType inputRowType = filterRel.getInput().getRowType();
     if (filter != null) {
-      return DruidJsonFilter.toDruidFilters(filter, inputRowType, druidQuery);
+      return DruidJsonFilter.toDruidFilters(filter, inputRowType, this,
+          getCluster().getRexBuilder());
     }
     return null;
   }
@@ -985,7 +986,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject,
       Filter havingFilter) {
     // Handle filter
-    final DruidJsonFilter jsonFilter = computeFilter(filter, this);
+    final DruidJsonFilter jsonFilter = computeFilter(filter);
 
     if (groupSet == null) {
       // It is Scan Query since no Grouping
@@ -1040,8 +1041,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     final DruidJsonFilter havingJsonFilter;
     if (havingFilter != null) {
-      havingJsonFilter = DruidJsonFilter
-          .toDruidFilters(havingFilter.getCondition(), havingFilter.getInput().getRowType(), this);
+      havingJsonFilter =
+          DruidJsonFilter.toDruidFilters(havingFilter.getCondition(),
+              havingFilter.getInput().getRowType(), this,
+              getCluster().getRexBuilder());
     } else {
       havingJsonFilter = null;
     }
@@ -1460,8 +1463,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
     // translate filters
     if (filterNode != null) {
-      DruidJsonFilter druidFilter = DruidJsonFilter
-          .toDruidFilters(filterNode, druidQuery.table.getRowType(), druidQuery);
+      DruidJsonFilter druidFilter =
+          DruidJsonFilter.toDruidFilters(filterNode,
+              druidQuery.table.getRowType(), druidQuery,
+              druidQuery.getCluster().getRexBuilder());
       if (druidFilter == null) {
         // cannot translate filter
         return null;

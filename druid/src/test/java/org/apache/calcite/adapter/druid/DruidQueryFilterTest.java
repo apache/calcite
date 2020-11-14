@@ -74,7 +74,7 @@ class DruidQueryFilterTest {
     RexNode inRexNode =
         f.rexBuilder.makeCall(SqlInternalOperators.DRUID_IN, listRexNodes);
     DruidJsonFilter returnValue = DruidJsonFilter
-        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery);
+        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
     assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
@@ -99,7 +99,7 @@ class DruidQueryFilterTest {
         SqlInternalOperators.DRUID_BETWEEN, listRexNodes);
 
     DruidJsonFilter returnValue = DruidJsonFilter
-        .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery);
+        .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
     assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
