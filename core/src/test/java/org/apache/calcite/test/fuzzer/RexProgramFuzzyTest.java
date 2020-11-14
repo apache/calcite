@@ -81,7 +81,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
       Long.getLong("calcite.rex.fuzzing.default.seed", 0);
   private static final Duration DEFAULT_FUZZ_TEST_DURATION =
       Duration.of(
-          Integer.getInteger("calcite.rex.fuzzing.default.duration", 5),
+          Integer.getInteger("calcite.rex.fuzzing.default.duration", 120),
           ChronoUnit.SECONDS);
   private static final Duration SLOW_FUZZ_TEST_DURATION =
       Duration.of(
