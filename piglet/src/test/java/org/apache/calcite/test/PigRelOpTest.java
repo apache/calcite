@@ -381,7 +381,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "    WHERE JOB <> 'CLERK'\n"
         + "    GROUP BY DEPTNO, JOB) AS $cor1,\n"
         + "  LATERAL UNNEST (SELECT $cor1.$f2 AS $f0\n"
-        + "    FROM (VALUES  (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
+        + "    FROM (VALUES (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
         + " MGR, HIREDATE, SAL, COMM, DEPTNO) AS t30\n"
         + "ORDER BY $cor1.DEPTNO, $cor1.JOB";
     pig(script).assertRel(hasTree(plan))
@@ -471,13 +471,13 @@ class PigRelOpTest extends PigRelTestBase {
         + "      LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
         + "        FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
         + "            FROM UNNEST (SELECT $cor4.A AS $f0\n"
-        + "                FROM (VALUES  (0)) AS t (ZERO)) "
+        + "                FROM (VALUES (0)) AS t (ZERO)) "
         + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "            WHERE JOB <> 'CLERK'\n"
         + "            ORDER BY SAL) AS t5\n"
         + "        GROUP BY 'all') AS t8) AS $cor5,\n"
         + "  LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
-        + "    FROM (VALUES  (0)) AS t (ZERO)) "
+        + "    FROM (VALUES (0)) AS t (ZERO)) "
         + "AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
         + "ORDER BY $cor5.group";
     pig(script).assertRel(hasTree(plan))

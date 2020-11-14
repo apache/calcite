@@ -46,7 +46,6 @@ public class SqlRowOperator extends SqlSpecialOperator {
         null,
         InferTypes.RETURN_TYPE,
         OperandTypes.VARIADIC);
-    assert name.equals("ROW") || name.equals(" ");
   }
 
   //~ Methods ----------------------------------------------------------------
