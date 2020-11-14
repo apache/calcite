@@ -36,6 +36,8 @@ import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.mutable.MutableSetOp;
 import org.apache.calcite.rel.mutable.MutableUnion;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -140,6 +142,23 @@ public class SubstitutionVisitor {
           UnionOnCalcsToUnionUnifyRule.INSTANCE,
           IntersectToIntersectUnifyRule.INSTANCE,
           IntersectOnCalcsToIntersectUnifyRule.INSTANCE);
+
+  public static final ImmutableList<RelOptRule> NORMALIZATION_RULES =
+      ImmutableList.of(
+          CoreRules.FILTER_PROJECT_TRANSPOSE,
+          CoreRules.FILTER_MERGE,
+          CoreRules.FILTER_INTO_JOIN,
+          CoreRules.JOIN_CONDITION_PUSH,
+          CoreRules.FILTER_AGGREGATE_TRANSPOSE,
+          CoreRules.PROJECT_MERGE,
+          CoreRules.PROJECT_REMOVE,
+          CoreRules.PROJECT_JOIN_TRANSPOSE,
+          CoreRules.PROJECT_SET_OP_TRANSPOSE,
+          CoreRules.FILTER_TO_CALC,
+          CoreRules.PROJECT_TO_CALC,
+          CoreRules.FILTER_CALC_MERGE,
+          CoreRules.PROJECT_CALC_MERGE,
+          CoreRules.CALC_MERGE);
 
   /**
    * Factory for a builder for relational expressions.

@@ -1691,6 +1691,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
   }
 
+  @Test public void testQueryWithoutTopCalc() {
+    final String mv = "select sum(\"empid\"), \"deptno\" from \"emps\" group by \"deptno\"";
+    final String query = "select \"deptno\" from \"emps\" group by \"deptno\"";
+    sql(mv, query).noMat();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);

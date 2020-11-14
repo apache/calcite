@@ -22,7 +22,6 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
@@ -38,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -206,20 +206,7 @@ public abstract class RelOptMaterializations {
     target = trimUnusedfields(target);
     HepProgram program =
         new HepProgramBuilder()
-            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
-            .addRuleInstance(CoreRules.FILTER_MERGE)
-            .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
-            .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
-            .addRuleInstance(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
-            .addRuleInstance(CoreRules.PROJECT_MERGE)
-            .addRuleInstance(CoreRules.PROJECT_REMOVE)
-            .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
-            .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
-            .addRuleInstance(CoreRules.FILTER_TO_CALC)
-            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-            .addRuleInstance(CoreRules.FILTER_CALC_MERGE)
-            .addRuleInstance(CoreRules.PROJECT_CALC_MERGE)
-            .addRuleInstance(CoreRules.CALC_MERGE)
+            .addRuleCollection(rules)
             .build();
 
     // We must use the same HEP planner for the two optimizations below.
