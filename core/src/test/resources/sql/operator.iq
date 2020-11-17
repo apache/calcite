@@ -293,6 +293,7 @@ select au."birthPlace"['city'] as city from "bookstore"."authors" au;
 
 !ok
 
+!if (allow.fieldIndexAccess) {
 # we have "birthPlace(coords, city, country)", so city has index 2
 select au."birthPlace"[2] as city from "bookstore"."authors" au;
 
@@ -306,5 +307,6 @@ select au."birthPlace"[2] as city from "bookstore"."authors" au;
 (3 rows)
 
 !ok
+!}
 
 # End operator.iq
