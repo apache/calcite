@@ -839,8 +839,9 @@ public interface CalciteResource {
   @BaseMessage("More than one value in list: {0}")
   ExInst<CalciteException> moreThanOneValueInList(String list);
 
-  @BaseMessage("Failed to access field ''{0}'' of object of type {1}")
-  ExInstWithCause<CalciteException> failedToAccessField(String fieldName, String typeName);
+  @BaseMessage("Failed to access field ''{0}'', index {1,number,#} of object of type {2}")
+  ExInstWithCause<CalciteException> failedToAccessField(
+      String fieldName, int fieldIndex, String typeName);
 
   @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> $'{'expr'}'''")
   ExInst<CalciteException> illegalJsonPathSpec(String pathSpec);

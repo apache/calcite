@@ -132,6 +132,15 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.planner.topdown.opt", false);
 
   /**
+   * Whether to enable index-based access for struct fields.
+   *
+   * <p>Note: the feature is experimental as it relies on field order which is JVM-dependent
+   * (see CALCITE-2489).</p>
+   */
+  public static final CalciteSystemProperty<Boolean> ALLOW_FIELD_INDEX_ACCESS =
+      booleanProperty("calcite.experimental.allow.field.index.access", false);
+
+  /**
    * Whether to run integration tests.
    */
   // TODO review zabetak:
