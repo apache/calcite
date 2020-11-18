@@ -6713,6 +6713,34 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("substring(cast(null as varchar(1)),1,2)");
   }
 
+  @Test void testOracleSubStringFunction() {
+    SqlTester t = tester(SqlLibrary.ORACLE);
+    t.setFor(SqlLibraryOperators.ORACLE_SUBSTR);
+    t.checkString("substr(CAST('abc' AS varchar(3)), 0, 3)", "abc", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 2)", "ab", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 3)", "abc", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 4, 3)", "", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 4, 4)", "", "VARCHAR(3)");
+
+    t.checkString("substr(CAST('abc' AS varchar(3)), 0)", "abc", "VARCHAR(3) NOT NULL");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 1)", "abc", "VARCHAR(3) NOT NULL");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 2)", "bc", "VARCHAR(3) NOT NULL");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 3)", "c", "VARCHAR(3) NOT NULL");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 4)", "", "VARCHAR(3) NOT NULL");
+
+    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 0)", null, "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 1, -1)", null, "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), 4, -1)", null, "VARCHAR(3)");
+
+    //t.checkString("substr(CAST('abc' AS varchar(3)), -4, 3)", "abc", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), -3, 3)", "abc", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), -2, 3)", "bc", "VARCHAR(3)");
+    t.checkString("substr(CAST('abc' AS varchar(3)), -1, 4)", "c", "VARCHAR(3)");
+
+    t.checkString("substr(CAST('abc' AS varchar(3)), -2)", "bc", "VARCHAR(3) NOT NULL");
+    t.checkString("substr(CAST('abc' AS varchar(3)), -1)", "c", "VARCHAR(3) NOT NULL");
+  }
+
   @Test void testTrimFunc() {
     tester.setFor(SqlStdOperatorTable.TRIM);
 
