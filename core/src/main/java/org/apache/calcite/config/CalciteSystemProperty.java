@@ -91,6 +91,15 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> ENUMERABLE_ENABLE_TABLESCAN_MULTISET =
       booleanProperty("calcite.enable.enumerable.tablescan.multiset", false);
 
+  /**
+   * Whether to enable index-based access for struct fields.
+   *
+   * <p>Note: the feature is experimental as it relies on field order which is JVM-dependent
+   * (see CALCITE-2489).</p>
+   */
+  public static final CalciteSystemProperty<Boolean> ALLOW_FIELD_INDEX_ACCESS =
+      booleanProperty("calcite.enable.enumerable.fieldIndexAccess", false);
+
   /** Whether streaming is enabled in the default planner configuration. */
   public static final CalciteSystemProperty<Boolean> ENABLE_STREAM =
       booleanProperty("calcite.enable.stream", true);
@@ -130,15 +139,6 @@ public final class CalciteSystemProperty<T> {
    */
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
-
-  /**
-   * Whether to enable index-based access for struct fields.
-   *
-   * <p>Note: the feature is experimental as it relies on field order which is JVM-dependent
-   * (see CALCITE-2489).</p>
-   */
-  public static final CalciteSystemProperty<Boolean> ALLOW_FIELD_INDEX_ACCESS =
-      booleanProperty("calcite.experimental.allow.field.index.access", false);
 
   /**
    * Whether to run integration tests.

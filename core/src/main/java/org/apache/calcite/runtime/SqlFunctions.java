@@ -2973,7 +2973,7 @@ public class SqlFunctions {
             structField = beanClass.getDeclaredFields()[index];
           } else {
             throw new IllegalArgumentException("fieldName is null, fieldIndex is " + (index + 1)
-                + ", you might add calcite.experimental.allow.field.index.access=true to allow "
+                + ", you might add 'calcite.enable.enumerable.fieldIndexAccess=true' to allow "
                 + "index-based field access");
           }
         } else {
