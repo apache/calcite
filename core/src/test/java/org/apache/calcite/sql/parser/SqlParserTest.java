@@ -6186,6 +6186,31 @@ public class SqlParserTest {
     assertEquals(linux(sqlNodeVisited1.toString()), str1);
   }
 
+  @Test void testSqlDeleteSqlBasicCallToString() throws Exception {
+    final String sql0 = "delete from emps where empno = 1";
+    final SqlNode sqlNode0 = getSqlParser(sql0).parseStmt();
+    final SqlNode sqlNodeVisited0 = sqlNode0.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    final String str0 = "DELETE FROM `EMPS`\n"
+        + "WHERE `EMPNO` = 1";
+    assertEquals(linux(sqlNodeVisited0.toString()), str0);
+
+    final String sql1 = "delete from emps";
+    final SqlNode sqlNode1 = getSqlParser(sql1).parseStmt();
+    final SqlNode sqlNodeVisited1 = sqlNode1.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    final String str1 = "DELETE FROM `EMPS`";
+    assertEquals(linux(sqlNodeVisited1.toString()), str1);
+  }
+
   @Test void testVisitSqlMatchRecognizeWithSqlShuttle() throws Exception {
     final String sql = "select *\n"
         + "from emp \n"

@@ -30,7 +30,12 @@ import java.util.List;
  */
 public class SqlDelete extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("DELETE", SqlKind.DELETE);
+      new SqlSpecialOperator("DELETE", SqlKind.DELETE) {
+        @Override public SqlCall createCall(SqlLiteral functionQualifier,
+            SqlParserPos pos, SqlNode... operands) {
+          return new SqlDelete(pos, operands[0], operands[1], null, null);
+        }
+      };
 
   SqlNode targetTable;
   SqlNode condition;
