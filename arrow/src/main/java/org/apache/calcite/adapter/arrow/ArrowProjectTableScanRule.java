@@ -53,6 +53,8 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
             scan.getTable(),
             scan.arrowTable,
             fields,
+            null,
+            -1,
             null));
   }
 

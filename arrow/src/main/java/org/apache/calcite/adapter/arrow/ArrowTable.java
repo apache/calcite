@@ -35,7 +35,6 @@ import org.apache.calcite.linq4j.*;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -44,6 +43,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
 import java.io.IOException;
@@ -56,7 +56,6 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   private final RelProtoDataType protoRowType;
   private Schema schema;
   ArrowFileReader arrowFileReader;
-  private LogicalFilter filter;
 
   public ArrowTable(RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
     try {
@@ -79,10 +78,10 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> project(DataContext root, final int[] fields, LogicalFilter logicalFilter) {
+  public Enumerable<Object> project(DataContext root, final int[] fields, SqlKind condition,
+                                    int fieldToCompare, Object valueToCompare) {
     List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
     List<TreeNode> treeNodes = new ArrayList<>(2);
-    this.filter = logicalFilter;
 
     for(int i = 0; i < fields.length; i++) {
       Field field = schema.getFields().get(i);
@@ -90,14 +89,14 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       expressionTrees.add(TreeBuilder.makeExpression(node, field));
     }
 
-    treeNodes.add(TreeBuilder.makeField(schema.getFields().get(0)));
-    treeNodes.add(TreeBuilder.makeLiteral(2L));
-    TreeNode treeNode = TreeBuilder.makeFunction("equal", treeNodes, new ArrowType.Bool());
-    Condition condition = TreeBuilder.makeCondition(treeNode);
+    treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
+    treeNodes.add(makeLiteralNode(valueToCompare));
+    TreeNode treeNode = TreeBuilder.makeFunction(matchCondition(condition), treeNodes, new ArrowType.Bool());
+    Condition filterCondition = TreeBuilder.makeCondition(treeNode);
 
     Filter filter;
     try {
-      filter = Filter.make(schema, condition);
+      filter = Filter.make(schema, filterCondition);
     } catch (GandivaException e) {
       throw new RuntimeException(e);
     }
@@ -112,7 +111,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(projector, filter, fields, arrowFileReader);
+          return new ArrowEnumerator(projector, filter, fields, arrowFileReader, fieldToCompare, valueToCompare);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -132,7 +131,8 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = ArrowEnumerator.identityList(fieldCount);
-    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields, filter);
+    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields,
+        null, -1, null);
   }
 
   private RelDataType deduceRowType(Schema schema, JavaTypeFactory typeFactory) {
@@ -141,5 +141,31 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       return new Pair<>(field.getName(), relDataType);
     }).collect(Collectors.toList());
     return typeFactory.createStructType(ret);
+  }
+
+  private String matchCondition(SqlKind condition) {
+    switch (condition) {
+    case EQUALS:
+      return "equal";
+    case LESS_THAN:
+      return "less_than";
+    case GREATER_THAN:
+      return "greater_than";
+    default:
+      throw new AssertionError("Invalid operator");
+    }
+  }
+
+  private TreeNode makeLiteralNode(Object literal) {
+    if (Integer.class.equals(literal.getClass())) {
+      return TreeBuilder.makeLiteral((Integer) literal);
+    } else if (Long.class.equals(literal.getClass())) {
+      return TreeBuilder.makeLiteral((Long) literal);
+    } else if (Float.class.equals(literal.getClass())) {
+      return TreeBuilder.makeLiteral((Float) literal);
+    } else if (String.class.equals(literal.getClass())) {
+      return TreeBuilder.makeStringLiteral(literal.toString());
+    }
+    throw new AssertionError("Invalid literal");
   }
 }

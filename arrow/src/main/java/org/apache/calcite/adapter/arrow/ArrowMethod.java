@@ -22,6 +22,9 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -30,7 +33,8 @@ import java.util.List;
  * Builtin methods in the Arrow adapter.
  */
 public enum ArrowMethod {
-  ARROW_PROJECT(ArrowTable.class, "project", DataContext.class, int[].class, LogicalFilter.class);
+  ARROW_PROJECT(ArrowTable.class, "project", DataContext.class, int[].class,
+      SqlKind.class, int.class, Object.class);
 
   public final Method method;
 
