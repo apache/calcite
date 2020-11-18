@@ -17,12 +17,14 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+
 
 public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.Config> {
 
@@ -32,26 +34,24 @@ public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.C
 
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
-    final RelNode input = filter.getInput();
+    final ArrowTableScan scan = call.rel(1);
+    int[] fields = {0, 1, 2};
+
     final RexNode condition = filter.getCondition();
+    final SqlKind operator = condition.getKind();
+    final RexCall rexCall = (RexCall) condition;
+    RexNode left = rexCall.getOperands().get(0);
+    RexNode right = rexCall.getOperands().get(1);
 
-//    final ArrowTableScan scan = call.rel(1);
-//    int[] fields = {0,1,2};
-//    call.transformTo(
-//        new ArrowTableScan(
-//            scan.getCluster(),
-//            scan.getTable(),
-//            scan.arrowTable,
-//            fields,
-//            filter));
-
-    final RelTraitSet traitSet = filter.getTraitSet().replace(ArrowRel.CONVENTION);
     call.transformTo(
-        new ArrowFilter(
-            filter.getCluster(),
-            traitSet,
-            input,
-            condition));
+        new ArrowTableScan(
+            scan.getCluster(),
+            scan.getTable(),
+            scan.arrowTable,
+            fields,
+            operator,
+            ((RexInputRef) left).getIndex(),
+            ((RexLiteral) right).getValue2()));
   }
 
   /** Rule configuration. */
