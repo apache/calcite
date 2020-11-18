@@ -145,6 +145,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.GREATEST, new GreatestConvertlet());
     registerOp(SqlLibraryOperators.LEAST, new GreatestConvertlet());
+    registerOp(SqlLibraryOperators.ORACLE_SUBSTR, new OracleSubstrConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -1539,6 +1540,64 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private class FloorCeilConvertlet implements SqlRexConvertlet {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       return convertFloorCeil(cx, call);
+    }
+  }
+
+  /** Convertlet that handles Oracle's {@code SUBSTR} function. */
+  private static class OracleSubstrConvertlet implements SqlRexConvertlet {
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      // Translate
+      //   SUBSTR(value, start, length)
+      // to
+      //   SUBSTRING(
+      //     value
+      //     FROM CASE
+      //          WHEN start = 0 THEN 1
+      //          WHEN start + length(value) < 0
+      //          THEN length(value) + 1
+      //          ELSE start)
+      //     FOR CASE WHEN length < 0 THEN 0 ELSE length END)
+
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      final List<RexNode> exprs =
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+      final RexNode value = exprs.get(0);
+      final RexNode start = exprs.get(1);
+      final RelDataType startType = start.getType();
+      final RexNode zeroLiteral = rexBuilder.makeLiteral(0, startType, false);
+      final RexNode oneLiteral = rexBuilder.makeLiteral(1, startType, false);
+
+      final RexNode valueLength =
+          rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, value);
+      final RexNode newStart =
+          rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, start,
+                  zeroLiteral),
+              oneLiteral,
+              rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                  rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                      valueLength),
+                  zeroLiteral),
+              rexBuilder.makeCall(SqlStdOperatorTable.PLUS, valueLength,
+                  oneLiteral),
+              start);
+
+      switch (call.operandCount()) {
+      case 2:
+        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
+            newStart);
+      case 3:
+        final RexNode length = exprs.get(2);
+        final RexNode newLength =
+            rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, length,
+                    zeroLiteral),
+                zeroLiteral, length);
+        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
+            newStart, newLength);
+      default:
+        throw new AssertionError();
+      }
     }
   }
 

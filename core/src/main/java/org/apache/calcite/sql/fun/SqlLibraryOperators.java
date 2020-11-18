@@ -157,12 +157,23 @@ public abstract class SqlLibraryOperators {
 
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
-   * <p>It has similar semantics to standard SQL's
-   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
+   * <p>It has different semantics to standard SQL's
+   * {@link SqlStdOperatorTable#SUBSTRING} function:
+   *
+   * <ul>
+   *   <li>If {@code substringLength} &le; 0, result is the empty string
+   *   (Oracle would return null, because it treats the empty string as null,
+   *   but Calcite does not have these semantics);
+   *   <li>If {@code position} = 0, treat {@code position} as 1;
+   *   <li>If {@code position} &lt; 0, treat {@code position} as
+   *       "length(string) + position + 1".
+   * </ul>
+   */
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction SUBSTR =
+  public static final SqlFunction ORACLE_SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */

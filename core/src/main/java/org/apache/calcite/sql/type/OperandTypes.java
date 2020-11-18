@@ -442,6 +442,11 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker STRING_INTEGER_OPTIONAL_INTEGER =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER), i -> i == 2);
+
   /** Operand type-checking strategy where the first operand is a character or
    * binary string (CHAR, VARCHAR, BINARY or VARBINARY), and the second operand
    * is INTEGER. */
