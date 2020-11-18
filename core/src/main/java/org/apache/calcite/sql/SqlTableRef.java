@@ -38,7 +38,13 @@ public class SqlTableRef extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF);
+      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF) {
+        @Override public SqlCall createCall(
+            SqlLiteral functionQualifier,
+            SqlParserPos pos, SqlNode... operands) {
+          return new SqlTableRef(pos, (SqlIdentifier) operands[0], (SqlNodeList) operands[1]);
+        }
+      };
 
   //~ Constructors -----------------------------------------------------------
 

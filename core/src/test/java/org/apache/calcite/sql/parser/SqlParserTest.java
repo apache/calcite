@@ -6150,8 +6150,8 @@ public class SqlParserTest {
     final SqlNode sqlNode = getSqlParser(sql).parseStmt();
     final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     assertNotSame(sqlNodeVisited, sqlNode);
@@ -6163,8 +6163,8 @@ public class SqlParserTest {
     final SqlNode sqlNode0 = getSqlParser(sql0).parseStmt();
     final SqlNode sqlNodeVisited0 = sqlNode0.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     final String str0 = "INSERT INTO `EMPS`\n"
@@ -6176,8 +6176,8 @@ public class SqlParserTest {
     final SqlNode sqlNode1 = getSqlParser(sql1).parseStmt();
     final SqlNode sqlNodeVisited1 = sqlNode1.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     final String str1 = "INSERT INTO `EMPS`\n"
@@ -6198,8 +6198,8 @@ public class SqlParserTest {
     final SqlNode sqlNode = getSqlParser(sql).parseStmt();
     final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlMatchRecognize.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     assertNotSame(sqlNodeVisited, sqlNode);
@@ -9336,6 +9336,21 @@ public class SqlParserTest {
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
     sql(sql).ok(expected);
+  }
+
+  @Test void testHintThroughShuttle() throws Exception {
+    final String sql = "select * from emp /*+ options('key1' = 'val1') */";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        // Copy the identifier in order to return a new SqlTableRef.
+        return identifier.clone(identifier.getParserPosition());
+      }
+    });
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "/*+ `OPTIONS`('key1' = 'val1') */";
+    assertThat(linux(shuttled.toString()), is(expected));
   }
 
   @Test void testInvalidHintFormat() {

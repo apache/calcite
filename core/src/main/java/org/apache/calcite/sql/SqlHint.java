@@ -67,7 +67,15 @@ public class SqlHint extends SqlCall {
   private final HintOptionFormat optionFormat;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("HINT", SqlKind.HINT);
+      new SqlSpecialOperator("HINT", SqlKind.HINT) {
+        @Override public SqlCall createCall(
+            SqlLiteral functionQualifier,
+            SqlParserPos pos,
+            SqlNode... operands) {
+          return new SqlHint(pos, (SqlIdentifier) operands[0], (SqlNodeList) operands[1],
+              ((SqlLiteral) operands[2]).symbolValue(HintOptionFormat.class));
+        }
+      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -89,7 +97,7 @@ public class SqlHint extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name, options);
+    return ImmutableList.of(name, options, optionFormat.symbol(SqlParserPos.ZERO));
   }
 
   /**
@@ -166,7 +174,7 @@ public class SqlHint extends SqlCall {
   }
 
   /** Enumeration that represents hint option format. */
-  public enum HintOptionFormat {
+  public enum HintOptionFormat implements Symbolizable {
     /**
      * The hint has no options.
      */
