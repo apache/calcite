@@ -79,6 +79,10 @@ public abstract class RelDataTypeImpl
 
   @Override public RelDataTypeField getField(String fieldName, boolean caseSensitive,
       boolean elideRecord) {
+    if (fieldList == null) {
+      throw new IllegalStateException("Trying to access field " + fieldName
+          + " in a type with no fields: " + this);
+    }
     for (RelDataTypeField field : fieldList) {
       if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         return field;
