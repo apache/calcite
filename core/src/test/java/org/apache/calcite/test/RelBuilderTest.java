@@ -2597,6 +2597,21 @@ public class RelBuilderTest {
     assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4409">[CALCITE-4409]
+   * Improve exception when RelBuilder tries to create a field on a non-struct expression</a>. */
+  @Test void testFieldOnNonStructExpression() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+      builder.scan("EMP")
+          .project(
+              builder.field(builder.field("EMPNO"), "abc"))
+          .build();
+    }, "Field should fail since we are trying access a field on expression with non-struct type");
+    assertThat(ex.getMessage(),
+        is("Trying to access field abc in a type with no fields: SMALLINT"));
+  }
+
   @Test void testMultiLevelAlias() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
