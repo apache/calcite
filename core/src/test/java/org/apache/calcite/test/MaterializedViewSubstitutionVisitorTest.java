@@ -490,10 +490,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], "
-            + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
-            + "  LogicalAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], "
+                + "deptno=[$t0])\n"
+                + "  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t1], C=[$t2], "
+                + "$condition=[$t4])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -522,10 +524,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by cube(\"empid\",\"deptno\")")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
-            + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
-            + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], "
+                + "deptno=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0"
+                + "($2)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[true], proj#0..2=[{exprs}], "
+                + "$condition=[$t4])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -535,10 +540,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"empid\",\"deptno\")")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
-            + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
-            + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], "
+                + "deptno=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0"
+                + "($2)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -558,10 +565,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"deptno\", \"empid\")")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
-            + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
-            + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], "
+                + "deptno=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0"
+                + "($2)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[true], proj#0..2=[{exprs}], "
+                + "$condition=[$t4])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -572,10 +582,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by rollup(\"deptno\", \"empid\")")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
-            + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
-            + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t2, $t3)], C=[$t4], "
+                + "deptno=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}, {}]], agg#0=[$SUM0($2)"
+                + "])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[true], proj#0..2=[{exprs}], "
+                + "$condition=[$t4])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -586,10 +599,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by rollup(\"empid\", \"deptno\", \"salary\")")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..3=[{inputs}], expr#4=[1], "
-            + "expr#5=[+($t3, $t4)], C=[$t5], deptno=[$t2])\n"
-            + "  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}, {1}, {}]], agg#0=[$SUM0($3)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[+($t3, $t4)], C=[$t5], "
+                + "deptno=[$t2])\n"
+                + "  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}, {1}, {}]], "
+                + "agg#0=[$SUM0($3)])\n"
+                + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[true], proj#0..3=[{exprs}], "
+                + "$condition=[$t5])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -603,9 +619,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         "select \"name\", \"empid\", count(*) from \"emps\" group by \"name\", \"empid\"")
         .withChecker(
             resultContains(""
-            + "LogicalCalc(expr#0..2=[{inputs}], name=[$t1], empid=[$t0], EXPR$2=[$t2])\n"
-            + "  LogicalAggregate(group=[{0, 2}], EXPR$2=[$SUM0($3)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..2=[{inputs}], name=[$t1], empid=[$t0], EXPR$2=[$t2])\n"
+                + "  LogicalAggregate(group=[{0, 1}], EXPR$2=[$SUM0($2)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[true], empid=[$t0], name=[$t2], "
+                + "EXPR$3=[$t3], $condition=[$t4])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -818,11 +836,14 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(m, q)
         .withChecker(
             resultContains(""
-            + "LogicalUnion(all=[true])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    LogicalTableScan(table=[[hr, emps]])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+                + "LogicalCalc(expr#0..4=[{inputs}], proj#0..4=[{exprs}])\n"
+                + "  LogicalUnion(all=[true])\n"
+                + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0"
+                + "..4=[{exprs}], $condition=[$t6])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0"
+                + "..4=[{exprs}], $condition=[$t6])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }
 
@@ -1564,6 +1585,73 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "select \"name\", count(distinct \"deptno\")\n"
         + "from \"emps\" group by \"name\"";
     sql(mv, query).ok();
+  }
+
+  @Test void testDifferentGroupBySequence() {
+    final String mv = ""
+        + "select \"deptno\", \"name\", \"commission\" from ("
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\") t";
+    final String query = ""
+        + "select \"deptno\", \"name\"\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\", \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  /** Similir with {@link #testDifferentGroupBySequence()}, but mv projects part of the
+   * group by columns. */
+  @Test void testDifferentGroupBySequence2() {
+    final String mv = ""
+        + "select \"deptno\", \"name\" from ("
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\") t";
+    final String query = ""
+        + "select \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\", \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  /** Similir with {@link #testDifferentGroupBySequence()},
+   * but query groups on all the column of mv in a different sequence.*/
+  @Test void testDifferentGroupBySequence3() {
+    final String mv = ""
+        + "select \"deptno\", \"name\", \"commission\" from ("
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\") t";
+    final String query = ""
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  /** Similir with {@link #testDifferentGroupBySequence()},
+   * but query groups on all the column of mv in a different sequence and has a limit outside.*/
+  @Test void testDifferentGroupBySequence4() {
+    final String mv = ""
+        + "select \"deptno\", \"name\", \"commission\" from ("
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\") t";
+    final String query = ""
+        + "select \"name\", \"deptno\", \"commission\"\n"
+        + "from \"emps\"\n"
+        + "group by \"name\", \"deptno\", \"commission\"\n"
+        + "limit 10";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
   }
 
   final JavaTypeFactoryImpl typeFactory =

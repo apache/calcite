@@ -84,6 +84,7 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
 import static org.apache.calcite.rex.RexUtil.removeAll;
@@ -192,8 +193,18 @@ public class SubstitutionVisitor {
     this.simplify =
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
     this.rules = rules;
-    this.query = Holder.of(MutableRels.toMutable(query_));
+    MutableRel mutableQuery = MutableRels.toMutable(query_);
     this.target = MutableRels.toMutable(target_);
+    if (mutableQuery instanceof MutableCalc) {
+      this.query = Holder.of(mutableQuery);
+    } else {
+      List<? extends RexNode>  rexNodes =
+          cluster.getRexBuilder().identityProjects(mutableQuery.rowType);
+      RexProgram program = RexProgram.create(
+          mutableQuery.rowType, rexNodes, null, mutableQuery.rowType, cluster.getRexBuilder());
+      MutableCalc mutableCalc = MutableCalc.of(mutableQuery, program);
+      this.query = Holder.of(mutableCalc);
+    }
     this.relBuilder = relBuilderFactory.create(cluster, null);
     final Set<MutableRel> parents = Sets.newIdentityHashSet();
     final List<MutableRel> allNodes = new ArrayList<>();
@@ -1034,7 +1045,8 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches if the query is already
-   * equal to the target.
+   * equal to the target, or the query input is equal to target input and target
+   * is a {@link MutableCalc} and target just does some projections.
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
@@ -1050,6 +1062,35 @@ public class SubstitutionVisitor {
     @Override public UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
         return call.result(call.target);
+      }
+      if (call.query.getInputs().size() == 1
+          && !(call.query instanceof MutableCalc)
+          && call.target instanceof MutableCalc
+          && call.query.getInputs().get(0).equals(call.target.getInputs().get(0))) {
+        MutableRel queryInput = call.query.getInputs().get(0);
+        MutableCalc target = (MutableCalc) call.target;
+        Pair<RexNode, List<RexNode>> explainTarget = explainCalc(target);
+        // If target is a Calc and projects all the columns.
+        if (explainTarget.getKey() == null || explainTarget.getKey().isAlwaysTrue()) {
+          boolean onlyProjInTarget = explainTarget.getValue()
+              .stream().allMatch(rex ->  rex instanceof RexInputRef);
+          if (onlyProjInTarget && explainTarget.getValue().size() == fieldCnt(queryInput)) {
+            final Mappings.TargetMapping mapping =
+                Project.getMapping(fieldCnt(queryInput), explainTarget.getValue()).inverse();
+            final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+            final List<? extends RexNode> compenProjs =
+                Util.transform(queryInput.rowType.getFieldList(),
+                    input -> new RexInputRef(mapping.getTarget(input.getIndex()), input.getType()));
+            RexProgram compenRexProgram = RexProgram.create(
+                target.rowType, compenProjs,
+                null, queryInput.rowType, rexBuilder);
+            MutableCalc compenCalc =
+                MutableCalc.of(target, compenRexProgram);
+            MutableRel result = call.query.clone();
+            result.getInputs().get(0).replaceInParent(compenCalc);
+            return call.result(result);
+          }
+        }
       }
       return null;
     }
@@ -1778,7 +1819,8 @@ public class SubstitutionVisitor {
         return call.create(parent).result(mergedCalc, false);
       }
     }
-    return call.result(child);
+    boolean stopTrying = child.getInputs().get(0).equals(call.target) || child.equals(call.target);
+    return call.result(child, stopTrying);
   }
 
   /** Merge two MutableCalc together. */
@@ -1921,12 +1963,6 @@ public class SubstitutionVisitor {
           return null;
         }
       }
-      final ImmutableBitSet groupSet = query.groupSet.permute(map);
-      ImmutableList<ImmutableBitSet> groupSets = null;
-      if (query.getGroupType() != Aggregate.Group.SIMPLE) {
-        groupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
-            ImmutableBitSet.permute(query.groupSets, map));
-      }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
         if (aggregateCall.isDistinct() && aggregateCall.getArgList().size() == 1) {
@@ -1962,18 +1998,69 @@ public class SubstitutionVisitor {
                 aggregateCall.collation, aggregateCall.type,
                 aggregateCall.name));
       }
-      if (targetCond != null && !targetCond.isAlwaysTrue()) {
-        RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, rexBuilder.identityProjects(target.rowType),
-            targetCond, target.rowType, rexBuilder);
+      // Always add a Calc between target aggregate and the rolled up aggregate,
+      // but the calc just projects columns used by the rolled up aggregate.
+      List<Integer> projIndexs = new ArrayList<>();
+      // Mapping for column used by outside agg to index in added calc.
+      Map<Integer, Integer> columnMap = new HashMap<>();
+      final ImmutableBitSet groupSet = query.groupSet.permute(map);
+      List<Integer> groupList = groupSet.asList();
+      // Check for query group list
+      for (int index = 0; index < groupList.size(); index++) {
+        int inputIndexValue = groupList.get(index);
+        projIndexs.add(inputIndexValue);
+        columnMap.put(inputIndexValue, projIndexs.size() - 1);
 
-        result = MutableAggregate.of(
-            MutableCalc.of(target, compenRexProgram),
-            groupSet, groupSets, aggregateCalls);
-      } else {
-        result = MutableAggregate.of(
-            target, groupSet, groupSets, aggregateCalls);
       }
+      // check for query agg calls
+      for (AggregateCall aggregateCall : aggregateCalls) {
+        for (Integer inputIndexValue : aggregateCall.getArgList()) {
+          if (columnMap.containsKey(inputIndexValue)) {
+            continue;
+          }
+          projIndexs.add(inputIndexValue);
+          columnMap.put(inputIndexValue, projIndexs.size() - 1);
+        }
+      }
+
+      // Update the index of aggs.
+      final List<AggregateCall> updatedAggregates = new ArrayList<>();
+      for (AggregateCall aggregateCall : aggregateCalls) {
+        List<Integer> newArgIndex = aggregateCall.getArgList()
+            .stream()
+            .map(i -> columnMap.get(i))
+            .collect(Collectors.toList());
+        updatedAggregates.add(
+            AggregateCall.create(aggregateCall.getAggregation(),
+                aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+                aggregateCall.ignoreNulls(),
+                newArgIndex, -1,
+                aggregateCall.collation, aggregateCall.type,
+                aggregateCall.name));
+      }
+
+      List<String> fieldNames = new ArrayList<>();
+      List<RexNode> newProjs = new ArrayList<>();
+      for (int index : projIndexs) {
+        RelDataType fieldType = target.rowType.getFieldList().get(index).getType();
+        newProjs.add(rexBuilder.makeInputRef(fieldType, index));
+        fieldNames.add(target.rowType.getFieldNames().get(index));
+      }
+
+      RexProgram compenRexProgram = RexProgram.create(
+          target.rowType, newProjs,
+          targetCond, fieldNames, rexBuilder);
+
+      MutableCalc calc = MutableCalc.of(target, compenRexProgram);
+      ImmutableBitSet updatedGroupSet = groupSet.permute(columnMap);
+      ImmutableList<ImmutableBitSet> updatedGroupSets = null;
+      if (query.getGroupType() != Aggregate.Group.SIMPLE) {
+        updatedGroupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
+            ImmutableBitSet.permute(query.groupSets, map));
+        updatedGroupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
+            ImmutableBitSet.permute(updatedGroupSets, columnMap));
+      }
+      result = MutableAggregate.of(calc, updatedGroupSet, updatedGroupSets, updatedAggregates);
     } else {
       return null;
     }

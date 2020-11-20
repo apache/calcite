@@ -100,8 +100,9 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
             ImmutableList.of(relOptMaterialization));
 
     final String optimized = ""
-        + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"
-        + "  LogicalTableScan(table=[[mv0]])\n";
+        + "LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])\n"
+        + "  LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"
+        + "    LogicalTableScan(table=[[mv0]])\n";
     final String relOptimizedStr = RelOptUtil.toString(relOptimized.get(0).getKey());
     assertThat(isLinux(optimized).matches(relOptimizedStr), is(true));
   }
