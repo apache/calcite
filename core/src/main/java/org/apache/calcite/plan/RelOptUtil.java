@@ -3064,6 +3064,28 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Converts an expression that is based on the output fields of a
+   * {@link Calc} to an equivalent expression on the Calc's input fields.
+   *
+   * @param node The expression to be converted
+   * @param calc Calc underneath the expression
+   * @return converted expression
+   */
+  public static RexNode pushPastCalc(RexNode node, Calc calc) {
+    return node.accept(pushShuttle(calc));
+  }
+
+  private static RexShuttle pushShuttle(final Calc calc) {
+    final List<RexNode> projects = Util.transform(calc.getProgram().getProjectList(),
+        calc.getProgram()::expandLocalRef);
+    return new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef ref) {
+        return projects.get(ref.getIndex());
+      }
+    };
+  }
+
+  /**
    * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
    * projection references from a
    * {@link Project} that is on top of the
