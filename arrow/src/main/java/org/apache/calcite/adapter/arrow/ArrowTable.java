@@ -31,7 +31,11 @@ import org.apache.arrow.vector.ipc.ArrowFileReader;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.linq4j.*;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
@@ -48,9 +52,13 @@ import org.apache.calcite.util.Pair;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+/**
+ * Arrow Table.
+ */
 public class ArrowTable extends AbstractTable implements TranslatableTable, QueryableTable {
 
   private final RelProtoDataType protoRowType;
@@ -83,7 +91,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
     List<TreeNode> treeNodes = new ArrayList<>(2);
 
-    for(int i = 0; i < fields.length; i++) {
+    for (int i = 0; i < fields.length; i++) {
       Field field = schema.getFields().get(i);
       TreeNode node = TreeBuilder.makeField(field);
       expressionTrees.add(TreeBuilder.makeExpression(node, field));
@@ -91,7 +99,8 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
 
     treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
     treeNodes.add(makeLiteralNode(valueToCompare));
-    TreeNode treeNode = TreeBuilder.makeFunction(matchCondition(condition), treeNodes, new ArrowType.Bool());
+    TreeNode treeNode = TreeBuilder.makeFunction(matchCondition(condition), treeNodes,
+        new ArrowType.Bool());
     Condition filterCondition = TreeBuilder.makeCondition(treeNode);
 
     Filter filter;
@@ -111,7 +120,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(projector, filter, fields, arrowFileReader, fieldToCompare, valueToCompare);
+          return new ArrowEnumerator(projector, filter, fields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -152,7 +161,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     case GREATER_THAN:
       return "greater_than";
     default:
-      throw new AssertionError("Invalid operator");
+      throw new AssertionError("Operator not supported");
     }
   }
 
