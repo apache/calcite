@@ -972,7 +972,7 @@ public abstract class SqlImplementor {
         };
         RexCall aggCall = (RexCall) winAggCall.accept(replaceConstants);
         List<SqlNode> operands = toSql(null, aggCall.operands);
-        rexOvers.add(createOverCall(aggFunction, operands, sqlWindow));
+        rexOvers.add(createOverCall(aggFunction, operands, sqlWindow, winAggCall.distinct));
       }
       return rexOvers;
     }
@@ -1019,19 +1019,27 @@ public abstract class SqlImplementor {
           orderList, isRows, lowerBound, upperBound, allowPartial, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
-      return createOverCall(sqlAggregateFunction, nodeList, sqlWindow);
+      return createOverCall(sqlAggregateFunction, nodeList, sqlWindow, rexOver.isDistinct());
     }
 
     private SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
-        SqlWindow window) {
+        SqlWindow window, boolean isDistinct) {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
-            createOverCall(SqlStdOperatorTable.SUM, operands, window);
+            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
             SqlLiteral.createExactNumeric("0", POS));
       }
-      final SqlCall aggFunctionCall = op.createCall(POS, operands);
+      SqlCall aggFunctionCall;
+      if (isDistinct) {
+        aggFunctionCall = op.createCall(
+            SqlSelectKeyword.DISTINCT.symbol(POS),
+            POS,
+            operands);
+      } else {
+        aggFunctionCall = op.createCall(POS, operands);
+      }
       return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
           window);
     }
