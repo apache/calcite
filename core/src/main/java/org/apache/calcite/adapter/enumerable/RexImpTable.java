@@ -467,7 +467,7 @@ public class RexImpTable {
         new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
             false);
     map.put(LIKE, likeImplementor);
-    map.put(NOT_LIKE, likeImplementor);
+    map.put(NOT_LIKE, NotImplementor.of(likeImplementor));
     final MethodImplementor similarImplementor =
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
             false);
