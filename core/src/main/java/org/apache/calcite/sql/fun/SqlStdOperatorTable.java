@@ -1395,6 +1395,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator LIKE =
       new SqlLikeOperator("LIKE", SqlKind.LIKE, false);
 
+  public static final SqlSpecialOperator RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false);
+
+  public static final SqlSpecialOperator NOT_RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false);
+
   public static final SqlSpecialOperator NOT_SIMILAR_TO =
       new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true);
 

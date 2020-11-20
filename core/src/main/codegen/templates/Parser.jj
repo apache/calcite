@@ -3536,10 +3536,14 @@ List<Object> Expression2(ExprContext exprContext) :
                         (
                             <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
                         |
+                            <RLIKE> { op = SqlStdOperatorTable.NOT_RLIKE; }
+                        |
                             <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                         )
                     |
                         <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                    |
+                        <RLIKE> { op = SqlStdOperatorTable.RLIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )
@@ -6824,6 +6828,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <CURRENT_TIME>
     |   <CURRENT_TIMESTAMP>
     |   <DENSE_RANK>
+    |   <DAY>
     |   <DATE>
     |   <ELEMENT>
     |   <EVERY>
@@ -7459,6 +7464,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < LIBRARY: "LIBRARY" >
 |   < LIKE: "LIKE" >
 |   < LIKE_REGEX: "LIKE_REGEX" >
+|   < RLIKE: "RLIKE" >
+|   < RLIKE_REGEX: "RLIKE_REGEX" >
 |   < LIMIT: "LIMIT" >
 |   < LN: "LN" >
 |   < LOCAL: "LOCAL" >
