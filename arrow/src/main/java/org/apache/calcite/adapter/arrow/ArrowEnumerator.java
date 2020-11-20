@@ -17,13 +17,15 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.arrow.gandiva.evaluator.*;
+import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.arrow.gandiva.evaluator.Filter;
+import org.apache.arrow.gandiva.evaluator.SelectionVector;
+import org.apache.arrow.gandiva.evaluator.SelectionVectorInt16;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 import org.apache.arrow.vector.VectorUnloader;
@@ -36,6 +38,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ArrowEnumerator.
+ */
 public class ArrowEnumerator implements Enumerator<Object> {
   private final ArrowFileReader arrowFileReader;
   private final Projector projector;
@@ -45,19 +50,17 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private final int[] fields;
   private final int numFields;
   private int rowSize;
-  private final int fieldToCompare;
-  private final Object literal;
+  private SelectionVector selectionVector;
+  private int selectionVectorIndex = 0;
 
-  public ArrowEnumerator(Projector projector, Filter filter, int[] fields, ArrowFileReader arrowFileReader,
-                         int fieldToCompare, Object literal) {
+  public ArrowEnumerator(Projector projector, Filter filter, int[] fields,
+                         ArrowFileReader arrowFileReader) {
     this.projector = projector;
     this.filter = filter;
     this.arrowFileReader = arrowFileReader;
     this.fields = fields;
     this.numFields = fields.length;
     this.valueVectors = new ArrayList<ValueVector>(numFields);
-    this.fieldToCompare = fieldToCompare;
-    this.literal = literal;
 
     try {
       if (arrowFileReader.loadNextBatch()) {
@@ -91,34 +94,32 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public boolean moveNext() {
-    for (;;) {
-      if (rowIndex >= this.rowSize - 1) {
-        boolean hasNextBatch = false;
-        try {
-          hasNextBatch = arrowFileReader.loadNextBatch();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-        if (hasNextBatch) {
-          rowIndex = 0;
-          this.valueVectors = new ArrayList<ValueVector>(numFields);
-          loadNextArrowBatch();
-          if (!(this.valueVectors.get(fieldToCompare).getObject(rowIndex).toString().equals(literal.toString()))) {
-            continue;
-          }
-          return true;
-        } else {
+    if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+      boolean hasNextBatch = false;
+      try {
+        hasNextBatch = arrowFileReader.loadNextBatch();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      if (hasNextBatch) {
+        selectionVectorIndex = 0;
+        this.valueVectors = new ArrayList<ValueVector>(numFields);
+        loadNextArrowBatch();
+        if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
           return false;
         }
-      } else {
-        rowIndex++;
-        if (!this.valueVectors.get(fieldToCompare).getObject(rowIndex).toString().equals(literal.toString())) {
-          continue;
-        }
+        rowIndex = selectionVector.getIndex(selectionVectorIndex++);
         return true;
+      } else {
+        return false;
       }
+    } else {
+      rowIndex = selectionVector.getIndex(selectionVectorIndex++);
+      return true;
     }
   }
+
+
 
   private void loadNextArrowBatch() {
     try {
@@ -130,10 +131,11 @@ public class ArrowEnumerator implements Enumerator<Object> {
       VectorUnloader vectorUnloader = new VectorUnloader(vsr);
       ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
       BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
-      ArrowBuf buf = allocator.buffer(rowSize*2);
+      ArrowBuf buf = allocator.buffer(rowSize * 2);
       SelectionVectorInt16 selectionVector = new SelectionVectorInt16(buf);
 //      projector.evaluate(arrowRecordBatch, valueVectors);
       filter.evaluate(arrowRecordBatch, selectionVector);
+      this.selectionVector = selectionVector;
     } catch (IOException | GandivaException e) {
       e.printStackTrace();
     }
