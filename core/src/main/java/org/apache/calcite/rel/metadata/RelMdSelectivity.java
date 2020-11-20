@@ -123,10 +123,13 @@ public class RelMdSelectivity
   }
 
   public Double getSelectivity(Calc rel, RelMetadataQuery mq, RexNode predicate) {
+    if (predicate != null) {
+      predicate = RelOptUtil.pushPastCalc(predicate, rel);
+    }
     final RexProgram rexProgram = rel.getProgram();
     final RexLocalRef programCondition = rexProgram.getCondition();
     if (programCondition == null) {
-      return getSelectivity(rel.getInput(), mq, predicate);
+      return mq.getSelectivity(rel.getInput(), predicate);
     } else {
       return mq.getSelectivity(rel.getInput(),
           RelMdUtil.minusPreds(
