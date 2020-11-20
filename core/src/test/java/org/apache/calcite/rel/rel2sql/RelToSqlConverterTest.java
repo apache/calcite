@@ -3008,6 +3008,22 @@ class RelToSqlConverterTest {
             + "OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\"), \"hire_date\"\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"hire_date\", \"employee_id\"";
+    String query7 = "SELECT "
+        + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
+    String expected7 = "SELECT "
+        + "COUNT(DISTINCT \"employee_id\") "
+        + "OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$0\""
+        + "\nFROM \"foodmart\".\"employee\"";
+
+    String query8 = "SELECT "
+        + "sum(distinct \"position_id\") over (order by \"hire_date\") FROM \"employee\"";
+    String expected8 =
+        "SELECT CASE WHEN (COUNT(DISTINCT \"position_id\") OVER (ORDER BY \"hire_date\" "
+            + "RANGE"
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) > 0 THEN COALESCE(SUM(DISTINCT "
+            + "\"position_id\") OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED "
+            + "PRECEDING AND CURRENT ROW), 0) ELSE NULL END\n"
+            + "FROM \"foodmart\".\"employee\"";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
@@ -3021,6 +3037,8 @@ class RelToSqlConverterTest {
     sql(query4).optimize(rules, hepPlanner).ok(expected4);
     sql(query5).optimize(rules, hepPlanner).ok(expected5);
     sql(query6).optimize(rules, hepPlanner).ok(expected6);
+    sql(query7).optimize(rules, hepPlanner).ok(expected7);
+    sql(query8).optimize(rules, hepPlanner).ok(expected8);
   }
 
   /**
