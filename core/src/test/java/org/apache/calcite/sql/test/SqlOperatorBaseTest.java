@@ -65,6 +65,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -6713,32 +6714,47 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("substring(cast(null as varchar(1)),1,2)");
   }
 
-  @Test void testOracleSubStringFunction() {
+  @Test void testOracleSubstrFunction() {
     SqlTester t = tester(SqlLibrary.ORACLE);
     t.setFor(SqlLibraryOperators.ORACLE_SUBSTR);
-    t.checkString("substr(CAST('abc' AS varchar(3)), 0, 3)", "abc", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 2)", "ab", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 3)", "abc", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 4, 3)", "", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 4, 4)", "", "VARCHAR(3)");
+    checkOracleSubstr(t, "abc", 0, 3, "abc");
+    checkOracleSubstr(t, "abc", 1, 2, "ab");
+    checkOracleSubstr(t, "abc", 1, 3, "abc");
+    checkOracleSubstr(t, "abc", 4, 3, "");
+    checkOracleSubstr(t, "abc", 4, 4, "");
 
-    t.checkString("substr(CAST('abc' AS varchar(3)), 0)", "abc", "VARCHAR(3) NOT NULL");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 1)", "abc", "VARCHAR(3) NOT NULL");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 2)", "bc", "VARCHAR(3) NOT NULL");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 3)", "c", "VARCHAR(3) NOT NULL");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 4)", "", "VARCHAR(3) NOT NULL");
+    checkOracleSubstr(t, "abc", 0, "abc");
+    checkOracleSubstr(t, "abc", 1, "abc");
+    checkOracleSubstr(t, "abc", 2, "bc");
+    checkOracleSubstr(t, "abc", 3, "c");
+    checkOracleSubstr(t, "abc", 4, "");
+    checkOracleSubstr(t, "abc", 5, "");
 
-    t.checkString("substr(CAST('abc' AS varchar(3)), 1, 0)", null, "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 1, -1)", null, "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), 4, -1)", null, "VARCHAR(3)");
+    checkOracleSubstr(t, "abc", 1, 0, "");
+    checkOracleSubstr(t, "abc", 1, -1, "");
+    checkOracleSubstr(t, "abc", 4, -1, "");
 
-    //t.checkString("substr(CAST('abc' AS varchar(3)), -4, 3)", "abc", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), -3, 3)", "abc", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), -2, 3)", "bc", "VARCHAR(3)");
-    t.checkString("substr(CAST('abc' AS varchar(3)), -1, 4)", "c", "VARCHAR(3)");
+    checkOracleSubstr(t, "abc", -3, 3, "abc");
+    checkOracleSubstr(t, "abc", -3, 8, "abc");
+    checkOracleSubstr(t, "abc", -2, 3, "bc");
+    checkOracleSubstr(t, "abc", -1, 4, "c");
+//    checkOracleSubstr(t, "abc", -4, 3, "");
+    checkOracleSubstr(t, "abc", -5, 1, "");
+    checkOracleSubstr(t, "abc", -500, 1, "");
 
-    t.checkString("substr(CAST('abc' AS varchar(3)), -2)", "bc", "VARCHAR(3) NOT NULL");
-    t.checkString("substr(CAST('abc' AS varchar(3)), -1)", "c", "VARCHAR(3) NOT NULL");
+    checkOracleSubstr(t, "abc", -2, "bc");
+    checkOracleSubstr(t, "abc", -1, "c");
+  }
+
+  void checkOracleSubstr(SqlTester t, String s, int start, String expected) {
+    checkOracleSubstr(t, s, start, null, expected);
+  }
+
+  void checkOracleSubstr(SqlTester t, String s, int start,
+      @Nullable Integer end, String expected) {
+    final String type = "VARCHAR(" + s.length() + ") NOT NULL";
+    t.checkString("substr(CAST('" + s + "' AS varchar(" + s.length() + ")), "
+        + start + (end == null ? "" : ", " + end) + ")", expected, type);
   }
 
   @Test void testTrimFunc() {

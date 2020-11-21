@@ -155,31 +155,22 @@ public abstract class SqlLibraryOperators {
 
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
-   * <p>It has different semantics to standard SQL's {@link SqlStdOperatorTable#SUBSTRING} function.
+   * <p>It has different semantics to standard SQL's
+   * {@link SqlStdOperatorTable#SUBSTRING} function:
    *
    * <ul>
-   *   <li>If substringLength &lt;= 0, then null is returned.</li>
-   *   <li>If position = 0, then position is replaced with "1"</li>
-   *   <li>If position &gt; 0, then "position is length(string) + position + 1"</li>
+   *   <li>If {@code substringLength} &le; 0, result is the empty string
+   *   (Oracle would return null, because it treats the empty string as null,
+   *   but Calcite does not have these semantics);
+   *   <li>If {@code position} = 0, treat {@code position} as 1;
+   *   <li>If {@code position} &lt; 0, treat {@code position} as
+   *       "length(string) + position + 1".
    * </ul>
-   **/
+   */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_SUBSTR =
-      new SqlFunction("SUBSTR",
-          SqlKind.OTHER_FUNCTION,
-          opBinding -> {
-            switch (opBinding.getOperandCount()) {
-            case 2:
-              return ReturnTypes.ARG0_NULLABLE_VARYING.inferReturnType(opBinding);
-            case 3:
-              return ReturnTypes.ARG0
-                  .andThen(SqlTypeTransforms.FORCE_NULLABLE)
-                  .andThen(SqlTypeTransforms.TO_VARYING).inferReturnType(opBinding);
-            default:
-              throw new AssertionError();
-            }
-          },
-          null,
+      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
