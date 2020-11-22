@@ -6714,43 +6714,72 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("substring(cast(null as varchar(1)),1,2)");
   }
 
+  /** Tests the non-standard SUBSTR function, that has syntax
+   * "SUBSTR(value, start [, length ])", as used in Oracle. */
   @Test void testOracleSubstrFunction() {
-    SqlTester t = tester(SqlLibrary.ORACLE);
+    checkSubstrFunction(SqlLibrary.ORACLE);
+  }
+
+  void checkSubstrFunction(SqlLibrary library) {
+    SqlTester t = tester(library);
     t.setFor(SqlLibraryOperators.ORACLE_SUBSTR);
-    checkOracleSubstr(t, "abc", 0, 3, "abc");
-    checkOracleSubstr(t, "abc", 1, 2, "ab");
-    checkOracleSubstr(t, "abc", 1, 3, "abc");
-    checkOracleSubstr(t, "abc", 4, 3, "");
-    checkOracleSubstr(t, "abc", 4, 4, "");
+    // The following tests have been checked on Oracle 11g R2, PostgreSQL 9.6,
+    // MySQL 5.6. The SUBSTR function is currently only enabled in the Oracle
+    // library.
+    assertSubstrReturns(t, "abc", 1, "abc");
+    assertSubstrReturns(t, "abc", 2, "bc");
+    assertSubstrReturns(t, "abc", 3, "c");
+    assertSubstrReturns(t, "abc", 4, "");
+    assertSubstrReturns(t, "abc", 5, "");
 
-    checkOracleSubstr(t, "abc", 0, "abc");
-    checkOracleSubstr(t, "abc", 1, "abc");
-    checkOracleSubstr(t, "abc", 2, "bc");
-    checkOracleSubstr(t, "abc", 3, "c");
-    checkOracleSubstr(t, "abc", 4, "");
-    checkOracleSubstr(t, "abc", 5, "");
+    switch (library) {
+    case ORACLE:
+      assertSubstrReturns(t, "abc", 0, "abc");
+      assertSubstrReturns(t, "abc", 0, 5, "abc");
+      assertSubstrReturns(t, "abc", 0, 4, "abc");
+      assertSubstrReturns(t, "abc", 0, 3, "abc");
+      assertSubstrReturns(t, "abc", 0, 2, "ab");
+      break;
+    case POSTGRESQL:
+      assertSubstrReturns(t, "abc", 0, "abc");
+      assertSubstrReturns(t, "abc", 0, 5, "abc");
+      assertSubstrReturns(t, "abc", 0, 4, "abc");
+      assertSubstrReturns(t, "abc", 0, 3, "ab");
+      assertSubstrReturns(t, "abc", 0, 2, "a");
+      break;
+    case MYSQL:
+      assertSubstrReturns(t, "abc", 0, "");
+      assertSubstrReturns(t, "abc", 0, 5, "");
+      assertSubstrReturns(t, "abc", 0, 4, "");
+      assertSubstrReturns(t, "abc", 0, 3, "");
+      assertSubstrReturns(t, "abc", 0, 2, "");
+      break;
+    }
+    assertSubstrReturns(t, "abc", 1, 2, "ab");
+    assertSubstrReturns(t, "abc", 1, 3, "abc");
+    assertSubstrReturns(t, "abc", 4, 3, "");
+    assertSubstrReturns(t, "abc", 4, 4, "");
 
-    checkOracleSubstr(t, "abc", 1, 0, "");
-    checkOracleSubstr(t, "abc", 1, -1, "");
-    checkOracleSubstr(t, "abc", 4, -1, "");
+    assertSubstrReturns(t, "abc", 1, 0, "");
+    assertSubstrReturns(t, "abc", 1, -1, "");
+    assertSubstrReturns(t, "abc", 4, -1, "");
+    assertSubstrReturns(t, "abc", -2, "bc");
+    assertSubstrReturns(t, "abc", -1, "c");
 
-    checkOracleSubstr(t, "abc", -3, 3, "abc");
-    checkOracleSubstr(t, "abc", -3, 8, "abc");
-    checkOracleSubstr(t, "abc", -2, 3, "bc");
-    checkOracleSubstr(t, "abc", -1, 4, "c");
-//    checkOracleSubstr(t, "abc", -4, 3, "");
-    checkOracleSubstr(t, "abc", -5, 1, "");
-    checkOracleSubstr(t, "abc", -500, 1, "");
-
-    checkOracleSubstr(t, "abc", -2, "bc");
-    checkOracleSubstr(t, "abc", -1, "c");
+    assertSubstrReturns(t, "abc", -3, 3, "abc");
+    assertSubstrReturns(t, "abc", -3, 8, "abc");
+    assertSubstrReturns(t, "abc", -2, 3, "bc");
+    assertSubstrReturns(t, "abc", -1, 4, "c");
+    assertSubstrReturns(t, "abc", -4, 3, "");
+    assertSubstrReturns(t, "abc", -5, 1, "");
+    assertSubstrReturns(t, "abc", -500, 1, "");
   }
 
-  void checkOracleSubstr(SqlTester t, String s, int start, String expected) {
-    checkOracleSubstr(t, s, start, null, expected);
+  void assertSubstrReturns(SqlTester t, String s, int start, String expected) {
+    assertSubstrReturns(t, s, start, null, expected);
   }
 
-  void checkOracleSubstr(SqlTester t, String s, int start,
+  void assertSubstrReturns(SqlTester t, String s, int start,
       @Nullable Integer end, String expected) {
     final String type = "VARCHAR(" + s.length() + ") NOT NULL";
     t.checkString("substr(CAST('" + s + "' AS varchar(" + s.length() + ")), "

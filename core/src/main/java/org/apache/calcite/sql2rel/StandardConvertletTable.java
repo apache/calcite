@@ -1517,54 +1517,48 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //     value
       //     FROM CASE
       //          WHEN start = 0 THEN 1
-      //          WHEN start < 0
-      //          AND length(value) + start + 1 > 0
-      //          THEN length(value) + start + 1
+      //          WHEN start + length(value) < 0
+      //          THEN length(value) + 1
       //          ELSE start)
       //     FOR CASE WHEN length < 0 THEN 0 ELSE length END)
 
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final List<RexNode> exprs =
           convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
-      final RexNode rawString = exprs.get(0);
-      final RelDataType rawStartType =
-          cx.getValidator().getValidatedNodeType(call.operand(1));
-      final RexNode rawStart = exprs.get(1);
-      final RexNode zeroLiteral = rexBuilder.makeLiteral(0, rawStartType, false);
-      final RexNode oneLiteral = rexBuilder.makeLiteral(1, rawStartType, false);
+      final RexNode value = exprs.get(0);
+      final RexNode start = exprs.get(1);
+      final RelDataType startType = start.getType();
+      final RexNode zeroLiteral = rexBuilder.makeLiteral(0, startType, false);
+      final RexNode oneLiteral = rexBuilder.makeLiteral(1, startType, false);
 
-      final RexNode length =
-          rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, rawString);
-      final RexNode indexFromEnd =
-          rexBuilder.makeCall(SqlStdOperatorTable.PLUS, length,
-              rexBuilder.makeCall(SqlStdOperatorTable.PLUS, rawStart,
-                  oneLiteral));
-      final RexNode startLessThanZero =
-          rexBuilder.makeCall(SqlStdOperatorTable.AND,
-              rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, rawStart,
+      final RexNode valueLength =
+          rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, value);
+      final RexNode newStart =
+          rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, start,
                   zeroLiteral),
-              rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                  indexFromEnd, oneLiteral));
-      final RexNode startEqualZero =
-          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, rawStart,
-              zeroLiteral);
-      final RexNode startIndex =
-          rexBuilder.makeCall(SqlStdOperatorTable.CASE, startEqualZero,
-              oneLiteral, startLessThanZero, indexFromEnd, rawStart);
+              oneLiteral,
+              rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                  rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                      valueLength),
+                  zeroLiteral),
+              rexBuilder.makeCall(SqlStdOperatorTable.PLUS, valueLength,
+                  oneLiteral),
+              start);
 
       switch (call.operandCount()) {
       case 2:
-        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, rawString,
-            startIndex);
+        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
+            newStart);
       case 3:
-        final RexNode rawLength = exprs.get(2);
-        final RexNode least =
+        final RexNode length = exprs.get(2);
+        final RexNode newLength =
             rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-                rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, rawLength,
+                rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, length,
                     zeroLiteral),
-                zeroLiteral, rawLength);
-        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, rawString,
-            startIndex, least);
+                zeroLiteral, length);
+        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
+            newStart, newLength);
       default:
         throw new AssertionError();
       }
