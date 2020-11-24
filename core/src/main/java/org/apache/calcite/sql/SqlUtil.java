@@ -1026,7 +1026,7 @@ public abstract class SqlUtil {
   }
 
   /** If a node is "AS", returns the underlying expression; otherwise returns
-   * the node. */
+   * the node. Returns null if and only if the node is null. */
   public static @PolyNull SqlNode stripAs(@PolyNull SqlNode node) {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);

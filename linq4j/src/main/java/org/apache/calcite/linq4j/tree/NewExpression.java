@@ -49,7 +49,10 @@ public class NewExpression extends Expression {
     final List<Expression> arguments = Expressions.acceptExpressions(
         this.arguments, shuttle);
     final List<MemberDeclaration> memberDeclarations =
-        Expressions.acceptMemberDeclarations(this.memberDeclarations, shuttle);
+        this.memberDeclarations == null
+            ? null
+            : Expressions.acceptMemberDeclarations(this.memberDeclarations,
+                shuttle);
     return shuttle.visit(this, arguments, memberDeclarations);
   }
 

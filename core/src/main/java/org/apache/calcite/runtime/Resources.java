@@ -767,7 +767,9 @@ public class Resources {
     }
 
     /** Returns the value of this String property, returning the given default
-     * value if the property is not set. */
+     * value if the property is not set.
+     *
+     * <p>If {@code defaultValue} is not null, never returns null. */
     public @PolyNull String get(@PolyNull String defaultValue) {
       return accessor.stringValue(this, defaultValue);
     }
@@ -822,7 +824,8 @@ public class Resources {
       return p.defaultValue();
     }
 
-    @Override public @PolyNull String stringValue(StringProp p, @PolyNull String defaultValue) {
+    @Override public @PolyNull String stringValue(StringProp p,
+        @PolyNull String defaultValue) {
       return defaultValue;
     }
 
@@ -1131,7 +1134,8 @@ public class Resources {
       return p.defaultValue;
     }
 
-    @Override public @PolyNull String stringValue(StringProp p, @PolyNull String defaultValue) {
+    @Override public @PolyNull String stringValue(StringProp p,
+        @PolyNull String defaultValue) {
       final String s = properties.getProperty(p.key);
       return s == null ? defaultValue : s;
     }

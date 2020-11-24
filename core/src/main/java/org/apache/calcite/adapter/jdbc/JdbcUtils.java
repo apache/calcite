@@ -161,6 +161,8 @@ final class JdbcUtils {
       return reps[i].jdbcGet(resultSet, i + 1);
     }
 
+    /** Returns a timestamp shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
     private static @PolyNull Timestamp shift(@PolyNull Timestamp v) {
       if (v == null) {
         return null;
@@ -170,6 +172,8 @@ final class JdbcUtils {
       return new Timestamp(time + offset);
     }
 
+    /** Returns a time shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
     private static @PolyNull Time shift(@PolyNull Time v) {
       if (v == null) {
         return null;
@@ -179,6 +183,8 @@ final class JdbcUtils {
       return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
     }
 
+    /** Returns a date shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
     private static @PolyNull Date shift(@PolyNull Date v) {
       if (v == null) {
         return null;

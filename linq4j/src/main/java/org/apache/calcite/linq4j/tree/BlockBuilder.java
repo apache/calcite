@@ -188,7 +188,8 @@ public class BlockBuilder {
   }
 
   /**
-   * Appends an expression to a list of statements, if it is not null.
+   * Appends an expression to a list of statements if it is not null,
+   * and returns the expression.
    */
   public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
     if (expression == null) {

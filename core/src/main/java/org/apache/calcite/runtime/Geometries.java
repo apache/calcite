@@ -33,14 +33,12 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.PolyNull;
-
 import java.util.Objects;
 
 /**
  * Utilities for geometry.
  */
-@SuppressWarnings({"UnnecessaryUnboxing", "WeakerAccess", "unused"})
+@SuppressWarnings({"WeakerAccess", "unused"})
 @Deterministic
 @Strict
 @Experimental
@@ -55,10 +53,8 @@ public class Geometries {
     return new UnsupportedOperationException();
   }
 
-  protected static @PolyNull Geom bind(@PolyNull Geometry geometry, int srid) {
-    if (geometry == null) {
-      return null;
-    }
+  /** Returns a Geom that is a Geometry bound to a SRID. */
+  protected static Geom bind(Geometry geometry, int srid) {
     if (srid == NO_SRID) {
       return new SimpleGeom(geometry);
     }
@@ -287,7 +283,7 @@ public class Geometries {
       if (srid == mg.getSpatialReference().getID()) {
         return this;
       }
-      return bind(mg.getGeometry(), srid);
+      return bind(Objects.requireNonNull(mg.getGeometry()), srid);
     }
 
     @Override public Geom wrap(Geometry g) {

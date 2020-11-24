@@ -291,12 +291,15 @@ public class RelMdUtil {
    * between 1 and 100, you'll most likely end up with fewer than 100 distinct
    * values, because you'll pick some values more than once.
    *
-   * The implementation is an unbiased estimation of the number of distinct values
-   * by performing a number of selections (with replacement) from a universe set.
+   * <p>The implementation is an unbiased estimation of the number of distinct
+   * values by performing a number of selections (with replacement) from a
+   * universe set.
    *
-   * @param domainSize size of the universe set.
-   * @param numSelected the number of selections.
-   * @return the expected number of distinct values.
+   * @param domainSize Size of the universe set
+   * @param numSelected The number of selections
+   *
+   * @return the expected number of distinct values, or null if either argument
+   * is null
    */
   public static @PolyNull Double numDistinctVals(
       @PolyNull Double domainSize,
@@ -716,11 +719,13 @@ public class RelMdUtil {
       RexNode semiJoinSelectivity =
           RelMdUtil.makeSemiJoinSelectivityRexNode(mq, join);
       Double selectivity = mq.getSelectivity(join.getLeft(), semiJoinSelectivity);
-      return multiply(
-          join.getJoinType() == JoinRelType.SEMI
-              ? selectivity
-              : NumberUtil.subtract(1D, selectivity), // ANTI join
-          mq.getRowCount(join.getLeft()));
+      if (selectivity == null) {
+        return null;
+      }
+      return (join.getJoinType() == JoinRelType.SEMI
+          ? selectivity
+          : 1D - selectivity) // ANTI join
+          * mq.getRowCount(join.getLeft());
     }
     // Row count estimates of 0 will be rounded up to 1.
     // So, use maxRowCount where the product is very small.
@@ -917,11 +922,13 @@ public class RelMdUtil {
   }
 
   /**
-   * Validate the {@code result} represents a percentage number,
-   * e.g. the value interval is [0.0, 1.0].
+   * Validates whether a value represents a percentage number
+   * (that is, a value in the interval [0.0, 1.0]) and returns the value.
    *
-   * @return true if the {@code result} is a percentage number
-   * @throws AssertionError if the validation fails
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, not in range 0 to 1,
+   * and assertions are enabled.
    */
   public static @PolyNull Double validatePercentage(@PolyNull Double result) {
     assert isPercentage(result, true);
@@ -950,6 +957,11 @@ public class RelMdUtil {
    * calculations if the row-count is used as the denominator in a
    * division expression.  Also, cap the value at the max double value
    * to avoid calculations using infinity.
+   *
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, is negative,
+   * and assertions are enabled.
    *
    * @return the corrected value from the {@code result}
    * @throws AssertionError if the {@code result} is negative

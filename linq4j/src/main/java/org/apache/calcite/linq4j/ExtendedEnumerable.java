@@ -72,6 +72,8 @@ public interface ExtendedEnumerable<TSource> {
    * Applies an accumulator function over a
    * sequence. The specified seed value is used as the initial
    * accumulator value.
+   *
+   * <p>If {@code seed} is not null, the result is never null.
    */
   <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
       Function2<@PolyNull TAccumulate, TSource, @PolyNull TAccumulate> func);
@@ -274,6 +276,8 @@ public interface ExtendedEnumerable<TSource> {
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
+   *
+   * <p>If {@code value} is not null, the result is never null.
    */
   Enumerable<@PolyNull TSource> defaultIfEmpty(@PolyNull TSource value);
 

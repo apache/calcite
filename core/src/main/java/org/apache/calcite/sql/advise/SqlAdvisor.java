@@ -307,7 +307,7 @@ public class SqlAdvisor {
   }
 
   private String applyCasing(String value, Casing casing) {
-    return SqlParserUtil.strip(value, null, null, null, casing);
+    return SqlParserUtil.toCase(value, casing);
   }
 
   /**

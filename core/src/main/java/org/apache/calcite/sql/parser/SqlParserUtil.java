@@ -50,7 +50,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -62,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.function.Predicate;
 
@@ -341,18 +341,41 @@ public final class SqlParserUtil {
   }
 
   /**
+   * Converts a quoted identifier, unquoted identifier, or quoted string to a
+   * string of its contents.
+   *
+   * <p>First, if {@code startQuote} is provided, {@code endQuote} and
+   * {@code escape} must also be provided, and this method removes quotes.
+   *
+   * <p>Finally, converts the string to the provided casing.
+   */
+  public static String strip(String s, @Nullable String startQuote,
+      @Nullable String endQuote, @Nullable String escape, Casing casing) {
+    if (startQuote != null) {
+      return stripQuotes(s, Objects.requireNonNull(startQuote),
+          Objects.requireNonNull(endQuote), Objects.requireNonNull(escape),
+          casing);
+    } else {
+      return toCase(s, casing);
+    }
+  }
+
+  /**
    * Unquotes a quoted string, using different quotes for beginning and end.
    */
-  public static String strip(String s, @PolyNull String startQuote, @PolyNull String endQuote,
-      @PolyNull String escape, Casing casing) {
-    if (startQuote != null) {
-      assert endQuote != null;
-      assert startQuote.length() == 1;
-      assert endQuote.length() == 1;
-      assert escape != null;
-      assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
-      s = s.substring(1, s.length() - 1).replace(escape, endQuote);
-    }
+  public static String stripQuotes(String s, String startQuote, String endQuote,
+      String escape, Casing casing) {
+    assert startQuote.length() == 1;
+    assert endQuote.length() == 1;
+    assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
+    s = s.substring(1, s.length() - 1).replace(escape, endQuote);
+    return toCase(s, casing);
+  }
+
+  /**
+   * Converts an identifier to a particular casing.
+   */
+  public static String toCase(String s, Casing casing) {
     switch (casing) {
     case TO_UPPER:
       return s.toUpperCase(Locale.ROOT);

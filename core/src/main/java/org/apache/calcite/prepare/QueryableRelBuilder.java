@@ -253,7 +253,8 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source, @PolyNull T value) {
+  @Override public Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source,
+      @PolyNull T value) {
     throw new UnsupportedOperationException();
   }
 

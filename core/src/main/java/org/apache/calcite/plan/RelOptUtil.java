@@ -2376,7 +2376,8 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Converts a relational expression to a string.
+   * Converts a relational expression to a string;
+   * returns null if and only if {@code rel} is null.
    */
   public static @PolyNull String toString(
       final @PolyNull RelNode rel,

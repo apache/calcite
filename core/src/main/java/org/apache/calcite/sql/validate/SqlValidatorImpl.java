@@ -1303,9 +1303,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * rewrites massage the expression tree into a standard form so that the
    * rest of the validation logic can be simpler.
    *
+   * <p>Returns null if and only if the original expression is null.
+   *
    * @param node      expression to be rewritten
    * @param underFrom whether node appears directly under a FROM clause
-   * @return rewritten expression
+   * @return rewritten expression, or null if the original expression is null
    */
   protected @PolyNull SqlNode performUnconditionalRewrites(
       @PolyNull SqlNode node,

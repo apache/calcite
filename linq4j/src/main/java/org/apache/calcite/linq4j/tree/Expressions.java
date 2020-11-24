@@ -27,7 +27,6 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -981,8 +980,8 @@ public abstract class Expressions {
    * block with if and else statements:
    * <code>if (test) stmt1 [ else if (test2) stmt2 ]... [ else stmtN ]</code>.
    */
-  public static ConditionalStatement ifThenElse(Iterable<? extends Node>
-                                                    nodes) {
+  public static ConditionalStatement ifThenElse(
+      Iterable<? extends Node> nodes) {
     List<Node> list = toList(nodes);
     assert list.size() >= 2 : "At least one test and one statement is required";
     return new ConditionalStatement(list);
@@ -1953,7 +1952,7 @@ public abstract class Expressions {
       Iterable<? extends Expression> arguments,
       @Nullable Iterable<? extends MemberDeclaration> memberDeclarations) {
     return new NewExpression(type, toList(arguments),
-        toList(memberDeclarations));
+        memberDeclarations == null ? null : toList(memberDeclarations));
   }
 
   /**
@@ -3072,10 +3071,8 @@ public abstract class Expressions {
     }
   }
 
-  private static <T> @PolyNull List<T> toList(@PolyNull Iterable<? extends T> iterable) {
-    if (iterable == null) {
-      return null;
-    }
+  /** Converts an Iterable to a List. */
+  private static <T> List<T> toList(Iterable<? extends T> iterable) {
     if (iterable instanceof List) {
       return (List<T>) iterable;
     }
@@ -3099,22 +3096,6 @@ public abstract class Expressions {
       return (Collection<T>) iterable;
     }
     return toList(iterable);
-  }
-
-  static <T extends @PolyNull Expression> @PolyNull Expression accept(
-      @PolyNull T node, Shuttle shuttle) {
-    if (node == null) {
-      return node;
-    }
-    return node.accept(shuttle);
-  }
-
-  static <T extends @PolyNull Statement> @PolyNull Statement accept(
-      @PolyNull T node, Shuttle shuttle) {
-    if (node == null) {
-      return node;
-    }
-    return node.accept(shuttle);
   }
 
   static List<Statement> acceptStatements(List<Statement> statements,
@@ -3163,7 +3144,7 @@ public abstract class Expressions {
 
   static List<DeclarationStatement> acceptDeclarations(
       List<DeclarationStatement> declarations, Shuttle shuttle) {
-    if (declarations == null || declarations.isEmpty()) {
+    if (declarations.isEmpty()) {
       return declarations; // short cut
     }
     final List<DeclarationStatement> declarations1 = new ArrayList<>();
@@ -3173,9 +3154,9 @@ public abstract class Expressions {
     return declarations1;
   }
 
-  static @PolyNull List<MemberDeclaration> acceptMemberDeclarations(
-      @PolyNull List<MemberDeclaration> memberDeclarations, Shuttle shuttle) {
-    if (memberDeclarations == null || memberDeclarations.isEmpty()) {
+  static List<MemberDeclaration> acceptMemberDeclarations(
+      List<MemberDeclaration> memberDeclarations, Shuttle shuttle) {
+    if (memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
     final List<MemberDeclaration> memberDeclarations1 = new ArrayList<>();

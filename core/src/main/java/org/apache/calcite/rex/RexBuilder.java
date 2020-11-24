@@ -1666,7 +1666,9 @@ public class RexBuilder {
   }
 
   /** Converts the type of a value to comply with
-   * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}. */
+   * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
+   *
+   * <p>Returns null if and only if {@code o} is null. */
   private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
       return o;

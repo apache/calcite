@@ -42,6 +42,7 @@ import com.esri.core.geometry.WktImportFlags;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 import static org.apache.calcite.runtime.Geometries.NO_SRID;
 import static org.apache.calcite.runtime.Geometries.bind;
@@ -72,7 +73,7 @@ import static org.apache.calcite.runtime.Geometries.todo;
  *   <li>Make {@link #ST_MakeLine(Geom, Geom)} varargs</li>
  * </ul>
  */
-@SuppressWarnings({"UnnecessaryUnboxing", "WeakerAccess", "unused"})
+@SuppressWarnings({"WeakerAccess", "unused"})
 @Deterministic
 @Strict
 @Experimental
@@ -91,80 +92,79 @@ public class GeoFunctions {
         WktExportFlags.wktExportDefaults);
   }
 
-  public static Geom ST_GeomFromText(String s) {
+  public static @Nullable Geom ST_GeomFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_GeomFromText(String s, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(s,
+  public static @Nullable Geom ST_GeomFromText(String s, int srid) {
+    final Geometry g = fromWkt(s,
         WktImportFlags.wktImportDefaults, Geometry.Type.Unknown);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_LineFromText(String s) {
+  public static @Nullable Geom ST_LineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_LineFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_LineFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Line);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPointFromText(String s) {
+  public static @Nullable Geom ST_MPointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPointFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MPointFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.MultiPoint);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PointFromText(String s) {
+  public static @Nullable Geom ST_PointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PointFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
-        WktImportFlags.wktImportDefaults,
-        Geometry.Type.Point);
-    return bind(g, srid);
+  public static @Nullable Geom ST_PointFromText(String wkt, int srid) {
+    final Geometry g =
+        fromWkt(wkt, WktImportFlags.wktImportDefaults, Geometry.Type.Point);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PolyFromText(String s) {
+  public static @Nullable Geom ST_PolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PolyFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_PolyFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Polygon);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MLineFromText(String s) {
+  public static @Nullable Geom ST_MLineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MLineFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MLineFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiLine
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPolyFromText(String s) {
+  public static @Nullable Geom ST_MPolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPolyFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MPolyFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiPolygon
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
   // Geometry creation functions ==============================================
@@ -188,12 +188,13 @@ public class GeoFunctions {
   /** Creates a rectangular Polygon. */
   public static Geom ST_MakeEnvelope(BigDecimal xMin, BigDecimal yMin,
       BigDecimal xMax, BigDecimal yMax, int srid) {
-    return ST_GeomFromText("POLYGON(("
+    Geom geom = ST_GeomFromText("POLYGON(("
         + xMin + " " + yMin + ", "
         + xMin + " " + yMax + ", "
         + xMax + " " + yMax + ", "
         + xMax + " " + yMin + ", "
         + xMin + " " + yMin + "))", srid);
+    return Objects.requireNonNull(geom);
   }
 
   /** Creates a rectangular Polygon. */
@@ -425,7 +426,7 @@ public class GeoFunctions {
       String value = style.substring(equals + 1, space);
       switch (name) {
       case "quad_segs":
-        quadSegCount = Integer.valueOf(value);
+        quadSegCount = Integer.parseInt(value);
         break;
       case "endcap":
         endCapStyle = CapStyle.of(value);
@@ -503,6 +504,13 @@ public class GeoFunctions {
   @Hints({"SqlKind:HILBERT"})
   public static long hilbert(BigDecimal x, BigDecimal y) {
     return new HilbertCurve2D(8).toIndex(x.doubleValue(), y.doubleValue());
+  }
+
+  /** Creates a geometry from a WKT.
+   * If the engine returns a null, throws; never returns null. */
+  private static @Nullable Geometry fromWkt(String wkt, int importFlags,
+      Geometry.Type geometryType) {
+    return GeometryEngine.geometryFromWkt(wkt, importFlags, geometryType);
   }
 
   // Inner classes ============================================================

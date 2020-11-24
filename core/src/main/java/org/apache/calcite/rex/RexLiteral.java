@@ -766,7 +766,7 @@ public class RexLiteral extends RexNode {
    * string into an equivalent RexLiteral. It allows one to use Jdbc strings
    * as a common format for data.
    *
-   * <p>If a null literal is provided, then a null pointer will be returned.
+   * <p>Returns null if and only if {@code literal} is null.
    *
    * @param type     data type of literal to be read
    * @param typeName type family of literal

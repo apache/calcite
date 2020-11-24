@@ -1443,6 +1443,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *
+   * <p>Returns null if and only if {@code plan} is null.
+   *
    * @param plan Plan
    * @return Normalized plan
    */

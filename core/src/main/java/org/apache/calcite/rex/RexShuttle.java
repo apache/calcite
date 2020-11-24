@@ -250,6 +250,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
   /**
    * Applies this shuttle to each expression in a list and returns the
    * resulting list. Does not modify the initial list.
+   *
+   * <p>Returns null if and only if {@code exprList} is null.
    */
   public final <T extends @Nullable RexNode> @PolyNull List<T> apply(@PolyNull List<T> exprList) {
     if (exprList == null) {

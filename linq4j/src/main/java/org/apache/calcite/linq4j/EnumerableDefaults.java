@@ -411,6 +411,8 @@ public abstract class EnumerableDefaults {
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
+   *
+   * <p>If {@code value} is not null, the result is never null.
    */
   @SuppressWarnings("return.type.incompatible")
   public static <TSource> Enumerable<@PolyNull TSource> defaultIfEmpty(
@@ -3957,8 +3959,13 @@ public abstract class EnumerableDefaults {
 
   /** Enumerator that casts each value.
    *
+   * <p>If the source type {@code F} is not nullable, the target element type
+   * {@code T} is not nullable. In other words, an enumerable over elements that
+   * are not null will yield another enumerable over elements that are not null.
+   *
    * @param <F> source element type
-   * @param <T> element type*/
+   * @param <T> element type
+   */
   @HasQualifierParameter(Nullable.class)
   static class CastingEnumerator<F extends @PolyNull Object, @PolyNull T extends @PolyNull Object>
       implements Enumerator<T> {

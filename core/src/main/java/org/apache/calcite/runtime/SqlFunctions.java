@@ -309,26 +309,17 @@ public class SqlFunctions {
   }
 
   /** SQL UPPER(string) function. */
-  public static @PolyNull String upper(@PolyNull String s) {
-    if (s == null) {
-      return s;
-    }
+  public static String upper(String s) {
     return s.toUpperCase(Locale.ROOT);
   }
 
   /** SQL LOWER(string) function. */
-  public static @PolyNull String lower(@PolyNull String s) {
-    if (s == null) {
-      return s;
-    }
+  public static String lower(String s) {
     return s.toLowerCase(Locale.ROOT);
   }
 
   /** SQL INITCAP(string) function. */
-  public static @PolyNull String initcap(@PolyNull String s) {
-    if (s == null) {
-      return s;
-    }
+  public static String initcap(String s) {
     // Assumes Alpha as [A-Za-z0-9]
     // white space is treated as everything else.
     final int len = s.length();
@@ -914,13 +905,15 @@ public class SqlFunctions {
   }
 
   /** SQL <code>+</code> operator applied to BigDecimal values. */
-  public static @PolyNull BigDecimal plus(@PolyNull BigDecimal b0, @PolyNull BigDecimal b1) {
+  public static @PolyNull BigDecimal plus(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.add(b1);
   }
 
   /** SQL <code>+</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static @PolyNull Object plusAny(@PolyNull Object b0, @PolyNull Object b1) {
+  public static @PolyNull Object plusAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
@@ -970,8 +963,9 @@ public class SqlFunctions {
         : (b0.longValue() - b1.longValue());
   }
 
-  /** SQL <code>-</code> operator applied to BigDecimal values. */
-  public static @PolyNull BigDecimal minus(@PolyNull BigDecimal b0, @PolyNull BigDecimal b1) {
+  /** SQL <code>-</code> operator applied to nullable BigDecimal values. */
+  public static @PolyNull BigDecimal minus(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
   }
 
@@ -1009,7 +1003,8 @@ public class SqlFunctions {
   }
 
   /** SQL <code>/</code> operator applied to nullable int values. */
-  public static @PolyNull Integer divide(@PolyNull Integer b0, @PolyNull Integer b1) {
+  public static @PolyNull Integer divide(@PolyNull Integer b0,
+      @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 / b1);
   }
 
@@ -1028,7 +1023,8 @@ public class SqlFunctions {
   }
 
   /** SQL <code>/</code> operator applied to BigDecimal values. */
-  public static @PolyNull BigDecimal divide(@PolyNull BigDecimal b0, @PolyNull BigDecimal b1) {
+  public static @PolyNull BigDecimal divide(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : b0.divide(b1, MathContext.DECIMAL64);
@@ -1036,7 +1032,8 @@ public class SqlFunctions {
 
   /** SQL <code>/</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static @PolyNull Object divideAny(@PolyNull Object b0, @PolyNull Object b1) {
+  public static @PolyNull Object divideAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
@@ -1078,7 +1075,8 @@ public class SqlFunctions {
   }
 
   /** SQL <code>*</code> operator applied to nullable int values. */
-  public static @PolyNull Integer multiply(@PolyNull Integer b0, @PolyNull Integer b1) {
+  public static @PolyNull Integer multiply(@PolyNull Integer b0,
+      @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 * b1);
   }
 
@@ -1096,14 +1094,16 @@ public class SqlFunctions {
         : (b0.longValue() * b1.longValue());
   }
 
-  /** SQL <code>*</code> operator applied to BigDecimal values. */
-  public static @PolyNull BigDecimal multiply(@PolyNull BigDecimal b0, @PolyNull BigDecimal b1) {
+  /** SQL <code>*</code> operator applied to nullable BigDecimal values. */
+  public static @PolyNull BigDecimal multiply(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.multiply(b1);
   }
 
   /** SQL <code>*</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static @PolyNull Object multiplyAny(@PolyNull Object b0, @PolyNull Object b1) {
+  public static @PolyNull Object multiplyAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
@@ -1912,7 +1912,8 @@ public class SqlFunctions {
     return v == null ? castNonNull(null) : toInt(v);
   }
 
-  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v, TimeZone timeZone) {
+  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v,
+      TimeZone timeZone) {
     return v == null
         ? castNonNull(null)
         : toInt(v, timeZone);
@@ -2075,14 +2076,21 @@ public class SqlFunctions {
   }
 
   public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v) {
-    return v == null ? castNonNull(null) : new TimeWithTimeZoneString(v)
+    if (v == null) {
+      return castNonNull(null);
+    }
+    return new TimeWithTimeZoneString(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimeString()
         .getMillisOfDay();
   }
 
-  public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v, TimeZone timeZone) {
-    return v == null ? castNonNull(null) : new TimeWithTimeZoneString(v + " " + timeZone.getID())
+  public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v,
+      TimeZone timeZone) {
+    if (v == null) {
+      return castNonNull(null);
+    }
+    return new TimeWithTimeZoneString(v + " " + timeZone.getID())
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimeString()
         .getMillisOfDay();
@@ -2208,15 +2216,21 @@ public class SqlFunctions {
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {
-    return v == null ? castNonNull(null) : new TimestampWithTimeZoneString(v)
+    if (v == null) {
+      return castNonNull(null);
+    }
+    return new TimestampWithTimeZoneString(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
   }
 
-  public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v, TimeZone timeZone) {
-    return v == null ? castNonNull(null)
-        : new TimestampWithTimeZoneString(v + " " + timeZone.getID())
+  public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v,
+      TimeZone timeZone) {
+    if (v == null) {
+      return castNonNull(null);
+    }
+    return new TimestampWithTimeZoneString(v + " " + timeZone.getID())
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimestampString()
         .getMillisSinceEpoch();

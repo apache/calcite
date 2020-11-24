@@ -212,6 +212,8 @@ public interface QueryableFactory<T> {
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
+   *
+   * <p>If {@code value} is not null, the result is never null.
    */
   Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source, @PolyNull T value);
 

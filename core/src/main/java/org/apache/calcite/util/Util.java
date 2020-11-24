@@ -1726,15 +1726,18 @@ public class Util {
    * Converts a iterator whose members are automatically down-cast to a given
    * type.
    *
-   * <p>If a member of the backing iterator is not an instanceof <code>
-   * E</code>, {@link Iterator#next()}) will throw a
+   * <p>If a member of the backing iterator is not an instance of {@code E},
+   * {@link Iterator#next()}) will throw a
    * {@link ClassCastException}.
    *
    * <p>All modifications are automatically written to the backing iterator.
    * Not synchronized.
    *
-   * @param iter  Backing iterator.
-   * @param clazz Class to cast to.
+   * <p>If the backing iterator has not-nullable elements,
+   * the returned iterator has not-nullable elements.
+   *
+   * @param iter  Backing iterator
+   * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
   public static <E extends @PolyNull Object> Iterator<E> cast(
@@ -2008,7 +2011,7 @@ public class Util {
   /** Returns the first value if it is not null,
    * otherwise the second value.
    *
-   * <p>The result may be null.
+   * <p>The result may be null only if the second argument is not null.
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */

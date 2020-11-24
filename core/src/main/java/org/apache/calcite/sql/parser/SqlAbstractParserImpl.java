@@ -36,7 +36,6 @@ import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -425,7 +424,7 @@ public abstract class SqlAbstractParserImpl {
    * @param ex dirty excn
    * @return clean excn
    */
-  public abstract SqlParseException normalizeException(@PolyNull Throwable ex);
+  public abstract SqlParseException normalizeException(Throwable ex);
 
   protected abstract SqlParserPos getPos() throws Exception;
 
