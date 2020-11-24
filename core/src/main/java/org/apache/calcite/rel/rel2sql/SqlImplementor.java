@@ -300,16 +300,6 @@ public abstract class SqlImplementor {
     final SqlOperator op;
     final Context joinContext;
     switch (node.getKind()) {
-    case NOT:
-      final RexNode operand0 = ((RexCall) node).getOperands().get(0);
-      final SqlOperator notOperator = NOT_KIND_OPERATORS.get(operand0.getKind());
-      if (notOperator != null) {
-        return convertConditionToSqlNode(
-            leftContext.implementor().rexBuilder.makeCall(notOperator,
-                ((RexCall) operand0).operands), leftContext, rightContext,
-            leftFieldCount, dialect);
-      }
-      // fall through
     case AND:
     case OR:
       operands = ((RexCall) node).getOperands();
@@ -331,6 +321,7 @@ public abstract class SqlImplementor {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case LIKE:
+    case NOT:
       node = stripCastFromString(node, dialect);
       operands = ((RexCall) node).getOperands();
       op = ((RexCall) node).getOperator();
@@ -820,40 +811,53 @@ public abstract class SqlImplementor {
           return toSql(program, (RexOver) rex);
         }
 
-        final RexCall call = (RexCall) stripCastFromString(rex, dialect);
-        SqlOperator op = call.getOperator();
-        switch (op.getKind()) {
-        case SUM0:
-          op = SqlStdOperatorTable.SUM;
-          break;
-        default:
-          break;
-        }
-        final List<SqlNode> nodeList = toSql(program, call.getOperands());
-        switch (call.getKind()) {
-        case CAST:
-          // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
-          // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
-          RelDataType dataType = rex.getType();
-          if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
-            RexNode operand0 = ((RexCall) rex).operands.get(0);
-            assert operand0 instanceof RexInputRef;
-            int ordinal = ((RexInputRef) operand0).getIndex();
-            SqlNode fieldOperand = field(ordinal);
-            return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
-          }
-          if (ignoreCast) {
-            assert nodeList.size() == 1;
-            return nodeList.get(0);
-          } else {
-            nodeList.add(dialect.getCastSpec(call.getType()));
-          }
-          break;
-        default:
-          break;
-        }
-        return SqlUtil.createCall(op, POS, nodeList);
+        return callToSql(program, (RexCall) rex, false);
       }
+    }
+
+    private SqlNode callToSql(RexProgram program, RexCall rex, boolean not) {
+      final RexCall call = (RexCall) stripCastFromString(rex, dialect);
+      SqlOperator op = call.getOperator();
+      switch (op.getKind()) {
+      case SUM0:
+        op = SqlStdOperatorTable.SUM;
+        break;
+      case NOT:
+        RexNode operand = call.operands.get(0);
+        if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
+          return callToSql(program, (RexCall) operand, !not);
+        }
+        break;
+      default:
+        break;
+      }
+      if (not) {
+        op = NOT_KIND_OPERATORS.get(op.getKind());
+      }
+      final List<SqlNode> nodeList = toSql(program, call.getOperands());
+      switch (call.getKind()) {
+      case CAST:
+        // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
+        // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
+        RelDataType dataType = rex.getType();
+        if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
+          RexNode operand0 = ((RexCall) rex).operands.get(0);
+          assert operand0 instanceof RexInputRef;
+          int ordinal = ((RexInputRef) operand0).getIndex();
+          SqlNode fieldOperand = field(ordinal);
+          return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
+        }
+        if (ignoreCast) {
+          assert nodeList.size() == 1;
+          return nodeList.get(0);
+        } else {
+          nodeList.add(dialect.getCastSpec(call.getType()));
+        }
+        break;
+      default:
+        break;
+      }
+      return SqlUtil.createCall(op, POS, nodeList);
     }
 
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the

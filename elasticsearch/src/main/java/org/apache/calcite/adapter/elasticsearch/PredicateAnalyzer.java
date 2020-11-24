@@ -20,16 +20,13 @@ import org.apache.calcite.adapter.elasticsearch.QueryBuilders.BoolQueryBuilder;
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.QueryBuilder;
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.RangeQueryBuilder;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -114,29 +111,6 @@ class PredicateAnalyzer {
     } catch (Throwable e) {
       Throwables.propagateIfPossible(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
-    }
-  }
-
-  /**
-   * Converts expressions of the form NOT(LIKE(...)) into NOT_LIKE(...)
-   */
-  @SuppressWarnings("unused")
-  private static class NotLikeConverter extends RexShuttle {
-    final RexBuilder rexBuilder;
-
-    NotLikeConverter(RexBuilder rexBuilder) {
-      this.rexBuilder = rexBuilder;
-    }
-
-    @Override public RexNode visitCall(RexCall call) {
-      if (call.getOperator().getKind() == SqlKind.NOT) {
-        RexNode child = call.getOperands().get(0);
-        if (child.getKind() == SqlKind.LIKE) {
-          return rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE,
-              visitList(((RexCall) child).getOperands()));
-        }
-      }
-      return super.visitCall(call);
     }
   }
 

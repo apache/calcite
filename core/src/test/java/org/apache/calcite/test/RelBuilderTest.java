@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
@@ -3887,5 +3888,68 @@ public class RelBuilderTest {
       final String expectedResult = "";
       assertThat(result, is(expectedResult));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4415">[CALCITE-4415]
+   * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
+  @Test void testNotLike() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(
+                    SqlStdOperatorTable.NOT_LIKE,
+                    builder.field("ENAME"),
+                    builder.literal("a%b%c")))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[NOT(LIKE($1, 'a%b%c'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4415">[CALCITE-4415]
+   * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
+  @Test void testNotSimilarTo() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(
+                    SqlStdOperatorTable.NOT_SIMILAR_TO,
+                    builder.field("ENAME"),
+                    builder.literal("a%b%c")))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[NOT(SIMILAR TO($1, 'a%b%c'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4415">[CALCITE-4415]
+   * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
+  @Test void testExecuteNotLike() {
+    CalciteAssert.that()
+        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .query("?")
+        .withRel(
+            builder -> builder
+                .scan("s", "emps")
+                .filter(
+                    builder.call(
+                        SqlStdOperatorTable.NOT_LIKE,
+                        builder.field("name"),
+                        builder.literal("%r%c")))
+                .project(
+                    builder.field("empid"),
+                    builder.field("name"))
+                .build())
+        .returnsUnordered(
+            "empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
   }
 }
