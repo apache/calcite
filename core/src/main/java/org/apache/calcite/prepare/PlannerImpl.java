@@ -58,7 +58,6 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -125,9 +124,9 @@ public class PlannerImpl implements Planner, ViewExpander {
   /** Gets a user-defined config and appends default connection values. */
   private static CalciteConnectionConfig connConfig(Context context,
       SqlParser.Config parserConfig) {
-    CalciteConnectionConfigImpl config = Util.first(
-        context.unwrap(CalciteConnectionConfigImpl.class),
-        CalciteConnectionConfig.DEFAULT);
+    CalciteConnectionConfigImpl config =
+        context.maybeUnwrap(CalciteConnectionConfigImpl.class)
+            .orElse(CalciteConnectionConfig.DEFAULT);
     if (!config.isSet(CalciteConnectionProperty.CASE_SENSITIVE)) {
       config = config.set(CalciteConnectionProperty.CASE_SENSITIVE,
           String.valueOf(parserConfig.caseSensitive()));

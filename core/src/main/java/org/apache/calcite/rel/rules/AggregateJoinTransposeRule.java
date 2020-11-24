@@ -250,8 +250,7 @@ public class AggregateJoinTransposeRule
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
           final SqlAggFunction aggregation = aggCall.e.getAggregation();
           final SqlSplittableAggFunction splitter =
-              requireNonNull(
-                  aggregation.unwrap(SqlSplittableAggFunction.class));
+              aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
           if (!aggCall.e.getArgList().isEmpty()
               && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
             final RexNode singleton = splitter.singleton(rexBuilder,
@@ -283,8 +282,7 @@ public class AggregateJoinTransposeRule
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
           final SqlAggFunction aggregation = aggCall.e.getAggregation();
           final SqlSplittableAggFunction splitter =
-              requireNonNull(
-                  aggregation.unwrap(SqlSplittableAggFunction.class));
+              aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
           final AggregateCall call1;
           if (fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
             final AggregateCall splitCall = splitter.split(aggCall.e, mapping);
@@ -339,8 +337,7 @@ public class AggregateJoinTransposeRule
     for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
       final SqlAggFunction aggregation = aggCall.e.getAggregation();
       final SqlSplittableAggFunction splitter =
-          requireNonNull(
-              aggregation.unwrap(SqlSplittableAggFunction.class));
+          aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
       final Integer leftSubTotal = sides.get(0).split.get(aggCall.i);
       final Integer rightSubTotal = sides.get(1).split.get(aggCall.i);
       newAggCalls.add(
@@ -361,12 +358,11 @@ public class AggregateJoinTransposeRule
         projects2.add(relBuilder.field(key));
       }
       for (AggregateCall newAggCall : newAggCalls) {
-        final SqlSplittableAggFunction splitter =
-            newAggCall.getAggregation().unwrap(SqlSplittableAggFunction.class);
-        if (splitter != null) {
-          final RelDataType rowType = relBuilder.peek().getRowType();
-          projects2.add(splitter.singleton(rexBuilder, rowType, newAggCall));
-        }
+        newAggCall.getAggregation().maybeUnwrap(SqlSplittableAggFunction.class)
+            .ifPresent(splitter -> {
+              final RelDataType rowType = relBuilder.peek().getRowType();
+              projects2.add(splitter.singleton(rexBuilder, rowType, newAggCall));
+            });
       }
       if (projects2.size()
           == aggregate.getGroupSet().cardinality() + newAggCalls.size()) {

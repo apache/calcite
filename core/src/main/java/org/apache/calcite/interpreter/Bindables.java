@@ -286,9 +286,9 @@ public class Bindables {
     }
 
     public static boolean canHandle(RelOptTable table) {
-      return table.unwrap(ScannableTable.class) != null
-          || table.unwrap(FilterableTable.class) != null
-          || table.unwrap(ProjectableFilterableTable.class) != null;
+      return table.maybeUnwrap(ScannableTable.class).isPresent()
+          || table.maybeUnwrap(FilterableTable.class).isPresent()
+          || table.maybeUnwrap(ProjectableFilterableTable.class).isPresent();
     }
 
     @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {

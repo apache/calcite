@@ -629,7 +629,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
-    return table.unwrap(ScannableTable.class).scan(dataContext);
+    return table.unwrapOrThrow(ScannableTable.class).scan(dataContext);
   }
 
   @Override public Node implement(InterpreterImplementor implementor) {
@@ -716,7 +716,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   protected CalciteConnectionConfig getConnectionConfig() {
-    return getCluster().getPlanner().getContext().unwrap(CalciteConnectionConfig.class);
+    return getCluster().getPlanner().getContext()
+        .unwrapOrThrow(CalciteConnectionConfig.class);
   }
 
   /**

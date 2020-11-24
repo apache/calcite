@@ -70,8 +70,7 @@ public class RelOptMaterialization {
     if (starRelOptTable == null) {
       this.starTable = null;
     } else {
-      this.starTable = starRelOptTable.unwrap(StarTable.class);
-      assert starTable != null;
+      this.starTable = starRelOptTable.unwrapOrThrow(StarTable.class);
     }
     this.qualifiedTableName = qualifiedTableName;
     this.queryRel = queryRel;
@@ -89,8 +88,7 @@ public class RelOptMaterialization {
    */
   public static @Nullable RelNode tryUseStar(RelNode rel,
       final RelOptTable starRelOptTable) {
-    final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
-    assert starTable != null;
+    final StarTable starTable = starRelOptTable.unwrapOrThrow(StarTable.class);
     RelNode rel2 = rel.accept(
         new RelShuttleImpl() {
           @Override public RelNode visit(TableScan scan) {

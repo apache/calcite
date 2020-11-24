@@ -57,7 +57,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -683,38 +682,38 @@ public class RelFactories {
         return struct;
       }
       return new Struct(
-          Util.first(context.unwrap(FilterFactory.class),
-              DEFAULT_FILTER_FACTORY),
-          Util.first(context.unwrap(ProjectFactory.class),
-              DEFAULT_PROJECT_FACTORY),
-          Util.first(context.unwrap(AggregateFactory.class),
-              DEFAULT_AGGREGATE_FACTORY),
-          Util.first(context.unwrap(SortFactory.class),
-              DEFAULT_SORT_FACTORY),
-          Util.first(context.unwrap(ExchangeFactory.class),
-              DEFAULT_EXCHANGE_FACTORY),
-          Util.first(context.unwrap(SortExchangeFactory.class),
-              DEFAULT_SORT_EXCHANGE_FACTORY),
-          Util.first(context.unwrap(SetOpFactory.class),
-              DEFAULT_SET_OP_FACTORY),
-          Util.first(context.unwrap(JoinFactory.class),
-              DEFAULT_JOIN_FACTORY),
-          Util.first(context.unwrap(CorrelateFactory.class),
-              DEFAULT_CORRELATE_FACTORY),
-          Util.first(context.unwrap(ValuesFactory.class),
-              DEFAULT_VALUES_FACTORY),
-          Util.first(context.unwrap(TableScanFactory.class),
-              DEFAULT_TABLE_SCAN_FACTORY),
-          Util.first(context.unwrap(TableFunctionScanFactory.class),
-              DEFAULT_TABLE_FUNCTION_SCAN_FACTORY),
-          Util.first(context.unwrap(SnapshotFactory.class),
-              DEFAULT_SNAPSHOT_FACTORY),
-          Util.first(context.unwrap(MatchFactory.class),
-              DEFAULT_MATCH_FACTORY),
-          Util.first(context.unwrap(SpoolFactory.class),
-              DEFAULT_SPOOL_FACTORY),
-          Util.first(context.unwrap(RepeatUnionFactory.class),
-              DEFAULT_REPEAT_UNION_FACTORY));
+          context.maybeUnwrap(FilterFactory.class)
+              .orElse(DEFAULT_FILTER_FACTORY),
+          context.maybeUnwrap(ProjectFactory.class)
+              .orElse(DEFAULT_PROJECT_FACTORY),
+          context.maybeUnwrap(AggregateFactory.class)
+              .orElse(DEFAULT_AGGREGATE_FACTORY),
+          context.maybeUnwrap(SortFactory.class)
+              .orElse(DEFAULT_SORT_FACTORY),
+          context.maybeUnwrap(ExchangeFactory.class)
+              .orElse(DEFAULT_EXCHANGE_FACTORY),
+          context.maybeUnwrap(SortExchangeFactory.class)
+              .orElse(DEFAULT_SORT_EXCHANGE_FACTORY),
+          context.maybeUnwrap(SetOpFactory.class)
+              .orElse(DEFAULT_SET_OP_FACTORY),
+          context.maybeUnwrap(JoinFactory.class)
+              .orElse(DEFAULT_JOIN_FACTORY),
+          context.maybeUnwrap(CorrelateFactory.class)
+              .orElse(DEFAULT_CORRELATE_FACTORY),
+          context.maybeUnwrap(ValuesFactory.class)
+              .orElse(DEFAULT_VALUES_FACTORY),
+          context.maybeUnwrap(TableScanFactory.class)
+              .orElse(DEFAULT_TABLE_SCAN_FACTORY),
+          context.maybeUnwrap(TableFunctionScanFactory.class)
+              .orElse(DEFAULT_TABLE_FUNCTION_SCAN_FACTORY),
+          context.maybeUnwrap(SnapshotFactory.class)
+              .orElse(DEFAULT_SNAPSHOT_FACTORY),
+          context.maybeUnwrap(MatchFactory.class)
+              .orElse(DEFAULT_MATCH_FACTORY),
+          context.maybeUnwrap(SpoolFactory.class)
+              .orElse(DEFAULT_SPOOL_FACTORY),
+          context.maybeUnwrap(RepeatUnionFactory.class)
+              .orElse(DEFAULT_REPEAT_UNION_FACTORY));
     }
   }
 }

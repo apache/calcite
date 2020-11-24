@@ -30,6 +30,8 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +94,7 @@ class MutableArrayTable extends AbstractModifiableTable
     return protoRowType.apply(typeFactory);
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(initializerExpressionFactory)) {
       return aClass.cast(initializerExpressionFactory);
     }

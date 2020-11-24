@@ -277,9 +277,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
-    final Table table = targetRelTable.unwrap(Table.class);
+    final Table table = targetRelTable.unwrapOrThrow(Table.class);
     final List<String> tablePath = targetRelTable.getQualifiedName();
-    assert table != null;
     List<Integer> columnMapping;
     final Map<Integer, RexNode> projectMap = new HashMap<>();
     if (project == null) {

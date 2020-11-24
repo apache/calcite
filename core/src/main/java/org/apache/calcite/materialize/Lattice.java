@@ -387,10 +387,7 @@ public class Lattice {
   public StarTable createStarTable() {
     final List<Table> tables = new ArrayList<>();
     for (LatticeNode node : rootNode.descendants) {
-      tables.add(
-          requireNonNull(
-              node.table.t.unwrap(Table.class),
-              () -> "can't get table for " + node.table.t));
+      tables.add(node.table.t.unwrapOrThrow(Table.class));
     }
     return StarTable.of(this, tables);
   }

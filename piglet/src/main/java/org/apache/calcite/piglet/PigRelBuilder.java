@@ -92,7 +92,7 @@ public class PigRelBuilder extends RelBuilder {
   private static Context transform(Context context,
       UnaryOperator<RelBuilder.Config> transform) {
     final Config config =
-        Util.first(context.unwrap(Config.class), Config.DEFAULT);
+        context.maybeUnwrap(Config.class).orElse(Config.DEFAULT);
     return Contexts.of(transform.apply(config), context);
   }
 

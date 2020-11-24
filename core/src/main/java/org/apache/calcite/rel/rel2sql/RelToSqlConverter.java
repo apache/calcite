@@ -796,20 +796,13 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private SqlIdentifier getSqlTargetTable(RelNode e) {
-    final SqlIdentifier sqlTargetTable;
-    RelOptTable table = e.getTable();
-    assert table != null : "e.getTable() must not be null for " + e;
-    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
-    if (jdbcTable != null) {
-      // Use the foreign catalog, schema and table names, if they exist,
-      // rather than the qualified name of the shadow table in Calcite.
-      sqlTargetTable = jdbcTable.tableName();
-    } else {
-      final List<String> qualifiedName = table.getQualifiedName();
-      sqlTargetTable = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
-    }
-
-    return sqlTargetTable;
+    // Use the foreign catalog, schema and table names, if they exist,
+    // rather than the qualified name of the shadow table in Calcite.
+    final RelOptTable table = requireNonNull(e.getTable());
+    return table.maybeUnwrap(JdbcTable.class)
+        .map(JdbcTable::tableName)
+        .orElseGet(() ->
+            new SqlIdentifier(table.getQualifiedName(), SqlParserPos.ZERO));
   }
 
   /** Visits a TableModify; called by {@link #dispatch} via reflection. */

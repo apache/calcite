@@ -98,14 +98,11 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   }
 
   @Override public double tableCardinality(RelOptTable table) {
-    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
-    final List<String> qualifiedName;
-    if (jdbcTable != null) {
-      qualifiedName = Arrays.asList(jdbcTable.jdbcSchemaName,
-          jdbcTable.jdbcTableName);
-    } else {
-      qualifiedName = table.getQualifiedName();
-    }
+    final List<String> qualifiedName =
+        table.maybeUnwrap(JdbcTable.class)
+            .map(value ->
+                Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
+            .orElseGet(table::getQualifiedName);
     return cardinalityMap.get(qualifiedName.toString());
   }
 

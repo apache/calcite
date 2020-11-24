@@ -365,12 +365,11 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       // Materialized view exists.
       execute((SqlDropObject) drop, context);
       if (table instanceof Wrapper) {
-        final MaterializationKey materializationKey =
-            ((Wrapper) table).unwrap(MaterializationKey.class);
-        if (materializationKey != null) {
-          MaterializationService.instance()
-              .removeMaterialization(materializationKey);
-        }
+        ((Wrapper) table).maybeUnwrap(MaterializationKey.class)
+            .ifPresent(materializationKey -> {
+              MaterializationService.instance()
+                  .removeMaterialization(materializationKey);
+            });
       }
     }
   }

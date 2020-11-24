@@ -594,12 +594,12 @@ public abstract class SqlToRelTestBase {
           createValidator(
               catalogReader, typeFactory);
       final Context context = getContext();
-      final CalciteConnectionConfig calciteConfig =
-          context.unwrap(CalciteConnectionConfig.class);
-      if (calciteConfig != null) {
-        validator.transform(config ->
-            config.withDefaultNullCollation(calciteConfig.defaultNullCollation()));
-      }
+      context.maybeUnwrap(CalciteConnectionConfig.class)
+          .ifPresent(calciteConfig -> {
+            validator.transform(config ->
+                config.withDefaultNullCollation(
+                    calciteConfig.defaultNullCollation()));
+          });
       final SqlToRelConverter.Config config =
           configTransform.apply(SqlToRelConverter.config());
 
@@ -705,15 +705,13 @@ public abstract class SqlToRelTestBase {
      * @return New operator table
      */
     protected SqlOperatorTable createOperatorTable() {
-      final Context context = getContext();
-      final SqlOperatorTable opTab0 = context.unwrap(SqlOperatorTable.class);
-      if (opTab0 != null) {
-        return opTab0;
-      }
-      final MockSqlOperatorTable opTab =
-          new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-      MockSqlOperatorTable.addRamp(opTab);
-      return opTab;
+      return getContext().maybeUnwrap(SqlOperatorTable.class)
+          .orElseGet(() -> {
+            final MockSqlOperatorTable opTab =
+                new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+            MockSqlOperatorTable.addRamp(opTab);
+            return opTab;
+          });
     }
 
     private Context getContext() {

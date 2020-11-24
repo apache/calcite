@@ -3361,7 +3361,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (namespace != null) {
       SqlValidatorTable sqlValidatorTable = namespace.getTable();
       if (sqlValidatorTable != null) {
-        Table table = sqlValidatorTable.unwrapOrThrow(Table.class);
+        Table table = sqlValidatorTable.table();
         String column = Util.last(identifier.names);
 
         if (table.isRolledUp(column)) {
@@ -3773,7 +3773,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlValidatorTable sqlValidatorTable =
         fullyQualified.namespace.getTable();
     if (sqlValidatorTable != null) {
-      return sqlValidatorTable.unwrapOrThrow(Table.class);
+      return sqlValidatorTable.table();
     }
     return null;
   }
@@ -4061,7 +4061,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // We've found a table. But is it a sequence?
     final SqlValidatorNamespace ns = resolved.only().namespace;
     if (ns instanceof TableNamespace) {
-      final Table table = getTable(ns).unwrapOrThrow(Table.class);
+      final Table table = getTable(ns).table();
       switch (table.getJdbcTableType()) {
       case SEQUENCE:
       case TEMPORARY_SEQUENCE:
@@ -4608,7 +4608,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final ModifiableViewTable modifiableViewTable =
         validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null && source instanceof SqlCall) {
-      final Table table = modifiableViewTable.unwrapOrThrow(Table.class);
+      final Table table = modifiableViewTable.getTable();
       final RelDataType tableRowType = table.getRowType(typeFactory);
       final List<RelDataTypeField> tableFields = tableRowType.getFieldList();
 
@@ -4665,7 +4665,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final ModifiableViewTable modifiableViewTable =
         validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null) {
-      final Table table = modifiableViewTable.unwrapOrThrow(Table.class);
+      final Table table = modifiableViewTable.getTable();
       final RelDataType tableRowType = table.getRowType(typeFactory);
 
       final Map<Integer, RexNode> projectMap =

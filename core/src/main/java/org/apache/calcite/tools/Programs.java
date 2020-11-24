@@ -350,9 +350,9 @@ public class Programs {
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
-      final CalciteConnectionConfig config = Util.first(
-          planner.getContext().unwrap(CalciteConnectionConfig.class),
-          CalciteConnectionConfig.DEFAULT);
+      final CalciteConnectionConfig config =
+          planner.getContext().maybeUnwrap(CalciteConnectionConfig.class)
+              .orElse(CalciteConnectionConfig.DEFAULT);
       if (config.forceDecorrelate()) {
         final RelBuilder relBuilder =
             RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);

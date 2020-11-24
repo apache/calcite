@@ -2538,8 +2538,7 @@ public class SqlToRelConverter {
     assert table != null : "getRelOptTable returned null for " + fromNamespace;
     if (extendedColumns != null && extendedColumns.size() > 0) {
       final SqlValidatorTable validatorTable =
-          table.unwrap(SqlValidatorTable.class);
-      assert validatorTable != null : "unwra(SqlValidatorTable) returned null for " + table;
+          table.unwrapOrThrow(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
           SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
@@ -3643,8 +3642,8 @@ public class SqlToRelConverter {
     final RelNode scan = table.toRel(createToRelContext(hints));
 
     final InitializerExpressionFactory ief =
-        Util.first(table.unwrap(InitializerExpressionFactory.class),
-            NullInitializerExpressionFactory.INSTANCE);
+        table.maybeUnwrap(InitializerExpressionFactory.class)
+            .orElse(NullInitializerExpressionFactory.INSTANCE);
 
     boolean hasVirtualFields = table.getRowType()
         .getFieldList().stream()
@@ -3876,8 +3875,8 @@ public class SqlToRelConverter {
       switch (strategies.get(i)) {
       case STORED:
         final InitializerExpressionFactory f =
-            Util.first(targetTable.unwrap(InitializerExpressionFactory.class),
-                NullInitializerExpressionFactory.INSTANCE);
+            targetTable.maybeUnwrap(InitializerExpressionFactory.class)
+                .orElse(NullInitializerExpressionFactory.INSTANCE);
         expr = f.newColumnDefaultValue(targetTable, i, bb);
         break;
       case VIRTUAL:

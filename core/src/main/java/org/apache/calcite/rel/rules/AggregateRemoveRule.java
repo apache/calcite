@@ -35,7 +35,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Planner rule that removes
@@ -78,8 +77,8 @@ public class AggregateRemoveRule
     // If any aggregate functions do not support splitting, bail out.
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
       if (aggregateCall.filterArg >= 0
-          || aggregateCall.getAggregation()
-              .unwrap(SqlSplittableAggFunction.class) == null) {
+          || !aggregateCall.getAggregation()
+              .maybeUnwrap(SqlSplittableAggFunction.class).isPresent()) {
         return false;
       }
     }
@@ -108,10 +107,9 @@ public class AggregateRemoveRule
         return;
       }
       final SqlSplittableAggFunction splitter =
-          Objects.requireNonNull(
-              aggregation.unwrap(SqlSplittableAggFunction.class));
-      final RexNode singleton = splitter.singleton(
-          rexBuilder, input.getRowType(), aggCall);
+          aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
+      final RexNode singleton =
+          splitter.singleton(rexBuilder, input.getRowType(), aggCall);
       projects.add(singleton);
     }
 

@@ -416,7 +416,7 @@ public abstract class Prepare {
         InitializerContext initializerContext) {
       // This method is no longer used
       final Table table = this.unwrap(Table.class);
-      if (table != null && table instanceof Wrapper) {
+      if (table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
@@ -654,7 +654,7 @@ public abstract class Prepare {
         RelOptTable starRelOptTable) {
       this.queryRel = queryRel;
       this.starRelOptTable = starRelOptTable;
-      assert starRelOptTable.unwrap(StarTable.class) != null;
+      assert starRelOptTable.maybeUnwrap(StarTable.class).isPresent();
     }
   }
 }

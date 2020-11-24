@@ -176,8 +176,10 @@ public class RelBuilder {
     this.struct =
         requireNonNull(RelFactories.Struct.fromContext(context));
     final RexExecutor executor =
-        Util.first(context.unwrap(RexExecutor.class),
-            Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
+        context.maybeUnwrap(RexExecutor.class)
+            .orElse(
+                Util.first(cluster.getPlanner().getExecutor(),
+                    RexUtil.EXECUTOR));
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplifier =
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
@@ -195,9 +197,10 @@ public class RelBuilder {
    *
    * <p>The default view expander does not support expanding views.
    */
-  private static RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster, Context context) {
-    return Util.first(context.unwrap(RelOptTable.ViewExpander.class),
-        ViewExpanders.simpleContext(cluster));
+  private static RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster,
+      Context context) {
+    return context.maybeUnwrap(RelOptTable.ViewExpander.class)
+        .orElseGet(() -> ViewExpanders.simpleContext(cluster));
   }
 
   /** Derives the Config to be used for this RelBuilder.
@@ -207,7 +210,7 @@ public class RelBuilder {
    */
   private static Config getConfig(Context context) {
     final Config config =
-        Util.first(context.unwrap(Config.class), Config.DEFAULT);
+        context.maybeUnwrap(Config.class).orElse(Config.DEFAULT);
     boolean simplify = Hook.REL_BUILDER_SIMPLIFY.get(config.simplify());
     return config.withSimplify(simplify);
   }

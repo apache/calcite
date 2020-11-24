@@ -44,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -93,16 +94,16 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       @Nullable Context context) {
-    assert costFactory != null;
-    this.costFactory = costFactory;
+    this.costFactory = Objects.requireNonNull(costFactory);
     if (context == null) {
       context = Contexts.empty();
     }
     this.context = context;
 
-    final CancelFlag cancelFlag = context.unwrap(CancelFlag.class);
-    this.cancelFlag = cancelFlag != null ? cancelFlag.atomicBoolean
-        : new AtomicBoolean();
+    this.cancelFlag =
+        context.maybeUnwrap(CancelFlag.class)
+            .map(flag -> flag.atomicBoolean)
+            .orElseGet(AtomicBoolean::new);
 
     // Add abstract RelNode classes. No RelNodes will ever be registered with
     // these types, but some operands may use them.
