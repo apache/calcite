@@ -84,7 +84,7 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
-    pos = pos.plusAll(Arrays.asList(operands));
+    pos = pos.plusAll(operands);
     operands = Arrays.copyOf(operands, operands.length + 1);
     operands[operands.length - 1] = SqlLiteral.createBoolean(caseSensitive, SqlParserPos.ZERO);
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);

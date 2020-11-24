@@ -42,7 +42,6 @@ import com.google.common.collect.Iterables;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -274,7 +273,7 @@ public abstract class SqlOperator {
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
-    pos = pos.plusAll(Arrays.asList(operands));
+    pos = pos.plusAll(operands);
     return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
