@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Litmus;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -126,6 +127,13 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         callBinding,
         callBinding.operands(),
         throwOnFailure);
+  }
+
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
+    if (negated) {
+      litmus.fail("unsupported negated operator {}", this);
+    }
+    return super.validRexOperands(count, litmus);
   }
 
   @Override public void unparse(

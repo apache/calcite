@@ -262,8 +262,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_DIST
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
@@ -467,12 +465,10 @@ public class RexImpTable {
         new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
             false);
     map.put(LIKE, likeImplementor);
-    map.put(NOT_LIKE, likeImplementor);
     final MethodImplementor similarImplementor =
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
             false);
     map.put(SIMILAR_TO, similarImplementor);
-    map.put(NOT_SIMILAR_TO, NotImplementor.of(similarImplementor));
 
     // POSIX REGEX
     final MethodImplementor posixRegexImplementor =
