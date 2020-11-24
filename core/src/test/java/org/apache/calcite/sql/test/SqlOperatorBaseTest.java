@@ -6733,6 +6733,13 @@ public abstract class SqlOperatorBaseTest {
     assertSubstrReturns(t, "abc", 5, "");
 
     switch (library) {
+    case MYSQL:
+      assertSubstrReturns(t, "abc", 0, "");
+      assertSubstrReturns(t, "abc", 0, 5, "");
+      assertSubstrReturns(t, "abc", 0, 4, "");
+      assertSubstrReturns(t, "abc", 0, 3, "");
+      assertSubstrReturns(t, "abc", 0, 2, "");
+      break;
     case ORACLE:
       assertSubstrReturns(t, "abc", 0, "abc");
       assertSubstrReturns(t, "abc", 0, 5, "abc");
@@ -6746,13 +6753,6 @@ public abstract class SqlOperatorBaseTest {
       assertSubstrReturns(t, "abc", 0, 4, "abc");
       assertSubstrReturns(t, "abc", 0, 3, "ab");
       assertSubstrReturns(t, "abc", 0, 2, "a");
-      break;
-    case MYSQL:
-      assertSubstrReturns(t, "abc", 0, "");
-      assertSubstrReturns(t, "abc", 0, 5, "");
-      assertSubstrReturns(t, "abc", 0, 4, "");
-      assertSubstrReturns(t, "abc", 0, 3, "");
-      assertSubstrReturns(t, "abc", 0, 2, "");
       break;
     }
     assertSubstrReturns(t, "abc", 1, 2, "ab");
