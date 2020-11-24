@@ -119,11 +119,6 @@ public class SqlFunctions {
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       Linq4j::asEnumerable;
 
-  // It's important to have XDigit before Digit to match XDigit first
-  // (i.e. see the posixRegex method)
-  private static final String[] POSIX_CHARACTER_CLASSES = new String[] { "Lower", "Upper", "ASCII",
-      "Alpha", "XDigit", "Digit", "Alnum", "Punct", "Graph", "Print", "Blank", "Cntrl", "Space" };
-
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
       lists -> {
@@ -615,17 +610,9 @@ public class SqlFunctions {
     return Pattern.matches(regex, s);
   }
 
-  public static boolean posixRegex(String s, String regex, Boolean caseSensitive) {
-    // Replace existing character classes with java equivalent ones
-    String originalRegex = regex;
-    String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
-        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
-    for (String v : existingExpressions) {
-      regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
-    }
-
-    int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
-    return Pattern.compile(regex, flags).matcher(s).find();
+  public static boolean posixRegex(String s, String regex, boolean caseSensitive) {
+    final Pattern pattern = Like.posixRegexToPattern(regex, caseSensitive);
+    return pattern.matcher(s).find();
   }
 
   // =

@@ -418,7 +418,7 @@ public enum BuiltInMethod {
   RTRIM(SqlFunctions.class, "rtrim", String.class),
   LIKE(SqlFunctions.class, "like", String.class, String.class),
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
-  POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, Boolean.class),
+  POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, boolean.class),
   REGEXP_REPLACE3(SqlFunctions.class, "regexpReplace", String.class,
       String.class, String.class),
   REGEXP_REPLACE4(SqlFunctions.class, "regexpReplace", String.class,

@@ -476,17 +476,18 @@ public class RexImpTable {
     map.put(SIMILAR_TO, similarImplementor);
 
     // POSIX REGEX
-    final MethodImplementor posixRegexImplementor =
-        new MethodImplementor(BuiltInMethod.POSIX_REGEX.method,
-            NullPolicy.STRICT, false);
+    final MethodImplementor posixRegexImplementorCaseSensitive =
+        new PosixRegexMethodImplementor(true);
+    final MethodImplementor posixRegexImplementorCaseInsensitive =
+        new PosixRegexMethodImplementor(false);
     map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE,
-        posixRegexImplementor);
+        posixRegexImplementorCaseInsensitive);
     map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE,
-        posixRegexImplementor);
+        posixRegexImplementorCaseSensitive);
     map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
-        NotImplementor.of(posixRegexImplementor));
+        NotImplementor.of(posixRegexImplementorCaseInsensitive));
     map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE,
-        NotImplementor.of(posixRegexImplementor));
+        NotImplementor.of(posixRegexImplementorCaseSensitive));
     map.put(REGEXP_REPLACE, new RegexpReplaceImplementor());
 
     // Multisets & arrays
@@ -1998,6 +1999,25 @@ public class RexImpTable {
         final Class<?> clazz = method.getDeclaringClass();
         return EnumUtils.call(target, clazz, method.getName(), args);
       }
+    }
+  }
+
+  /** Implementor for {@link org.apache.calcite.sql.fun.SqlPosixRegexOperator}s. */
+  private static class PosixRegexMethodImplementor extends MethodImplementor {
+    protected final boolean caseSensitive;
+
+    PosixRegexMethodImplementor(boolean caseSensitive) {
+      super(BuiltInMethod.POSIX_REGEX.method, NullPolicy.STRICT, false);
+      this.caseSensitive = caseSensitive;
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      assert argValueList.size() == 2;
+      // Add extra parameter (caseSensitive boolean flag), required by SqlFunctions#posixRegex.
+      final List<Expression> newOperands = new ArrayList<>(argValueList);
+      newOperands.add(Expressions.constant(caseSensitive));
+      return super.implementSafe(translator, call, newOperands);
     }
   }
 
