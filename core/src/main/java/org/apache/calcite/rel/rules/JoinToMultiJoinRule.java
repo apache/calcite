@@ -36,6 +36,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -140,7 +142,7 @@ public class JoinToMultiJoinRule
 
     // combine the children MultiJoin inputs into an array of inputs
     // for the new MultiJoin
-    final List<ImmutableBitSet> projFieldsList = new ArrayList<>();
+    final List<@Nullable ImmutableBitSet> projFieldsList = new ArrayList<>();
     final List<int[]> joinFieldRefCountsList = new ArrayList<>();
     final List<RelNode> newInputs =
         combineInputs(
@@ -153,7 +155,7 @@ public class JoinToMultiJoinRule
     // combine the outer join information from the left and right
     // inputs, and include the outer join information from the current
     // join, if it's a left/right outer join
-    final List<Pair<JoinRelType, RexNode>> joinSpecs = new ArrayList<>();
+    final List<Pair<JoinRelType, @Nullable RexNode>> joinSpecs = new ArrayList<>();
     combineOuterJoins(
         origJoin,
         newInputs,
@@ -164,7 +166,7 @@ public class JoinToMultiJoinRule
     // pull up the join filters from the children MultiJoinRels and
     // combine them with the join filter associated with this LogicalJoin to
     // form the join filter for the new MultiJoin
-    List<RexNode> newJoinFilters = combineJoinFilters(origJoin, left, right);
+    List<@Nullable RexNode> newJoinFilters = combineJoinFilters(origJoin, left, right);
 
     // add on the join field reference counts for the join condition
     // associated with this LogicalJoin
@@ -174,7 +176,7 @@ public class JoinToMultiJoinRule
             origJoin.getCondition(),
             joinFieldRefCountsList);
 
-    List<RexNode> newPostJoinFilters =
+    List<@Nullable RexNode> newPostJoinFilters =
         combinePostJoinFilters(origJoin, left, right);
 
     final RexBuilder rexBuilder = origJoin.getCluster().getRexBuilder();
@@ -210,7 +212,7 @@ public class JoinToMultiJoinRule
       Join join,
       RelNode left,
       RelNode right,
-      List<ImmutableBitSet> projFieldsList,
+      List<@Nullable ImmutableBitSet> projFieldsList,
       List<int[]> joinFieldRefCountsList) {
     final List<RelNode> newInputs = new ArrayList<>();
 
@@ -269,7 +271,7 @@ public class JoinToMultiJoinRule
       @SuppressWarnings("unused") List<RelNode> combinedInputs,
       RelNode left,
       RelNode right,
-      List<Pair<JoinRelType, RexNode>> joinSpecs) {
+      List<Pair<JoinRelType, @Nullable RexNode>> joinSpecs) {
     JoinRelType joinType = joinRel.getJoinType();
     boolean leftCombined =
         canCombine(left, joinType.generatesNullsOnLeft());
@@ -285,7 +287,7 @@ public class JoinToMultiJoinRule
             null,
             null);
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, (@Nullable RexNode) null));
       }
       joinSpecs.add(Pair.of(joinType, joinRel.getCondition()));
       break;
@@ -342,11 +344,11 @@ public class JoinToMultiJoinRule
    */
   private void copyOuterJoinInfo(
       MultiJoin multiJoin,
-      List<Pair<JoinRelType, RexNode>> destJoinSpecs,
+      List<Pair<JoinRelType, @Nullable RexNode>> destJoinSpecs,
       int adjustmentAmount,
-      List<RelDataTypeField> srcFields,
-      List<RelDataTypeField> destFields) {
-    final List<Pair<JoinRelType, RexNode>> srcJoinSpecs =
+      @Nullable List<RelDataTypeField> srcFields,
+      @Nullable List<RelDataTypeField> destFields) {
+    final List<Pair<JoinRelType, @Nullable RexNode>> srcJoinSpecs =
         Pair.zip(
             multiJoin.getJoinTypes(),
             multiJoin.getOuterJoinConditions());
@@ -361,7 +363,7 @@ public class JoinToMultiJoinRule
       for (int idx = 0; idx < nFields; idx++) {
         adjustments[idx] = adjustmentAmount;
       }
-      for (Pair<JoinRelType, RexNode> src
+      for (Pair<JoinRelType, @Nullable RexNode> src
           : srcJoinSpecs) {
         destJoinSpecs.add(
             Pair.of(
@@ -387,7 +389,7 @@ public class JoinToMultiJoinRule
    * @param right   Right input of the join
    * @return combined join filters AND-ed together
    */
-  private List<RexNode> combineJoinFilters(
+  private List<@Nullable RexNode> combineJoinFilters(
       Join join,
       RelNode left,
       RelNode right) {
@@ -396,7 +398,7 @@ public class JoinToMultiJoinRule
     // AND the join condition if this isn't a left or right outer join;
     // in those cases, the outer join condition is already tracked
     // separately
-    final List<RexNode> filters = new ArrayList<>();
+    final List<@Nullable RexNode> filters = new ArrayList<>();
     if ((joinType != JoinRelType.LEFT) && (joinType != JoinRelType.RIGHT)) {
       filters.add(join.getCondition());
     }
@@ -441,11 +443,11 @@ public class JoinToMultiJoinRule
    * @param rightFilter the filter originating from the right child
    * @return the adjusted right filter
    */
-  private RexNode shiftRightFilter(
+  private @Nullable RexNode shiftRightFilter(
       Join joinRel,
       RelNode left,
       MultiJoin right,
-      RexNode rightFilter) {
+      @Nullable RexNode rightFilter) {
     if (rightFilter == null) {
       return null;
     }
@@ -536,11 +538,11 @@ public class JoinToMultiJoinRule
    * @param right   right child of the LogicalJoin
    * @return combined post-join filters AND'd together
    */
-  private List<RexNode> combinePostJoinFilters(
+  private List<@Nullable RexNode> combinePostJoinFilters(
       Join joinRel,
       RelNode left,
       RelNode right) {
-    final List<RexNode> filters = new ArrayList<>();
+    final List<@Nullable RexNode> filters = new ArrayList<>();
     if (right instanceof MultiJoin) {
       final MultiJoin multiRight = (MultiJoin) right;
       filters.add(

@@ -25,6 +25,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -61,19 +63,19 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral strictEnd;
   private SqlNodeList patternDefList;
   private SqlNodeList measureList;
-  private SqlNode after;
+  private @Nullable SqlNode after;
   private SqlNodeList subsetList;
-  private SqlLiteral rowsPerMatch;
+  private @Nullable SqlLiteral rowsPerMatch;
   private SqlNodeList partitionList;
   private SqlNodeList orderList;
-  private SqlLiteral interval;
+  private @Nullable SqlLiteral interval;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList,
-      SqlLiteral rowsPerMatch, SqlNodeList partitionList,
-      SqlNodeList orderList, SqlLiteral interval) {
+      SqlNodeList measureList, @Nullable SqlNode after, SqlNodeList subsetList,
+      @Nullable SqlLiteral rowsPerMatch, SqlNodeList partitionList,
+      SqlNodeList orderList, @Nullable SqlLiteral interval) {
     super(pos);
     this.tableRef = Objects.requireNonNull(tableRef);
     this.pattern = Objects.requireNonNull(pattern);
@@ -119,7 +121,7 @@ public class SqlMatchRecognize extends SqlCall {
   }
 
   @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
       tableRef = Objects.requireNonNull(operand);
@@ -189,7 +191,7 @@ public class SqlMatchRecognize extends SqlCall {
     return measureList;
   }
 
-  public SqlNode getAfter() {
+  public @Nullable SqlNode getAfter() {
     return after;
   }
 
@@ -197,7 +199,7 @@ public class SqlMatchRecognize extends SqlCall {
     return subsetList;
   }
 
-  public SqlLiteral getRowsPerMatch() {
+  public @Nullable SqlLiteral getRowsPerMatch() {
     return rowsPerMatch;
   }
 
@@ -209,7 +211,7 @@ public class SqlMatchRecognize extends SqlCall {
     return orderList;
   }
 
-  public SqlLiteral getInterval() {
+  public @Nullable SqlLiteral getInterval() {
     return interval;
   }
 
@@ -270,9 +272,9 @@ public class SqlMatchRecognize extends SqlCall {
 
     @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
-        SqlLiteral functionQualifier,
+        @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
-        SqlNode... operands) {
+        @Nullable SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 12;
 

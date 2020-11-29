@@ -103,6 +103,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -156,13 +157,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
   protected CorelMap cm;
 
   @SuppressWarnings("method.invocation.invalid")
-  protected final ReflectUtil.MethodDispatcher<Frame> dispatcher =
-      ReflectUtil.<RelNode, Frame>createMethodDispatcher(
+  protected final ReflectUtil.MethodDispatcher<@Nullable Frame> dispatcher =
+      ReflectUtil.<RelNode, @Nullable Frame>createMethodDispatcher(
           Frame.class, getVisitor(), "decorrelateRel",
           RelNode.class);
 
   // The rel which is being visited
-  protected RelNode currentRel;
+  protected @Nullable RelNode currentRel;
 
   protected final Context context;
 
@@ -233,7 +234,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return newRootRel;
   }
 
-  private void setCurrent(RelNode root, Correlate corRel) {
+  private void setCurrent(@Nullable RelNode root, @Nullable Correlate corRel) {
     currentRel = corRel;
     if (corRel != null) {
       cm = new CorelMapBuilder().build(Util.first(root, corRel));
@@ -313,7 +314,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return root;
   }
 
-  private Function2<RelNode, RelNode, Void> createCopyHook() {
+  private Function2<RelNode, RelNode, @Nullable Void> createCopyHook() {
     return (oldNode, newNode) -> {
       if (cm.mapRefRelToCorRef.containsKey(oldNode)) {
         cm.mapRefRelToCorRef.putAll(newNode,
@@ -400,7 +401,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Fallback if none of the other {@code decorrelateRel} methods match. */
-  public Frame decorrelateRel(RelNode rel) {
+  public @Nullable Frame decorrelateRel(RelNode rel) {
     RelNode newRel = rel.copy(rel.getTraitSet(), rel.getInputs());
 
     if (rel.getInputs().size() > 0) {
@@ -428,7 +429,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         ImmutableSortedMap.of());
   }
 
-  public Frame decorrelateRel(Sort rel) {
+  public @Nullable Frame decorrelateRel(Sort rel) {
     //
     // Rewrite logic:
     //
@@ -473,16 +474,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
   }
 
-  public Frame decorrelateRel(Values rel) {
+  public @Nullable Frame decorrelateRel(Values rel) {
     // There are no inputs, so rel does not need to be changed.
     return null;
   }
 
-  public Frame decorrelateRel(LogicalAggregate rel) {
+  public @Nullable Frame decorrelateRel(LogicalAggregate rel) {
     return decorrelateRel((Aggregate) rel);
   }
 
-  public Frame decorrelateRel(Aggregate rel) {
+  public @Nullable Frame decorrelateRel(Aggregate rel) {
     //
     // Rewrite logic:
     //
@@ -691,7 +692,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
-  public Frame getInvoke(RelNode r, RelNode parent) {
+  public @Nullable Frame getInvoke(RelNode r, @Nullable RelNode parent) {
     final Frame frame = dispatcher.invoke(r);
     currentRel = parent;
     if (frame != null && parent != null && r instanceof Sort) {
@@ -711,7 +712,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Returns a literal output field, or null if it is not literal. */
-  private static RexLiteral projectedLiteral(RelNode rel, int i) {
+  private static @Nullable RexLiteral projectedLiteral(RelNode rel, int i) {
     if (rel instanceof Project) {
       final Project project = (Project) rel;
       final RexNode node = project.getProjects().get(i);
@@ -722,11 +723,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return null;
   }
 
-  public Frame decorrelateRel(LogicalProject rel) {
+  public @Nullable Frame decorrelateRel(LogicalProject rel) {
     return decorrelateRel((Project) rel);
   }
 
-  public Frame decorrelateRel(Project rel) {
+  public @Nullable Frame decorrelateRel(Project rel) {
     //
     // Rewrite logic:
     //
@@ -794,7 +795,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *                             generated
    * @return RelNode the root of the resultant RelNode tree
    */
-  private RelNode createValueGenerator(
+  private @Nullable RelNode createValueGenerator(
       Iterable<CorRef> correlations,
       int valueGenFieldOffset,
       NavigableMap<CorDef, Integer> corDefOutputs) {
@@ -910,7 +911,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return frame;
   }
 
-  private Frame getFrame(RelNode r) {
+  private @Nullable Frame getFrame(RelNode r) {
     return map.get(r);
   }
 
@@ -1088,25 +1089,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
         && type.getPrecision() >= type1.getPrecision();
   }
 
-  public Frame decorrelateRel(LogicalSnapshot rel) {
+  public @Nullable Frame decorrelateRel(LogicalSnapshot rel) {
     if (RexUtil.containsCorrelation(rel.getPeriod())) {
       return null;
     }
     return decorrelateRel((RelNode) rel);
   }
 
-  public Frame decorrelateRel(LogicalTableFunctionScan rel) {
+  public @Nullable Frame decorrelateRel(LogicalTableFunctionScan rel) {
     if (RexUtil.containsCorrelation(rel.getCall())) {
       return null;
     }
     return decorrelateRel((RelNode) rel);
   }
 
-  public Frame decorrelateRel(LogicalFilter rel) {
+  public @Nullable Frame decorrelateRel(LogicalFilter rel) {
     return decorrelateRel((Filter) rel);
   }
 
-  public Frame decorrelateRel(Filter rel) {
+  public @Nullable Frame decorrelateRel(Filter rel) {
     //
     // Rewrite logic:
     //
@@ -1155,11 +1156,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
         frame.corDefOutputs);
   }
 
-  public Frame decorrelateRel(LogicalCorrelate rel) {
+  public @Nullable Frame decorrelateRel(LogicalCorrelate rel) {
     return decorrelateRel((Correlate) rel);
   }
 
-  public Frame decorrelateRel(Correlate rel) {
+  public @Nullable Frame decorrelateRel(Correlate rel) {
     //
     // Rewrite logic:
     //
@@ -1257,11 +1258,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
   }
 
-  public Frame decorrelateRel(LogicalJoin rel) {
+  public @Nullable Frame decorrelateRel(LogicalJoin rel) {
     return decorrelateRel((Join) rel);
   }
 
-  public Frame decorrelateRel(Join rel) {
+  public @Nullable Frame decorrelateRel(Join rel) {
     // For SEMI/ANTI join decorrelate it's input directly,
     // because the correlate variables can only be propagated from
     // the left side, which is not supported yet.
@@ -1492,9 +1493,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   private boolean checkCorVars(
       Correlate correlate,
-      Project project,
-      Filter filter,
-      List<RexFieldAccess> correlatedJoinKeys) {
+      @Nullable Project project,
+      @Nullable Filter filter,
+      @Nullable List<RexFieldAccess> correlatedJoinKeys) {
     if (filter != null) {
       assert correlatedJoinKeys != null;
 
@@ -1664,13 +1665,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RexBuilder rexBuilder;
     final RelDataTypeFactory typeFactory;
     final boolean projectPulledAboveLeftCorrelator;
-    final RexInputRef nullIndicator;
+    final @Nullable RexInputRef nullIndicator;
     final ImmutableSet<Integer> isCount;
 
     RemoveCorrelationRexShuttle(
         RexBuilder rexBuilder,
         boolean projectPulledAboveLeftCorrelator,
-        RexInputRef nullIndicator,
+        @Nullable RexInputRef nullIndicator,
         Set<Integer> isCount) {
       this.projectPulledAboveLeftCorrelator =
           projectPulledAboveLeftCorrelator;
@@ -1682,7 +1683,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     private RexNode createCaseExpression(
         RexInputRef nullInputRef,
-        RexLiteral lit,
+        @Nullable RexLiteral lit,
         RexNode rexNode) {
       RexNode[] caseOperands = new RexNode[3];
 
@@ -2711,7 +2712,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return Objects.hash(uniqueKey, corr, field);
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof CorRef
           && uniqueKey == ((CorRef) o).uniqueKey
@@ -2754,7 +2755,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return Objects.hash(corr, field);
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof CorDef
           && corr == ((CorDef) o).corr
@@ -2813,7 +2814,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @SuppressWarnings("UndefinedEquals")
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof CorelMap
           // TODO: Multimap does not have well-defined equals behavior

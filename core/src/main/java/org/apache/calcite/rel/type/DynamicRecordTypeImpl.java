@@ -23,6 +23,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -51,7 +53,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
     return holder.getFieldCount();
   }
 
-  @Override public RelDataTypeField getField(String fieldName,
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
       boolean caseSensitive, boolean elideRecord) {
     final Pair<RelDataTypeField, Boolean> pair =
         holder.getFieldOrInsert(fieldName, caseSensitive);

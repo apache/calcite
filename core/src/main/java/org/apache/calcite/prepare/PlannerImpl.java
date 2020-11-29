@@ -62,6 +62,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
 import java.util.List;
@@ -72,12 +73,12 @@ import static java.util.Objects.requireNonNull;
 public class PlannerImpl implements Planner, ViewExpander {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
-  private final RelOptCostFactory costFactory;
+  private final @Nullable RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
-  private final ImmutableList<RelTraitDef> traitDefs;
+  private final @Nullable ImmutableList<RelTraitDef> traitDefs;
 
   private final SqlParser.Config parserConfig;
   private final SqlValidator.Config sqlValidatorConfig;
@@ -91,14 +92,14 @@ public class PlannerImpl implements Planner, ViewExpander {
   private boolean open;
 
   // set in STATE_2_READY
-  private SchemaPlus defaultSchema;
-  private JavaTypeFactory typeFactory;
-  private RelOptPlanner planner;
-  private RexExecutor executor;
+  private @Nullable SchemaPlus defaultSchema;
+  private @Nullable JavaTypeFactory typeFactory;
+  private @Nullable RelOptPlanner planner;
+  private @Nullable RexExecutor executor;
 
   // set in STATE_4_VALIDATE
-  private SqlValidator validator;
-  private SqlNode validatedSqlNode;
+  private @Nullable SqlValidator validator;
+  private @Nullable SqlNode validatedSqlNode;
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
@@ -276,14 +277,14 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath) {
+        List<String> schemaPath, @Nullable List<String> viewPath) {
       return PlannerImpl.this.expandView(rowType, queryString, schemaPath,
           viewPath);
     }
   }
 
   @Override public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
+      List<String> schemaPath, @Nullable List<String> viewPath) {
     RelOptPlanner planner = this.planner;
     if (planner == null) {
       ready();

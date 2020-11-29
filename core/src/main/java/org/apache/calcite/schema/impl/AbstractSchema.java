@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +67,7 @@ public class AbstractSchema implements Schema {
     return this;
   }
 
-  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
     requireNonNull(parentSchema, "parentSchema");
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
@@ -89,7 +91,7 @@ public class AbstractSchema implements Schema {
     return (Set<String>) getTableMap().keySet();
   }
 
-  @Override public final Table getTable(String name) {
+  @Override public final @Nullable Table getTable(String name) {
     return getTableMap().get(name);
   }
 
@@ -107,7 +109,7 @@ public class AbstractSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public RelProtoDataType getType(String name) {
+  @Override public @Nullable RelProtoDataType getType(String name) {
     return getTypeMap().get(name);
   }
 
@@ -160,7 +162,7 @@ public class AbstractSchema implements Schema {
     return (Set<String>) getSubSchemaMap().keySet();
   }
 
-  @Override public final Schema getSubSchema(String name) {
+  @Override public final @Nullable Schema getSubSchema(String name) {
     return getSubSchemaMap().get(name);
   }
 

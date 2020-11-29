@@ -18,6 +18,7 @@ package org.apache.calcite.util.javac;
 
 import org.apache.calcite.config.CalciteSystemProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -42,7 +43,7 @@ public class JaninoCompiler implements JavaCompiler {
   public JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
-  private AccountingClassLoader classLoader;
+  private @Nullable AccountingClassLoader classLoader;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -116,9 +117,9 @@ public class JaninoCompiler implements JavaCompiler {
    * Arguments to an invocation of the Janino compiler.
    */
   public static class JaninoCompilerArgs extends JavaCompilerArgs {
-    String destdir;
-    String fullClassName;
-    String source;
+    @Nullable String destdir;
+    @Nullable String fullClassName;
+    @Nullable String source;
 
     public JaninoCompilerArgs() {
     }
@@ -147,14 +148,14 @@ public class JaninoCompiler implements JavaCompiler {
    * bytecode length of the classes it has compiled.
    */
   private static class AccountingClassLoader extends JavaSourceClassLoader {
-    private final File destDir;
+    private final @Nullable File destDir;
     private int nBytes;
 
     AccountingClassLoader(
         ClassLoader parentClassLoader,
         ResourceFinder sourceFinder,
-        String optionalCharacterEncoding,
-        File destDir) {
+        @Nullable String optionalCharacterEncoding,
+        @Nullable File destDir) {
       super(
           parentClassLoader,
           sourceFinder,
@@ -166,7 +167,7 @@ public class JaninoCompiler implements JavaCompiler {
       return nBytes;
     }
 
-    @Override public Map<String, byte[]> generateBytecodes(String name)
+    @Override public @Nullable Map<String, byte[]> generateBytecodes(String name)
         throws ClassNotFoundException {
       final Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {

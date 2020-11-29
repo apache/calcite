@@ -27,6 +27,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -49,8 +51,8 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
@@ -62,11 +64,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, funcType, false, false,
@@ -76,11 +78,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver) {
@@ -95,11 +97,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * a built-in function it will be null. */
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
@@ -113,7 +115,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T extends Object> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
   }
 

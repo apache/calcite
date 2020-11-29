@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlDialect;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 /**
@@ -34,7 +35,7 @@ import org.checkerframework.dataflow.qual.Pure;
 public class SqlString {
   private final String sql;
   private SqlDialect dialect;
-  private ImmutableList<Integer> dynamicParameters;
+  private @Nullable ImmutableList<Integer> dynamicParameters;
 
   /**
    * Creates a SqlString.
@@ -51,7 +52,7 @@ public class SqlString {
    * @param dynamicParameters indices
    */
   public SqlString(SqlDialect dialect, String sql,
-      ImmutableList<Integer> dynamicParameters) {
+      @Nullable ImmutableList<Integer> dynamicParameters) {
     this.dialect = dialect;
     this.sql = sql;
     this.dynamicParameters = dynamicParameters;
@@ -63,7 +64,7 @@ public class SqlString {
     return sql.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof SqlString
         && sql.equals(((SqlString) obj).sql);
@@ -96,7 +97,7 @@ public class SqlString {
    * @return indices of dynamic parameters
    */
   @Pure
-  public ImmutableList<Integer> getDynamicParameters() {
+  public @Nullable ImmutableList<Integer> getDynamicParameters() {
     return dynamicParameters;
   }
 

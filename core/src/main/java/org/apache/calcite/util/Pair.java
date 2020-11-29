@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.util.AbstractList;
@@ -39,7 +40,7 @@ import java.util.function.BiConsumer;
  * @param <T2> Right-hand type
  */
 @SuppressWarnings("type.argument.type.incompatible")
-public class Pair<T1 extends Object, T2 extends Object>
+public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -88,7 +89,7 @@ public class Pair<T1 extends Object, T2 extends Object>
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || (obj instanceof Pair)
         && Objects.equals(this.left, ((Pair) obj).left)

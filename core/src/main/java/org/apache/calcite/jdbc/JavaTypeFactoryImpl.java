@@ -38,6 +38,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -286,7 +288,7 @@ public class JavaTypeFactoryImpl
   }
 
   private static RelDataType toSqlTypeWithNullToAny(
-      final RelDataTypeFactory typeFactory, RelDataType type) {
+      final RelDataTypeFactory typeFactory, @Nullable RelDataType type) {
     if (type == null) {
       return typeFactory.createSqlType(SqlTypeName.ANY);
     }
@@ -362,10 +364,10 @@ public class JavaTypeFactoryImpl
   /** Synthetic record type. */
   public static class SyntheticRecordType implements Types.RecordType {
     final List<Types.RecordField> fields = new ArrayList<>();
-    final RelDataType relType;
+    final @Nullable RelDataType relType;
     private final String name;
 
-    private SyntheticRecordType(RelDataType relType, String name) {
+    private SyntheticRecordType(@Nullable RelDataType relType, String name) {
       this.relType = relType;
       this.name = name;
       assert relType == null
@@ -425,7 +427,7 @@ public class JavaTypeFactoryImpl
       return nullable;
     }
 
-    @Override public Object get(Object o) {
+    @Override public @Nullable Object get(@Nullable Object o) {
       throw new UnsupportedOperationException();
     }
 

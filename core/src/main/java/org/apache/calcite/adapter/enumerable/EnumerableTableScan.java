@@ -51,6 +51,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +86,7 @@ public class EnumerableTableScan
    *
    * @return IndexScan if there is index available on collation keys
    */
-  @Override public RelNode passThrough(final RelTraitSet required) {
+  @Override public @Nullable RelNode passThrough(final RelTraitSet required) {
 /*
     keys = required.getCollation().getKeys();
     if (table has index on keys) {
@@ -169,7 +171,7 @@ public class EnumerableTableScan
     return true;
   }
 
-  public static Class deduceElementType(Table table) {
+  public static Class deduceElementType(@Nullable Table table) {
     if (table instanceof QueryableTable) {
       final QueryableTable queryableTable = (QueryableTable) table;
       final Type type = queryableTable.getElementType();

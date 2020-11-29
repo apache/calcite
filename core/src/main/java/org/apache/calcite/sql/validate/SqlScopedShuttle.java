@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -45,7 +47,7 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public final SqlNode visit(SqlCall call) {
+  @Override public final @Nullable SqlNode visit(SqlCall call) {
     SqlValidatorScope oldScope = getScope();
     SqlValidatorScope newScope = oldScope.getOperandScope(call);
     scopes.push(newScope);
@@ -58,7 +60,7 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
    * Visits an operator call. If the call has entered a new scope, the base
    * class will have already modified the scope.
    */
-  protected SqlNode visitScoped(SqlCall call) {
+  protected @Nullable SqlNode visitScoped(SqlCall call) {
     return super.visit(call);
   }
 

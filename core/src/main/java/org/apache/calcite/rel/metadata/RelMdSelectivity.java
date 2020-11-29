@@ -35,6 +35,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,8 +61,8 @@ public class RelMdSelectivity
     return BuiltInMetadata.Selectivity.DEF;
   }
 
-  public Double getSelectivity(Union rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Union rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     if ((rel.getInputs().size() == 0) || (predicate == null)) {
       return 1.0;
     }
@@ -98,18 +100,18 @@ public class RelMdSelectivity
     return sumSelectedRows / sumRows;
   }
 
-  public Double getSelectivity(Sort rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Sort rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     return mq.getSelectivity(rel.getInput(), predicate);
   }
 
-  public Double getSelectivity(TableModify rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(TableModify rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     return mq.getSelectivity(rel.getInput(), predicate);
   }
 
-  public Double getSelectivity(Filter rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Filter rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     // Take the difference between the predicate passed in and the
     // predicate in the filter's condition, so we don't apply the
     // selectivity of the filter twice.  If no predicate is passed in,
@@ -125,8 +127,8 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(Calc rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Calc rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     if (predicate != null) {
       predicate = RelOptUtil.pushPastCalc(predicate, rel);
     }
@@ -143,8 +145,8 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(Join rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Join rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     if (!rel.isSemiJoin()) {
       return getSelectivity((RelNode) rel, mq, predicate);
     }
@@ -163,8 +165,8 @@ public class RelMdSelectivity
     return mq.getSelectivity(rel.getLeft(), newPred);
   }
 
-  public Double getSelectivity(Aggregate rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Aggregate rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     final List<RexNode> notPushable = new ArrayList<>();
     final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
@@ -186,8 +188,8 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(Project rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public @Nullable Double getSelectivity(Project rel, RelMetadataQuery mq,
+      @Nullable RexNode predicate) {
     final List<RexNode> notPushable = new ArrayList<>();
     final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
@@ -217,7 +219,7 @@ public class RelMdSelectivity
 
   // Catch-all rule when none of the others apply.
   public Double getSelectivity(RelNode rel, RelMetadataQuery mq,
-      RexNode predicate) {
+      @Nullable RexNode predicate) {
     return RelMdUtil.guessSelectivity(predicate);
   }
 }

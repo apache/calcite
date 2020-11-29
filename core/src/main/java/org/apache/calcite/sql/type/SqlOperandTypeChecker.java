@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Strategy interface to check for allowed operand types of an operator call.
  *
@@ -73,7 +75,7 @@ public interface SqlOperandTypeChecker {
 
   /** Converts this type checker to a type inference; returns null if not
    * possible. */
-  default SqlOperandTypeInference typeInference() {
+  default @Nullable SqlOperandTypeInference typeInference() {
     return null;
   }
 

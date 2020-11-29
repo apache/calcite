@@ -24,6 +24,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -41,9 +43,9 @@ public class RelJsonWriter implements RelWriter {
   protected final JsonBuilder jsonBuilder;
   protected final RelJson relJson;
   private final Map<RelNode, String> relIdMap = new IdentityHashMap<>();
-  protected final List<Object> relList;
-  private final List<Pair<String, Object>> values = new ArrayList<>();
-  private String previousId;
+  protected final List<@Nullable Object> relList;
+  private final List<Pair<String, @Nullable Object>> values = new ArrayList<>();
+  private @Nullable String previousId;
 
   //~ Constructors -------------------------------------------------------------
 
@@ -55,19 +57,19 @@ public class RelJsonWriter implements RelWriter {
 
   //~ Methods ------------------------------------------------------------------
 
-  protected void explain_(RelNode rel, List<Pair<String, Object>> values) {
-    final Map<String, Object> map = jsonBuilder.map();
+  protected void explain_(RelNode rel, List<Pair<String, @Nullable Object>> values) {
+    final Map<String, @Nullable Object> map = jsonBuilder.map();
 
     map.put("id", null); // ensure that id is the first attribute
     map.put("relOp", relJson.classToTypeName(rel.getClass()));
-    for (Pair<String, Object> value : values) {
+    for (Pair<String, @Nullable Object> value : values) {
       if (value.right instanceof RelNode) {
         continue;
       }
       put(map, value.left, value.right);
     }
     // omit 'inputs: ["3"]' if "3" is the preceding rel
-    final List<Object> list = explainInputs(rel.getInputs());
+    final List<@Nullable Object> list = explainInputs(rel.getInputs());
     if (list.size() != 1 || !Objects.equals(list.get(0), previousId)) {
       map.put("inputs", list);
     }
@@ -80,12 +82,12 @@ public class RelJsonWriter implements RelWriter {
     previousId = id;
   }
 
-  private void put(Map<String, Object> map, String name, Object value) {
+  private void put(Map<String, @Nullable Object> map, String name, @Nullable Object value) {
     map.put(name, relJson.toJson(value));
   }
 
-  private List<Object> explainInputs(List<RelNode> inputs) {
-    final List<Object> list = jsonBuilder.list();
+  private List<@Nullable Object> explainInputs(List<RelNode> inputs) {
+    final List<@Nullable Object> list = jsonBuilder.list();
     for (RelNode input : inputs) {
       String id = relIdMap.get(input);
       if (id == null) {
@@ -97,7 +99,7 @@ public class RelJsonWriter implements RelWriter {
     return list;
   }
 
-  @Override public final void explain(RelNode rel, List<Pair<String, Object>> valueList) {
+  @Override public final void explain(RelNode rel, List<Pair<String, @Nullable Object>> valueList) {
     explain_(rel, valueList);
   }
 
@@ -105,13 +107,13 @@ public class RelJsonWriter implements RelWriter {
     return SqlExplainLevel.ALL_ATTRIBUTES;
   }
 
-  @Override public RelWriter item(String term, Object value) {
+  @Override public RelWriter item(String term, @Nullable Object value) {
     values.add(Pair.of(term, value));
     return this;
   }
 
   @Override public RelWriter done(RelNode node) {
-    final List<Pair<String, Object>> valuesCopy =
+    final List<Pair<String, @Nullable Object>> valuesCopy =
         ImmutableList.copyOf(values);
     values.clear();
     explain_(node, valuesCopy);
@@ -127,7 +129,7 @@ public class RelJsonWriter implements RelWriter {
    * explained.
    */
   public String asString() {
-    final Map<String, Object> map = jsonBuilder.map();
+    final Map<String, @Nullable Object> map = jsonBuilder.map();
     map.put("rels", relList);
     return jsonBuilder.toJsonString(map);
   }

@@ -23,6 +23,7 @@ import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.Serializable;
@@ -125,7 +126,7 @@ public class SqlCollation implements Serializable {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof SqlCollation
         && collationName.equals(((SqlCollation) o).collationName);
@@ -152,7 +153,7 @@ public class SqlCollation implements Serializable {
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3 Table 2
    */
-  public static SqlCollation getCoercibilityDyadicOperator(
+  public static @Nullable SqlCollation getCoercibilityDyadicOperator(
       SqlCollation col1,
       SqlCollation col2) {
     return getCoercibilityDyadic(col1, col2);
@@ -210,7 +211,7 @@ public class SqlCollation implements Serializable {
    * Returns the result for {@link #getCoercibilityDyadicComparison} and
    * {@link #getCoercibilityDyadicOperator}.
    */
-  protected static SqlCollation getCoercibilityDyadic(
+  protected static @Nullable SqlCollation getCoercibilityDyadic(
       SqlCollation col1,
       SqlCollation col2) {
     assert null != col1;
@@ -311,7 +312,7 @@ public class SqlCollation implements Serializable {
    * which case {@link String#compareTo} will be used.
    */
   @Pure
-  public Collator getCollator() {
+  public @Nullable Collator getCollator() {
     return null;
   }
 }

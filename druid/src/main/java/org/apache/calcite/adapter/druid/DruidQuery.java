@@ -569,7 +569,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return pw;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return Util.last(rels)
         .computeSelfCost(planner, mq)
@@ -628,7 +628,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return Object[].class;
   }
 
-  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     return table.unwrapOrThrow(ScannableTable.class).scan(dataContext);
   }
 
@@ -729,7 +729,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @return DruidJson Filter or null if cannot translate one of filters
    */
   @Nullable
-  private DruidJsonFilter computeFilter(Filter filterRel) {
+  private DruidJsonFilter computeFilter(@Nullable Filter filterRel) {
     if (filterRel == null) {
       return null;
     }
@@ -758,7 +758,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static Pair<List<String>, List<VirtualColumn>> computeProjectAsScan(
-      Project projectRel, RelDataType inputRowType, DruidQuery druidQuery) {
+      @Nullable Project projectRel, RelDataType inputRowType, DruidQuery druidQuery) {
     if (projectRel == null) {
       return null;
     }
@@ -824,7 +824,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static Pair<List<DimensionSpec>, List<VirtualColumn>> computeProjectGroupSet(
-      Project projectNode, ImmutableBitSet groupSet,
+      @Nullable Project projectNode, ImmutableBitSet groupSet,
       RelDataType inputRowType, DruidQuery druidQuery) {
     final List<DimensionSpec> dimensionSpecList = new ArrayList<>();
     final List<VirtualColumn> virtualColumnList = new ArrayList<>();
@@ -910,7 +910,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static List<JsonAggregation> computeDruidJsonAgg(List<AggregateCall> aggCalls,
-      List<String> aggNames, Project project, DruidQuery druidQuery) {
+      List<String> aggNames, @Nullable Project project, DruidQuery druidQuery) {
     final List<JsonAggregation> aggregations = new ArrayList<>();
     for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
       final String fieldName;
@@ -1135,7 +1135,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param numericCollationIndexes flag of to determine sort comparator
    * @param queryOutputFieldNames query output fields
    */
-  private JsonLimit computeSort(Integer fetch,
+  private JsonLimit computeSort(@Nullable Integer fetch,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes,
       List<String> queryOutputFieldNames) {

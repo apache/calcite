@@ -43,6 +43,7 @@ import com.google.common.collect.Sets;
 import org.apiguardian.api.API;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -89,7 +90,7 @@ public class RelSubset extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   /** Optimization task state. */
-  OptimizeState taskState;
+  @Nullable OptimizeState taskState;
 
   /** Cost of best known plan (it may have improved since). */
   RelOptCost bestCost;
@@ -98,7 +99,7 @@ public class RelSubset extends AbstractRelNode {
   final RelSet set;
 
   /** Best known plan. */
-  RelNode best;
+  @Nullable RelNode best;
 
   /** Timestamp for metadata validity. */
   long timestamp;
@@ -137,7 +138,7 @@ public class RelSubset extends AbstractRelNode {
    * A cache that recognize which RelNode has invoked the passThrough method
    * so as to avoid duplicate invocation.
    */
-  Set<RelNode> passThroughCache;
+  @Nullable Set<RelNode> passThroughCache;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -218,11 +219,11 @@ public class RelSubset extends AbstractRelNode {
     return enforceDisabled;
   }
 
-  public RelNode getBest() {
+  public @Nullable RelNode getBest() {
     return best;
   }
 
-  public RelNode getOriginal() {
+  public @Nullable RelNode getOriginal() {
     return set.rel;
   }
 
@@ -246,7 +247,7 @@ public class RelSubset extends AbstractRelNode {
     throw new UnsupportedOperationException();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return planner.getCostFactory().makeZeroCost();
   }
@@ -264,7 +265,7 @@ public class RelSubset extends AbstractRelNode {
     // values to be printed later. We actually do the work.
     pw.item("subset", toString());
     final AbstractRelNode input =
-        (AbstractRelNode) Util.first(getBest(), getOriginal());
+        (@Nullable AbstractRelNode) Util.first(getBest(), getOriginal());
     if (input == null) {
       return;
     }
@@ -272,7 +273,7 @@ public class RelSubset extends AbstractRelNode {
     pw.done(input);
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return this == obj;
   }
 
@@ -457,7 +458,7 @@ public class RelSubset extends AbstractRelNode {
    * or null if the subset is not fully optimized.
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  public RelOptCost getWinnerCost() {
+  public @Nullable RelOptCost getWinnerCost() {
     if (taskState == OptimizeState.COMPLETED && bestCost.isLe(upperBound)) {
       return bestCost;
     }
@@ -487,7 +488,7 @@ public class RelSubset extends AbstractRelNode {
     return optimized;
   }
 
-  RelNode passThrough(RelNode rel) {
+  @Nullable RelNode passThrough(RelNode rel) {
     if (!(rel instanceof PhysicalNode)) {
       return null;
     }
@@ -614,7 +615,7 @@ public class RelSubset extends AbstractRelNode {
     public RelNode visit(
         RelNode p,
         int ordinal,
-        RelNode parent) {
+        @Nullable RelNode parent) {
       if (p instanceof RelSubset) {
         RelSubset subset = (RelSubset) p;
         RelNode cheapest = subset.best;

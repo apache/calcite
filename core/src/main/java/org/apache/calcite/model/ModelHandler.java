@@ -51,6 +51,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -75,11 +77,11 @@ public class ModelHandler {
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
   private final CalciteConnection connection;
-  private final Deque<Pair<? extends String, SchemaPlus>> schemaStack =
+  private final Deque<Pair<? extends @Nullable String, SchemaPlus>> schemaStack =
       new ArrayDeque<>();
   private final String modelUri;
-  Lattice.Builder latticeBuilder;
-  Lattice.TileBuilder tileBuilder;
+  Lattice.@Nullable Builder latticeBuilder;
+  Lattice.@Nullable TileBuilder tileBuilder;
 
   @SuppressWarnings("method.invocation.invalid")
   public ModelHandler(CalciteConnection connection, String uri)
@@ -126,8 +128,8 @@ public class ModelHandler {
    * @param upCase Whether to convert method names to upper case, so that they
    *               can be called without using quotes
    */
-  public static void addFunctions(SchemaPlus schema, String functionName,
-      List<String> path, String className, String methodName, boolean upCase) {
+  public static void addFunctions(SchemaPlus schema, @Nullable String functionName,
+      List<String> path, String className, @Nullable String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -191,13 +193,13 @@ public class ModelHandler {
   }
 
   public void visit(JsonRoot jsonRoot) {
-    final Pair<String, SchemaPlus> pair =
+    final Pair<@Nullable String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
-    final Pair<? extends String, SchemaPlus> p = schemaStack.pop();
+    final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
     if (jsonRoot.defaultSchema != null) {
       try {
@@ -256,7 +258,7 @@ public class ModelHandler {
     final Pair<String, SchemaPlus> pair = Pair.of(jsonSchema.name, schema);
     schemaStack.push(pair);
     jsonSchema.visitChildren(this);
-    final Pair<? extends String, SchemaPlus> p = schemaStack.pop();
+    final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
   }
 
@@ -277,8 +279,8 @@ public class ModelHandler {
   }
 
   /** Adds extra entries to an operand to a custom schema. */
-  protected Map<String, Object> operandMap(JsonSchema jsonSchema,
-      Map<String, Object> operand) {
+  protected Map<String, Object> operandMap(@Nullable JsonSchema jsonSchema,
+      @Nullable Map<String, Object> operand) {
     if (operand == null) {
       return ImmutableMap.of();
     }
@@ -444,7 +446,7 @@ public class ModelHandler {
     return Collections.singletonList(currentSchemaName());
   }
 
-  private Pair<? extends String, SchemaPlus> nameAndSchema() {
+  private Pair<? extends @Nullable String, SchemaPlus> nameAndSchema() {
     return requireNonNull(schemaStack.peek(), "schemaStack.peek()");
   }
 

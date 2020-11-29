@@ -29,6 +29,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -79,7 +80,7 @@ class ComboRuleTest {
       this.nodesBelowCount = nodesBelowCount;
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(100, 100, 100)
           .multiplyBy(1.0 / nodesBelowCount);

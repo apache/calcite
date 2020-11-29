@@ -38,6 +38,7 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ public class LoptMultiJoin {
    * row scan processing has completed. This excludes fields referenced in
    * join conditions, unless the field appears in the final projection list.
    */
-  private List<ImmutableBitSet> projFields;
+  private List<@Nullable ImmutableBitSet> projFields;
 
   /**
    * Map containing reference counts of the fields referenced in join
@@ -157,7 +158,7 @@ public class LoptMultiJoin {
    * semijoin that allows the factor to be removed. If the factor cannot be
    * removed, the entry corresponding to the factor is null.
    */
-  Integer [] joinRemovalFactors;
+  @Nullable Integer [] joinRemovalFactors;
 
   /**
    * The semijoins that allow the join of a dimension table to be removed.
@@ -191,7 +192,7 @@ public class LoptMultiJoin {
         Lists.newArrayList(RelOptUtil.conjunctions(multiJoin.getJoinFilter()));
 
     allJoinFilters = new ArrayList<>(joinFilters);
-    List<RexNode> outerJoinFilters = multiJoin.getOuterJoinConditions();
+    List<@Nullable RexNode> outerJoinFilters = multiJoin.getOuterJoinConditions();
     for (int i = 0; i < nJoinFactors; i++) {
       allJoinFilters.addAll(RelOptUtil.conjunctions(outerJoinFilters.get(i)));
     }
@@ -211,7 +212,7 @@ public class LoptMultiJoin {
     // of outer join and the factors that a null-generating factor is dependent
     // upon.
     joinTypes = ImmutableList.copyOf(multiJoin.getJoinTypes());
-    List<RexNode> outerJoinConds = this.multiJoin.getOuterJoinConditions();
+    List<@Nullable RexNode> outerJoinConds = this.multiJoin.getOuterJoinConditions();
     outerJoinFactors = new ImmutableBitSet[nJoinFactors];
     for (int i = 0; i < nJoinFactors; i++) {
       RexNode outerJoinCond = outerJoinConds.get(i);
@@ -319,7 +320,7 @@ public class LoptMultiJoin {
   /**
    * Returns weights of the different factors relative to one another.
    */
-  public int [][] getFactorWeights() {
+  public int @Nullable [][] getFactorWeights() {
     return factorWeights;
   }
 
@@ -369,7 +370,7 @@ public class LoptMultiJoin {
    *
    * @param factIdx Factor for which information will be returned
    */
-  public RexNode getOuterJoinCond(int factIdx) {
+  public @Nullable RexNode getOuterJoinCond(int factIdx) {
     return multiJoin.getOuterJoinConditions().get(factIdx);
   }
 
@@ -378,7 +379,7 @@ public class LoptMultiJoin {
    *
    * @param factIdx Factor for which information will be returned
    */
-  public ImmutableBitSet getProjFields(int factIdx) {
+  public @Nullable ImmutableBitSet getProjFields(int factIdx) {
     return projFields.get(factIdx);
   }
 
@@ -400,7 +401,7 @@ public class LoptMultiJoin {
    *
    * @param dimIdx Dimension factor for which information will be returned
    */
-  public Integer getJoinRemovalFactor(int dimIdx) {
+  public @Nullable Integer getJoinRemovalFactor(int dimIdx) {
     return joinRemovalFactors[dimIdx];
   }
 
@@ -757,7 +758,7 @@ public class LoptMultiJoin {
    *
    * @param factIdx one of the factors in a self-join pair
    */
-  public Integer getOtherSelfJoinFactor(int factIdx) {
+  public @Nullable Integer getOtherSelfJoinFactor(int factIdx) {
     RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(factIdx);
     if (selfJoin == null) {
       return null;
@@ -805,7 +806,7 @@ public class LoptMultiJoin {
    * @return the offset of the corresponding column in the left factor, if
    * such a column mapping exists; otherwise, null is returned
    */
-  public Integer getRightColumnMapping(int rightFactor, int rightOffset) {
+  public @Nullable Integer getRightColumnMapping(int rightFactor, int rightOffset) {
     RemovableSelfJoin selfJoin = requireNonNull(removableSelfJoinPairs.get(rightFactor),
         () -> "removableSelfJoinPairs.get(rightFactor) is null for " + rightFactor
             + ", map=" + removableSelfJoinPairs);

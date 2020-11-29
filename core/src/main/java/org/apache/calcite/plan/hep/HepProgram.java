@@ -18,6 +18,8 @@ package org.apache.calcite.plan.hep;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -43,9 +45,9 @@ public class HepProgram {
 
   int matchLimit;
 
-  HepMatchOrder matchOrder;
+  @Nullable HepMatchOrder matchOrder;
 
-  HepInstruction.EndGroup group;
+  HepInstruction.@Nullable EndGroup group;
 
   //~ Constructors -----------------------------------------------------------
 

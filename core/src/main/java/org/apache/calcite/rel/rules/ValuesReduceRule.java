@@ -40,6 +40,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -126,8 +127,8 @@ public class ValuesReduceRule
    * @param filter  Filter, may be null
    * @param values  Values rel to be reduced
    */
-  protected void apply(RelOptRuleCall call, LogicalProject project,
-      LogicalFilter filter, LogicalValues values) {
+  protected void apply(RelOptRuleCall call, @Nullable LogicalProject project,
+      @Nullable LogicalFilter filter, LogicalValues values) {
     assert values != null;
     assert filter != null || project != null;
     final RexNode conditionExpr =
@@ -238,7 +239,7 @@ public class ValuesReduceRule
 
   /** Shuttle that converts inputs to literals. */
   private static class MyRexShuttle extends RexShuttle {
-    private List<RexLiteral> literalList;
+    private @Nullable List<RexLiteral> literalList;
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
       requireNonNull(literalList, "literalList");

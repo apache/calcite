@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -31,8 +33,8 @@ import static java.util.Objects.requireNonNull;
  * @see JsonRoot Description of schema elements
  */
 public class JsonMaterialization {
-  public final String view;
-  public final String table;
+  public final @Nullable String view;
+  public final @Nullable String table;
 
   /** SQL query that defines the materialization.
    *
@@ -41,14 +43,14 @@ public class JsonMaterialization {
    */
   public final Object sql;
 
-  public final List<String> viewSchemaPath;
+  public final @Nullable List<String> viewSchemaPath;
 
   @JsonCreator
   public JsonMaterialization(
-      @JsonProperty("view") String view,
-      @JsonProperty("table") String table,
+      @JsonProperty("view") @Nullable String view,
+      @JsonProperty("table") @Nullable String table,
       @JsonProperty(value = "sql", required = true) Object sql,
-      @JsonProperty("viewSchemaPath") List<String> viewSchemaPath) {
+      @JsonProperty("viewSchemaPath") @Nullable List<String> viewSchemaPath) {
     this.view = view;
     this.table = table;
     this.sql = requireNonNull(sql, "sql");

@@ -36,6 +36,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +52,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
@@ -81,7 +83,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
 
   @Override public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     try {
       return new EnumerableAggregate(getCluster(), traitSet, input,
           groupSet, groupSets, aggCalls);

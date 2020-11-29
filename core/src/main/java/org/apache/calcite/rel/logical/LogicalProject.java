@@ -36,6 +36,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -84,7 +86,7 @@ public final class LogicalProject extends Project {
 
   @Deprecated // to be removed before 2.0
   public LogicalProject(RelOptCluster cluster, RelNode input,
-      List<RexNode> projects, List<? extends String> fieldNames, int flags) {
+      List<RexNode> projects, @Nullable List<? extends @Nullable String> fieldNames, int flags) {
     this(cluster, cluster.traitSetOf(RelCollations.EMPTY),
         ImmutableList.of(), input, projects,
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -104,7 +106,7 @@ public final class LogicalProject extends Project {
   /** Creates a LogicalProject. */
   public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects,
-      List<? extends String> fieldNames) {
+      @Nullable List<? extends @Nullable String> fieldNames) {
     final RelOptCluster cluster = input.getCluster();
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -138,7 +140,7 @@ public final class LogicalProject extends Project {
         input, getProjects(), getRowType());
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return deepEquals0(obj);
   }
 

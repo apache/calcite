@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -52,7 +53,7 @@ public class ParameterExpression extends Expression {
     return visitor.visit(this);
   }
 
-  @Override public Object evaluate(Evaluator evaluator) {
+  @Override public @Nullable Object evaluate(Evaluator evaluator) {
     return evaluator.peek(this);
   }
 
@@ -70,7 +71,7 @@ public class ParameterExpression extends Expression {
         + " " + name;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o;
   }
 

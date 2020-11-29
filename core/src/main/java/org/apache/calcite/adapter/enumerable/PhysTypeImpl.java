@@ -40,6 +40,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
@@ -541,7 +543,7 @@ public class PhysTypeImpl implements PhysType {
         .build();
   }
 
-  @Override public Expression comparer() {
+  @Override public @Nullable Expression comparer() {
     return format.comparer();
   }
 
@@ -673,7 +675,7 @@ public class PhysTypeImpl implements PhysType {
   }
 
   @Override public Expression fieldReference(
-      Expression expression, int field, Type storageType) {
+      Expression expression, int field, @Nullable Type storageType) {
     Type fieldType;
     if (storageType == null) {
       storageType = fieldClass(field);

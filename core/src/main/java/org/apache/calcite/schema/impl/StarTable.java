@@ -37,6 +37,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,7 +135,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
       super(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), relOptTable);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }

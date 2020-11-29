@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +43,7 @@ public interface Source {
   /** Looks for a suffix on a path and returns
    * either the path with the suffix removed
    * or null. */
-  Source trimOrNull(String suffix);
+  @Nullable Source trimOrNull(String suffix);
 
   /** Returns a source whose path concatenates this with a child.
    *

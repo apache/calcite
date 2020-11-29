@@ -26,6 +26,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -109,7 +111,7 @@ public class RelDistributions {
       return Objects.hash(type, keys);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof RelDistributionImpl
           && type == ((RelDistributionImpl) obj).type

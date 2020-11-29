@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Properties;
 
 /**
@@ -56,5 +58,5 @@ public abstract class CalciteFactory implements AvaticaFactory {
   /** Creates a connection with a root schema. */
   public abstract AvaticaConnection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      CalciteSchema rootSchema, JavaTypeFactory typeFactory);
+      @Nullable CalciteSchema rootSchema, @Nullable JavaTypeFactory typeFactory);
 }

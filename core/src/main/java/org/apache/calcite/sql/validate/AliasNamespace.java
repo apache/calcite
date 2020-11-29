@@ -28,6 +28,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -143,7 +145,7 @@ public class AliasNamespace extends AbstractNamespace {
     return buf.toString();
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 

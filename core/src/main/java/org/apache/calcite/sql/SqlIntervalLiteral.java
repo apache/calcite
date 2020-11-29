@@ -20,6 +20,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -55,7 +57,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
   }
 
   private SqlIntervalLiteral(
-      IntervalValue intervalValue,
+      @Nullable IntervalValue intervalValue,
       SqlTypeName sqlTypeName,
       SqlParserPos pos) {
     super(
@@ -111,7 +113,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
       this.intervalStr = intervalStr;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       if (!(obj instanceof IntervalValue)) {
         return false;
       }

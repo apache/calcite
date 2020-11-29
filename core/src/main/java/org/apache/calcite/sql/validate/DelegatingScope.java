@@ -35,6 +35,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -194,7 +196,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
   }
 
-  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     return parent.resolveColumn(name, ctx);
   }
 
@@ -203,7 +205,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }
 
@@ -545,7 +547,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     // be valid in the parent scope.
   }
 
-  @Override public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     return parent.lookupWindow(name);
   }
 
@@ -553,7 +555,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.getMonotonicity(expr);
   }
 
-  @Override public SqlNodeList getOrderList() {
+  @Override public @Nullable SqlNodeList getOrderList() {
     return parent.getOrderList();
   }
 

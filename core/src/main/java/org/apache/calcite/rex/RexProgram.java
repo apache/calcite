@@ -44,6 +44,7 @@ import com.google.errorprone.annotations.CheckReturnValue;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.PrintWriter;
@@ -91,7 +92,7 @@ public class RexProgram {
   /**
    * The optional condition. If null, the calculator does not filter rows.
    */
-  private final RexLocalRef condition;
+  private final @Nullable RexLocalRef condition;
 
   private final RelDataType inputRowType;
 
@@ -121,7 +122,7 @@ public class RexProgram {
       RelDataType inputRowType,
       List<? extends RexNode> exprs,
       List<RexLocalRef> projects,
-      RexLocalRef condition,
+      @Nullable RexLocalRef condition,
       RelDataType outputRowType) {
     this.inputRowType = inputRowType;
     this.exprs = ImmutableList.copyOf(exprs);
@@ -179,7 +180,7 @@ public class RexProgram {
    * if there is no condition.
    */
   @Pure
-  public RexLocalRef getCondition() {
+  public @Nullable RexLocalRef getCondition() {
     return condition;
   }
 
@@ -197,7 +198,7 @@ public class RexProgram {
   public static RexProgram create(
       RelDataType inputRowType,
       List<? extends RexNode> projectExprs,
-      RexNode conditionExpr,
+      @Nullable RexNode conditionExpr,
       RelDataType outputRowType,
       RexBuilder rexBuilder) {
     return create(inputRowType, projectExprs, conditionExpr,
@@ -218,8 +219,8 @@ public class RexProgram {
   public static RexProgram create(
       RelDataType inputRowType,
       List<? extends RexNode> projectExprs,
-      RexNode conditionExpr,
-      List<? extends String> fieldNames,
+      @Nullable RexNode conditionExpr,
+      @Nullable List<? extends @Nullable String> fieldNames,
       RexBuilder rexBuilder) {
     if (fieldNames == null) {
       fieldNames = Collections.nCopies(projectExprs.size(), null);
@@ -444,7 +445,7 @@ public class RexProgram {
    */
   public boolean isValid(
       @UnknownInitialization RexProgram this,
-      Litmus litmus, RelNode.Context context) {
+      Litmus litmus, RelNode.@Nullable Context context) {
     if (inputRowType == null) {
       return litmus.fail(null);
     }
@@ -703,7 +704,7 @@ public class RexProgram {
     return ref.accept(new ConstantFinder());
   }
 
-  public RexNode gatherExpr(RexNode expr) {
+  public @Nullable RexNode gatherExpr(RexNode expr) {
     return expr.accept(new Marshaller());
   }
 
@@ -752,7 +753,7 @@ public class RexProgram {
    * Returns a permutation, if this program is a permutation, otherwise null.
    */
   @CheckReturnValue
-  public Permutation getPermutation() {
+  public @Nullable Permutation getPermutation() {
     Permutation permutation = new Permutation(projects.size());
     if (projects.size() != inputRowType.getFieldList().size()) {
       return null;
@@ -816,7 +817,7 @@ public class RexProgram {
    *     or null to not simplify
    * @return Normalized program
    */
-  public RexProgram normalize(RexBuilder rexBuilder, RexSimplify simplify) {
+  public RexProgram normalize(RexBuilder rexBuilder, @Nullable RexSimplify simplify) {
     // Normalize program by creating program builder from the program, then
     // converting to a program. getProgram does not need to normalize
     // because the builder was normalized on creation.
@@ -878,7 +879,7 @@ public class RexProgram {
      * @param litmus               Whether to fail
      */
     Checker(RelDataType inputRowType,
-        List<RelDataType> internalExprTypeList, RelNode.Context context,
+        List<RelDataType> internalExprTypeList, RelNode.@Nullable Context context,
         Litmus litmus) {
       super(inputRowType, context, litmus);
       this.internalExprTypeList = internalExprTypeList;
@@ -945,7 +946,7 @@ public class RexProgram {
    * Given an expression in a program, creates a clone of the expression with
    * sub-expressions (represented by {@link RexLocalRef}s) fully expanded.
    */
-  private class Marshaller extends RexVisitorImpl<RexNode> {
+  private class Marshaller extends RexVisitorImpl<@Nullable RexNode> {
     Marshaller() {
       super(false);
     }
@@ -954,7 +955,7 @@ public class RexProgram {
       return inputRef;
     }
 
-    @Override public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public @Nullable RexNode visitLocalRef(RexLocalRef localRef) {
       final RexNode expr = exprs.get(localRef.index);
       return expr.accept(this);
     }

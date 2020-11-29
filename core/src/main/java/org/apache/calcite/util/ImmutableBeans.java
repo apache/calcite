@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -348,7 +350,7 @@ public class ImmutableBeans {
     return false;
   }
 
-  private static Object getDefault(Method method) {
+  private static @Nullable Object getDefault(Method method) {
     Object defaultValue = null;
     final IntDefault intDefault = method.getAnnotation(IntDefault.class);
     if (intDefault != null) {
@@ -372,7 +374,7 @@ public class ImmutableBeans {
     return defaultValue;
   }
 
-  private static Object convertDefault(Object defaultValue, String propertyName,
+  private static @Nullable Object convertDefault(@Nullable Object defaultValue, String propertyName,
       Class<?> propertyType) {
     if (propertyType.equals(SqlConformance.class)) {
       // Workaround for SqlConformance because it is actually not a Enum.
@@ -410,7 +412,7 @@ public class ImmutableBeans {
    *
    * @param <T> Bean type */
   private interface Handler<T extends Object> {
-    Object apply(BeanImpl<T> bean, Object[] args);
+    @Nullable Object apply(BeanImpl<T> bean, @Nullable Object[] args);
   }
 
   /** Property of a bean. Apply this annotation to the "get" method. */
@@ -479,7 +481,7 @@ public class ImmutableBeans {
       this.map = Objects.requireNonNull(map);
     }
 
-    @Override public Object invoke(Object proxy, Method method, Object[] args) {
+    @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) {
       final Handler handler = def.handlers.get(method);
       if (handler == null) {
         throw new IllegalArgumentException("no handler for method " + method);

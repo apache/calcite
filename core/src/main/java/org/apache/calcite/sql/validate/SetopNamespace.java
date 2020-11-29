@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -53,7 +55,7 @@ public class SetopNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 
@@ -75,7 +77,7 @@ public class SetopNamespace extends AbstractNamespace {
     return Util.first(monotonicity, SqlMonotonicity.NOT_MONOTONIC);
   }
 
-  private SqlMonotonicity combine(SqlMonotonicity m0,
+  private SqlMonotonicity combine(@Nullable SqlMonotonicity m0,
       SqlMonotonicity m1) {
     if (m0 == null) {
       return m1;

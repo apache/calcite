@@ -51,6 +51,8 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -235,7 +237,7 @@ public abstract class DateRangeRules {
         EnumSet.noneOf(TimeUnitRange.class);
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
-    private static final ThreadLocal<ExtractFinder> THREAD_INSTANCES =
+    private static final ThreadLocal<@Nullable ExtractFinder> THREAD_INSTANCES =
         ThreadLocal.withInitial(ExtractFinder::new);
 
     private ExtractFinder() {
@@ -390,7 +392,7 @@ public abstract class DateRangeRules {
     }
 
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
-        boolean [] update) {
+        boolean @Nullable [] update) {
       if (exprs.isEmpty()) {
         return ImmutableList.of(); // a bit more efficient
       }

@@ -61,6 +61,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -163,7 +165,7 @@ public class RelFactories {
      * @return a project
      */
     RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, List<? extends String> fieldNames);
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames);
   }
 
   /**
@@ -172,7 +174,7 @@ public class RelFactories {
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, List<? extends String> fieldNames) {
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames) {
       return LogicalProject.create(input, hints, childExprs, fieldNames);
     }
   }
@@ -183,12 +185,12 @@ public class RelFactories {
    */
   public interface SortFactory {
     /** Creates a sort. */
-    RelNode createSort(RelNode input, RelCollation collation, RexNode offset,
-        RexNode fetch);
+    RelNode createSort(RelNode input, RelCollation collation, @Nullable RexNode offset,
+        @Nullable RexNode fetch);
 
     @Deprecated // to be removed before 2.0
     default RelNode createSort(RelTraitSet traitSet, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
+        RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
       return createSort(input, collation, offset, fetch);
     }
   }
@@ -199,7 +201,7 @@ public class RelFactories {
    */
   private static class SortFactoryImpl implements SortFactory {
     @Override public RelNode createSort(RelNode input, RelCollation collation,
-        RexNode offset, RexNode fetch) {
+        @Nullable RexNode offset, @Nullable RexNode fetch) {
       return LogicalSort.create(input, collation, offset, fetch);
     }
   }
@@ -487,8 +489,8 @@ public class RelFactories {
   public interface TableFunctionScanFactory {
     /** Creates a {@link TableFunctionScan}. */
     RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexCall call, Type elementType,
-        Set<RelColumnMapping> columnMappings);
+        List<RelNode> inputs, RexCall call, @Nullable Type elementType,
+        @Nullable Set<RelColumnMapping> columnMappings);
   }
 
   /**
@@ -499,8 +501,8 @@ public class RelFactories {
   private static class TableFunctionScanFactoryImpl
       implements TableFunctionScanFactory {
     @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexCall call, Type elementType,
-        Set<RelColumnMapping> columnMappings) {
+        List<RelNode> inputs, RexCall call, @Nullable Type elementType,
+        @Nullable Set<RelColumnMapping> columnMappings) {
       final RelDataType rowType;
       // To deduce the return type:
       // 1. if the operator implements SqlTableFunction,
@@ -556,7 +558,7 @@ public class RelFactories {
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
         boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-        RexNode interval);
+        @Nullable RexNode interval);
   }
 
   /**
@@ -569,7 +571,7 @@ public class RelFactories {
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
         boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-        RexNode interval) {
+        @Nullable RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
           partitionKeys, orderKeys, interval);

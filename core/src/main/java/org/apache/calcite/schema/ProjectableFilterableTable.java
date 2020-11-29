@@ -20,6 +20,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -56,6 +58,6 @@ public interface ProjectableFilterableTable extends Table {
    * for each row an array of column values, one value for each ordinal in
    * {@code projects}.
    */
-  Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-      int [] projects);
+  Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+      int @Nullable [] projects);
 }

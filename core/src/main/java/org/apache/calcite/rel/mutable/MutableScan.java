@@ -19,6 +19,8 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.TableScan;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -37,12 +39,12 @@ public class MutableScan extends MutableLeafRel {
     return new MutableScan(scan);
   }
 
-  private List<String> tableQualifiedName() {
+  private @Nullable List<String> tableQualifiedName() {
     RelOptTable table = rel.getTable();
     return table == null ? null : table.getQualifiedName();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (!(obj instanceof MutableScan)) {
       return false;
     }

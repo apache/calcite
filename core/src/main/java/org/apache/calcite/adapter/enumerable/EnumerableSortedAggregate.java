@@ -42,6 +42,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +58,7 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() instanceof EnumerableConvention;
@@ -64,12 +66,12 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
 
   @Override public EnumerableSortedAggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     return new EnumerableSortedAggregate(getCluster(), traitSet, input,
         groupSet, groupSets, aggCalls);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     if (!isSimple(this)) {
       return null;

@@ -71,6 +71,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -722,7 +724,7 @@ public class RexImpTable {
   }
 
   private void defineUnary(SqlOperator operator, ExpressionType expressionType,
-      NullPolicy nullPolicy, String backupMethodName) {
+      NullPolicy nullPolicy, @Nullable String backupMethodName) {
     map.put(operator, new UnaryImplementor(expressionType, nullPolicy, backupMethodName));
   }
 
@@ -763,7 +765,7 @@ public class RexImpTable {
     };
   }
 
-  public RexCallImplementor get(final SqlOperator operator) {
+  public @Nullable RexCallImplementor get(final SqlOperator operator) {
     if (operator instanceof SqlUserDefinedFunction) {
       org.apache.calcite.schema.Function udf =
           ((SqlUserDefinedFunction) operator).getFunction();
@@ -780,7 +782,7 @@ public class RexImpTable {
     return map.get(operator);
   }
 
-  public AggImplementor get(final SqlAggFunction aggregation,
+  public @Nullable AggImplementor get(final SqlAggFunction aggregation,
       boolean forWindowAggregate) {
     if (aggregation instanceof SqlUserDefinedAggFunction) {
       final SqlUserDefinedAggFunction udaf =
@@ -1406,7 +1408,7 @@ public class RexImpTable {
         new Object() {
           int curentPosition; // position in for-win-agg-loop
           int startIndex;     // index of start of window
-          Comparable [] rows;  // accessed via WinAggAddContext.compareRows
+          Comparable @Nullable [] rows;  // accessed via WinAggAddContext.compareRows
           @SuppressWarnings("nullness")
           void sample() {
             if (curentPosition > startIndex) {
@@ -1963,7 +1965,7 @@ public class RexImpTable {
   private static class MethodImplementor extends AbstractRexCallImplementor {
     protected final Method method;
 
-    MethodImplementor(Method method, NullPolicy nullPolicy, boolean harmonize) {
+    MethodImplementor(Method method, @Nullable NullPolicy nullPolicy, boolean harmonize) {
       super(nullPolicy, harmonize);
       this.method = method;
     }
@@ -1981,7 +1983,7 @@ public class RexImpTable {
       }
     }
 
-    static Expression call(Method method, Expression target,
+    static Expression call(Method method, @Nullable Expression target,
         List<Expression> args) {
       if (method.isVarArgs()) {
         final int last = method.getParameterCount() - 1;
@@ -2218,10 +2220,10 @@ public class RexImpTable {
   /** Implementor for unary operators. */
   private static class UnaryImplementor extends AbstractRexCallImplementor {
     private final ExpressionType expressionType;
-    private final String backupMethodName;
+    private final @Nullable String backupMethodName;
 
     UnaryImplementor(ExpressionType expressionType, NullPolicy nullPolicy,
-        String backupMethodName) {
+        @Nullable String backupMethodName) {
       super(nullPolicy, false);
       this.expressionType = expressionType;
       this.backupMethodName = backupMethodName;
@@ -2856,7 +2858,7 @@ public class RexImpTable {
       }
     }
 
-    private void setInputGetterIndex(RexToLixTranslator translator, Expression o) {
+    private void setInputGetterIndex(RexToLixTranslator translator, @Nullable Expression o) {
       requireNonNull((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter,
           "inputGetter").setIndex(o);
     }
@@ -2888,10 +2890,10 @@ public class RexImpTable {
    */
   private abstract static class AbstractRexCallImplementor
       implements RexCallImplementor {
-    final NullPolicy nullPolicy;
+    final @Nullable NullPolicy nullPolicy;
     private final boolean harmonize;
 
-    AbstractRexCallImplementor(NullPolicy nullPolicy, boolean harmonize) {
+    AbstractRexCallImplementor(@Nullable NullPolicy nullPolicy, boolean harmonize) {
       this.nullPolicy = nullPolicy;
       this.harmonize = harmonize;
     }
@@ -3214,7 +3216,7 @@ public class RexImpTable {
   private static class ReflectiveImplementor extends AbstractRexCallImplementor {
     protected final Method method;
 
-    ReflectiveImplementor(Method method, NullPolicy nullPolicy) {
+    ReflectiveImplementor(Method method, @Nullable NullPolicy nullPolicy) {
       super(nullPolicy, false);
       this.method = method;
     }

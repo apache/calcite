@@ -20,6 +20,8 @@ import org.apache.commons.io.input.ReaderInputStream;
 
 import com.google.common.io.CharSource;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -51,7 +53,7 @@ public abstract class Sources {
   }
 
 
-  public static Source file(File baseDirectory, String fileName) {
+  public static Source file(@Nullable File baseDirectory, String fileName) {
     final File file = new File(fileName);
     if (baseDirectory != null && !file.isAbsolute()) {
       return of(new File(baseDirectory, fileName));
@@ -84,7 +86,7 @@ public abstract class Sources {
   /** Looks for a suffix on a path and returns
    * either the path with the suffix removed
    * or null. */
-  private static String trimOrNull(String s, String suffix) {
+  private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
@@ -136,7 +138,7 @@ public abstract class Sources {
       throw unsupported();
     }
 
-    @Override public Source trimOrNull(final String suffix) {
+    @Override public @Nullable Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
@@ -156,7 +158,7 @@ public abstract class Sources {
   /** Implementation of {@link Source} on the top of a {@link File} or
    * {@link URL}. */
   private static class FileSource implements Source {
-    private final File file;
+    private final @Nullable File file;
     private final URL url;
 
     /**
@@ -180,7 +182,7 @@ public abstract class Sources {
       return Objects.requireNonNull(file, "file");
     }
 
-    private static File urlToFile(URL url) {
+    private static @Nullable File urlToFile(URL url) {
       if (!"file".equals(url.getProtocol())) {
         return null;
       }
@@ -285,7 +287,7 @@ public abstract class Sources {
       return x == null ? this : x;
     }
 
-    @Override public Source trimOrNull(String suffix) {
+    @Override public @Nullable Source trimOrNull(String suffix) {
       if (!urlGenerated) {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);

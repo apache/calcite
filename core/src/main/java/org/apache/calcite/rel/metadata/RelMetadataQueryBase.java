@@ -21,6 +21,8 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;
@@ -66,16 +68,16 @@ public class RelMetadataQueryBase {
   /** Set of active metadata queries, and cache of previous results. */
   public final Table<RelNode, List, Object> map = HashBasedTable.create();
 
-  public final JaninoRelMetadataProvider metadataProvider;
+  public final @Nullable JaninoRelMetadataProvider metadataProvider;
 
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ThreadLocal<JaninoRelMetadataProvider> THREAD_PROVIDERS =
+  public static final ThreadLocal<@Nullable JaninoRelMetadataProvider> THREAD_PROVIDERS =
       new ThreadLocal<>();
 
   //~ Constructors -----------------------------------------------------------
 
-  protected RelMetadataQueryBase(JaninoRelMetadataProvider metadataProvider) {
+  protected RelMetadataQueryBase(@Nullable JaninoRelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
   }
 

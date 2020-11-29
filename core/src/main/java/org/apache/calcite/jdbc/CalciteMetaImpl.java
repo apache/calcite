@@ -62,6 +62,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -501,13 +503,13 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
-      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+      Signature signature, @Nullable List<TypedValue> parameterValues, @Nullable Frame firstFrame) {
     // Drop QueryState
     return _createIterable(handle, signature, parameterValues, firstFrame);
   }
 
   Iterable<Object> _createIterable(StatementHandle handle,
-      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+      Signature signature, @Nullable List<TypedValue> parameterValues, @Nullable Frame firstFrame) {
     try {
       //noinspection unchecked
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
@@ -681,7 +683,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Meta.PrepareCallback callback =
         new Meta.PrepareCallback() {
           long updateCount;
-          Signature signature;
+          @Nullable Signature signature;
 
           @Override public Object getMonitor() {
             return statement;
@@ -689,7 +691,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
           @Override public void clear() throws SQLException {}
 
-          @Override public void assign(Meta.Signature signature, Meta.Frame firstFrame,
+          @Override public void assign(Meta.Signature signature, Meta.@Nullable Frame firstFrame,
               long updateCount) throws SQLException {
             this.signature = signature;
             this.updateCount = updateCount;
@@ -724,7 +726,7 @@ public class CalciteMetaImpl extends MetaImpl {
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
   public static CalciteConnection connect(CalciteSchema schema,
-      JavaTypeFactory typeFactory) {
+      @Nullable JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
   }
 

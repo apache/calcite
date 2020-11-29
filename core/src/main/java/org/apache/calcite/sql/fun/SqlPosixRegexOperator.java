@@ -33,6 +33,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 
 /**
@@ -79,9 +81,9 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
   }
 
   @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     pos = pos.plusAll(Arrays.asList(operands));
     operands = Arrays.copyOf(operands, operands.length + 1);
     operands[operands.length - 1] = SqlLiteral.createBoolean(caseSensitive, SqlParserPos.ZERO);

@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -32,8 +34,8 @@ import java.util.List;
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
     @SuppressWarnings("argument.type.incompatible")
-    @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+    @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos, @Nullable SqlNode... operands) {
       return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
           operands[2], operands[3]);
     }
@@ -41,13 +43,13 @@ public class SqlOrderBy extends SqlCall {
 
   public final SqlNode query;
   public final SqlNodeList orderList;
-  public final SqlNode offset;
-  public final SqlNode fetch;
+  public final @Nullable SqlNode offset;
+  public final @Nullable SqlNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlOrderBy(SqlParserPos pos, SqlNode query, SqlNodeList orderList,
-      SqlNode offset, SqlNode fetch) {
+      @Nullable SqlNode offset, @Nullable SqlNode fetch) {
     super(pos);
     this.query = query;
     this.orderList = orderList;

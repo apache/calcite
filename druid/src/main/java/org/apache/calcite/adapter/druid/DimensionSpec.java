@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Interface for Druid DimensionSpec.
@@ -25,6 +26,6 @@ package org.apache.calcite.adapter.druid;
 public interface DimensionSpec extends DruidJson {
   String getOutputName();
   DruidType getOutputType();
-  ExtractionFunction getExtractionFn();
+  @Nullable ExtractionFunction getExtractionFn();
   String getDimension();
 }

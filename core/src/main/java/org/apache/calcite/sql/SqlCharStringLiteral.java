@@ -22,6 +22,8 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -57,7 +59,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
   /**
    * Returns the collation.
    */
-  public SqlCollation getCollation() {
+  public @Nullable SqlCollation getCollation() {
     return getValueNonNull().getCollation();
   }
 

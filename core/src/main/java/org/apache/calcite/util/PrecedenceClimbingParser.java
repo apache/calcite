@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +37,8 @@ import static java.util.Objects.requireNonNull;
  * and associativity.
  */
 public class PrecedenceClimbingParser {
-  private Token first;
-  private Token last;
+  private @Nullable Token first;
+  private @Nullable Token last;
 
   private PrecedenceClimbingParser(List<Token> tokens) {
     Token p = null;
@@ -53,7 +55,7 @@ public class PrecedenceClimbingParser {
     last = p;
   }
 
-  public Token atom(Object o) {
+  public Token atom(@Nullable Object o) {
     return new Token(Type.ATOM, o, -1, -1);
   }
 
@@ -79,7 +81,7 @@ public class PrecedenceClimbingParser {
     return new SpecialOp(o, leftPrec * 2, rightPrec * 2, special);
   }
 
-  public Token parse() {
+  public @Nullable Token parse() {
     partialParse();
     if (first != last) {
       throw new AssertionError("could not find next operator to reduce: "
@@ -137,7 +139,7 @@ public class PrecedenceClimbingParser {
     return new TokenList();
   }
 
-  private void replace(Token t, Token previous, Token next) {
+  private void replace(Token t, @Nullable Token previous, @Nullable Token next) {
     t.previous = previous;
     t.next = next;
     if (previous == null) {
@@ -152,7 +154,7 @@ public class PrecedenceClimbingParser {
     }
   }
 
-  private Op highest() {
+  private @Nullable Op highest() {
     int p = -1;
     Op highest = null;
     for (Token t = first; t != null; t = t.next) {
@@ -167,7 +169,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the right precedence of the preceding operator token. */
-  private int prevRight(Token token) {
+  private int prevRight(@Nullable Token token) {
     for (; token != null; token = token.previous) {
       if (token.type == Type.POSTFIX) {
         return Integer.MAX_VALUE;
@@ -180,7 +182,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the left precedence of the following operator token. */
-  private int nextLeft(Token token) {
+  private int nextLeft(@Nullable Token token) {
     for (; token != null; token = token.next) {
       if (token.type == Type.PREFIX) {
         return Integer.MAX_VALUE;
@@ -220,14 +222,14 @@ public class PrecedenceClimbingParser {
   /** A token: either an atom, a call to an operator with arguments,
    * or an unmatched operator. */
   public static class Token {
-    Token previous;
-    Token next;
+    @Nullable Token previous;
+    @Nullable Token next;
     public final Type type;
-    public final Object o;
+    public final @Nullable Object o;
     final int left;
     final int right;
 
-    Token(Type type, Object o, int left, int right) {
+    Token(Type type, @Nullable Object o, int left, int right) {
       this.type = type;
       this.o = o;
       this.left = left;
@@ -238,7 +240,7 @@ public class PrecedenceClimbingParser {
      * Returns {@code o}.
      * @return o
      */
-    public Object o() {
+    public @Nullable Object o() {
       return o;
     }
 
@@ -382,7 +384,7 @@ public class PrecedenceClimbingParser {
       return this;
     }
 
-    public Builder atom(Object o) {
+    public Builder atom(@Nullable Object o) {
       return add(dummy.atom(o));
     }
 

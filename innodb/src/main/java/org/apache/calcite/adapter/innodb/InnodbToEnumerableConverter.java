@@ -43,6 +43,8 @@ import org.apache.commons.collections.CollectionUtils;
 
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +69,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }

@@ -56,6 +56,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -125,7 +127,7 @@ public class EnumUtils {
 
   static List<RelDataType> fieldRowTypes(
       final RelDataType inputRowType,
-      final List<? extends RexNode> extraInputs,
+      final @Nullable List<? extends RexNode> extraInputs,
       final List<Integer> argList) {
     final List<RelDataTypeField> inputFields = inputRowType.getFieldList();
     return new AbstractList<RelDataType>() {
@@ -190,12 +192,12 @@ public class EnumUtils {
    * stored as {@code Integer} type, {@code java.sql.Timestamp} is
    * stored as {@code Long} type.
    */
-  static Expression toInternal(Expression operand, Type targetType) {
+  static Expression toInternal(Expression operand, @Nullable Type targetType) {
     return toInternal(operand, operand.getType(), targetType);
   }
 
   private static Expression toInternal(Expression operand,
-      Type fromType, Type targetType) {
+      Type fromType, @Nullable Type targetType) {
     if (fromType == java.sql.Date.class) {
       if (targetType == int.class) {
         return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
@@ -297,11 +299,11 @@ public class EnumUtils {
     return type;
   }
 
-  private static Type toInternal(RelDataType type) {
+  private static @Nullable Type toInternal(RelDataType type) {
     return toInternal(type, false);
   }
 
-  static Type toInternal(RelDataType type, boolean forceNotNull) {
+  static @Nullable Type toInternal(RelDataType type, boolean forceNotNull) {
     switch (type.getSqlTypeName()) {
     case DATE:
     case TIME:
@@ -313,7 +315,7 @@ public class EnumUtils {
     }
   }
 
-  static List<Type> internalTypes(List<? extends RexNode> operandList) {
+  static List<@Nullable Type> internalTypes(List<? extends RexNode> operandList) {
     return Util.transform(operandList, node -> toInternal(node.getType()));
   }
 
@@ -548,7 +550,7 @@ public class EnumUtils {
   }
 
   /** Converts a value to a given class. */
-  public static <T> T evaluate(Object o, Class<T> clazz) {
+  public static <T> @Nullable T evaluate(Object o, Class<T> clazz) {
     // We need optimization here for constant folding.
     // Not all the expressions can be interpreted (e.g. ternary), so
     // we rely on optimization capabilities to fold non-interpretable
@@ -640,7 +642,7 @@ public class EnumUtils {
    * @return MethodCallExpression that call the given name method
    * @throws RuntimeException if no suitable method found
    */
-  public static MethodCallExpression call(Expression targetExpression,
+  public static MethodCallExpression call(@Nullable Expression targetExpression,
       Class clazz, String methodName, List<? extends Expression> arguments) {
     Class[] argumentTypes = Types.toClassArray(arguments);
     try {
@@ -667,7 +669,7 @@ public class EnumUtils {
     }
   }
 
-  private static List<? extends Expression> matchMethodParameterTypes(boolean varArgs,
+  private static @Nullable List<? extends Expression> matchMethodParameterTypes(boolean varArgs,
       Class<?>[] parameterTypes, List<? extends Expression> arguments) {
     if ((varArgs  && arguments.size() < parameterTypes.length - 1)
         || (!varArgs && arguments.size() != parameterTypes.length)) {
@@ -697,7 +699,7 @@ public class EnumUtils {
    * @return Converted argument expression that matches the parameter type.
    *         Returns null if it is impossible to match.
    */
-  private static Expression matchMethodParameterType(
+  private static @Nullable Expression matchMethodParameterType(
       Expression argument, Class<?> parameter) {
     Type argumentType = argument.getType();
     if (Types.isAssignableFrom(parameter, argumentType)) {
@@ -843,11 +845,11 @@ public class EnumUtils {
    * enumerator based on a specified key. Elements are windowed into sessions separated by
    * periods with no input for at least the duration specified by gap parameter.
    */
-  public static Enumerable<Object[]> sessionize(
-      Enumerator<Object[]> inputEnumerator,
+  public static Enumerable<@Nullable Object[]> sessionize(
+      Enumerator<@Nullable Object[]> inputEnumerator,
       int indexOfWatermarkedColumn, int indexOfKeyColumn, long gap) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new SessionizationEnumerator(inputEnumerator,
             indexOfWatermarkedColumn, indexOfKeyColumn, gap);
       }
@@ -855,12 +857,12 @@ public class EnumUtils {
   }
 
   /** Enumerator that converts rows into sessions separated by gaps. */
-  private static class SessionizationEnumerator implements Enumerator<Object[]> {
-    private final Enumerator<Object[]> inputEnumerator;
+  private static class SessionizationEnumerator implements Enumerator<@Nullable Object[]> {
+    private final Enumerator<@Nullable Object[]> inputEnumerator;
     private final int indexOfWatermarkedColumn;
     private final int indexOfKeyColumn;
     private final long gap;
-    private final Deque<Object[]> list;
+    private final Deque<@Nullable Object[]> list;
     private boolean initialized;
 
     /**
@@ -872,7 +874,7 @@ public class EnumUtils {
      * @param indexOfKeyColumn the index of column that acts as grouping key
      * @param gap gap parameter
      */
-    SessionizationEnumerator(Enumerator<Object[]> inputEnumerator,
+    SessionizationEnumerator(Enumerator<@Nullable Object[]> inputEnumerator,
         int indexOfWatermarkedColumn, int indexOfKeyColumn, long gap) {
       this.inputEnumerator = inputEnumerator;
       this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
@@ -882,7 +884,7 @@ public class EnumUtils {
       initialized = false;
     }
 
-    @Override public Object[] current() {
+    @Override public @Nullable Object[] current() {
       if (!initialized) {
         initialize();
         initialized = true;
@@ -907,7 +909,7 @@ public class EnumUtils {
     }
 
     private void initialize() {
-      List<Object[]> elements = new ArrayList<>();
+      List<@Nullable Object[]> elements = new ArrayList<>();
       // initialize() will be called when inputEnumerator.moveNext() is true,
       // thus firstly should take the current element.
       elements.add(inputEnumerator.current());
@@ -916,10 +918,10 @@ public class EnumUtils {
         elements.add(inputEnumerator.current());
       }
 
-      Map<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> sessionKeyMap =
+      Map<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>> sessionKeyMap =
           new HashMap<>();
-      for (Object[] element : elements) {
-        SortedMultiMap<Pair<Long, Long>, Object[]> session =
+      for (@Nullable Object[] element : elements) {
+        SortedMultiMap<Pair<Long, Long>, @Nullable Object[]> session =
             sessionKeyMap.computeIfAbsent(element[indexOfKeyColumn], k -> new SortedMultiMap<>());
         Object watermark = requireNonNull(element[indexOfWatermarkedColumn],
             "element[indexOfWatermarkedColumn]");
@@ -929,12 +931,12 @@ public class EnumUtils {
       }
 
       // merge per key session windows if there is any overlap between windows.
-      for (Map.Entry<Object, SortedMultiMap<Pair<Long, Long>, Object[]>>
+      for (Map.Entry<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>>
           perKeyEntry : sessionKeyMap.entrySet()) {
-        Map<Pair<Long, Long>, List<Object[]>> finalWindowElementsMap = new HashMap<>();
+        Map<Pair<Long, Long>, List<@Nullable Object[]>> finalWindowElementsMap = new HashMap<>();
         Pair<Long, Long> currentWindow = null;
-        List<Object[]> tempElementList = new ArrayList<>();
-        for (Map.Entry<Pair<Long, Long>, List<Object[]>> sessionEntry
+        List<@Nullable Object[]> tempElementList = new ArrayList<>();
+        for (Map.Entry<Pair<Long, Long>, List<@Nullable Object[]>> sessionEntry
             : perKeyEntry.getValue().entrySet()) {
           // check the next window can be merged.
           if (currentWindow == null || !isOverlapped(currentWindow, sessionEntry.getKey())) {
@@ -960,10 +962,10 @@ public class EnumUtils {
         }
 
         // construct final results from finalWindowElementsMap.
-        for (Map.Entry<Pair<Long, Long>, List<Object[]>> finalWindowElementsEntry
+        for (Map.Entry<Pair<Long, Long>, List<@Nullable Object[]>> finalWindowElementsEntry
             : finalWindowElementsMap.entrySet()) {
-          for (Object[] element : finalWindowElementsEntry.getValue()) {
-            Object[] curWithWindow = new Object[element.length + 2];
+          for (@Nullable Object[] element : finalWindowElementsEntry.getValue()) {
+            @Nullable Object[] curWithWindow = new Object[element.length + 2];
             System.arraycopy(element, 0, curWithWindow, 0, element.length);
             curWithWindow[element.length] = finalWindowElementsEntry.getKey().left;
             curWithWindow[element.length + 1] = finalWindowElementsEntry.getKey().right;
@@ -990,11 +992,11 @@ public class EnumUtils {
    * Create enumerable implementation that applies hopping on each element from the input
    * enumerator and produces at least one element for each input element.
    */
-  public static Enumerable<Object[]> hopping(
-      Enumerator<Object[]> inputEnumerator,
+  public static Enumerable<@Nullable Object[]> hopping(
+      Enumerator<@Nullable Object[]> inputEnumerator,
       int indexOfWatermarkedColumn, long emitFrequency, long windowSize, long offset) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new HopEnumerator(inputEnumerator,
             indexOfWatermarkedColumn, emitFrequency, windowSize, offset);
       }
@@ -1002,13 +1004,13 @@ public class EnumUtils {
   }
 
   /** Enumerator that computes HOP. */
-  private static class HopEnumerator implements Enumerator<Object[]> {
-    private final Enumerator<Object[]> inputEnumerator;
+  private static class HopEnumerator implements Enumerator<@Nullable Object[]> {
+    private final Enumerator<@Nullable Object[]> inputEnumerator;
     private final int indexOfWatermarkedColumn;
     private final long emitFrequency;
     private final long windowSize;
     private final long offset;
-    private final Deque<Object[]> list;
+    private final Deque<@Nullable Object[]> list;
 
     /**
      * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
@@ -1019,7 +1021,7 @@ public class EnumUtils {
      * @param windowSize window size
      * @param offset indicates how much windows should off
      */
-    HopEnumerator(Enumerator<Object[]> inputEnumerator,
+    HopEnumerator(Enumerator<@Nullable Object[]> inputEnumerator,
         int indexOfWatermarkedColumn, long slide, long windowSize, long offset) {
       this.inputEnumerator = inputEnumerator;
       this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
@@ -1029,17 +1031,17 @@ public class EnumUtils {
       list = new ArrayDeque<>();
     }
 
-    @Override public Object[] current() {
+    @Override public @Nullable Object[] current() {
       if (list.size() > 0) {
         return takeOne();
       } else {
-        Object[] current = inputEnumerator.current();
+        @Nullable Object[] current = inputEnumerator.current();
         Object watermark = requireNonNull(current[indexOfWatermarkedColumn],
             "element[indexOfWatermarkedColumn]");
         List<Pair<Long, Long>> windows = hopWindows(SqlFunctions.toLong(watermark),
             emitFrequency, windowSize, offset);
         for (Pair<Long, Long> window : windows) {
-          Object[] curWithWindow = new Object[current.length + 2];
+          @Nullable Object[] curWithWindow = new Object[current.length + 2];
           System.arraycopy(current, 0, curWithWindow, 0, current.length);
           curWithWindow[current.length] = window.left;
           curWithWindow[current.length + 1] = window.right;
@@ -1061,7 +1063,7 @@ public class EnumUtils {
     @Override public void close() {
     }
 
-    private Object[] takeOne() {
+    private @Nullable Object[] takeOne() {
       return requireNonNull(list.pollFirst(), "list.pollFirst()");
     }
   }
@@ -1111,7 +1113,7 @@ public class EnumUtils {
     };
   }
 
-  public static Expression generateCollatorExpression(SqlCollation collation) {
+  public static @Nullable Expression generateCollatorExpression(@Nullable SqlCollation collation) {
     if (collation == null) {
       return null;
     }

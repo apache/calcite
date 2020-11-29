@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,9 +54,9 @@ public class JsonMapSchema extends JsonSchema {
   @JsonCreator
   public JsonMapSchema(
       @JsonProperty(value = "name", required = true) String name,
-      @JsonProperty("path") List<Object> path,
-      @JsonProperty("cache") Boolean cache,
-      @JsonProperty("autoLattice") Boolean autoLattice) {
+      @JsonProperty("path") @Nullable List<Object> path,
+      @JsonProperty("cache") @Nullable Boolean cache,
+      @JsonProperty("autoLattice") @Nullable Boolean autoLattice) {
     super(name, path, cache, autoLattice);
   }
 

@@ -72,6 +72,8 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -195,11 +197,11 @@ public class SubstitutionVisitor {
     this.query = Holder.of(MutableRels.toMutable(query_));
     this.target = MutableRels.toMutable(target_);
     this.relBuilder = relBuilderFactory.create(cluster, null);
-    final Set<MutableRel> parents = Sets.newIdentityHashSet();
+    final Set<@Nullable MutableRel> parents = Sets.newIdentityHashSet();
     final List<MutableRel> allNodes = new ArrayList<>();
     final MutableRelVisitor visitor =
         new MutableRelVisitor() {
-          @Override public void visit(MutableRel node) {
+          @Override public void visit(@Nullable MutableRel node) {
             requireNonNull(node, "node");
             parents.add(node.getParent());
             allNodes.add(node);
@@ -280,7 +282,7 @@ public class SubstitutionVisitor {
    * problem.</p>
    */
   @VisibleForTesting
-  public static RexNode splitFilter(final RexSimplify simplify,
+  public static @Nullable RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
     final RexBuilder rexBuilder = simplify.rexBuilder;
     RexNode condition2 = canonizeNode(rexBuilder, condition);
@@ -383,7 +385,7 @@ public class SubstitutionVisitor {
     }
   }
 
-  private static RexNode splitOr(
+  private static @Nullable RexNode splitOr(
       final RexBuilder rexBuilder, RexNode condition, RexNode target) {
     List<RexNode> conditions = RelOptUtil.disjunctions(condition);
     int conditionsLength = conditions.size();
@@ -472,7 +474,7 @@ public class SubstitutionVisitor {
     return true;
   }
 
-  public RelNode go0(RelNode replacement_) {
+  public @Nullable RelNode go0(RelNode replacement_) {
     assert false; // not called
     MutableRel replacement = MutableRels.toMutable(replacement_);
     assert equalType(
@@ -685,7 +687,7 @@ public class SubstitutionVisitor {
    *
    * <p>Assumes relational expressions (and their descendants) are not null.
    * Does not handle cycles. */
-  public static Replacement replace(MutableRel query, MutableRel find,
+  public static @Nullable Replacement replace(MutableRel query, MutableRel find,
       MutableRel replace) {
     if (find.equals(replace)) {
       // Short-cut common case.
@@ -696,7 +698,7 @@ public class SubstitutionVisitor {
   }
 
   /** Helper for {@link #replace}. */
-  private static Replacement replaceRecurse(MutableRel query,
+  private static @Nullable Replacement replaceRecurse(MutableRel query,
       MutableRel find, MutableRel replace) {
     if (find.equals(query)) {
       query.replaceInParent(replace);
@@ -740,7 +742,7 @@ public class SubstitutionVisitor {
     redoReplacement(matches.get(0));
   }
 
-  private UnifyResult matchRecurse(MutableRel target) {
+  private @Nullable UnifyResult matchRecurse(MutableRel target) {
     assert false; // not called
     final List<MutableRel> targetInputs = target.getInputs();
     MutableRel queryParent = null;
@@ -812,7 +814,7 @@ public class SubstitutionVisitor {
     return null;
   }
 
-  private UnifyResult apply(UnifyRule rule, MutableRel query,
+  private @Nullable UnifyResult apply(UnifyRule rule, MutableRel query,
       MutableRel target) {
     final UnifyRuleCall call =
         new UnifyRuleCall(rule, query, target, ImmutableList.of());
@@ -896,9 +898,9 @@ public class SubstitutionVisitor {
      *
      * @param call Input parameters
      */
-    protected abstract UnifyResult apply(UnifyRuleCall call);
+    protected abstract @Nullable UnifyResult apply(UnifyRuleCall call);
 
-    protected UnifyRuleCall match(SubstitutionVisitor visitor, MutableRel query,
+    protected @Nullable UnifyRuleCall match(SubstitutionVisitor visitor, MutableRel query,
         MutableRel target) {
       if (queryOperand.matches(visitor, query)) {
         if (targetOperand.matches(visitor, target)) {
@@ -1053,7 +1055,7 @@ public class SubstitutionVisitor {
       super(any(MutableRel.class), any(MutableRel.class), 0);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
         return call.result(call.target);
       }
@@ -1075,7 +1077,7 @@ public class SubstitutionVisitor {
           operand(MutableCalc.class, any(MutableScan.class)), 0);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
 
       final MutableScan query = (MutableScan) call.query;
 
@@ -1126,7 +1128,7 @@ public class SubstitutionVisitor {
           operand(MutableCalc.class, target(0)), 1);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableCalc query = (MutableCalc) call.query;
       final Pair<RexNode, List<RexNode>> queryExplained = explainCalc(query);
       final RexNode queryCond = queryExplained.left;
@@ -1196,7 +1198,7 @@ public class SubstitutionVisitor {
           operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableJoin query = (MutableJoin) call.query;
       final MutableCalc qInput0 = (MutableCalc) query.getLeft();
       final MutableRel qInput1 = query.getRight();
@@ -1282,7 +1284,7 @@ public class SubstitutionVisitor {
           operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableJoin query = (MutableJoin) call.query;
       final MutableRel qInput0 = query.getLeft();
       final MutableCalc qInput1 = (MutableCalc) query.getRight();
@@ -1370,7 +1372,7 @@ public class SubstitutionVisitor {
           operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableJoin query = (MutableJoin) call.query;
       final MutableCalc qInput0 = (MutableCalc) query.getLeft();
       final MutableCalc qInput1 = (MutableCalc) query.getRight();
@@ -1461,7 +1463,7 @@ public class SubstitutionVisitor {
           operand(MutableAggregate.class, target(0)), 1);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableAggregate query = (MutableAggregate) call.query;
       final MutableCalc qInput = (MutableCalc) query.getInput();
       final Pair<RexNode, List<RexNode>> qInputExplained = explainCalc(qInput);
@@ -1561,7 +1563,7 @@ public class SubstitutionVisitor {
           operand(MutableAggregate.class, target(0)), 1);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableAggregate query = (MutableAggregate) call.query;
       final MutableAggregate target = (MutableAggregate) call.target;
       assert query != target;
@@ -1597,7 +1599,7 @@ public class SubstitutionVisitor {
       super(any(MutableUnion.class), any(MutableUnion.class), 0);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableUnion query = (MutableUnion) call.query;
       final MutableUnion target = (MutableUnion) call.target;
       final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
@@ -1624,7 +1626,7 @@ public class SubstitutionVisitor {
       super(any(MutableUnion.class), any(MutableUnion.class), 0);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       return setOpApply(call);
     }
   }
@@ -1642,7 +1644,7 @@ public class SubstitutionVisitor {
       super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableIntersect query = (MutableIntersect) call.query;
       final MutableIntersect target = (MutableIntersect) call.target;
       final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
@@ -1669,7 +1671,7 @@ public class SubstitutionVisitor {
       super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
     }
 
-    @Override public UnifyResult apply(UnifyRuleCall call) {
+    @Override public @Nullable UnifyResult apply(UnifyRuleCall call) {
       return setOpApply(call);
     }
   }
@@ -1681,7 +1683,7 @@ public class SubstitutionVisitor {
    *
    * @param call Input parameters
    */
-  private static UnifyResult setOpApply(UnifyRuleCall call) {
+  private static @Nullable UnifyResult setOpApply(UnifyRuleCall call) {
     if (call.query instanceof MutableMinus && call.target
         instanceof MutableMinus) {
       return null;
@@ -1792,7 +1794,7 @@ public class SubstitutionVisitor {
   }
 
   /** Merge two MutableCalc together. */
-  private static MutableCalc mergeCalc(
+  private static @Nullable MutableCalc mergeCalc(
       RexBuilder rexBuilder, MutableCalc topCalc, MutableCalc bottomCalc) {
     RexProgram topProgram = topCalc.program;
     if (RexOver.containsOver(topProgram)) {
@@ -1851,7 +1853,7 @@ public class SubstitutionVisitor {
     return true;
   }
 
-  private static JoinRelType sameJoinType(JoinRelType type0, JoinRelType type1) {
+  private static @Nullable JoinRelType sameJoinType(JoinRelType type0, JoinRelType type1) {
     if (type0 == type1) {
       return type0;
     } else {
@@ -1869,8 +1871,8 @@ public class SubstitutionVisitor {
     return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
   }
 
-  public static MutableRel unifyAggregates(MutableAggregate query,
-      RexNode targetCond, MutableAggregate target) {
+  public static @Nullable MutableRel unifyAggregates(MutableAggregate query,
+      @Nullable RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
     Map<RexNode, RexNode> targetCondConstantMap =
@@ -1990,7 +1992,7 @@ public class SubstitutionVisitor {
     return result;
   }
 
-  public static SqlAggFunction getRollup(SqlAggFunction aggregation) {
+  public static @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN
         || aggregation == SqlStdOperatorTable.MAX

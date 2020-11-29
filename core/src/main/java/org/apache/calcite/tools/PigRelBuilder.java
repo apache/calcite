@@ -30,6 +30,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,10 +41,10 @@ import static java.util.Objects.requireNonNull;
  * Extension to {@link RelBuilder} for Pig relational operators.
  */
 public class PigRelBuilder extends RelBuilder {
-  private String lastAlias;
+  private @Nullable String lastAlias;
   protected PigRelBuilder(Context context,
       RelOptCluster cluster,
-      RelOptSchema relOptSchema) {
+      @Nullable RelOptSchema relOptSchema) {
     super(context, cluster, relOptSchema);
   }
 
@@ -165,7 +167,7 @@ public class PigRelBuilder extends RelBuilder {
     }
   }
 
-  public String getAlias() {
+  public @Nullable String getAlias() {
     if (lastAlias != null) {
       return lastAlias;
     } else {

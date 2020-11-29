@@ -48,6 +48,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -574,7 +575,7 @@ public class LoptOptimizeJoinRule
    *
    * @return computed cardinality
    */
-  private Double computeJoinCardinality(
+  private @Nullable Double computeJoinCardinality(
       RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -678,7 +679,7 @@ public class LoptOptimizeJoinRule
    * @return constructed join tree or null if it is not possible for
    * firstFactor to appear as the first factor in the join
    */
-  private LoptJoinTree createOrdering(
+  private @Nullable LoptJoinTree createOrdering(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -771,7 +772,7 @@ public class LoptOptimizeJoinRule
       BitSet factorsToAdd,
       BitSet factorsAdded,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree joinTree,
+      @Nullable LoptJoinTree joinTree,
       List<RexNode> filtersToAdd) {
     // iterate through the remaining factors and determine the
     // best one to add next
@@ -877,12 +878,12 @@ public class LoptOptimizeJoinRule
    * @return optimal join tree with the new factor added if it is possible to
    * add the factor; otherwise, null is returned
    */
-  private LoptJoinTree addFactorToTree(
+  private @Nullable LoptJoinTree addFactorToTree(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree joinTree,
+      @Nullable LoptJoinTree joinTree,
       int factorToAdd,
       BitSet factorsNeeded,
       List<RexNode> filtersToAdd,
@@ -1034,7 +1035,7 @@ public class LoptOptimizeJoinRule
    * join tree if it is possible to do the pushdown; otherwise, null is
    * returned
    */
-  private LoptJoinTree pushDownFactor(
+  private @Nullable LoptJoinTree pushDownFactor(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -1188,7 +1189,7 @@ public class LoptOptimizeJoinRule
    *
    * @return new join tree
    */
-  private LoptJoinTree addToTop(
+  private @Nullable LoptJoinTree addToTop(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -1553,11 +1554,11 @@ public class LoptOptimizeJoinRule
    * @return created join tree or null if the corresponding fact table has not
    * been joined in yet
    */
-  private LoptJoinTree createReplacementSemiJoin(
+  private @Nullable LoptJoinTree createReplacementSemiJoin(
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree factTree,
+      @Nullable LoptJoinTree factTree,
       int dimIdx,
       List<RexNode> filtersToAdd) {
     // if the current join tree doesn't contain the fact table, then
@@ -1633,7 +1634,7 @@ public class LoptOptimizeJoinRule
       int leftIdx,
       int factorToAdd,
       ImmutableIntList newKeys,
-      Integer [] replacementKeys,
+      Integer @Nullable [] replacementKeys,
       List<RexNode> filtersToAdd) {
     // create a projection, projecting the fields from the join tree
     // containing the current joinRel and the new factor; for fields

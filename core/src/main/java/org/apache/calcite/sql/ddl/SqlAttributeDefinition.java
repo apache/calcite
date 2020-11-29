@@ -29,6 +29,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -41,12 +43,12 @@ public class SqlAttributeDefinition extends SqlCall {
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
-  final SqlNode expression;
-  final SqlCollation collation;
+  final @Nullable SqlNode expression;
+  final @Nullable SqlCollation collation;
 
   /** Creates a SqlAttributeDefinition; use {@link SqlDdlNodes#attribute}. */
   SqlAttributeDefinition(SqlParserPos pos, SqlIdentifier name,
-      SqlDataTypeSpec dataType, SqlNode expression, SqlCollation collation) {
+      SqlDataTypeSpec dataType, @Nullable SqlNode expression, @Nullable SqlCollation collation) {
     super(pos);
     this.name = name;
     this.dataType = dataType;

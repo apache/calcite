@@ -30,6 +30,7 @@ import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -137,7 +138,7 @@ class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_RANDOM), input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -187,7 +188,7 @@ class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_SINGLETON), label);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -206,7 +207,7 @@ class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_RANDOM), input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -257,7 +258,7 @@ class TraitConversionTest {
       return "ConvertRelDistributionTraitDef";
     }
 
-    @Override public RelNode convert(RelOptPlanner planner, RelNode rel,
+    @Override public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
         SimpleDistribution toTrait, boolean allowInfiniteCostConverters) {
       if (toTrait == SIMPLE_DISTRIBUTION_ANY) {
         return rel;

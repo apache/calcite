@@ -50,6 +50,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -184,7 +186,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    *        join
    *        (select * from bar order by bar.b desc, bar.d desc)
    */
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // Required collation keys can be subset or superset of merge join keys.
     RelCollation collation = getCollation(required);
@@ -267,7 +269,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     return null;
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     final int keyCount = joinInfo.leftKeys.size();
     RelCollation collation = getCollation(childTraits);
@@ -391,7 +393,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         condition, variablesSet, joinType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // We assume that the inputs are sorted. The price of sorting them has
     // already been paid. The cost of the join is therefore proportional to the

@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Very similar to {@link AliasNamespace}. */
 class WithItemNamespace extends AbstractNamespace {
   private final SqlWithItem withItem;
@@ -51,7 +53,7 @@ class WithItemNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return withItem;
   }
 

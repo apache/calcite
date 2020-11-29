@@ -49,6 +49,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -89,15 +91,15 @@ public class RelMdAllPredicates
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getAllPredicates(RelNode)
    */
-  public RelOptPredicateList getAllPredicates(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(RelNode rel, RelMetadataQuery mq) {
     return null;
   }
 
-  public RelOptPredicateList getAllPredicates(HepRelVertex rel, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(HepRelVertex rel, RelMetadataQuery mq) {
     return mq.getAllPredicates(rel.getCurrentRel());
   }
 
-  public RelOptPredicateList getAllPredicates(RelSubset rel,
+  public @Nullable RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
     RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
     if (bestOrOriginal == null) {
@@ -109,7 +111,7 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for a table scan.
    */
-  public RelOptPredicateList getAllPredicates(TableScan scan, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(TableScan scan, RelMetadataQuery mq) {
     final BuiltInMetadata.AllPredicates.Handler handler =
         scan.getTable().unwrap(BuiltInMetadata.AllPredicates.Handler.class);
     if (handler != null) {
@@ -121,21 +123,21 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for a project.
    */
-  public RelOptPredicateList getAllPredicates(Project project, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Project project, RelMetadataQuery mq) {
     return mq.getAllPredicates(project.getInput());
   }
 
   /**
    * Extracts predicates for a Filter.
    */
-  public RelOptPredicateList getAllPredicates(Filter filter, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Filter filter, RelMetadataQuery mq) {
     return getAllFilterPredicates(filter.getInput(), mq, filter.getCondition());
   }
 
   /**
    * Extracts predicates for a Calc.
    */
-  public RelOptPredicateList getAllPredicates(Calc calc, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Calc calc, RelMetadataQuery mq) {
     final RexProgram rexProgram = calc.getProgram();
     if (rexProgram.getCondition() != null) {
       final RexNode condition = rexProgram.expandLocalRef(rexProgram.getCondition());
@@ -149,7 +151,7 @@ public class RelMdAllPredicates
    * Add the Filter condition to the list obtained from the input.
    * The pred comes from the parent of rel.
    */
-  private RelOptPredicateList getAllFilterPredicates(RelNode rel,
+  private @Nullable RelOptPredicateList getAllFilterPredicates(RelNode rel,
       RelMetadataQuery mq, RexNode pred) {
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     final RelOptPredicateList predsBelow = mq.getAllPredicates(rel);
@@ -188,7 +190,7 @@ public class RelMdAllPredicates
   /**
    * Add the Join condition to the list obtained from the input.
    */
-  public RelOptPredicateList getAllPredicates(Join join, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Join join, RelMetadataQuery mq) {
     if (join.getJoinType().isOuterJoin()) {
       // We cannot map origin of this expression.
       return null;
@@ -276,14 +278,14 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for an Aggregate.
    */
-  public RelOptPredicateList getAllPredicates(Aggregate agg, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Aggregate agg, RelMetadataQuery mq) {
     return mq.getAllPredicates(agg.getInput());
   }
 
   /**
    * Extracts predicates for an TableModify.
    */
-  public RelOptPredicateList getAllPredicates(TableModify tableModify,
+  public @Nullable RelOptPredicateList getAllPredicates(TableModify tableModify,
       RelMetadataQuery mq) {
     return mq.getAllPredicates(tableModify.getInput());
   }
@@ -291,7 +293,7 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for a SetOp.
    */
-  public RelOptPredicateList getAllPredicates(SetOp setOp, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(SetOp setOp, RelMetadataQuery mq) {
     final RexBuilder rexBuilder = setOp.getCluster().getRexBuilder();
 
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
@@ -347,14 +349,14 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for a Sort.
    */
-  public RelOptPredicateList getAllPredicates(Sort sort, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Sort sort, RelMetadataQuery mq) {
     return mq.getAllPredicates(sort.getInput());
   }
 
   /**
    * Extracts predicates for an Exchange.
    */
-  public RelOptPredicateList getAllPredicates(Exchange exchange,
+  public @Nullable RelOptPredicateList getAllPredicates(Exchange exchange,
       RelMetadataQuery mq) {
     return mq.getAllPredicates(exchange.getInput());
   }

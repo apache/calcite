@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.sql.SqlNode;
 
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 /**
@@ -79,7 +80,7 @@ public abstract class RexWindowBound {
    * @return offset from XX PRECEDING/FOLLOWING
    */
   @Pure
-  public RexNode getOffset() {
+  public @Nullable RexNode getOffset() {
     return null;
   }
 

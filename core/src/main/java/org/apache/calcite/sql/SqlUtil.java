@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.nio.charset.Charset;
@@ -83,7 +84,7 @@ public abstract class SqlUtil {
    * <p>If {@code node1} is null, returns {@code node2}.
    * Flattens if either node is an AND. */
   public static SqlNode andExpressions(
-      SqlNode node1,
+      @Nullable SqlNode node1,
       SqlNode node2) {
     if (node1 == null) {
       return node2;
@@ -168,7 +169,7 @@ public abstract class SqlUtil {
    * </ul>
    */
   public static boolean isNullLiteral(
-      SqlNode node,
+      @Nullable SqlNode node,
       boolean allowCast) {
     if (node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) node;
@@ -463,10 +464,10 @@ public abstract class SqlUtil {
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
-  public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
+  public static @Nullable SqlOperator lookupRoutine(SqlOperatorTable opTab,
       RelDataTypeFactory typeFactory,
       SqlIdentifier funcName, List<RelDataType> argTypes,
-      List<String> argNames, SqlFunctionCategory category,
+      @Nullable List<String> argNames, @Nullable SqlFunctionCategory category,
       SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher,
       boolean coerce) {
     Iterator<SqlOperator> list =
@@ -513,9 +514,9 @@ public abstract class SqlUtil {
    */
   public static Iterator<SqlOperator> lookupSubjectRoutines(
       SqlOperatorTable opTab, RelDataTypeFactory typeFactory,
-      SqlIdentifier funcName, List<RelDataType> argTypes, List<String> argNames,
+      SqlIdentifier funcName, List<RelDataType> argTypes, @Nullable List<String> argNames,
       SqlSyntax sqlSyntax, SqlKind sqlKind,
-      SqlFunctionCategory category, SqlNameMatcher nameMatcher,
+      @Nullable SqlFunctionCategory category, SqlNameMatcher nameMatcher,
       boolean coerce) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
@@ -590,7 +591,7 @@ public abstract class SqlUtil {
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
       final SqlSyntax syntax,
-      SqlFunctionCategory category,
+      @Nullable SqlFunctionCategory category,
       SqlNameMatcher nameMatcher) {
     final List<SqlOperator> sqlOperators = new ArrayList<>();
     opTab.lookupOperatorOverloads(funcName, category, syntax, sqlOperators,
@@ -622,7 +623,7 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterRoutinesByParameterTypeAndName(
       RelDataTypeFactory typeFactory, SqlSyntax syntax,
       final Iterator<SqlOperator> routines, final List<RelDataType> argTypes,
-      final List<String> argNames, final boolean coerce) {
+      final @Nullable List<String> argNames, final boolean coerce) {
     if (syntax != SqlSyntax.FUNCTION) {
       return routines;
     }
@@ -641,9 +642,9 @@ public abstract class SqlUtil {
           }
           final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
           @SuppressWarnings("assignment.type.incompatible")
-          final List<RelDataType> paramTypes =
+          final List<@Nullable RelDataType> paramTypes =
               operandMetadata.paramTypes(typeFactory);
-          final List<RelDataType> permutedArgTypes;
+          final List<@Nullable RelDataType> permutedArgTypes;
           if (argNames != null) {
             final List<String> paramNames = operandMetadata.paramNames();
             permutedArgTypes = permuteArgTypes(paramNames, argNames, argTypes);
@@ -656,7 +657,7 @@ public abstract class SqlUtil {
               paramTypes.add(null);
             }
           }
-          for (Pair<RelDataType, RelDataType> p
+          for (Pair<@Nullable RelDataType, @Nullable RelDataType> p
               : Pair.zip(paramTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
@@ -673,7 +674,7 @@ public abstract class SqlUtil {
   /**
    * Permutes argument types to correspond to the order of parameter names.
    */
-  private static List<RelDataType> permuteArgTypes(List<String> paramNames,
+  private static @Nullable List<@Nullable RelDataType> permuteArgTypes(List<String> paramNames,
       List<String> argNames, List<RelDataType> argTypes) {
     // Arguments passed by name. Make sure that the function has
     // parameters of all of these names.
@@ -685,7 +686,7 @@ public abstract class SqlUtil {
       }
       map.put(i, argName.i);
     }
-    return Functions.<RelDataType>generate(paramNames.size(), index -> {
+    return Functions.<@Nullable RelDataType>generate(paramNames.size(), index -> {
       Integer argIndex = map.get(index);
       return argIndex != null ? argTypes.get(argIndex) : null;
     });
@@ -702,7 +703,7 @@ public abstract class SqlUtil {
       RelDataTypeFactory typeFactory,
       Iterator<SqlOperator> routines,
       List<RelDataType> argTypes,
-      List<String> argNames) {
+      @Nullable List<String> argNames) {
     if (sqlSyntax != SqlSyntax.FUNCTION) {
       return routines;
     }
@@ -739,9 +740,9 @@ public abstract class SqlUtil {
     return (Iterator) sqlFunctions.iterator();
   }
 
-  private static RelDataType bestMatch(RelDataTypeFactory typeFactory,
+  private static @Nullable RelDataType bestMatch(RelDataTypeFactory typeFactory,
       List<SqlFunction> sqlFunctions, int i,
-      List<String> argNames, RelDataTypePrecedenceList precList) {
+      @Nullable List<String> argNames, RelDataTypePrecedenceList precList) {
     RelDataType bestMatch = null;
     for (SqlFunction function : sqlFunctions) {
       SqlOperandTypeChecker operandTypeChecker = function.getOperandTypeChecker();
@@ -963,7 +964,7 @@ public abstract class SqlUtil {
    * @param name SQL-level name
    * @return Java-level name, or null if SQL-level name is unknown
    */
-  public static String translateCharacterSetName(String name) {
+  public static @Nullable String translateCharacterSetName(String name) {
     switch (name) {
     case "BIG5":
       return "Big5";
@@ -1077,7 +1078,7 @@ public abstract class SqlUtil {
    * @return the {@code RelHint} list
    */
   public static List<RelHint> getRelHint(HintStrategyTable hintStrategies,
-      SqlNodeList sqlHints) {
+      @Nullable SqlNodeList sqlHints) {
     if (sqlHints == null || sqlHints.size() == 0) {
       return ImmutableList.of();
     }
@@ -1252,7 +1253,7 @@ public abstract class SqlUtil {
       return null;
     }
 
-    private void visitChild(SqlNode node) {
+    private void visitChild(@Nullable SqlNode node) {
       if (node == null) {
         return;
       }

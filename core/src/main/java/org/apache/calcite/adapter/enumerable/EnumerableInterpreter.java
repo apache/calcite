@@ -30,6 +30,8 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /** Relational expression that executes its children using an interpreter.
@@ -73,7 +75,7 @@ public class EnumerableInterpreter extends SingleRel
         factor);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     RelOptCost cost = super.computeSelfCost(planner, mq);
     if (cost == null) {

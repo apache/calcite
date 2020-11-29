@@ -24,6 +24,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.Objects;
 
@@ -75,7 +77,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   private int precision;
   private int scale;
 
-  private String charSetName;
+  private @Nullable String charSetName;
 
   /**
    * Create a basic sql type name specification.
@@ -91,7 +93,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       SqlTypeName typeName,
       int precision,
       int scale,
-      String charSetName,
+      @Nullable String charSetName,
       SqlParserPos pos) {
     super(new SqlIdentifier(typeName.name(), pos), pos);
     this.sqlTypeName = typeName;
@@ -126,7 +128,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     return precision;
   }
 
-  public String getCharSetName() {
+  public @Nullable String getCharSetName() {
     return charSetName;
   }
 

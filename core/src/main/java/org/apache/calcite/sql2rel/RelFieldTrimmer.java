@@ -74,6 +74,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,7 +122,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    *
    * @param validator Validator
    */
-  public RelFieldTrimmer(SqlValidator validator, RelBuilder relBuilder) {
+  public RelFieldTrimmer(@Nullable SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
     this.relBuilder = relBuilder;
     @SuppressWarnings("argument.type.incompatible")
@@ -136,7 +138,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   @Deprecated // to be removed before 2.0
-  public RelFieldTrimmer(SqlValidator validator,
+  public RelFieldTrimmer(@Nullable SqlValidator validator,
       RelOptCluster cluster,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory,
@@ -533,7 +535,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @return Dummy project
    */
   protected TrimResult dummyProject(int fieldCount, RelNode input,
-      RelNode originalRelNode) {
+      @Nullable RelNode originalRelNode) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);

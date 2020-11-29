@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +55,7 @@ public class JsonTile {
   public final List<JsonMeasure> measures;
 
   @JsonCreator
-  public JsonTile(@JsonProperty("measures") List<JsonMeasure> measures) {
+  public JsonTile(@JsonProperty("measures") @Nullable List<JsonMeasure> measures) {
     this.measures = measures == null
         ? ImmutableList.of(new JsonMeasure("count", null)) : measures;
   }

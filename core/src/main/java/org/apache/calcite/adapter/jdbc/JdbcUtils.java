@@ -32,6 +32,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.sql.Connection;
@@ -97,7 +98,7 @@ final class JdbcUtils {
   /** Builder that calls {@link ResultSet#getObject(int)} for every column,
    * or {@code getXxx} if the result type is a primitive {@code xxx},
    * and returns an array of objects for each row. */
-  static class ObjectArrayRowBuilder implements Function0<Object[]> {
+  static class ObjectArrayRowBuilder implements Function0<@Nullable Object[]> {
     private final ResultSet resultSet;
     private final int columnCount;
     private final ColumnMetaData.Rep[] reps;
@@ -112,7 +113,7 @@ final class JdbcUtils {
       this.columnCount = resultSet.getMetaData().getColumnCount();
     }
 
-    public static Function1<ResultSet, Function0<Object[]>> factory(
+    public static Function1<ResultSet, Function0<@Nullable Object[]>> factory(
         final List<Pair<ColumnMetaData.Rep, Integer>> list) {
       return resultSet -> {
         try {
@@ -126,9 +127,9 @@ final class JdbcUtils {
       };
     }
 
-    @Override public Object[] apply() {
+    @Override public @Nullable Object[] apply() {
       try {
-        final Object[] values = new Object[columnCount];
+        final @Nullable Object[] values = new Object[columnCount];
         for (int i = 0; i < columnCount; i++) {
           values[i] = value(i);
         }
@@ -143,7 +144,7 @@ final class JdbcUtils {
      *
      * @param i Ordinal of column (1-based, per JDBC)
      */
-    private Object value(int i) throws SQLException {
+    private @Nullable Object value(int i) throws SQLException {
       // MySQL returns timestamps shifted into local time. Using
       // getTimestamp(int, Calendar) with a UTC calendar should prevent this,
       // but does not. So we shift explicitly.
@@ -204,12 +205,12 @@ final class JdbcUtils {
   static class DataSourcePool {
     public static final DataSourcePool INSTANCE = new DataSourcePool();
 
-    private final LoadingCache<List<String>, BasicDataSource> cache =
+    private final LoadingCache<List<@Nullable String>, BasicDataSource> cache =
         CacheBuilder.newBuilder().softValues()
             .build(CacheLoader.from(DataSourcePool::dataSource));
 
     private static BasicDataSource dataSource(
-          List<? extends String> key) {
+          List<? extends @Nullable String> key) {
       BasicDataSource dataSource = new BasicDataSource();
       dataSource.setUrl(key.get(0));
       dataSource.setUsername(key.get(1));
@@ -218,11 +219,11 @@ final class JdbcUtils {
       return dataSource;
     }
 
-    public DataSource get(String url, String driverClassName,
-        String username, String password) {
+    public DataSource get(String url, @Nullable String driverClassName,
+        @Nullable String username, @Nullable String password) {
       // Get data source objects from a cache, so that we don't have to sniff
       // out what kind of database they are quite as often.
-      final List<String> key =
+      final List<@Nullable String> key =
           ImmutableNullableList.of(url, username, password, driverClassName);
       return cache.getUnchecked(key);
     }

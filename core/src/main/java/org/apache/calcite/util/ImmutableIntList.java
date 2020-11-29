@@ -25,6 +25,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -117,7 +119,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
   }
 
   @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return ((this == obj)
         || (obj instanceof ImmutableIntList))
         ? Arrays.equals(ints, ((ImmutableIntList) obj).ints)
@@ -145,7 +147,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return objects;
   }
 
-  @Override public <T> T[] toArray(T [] a) {
+  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
     final int size = ints.length;
     if (castNonNull(a).length < size) {
       // Make a new array of a's runtime type, but my contents:
@@ -206,7 +208,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     };
   }
 
-  @Override public int indexOf(Object o) {
+  @Override public int indexOf(@Nullable Object o) {
     if (o instanceof Integer) {
       return indexOf((int) (Integer) o);
     }
@@ -222,7 +224,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return -1;
   }
 
-  @Override public int lastIndexOf(Object o) {
+  @Override public int lastIndexOf(@Nullable Object o) {
     if (o instanceof Integer) {
       return lastIndexOf((int) (Integer) o);
     }
@@ -298,7 +300,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
       return EMPTY_ARRAY;
     }
 
-    @Override public <T> T[] toArray(T [] a) {
+    @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
       if (castNonNull(a).length > 0) {
         a[0] = castNonNull(null);
       }

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 
@@ -118,7 +119,7 @@ public abstract class RexNode {
    *
    * <p>Every node must implement {@link #equals} based on its content
    */
-  @Override public abstract boolean equals(Object obj);
+  @Override public abstract boolean equals(@Nullable Object obj);
 
   /** {@inheritDoc}
    *

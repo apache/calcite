@@ -20,6 +20,8 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,11 +34,11 @@ import java.util.Set;
  * built. */
 class MutableNode {
   final LatticeTable table;
-  final MutableNode parent;
-  final Step step;
+  final @Nullable MutableNode parent;
+  final @Nullable Step step;
   int startCol;
   int endCol;
-  String alias;
+  @Nullable String alias;
   final List<MutableNode> children = new ArrayList<>();
 
   /** Comparator for sorting children within a parent. */
@@ -63,7 +65,7 @@ class MutableNode {
 
   /** Creates a non-root node. */
   @SuppressWarnings("argument.type.incompatible")
-  MutableNode(LatticeTable table, MutableNode parent, Step step) {
+  MutableNode(LatticeTable table, @Nullable MutableNode parent, @Nullable Step step) {
     this.table = Objects.requireNonNull(table);
     this.parent = parent;
     this.step = step;
@@ -100,7 +102,7 @@ class MutableNode {
     return false;
   }
 
-  void addPath(Path path, String alias) {
+  void addPath(Path path, @Nullable String alias) {
     MutableNode n = this;
     for (Step step1 : path.steps) {
       MutableNode n2 = n.findChild(step1);
@@ -114,7 +116,7 @@ class MutableNode {
     }
   }
 
-  private MutableNode findChild(Step step) {
+  private @Nullable MutableNode findChild(Step step) {
     for (MutableNode child : children) {
       if (Objects.equals(child.table, step.target())
           && Objects.equals(child.step, step)) {

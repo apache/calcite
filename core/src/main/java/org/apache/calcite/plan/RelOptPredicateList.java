@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlKind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Objects;
 
@@ -125,7 +127,7 @@ public class RelOptPredicateList {
    * @param value input predicate list
    * @return true if all the predicates are empty or if the argument is null
    */
-  public static boolean isEmpty(RelOptPredicateList value) {
+  public static boolean isEmpty(@Nullable RelOptPredicateList value) {
     if (value == null || value == EMPTY) {
       return true;
     }

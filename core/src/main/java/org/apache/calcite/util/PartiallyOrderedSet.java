@@ -20,6 +20,8 @@ import org.apache.calcite.config.CalciteSystemProperty;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -78,9 +80,9 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       ImmutableBitSet::contains;
 
   private final Map<E, Node<E>> map;
-  private final Function<E, Iterable<E>> parentFunction;
+  private final @Nullable Function<E, Iterable<E>> parentFunction;
   @SuppressWarnings("unused")
-  private final Function<E, Iterable<E>> childFunction;
+  private final @Nullable Function<E, Iterable<E>> childFunction;
   private final Ordering<E> ordering;
 
   /**
@@ -141,8 +143,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param parentFunction Function to compute parents of a node; may be null
    */
   private PartiallyOrderedSet(Ordering<E> ordering, Map<E, Node<E>> map,
-      Function<E, Iterable<E>> childFunction,
-      Function<E, Iterable<E>> parentFunction) {
+      @Nullable Function<E, Iterable<E>> childFunction,
+      @Nullable Function<E, Iterable<E>> parentFunction) {
     this.ordering = ordering;
     this.map = map;
     this.childFunction = childFunction;
@@ -157,7 +159,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   @Override public Iterator<E> iterator() {
     final Iterator<E> iterator = map.keySet().iterator();
     return new Iterator<E>() {
-      E previous;
+      @Nullable E previous;
 
       @Override public boolean hasNext() {
         return iterator.hasNext();
@@ -183,12 +185,12 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     return map.size();
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     //noinspection SuspiciousMethodCalls
     return map.containsKey(o);
   }
 
-  @Override public boolean remove(Object o) {
+  @Override public boolean remove(@Nullable Object o) {
     final Node<E> node = map.remove(o);
     if (node == null) {
       return false;
@@ -585,7 +587,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @return List of values in this set that are directly less than the given
    *   value
    */
-  public List<E> getChildren(E e) {
+  public @Nullable List<E> getChildren(E e) {
     return getChildren(e, false);
   }
 
@@ -603,7 +605,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @return List of values in this set that are directly less than the given
    *   value
    */
-  public List<E> getChildren(E e, boolean hypothetical) {
+  public @Nullable List<E> getChildren(E e, boolean hypothetical) {
     final Node<E> node = map.get(e);
     if (node == null) {
       if (hypothetical) {
@@ -628,7 +630,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @return List of values in this set that are directly greater than the
    *   given value
    */
-  public List<E> getParents(E e) {
+  public @Nullable List<E> getParents(E e) {
     return getParents(e, false);
   }
 
@@ -646,7 +648,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @return List of values in this set that are directly greater than the
    *   given value
    */
-  public List<E> getParents(E e, boolean hypothetical) {
+  public @Nullable List<E> getParents(E e, boolean hypothetical) {
     final Node<E> node = map.get(e);
     if (node == null) {
       if (hypothetical) {

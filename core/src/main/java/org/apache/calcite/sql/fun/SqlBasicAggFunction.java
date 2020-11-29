@@ -31,6 +31,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -51,9 +53,9 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
 
   //~ Constructors -----------------------------------------------------------
 
-  private SqlBasicAggFunction(String name, SqlIdentifier sqlIdentifier,
+  private SqlBasicAggFunction(String name, @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind, SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,

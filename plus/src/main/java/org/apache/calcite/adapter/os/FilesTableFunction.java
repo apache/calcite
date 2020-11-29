@@ -36,6 +36,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -147,7 +149,7 @@ public class FilesTableFunction {
         return Processes.processLines('\n', args);
       }
 
-      @Override public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
         final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
@@ -163,11 +165,11 @@ public class FilesTableFunction {
         default:
           enumerable = sourceLinux();
         }
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
-            return new Enumerator<Object[]>() {
-              Object [] current;
+            return new Enumerator<@Nullable Object[]>() {
+              @Nullable Object @Nullable [] current;
 
               @Override public Object[] current() {
                 return requireNonNull(current, "current");
@@ -279,7 +281,7 @@ public class FilesTableFunction {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };

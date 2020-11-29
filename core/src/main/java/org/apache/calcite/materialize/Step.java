@@ -26,6 +26,7 @@ import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -71,7 +72,7 @@ class Step extends DefaultEdge {
     return Objects.hash(source, target, keys);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof Step
         && ((Step) obj).source.equals(source)

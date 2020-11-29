@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
 
@@ -461,7 +462,7 @@ public class ImmutableBitSet
    *         {@code false} otherwise
    * @see    #size()
    */
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -654,7 +655,7 @@ public class ImmutableBitSet
         return cardinality();
       }
 
-      @Override public boolean contains(Object o) {
+      @Override public boolean contains(@Nullable Object o) {
         return ImmutableBitSet.this.get((Integer) requireNonNull(o, "o"));
       }
     };
@@ -984,7 +985,7 @@ public class ImmutableBitSet
 
   /** Builder. */
   public static class Builder {
-    private long [] words;
+    private long @Nullable [] words;
 
     private Builder(long[] words) {
       this.words = words;

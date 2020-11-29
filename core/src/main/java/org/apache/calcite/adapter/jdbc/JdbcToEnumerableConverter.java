@@ -48,6 +48,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
@@ -81,7 +83,7 @@ public class JdbcToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     RelOptCost cost = super.computeSelfCost(planner, mq);
     if (cost == null) {
@@ -222,7 +224,7 @@ public class JdbcToEnumerableConverter
 
   private void generateGet(EnumerableRelImplementor implementor,
       PhysType physType, BlockBuilder builder, ParameterExpression resultSet_,
-      int i, Expression target, Expression calendar_,
+      int i, Expression target, @Nullable Expression calendar_,
       SqlDialect.CalendarPolicy calendarPolicy) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final RelDataType fieldType =
@@ -335,7 +337,7 @@ public class JdbcToEnumerableConverter
   }
 
   /** E,g, {@code jdbcGetMethod(int)} returns "getInt". */
-  private String jdbcGetMethod(Primitive primitive) {
+  private String jdbcGetMethod(@Nullable Primitive primitive) {
     return primitive == null
         ? "getObject"
         : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));

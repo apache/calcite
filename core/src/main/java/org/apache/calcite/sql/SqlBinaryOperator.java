@@ -28,6 +28,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 
@@ -57,9 +59,9 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlKind kind,
       int prec,
       boolean leftAssoc,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -76,7 +78,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return SqlSyntax.BINARY;
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
 
     // op0 opname op1

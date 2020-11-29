@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Namespace representing the row type produced by joining two relations.
  */
@@ -61,7 +63,7 @@ class JoinNamespace extends AbstractNamespace {
     return typeFactory.createJoinType(leftType, rightType);
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return join;
   }
 }

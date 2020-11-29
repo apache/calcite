@@ -32,6 +32,8 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -73,7 +75,7 @@ public class JdbcCatalogSchema extends AbstractSchema {
   }
 
   public static JdbcCatalogSchema create(
-      SchemaPlus parentSchema,
+      @Nullable SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
       String catalog) {
@@ -82,7 +84,7 @@ public class JdbcCatalogSchema extends AbstractSchema {
   }
 
   public static JdbcCatalogSchema create(
-      SchemaPlus parentSchema,
+      @Nullable SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
       SqlDialectFactory dialectFactory,

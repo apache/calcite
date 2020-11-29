@@ -49,6 +49,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -85,7 +86,7 @@ public final class SqlParserUtil {
 
   /** Returns the character-set prefix of a SQL string literal; returns null if
    * there is none. */
-  public static String getCharacterSet(String s) {
+  public static @Nullable String getCharacterSet(String s) {
     if (s.charAt(0) == '\'') {
       return null;
     }
@@ -348,8 +349,8 @@ public final class SqlParserUtil {
    *
    * <p>Finally, converts the string to the provided casing.
    */
-  public static String strip(String s, String startQuote,
-      String endQuote, String escape, Casing casing) {
+  public static String strip(String s, @Nullable String startQuote,
+      @Nullable String endQuote, @Nullable String escape, Casing casing) {
     if (startQuote != null) {
       return stripQuotes(s, Objects.requireNonNull(startQuote),
           Objects.requireNonNull(endQuote), Objects.requireNonNull(escape),
@@ -506,7 +507,7 @@ public final class SqlParserUtil {
     return sqlWithCarets;
   }
 
-  public static String getTokenVal(String token) {
+  public static @Nullable String getTokenVal(String token) {
     // We don't care about the token which are not string
     if (!token.startsWith("\"")) {
       return null;
@@ -623,7 +624,7 @@ public final class SqlParserUtil {
    * Converts a list of {expression, operator, expression, ...} into a tree,
    * taking operator precedence and associativity into account.
    */
-  public static SqlNode toTree(List<Object> list) {
+  public static @Nullable SqlNode toTree(List<@Nullable Object> list) {
     if (list.size() == 1
         && list.get(0) instanceof SqlNode) {
       // Short-cut for the simple common case
@@ -652,7 +653,7 @@ public final class SqlParserUtil {
    *                    we encounter a token of this kind.
    * @return the root node of the tree which the list condenses into
    */
-  public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
+  public static @Nullable SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
     PrecedenceClimbingParser parser = list.parser(start,
         token -> {
@@ -675,14 +676,14 @@ public final class SqlParserUtil {
     return node;
   }
 
-  private static SqlNode convert(PrecedenceClimbingParser.Token token) {
+  private static @Nullable SqlNode convert(PrecedenceClimbingParser.Token token) {
     switch (token.type) {
     case ATOM:
       return (SqlNode) token.o;
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
-      final List<SqlNode> list = new ArrayList<>();
+      final List<@Nullable SqlNode> list = new ArrayList<>();
       for (PrecedenceClimbingParser.Token arg : call.args) {
         list.add(convert(arg));
       }
@@ -864,11 +865,11 @@ public final class SqlParserUtil {
       return list.get(i).o instanceof ToTreeListItem;
     }
 
-    @Override public SqlNode node(int i) {
+    @Override public @Nullable SqlNode node(int i) {
       return convert(list.get(i));
     }
 
-    @Override public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, parser.atom(e));
     }
   }
@@ -877,9 +878,9 @@ public final class SqlParserUtil {
    * {@link org.apache.calcite.sql.SqlSpecialOperator.TokenSequence}. */
   private static class OldTokenSequenceImpl
       implements SqlSpecialOperator.TokenSequence {
-    final List<Object> list;
+    final List<@Nullable Object> list;
 
-    private OldTokenSequenceImpl(List<Object> list) {
+    private OldTokenSequenceImpl(List<@Nullable Object> list) {
       this.list = list;
     }
 
@@ -945,11 +946,11 @@ public final class SqlParserUtil {
       return list.get(i) instanceof ToTreeListItem;
     }
 
-    @Override public SqlNode node(int i) {
-      return (SqlNode) list.get(i);
+    @Override public @Nullable SqlNode node(int i) {
+      return (@Nullable SqlNode) list.get(i);
     }
 
-    @Override public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, e);
     }
   }
@@ -957,7 +958,7 @@ public final class SqlParserUtil {
   /** Pre-initialized {@link DateFormat} objects, to be used within the current
    * thread, because {@code DateFormat} is not thread-safe. */
   private static class Format {
-    private static final ThreadLocal<Format> PER_THREAD =
+    private static final ThreadLocal<@Nullable Format> PER_THREAD =
         ThreadLocal.withInitial(Format::new);
 
     private static Format get() {

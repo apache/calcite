@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class SimpleNamespaceContext implements NamespaceContext {
     return "";
   }
 
-  @Override public String getPrefix(String namespaceUri) {
+  @Override public @Nullable String getPrefix(String namespaceUri) {
     Set<String> prefixes = getPrefixesSet(namespaceUri);
     return !prefixes.isEmpty() ? prefixes.iterator().next() : null;
   }

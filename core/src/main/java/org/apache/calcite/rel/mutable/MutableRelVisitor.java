@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Visitor over {@link MutableRel}. */
 public class MutableRelVisitor {
 
-  public void visit(MutableRel node) {
+  public void visit(@Nullable MutableRel node) {
     if (node != null) {
       node.childrenAccept(this);
     }

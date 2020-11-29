@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Information about whether a table allows streaming.
  *
@@ -42,8 +44,8 @@ public class JsonStream {
 
   @JsonCreator
   public JsonStream(
-      @JsonProperty("stream") Boolean stream,
-      @JsonProperty("history") Boolean history) {
+      @JsonProperty("stream") @Nullable Boolean stream,
+      @JsonProperty("history") @Nullable Boolean history) {
     this.stream = stream == null || stream;
     this.history = history != null && history;
   }

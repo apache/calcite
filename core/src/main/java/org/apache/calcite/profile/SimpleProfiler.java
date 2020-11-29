@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
@@ -92,7 +93,7 @@ public class SimpleProfiler implements Profiler {
   static class Run {
     private final List<Column> columns;
     final List<Space> spaces = new ArrayList<>();
-    final List<Space> singletonSpaces;
+    final List<@Nullable Space> singletonSpaces;
     final List<Statistic> statistics = new ArrayList<>();
     final PartiallyOrderedSet.Ordering<Space> ordering =
         (e1, e2) -> e2.columnOrdinals.contains(e1.columnOrdinals);
@@ -318,7 +319,7 @@ public class SimpleProfiler implements Profiler {
       return columnOrdinals.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Space
           && columnOrdinals.equals(((Space) o).columnOrdinals);

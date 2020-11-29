@@ -24,6 +24,8 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -45,9 +47,9 @@ public class JsonScannableTable extends JsonTable
     return "JsonScannableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
         return new JsonEnumerator(getDataList(typeFactory));
       }

@@ -33,6 +33,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.framework.qual.Covariant;
 
@@ -61,8 +62,8 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     return INSTANCE;
   }
 
-  @Override public T aggregate(final Queryable<T> source,
-      final FunctionExpression<Function2<T, T, T>> func) {
+  @Override public @Nullable T aggregate(final Queryable<T> source,
+      final FunctionExpression<Function2<@Nullable T, T, T>> func) {
     return new QueryableDefaults.NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
         factory.aggregate(source, func);
@@ -259,7 +260,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.<Integer>castSingle(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public Queryable<T> defaultIfEmpty(final Queryable<T> source) {
+  @Override public Queryable<@Nullable T> defaultIfEmpty(final Queryable<T> source) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
         factory.defaultIfEmpty(source);
@@ -355,7 +356,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.single(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public T firstOrDefault(final Queryable<T> source) {
+  @Override public @Nullable T firstOrDefault(final Queryable<T> source) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
         factory.firstOrDefault(source);
@@ -363,7 +364,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.single(); // CHECKSTYLE: IGNORE 0
   }
 
-  @Override public T firstOrDefault(final Queryable<T> source,
+  @Override public @Nullable T firstOrDefault(final Queryable<T> source,
       final FunctionExpression<Predicate1<T>> predicate) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {

@@ -32,6 +32,8 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 
 /**
@@ -80,8 +82,8 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 

@@ -46,6 +46,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +64,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
       List<RelHint> hints,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, hints, input, groupSet, groupSets, aggCalls);
   }
@@ -266,7 +268,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
               return args;
             }
 
-            @Override public RexNode rexFilterArgument() {
+            @Override public @Nullable RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,

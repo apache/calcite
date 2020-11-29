@@ -20,6 +20,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
@@ -169,7 +170,7 @@ public enum SqlSyntax {
     this(null);
   }
 
-  SqlSyntax(SqlSyntax family) {
+  SqlSyntax(@Nullable SqlSyntax family) {
     this.family = family == null ? this : family;
   }
 

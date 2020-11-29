@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,7 @@ class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
     return key.hashCode() ^ values.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj instanceof GroupingImpl
            && key.equals(((GroupingImpl) obj).key)
            && values.equals(((GroupingImpl) obj).values);

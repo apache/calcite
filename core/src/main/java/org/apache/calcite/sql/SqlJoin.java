@@ -23,6 +23,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -53,13 +55,13 @@ public class SqlJoin extends SqlCall {
    * {@link JoinConditionType}.
    */
   SqlLiteral conditionType;
-  SqlNode condition;
+  @Nullable SqlNode condition;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlJoin(SqlParserPos pos, SqlNode left, SqlLiteral natural,
       SqlLiteral joinType, SqlNode right, SqlLiteral conditionType,
-      SqlNode condition) {
+      @Nullable SqlNode condition) {
     super(pos);
     this.left = left;
     this.natural = requireNonNull(natural);
@@ -90,7 +92,7 @@ public class SqlJoin extends SqlCall {
   }
 
   @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       left = operand;
@@ -115,7 +117,7 @@ public class SqlJoin extends SqlCall {
     }
   }
 
-  public final SqlNode getCondition() {
+  public final @Nullable SqlNode getCondition() {
     return condition;
   }
 
@@ -184,9 +186,9 @@ public class SqlJoin extends SqlCall {
 
     @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
-        SqlLiteral functionQualifier,
+        @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
-        SqlNode... operands) {
+        @Nullable SqlNode... operands) {
       assert functionQualifier == null;
       return new SqlJoin(pos, operands[0], (SqlLiteral) operands[1],
           (SqlLiteral) operands[2], operands[3], (SqlLiteral) operands[4],

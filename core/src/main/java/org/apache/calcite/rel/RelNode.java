@@ -34,6 +34,7 @@ import org.apache.calcite.util.Litmus;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
@@ -90,7 +91,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return this RelNode's CallingConvention
    */
   @Pure
-  Convention getConvention();
+  @Nullable Convention getConvention();
 
   /**
    * Returns the name of the variable which is to be implicitly set at runtime
@@ -99,7 +100,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Name of correlating variable, or null
    */
-  String getCorrelVariable();
+  @Nullable String getCorrelVariable();
 
   /**
    * Returns the <code>i</code><sup>th</sup> input relational expression.
@@ -199,7 +200,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @param mq Metadata query
    * @return Cost of this plan (not including children)
    */
-  RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq);
+  @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq);
 
   /**
    * Returns a metadata interface.
@@ -212,7 +213,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
-  <M extends Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
+  <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**
    * Describes the inputs and attributes of this relational expression.
@@ -297,7 +298,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @see #deepHashCode()
    */
   @EnsuresNonNullIf(expression = "#1", result = true)
-  boolean deepEquals(Object obj);
+  boolean deepEquals(@Nullable Object obj);
 
   /**
    * Compute deep hash code for RelNode digest.
@@ -324,7 +325,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return If this relational expression represents an access to a table,
    *   returns that table, otherwise returns null
    */
-  RelOptTable getTable();
+  @Nullable RelOptTable getTable();
 
   /**
    * Returns the name of this relational expression's class, sans package
@@ -356,7 +357,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @throws AssertionError if this relational expression is invalid and
    *                        litmus is THROW
    */
-  boolean isValid(Litmus litmus, Context context);
+  boolean isValid(Litmus litmus, @Nullable Context context);
 
   /**
    * Creates a copy of this relational expression, perhaps changing traits and

@@ -26,6 +26,8 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 
 import static java.util.Objects.requireNonNull;
@@ -37,7 +39,7 @@ import static java.util.Objects.requireNonNull;
 class HepRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj instanceof HepRelMetadataProvider;
   }
 
@@ -45,7 +47,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     return 107;
   }
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     return (rel, mq) -> {

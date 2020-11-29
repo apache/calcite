@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -72,12 +73,12 @@ public class SqlAdvisor {
   private final SqlParser.Config parserConfig;
 
   // Cache for getPreferredCasing
-  private String prevWord;
-  private Casing prevPreferredCasing;
+  private @Nullable String prevWord;
+  private @Nullable Casing prevPreferredCasing;
 
   // Reserved words cache
-  private Set<String> reservedWordsSet;
-  private List<String> reservedWordsList;
+  private @Nullable Set<String> reservedWordsSet;
+  private @Nullable List<String> reservedWordsList;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -391,7 +392,7 @@ public class SqlAdvisor {
    *                 failure
    * @return Parse tree if succeeded, null if parse failed
    */
-  private SqlNode tryParse(String sql, List<SqlMoniker> hintList) {
+  private @Nullable SqlNode tryParse(String sql, List<SqlMoniker> hintList) {
     try {
       return parseQuery(sql);
     } catch (SqlParseException e) {
@@ -426,7 +427,7 @@ public class SqlAdvisor {
    * the specified SQL identifier, returns null if none is found or the SQL
    * statement is invalid.
    */
-  public SqlMoniker getQualifiedName(String sql, int cursor) {
+  public @Nullable SqlMoniker getQualifiedName(String sql, int cursor) {
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
@@ -475,7 +476,7 @@ public class SqlAdvisor {
    * @param sql A user-input sql statement to be validated
    * @return a List of ValidateErrorInfo (null if sql is valid)
    */
-  public List<ValidateErrorInfo> validate(String sql) {
+  public @Nullable List<ValidateErrorInfo> validate(String sql) {
     SqlNode sqlNode;
     List<ValidateErrorInfo> errorList = new ArrayList<>();
 
@@ -596,7 +597,7 @@ public class SqlAdvisor {
    * @return {@link SqlNode } that is root of the parse tree, null if the sql
    * is not valid
    */
-  protected SqlNode collectParserError(
+  protected @Nullable SqlNode collectParserError(
       String sql,
       List<ValidateErrorInfo> errorList) {
     try {
@@ -621,7 +622,7 @@ public class SqlAdvisor {
     private int startColumnNum;
     private int endLineNum;
     private int endColumnNum;
-    private String errorMsg;
+    private @Nullable String errorMsg;
 
     /**
      * Creates a new ValidateErrorInfo with the position coordinates and an
@@ -638,7 +639,7 @@ public class SqlAdvisor {
         int startColumnNum,
         int endLineNum,
         int endColumnNum,
-        String errorMsg) {
+        @Nullable String errorMsg) {
       this.startLineNum = startLineNum;
       this.startColumnNum = startColumnNum;
       this.endLineNum = endLineNum;
@@ -670,7 +671,7 @@ public class SqlAdvisor {
      */
     public ValidateErrorInfo(
         SqlParserPos pos,
-        String errorMsg) {
+        @Nullable String errorMsg) {
       this.startLineNum = pos.getLineNum();
       this.startColumnNum = pos.getColumnNum();
       this.endLineNum = pos.getEndLineNum();
@@ -699,7 +700,7 @@ public class SqlAdvisor {
     }
 
     /** Returns the error message. */
-    public String getMessage() {
+    public @Nullable String getMessage() {
       return errorMsg;
     }
   }

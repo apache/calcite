@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +42,7 @@ public class JsonType {
 
   /** Type if this is not a struct.
    */
-  public final String type;
+  public final @Nullable String type;
 
   /** Definition of the attributes of this type.
    */
@@ -49,7 +51,7 @@ public class JsonType {
   @JsonCreator
   public JsonType(
       @JsonProperty(value = "name", required = true) String name,
-      @JsonProperty("type") String type) {
+      @JsonProperty("type") @Nullable String type) {
     this.name = requireNonNull(name, "name");
     this.type = type;
   }

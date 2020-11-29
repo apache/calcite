@@ -24,6 +24,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -168,7 +169,7 @@ public class HintStrategyTable {
       return new Key(name.toLowerCase(Locale.ROOT));
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -228,7 +229,7 @@ public class HintStrategyTable {
 
     public static final HintErrorLogger INSTANCE = new HintErrorLogger();
 
-    @Override public boolean fail(String message, Object... args) {
+    @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
       LOGGER.warn(requireNonNull(message, "message"), args);
       return false;
     }
@@ -237,8 +238,8 @@ public class HintStrategyTable {
       return true;
     }
 
-    @Override public boolean check(boolean condition, String message,
-        Object... args) {
+    @Override public boolean check(boolean condition, @Nullable String message,
+        @Nullable Object... args) {
       if (condition) {
         return succeed();
       } else {

@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
@@ -73,7 +74,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private @MonotonicNonNull RuleAttemptsListener ruleAttemptsListener;
 
-  private Pattern ruleDescExclusionFilter;
+  private @Nullable Pattern ruleDescExclusionFilter;
 
   protected final AtomicBoolean cancelFlag;
 
@@ -84,7 +85,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** External context. Never null. */
   protected final Context context;
 
-  private RexExecutor executor;
+  private @Nullable RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -92,7 +93,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Creates an AbstractRelOptPlanner.
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
-      Context context) {
+      @Nullable Context context) {
     this.costFactory = Objects.requireNonNull(costFactory);
     if (context == null) {
       context = Contexts.empty();
@@ -178,11 +179,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param description Description
    * @return Rule with given description, or null if not found
    */
-  protected RelOptRule getRuleByDescription(String description) {
+  protected @Nullable RelOptRule getRuleByDescription(String description) {
     return mapDescToRule.get(description);
   }
 
-  @Override public void setRuleDescExclusionFilter(Pattern exclusionFilter) {
+  @Override public void setRuleDescExclusionFilter(@Nullable Pattern exclusionFilter) {
     ruleDescExclusionFilter = exclusionFilter;
   }
 
@@ -213,7 +214,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // ignore - this planner does not support lattices
   }
 
-  @Override public RelOptLattice getLattice(RelOptTable table) {
+  @Override public @Nullable RelOptLattice getLattice(RelOptTable table) {
     // this planner does not support lattices
     return null;
   }
@@ -248,12 +249,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return RelTraitSet.createEmpty();
   }
 
-  @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     return mq.getCumulativeCost(rel);
   }
 
   @SuppressWarnings("deprecation")
-  @Override public RelOptCost getCost(RelNode rel) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
@@ -280,11 +281,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return ImmutableList.of();
   }
 
-  @Override public void setExecutor(RexExecutor executor) {
+  @Override public void setExecutor(@Nullable RexExecutor executor) {
     this.executor = executor;
   }
 
-  @Override public RexExecutor getExecutor() {
+  @Override public @Nullable RexExecutor getExecutor() {
     return executor;
   }
 
@@ -433,7 +434,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   @Pure
-  public RelOptListener getListener() {
+  public @Nullable RelOptListener getListener() {
     return listener;
   }
 

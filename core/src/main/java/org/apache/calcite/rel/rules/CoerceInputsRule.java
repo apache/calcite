@@ -25,6 +25,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,7 +68,7 @@ public class CoerceInputsRule
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Convention getOutConvention() {
+  @Override public @Nullable Convention getOutConvention() {
     return Convention.NONE;
   }
 

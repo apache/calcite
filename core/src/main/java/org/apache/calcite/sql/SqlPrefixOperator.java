@@ -26,6 +26,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 
@@ -39,9 +41,9 @@ public class SqlPrefixOperator extends SqlOperator {
       String name,
       SqlKind kind,
       int prec,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -58,7 +60,7 @@ public class SqlPrefixOperator extends SqlOperator {
     return SqlSyntax.PREFIX;
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{0}{1}";
   }

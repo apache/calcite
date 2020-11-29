@@ -40,6 +40,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -84,7 +86,7 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     planner.addRule(CsvRules.PROJECT_SCAN);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Multiply the cost by a factor that makes a scan more attractive if it
     // has significantly fewer fields than the original scan.

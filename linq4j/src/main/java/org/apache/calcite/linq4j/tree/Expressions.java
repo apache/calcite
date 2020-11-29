@@ -26,6 +26,8 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
@@ -284,7 +286,7 @@ public abstract class Expressions {
    * Creates a BlockExpression that contains the given expressions,
    * has no variables and has specific result type.
    */
-  public static BlockStatement block(Type type,
+  public static BlockStatement block(@Nullable Type type,
       Iterable<? extends Statement> expressions) {
     List<Statement> list = toList(expressions);
     if (type == null) {
@@ -361,7 +363,7 @@ public abstract class Expressions {
    * Creates a MethodCallExpression that represents a call to a
    * method that takes arguments.
    */
-  public static MethodCallExpression call(Expression expression, Method method,
+  public static MethodCallExpression call(@Nullable Expression expression, Method method,
       Iterable<? extends Expression> arguments) {
     return new MethodCallExpression(method, expression, toList(arguments));
   }
@@ -370,7 +372,7 @@ public abstract class Expressions {
    * Creates a MethodCallExpression that represents a call to a
    * method that takes arguments, using varargs.
    */
-  public static MethodCallExpression call(Expression expression, Method method,
+  public static MethodCallExpression call(@Nullable Expression expression, Method method,
       Expression... arguments) {
     return new MethodCallExpression(method, expression, toList(arguments));
   }
@@ -386,7 +388,7 @@ public abstract class Expressions {
    * is static.</p>
    */
   public static MethodCallExpression call(Type returnType,
-      Expression expression, Method method,
+      @Nullable Expression expression, Method method,
       Iterable<? extends Expression> arguments) {
     return new MethodCallExpression(returnType, method, expression,
         toList(arguments));
@@ -403,7 +405,7 @@ public abstract class Expressions {
    * is static.</p>
    */
   public static MethodCallExpression call(Type returnType,
-      Expression expression, Method method,
+      @Nullable Expression expression, Method method,
       Expression... arguments) {
     return new MethodCallExpression(returnType, method, expression,
         toList(arguments));
@@ -534,7 +536,7 @@ public abstract class Expressions {
    * classes that have a constructor with a parameter for each field, and
    * arrays.</p>
    */
-  public static ConstantExpression constant(Object value) {
+  public static ConstantExpression constant(@Nullable Object value) {
     if (value == null) {
       return ConstantUntypedNull.INSTANCE;
     }
@@ -546,7 +548,7 @@ public abstract class Expressions {
    * Creates a ConstantExpression that has the Value and Type
    * properties set to the specified values.
    */
-  public static ConstantExpression constant(Object value, Type type) {
+  public static ConstantExpression constant(@Nullable Object value, Type type) {
     if (value != null && type instanceof Class) {
       // Fix up value so that it matches type.
       Class<?> clazz = (Class<?>) type;
@@ -817,14 +819,14 @@ public abstract class Expressions {
   /**
    * Creates a MemberExpression that represents accessing a field.
    */
-  public static MemberExpression field(Expression expression, Field field) {
+  public static MemberExpression field(@Nullable Expression expression, Field field) {
     return makeMemberAccess(expression, Types.field(field));
   }
 
   /**
    * Creates a MemberExpression that represents accessing a field.
    */
-  public static MemberExpression field(Expression expression,
+  public static MemberExpression field(@Nullable Expression expression,
       PseudoField field) {
     return makeMemberAccess(expression, field);
   }
@@ -842,7 +844,7 @@ public abstract class Expressions {
   /**
    * Creates a MemberExpression that represents accessing a field.
    */
-  public static MemberExpression field(Expression expression, Type type,
+  public static MemberExpression field(@Nullable Expression expression, Type type,
       String fieldName) {
     PseudoField field = Types.getField(fieldName, type);
     return makeMemberAccess(expression, field);
@@ -1369,7 +1371,7 @@ public abstract class Expressions {
    */
   public static ForStatement for_(
       Iterable<? extends DeclarationStatement> declarations,
-      Expression condition, Expression post, Statement body) {
+      @Nullable Expression condition, @Nullable Expression post, Statement body) {
     return new ForStatement(toList(declarations), condition, post, body);
   }
 
@@ -1378,7 +1380,7 @@ public abstract class Expressions {
    */
   public static ForStatement for_(
       DeclarationStatement declaration,
-      Expression condition, Expression post, Statement body) {
+      @Nullable Expression condition, @Nullable Expression post, Statement body) {
     return new ForStatement(Collections.singletonList(declaration), condition,
         post, body);
   }
@@ -1562,7 +1564,7 @@ public abstract class Expressions {
   /**
    * Creates a MemberExpression that represents accessing a field.
    */
-  public static MemberExpression makeMemberAccess(Expression expression,
+  public static MemberExpression makeMemberAccess(@Nullable Expression expression,
       PseudoField member) {
     return new MemberExpression(expression, member);
   }
@@ -1611,7 +1613,7 @@ public abstract class Expressions {
    * method, by calling the appropriate factory method.
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
-      Expression expression, Type type, Method method) {
+      Expression expression, Type type, @Nullable Method method) {
     assert type != null;
     return new UnaryExpression(expressionType, type, expression);
   }
@@ -1696,7 +1698,7 @@ public abstract class Expressions {
    * Declares a field with an initializer.
    */
   public static FieldDeclaration fieldDecl(int modifier,
-      ParameterExpression parameter, Expression initializer) {
+      ParameterExpression parameter, @Nullable Expression initializer) {
     return new FieldDeclaration(modifier, parameter, initializer);
   }
 
@@ -1712,7 +1714,7 @@ public abstract class Expressions {
    * Declares a class.
    */
   public static ClassDeclaration classDecl(int modifier, String name,
-      Type extended, List<Type> implemented,
+      @Nullable Type extended, List<Type> implemented,
       List<MemberDeclaration> memberDeclarations) {
     return new ClassDeclaration(modifier, name, extended, implemented,
         memberDeclarations);
@@ -1948,7 +1950,7 @@ public abstract class Expressions {
    */
   public static NewExpression new_(Type type,
       Iterable<? extends Expression> arguments,
-      Iterable<? extends MemberDeclaration> memberDeclarations) {
+      @Nullable Iterable<? extends MemberDeclaration> memberDeclarations) {
     return new NewExpression(type, toList(arguments),
         memberDeclarations == null ? null : toList(memberDeclarations));
   }
@@ -2020,7 +2022,7 @@ public abstract class Expressions {
    * that has a specified rank.
    */
   public static NewArrayExpression newArrayBounds(Type type, int dimension,
-      Expression bound) {
+      @Nullable Expression bound) {
     return new NewArrayExpression(type, dimension, bound, null);
   }
 
@@ -2492,13 +2494,13 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a return statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoStatement return_(LabelTarget labelTarget,
-      Expression expression) {
+  public static GotoStatement return_(@Nullable LabelTarget labelTarget,
+      @Nullable Expression expression) {
     return makeGoto(GotoExpressionKind.Return, labelTarget, expression);
   }
 
   public static GotoStatement makeGoto(GotoExpressionKind kind,
-      LabelTarget labelTarget, Expression expression) {
+      @Nullable LabelTarget labelTarget, @Nullable Expression expression) {
     return new GotoStatement(kind, labelTarget, expression);
   }
 
@@ -2922,7 +2924,7 @@ public abstract class Expressions {
    * Creates a statement that declares a variable.
    */
   public static DeclarationStatement declare(int modifiers,
-      ParameterExpression parameter, Expression initializer) {
+      ParameterExpression parameter, @Nullable Expression initializer) {
     return new DeclarationStatement(modifiers, parameter, initializer);
   }
 
@@ -2944,7 +2946,7 @@ public abstract class Expressions {
   /**
    * Creates a statement that executes an expression.
    */
-  public static Statement statement(Expression expression) {
+  public static Statement statement(@Nullable Expression expression) {
     return new GotoStatement(GotoExpressionKind.Sequence, null, expression);
   }
 
@@ -3040,7 +3042,7 @@ public abstract class Expressions {
   /**
    * Evaluates an expression and returns the result.
    */
-  public static Object evaluate(Node node) {
+  public static @Nullable Object evaluate(Node node) {
     requireNonNull(node);
     final Evaluator evaluator = new Evaluator();
     return ((AbstractNode) node).evaluate(evaluator);
@@ -3176,7 +3178,7 @@ public abstract class Expressions {
     return expressions1;
   }
 
-  static <R> R acceptNodes(List<? extends Node> nodes,
+  static <R> @Nullable R acceptNodes(@Nullable List<? extends Node> nodes,
       Visitor<R> visitor) {
     R r = null;
     if (nodes != null) {
@@ -3212,7 +3214,7 @@ public abstract class Expressions {
 
     FluentList<T> appendIf(boolean condition, T t);
 
-    FluentList<T> appendIfNotNull(T t);
+    FluentList<T> appendIfNotNull(@Nullable T t);
 
     FluentList<T> appendAll(Iterable<T> ts);
 
@@ -3244,7 +3246,7 @@ public abstract class Expressions {
       return this;
     }
 
-    @Override public FluentList<T> appendIfNotNull(T t) {
+    @Override public FluentList<T> appendIfNotNull(@Nullable T t) {
       if (t != null) {
         add(t);
       }

@@ -40,6 +40,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -63,7 +65,7 @@ public class MaterializationService {
       new MaterializationService();
 
   /** For testing. */
-  private static final ThreadLocal<MaterializationService> THREAD_INSTANCE =
+  private static final ThreadLocal<@Nullable MaterializationService> THREAD_INSTANCE =
       ThreadLocal.withInitial(MaterializationService::new);
 
   private static final Comparator<Pair<CalciteSchema.TableEntry, TileKey>> C =
@@ -96,17 +98,17 @@ public class MaterializationService {
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final CalciteSchema schema,
-      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      final String suggestedTableName, boolean create, boolean existing) {
+  public @Nullable MaterializationKey defineMaterialization(final CalciteSchema schema,
+      @Nullable TileKey tileKey, String viewSql, @Nullable List<String> viewSchemaPath,
+      final @Nullable String suggestedTableName, boolean create, boolean existing) {
     return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath,
         suggestedTableName, tableFactory, create, existing);
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final CalciteSchema schema,
-      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      String suggestedTableName, TableFactory tableFactory, boolean create,
+  public @Nullable MaterializationKey defineMaterialization(final CalciteSchema schema,
+      @Nullable TileKey tileKey, String viewSql, @Nullable List<String> viewSchemaPath,
+      @Nullable String suggestedTableName, TableFactory tableFactory, boolean create,
       boolean existing) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
@@ -166,7 +168,7 @@ public class MaterializationService {
 
   /** Checks whether a materialization is valid, and if so, returns the table
    * where the data are stored. */
-  public CalciteSchema.TableEntry checkValid(MaterializationKey key) {
+  public CalciteSchema.@Nullable TableEntry checkValid(MaterializationKey key) {
     final MaterializationActor.Materialization materialization =
         actor.keyMap.get(key);
     if (materialization != null) {
@@ -183,14 +185,14 @@ public class MaterializationService {
    * during the recursive SQL that populates a materialization. Otherwise a
    * materialization would try to create itself to populate itself!
    */
-  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+  public @Nullable Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact) {
     return defineTile(lattice, groupSet, measureList, schema, create, exact,
         "m" + groupSet, tableFactory);
   }
 
-  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+  public @Nullable Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact,
       String suggestedTableName, TableFactory tableFactory) {
@@ -367,7 +369,7 @@ public class MaterializationService {
    */
   public interface TableFactory {
     Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath);
+        @Nullable List<String> viewSchemaPath);
   }
 
   /**
@@ -376,7 +378,7 @@ public class MaterializationService {
    */
   public static class DefaultTableFactory implements TableFactory {
     @Override public Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath) {
+        @Nullable List<String> viewSchemaPath) {
       final CalciteConnection connection =
           CalciteMetaImpl.connect(schema.root(), null);
       final ImmutableMap<CalciteConnectionProperty, String> map =

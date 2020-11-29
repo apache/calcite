@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /** Table registered in the graph. */
@@ -36,7 +38,7 @@ public class LatticeTable {
     return t.getQualifiedName().hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof LatticeTable
         && t.getQualifiedName().equals(

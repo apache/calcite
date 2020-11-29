@@ -22,6 +22,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.Arrays;
@@ -478,7 +479,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     return toString().hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     // not very efficient
     return (obj instanceof Permutation)
         && toString().equals(obj.toString());

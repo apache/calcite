@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
@@ -207,7 +209,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         }, nullable);
   }
 
-  @Override public RelDataType leastRestrictive(List<RelDataType> types) {
+  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     assert types != null;
     assert types.size() >= 1;
     RelDataType type0 = types.get(0);
@@ -217,7 +219,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return null;
   }
 
-  protected RelDataType leastRestrictiveStructuredType(
+  protected @Nullable RelDataType leastRestrictiveStructuredType(
       final List<RelDataType> types) {
     final RelDataType type0 = types.get(0);
     final int fieldCount = type0.getFieldCount();
@@ -434,7 +436,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return t instanceof JavaType;
   }
 
-  private List<RelDataTypeFieldImpl> fieldsOf(Class clazz) {
+  private @Nullable List<RelDataTypeFieldImpl> fieldsOf(Class clazz) {
     final List<RelDataTypeFieldImpl> list = new ArrayList<>();
     for (Field field : clazz.getFields()) {
       if (Modifier.isStatic(field.getModifiers())) {
@@ -460,7 +462,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * to get the return type for the operation.
    */
   @Deprecated
-  @Override public RelDataType createDecimalProduct(
+  @Override public @Nullable RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2) {
     return typeSystem.deriveDecimalMultiplyType(this, type1, type2);
@@ -484,7 +486,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * to get the return type for the operation.
    */
   @Deprecated
-  @Override public RelDataType createDecimalQuotient(
+  @Override public @Nullable RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2) {
     return typeSystem.deriveDecimalDivideType(this, type1, type2);
@@ -548,8 +550,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public class JavaType extends RelDataTypeImpl {
     private final Class clazz;
     private final boolean nullable;
-    private SqlCollation collation;
-    private Charset charset;
+    private @Nullable SqlCollation collation;
+    private @Nullable Charset charset;
 
     public JavaType(Class clazz) {
       this(clazz, !clazz.isPrimitive());
@@ -565,8 +567,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     public JavaType(
         Class clazz,
         boolean nullable,
-        Charset charset,
-        SqlCollation collation) {
+        @Nullable Charset charset,
+        @Nullable SqlCollation collation) {
       super(fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
@@ -596,7 +598,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       sb.append(")");
     }
 
-    @Override public RelDataType getComponentType() {
+    @Override public @Nullable RelDataType getComponentType() {
       final Class componentType = clazz.getComponentType();
       if (componentType == null) {
         return null;
@@ -609,7 +611,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
      * For {@link JavaType} created with {@link Map} class,
      * we cannot get the key type. Use ANY as key type.
      */
-    @Override public RelDataType getKeyType() {
+    @Override public @Nullable RelDataType getKeyType() {
       if (Map.class.isAssignableFrom(clazz)) {
         // Need to return a SQL type because the type inference needs SqlTypeName.
         return createSqlType(SqlTypeName.ANY);
@@ -622,7 +624,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
      * For {@link JavaType} created with {@link Map} class,
      * we cannot get the value type. Use ANY as value type.
      */
-    @Override public RelDataType getValueType() {
+    @Override public @Nullable RelDataType getValueType() {
       if (Map.class.isAssignableFrom(clazz)) {
         // Need to return a SQL type because the type inference needs SqlTypeName.
         return createSqlType(SqlTypeName.ANY);
@@ -631,11 +633,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
     }
 
-    @Override public Charset getCharset() {
+    @Override public @Nullable Charset getCharset() {
       return this.charset;
     }
 
-    @Override public SqlCollation getCollation() {
+    @Override public @Nullable SqlCollation getCollation() {
       return this.collation;
     }
 
@@ -667,7 +669,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       return Objects.hash(kind, names, types, nullable);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Key
           && kind == ((Key) obj).kind

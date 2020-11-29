@@ -26,6 +26,7 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.List;
@@ -60,7 +61,7 @@ public class RelMdPercentageOriginalRows
     return BuiltInMetadata.PercentageOriginalRows.DEF;
   }
 
-  public Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
     // aggregation does not apply any filtering, so it does not modify the
     // percentage.  That's very much oversimplified.
@@ -99,7 +100,7 @@ public class RelMdPercentageOriginalRows
     return quotientForPercentage(numerator, denominator);
   }
 
-  public Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
     // Assume any single-table filter conditions have already
     // been pushed down.
 
@@ -120,7 +121,7 @@ public class RelMdPercentageOriginalRows
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
     if (rel.getInputs().size() > 1) {
       // No generic formula available for multiple inputs.
       return null;
@@ -157,7 +158,7 @@ public class RelMdPercentageOriginalRows
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     RelOptCost cost = mq.getNonCumulativeCost(rel);
     if (cost == null) {
       return null;
@@ -173,13 +174,13 @@ public class RelMdPercentageOriginalRows
     return cost;
   }
 
-  public RelOptCost getCumulativeCost(EnumerableInterpreter rel,
+  public @Nullable RelOptCost getCumulativeCost(EnumerableInterpreter rel,
       RelMetadataQuery mq) {
     return mq.getNonCumulativeCost(rel);
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 

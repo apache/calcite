@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -42,7 +44,7 @@ class AggFinder extends AggVisitor {
    * @param nameMatcher Whether to match the agg function case-sensitively
    */
   AggFinder(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
+      boolean group, @Nullable AggFinder delegate, SqlNameMatcher nameMatcher) {
     super(opTab, over, aggregate, group, delegate, nameMatcher);
   }
 
@@ -54,7 +56,7 @@ class AggFinder extends AggVisitor {
    * @param node Parse tree to search
    * @return First aggregate function in parse tree, or null if not found
    */
-  public SqlCall findAgg(SqlNode node) {
+  public @Nullable SqlCall findAgg(SqlNode node) {
     try {
       node.accept(this);
       return null;
@@ -66,11 +68,11 @@ class AggFinder extends AggVisitor {
 
   // SqlNodeList extends SqlNode and implements List<SqlNode>, so this method
   // disambiguates
-  public SqlCall findAgg(SqlNodeList nodes) {
+  public @Nullable SqlCall findAgg(SqlNodeList nodes) {
     return findAgg((List<SqlNode>) nodes);
   }
 
-  public SqlCall findAgg(List<SqlNode> nodes) {
+  public @Nullable SqlCall findAgg(List<SqlNode> nodes) {
     try {
       for (SqlNode node : nodes) {
         node.accept(this);
@@ -102,7 +104,7 @@ class AggFinder extends AggVisitor {
     private final List<SqlCall> calls = new ArrayList<>();
 
     AggIterable(SqlOperatorTable opTab, boolean over, boolean aggregate,
-        boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
+        boolean group, @Nullable AggFinder delegate, SqlNameMatcher nameMatcher) {
       super(opTab, over, aggregate, group, delegate, nameMatcher);
     }
 

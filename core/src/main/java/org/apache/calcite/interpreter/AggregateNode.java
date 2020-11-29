@@ -44,6 +44,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -233,7 +235,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
               return args;
             }
 
-            @Override public RexNode rexFilterArgument() {
+            @Override public @Nullable RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,
@@ -343,7 +345,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     @Override public void send(Row row) {
-      Object[] sendValues = requireNonNull(def.sendContext.values,
+      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
           "def.sendContext.values");
       System.arraycopy(row.getValues(), 0, sendValues, 0,
           def.rowLength);
@@ -352,9 +354,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       def.addScalar.execute(def.sendContext, this.values);
     }
 
-    @Override public Object end() {
+    @Override public @Nullable Object end() {
       Context endContext = requireNonNull(def.endContext, "def.endContext");
-      Object[] values = requireNonNull(endContext.values, "endContext.values");
+      @Nullable Object[] values = requireNonNull(endContext.values, "endContext.values");
       System.arraycopy(this.values, 0, values, 0, this.values.length);
       return def.endScalar.execute(endContext);
     }
@@ -438,7 +440,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
    */
   private interface Accumulator {
     void send(Row row);
-    Object end();
+    @Nullable Object end();
   }
 
   /** Implementation of {@code SUM} over INTEGER values as a user-defined
@@ -676,7 +678,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
     final AggregateFunctionImpl aggFunction;
     final int argOrdinal;
-    public final Object instance;
+    public final @Nullable Object instance;
     public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
@@ -710,7 +712,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   /** Accumulator based upon a user-defined aggregate. */
   private static class UdaAccumulator implements Accumulator {
     private final UdaAccumulatorFactory factory;
-    private Object value;
+    private @Nullable Object value;
     private boolean empty;
 
     UdaAccumulator(UdaAccumulatorFactory factory) {
@@ -724,7 +726,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     @Override public void send(Row row) {
-      final Object[] args = {value, row.getValues()[factory.argOrdinal]};
+      final @Nullable Object[] args = {value, row.getValues()[factory.argOrdinal]};
       for (int i = 1; i < args.length; i++) {
         if (args[i] == null) {
           return; // one of the arguments is null; don't add to the total
@@ -738,11 +740,11 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       empty = false;
     }
 
-    @Override public Object end() {
+    @Override public @Nullable Object end() {
       if (factory.nullIfEmpty && empty) {
         return null;
       }
-      final Object[] args = {value};
+      final @Nullable Object[] args = {value};
       try {
         AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
             "factory.aggFunction");
@@ -771,7 +773,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
     }
 
-    @Override public Object end() {
+    @Override public @Nullable Object end() {
       return accumulator.end();
     }
   }

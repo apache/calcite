@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -31,12 +32,12 @@ public class NewExpression extends Expression {
   @SuppressWarnings("HidingField")
   public final Type type;
   public final List<Expression> arguments;
-  public final List<MemberDeclaration> memberDeclarations;
+  public final @Nullable List<MemberDeclaration> memberDeclarations;
   /** Cached hash code for the expression. */
   private int hash;
 
   public NewExpression(Type type, List<Expression> arguments,
-      List<MemberDeclaration> memberDeclarations) {
+      @Nullable List<MemberDeclaration> memberDeclarations) {
     super(ExpressionType.New, type);
     this.type = type;
     this.arguments = arguments;
@@ -66,7 +67,7 @@ public class NewExpression extends Expression {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

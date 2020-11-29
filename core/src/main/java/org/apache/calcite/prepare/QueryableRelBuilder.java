@@ -50,6 +50,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.math.BigDecimal;
@@ -84,7 +85,7 @@ import static java.util.Objects.requireNonNull;
  */
 class QueryableRelBuilder<T> implements QueryableFactory<T> {
   private final LixToRelTranslator translator;
-  private RelNode rel;
+  private @Nullable RelNode rel;
 
   QueryableRelBuilder(LixToRelTranslator translator) {
     this.translator = translator;
@@ -136,7 +137,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
 
   @Override public T aggregate(
       Queryable<T> source,
-      FunctionExpression<Function2<T, T, T>> selector) {
+      FunctionExpression<Function2<@Nullable T, T, T>> selector) {
     throw new UnsupportedOperationException();
   }
 
@@ -248,7 +249,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Queryable<T> defaultIfEmpty(Queryable<T> source) {
+  @Override public Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source) {
     throw new UnsupportedOperationException();
   }
 

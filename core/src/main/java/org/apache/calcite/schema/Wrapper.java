@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Optional;
 
@@ -28,7 +29,7 @@ import static java.util.Objects.requireNonNull;
 public interface Wrapper {
   /** Finds an instance of an interface implemented by this object,
    * or returns null if this object does not support that interface. */
-  <C extends Object> C unwrap(Class<C> aClass);
+  <C extends Object> @Nullable C unwrap(Class<C> aClass);
 
   /** Finds an instance of an interface implemented by this object,
    * or throws NullPointerException if this object does not support

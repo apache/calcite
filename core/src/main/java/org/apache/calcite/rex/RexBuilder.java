@@ -58,6 +58,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.math.BigDecimal;
@@ -307,7 +308,7 @@ public class RexBuilder {
   public RexNode addAggCall(AggregateCall aggCall, int groupCount,
       List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      final List<RelDataType> aggArgTypes) {
+      final @Nullable List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
         && !aggCall.isDistinct()) {
       final List<Integer> args = aggCall.getArgList();
@@ -335,7 +336,7 @@ public class RexBuilder {
   public RexNode addAggCall(AggregateCall aggCall, int groupCount,
       boolean indicator, List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      final List<RelDataType> aggArgTypes) {
+      final @Nullable List<RelDataType> aggArgTypes) {
     Preconditions.checkArgument(!indicator,
         "indicator is deprecated, use GROUPING function instead");
     return addAggCall(aggCall, groupCount, aggCalls,
@@ -636,7 +637,7 @@ public class RexBuilder {
     }
   }
 
-  boolean canRemoveCastFromLiteral(RelDataType toType, Comparable value,
+  boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
     final SqlTypeName sqlType = toType.getSqlTypeName();
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
@@ -933,7 +934,7 @@ public class RexBuilder {
    * @return Literal
    */
   protected RexLiteral makeLiteral(
-      Comparable o,
+      @Nullable Comparable o,
       RelDataType type,
       SqlTypeName typeName) {
     // All literals except NULL have NOT NULL types.
@@ -1028,7 +1029,7 @@ public class RexBuilder {
   /**
    * Creates a BIGINT literal.
    */
-  public RexLiteral makeBigintLiteral(BigDecimal bd) {
+  public RexLiteral makeBigintLiteral(@Nullable BigDecimal bd) {
     RelDataType bigintType =
         typeFactory.createSqlType(
             SqlTypeName.BIGINT);
@@ -1038,7 +1039,7 @@ public class RexBuilder {
   /**
    * Creates a numeric literal.
    */
-  public RexLiteral makeExactLiteral(BigDecimal bd, RelDataType type) {
+  public RexLiteral makeExactLiteral(@Nullable BigDecimal bd, RelDataType type) {
     return makeLiteral(bd, type, SqlTypeName.DECIMAL);
   }
 
@@ -1071,7 +1072,7 @@ public class RexBuilder {
    * @param type approximate numeric type
    * @return new literal
    */
-  public RexLiteral makeApproxLiteral(BigDecimal bd, RelDataType type) {
+  public RexLiteral makeApproxLiteral(@Nullable BigDecimal bd, RelDataType type) {
     assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
         type.getSqlTypeName());
     return makeLiteral(bd, type, SqlTypeName.DOUBLE);
@@ -1265,7 +1266,7 @@ public class RexBuilder {
    * {@code INTERVAL '3-7' YEAR TO MONTH}.
    */
   public RexLiteral makeIntervalLiteral(
-      BigDecimal v,
+      @Nullable BigDecimal v,
       SqlIntervalQualifier intervalQualifier) {
     return makeLiteral(
         v,
@@ -1379,7 +1380,7 @@ public class RexBuilder {
   /** Converts a list of expressions to a search argument, or returns null if
    * not possible. */
   @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
-  private static <C extends Comparable<C>> Sarg<C> toSarg(Class<C> clazz,
+  private static <C extends Comparable<C>> @Nullable Sarg<C> toSarg(Class<C> clazz,
       List<? extends RexNode> ranges, boolean containsNull) {
     if (ranges.isEmpty()) {
       // Cannot convert an empty list to a Sarg (by this interface, at least)
@@ -1397,7 +1398,7 @@ public class RexBuilder {
     return Sarg.of(containsNull, rangeSet);
   }
 
-  private static <C extends Comparable<C>> C toComparable(Class<C> clazz,
+  private static <C extends Comparable<C>> @Nullable C toComparable(Class<C> clazz,
       RexNode point) {
     switch (point.getKind()) {
     case LITERAL:
@@ -1499,7 +1500,7 @@ public class RexBuilder {
    *                  {@link RexLiteral} but may not be the exact type
    * @return Simple literal, or cast simple literal
    */
-  public RexNode makeLiteral(Object value, RelDataType type,
+  public RexNode makeLiteral(@Nullable Object value, RelDataType type,
       boolean allowCast) {
     return makeLiteral(value, type, allowCast, false);
   }
@@ -1525,7 +1526,7 @@ public class RexBuilder {
    *                  to CHAR(3) 'foo'
    * @return Simple literal, or cast simple literal
    */
-  public RexNode makeLiteral(Object value, RelDataType type,
+  public RexNode makeLiteral(@Nullable Object value, RelDataType type,
       boolean allowCast, boolean trim) {
     if (value == null) {
       return makeCast(type, constantNull);
@@ -1771,7 +1772,7 @@ public class RexBuilder {
     }
   }
 
-  private RelDataType guessType(Object value) {
+  private RelDataType guessType(@Nullable Object value) {
     if (value == null) {
       return typeFactory.createSqlType(SqlTypeName.NULL);
     }

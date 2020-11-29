@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -54,7 +56,7 @@ public class NameSet {
     return names.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof NameSet
         && names.equals(((NameSet) obj).names);

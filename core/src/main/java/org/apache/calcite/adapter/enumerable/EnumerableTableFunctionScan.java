@@ -36,6 +36,8 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -47,9 +49,9 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     implements EnumerableRel {
 
   public EnumerableTableFunctionScan(RelOptCluster cluster,
-      RelTraitSet traits, List<RelNode> inputs, Type elementType,
+      RelTraitSet traits, List<RelNode> inputs, @Nullable Type elementType,
       RelDataType rowType, RexNode call,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     super(cluster, traits, inputs, call, elementType, rowType,
         columnMappings);
   }
@@ -58,9 +60,9 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     return new EnumerableTableFunctionScan(getCluster(), traitSet, inputs,
         elementType, rowType, rexCall, columnMappings);
   }

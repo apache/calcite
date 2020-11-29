@@ -43,6 +43,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -70,8 +72,8 @@ import static java.util.Objects.requireNonNull;
 public class PushProjector {
   //~ Instance fields --------------------------------------------------------
 
-  private final Project origProj;
-  private final RexNode origFilter;
+  private final @Nullable Project origProj;
+  private final @Nullable RexNode origFilter;
   private final RelNode childRel;
   private final ExprCondition preserveExprCondition;
   private final RelBuilder relBuilder;
@@ -108,13 +110,13 @@ public class PushProjector {
    * case where the projection is being pushed past a join. Not used
    * otherwise.
    */
-  final ImmutableBitSet rightBitmap;
+  final @Nullable ImmutableBitSet rightBitmap;
 
   /**
    * Bitmap containing the fields that should be strong, i.e. when preserving expressions
    * we can only preserve them if the expressions if it is null when these fields are null.
    */
-  final ImmutableBitSet strongBitmap;
+  final @Nullable ImmutableBitSet strongBitmap;
 
   /**
    * Number of fields in the RelNode that the projection is being pushed past,
@@ -205,8 +207,8 @@ public class PushProjector {
    *                              be preserved in the projection
    */
   public PushProjector(
-      Project origProj,
-      RexNode origFilter,
+      @Nullable Project origProj,
+      @Nullable RexNode origFilter,
       RelNode childRel,
       ExprCondition preserveExprCondition,
       RelBuilder relBuilder) {
@@ -331,7 +333,7 @@ public class PushProjector {
    * @return the converted projection if it makes sense to push elements of
    * the projection; otherwise returns null
    */
-  public RelNode convertProject(RexNode defaultExpr) {
+  public @Nullable RelNode convertProject(@Nullable RexNode defaultExpr) {
     // locate all fields referenced in the projection and filter
     locateAllRefs();
 
@@ -665,7 +667,7 @@ public class PushProjector {
   private static class InputSpecialOpFinder extends RexVisitorImpl<Void> {
     private final BitSet rexRefs;
     private final ImmutableBitSet leftFields;
-    private final ImmutableBitSet rightFields;
+    private final @Nullable ImmutableBitSet rightFields;
     private final ImmutableBitSet strongFields;
     private final ExprCondition preserveExprCondition;
     private final List<RexNode> preserveLeft;
@@ -675,7 +677,7 @@ public class PushProjector {
     InputSpecialOpFinder(
         BitSet rexRefs,
         ImmutableBitSet leftFields,
-        ImmutableBitSet rightFields,
+        @Nullable ImmutableBitSet rightFields,
         final ImmutableBitSet strongFields,
         ExprCondition preserveExprCondition,
         List<RexNode> preserveLeft,

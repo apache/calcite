@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
@@ -31,8 +32,8 @@ public class SqlExplain extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("EXPLAIN", SqlKind.EXPLAIN) {
         @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNode... operands) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
           return new SqlExplain(pos, operands[0], (SqlLiteral) operands[1],
               (SqlLiteral) operands[2], (SqlLiteral) operands[3], 0);
         }
@@ -86,7 +87,7 @@ public class SqlExplain extends SqlCall {
   }
 
   @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       explicandum = operand;

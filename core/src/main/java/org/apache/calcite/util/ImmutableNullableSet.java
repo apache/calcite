@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -68,11 +69,11 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
     return elements.size();
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return elements.contains(o == null ? NullSentinel.INSTANCE : o);
   }
 
-  @Override public boolean remove(Object o) {
+  @Override public boolean remove(@Nullable Object o) {
     throw new UnsupportedOperationException();
   }
 
@@ -139,7 +140,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
       return ImmutableSet.copyOf(elements);
     }
 
-    final Object[] objects =
+    final @Nullable Object[] objects =
         needCopy ? Arrays.copyOf(elements, elements.length, Object[].class)
             : elements;
     for (int i = 0; i < objects.length; i++) {

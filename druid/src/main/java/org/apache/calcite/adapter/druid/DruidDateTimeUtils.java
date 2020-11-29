@@ -399,7 +399,7 @@ public class DruidDateTimeUtils {
    *
    * @return Druid Granularity or null
    */
-  public static Granularity.Type toDruidGranularity(TimeUnitRange timeUnit) {
+  public static Granularity.@Nullable Type toDruidGranularity(TimeUnitRange timeUnit) {
     if (timeUnit == null) {
       return null;
     }

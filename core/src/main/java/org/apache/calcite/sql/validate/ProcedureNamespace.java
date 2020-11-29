@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -74,7 +76,7 @@ public class ProcedureNamespace extends AbstractNamespace {
         () -> "got null from inferReturnType for call " + callBinding.getCall());
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 }

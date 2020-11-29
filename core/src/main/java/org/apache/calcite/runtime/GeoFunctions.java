@@ -39,6 +39,8 @@ import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktExportFlags;
 import com.esri.core.geometry.WktImportFlags;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -90,75 +92,75 @@ public class GeoFunctions {
         WktExportFlags.wktExportDefaults);
   }
 
-  public static Geom ST_GeomFromText(String s) {
+  public static @Nullable Geom ST_GeomFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_GeomFromText(String s, int srid) {
+  public static @Nullable Geom ST_GeomFromText(String s, int srid) {
     final Geometry g = fromWkt(s,
         WktImportFlags.wktImportDefaults, Geometry.Type.Unknown);
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_LineFromText(String s) {
+  public static @Nullable Geom ST_LineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_LineFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_LineFromText(String wkt, int srid) {
     final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Line);
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPointFromText(String s) {
+  public static @Nullable Geom ST_MPointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPointFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_MPointFromText(String wkt, int srid) {
     final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.MultiPoint);
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PointFromText(String s) {
+  public static @Nullable Geom ST_PointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PointFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_PointFromText(String wkt, int srid) {
     final Geometry g =
         fromWkt(wkt, WktImportFlags.wktImportDefaults, Geometry.Type.Point);
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PolyFromText(String s) {
+  public static @Nullable Geom ST_PolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PolyFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_PolyFromText(String wkt, int srid) {
     final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Polygon);
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MLineFromText(String s) {
+  public static @Nullable Geom ST_MLineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MLineFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_MLineFromText(String wkt, int srid) {
     final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiLine
     return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPolyFromText(String s) {
+  public static @Nullable Geom ST_MPolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPolyFromText(String wkt, int srid) {
+  public static @Nullable Geom ST_MPolyFromText(String wkt, int srid) {
     final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiPolygon
@@ -265,17 +267,17 @@ public class GeoFunctions {
   }
 
   /** Returns the x-value of the first coordinate of {@code geom}. */
-  public static Double ST_X(Geom geom) {
+  public static @Nullable Double ST_X(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getX() : null;
   }
 
   /** Returns the y-value of the first coordinate of {@code geom}. */
-  public static Double ST_Y(Geom geom) {
+  public static @Nullable Double ST_Y(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getY() : null;
   }
 
   /** Returns the z-value of the first coordinate of {@code geom}. */
-  public static Double ST_Z(Geom geom) {
+  public static @Nullable Double ST_Z(Geom geom) {
     return geom.g().getDescription().hasZ() && geom.g() instanceof Point
         ? ((Point) geom.g()).getZ() : null;
   }
@@ -488,7 +490,7 @@ public class GeoFunctions {
   /** Returns the position of a point on the Hilbert curve,
    * or null if it is not a 2-dimensional point. */
   @Hints({"SqlKind:HILBERT"})
-  public static Long hilbert(Geom geom) {
+  public static @Nullable Long hilbert(Geom geom) {
     final Geometry g = geom.g();
     if (g instanceof Point) {
       final double x = ((Point) g).getX();
@@ -506,7 +508,7 @@ public class GeoFunctions {
 
   /** Creates a geometry from a WKT.
    * If the engine returns a null, throws; never returns null. */
-  private static Geometry fromWkt(String wkt, int importFlags,
+  private static @Nullable Geometry fromWkt(String wkt, int importFlags,
       Geometry.Type geometryType) {
     return GeometryEngine.geometryFromWkt(wkt, importFlags, geometryType);
   }

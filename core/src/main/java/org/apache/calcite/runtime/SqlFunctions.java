@@ -47,6 +47,7 @@ import org.apache.commons.codec.language.Soundex;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Field;
@@ -124,15 +125,15 @@ public class SqlFunctions {
       "Alpha", "XDigit", "Digit", "Alnum", "Punct", "Graph", "Print", "Blank", "Cntrl", "Space" };
 
   @SuppressWarnings("unused")
-  private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
+  private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
       lists -> {
-        final List<Enumerator<Object>> enumerators = new ArrayList<>();
+        final List<Enumerator<@Nullable Object>> enumerators = new ArrayList<>();
         for (Object list : lists) {
           enumerators.add(Linq4j.enumerator((List) list));
         }
-        final Enumerator<List<Object>> product = Linq4j.product(enumerators);
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
+        final Enumerator<List<@Nullable Object>> product = Linq4j.product(enumerators);
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             return Linq4j.transform(product, List::toArray);
           }
         };
@@ -144,7 +145,7 @@ public class SqlFunctions {
    * <p>This is a straw man of an implementation whose main goal is to prove
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
-  private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
+  private static final ThreadLocal<@Nullable Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
@@ -176,7 +177,7 @@ public class SqlFunctions {
   }
 
   /** SQL FROM_BASE64(string) function. */
-  public static ByteString fromBase64(String base64) {
+  public static @Nullable ByteString fromBase64(String base64) {
     try {
       base64 = FROM_BASE64_REGEXP.matcher(base64).replaceAll("");
       return new ByteString(Base64.getDecoder().decode(base64));
@@ -225,7 +226,7 @@ public class SqlFunctions {
 
   /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
   public static String regexpReplace(String s, String regex, String replacement,
-      int pos, int occurrence, String matchType) {
+      int pos, int occurrence, @Nullable String matchType) {
     if (pos < 1 || pos > s.length()) {
       throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
     }
@@ -236,7 +237,7 @@ public class SqlFunctions {
     return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
   }
 
-  private static int makeRegexpFlags(String stringFlags) {
+  private static int makeRegexpFlags(@Nullable String stringFlags) {
     int flags = 0;
     if (stringFlags != null) {
       for (int i = 0; i < stringFlags.length(); ++i) {
@@ -637,7 +638,7 @@ public class SqlFunctions {
 
   /** SQL <code>=</code> operator applied to Object[] values (neither may be
    * null). */
-  public static boolean eq(Object [] b0, Object [] b1) {
+  public static boolean eq(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Arrays.deepEquals(b0, b1);
   }
 
@@ -2524,7 +2525,7 @@ public class SqlFunctions {
 
   /** Helper for "array element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
-  public static Object arrayItem(List list, int item) {
+  public static @Nullable Object arrayItem(List list, int item) {
     if (item < 1 || item > list.size()) {
       return null;
     }
@@ -2533,14 +2534,14 @@ public class SqlFunctions {
 
   /** Helper for "map element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
-  public static Object mapItem(Map map, Object item) {
+  public static @Nullable Object mapItem(Map map, Object item) {
     return map.get(item);
   }
 
   /** Implements the {@code [ ... ]} operator on an object whose type is not
    * known until runtime.
    */
-  public static Object item(Object object, Object index) {
+  public static @Nullable Object item(Object object, Object index) {
     if (object instanceof Map) {
       return mapItem((Map) object, index);
     }
@@ -2558,7 +2559,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #arrayItem} method, but allows array to be nullable. */
-  public static Object arrayItemOptional(List list, int item) {
+  public static @Nullable Object arrayItemOptional(@Nullable List list, int item) {
     if (list == null) {
       return null;
     }
@@ -2566,7 +2567,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #mapItem} method, but allows map to be nullable. */
-  public static Object mapItemOptional(Map map, Object item) {
+  public static @Nullable Object mapItemOptional(@Nullable Map map, Object item) {
     if (map == null) {
       return null;
     }
@@ -2574,7 +2575,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #item} method, but allows object to be nullable. */
-  public static Object itemOptional(Object object, Object index) {
+  public static @Nullable Object itemOptional(@Nullable Object object, Object index) {
     if (object == null) {
       return null;
     }
@@ -2583,22 +2584,22 @@ public class SqlFunctions {
 
 
   /** NULL &rarr; FALSE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
-  public static boolean isTrue(Boolean b) {
+  public static boolean isTrue(@Nullable Boolean b) {
     return b != null && b;
   }
 
   /** NULL &rarr; FALSE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
-  public static boolean isFalse(Boolean b) {
+  public static boolean isFalse(@Nullable Boolean b) {
     return b != null && !b;
   }
 
   /** NULL &rarr; TRUE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
-  public static boolean isNotTrue(Boolean b) {
+  public static boolean isNotTrue(@Nullable Boolean b) {
     return b == null || !b;
   }
 
   /** NULL &rarr; TRUE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
-  public static boolean isNotFalse(Boolean b) {
+  public static boolean isNotFalse(@Nullable Boolean b) {
     return b == null || b;
   }
 
@@ -2652,7 +2653,7 @@ public class SqlFunctions {
   }
 
   /** Support the ELEMENT function. */
-  public static Object element(List list) {
+  public static @Nullable Object element(List list) {
     switch (list.size()) {
     case 0:
       return null;
@@ -2664,7 +2665,7 @@ public class SqlFunctions {
   }
 
   /** Support the MEMBER OF function. */
-  public static boolean memberOf(Object object, Collection collection) {
+  public static boolean memberOf(@Nullable Object object, Collection collection) {
     return collection.contains(object);
   }
 
@@ -2980,8 +2981,8 @@ public class SqlFunctions {
    * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
    */
   @Experimental
-  public static Object structAccess(Object structObject, int index,
-      String fieldName) {
+  public static @Nullable Object structAccess(@Nullable Object structObject, int index,
+      @Nullable String fieldName) {
     if (structObject == null) {
       return null;
     }

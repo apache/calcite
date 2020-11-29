@@ -45,6 +45,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -74,7 +76,7 @@ public class TableScanNode implements Node {
    * and projects it can implement. Adds to the Enumerable implementations of
    * any filters and projects that cannot be implemented by the table. */
   static TableScanNode create(Compiler compiler, TableScan rel,
-      ImmutableList<RexNode> filters, ImmutableIntList projects) {
+      ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects) {
     final RelOptTable relOptTable = rel.getTable();
     final ProjectableFilterableTable pfTable =
         relOptTable.unwrap(ProjectableFilterableTable.class);
@@ -111,7 +113,7 @@ public class TableScanNode implements Node {
   }
 
   private static TableScanNode createScannable(Compiler compiler, TableScan rel,
-      ImmutableList<RexNode> filters, ImmutableIntList projects,
+      ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects,
       ScannableTable scannableTable) {
     final Enumerable<Row> rowEnumerable =
         Enumerables.toRow(scannableTable.scan(compiler.getDataContext()));
@@ -120,7 +122,7 @@ public class TableScanNode implements Node {
   }
 
   private static TableScanNode createQueryable(Compiler compiler,
-      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      TableScan rel, ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects,
       QueryableTable queryableTable) {
     final DataContext root = compiler.getDataContext();
     final RelOptTable relOptTable = rel.getTable();
@@ -147,7 +149,7 @@ public class TableScanNode implements Node {
       }
       final List<Field> fields = fieldBuilder.build();
       rowEnumerable = queryable.select(o -> {
-        final Object[] values = new Object[fields.size()];
+        final @Nullable Object[] values = new Object[fields.size()];
         for (int i = 0; i < fields.size(); i++) {
           Field field = fields.get(i);
           try {
@@ -167,11 +169,11 @@ public class TableScanNode implements Node {
   }
 
   private static TableScanNode createFilterable(Compiler compiler,
-      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      TableScan rel, ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects,
       FilterableTable filterableTable) {
     final DataContext root = compiler.getDataContext();
     final List<RexNode> mutableFilters = Lists.newArrayList(filters);
-    final Enumerable<Object[]> enumerable =
+    final Enumerable<@Nullable Object[]> enumerable =
         filterableTable.scan(root, mutableFilters);
     for (RexNode filter : mutableFilters) {
       if (!filters.contains(filter)) {
@@ -184,7 +186,7 @@ public class TableScanNode implements Node {
   }
 
   private static TableScanNode createProjectableFilterable(Compiler compiler,
-      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      TableScan rel, ImmutableList<RexNode> filters, @Nullable ImmutableIntList projects,
       ProjectableFilterableTable pfTable) {
     final DataContext root = compiler.getDataContext();
     final ImmutableIntList originalProjects = projects;
@@ -197,7 +199,7 @@ public class TableScanNode implements Node {
       } else {
         projectInts = projects.toIntArray();
       }
-      final Enumerable<Object[]> enumerable1 =
+      final Enumerable<@Nullable Object[]> enumerable1 =
           pfTable.scan(root, mutableFilters, projectInts);
       for (RexNode filter : mutableFilters) {
         if (!filters.contains(filter)) {
@@ -240,8 +242,8 @@ public class TableScanNode implements Node {
 
   private static TableScanNode createEnumerable(Compiler compiler,
       TableScan rel, Enumerable<Row> enumerable,
-      final ImmutableIntList acceptedProjects, List<RexNode> rejectedFilters,
-      final ImmutableIntList rejectedProjects) {
+      final @Nullable ImmutableIntList acceptedProjects, List<RexNode> rejectedFilters,
+      final @Nullable ImmutableIntList rejectedProjects) {
     if (!rejectedFilters.isEmpty()) {
       final RexNode filter =
           RexUtil.composeConjunction(rel.getCluster().getRexBuilder(),
@@ -277,9 +279,9 @@ public class TableScanNode implements Node {
     if (rejectedProjects != null) {
       enumerable = enumerable.select(
           new Function1<Row, Row>() {
-            final Object[] values = new Object[rejectedProjects.size()];
+            final @Nullable Object[] values = new Object[rejectedProjects.size()];
             @Override public Row apply(Row row) {
-              final Object[] inValues = row.getValues();
+              final @Nullable Object[] inValues = row.getValues();
               for (int i = 0; i < rejectedProjects.size(); i++) {
                 values[i] = inValues[rejectedProjects.get(i)];
               }

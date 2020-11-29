@@ -27,6 +27,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,7 +76,7 @@ import static java.util.Objects.requireNonNull;
  * AND composition, only the first rule is used for signature generation.
  */
 public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
-  private final SqlOperandCountRange range;
+  private final @Nullable SqlOperandCountRange range;
   //~ Enums ------------------------------------------------------------------
 
   /** How operands are composed. */
@@ -86,7 +88,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   protected final ImmutableList<? extends SqlOperandTypeChecker> allowedRules;
   protected final Composition composition;
-  private final String allowedSignatures;
+  private final @Nullable String allowedSignatures;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -97,8 +99,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   CompositeOperandTypeChecker(
       Composition composition,
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
-      String allowedSignatures,
-      SqlOperandCountRange range) {
+      @Nullable String allowedSignatures,
+      @Nullable SqlOperandCountRange range) {
     this.allowedRules = requireNonNull(allowedRules);
     this.composition = requireNonNull(composition);
     this.allowedSignatures = allowedSignatures;
@@ -377,7 +379,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return false;
   }
 
-  @Override public SqlOperandTypeInference typeInference() {
+  @Override public @Nullable SqlOperandTypeInference typeInference() {
     if (composition == Composition.REPEAT) {
       if (Iterables.getOnlyElement(allowedRules) instanceof SqlOperandTypeInference) {
         final SqlOperandTypeInference rule =

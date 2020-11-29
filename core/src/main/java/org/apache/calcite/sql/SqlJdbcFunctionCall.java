@@ -28,6 +28,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -399,10 +401,10 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   //~ Instance fields --------------------------------------------------------
 
   private final String jdbcName;
-  private final MakeCall lookupMakeCallObj;
-  private SqlCall lookupCall;
+  private final @Nullable MakeCall lookupMakeCallObj;
+  private @Nullable SqlCall lookupCall;
 
-  private SqlNode [] thisOperands;
+  private @Nullable SqlNode @Nullable [] thisOperands;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -437,9 +439,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   }
 
   @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     thisOperands = operands;
     return super.createCall(functionQualifier, pos, operands);
   }
@@ -570,11 +572,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      *
      * @param operands Operands
      */
-    SqlCall createCall(SqlParserPos pos, SqlNode... operands);
+    SqlCall createCall(SqlParserPos pos, @Nullable SqlNode... operands);
 
     SqlOperator getOperator();
 
-    String isValidArgCount(SqlCallBinding binding);
+    @Nullable String isValidArgCount(SqlCallBinding binding);
   }
 
   /** Converter that calls a built-in function with the same arguments. */
@@ -589,11 +591,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       return operator;
     }
 
-    @Override public SqlCall createCall(SqlParserPos pos, SqlNode... operands) {
+    @Override public SqlCall createCall(SqlParserPos pos, @Nullable SqlNode... operands) {
       return operator.createCall(pos, operands);
     }
 
-    @Override public String isValidArgCount(SqlCallBinding binding) {
+    @Override public @Nullable String isValidArgCount(SqlCallBinding binding) {
       return null; // any number of arguments is valid
     }
   }
@@ -618,11 +620,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     }
 
     @Override public SqlCall createCall(SqlParserPos pos,
-        SqlNode... operands) {
+        @Nullable SqlNode... operands) {
       return super.createCall(pos, reorder(operands));
     }
 
-    @Override public String isValidArgCount(SqlCallBinding binding) {
+    @Override public @Nullable String isValidArgCount(SqlCallBinding binding) {
       if (order.length == binding.getOperandCount()) {
         return null; // operand count is valid
       } else {
@@ -647,9 +649,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      *
      * @param operands Operands
      */
-    protected SqlNode[] reorder(SqlNode[] operands) {
+    protected @Nullable SqlNode[] reorder(@Nullable SqlNode[] operands) {
       assert operands.length == order.length;
-      SqlNode[] newOrder = new SqlNode[operands.length];
+      @Nullable SqlNode[] newOrder = new SqlNode[operands.length];
       for (int i = 0; i < operands.length; i++) {
         assert operands[i] != null;
         int joyDivision = order[i];
@@ -752,7 +754,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("IFNULL",
           new SimpleMakeCall(SqlStdOperatorTable.COALESCE) {
             @Override public SqlCall createCall(SqlParserPos pos,
-                SqlNode... operands) {
+                @Nullable SqlNode... operands) {
               assert 2 == operands.length;
               return super.createCall(pos, operands);
             }
@@ -761,7 +763,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("CONVERT",
           new SimpleMakeCall(SqlStdOperatorTable.CAST) {
             @Override public SqlCall createCall(SqlParserPos pos,
-                SqlNode... operands) {
+                @Nullable SqlNode... operands) {
               assert 2 == operands.length;
               SqlNode typeOperand = operands[1];
               assert typeOperand != null && typeOperand.getKind() == SqlKind.LITERAL
@@ -779,7 +781,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     private MakeCall trim(SqlTrimFunction.Flag flag) {
       return new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
         @Override public SqlCall createCall(SqlParserPos pos,
-            SqlNode... operands) {
+            @Nullable SqlNode... operands) {
           assert 1 == operands.length;
           return super.createCall(pos, flag.symbol(pos),
               SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
@@ -796,7 +798,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * Tries to lookup a given function name JDBC to an internal
      * representation. Returns null if no function defined.
      */
-    public MakeCall lookup(String name) {
+    public @Nullable MakeCall lookup(String name) {
       return map.get(name);
     }
   }

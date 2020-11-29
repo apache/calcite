@@ -77,6 +77,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -899,7 +900,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return exprs;
   }
 
-  private static RelDataType consistentType(SqlRexContext cx,
+  private static @Nullable RelDataType consistentType(SqlRexContext cx,
       SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
     switch (consistency) {
     case COMPARE:
@@ -1247,7 +1248,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     private SqlNode expandCovariance(
         final SqlNode arg0Input,
         final SqlNode arg1Input,
-        final SqlNode dependent,
+        final @Nullable SqlNode dependent,
         final RelDataType varType,
         final SqlRexContext cx,
         boolean biased) {
@@ -1308,7 +1309,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
 
     private SqlNode getCastedSqlNode(SqlNode argInput, RelDataType varType,
-        SqlParserPos pos, RexNode argRex) {
+        SqlParserPos pos, @Nullable RexNode argRex) {
       SqlNode arg;
       if (argRex != null && !argRex.getType().equals(varType)) {
         arg = SqlStdOperatorTable.CAST.createCall(
@@ -1449,7 +1450,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
 
     private SqlNode getCastedSqlNode(SqlNode argInput, RelDataType varType,
-        SqlParserPos pos, RexNode argRex) {
+        SqlParserPos pos, @Nullable RexNode argRex) {
       SqlNode arg;
       if (argRex != null && !argRex.getType().equals(varType)) {
         arg = SqlStdOperatorTable.CAST.createCall(

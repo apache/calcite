@@ -33,6 +33,7 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.math.BigDecimal;
@@ -71,7 +72,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return this;
   }
 
-  @Override public <R> R foreach(Function1<T, R> func) {
+  @Override public <R> @Nullable R foreach(Function1<T, R> func) {
     R result = null;
     try (Enumerator<T> enumerator = enumerator()) {
       while (enumerator.moveNext()) {
@@ -91,7 +92,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.asOrderedQueryable(this);
   }
 
-  @Override public T aggregate(Function2<T, T, T> func) {
+  @Override public @Nullable T aggregate(Function2<@Nullable T, T, T> func) {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
@@ -193,7 +194,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         keySelector, comparator, descending);
   }
 
-  @Override public Enumerable<T> defaultIfEmpty() {
+  @Override public Enumerable<@Nullable T> defaultIfEmpty() {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
@@ -213,7 +214,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.elementAt(getThis(), index);
   }
 
-  @Override public T elementAtOrDefault(int index) {
+  @Override public @Nullable T elementAtOrDefault(int index) {
     return EnumerableDefaults.elementAtOrDefault(getThis(), index);
   }
 
@@ -243,11 +244,11 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.first(getThis(), predicate);
   }
 
-  @Override public T firstOrDefault() {
+  @Override public @Nullable T firstOrDefault() {
     return EnumerableDefaults.firstOrDefault(getThis());
   }
 
-  @Override public T firstOrDefault(Predicate1<T> predicate) {
+  @Override public @Nullable T firstOrDefault(Predicate1<T> predicate) {
     return EnumerableDefaults.firstOrDefault(getThis(), predicate);
   }
 
@@ -409,7 +410,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
       Function2<T, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight,
-      Predicate2<T, TInner> predicate) {
+      @Nullable Predicate2<T, TInner> predicate) {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
         generateNullsOnRight, predicate);
@@ -430,11 +431,11 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.last(getThis(), predicate);
   }
 
-  @Override public T lastOrDefault() {
+  @Override public @Nullable T lastOrDefault() {
     return EnumerableDefaults.lastOrDefault(getThis());
   }
 
-  @Override public T lastOrDefault(Predicate1<T> predicate) {
+  @Override public @Nullable T lastOrDefault(Predicate1<T> predicate) {
     return EnumerableDefaults.lastOrDefault(getThis(), predicate);
   }
 
@@ -447,15 +448,15 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   @SuppressWarnings("unchecked")
-  @Override public T max() {
-    return (T) EnumerableDefaults.max((Enumerable) getThis());
+  @Override public @Nullable T max() {
+    return (@Nullable T) EnumerableDefaults.max((Enumerable) getThis());
   }
 
-  @Override public BigDecimal max(BigDecimalFunction1<T> selector) {
+  @Override public @Nullable BigDecimal max(BigDecimalFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public BigDecimal max(NullableBigDecimalFunction1<T> selector) {
+  @Override public @Nullable BigDecimal max(NullableBigDecimalFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
@@ -463,7 +464,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public Double max(NullableDoubleFunction1<T> selector) {
+  @Override public @Nullable Double max(NullableDoubleFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
@@ -471,7 +472,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public Integer max(NullableIntegerFunction1<T> selector) {
+  @Override public @Nullable Integer max(NullableIntegerFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
@@ -479,7 +480,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public Long max(NullableLongFunction1<T> selector) {
+  @Override public @Nullable Long max(NullableLongFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
@@ -487,25 +488,25 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public Float max(NullableFloatFunction1<T> selector) {
+  @Override public @Nullable Float max(NullableFloatFunction1<T> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
-  @Override public <TResult extends Comparable<TResult>> TResult max(
+  @Override public <TResult extends Comparable<TResult>> @Nullable TResult max(
       Function1<T, TResult> selector) {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
   @SuppressWarnings("unchecked")
-  @Override public T min() {
-    return (T) EnumerableDefaults.min((Enumerable) getThis());
+  @Override public @Nullable T min() {
+    return (@Nullable T) EnumerableDefaults.min((Enumerable) getThis());
   }
 
-  @Override public BigDecimal min(BigDecimalFunction1<T> selector) {
+  @Override public @Nullable BigDecimal min(BigDecimalFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public BigDecimal min(NullableBigDecimalFunction1<T> selector) {
+  @Override public @Nullable BigDecimal min(NullableBigDecimalFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
@@ -513,7 +514,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public Double min(NullableDoubleFunction1<T> selector) {
+  @Override public @Nullable Double min(NullableDoubleFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
@@ -521,7 +522,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public Integer min(NullableIntegerFunction1<T> selector) {
+  @Override public @Nullable Integer min(NullableIntegerFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
@@ -529,7 +530,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public Long min(NullableLongFunction1<T> selector) {
+  @Override public @Nullable Long min(NullableLongFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
@@ -537,11 +538,11 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public Float min(NullableFloatFunction1<T> selector) {
+  @Override public @Nullable Float min(NullableFloatFunction1<T> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
 
-  @Override public <TResult extends Comparable<TResult>> TResult min(
+  @Override public <TResult extends Comparable<TResult>> @Nullable TResult min(
       Function1<T, TResult> selector) {
     return EnumerableDefaults.min(getThis(), selector);
   }
@@ -625,11 +626,11 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.single(getThis(), predicate);
   }
 
-  @Override public T singleOrDefault() {
+  @Override public @Nullable T singleOrDefault() {
     return EnumerableDefaults.singleOrDefault(getThis());
   }
 
-  @Override public T singleOrDefault(Predicate1<T> predicate) {
+  @Override public @Nullable T singleOrDefault(Predicate1<T> predicate) {
     return EnumerableDefaults.singleOrDefault(getThis(), predicate);
   }
 

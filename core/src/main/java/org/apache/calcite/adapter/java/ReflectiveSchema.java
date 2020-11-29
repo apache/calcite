@@ -54,6 +54,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -177,7 +178,7 @@ public class ReflectiveSchema
 
   /** Returns an expression for the object wrapped by this schema (not the
    * schema itself). */
-  Expression getTargetExpression(SchemaPlus parentSchema, String name) {
+  Expression getTargetExpression(@Nullable SchemaPlus parentSchema, String name) {
     return EnumUtils.convert(
         Expressions.call(
             Schemas.unwrap(
@@ -189,7 +190,7 @@ public class ReflectiveSchema
 
   /** Returns a table based on a particular field of this schema. If the
    * field is not of the right type to be a relation, returns null. */
-  private <T> Table fieldRelation(final Field field) {
+  private <T> @Nullable Table fieldRelation(final Field field) {
     final Type elementType = getElementType(field.getType());
     if (elementType == null) {
       return null;
@@ -209,7 +210,7 @@ public class ReflectiveSchema
 
   /** Deduces the element type of a collection;
    * same logic as {@link #toEnumerable}. */
-  private static Type getElementType(Class clazz) {
+  private static @Nullable Type getElementType(Class clazz) {
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
@@ -253,7 +254,7 @@ public class ReflectiveSchema
       return Statistics.UNKNOWN;
     }
 
-    @Override public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
       if (elementType == Object[].class) {
         //noinspection unchecked
         return enumerable;
@@ -359,7 +360,7 @@ public class ReflectiveSchema
       return "Member {method=" + method + "}";
     }
 
-    @Override public TranslatableTable apply(final List<? extends Object> arguments) {
+    @Override public TranslatableTable apply(final List<? extends @Nullable Object> arguments) {
       try {
         final Object o = requireNonNull(
             method.invoke(schema.getTarget(), arguments.toArray()),
@@ -409,16 +410,16 @@ public class ReflectiveSchema
   }
 
   /** Function that returns an array of a given object's field values. */
-  private static class FieldSelector implements Function1<Object, Object[]> {
+  private static class FieldSelector implements Function1<Object, @Nullable Object[]> {
     private final Field[] fields;
 
     FieldSelector(Class elementType) {
       this.fields = elementType.getFields();
     }
 
-    @Override public Object[] apply(Object o) {
+    @Override public @Nullable Object[] apply(Object o) {
       try {
-        final Object[] objects = new Object[fields.length];
+        final @Nullable Object[] objects = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
           objects[i] = fields[i].get(o);
         }

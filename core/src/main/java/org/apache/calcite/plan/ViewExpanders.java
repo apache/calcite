@@ -22,12 +22,16 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
  * Utilities for {@link RelOptTable.ViewExpander} and
  * {@link RelOptTable.ToRelContext}.
  */
+@NonNull
 public abstract class ViewExpanders {
   private ViewExpanders() {}
 
@@ -46,7 +50,7 @@ public abstract class ViewExpanders {
       }
 
       @Override public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath, List<String> viewPath) {
+          List<String> schemaPath, @Nullable List<String> viewPath) {
         return viewExpander.expandView(rowType, queryString, schemaPath,
             viewPath);
       }
@@ -75,7 +79,7 @@ public abstract class ViewExpanders {
       }
 
       @Override public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath, List<String> viewPath) {
+          List<String> schemaPath, @Nullable List<String> viewPath) {
         throw new UnsupportedOperationException();
       }
 

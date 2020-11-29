@@ -40,6 +40,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,7 +63,7 @@ public class ModifiableViewTable extends ViewTable
 
   /** Creates a ModifiableViewTable. */
   public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
-      String viewSql, List<String> schemaPath, List<String> viewPath,
+      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath,
       Table table, Path tablePath, RexNode constraint,
       ImmutableIntList columnMapping) {
     super(elementType, rowType, viewSql, schemaPath, viewPath);
@@ -89,7 +91,7 @@ public class ModifiableViewTable extends ViewTable
     return tablePath;
   }
 
-  @Override public <C extends Object> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(initializerExpressionFactory)) {
       return aClass.cast(initializerExpressionFactory);
     } else if (aClass.isInstance(table)) {

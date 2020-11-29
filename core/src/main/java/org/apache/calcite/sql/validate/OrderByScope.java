@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
@@ -107,7 +109,7 @@ public class OrderByScope extends DelegatingScope {
     return n;
   }
 
-  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     final SqlValidatorNamespace selectNs = validator.getNamespaceOrThrow(select);
     final RelDataType rowType = selectNs.getRowType();
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();

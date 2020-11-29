@@ -35,6 +35,8 @@ import org.apache.commons.collections.CollectionUtils;
 import com.alibaba.innodb.java.reader.Constants;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,7 +48,7 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
   final InnodbTable innodbTable;
   final RelDataType projectRowType;
   /** Force to use one specific index from hint. */
-  private final String forceIndexName;
+  private final @Nullable String forceIndexName;
   /** This contains index to scan table and optional condition. */
   private final IndexCondition indexCondition;
 

@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
@@ -44,14 +46,14 @@ public class JsonCustomTable extends JsonTable {
    *
    * <p>May be a JSON object (represented as Map) or null.
    */
-  public final Map<String, Object> operand;
+  public final @Nullable Map<String, Object> operand;
 
   @JsonCreator
   public JsonCustomTable(
       @JsonProperty(value = "name", required = true) String name,
       @JsonProperty("stream") JsonStream stream,
       @JsonProperty(value = "factory", required = true) String factory,
-      @JsonProperty("operand") Map<String, Object> operand) {
+      @JsonProperty("operand") @Nullable Map<String, Object> operand) {
     super(name, stream);
     this.factory = requireNonNull(factory, "factory");
     this.operand = operand;

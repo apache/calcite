@@ -18,6 +18,7 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.tree.Expression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.Covariant;
 
 import java.lang.reflect.Type;
@@ -43,7 +44,7 @@ public interface RawQueryable<T> extends Enumerable<T> {
    * Gets the expression tree that is associated with this Queryable.
    * @return null if the expression is not available
    */
-  Expression getExpression();
+  @Nullable Expression getExpression();
 
   /**
    * Gets the query provider that is associated with this data source.

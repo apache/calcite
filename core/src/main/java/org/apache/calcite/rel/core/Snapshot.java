@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -92,7 +94,7 @@ public abstract class Snapshot extends SingleRel  {
     return period;
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     RelDataType dataType = period.getType();
     if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
       return litmus.fail("The system time period specification expects Timestamp type but is '"

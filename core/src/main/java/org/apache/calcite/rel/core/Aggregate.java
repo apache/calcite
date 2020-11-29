@@ -50,6 +50,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -148,7 +150,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       List<RelHint> hints,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, input);
     this.hints = ImmutableList.copyOf(hints);
@@ -243,7 +245,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
 
   @Deprecated // to be removed before 2.0
   public Aggregate copy(RelTraitSet traitSet, RelNode input,
@@ -348,7 +350,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
@@ -383,7 +385,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
       final RelDataType inputRowType, boolean indicator,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       final List<AggregateCall> aggCalls) {
     final List<Integer> groupList = groupSet.asList();
     assert groupList.size() == groupSet.cardinality();
@@ -417,7 +419,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return builder.build();
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return super.isValid(litmus, context)
         && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
             "distinct field names: {}", getRowType());

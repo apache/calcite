@@ -19,6 +19,8 @@ package org.apache.calcite.sql.type;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -73,7 +75,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   private static final SqlTypeCoercionRule INSTANCE;
 
-  public static final ThreadLocal<SqlTypeCoercionRule> THREAD_PROVIDERS =
+  public static final ThreadLocal<@Nullable SqlTypeCoercionRule> THREAD_PROVIDERS =
       ThreadLocal.withInitial(() -> SqlTypeCoercionRule.INSTANCE);
 
   //~ Instance fields --------------------------------------------------------

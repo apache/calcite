@@ -25,6 +25,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,7 +64,7 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     final Table table =
         new MaterializationService.DefaultTableFactory()
             .createTable(lattice.rootSchema, sql, ImmutableList.of());
-    final Object[] values =
+    final @Nullable Object[] values =
         Iterables.getOnlyElement(
             ((ScannableTable) table).scan(
             Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,

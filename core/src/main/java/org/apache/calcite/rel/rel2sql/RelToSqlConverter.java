@@ -92,6 +92,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -149,7 +151,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   @Override protected Result result(SqlNode node, Collection<Clause> clauses,
-      String neededAlias, RelDataType neededType,
+      @Nullable String neededAlias, @Nullable RelDataType neededType,
       Map<String, RelDataType> aliases) {
     final Frame frame = requireNonNull(stack.peek());
     return super.result(node, clauses, neededAlias, neededType, aliases)
@@ -172,10 +174,10 @@ public class RelToSqlConverter extends SqlImplementor
   private static class AliasReplacementShuttle extends SqlShuttle {
     private final String tableAlias;
     private final RelDataType tableType;
-    private final SqlNodeList replaceSource;
+    private final @Nullable SqlNodeList replaceSource;
 
     AliasReplacementShuttle(String tableAlias, RelDataType tableType,
-        SqlNodeList replaceSource) {
+        @Nullable SqlNodeList replaceSource) {
       // TODO: should replaceSource be non-nullable?
       this.tableAlias = tableAlias;
       this.tableType = tableType;
@@ -686,7 +688,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(query, clauses, e, null);
   }
 
-  private SqlIdentifier getDual() {
+  private @Nullable SqlIdentifier getDual() {
     final List<String> names = dialect.getSingleRowTableName();
     if (names == null) {
       return null;

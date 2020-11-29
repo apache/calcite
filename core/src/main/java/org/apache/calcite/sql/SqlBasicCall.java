@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -29,23 +31,23 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  */
 public class SqlBasicCall extends SqlCall {
   private SqlOperator operator;
-  public final SqlNode[] operands;
-  private final SqlLiteral functionQuantifier;
+  public final @Nullable SqlNode[] operands;
+  private final @Nullable SqlLiteral functionQuantifier;
   private final boolean expanded;
 
   public SqlBasicCall(
       SqlOperator operator,
-      SqlNode[] operands,
+      @Nullable SqlNode[] operands,
       SqlParserPos pos) {
     this(operator, operands, pos, false, null);
   }
 
   public SqlBasicCall(
       SqlOperator operator,
-      SqlNode[] operands,
+      @Nullable SqlNode[] operands,
       SqlParserPos pos,
       boolean expanded,
-      SqlLiteral functionQualifier) {
+      @Nullable SqlLiteral functionQualifier) {
     super(pos);
     this.operator = Objects.requireNonNull(operator);
     this.operands = operands;
@@ -61,7 +63,7 @@ public class SqlBasicCall extends SqlCall {
     return expanded;
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     operands[i] = operand;
   }
 
@@ -73,7 +75,7 @@ public class SqlBasicCall extends SqlCall {
     return operator;
   }
 
-  public SqlNode[] getOperands() {
+  public @Nullable SqlNode[] getOperands() {
     return operands;
   }
 
@@ -91,7 +93,7 @@ public class SqlBasicCall extends SqlCall {
     return operands.length;
   }
 
-  @Override public SqlLiteral getFunctionQuantifier() {
+  @Override public @Nullable SqlLiteral getFunctionQuantifier() {
     return functionQuantifier;
   }
 

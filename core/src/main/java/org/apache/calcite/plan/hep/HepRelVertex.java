@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -60,7 +62,7 @@ public class HepRelVertex extends AbstractRelNode {
     return this;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // HepRelMetadataProvider is supposed to intercept this
     // and redirect to the real rels. But sometimes it doesn't.
@@ -91,7 +93,7 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel;
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return this == obj
         || (obj instanceof HepRelVertex
             && currentRel == ((HepRelVertex) obj).currentRel);

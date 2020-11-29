@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -50,7 +52,7 @@ public class RelOptLattice {
    * @param node Relational expression
    * @return Rewritten query
    */
-  public RelNode rewrite(RelNode node) {
+  public @Nullable RelNode rewrite(RelNode node) {
     return RelOptMaterialization.tryUseStar(node, starRelOptTable);
   }
 
@@ -69,7 +71,7 @@ public class RelOptLattice {
    * @param measureList Calls to aggregate functions
    * @return Materialized table
    */
-  public Pair<CalciteSchema.TableEntry, TileKey> getAggregate(
+  public @Nullable Pair<CalciteSchema.TableEntry, TileKey> getAggregate(
       RelOptPlanner planner, ImmutableBitSet groupSet,
       List<Lattice.Measure> measureList) {
     final CalciteConnectionConfig config =

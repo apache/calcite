@@ -33,6 +33,7 @@ import org.apache.calcite.util.trace.CalciteLogger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
@@ -267,12 +268,12 @@ public class SqlPrettyWriter implements SqlWriter {
   private final SqlDialect dialect;
   private final StringBuilder buf;
   private final Deque<FrameImpl> listStack = new ArrayDeque<>();
-  private ImmutableList.Builder<Integer> dynamicParameters;
-  protected FrameImpl frame;
+  private ImmutableList.@Nullable Builder<Integer> dynamicParameters;
+  protected @Nullable FrameImpl frame;
   private boolean needWhitespace;
-  protected String nextWhitespace;
+  protected @Nullable String nextWhitespace;
   private SqlWriterConfig config;
-  private Bean bean;
+  private @Nullable Bean bean;
   private int currentIndent;
 
   private int lineStart;
@@ -567,7 +568,7 @@ public class SqlPrettyWriter implements SqlWriter {
    */
   protected FrameImpl createListFrame(
       FrameType frameType,
-      String keyword,
+      @Nullable String keyword,
       String open,
       String close) {
     final FrameTypeEnum frameTypeEnum =
@@ -825,8 +826,8 @@ public class SqlPrettyWriter implements SqlWriter {
     }
   }
 
-  private SqlWriterConfig.LineFolding f3(SqlWriterConfig.LineFolding folding0,
-      SqlWriterConfig.LineFolding folding1, boolean opt) {
+  private SqlWriterConfig.LineFolding f3(SqlWriterConfig.@Nullable LineFolding folding0,
+      SqlWriterConfig.@Nullable LineFolding folding1, boolean opt) {
     return folding0 != null ? folding0
         : folding1 != null ? folding1
             : opt ? SqlWriterConfig.LineFolding.TALL
@@ -844,7 +845,7 @@ public class SqlPrettyWriter implements SqlWriter {
    */
   protected Frame startList(
       FrameType frameType,
-      String keyword,
+      @Nullable String keyword,
       String open,
       String close) {
     assert frameType != null;
@@ -872,7 +873,7 @@ public class SqlPrettyWriter implements SqlWriter {
     return frame;
   }
 
-  @Override public void endList(Frame frame) {
+  @Override public void endList(@Nullable Frame frame) {
     FrameImpl endedFrame = (FrameImpl) frame;
     Preconditions.checkArgument(frame == this.frame,
         "Frame does not match current frame");
@@ -1021,14 +1022,14 @@ public class SqlPrettyWriter implements SqlWriter {
     setNeedWhitespace(true);
   }
 
-  @Override public void fetchOffset(SqlNode fetch, SqlNode offset) {
+  @Override public void fetchOffset(@Nullable SqlNode fetch, @Nullable SqlNode offset) {
     if (fetch == null && offset == null) {
       return;
     }
     dialect.unparseOffsetFetch(this, offset, fetch);
   }
 
-  @Override public void topN(SqlNode fetch, SqlNode offset) {
+  @Override public void topN(@Nullable SqlNode fetch, @Nullable SqlNode offset) {
     if (fetch == null && offset == null) {
       return;
     }
@@ -1099,7 +1100,7 @@ public class SqlPrettyWriter implements SqlWriter {
     this.config = config.withLineLength(lineLength);
   }
 
-  public void setFormatOptions(SqlFormatOptions options) {
+  public void setFormatOptions(@Nullable SqlFormatOptions options) {
     if (options == null) {
       return;
     }
@@ -1125,7 +1126,7 @@ public class SqlPrettyWriter implements SqlWriter {
    */
   protected class FrameImpl implements Frame {
     final FrameType frameType;
-    final String keyword;
+    final @Nullable String keyword;
     final String open;
     final String close;
 
@@ -1166,7 +1167,7 @@ public class SqlPrettyWriter implements SqlWriter {
     /** How lines are to be folded. */
     private final SqlWriterConfig.LineFolding lineFolding;
 
-    FrameImpl(FrameType frameType, String keyword, String open, String close,
+    FrameImpl(FrameType frameType, @Nullable String keyword, String open, String close,
         int left, int extraIndent, int chopLimit,
         SqlWriterConfig.LineFolding lineFolding, boolean newlineAfterOpen,
         boolean newlineBeforeSep, int sepIndent, boolean newlineAfterSep,
@@ -1426,7 +1427,7 @@ public class SqlPrettyWriter implements SqlWriter {
       }
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       final Method method = requireNonNull(
           getterMethods.get(name),
           () -> "getter method " + name + " not found"

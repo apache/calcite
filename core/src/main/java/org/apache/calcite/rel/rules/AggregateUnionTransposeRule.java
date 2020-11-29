@@ -43,6 +43,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -157,7 +159,7 @@ public class AggregateUnionTransposeRule
     call.transformTo(relBuilder.build());
   }
 
-  private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
+  private @Nullable List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
     final List<AggregateCall> newCalls = new ArrayList<>();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {

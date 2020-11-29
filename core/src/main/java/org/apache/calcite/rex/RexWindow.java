@@ -21,6 +21,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -97,7 +99,7 @@ public class RexWindow {
     return digest.hashCode();
   }
 
-  @Override public boolean equals(Object that) {
+  @Override public boolean equals(@Nullable Object that) {
     if (that instanceof RexWindow) {
       RexWindow window = (RexWindow) that;
       return digest.equals(window.digest);

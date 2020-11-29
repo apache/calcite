@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.math.BigDecimal;
@@ -165,7 +166,7 @@ public class NumberUtil {
 
   /** Returns the quotient of two numbers,
    * or null if either is null or the divisor is zero. */
-  public static Double divide(Double a, Double b) {
+  public static @Nullable Double divide(@Nullable Double a, @Nullable Double b) {
     if ((a == null) || (b == null) || (b == 0D)) {
       return castNonNull(null);
     }

@@ -54,6 +54,7 @@ import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
@@ -78,7 +79,7 @@ import static java.util.Objects.requireNonNull;
  * particular it holds working state while the data flow graph is being
  * assembled.
  */
-public class Interpreter extends AbstractEnumerable<Object[]>
+public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     implements AutoCloseable {
   private final Map<RelNode, NodeInfo> nodes;
   private final DataContext dataContext;
@@ -111,7 +112,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     return rootRel;
   }
 
-  @Override public Enumerator<Object[]> enumerator() {
+  @Override public Enumerator<@Nullable Object[]> enumerator() {
     start();
     final NodeInfo nodeInfo = requireNonNull(nodes.get(rootRel),
         () -> "nodeInfo for " + rootRel);
@@ -124,8 +125,8 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       rows = Linq4j.iterableEnumerator(queue);
     }
 
-    return new TransformedEnumerator<Row, Object[]>(rows) {
-      @Override protected Object[] transform(Row row) {
+    return new TransformedEnumerator<Row, @Nullable Object[]>(rows) {
+      @Override protected @Nullable Object[] transform(Row row) {
         return row.getValues();
       }
     };
@@ -159,11 +160,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         return new Scalar() {
           final Object[] args = new Object[call.getOperands().size()];
 
-          @Override public void execute(final Context context, Object[] results) {
+          @Override public void execute(final Context context, @Nullable Object[] results) {
             results[0] = execute(context);
           }
 
-          @Override public Object execute(Context context) {
+          @Override public @Nullable Object execute(Context context) {
             Comparable o0;
             Comparable o1;
             switch (call.getKind()) {
@@ -239,16 +240,16 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         };
       }
       return new Scalar() {
-        @Override public void execute(Context context, Object[] results) {
+        @Override public void execute(Context context, @Nullable Object[] results) {
           results[0] = execute(context);
         }
 
-        @Override public Object execute(Context context) {
+        @Override public @Nullable Object execute(Context context) {
           switch (node.getKind()) {
           case LITERAL:
             return ((RexLiteral) node).getValueAs(Comparable.class);
           case INPUT_REF:
-            Object[] values = requireNonNull(context.values, "context.values");
+            @Nullable Object[] values = requireNonNull(context.values, "context.values");
             return values[((RexInputRef) node).getIndex()];
           default:
             throw new RuntimeException("unknown expression type " + node);
@@ -262,10 +263,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   private static class NodeInfo {
     final RelNode rel;
     final Map<Edge, ListSink> sinks = new LinkedHashMap<>();
-    final Enumerable<Row> rowEnumerable;
-    Node node;
+    final @Nullable Enumerable<Row> rowEnumerable;
+    @Nullable Node node;
 
-    NodeInfo(RelNode rel, Enumerable<Row> rowEnumerable) {
+    NodeInfo(RelNode rel, @Nullable Enumerable<Row> rowEnumerable) {
       this.rel = rel;
       this.rowEnumerable = rowEnumerable;
     }
@@ -282,7 +283,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.enumerator = requireNonNull(enumerator);
     }
 
-    @Override public Row receive() {
+    @Override public @Nullable Row receive() {
       if (enumerator.moveNext()) {
         return enumerator.current();
       }
@@ -326,13 +327,13 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   /** Implementation of {@link Source} using a {@link java.util.ArrayDeque}. */
   private static class ListSource implements Source {
     private final ArrayDeque<Row> list;
-    private Iterator<Row> iterator;
+    private @Nullable Iterator<Row> iterator;
 
     ListSource(ArrayDeque<Row> list) {
       this.list = list;
     }
 
-    @Override public Row receive() {
+    @Override public @Nullable Row receive() {
       try {
         if (iterator == null) {
           iterator = list.iterator();
@@ -398,9 +399,9 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         ReflectUtil.createDispatcher(CompilerImpl.class, RelNode.class);
     @NotOnlyInitialized
     protected final Interpreter interpreter;
-    protected RelNode rootRel;
-    protected RelNode rel;
-    protected Node node;
+    protected @Nullable RelNode rootRel;
+    protected @Nullable RelNode rel;
+    protected @Nullable Node node;
     final Map<RelNode, NodeInfo> nodes = new LinkedHashMap<>();
     final Map<RelNode, List<RelNode>> relInputs = new HashMap<>();
     final Multimap<RelNode, Edge> outEdges = LinkedHashMultimap.create();
@@ -420,7 +421,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       return Pair.of(requireNonNull(rootRel, "rootRel"), nodes);
     }
 
-    @Override public void visit(RelNode p, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode p, int ordinal, @Nullable RelNode parent) {
       for (;;) {
         rel = null;
         boolean found = dispatcher.invokeVisitor(this, p, REWRITE_METHOD_NAME);
@@ -495,7 +496,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     public void rewrite(RelNode r) {
     }
 
-    @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+    @Override public Scalar compile(List<RexNode> nodes, @Nullable RelDataType inputRowType) {
       if (inputRowType == null) {
         inputRowType = getTypeFactory().builder()
             .build();
@@ -591,8 +592,8 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   }
 
   /** Edge between a {@link RelNode} and one of its inputs. */
-  static class Edge extends Pair<RelNode, Integer> {
-    Edge(RelNode parent, int ordinal) {
+  static class Edge extends Pair<@Nullable RelNode, Integer> {
+    Edge(@Nullable RelNode parent, int ordinal) {
       super(parent, ordinal);
     }
   }

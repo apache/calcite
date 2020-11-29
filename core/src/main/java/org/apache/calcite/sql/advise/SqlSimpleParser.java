@@ -19,6 +19,8 @@ package org.apache.calcite.sql.advise;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.parser.SqlParser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -309,7 +311,7 @@ public class SqlSimpleParser {
       return new Token(TokenType.DQID, match);
     }
 
-    public Token nextToken() {
+    public @Nullable Token nextToken() {
       while (pos < sql.length()) {
         char c = sql.charAt(pos);
         final String match;
@@ -445,13 +447,13 @@ public class SqlSimpleParser {
   /** Token. */
   public static class Token {
     private final TokenType type;
-    private final String s;
+    private final @Nullable String s;
 
     Token(TokenType tokenType) {
       this(tokenType, null);
     }
 
-    Token(TokenType type, String s) {
+    Token(TokenType type, @Nullable String s) {
       this.type = type;
       this.s = s;
     }
@@ -513,7 +515,7 @@ public class SqlSimpleParser {
       }
     }
 
-    public Query simplify(String hintToken) {
+    public Query simplify(@Nullable String hintToken) {
       TokenType clause = TokenType.SELECT;
       TokenType foundInClause = null;
       Query foundInSubQuery = null;
@@ -634,7 +636,7 @@ public class SqlSimpleParser {
       return this;
     }
 
-    private void purgeSelectListExcept(String hintToken) {
+    private void purgeSelectListExcept(@Nullable String hintToken) {
       List<Token> sublist = findClause(TokenType.SELECT);
       int parenCount = 0;
       int itemStart = 1;
@@ -719,7 +721,7 @@ public class SqlSimpleParser {
       sublist.addAll(newSelectClause);
     }
 
-    private void purgeFromExcept(String hintToken) {
+    private void purgeFromExcept(@Nullable String hintToken) {
       List<Token> sublist = findClause(TokenType.FROM);
       int itemStart = -1;
       int itemEnd = -1;
@@ -805,7 +807,7 @@ public class SqlSimpleParser {
           () -> "clause does not exist: " + keyword);
     }
 
-    private List<Token> findClauseOrNull(TokenType keyword) {
+    private @Nullable List<Token> findClauseOrNull(TokenType keyword) {
       int start = -1;
       int k = -1;
       EnumSet<TokenType> clauses =

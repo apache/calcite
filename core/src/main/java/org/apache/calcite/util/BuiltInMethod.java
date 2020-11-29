@@ -112,6 +112,8 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -640,7 +642,7 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
-  BuiltInMethod(Method method, Constructor constructor, Field field) {
+  BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {
     // TODO: split enum in three different ones
     this.method = castNonNull(method);
     this.constructor = castNonNull(constructor);

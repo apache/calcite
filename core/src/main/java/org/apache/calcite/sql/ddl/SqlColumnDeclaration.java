@@ -29,6 +29,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -42,12 +44,12 @@ public class SqlColumnDeclaration extends SqlCall {
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
-  public final SqlNode expression;
+  public final @Nullable SqlNode expression;
   public final ColumnStrategy strategy;
 
   /** Creates a SqlColumnDeclaration; use {@link SqlDdlNodes#column}. */
   SqlColumnDeclaration(SqlParserPos pos, SqlIdentifier name,
-      SqlDataTypeSpec dataType, SqlNode expression,
+      SqlDataTypeSpec dataType, @Nullable SqlNode expression,
       ColumnStrategy strategy) {
     super(pos);
     this.name = name;

@@ -30,6 +30,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class SqlFunction extends SqlOperator {
 
   private final SqlFunctionCategory category;
 
-  private final SqlIdentifier sqlIdentifier;
+  private final @Nullable SqlIdentifier sqlIdentifier;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -65,9 +66,9 @@ public class SqlFunction extends SqlOperator {
   public SqlFunction(
       String name,
       SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     // We leave sqlIdentifier as null to indicate
     // that this is a built-in.
@@ -92,10 +93,10 @@ public class SqlFunction extends SqlOperator {
    */
   public SqlFunction(
       SqlIdentifier sqlIdentifier,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
-      List<RelDataType> paramTypes,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      @Nullable List<RelDataType> paramTypes,
       SqlFunctionCategory funcType) {
     this(Util.last(sqlIdentifier.names), sqlIdentifier, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
@@ -105,12 +106,12 @@ public class SqlFunction extends SqlOperator {
   @Deprecated // to be removed before 2.0
   protected SqlFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
-      List<RelDataType> paramTypes,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      @Nullable List<RelDataType> paramTypes,
       SqlFunctionCategory category) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, category);
@@ -121,11 +122,11 @@ public class SqlFunction extends SqlOperator {
    */
   protected SqlFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name, kind, 100, 100, returnTypeInference, operandTypeInference,
         operandTypeChecker);
@@ -144,7 +145,7 @@ public class SqlFunction extends SqlOperator {
    * Returns the fully-qualified name of function, or null for a built-in
    * function.
    */
-  public SqlIdentifier getSqlIdentifier() {
+  public @Nullable SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
   }
 
@@ -158,7 +159,7 @@ public class SqlFunction extends SqlOperator {
   /** Use {@link SqlOperandMetadata#paramTypes(RelDataTypeFactory)} on the
    * result of {@link #getOperandTypeChecker()}. */
   @Deprecated // to be removed before 2.0
-  public List<RelDataType> getParamTypes() {
+  public @Nullable List<RelDataType> getParamTypes() {
     return null;
   }
 

@@ -60,6 +60,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
@@ -72,10 +74,10 @@ import static java.util.Objects.requireNonNull;
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
  */
 public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
-  private final RelOptSchema schema;
+  private final @Nullable RelOptSchema schema;
   private final RelDataType rowType;
-  private final Table table;
-  private final Function<Class, Expression> expressionFunction;
+  private final @Nullable Table table;
+  private final @Nullable Function<Class, Expression> expressionFunction;
   private final ImmutableList<String> names;
 
   /** Estimate for the row count, or null.
@@ -85,15 +87,15 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
    * <p>Useful when a table that contains a materialized query result is being
    * used to replace a query expression that wildly underestimates the row
    * count. Now the materialized table can tell the same lie. */
-  private final Double rowCount;
+  private final @Nullable Double rowCount;
 
   private RelOptTableImpl(
-      RelOptSchema schema,
+      @Nullable RelOptSchema schema,
       RelDataType rowType,
       List<String> names,
-      Table table,
-      Function<Class, Expression> expressionFunction,
-      Double rowCount) {
+      @Nullable Table table,
+      @Nullable Function<Class, Expression> expressionFunction,
+      @Nullable Double rowCount) {
     this.schema = schema;
     this.rowType = requireNonNull(rowType);
     this.names = ImmutableList.copyOf(names);
@@ -103,7 +105,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   public static RelOptTableImpl create(
-      RelOptSchema schema,
+      @Nullable RelOptSchema schema,
       RelDataType rowType,
       List<String> names,
       Expression expression) {
@@ -112,7 +114,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   public static RelOptTableImpl create(
-      RelOptSchema schema,
+      @Nullable RelOptSchema schema,
       RelDataType rowType,
       List<String> names,
       Table table,
@@ -121,7 +123,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         c -> expression, table.getStatistic().getRowCount());
   }
 
-  public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
+  public static RelOptTableImpl create(@Nullable RelOptSchema schema, RelDataType rowType,
       Table table, Path path) {
     final SchemaPlus schemaPlus = MySchemaPlus.create(path);
     return new RelOptTableImpl(schema, rowType, Pair.left(path), table,
@@ -129,8 +131,8 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         table.getStatistic().getRowCount());
   }
 
-  public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
-      final CalciteSchema.TableEntry tableEntry, Double rowCount) {
+  public static RelOptTableImpl create(@Nullable RelOptSchema schema, RelDataType rowType,
+      final CalciteSchema.TableEntry tableEntry, @Nullable Double rowCount) {
     final Table table = tableEntry.getTable();
     return new RelOptTableImpl(schema, rowType, tableEntry.path(),
         table, getClassExpressionFunction(tableEntry, table), rowCount);
@@ -179,7 +181,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
   }
 
-  public static RelOptTableImpl create(RelOptSchema schema,
+  public static RelOptTableImpl create(@Nullable RelOptSchema schema,
       RelDataType rowType, Table table, ImmutableList<String> names) {
     assert table instanceof TranslatableTable
         || table instanceof ScannableTable
@@ -187,7 +189,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return new RelOptTableImpl(schema, rowType, names, table, null, null);
   }
 
-  @Override public <T extends Object> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     }
@@ -208,7 +210,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return null;
   }
 
-  @Override public Expression getExpression(Class clazz) {
+  @Override public @Nullable Expression getExpression(Class clazz) {
     if (expressionFunction == null) {
       return null;
     }
@@ -223,7 +225,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         extendedTable, expressionFunction, getRowCount());
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj instanceof RelOptTableImpl
         && this.rowType.equals(((RelOptTableImpl) obj).getRowType())
         && this.table == ((RelOptTableImpl) obj).table;
@@ -246,7 +248,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return 100d;
   }
 
-  @Override public RelOptSchema getRelOptSchema() {
+  @Override public @Nullable RelOptSchema getRelOptSchema() {
     return schema;
   }
 
@@ -273,7 +275,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       final RelOptTable relOptTable =
           new RelOptTableImpl(this.schema, b.build(), this.names, this.table,
               this.expressionFunction, this.rowCount) {
-            @Override public <T extends Object> T unwrap(Class<T> clazz) {
+            @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
               if (clazz.isAssignableFrom(InitializerExpressionFactory.class)) {
                 return clazz.cast(NullInitializerExpressionFactory.INSTANCE);
               }
@@ -289,14 +291,14 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
   }
 
-  @Override public List<RelCollation> getCollationList() {
+  @Override public @Nullable List<RelCollation> getCollationList() {
     if (table != null) {
       return table.getStatistic().getCollations();
     }
     return ImmutableList.of();
   }
 
-  @Override public RelDistribution getDistribution() {
+  @Override public @Nullable RelDistribution getDistribution() {
     if (table != null) {
       return table.getStatistic().getDistribution();
     }
@@ -310,14 +312,14 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return false;
   }
 
-  @Override public List<ImmutableBitSet> getKeys() {
+  @Override public @Nullable List<ImmutableBitSet> getKeys() {
     if (table != null) {
       return table.getStatistic().getKeys();
     }
     return ImmutableList.of();
   }
 
-  @Override public List<RelReferentialConstraint> getReferentialConstraints() {
+  @Override public @Nullable List<RelReferentialConstraint> getReferentialConstraints() {
     if (table != null) {
       return table.getStatistic().getReferentialConstraints();
     }
@@ -429,11 +431,11 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
    * <p>It is read-only, and functionality is limited in other ways, it but
    * allows table expressions to be generated. */
   private static class MySchemaPlus implements SchemaPlus {
-    private final SchemaPlus parent;
+    private final @Nullable SchemaPlus parent;
     private final String name;
     private final Schema schema;
 
-    MySchemaPlus(SchemaPlus parent, String name, Schema schema) {
+    MySchemaPlus(@Nullable SchemaPlus parent, String name, Schema schema) {
       this.parent = parent;
       this.name = name;
       this.schema = schema;
@@ -450,7 +452,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return new MySchemaPlus(parent, pair.left, pair.right);
     }
 
-    @Override public SchemaPlus getParentSchema() {
+    @Override public @Nullable SchemaPlus getParentSchema() {
       return parent;
     }
 
@@ -458,7 +460,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return name;
     }
 
-    @Override public SchemaPlus getSubSchema(String name) {
+    @Override public @Nullable SchemaPlus getSubSchema(String name) {
       final Schema subSchema = schema.getSubSchema(name);
       return subSchema == null ? null : new MySchemaPlus(this, name, subSchema);
     }
@@ -488,7 +490,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.isMutable();
     }
 
-    @Override public <T extends Object> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
       return null;
     }
 
@@ -504,7 +506,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return false;
     }
 
-    @Override public Table getTable(String name) {
+    @Override public @Nullable Table getTable(String name) {
       return schema.getTable(name);
     }
 
@@ -512,7 +514,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.getTableNames();
     }
 
-    @Override public RelProtoDataType getType(String name) {
+    @Override public @Nullable RelProtoDataType getType(String name) {
       return schema.getType(name);
     }
 
@@ -533,7 +535,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.getSubSchemaNames();
     }
 
-    @Override public Expression getExpression(SchemaPlus parentSchema,
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
         String name) {
       return schema.getExpression(parentSchema, name);
     }

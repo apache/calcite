@@ -41,6 +41,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -67,7 +69,7 @@ public class RelJsonReader {
   private final RelOptSchema relOptSchema;
   private final RelJson relJson = new RelJson(null);
   private final Map<String, RelNode> relMap = new LinkedHashMap<>();
-  private RelNode lastRel;
+  private @Nullable RelNode lastRel;
 
   public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
       Schema schema) {
@@ -134,7 +136,7 @@ public class RelJsonReader {
         return inputs.build();
       }
 
-      @Override public RexNode getExpression(String tag) {
+      @Override public @Nullable RexNode getExpression(String tag) {
         return relJson.toRex(this, jsonRel.get(tag));
       }
 
@@ -142,7 +144,7 @@ public class RelJsonReader {
         return ImmutableBitSet.of(requireNonNull(getIntegerList(tag), tag));
       }
 
-      @Override public List<ImmutableBitSet> getBitSetList(String tag) {
+      @Override public @Nullable List<ImmutableBitSet> getBitSetList(String tag) {
         List<List<Integer>> list = getIntegerListList(tag);
         if (list == null) {
           return null;
@@ -155,17 +157,17 @@ public class RelJsonReader {
         return builder.build();
       }
 
-      @Override public List<String> getStringList(String tag) {
+      @Override public @Nullable List<String> getStringList(String tag) {
         //noinspection unchecked
         return (List<String>) jsonRel.get(tag);
       }
 
-      @Override public List<Integer> getIntegerList(String tag) {
+      @Override public @Nullable List<Integer> getIntegerList(String tag) {
         //noinspection unchecked
         return (List<Integer>) jsonRel.get(tag);
       }
 
-      @Override public List<List<Integer>> getIntegerListList(String tag) {
+      @Override public @Nullable List<List<Integer>> getIntegerListList(String tag) {
         //noinspection unchecked
         return (List<List<Integer>>) jsonRel.get(tag);
       }
@@ -180,7 +182,7 @@ public class RelJsonReader {
         return inputs;
       }
 
-      @Override public Object get(String tag) {
+      @Override public @Nullable Object get(String tag) {
         return jsonRel.get(tag);
       }
 
@@ -188,7 +190,7 @@ public class RelJsonReader {
         return requireNonNull(get(tag), () -> "no entry for tag " + tag);
       }
 
-      @Override public String getString(String tag) {
+      @Override public @Nullable String getString(String tag) {
         return (String) get(tag);
       }
 
@@ -201,12 +203,12 @@ public class RelJsonReader {
         return b != null ? b : default_;
       }
 
-      @Override public <E extends Enum<E>> E getEnum(String tag, Class<E> enumClass) {
+      @Override public <E extends Enum<E>> @Nullable E getEnum(String tag, Class<E> enumClass) {
         return Util.enumVal(enumClass,
             ((String) getNonNull(tag)).toUpperCase(Locale.ROOT));
       }
 
-      @Override public List<RexNode> getExpressionList(String tag) {
+      @Override public @Nullable List<RexNode> getExpressionList(String tag) {
         @SuppressWarnings("unchecked")
         final List<Object> jsonNodes = (List) jsonRel.get(tag);
         if (jsonNodes == null) {

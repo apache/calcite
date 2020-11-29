@@ -50,6 +50,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -67,7 +69,7 @@ import static java.util.Objects.requireNonNull;
  */
 public interface CalcitePrepare {
   Function0<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
-  ThreadLocal<Deque<Context>> THREAD_CONTEXT_STACK =
+  ThreadLocal<@Nullable Deque<Context>> THREAD_CONTEXT_STACK =
       ThreadLocal.withInitial(ArrayDeque::new);
 
   ParseResult parse(Context context, String sql);
@@ -127,7 +129,7 @@ public interface CalcitePrepare {
      * <p>The object is being analyzed is typically a view. If it is already
      * being analyzed further up the stack, the view definition can be deduced
      * to be cyclic. */
-    List<String> getObjectPath();
+    @Nullable List<String> getObjectPath();
 
     /** Gets a runner; it can execute a relational expression. */
     RelRunner getRelRunner();
@@ -156,7 +158,7 @@ public interface CalcitePrepare {
   /** Namespace that allows us to define non-abstract methods inside an
    * interface. */
   class Dummy {
-    private static SparkHandler sparkHandler;
+    private static @Nullable SparkHandler sparkHandler;
 
     private Dummy() {}
 
@@ -293,17 +295,17 @@ public interface CalcitePrepare {
   /** The result of analyzing a view. */
   class AnalyzeViewResult extends ConvertResult {
     /** Not null if and only if the view is modifiable. */
-    public final Table table;
-    public final ImmutableList<String> tablePath;
-    public final RexNode constraint;
-    public final ImmutableIntList columnMapping;
+    public final @Nullable Table table;
+    public final @Nullable ImmutableList<String> tablePath;
+    public final @Nullable RexNode constraint;
+    public final @Nullable ImmutableIntList columnMapping;
     public final boolean modifiable;
 
     public AnalyzeViewResult(CalcitePrepareImpl prepare,
         SqlValidator validator, String sql, SqlNode sqlNode,
-        RelDataType rowType, RelRoot root, Table table,
-        ImmutableList<String> tablePath, RexNode constraint,
-        ImmutableIntList columnMapping, boolean modifiable) {
+        RelDataType rowType, RelRoot root, @Nullable Table table,
+        @Nullable ImmutableList<String> tablePath, @Nullable RexNode constraint,
+        @Nullable ImmutableIntList columnMapping, boolean modifiable) {
       super(prepare, validator, sql, sqlNode, rowType, root);
       this.table = table;
       this.tablePath = tablePath;
@@ -320,11 +322,11 @@ public interface CalcitePrepare {
    *
    * @param <T> element type */
   class CalciteSignature<T> extends Meta.Signature {
-    @JsonIgnore public final RelDataType rowType;
-    @JsonIgnore public final CalciteSchema rootSchema;
+    @JsonIgnore public final @Nullable RelDataType rowType;
+    @JsonIgnore public final @Nullable CalciteSchema rootSchema;
     @JsonIgnore private final List<RelCollation> collationList;
     private final long maxRowCount;
-    private final Bindable<T> bindable;
+    private final @Nullable Bindable<T> bindable;
 
     @Deprecated // to be removed before 2.0
     public CalciteSignature(String sql, List<AvaticaParameter> parameterList,
@@ -337,16 +339,16 @@ public interface CalcitePrepare {
           castNonNull(null));
     }
 
-    public CalciteSignature(String sql,
+    public CalciteSignature(@Nullable String sql,
         List<AvaticaParameter> parameterList,
         Map<String, Object> internalParameters,
-        RelDataType rowType,
+        @Nullable RelDataType rowType,
         List<ColumnMetaData> columns,
         Meta.CursorFactory cursorFactory,
-        CalciteSchema rootSchema,
+        @Nullable CalciteSchema rootSchema,
         List<RelCollation> collationList,
         long maxRowCount,
-        Bindable<T> bindable,
+        @Nullable Bindable<T> bindable,
         Meta.StatementType statementType) {
       super(columns, sql, parameterList, internalParameters, cursorFactory,
           statementType);
@@ -378,11 +380,11 @@ public interface CalcitePrepare {
    *
    * @param <T> element type */
   class Query<T> {
-    public final String sql;
-    public final Queryable<T> queryable;
-    public final RelNode rel;
+    public final @Nullable String sql;
+    public final @Nullable Queryable<T> queryable;
+    public final @Nullable RelNode rel;
 
-    private Query(String sql, Queryable<T> queryable, RelNode rel) {
+    private Query(@Nullable String sql, @Nullable Queryable<T> queryable, @Nullable RelNode rel) {
       this.sql = sql;
       this.queryable = queryable;
       this.rel = rel;

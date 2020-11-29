@@ -21,6 +21,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A generalization of a binary operator to involve several (two or more)
  * arguments, and keywords between each pair of arguments.
@@ -39,9 +41,9 @@ public class SqlInfixOperator extends SqlSpecialOperator {
       String[] names,
       SqlKind kind,
       int precedence,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         names[0],
         kind,

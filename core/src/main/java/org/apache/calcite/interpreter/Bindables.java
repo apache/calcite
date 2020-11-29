@@ -79,6 +79,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -154,7 +156,7 @@ public class Bindables {
    * <p>Any bindable can be compiled; if its input is also bindable, it becomes
    * part of the same compilation unit.
    */
-  private static Enumerable<Object[]> help(DataContext dataContext,
+  private static Enumerable<@Nullable Object[]> help(DataContext dataContext,
       BindableRel rel) {
     return new Interpreter(dataContext, rel);
   }
@@ -262,7 +264,7 @@ public class Bindables {
           .itemIf("projects", projects, !projects.equals(identity()));
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       boolean noPushing = filters.isEmpty()
               && projects.size() == table.getRowType().getFieldCount();
@@ -289,7 +291,7 @@ public class Bindables {
           || table.maybeUnwrap(ProjectableFilterableTable.class).isPresent();
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -354,7 +356,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -413,7 +415,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -456,13 +458,13 @@ public class Bindables {
    * bindable calling convention. */
   public static class BindableSort extends Sort implements BindableRel {
     public BindableSort(RelOptCluster cluster, RelTraitSet traitSet,
-        RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
+        RelNode input, RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
       super(cluster, traitSet, input, collation, offset, fetch);
       assert getConvention() instanceof BindableConvention;
     }
 
     @Override public BindableSort copy(RelTraitSet traitSet, RelNode newInput,
-        RelCollation newCollation, RexNode offset, RexNode fetch) {
+        RelCollation newCollation, @Nullable RexNode offset, @Nullable RexNode fetch) {
       return new BindableSort(getCluster(), traitSet, newInput, newCollation,
           offset, fetch);
     }
@@ -471,7 +473,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -543,7 +545,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -604,7 +606,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -630,7 +632,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -655,7 +657,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -681,7 +683,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -722,7 +724,7 @@ public class Bindables {
         RelTraitSet traitSet,
         RelNode input,
         ImmutableBitSet groupSet,
-        List<ImmutableBitSet> groupSets,
+        @Nullable List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
       super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
@@ -753,7 +755,7 @@ public class Bindables {
 
     @Override public BindableAggregate copy(RelTraitSet traitSet, RelNode input,
         ImmutableBitSet groupSet,
-        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+        @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
         return new BindableAggregate(getCluster(), traitSet, input,
             groupSet, groupSets, aggCalls);
@@ -768,7 +770,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -792,7 +794,7 @@ public class Bindables {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    @Override public @Nullable RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet =
           agg.getTraitSet().replace(BindableConvention.INSTANCE);
@@ -821,7 +823,7 @@ public class Bindables {
           constants, getRowType(), groups);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       RelOptCost cost = super.computeSelfCost(planner, mq);
       if (cost == null) {
@@ -834,7 +836,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 
@@ -882,7 +884,7 @@ public class Bindables {
         Map<String, RexNode> measures, RexNode after,
         Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
         ImmutableBitSet partitionKeys, RelCollation orderKeys,
-        RexNode interval) {
+        @Nullable RexNode interval) {
       super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
           patternDefinitions, measures, after, subsets, allRows, partitionKeys,
           orderKeys, interval);
@@ -898,7 +900,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+    @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
       return help(dataContext, this);
     }
 

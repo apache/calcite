@@ -30,6 +30,8 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -76,7 +78,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
         false);
   }
 
-  protected RelDataType getComponentType(
+  protected @Nullable RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);

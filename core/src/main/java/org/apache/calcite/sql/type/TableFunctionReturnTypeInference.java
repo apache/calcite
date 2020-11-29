@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class TableFunctionReturnTypeInference
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<RelColumnMapping> getColumnMappings() {
+  public @Nullable Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
   }
 

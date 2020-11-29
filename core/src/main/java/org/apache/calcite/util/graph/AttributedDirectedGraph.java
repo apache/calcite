@@ -19,6 +19,7 @@ package org.apache.calcite.util.graph;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
   }
 
   /** Returns the first edge between one vertex to another. */
-  @Override public E getEdge(V source, V target) {
+  @Override public @Nullable E getEdge(V source, V target) {
     final VertexInfo<V, E> info = getVertex(source);
     for (E outEdge : info.outEdges) {
       if (outEdge.target.equals(target)) {
@@ -55,11 +56,11 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
   // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addEdge(Object, Object, Object...)}. */
   @Deprecated
-  @Override public E addEdge(V vertex, V targetVertex) {
+  @Override public @Nullable E addEdge(V vertex, V targetVertex) {
     return super.addEdge(vertex, targetVertex);
   }
 
-  public E addEdge(V vertex, V targetVertex, Object... attributes) {
+  public @Nullable E addEdge(V vertex, V targetVertex, Object... attributes) {
     final VertexInfo<V, E> info = getVertex(vertex);
     final VertexInfo<V, E> targetInfo = getVertex(targetVertex);
     @SuppressWarnings("unchecked")

@@ -26,6 +26,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.Ordering;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -68,7 +69,7 @@ class Dumpers {
     final PrintWriter pw = new PrintWriter(sw);
     final List<RelNode> nodes = new ArrayList<>();
     new RelVisitor() {
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+      @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
         nodes.add(node);
         super.visit(node, ordinal, parent);
       }

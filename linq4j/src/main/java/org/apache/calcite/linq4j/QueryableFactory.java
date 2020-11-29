@@ -33,6 +33,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.framework.qual.Covariant;
 
@@ -50,8 +51,8 @@ public interface QueryableFactory<T> {
   /**
    * Applies an accumulator function over a sequence.
    */
-  T aggregate(Queryable<T> source,
-      FunctionExpression<Function2<T, T, T>> selector);
+  @Nullable T aggregate(Queryable<T> source,
+      FunctionExpression<Function2<@Nullable T, T, T>> selector);
 
   /**
    * Applies an accumulator function over a
@@ -205,7 +206,7 @@ public interface QueryableFactory<T> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  Queryable<T> defaultIfEmpty(Queryable<T> source);
+  Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source);
 
   /**
    * Returns the elements of the specified sequence or
@@ -288,14 +289,14 @@ public interface QueryableFactory<T> {
    * Returns the first element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  T firstOrDefault(Queryable<T> source);
+  @Nullable T firstOrDefault(Queryable<T> source);
 
   /**
    * Returns the first element of a sequence that
    * satisfies a specified condition or a default value if no such
    * element is found.
    */
-  T firstOrDefault(Queryable<T> source,
+  @Nullable T firstOrDefault(Queryable<T> source,
       FunctionExpression<Predicate1<T>> predicate);
 
   /**

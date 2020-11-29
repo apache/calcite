@@ -46,6 +46,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -103,7 +105,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -128,8 +130,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
@@ -270,7 +272,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
    * BigQuery Standard SQL Data Types</a>.
    */
-  @Override public SqlNode getCastSpec(final RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {

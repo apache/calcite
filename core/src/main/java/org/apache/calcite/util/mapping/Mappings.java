@@ -26,6 +26,7 @@ import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -316,9 +317,9 @@ public abstract class Mappings {
    * @see #asListNonNull(TargetMapping)
    */
   @CheckReturnValue
-  public static List<Integer> asList(final TargetMapping mapping) {
-    return new AbstractList<Integer>() {
-      @Override public Integer get(int source) {
+  public static List<@Nullable Integer> asList(final TargetMapping mapping) {
+    return new AbstractList<@Nullable Integer>() {
+      @Override public @Nullable Integer get(int source) {
         int target = mapping.getTargetOpt(source);
         return target < 0 ? null : target;
       }
@@ -374,7 +375,7 @@ public abstract class Mappings {
   }
 
   public static TargetMapping target(
-      IntFunction<? extends Integer> function,
+      IntFunction<? extends @Nullable Integer> function,
       int sourceCount,
       int targetCount) {
     final PartialFunctionImpl mapping =
@@ -658,7 +659,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
+        (IntFunction<@Nullable Integer>) source -> {
           int source2 = source - offset;
           return source2 < 0 || source2 >= mapping.getSourceCount()
               ? null
@@ -702,7 +703,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new target count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
+        (IntFunction<@Nullable Integer>) source -> {
           int target = mapping.getTargetOpt(source);
           return target < 0 ? null : target + offset;
         },
@@ -730,7 +731,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
+        (IntFunction<@Nullable Integer>) source -> {
           final int source2 = source - offset;
           if (source2 < 0 || source2 >= mapping.getSourceCount()) {
             return null;
@@ -1053,7 +1054,7 @@ public abstract class Mappings {
       return toString().hashCode();
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       // not very efficient
       return (obj instanceof Mapping)
           && toString().equals(obj.toString());

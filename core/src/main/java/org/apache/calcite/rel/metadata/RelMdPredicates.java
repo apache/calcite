@@ -63,6 +63,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -543,13 +545,13 @@ public class RelMdPredicates
     final Map<RexNode, ImmutableBitSet> exprFields;
     final Set<RexNode> allExprs;
     final Set<RexNode> equalityPredicates;
-    final RexNode leftChildPredicates;
-    final RexNode rightChildPredicates;
+    final @Nullable RexNode leftChildPredicates;
+    final @Nullable RexNode rightChildPredicates;
     final RexSimplify simplify;
 
     @SuppressWarnings("JdkObsolete")
-    JoinConditionBasedPredicateInference(Join joinRel, RexNode leftPredicates,
-        RexNode rightPredicates, RexSimplify simplify) {
+    JoinConditionBasedPredicateInference(Join joinRel, @Nullable RexNode leftPredicates,
+        @Nullable RexNode rightPredicates, RexSimplify simplify) {
       super();
       this.joinRel = joinRel;
       this.simplify = simplify;
@@ -709,15 +711,15 @@ public class RelMdPredicates
       }
     }
 
-    public RexNode left() {
+    public @Nullable RexNode left() {
       return leftChildPredicates;
     }
 
-    public RexNode right() {
+    public @Nullable RexNode right() {
       return rightChildPredicates;
     }
 
-    private void infer(RexNode predicates, Set<RexNode> allExprs,
+    private void infer(@Nullable RexNode predicates, Set<RexNode> allExprs,
         List<RexNode> inferredPredicates, boolean includeEqualityInference,
         ImmutableBitSet inferringFields) {
       for (RexNode r : RelOptUtil.conjunctions(predicates)) {
@@ -832,7 +834,7 @@ public class RelMdPredicates
       final int[] columns;
       final BitSet[] columnSets;
       final int[] iterationIdx;
-      Mapping nextMapping;
+      @Nullable Mapping nextMapping;
       boolean firstCall;
 
       @SuppressWarnings("JdkObsolete")

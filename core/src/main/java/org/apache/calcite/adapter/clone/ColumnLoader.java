@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -70,7 +71,7 @@ class ColumnLoader<T> {
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
-      List<ColumnMetaData.Rep> repList) {
+      @Nullable List<ColumnMetaData.Rep> repList) {
     this.typeFactory = typeFactory;
     final RelDataType rowType = protoRowType.apply(typeFactory);
     if (repList == null) {
@@ -238,14 +239,14 @@ class ColumnLoader<T> {
    * value needs to be converted to a {@link Long}. Similarly
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
-  private static List<? extends Object> wrap(ColumnMetaData.Rep rep, List<?> list,
+  private static List<? extends @Nullable Object> wrap(ColumnMetaData.Rep rep, List<?> list,
       RelDataType type) {
     switch (type.getSqlTypeName()) {
     case TIMESTAMP:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        final List<Long> longs = Util.transform((List<Timestamp>) list,
+        final List<@Nullable Long> longs = Util.transform((List<@Nullable Timestamp>) list,
             (Timestamp t) -> t == null ? null : t.getTime());
         return longs;
       default:
@@ -256,8 +257,8 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIME:
-        return Util.<Time, Integer>transform(
-            (List<Time>) list, (Time t) -> t == null
+        return Util.<@Nullable Time, @Nullable Integer>transform(
+            (List<@Nullable Time>) list, (Time t) -> t == null
                 ? null
                 : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
       default:
@@ -268,8 +269,8 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_DATE:
-        return Util.<Date, Integer>transform(
-            (List<Date>) list, (Date d) -> d == null
+        return Util.<@Nullable Date, @Nullable Integer>transform(
+            (List<@Nullable Date>) list, (Date d) -> d == null
                 ? null
                 : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
       default:
@@ -289,16 +290,16 @@ class ColumnLoader<T> {
   static class ValueSet {
     final Class clazz;
     final Map<Comparable, Comparable> map = new HashMap<>();
-    final List<Comparable> values = new ArrayList<>();
-    Comparable min;
-    Comparable max;
+    final List<@Nullable Comparable> values = new ArrayList<>();
+    @Nullable Comparable min;
+    @Nullable Comparable max;
     boolean containsNull;
 
     ValueSet(Class clazz) {
       this.clazz = clazz;
     }
 
-    void add(Comparable e) {
+    void add(@Nullable Comparable e) {
       if (e != null) {
         final Comparable old = e;
         e = map.get(e);
@@ -322,7 +323,7 @@ class ColumnLoader<T> {
 
     /** Freezes the contents of this value set into a column, optionally
      * re-ordering if {@code sources} is specified. */
-    ArrayTable.Column freeze(int ordinal, int [] sources) {
+    ArrayTable.Column freeze(int ordinal, int @Nullable [] sources) {
       ArrayTable.Representation representation = chooseRep(ordinal);
       final int cardinality = map.size() + (containsNull ? 1 : 0);
       final Object data = representation.freeze(this, sources);
@@ -381,7 +382,7 @@ class ColumnLoader<T> {
     }
 
     @EnsuresNonNullIf(result = true, expression = "#1")
-    private boolean canBeLong(Object o) {
+    private boolean canBeLong(@Nullable Object o) {
       return o instanceof Boolean
           || o instanceof Character
           || o instanceof Number;

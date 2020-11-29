@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -56,9 +57,9 @@ public class RelOptCluster {
   private final RexBuilder rexBuilder;
   private RelMetadataProvider metadataProvider;
   private MetadataFactory metadataFactory;
-  private HintStrategyTable hintStrategies;
+  private @Nullable HintStrategyTable hintStrategies;
   private final RelTraitSet emptyTraitSet;
-  private RelMetadataQuery mq;
+  private @Nullable RelMetadataQuery mq;
   private Supplier<RelMetadataQuery> mqSupplier;
 
   //~ Constructors -----------------------------------------------------------
@@ -135,7 +136,7 @@ public class RelOptCluster {
     return rexBuilder;
   }
 
-  public RelMetadataProvider getMetadataProvider() {
+  public @Nullable RelMetadataProvider getMetadataProvider() {
     return metadataProvider;
   }
 

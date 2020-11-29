@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
@@ -180,7 +181,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-      SqlNode parent, CalciteConnectionConfig config) {
+      @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
     assert isRolledUp(column);
     // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
     // We only allow this when approximate results are acceptable.

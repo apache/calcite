@@ -45,6 +45,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -872,14 +874,14 @@ public class AggregateReduceFunctionsRule
     }
 
     @ImmutableBeans.Property
-    Set<SqlKind> functionsToReduce();
+    @Nullable Set<SqlKind> functionsToReduce();
 
     /** Sets {@link #functionsToReduce}. */
-    Config withFunctionsToReduce(Set<SqlKind> functionSet);
+    Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet);
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */
-    default Set<SqlKind> actualFunctionsToReduce() {
+    @NonNull default Set<SqlKind> actualFunctionsToReduce() {
       final Set<SqlKind> set =
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);

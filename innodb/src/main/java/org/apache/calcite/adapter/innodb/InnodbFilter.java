@@ -29,6 +29,8 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -38,12 +40,12 @@ import java.util.Objects;
 public class InnodbFilter extends Filter implements InnodbRel {
   private final TableDef tableDef;
   public final IndexCondition indexCondition;
-  private final String forceIndexName;
+  private final @Nullable String forceIndexName;
 
   /** Creates an InnodbFilter; but use {@link #create} if possible. */
   private InnodbFilter(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition, IndexCondition indexCondition,
-      TableDef tableDef, String forceIndexName) {
+      TableDef tableDef, @Nullable String forceIndexName) {
     super(cluster, traitSet, input, condition);
 
     this.tableDef = Objects.requireNonNull(tableDef);
@@ -57,12 +59,12 @@ public class InnodbFilter extends Filter implements InnodbRel {
   /** Creates an InnodbFilter. */
   public static InnodbFilter create(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition, IndexCondition indexCondition,
-      TableDef tableDef, String forceIndexName) {
+      TableDef tableDef, @Nullable String forceIndexName) {
     return new InnodbFilter(cluster, traitSet, input, condition, indexCondition,
         tableDef, forceIndexName);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }

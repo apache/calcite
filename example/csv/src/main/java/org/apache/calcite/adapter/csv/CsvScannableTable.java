@@ -28,6 +28,8 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,13 +52,13 @@ public class CsvScannableTable extends CsvTable
     return "CsvScannableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
     final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,
             CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }

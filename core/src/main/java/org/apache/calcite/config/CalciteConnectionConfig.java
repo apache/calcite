@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.Properties;
@@ -63,7 +64,7 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   <T> @PolyNull T fun(Class<T> operatorTableClass,
       @PolyNull T defaultOperatorTable);
   /** Returns the value of {@link CalciteConnectionProperty#MODEL}. */
-  String model();
+  @Nullable String model();
   /** Returns the value of {@link CalciteConnectionProperty#LEX}. */
   Lex lex();
   /** Returns the value of {@link CalciteConnectionProperty#QUOTING}. */

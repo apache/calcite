@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -145,7 +146,7 @@ public abstract class Join extends BiRel implements Hintable {
     return joinType;
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!super.isValid(litmus, context)) {
       return false;
     }
@@ -181,7 +182,7 @@ public abstract class Join extends BiRel implements Hintable {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Maybe we should remove this for semi-join?
     if (isSemiJoin()) {
@@ -222,7 +223,7 @@ public abstract class Join extends BiRel implements Hintable {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   @EnsuresNonNullIf(expression = "#1", result = true)
-  protected boolean deepEquals0(Object obj) {
+  protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -290,7 +291,7 @@ public abstract class Join extends BiRel implements Hintable {
       RelDataType rightType,
       JoinRelType joinType,
       RelDataTypeFactory typeFactory,
-      List<String> fieldNameList,
+      @Nullable List<String> fieldNameList,
       List<RelDataTypeField> systemFieldList) {
     return SqlValidatorUtil.deriveJoinRowType(leftType, rightType, joinType,
         typeFactory, fieldNameList, systemFieldList);

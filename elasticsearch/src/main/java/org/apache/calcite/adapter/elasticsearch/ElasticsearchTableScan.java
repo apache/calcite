@@ -30,6 +30,8 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -71,7 +73,7 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     final float f = projectRowType == null ? 1f : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner, mq).multiplyBy(.1 * f);

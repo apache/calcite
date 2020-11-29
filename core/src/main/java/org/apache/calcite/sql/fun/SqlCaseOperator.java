@@ -47,6 +47,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -329,9 +331,9 @@ public class SqlCaseOperator extends SqlOperator {
 
   @SuppressWarnings("argument.type.incompatible")
   @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     assert functionQualifier == null;
     assert operands.length == 4;
     return new SqlCase(pos, operands[0], (SqlNodeList) operands[1],

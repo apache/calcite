@@ -24,6 +24,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +158,7 @@ public class SqlTypeExplicitPrecedenceList
     return i;
   }
 
-  static RelDataTypePrecedenceList getListForType(RelDataType type) {
+  static @Nullable RelDataTypePrecedenceList getListForType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
       return null;

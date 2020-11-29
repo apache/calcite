@@ -19,6 +19,8 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Calling convention trait.
  */
@@ -48,7 +50,7 @@ public interface Convention extends RelTrait {
    * or {@code null} if trait enforcement is not allowed or the
    * required traitSet can't be satisfied.
    */
-  default RelNode enforce(RelNode input, RelTraitSet required) {
+  default @Nullable RelNode enforce(RelNode input, RelTraitSet required) {
     throw new RuntimeException(getClass().getName()
         + "#enforce() is not implemented.");
   }
@@ -122,7 +124,7 @@ public interface Convention extends RelTrait {
       return ConventionTraitDef.INSTANCE;
     }
 
-    @Override public RelNode enforce(final RelNode input,
+    @Override public @Nullable RelNode enforce(final RelNode input,
         final RelTraitSet required) {
       return null;
     }

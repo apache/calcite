@@ -43,6 +43,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -88,7 +89,7 @@ public class ReduceDecimalsRule
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Convention getOutConvention() {
+  @Override public @Nullable Convention getOutConvention() {
     return Convention.NONE;
   }
 
@@ -181,7 +182,7 @@ public class ReduceDecimalsRule
     /**
      * Looks up a registered node.
      */
-    private RexNode lookup(RexNode node) {
+    private @Nullable RexNode lookup(RexNode node) {
       Pair<RexNode, String> key = RexUtil.makeKey(node);
       if (irreducible.get(key) != null) {
         return node;

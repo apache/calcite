@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -78,7 +80,7 @@ public class JsonLattice {
   /** Estimated number of rows.
    *
    * <p>If null, Calcite will a query to find the real value. */
-  public final Double rowCountEstimate;
+  public final @Nullable Double rowCountEstimate;
 
   /** Name of a class that provides estimates of the number of distinct values
    * in each column.
@@ -91,7 +93,7 @@ public class JsonLattice {
    *
    * <p>If not set, Calcite will generate and execute a SQL query to find the
    * real value, and cache the results. */
-  public final String statisticProvider;
+  public final @Nullable String statisticProvider;
 
   /** List of materialized aggregates to create up front. */
   public final List<JsonTile> tiles = new ArrayList<>();
@@ -108,12 +110,12 @@ public class JsonLattice {
   public JsonLattice(
       @JsonProperty(value = "name", required = true) String name,
       @JsonProperty(value = "sql", required = true) Object sql,
-      @JsonProperty("auto") Boolean auto,
-      @JsonProperty("algorithm") Boolean algorithm,
-      @JsonProperty("algorithmMaxMillis") Long algorithmMaxMillis,
-      @JsonProperty("rowCountEstimate") Double rowCountEstimate,
-      @JsonProperty("statisticProvider") String statisticProvider,
-      @JsonProperty("defaultMeasures") List<JsonMeasure> defaultMeasures) {
+      @JsonProperty("auto") @Nullable Boolean auto,
+      @JsonProperty("algorithm") @Nullable Boolean algorithm,
+      @JsonProperty("algorithmMaxMillis") @Nullable Long algorithmMaxMillis,
+      @JsonProperty("rowCountEstimate") @Nullable Double rowCountEstimate,
+      @JsonProperty("statisticProvider") @Nullable String statisticProvider,
+      @JsonProperty("defaultMeasures") @Nullable List<JsonMeasure> defaultMeasures) {
     this.name = requireNonNull(name, "name");
     this.sql = requireNonNull(sql, "sql");
     this.auto = auto == null || auto;

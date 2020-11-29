@@ -56,6 +56,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -83,7 +85,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         constants, getRowType(), groups);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     RelOptCost cost = super.computeSelfCost(planner, mq);
     if (cost == null) {
@@ -111,7 +113,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       this.constants = constants;
     }
 
-    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       if (index < actualInputFieldCount) {
         Expression current = list.append("current", row);
         return rowPhysType.fieldReference(current, index, storageType);
@@ -249,7 +251,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                       collectionExpr, BuiltInMethod.COLLECTION_SIZE.method)),
               false);
 
-      Pair<Expression, Expression> collationKey =
+      Pair<@Nullable Expression, @Nullable Expression> collationKey =
           getRowCollationKey(builder, inputPhysType, group, windowIdx);
       Expression keySelector = collationKey.left;
       Expression keyComparator = collationKey.right;
@@ -752,7 +754,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             comparator_)));
   }
 
-  private Pair<Expression, Expression> getRowCollationKey(
+  private Pair<@Nullable Expression, @Nullable Expression> getRowCollationKey(
       BlockBuilder builder, PhysType inputPhysType,
       Group group, int windowIdx) {
     if (!(group.isRows
@@ -873,7 +875,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
               return rexArguments.apply(agg);
             }
 
-            @Override public RexNode rexFilterArgument() {
+            @Override public @Nullable RexNode rexFilterArgument() {
               return null; // REVIEW
             }
           };
@@ -922,7 +924,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       boolean lower,
       PhysType physType,
       @SuppressWarnings("unused") Expression rowComparator, // TODO: remove or use
-      Expression keySelector, Expression keyComparator) {
+      @Nullable Expression keySelector, @Nullable Expression keyComparator) {
     RexWindowBound bound = lower ? group.lowerBound : group.upperBound;
     if (bound.isUnbounded()) {
       return bound.isPreceding() ? min_ : max_;

@@ -29,6 +29,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,7 +47,7 @@ public class IdentifierNamespace extends AbstractNamespace {
 
   private final SqlIdentifier id;
   private final SqlValidatorScope parentScope;
-  public final SqlNodeList extendList;
+  public final @Nullable SqlNodeList extendList;
 
   /**
    * The underlying namespace. Often a {@link TableNamespace}.
@@ -57,7 +58,7 @@ public class IdentifierNamespace extends AbstractNamespace {
   /**
    * List of monotonic expressions. Set on validate.
    */
-  private List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs;
+  private @Nullable List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,7 +72,7 @@ public class IdentifierNamespace extends AbstractNamespace {
    * @param parentScope   Parent scope which this namespace turns to in order to
    */
   IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
-      SqlNodeList extendList, SqlNode enclosingNode,
+      @Nullable SqlNodeList extendList, @Nullable SqlNode enclosingNode,
       SqlValidatorScope parentScope) {
     super(validator, enclosingNode);
     this.id = id;
@@ -80,14 +81,14 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
-      SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      @Nullable SqlNode enclosingNode, SqlValidatorScope parentScope) {
     this(validator, split(node).left, split(node).right, enclosingNode,
         parentScope);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  protected static Pair<SqlIdentifier, SqlNodeList> split(SqlNode node) {
+  protected static Pair<SqlIdentifier, @Nullable SqlNodeList> split(SqlNode node) {
     switch (node.getKind()) {
     case EXTEND:
       final SqlCall call = (SqlCall) node;
@@ -247,7 +248,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     return id;
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return id;
   }
 
@@ -256,7 +257,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     return resolvedNamespace.resolve();
   }
 
-  @Override public SqlValidatorTable getTable() {
+  @Override public @Nullable SqlValidatorTable getTable() {
     return resolvedNamespace == null ? null : resolve().getTable();
   }
 

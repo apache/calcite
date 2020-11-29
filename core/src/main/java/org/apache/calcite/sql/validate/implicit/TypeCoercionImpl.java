@@ -42,6 +42,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -87,7 +89,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param targetType  Target type to cast to
    */
   @Override public boolean rowTypeCoercion(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlNode query,
       int columnIndex,
       RelDataType targetType) {
@@ -268,7 +270,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * For operand data types (type1, type2, type3), deduce the common type type4
    * from type1 and type2, then common type type5 from type4 and type3.
    */
-  protected RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
+  protected @Nullable RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
     assert dataTypes.size() > 2;
     final RelDataType type1 = dataTypes.get(0);
     final RelDataType type2 = dataTypes.get(1);
@@ -609,7 +611,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return coerced;
   }
 
-  @Override public boolean querySourceCoercion(SqlValidatorScope scope,
+  @Override public boolean querySourceCoercion(@Nullable SqlValidatorScope scope,
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query) {
     final List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
     final List<RelDataTypeField> targetFields = targetRowType.getFieldList();
@@ -641,7 +643,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param targetType   Target type
    */
   private boolean coerceSourceRowType(
-      SqlValidatorScope sourceScope,
+      @Nullable SqlValidatorScope sourceScope,
       SqlNode query,
       int columnIndex,
       RelDataType targetType) {

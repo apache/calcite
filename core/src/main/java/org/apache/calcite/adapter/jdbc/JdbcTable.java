@@ -54,6 +54,8 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +75,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
-  private RelProtoDataType protoRowType;
+  private @Nullable RelProtoDataType protoRowType;
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;
@@ -99,7 +101,7 @@ public class JdbcTable extends AbstractQueryableTable
     return jdbcTableType;
   }
 
-  @Override public <C extends Object> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(jdbcSchema.getDataSource())) {
       return aClass.cast(jdbcSchema.getDataSource());
     } else if (aClass.isInstance(jdbcSchema.dialect)) {
@@ -177,21 +179,21 @@ public class JdbcTable extends AbstractQueryableTable
     return new JdbcTableQueryable<>(queryProvider, schema, tableName);
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
         JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
   }
 
-  @Override public Collection getModifiableCollection() {
+  @Override public @Nullable Collection getModifiableCollection() {
     return null;
   }
 
   @Override public TableModify toModificationRel(RelOptCluster cluster,
       RelOptTable table, CatalogReader catalogReader, RelNode input,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     jdbcSchema.convention.register(cluster.getPlanner());
 
     return new LogicalTableModify(cluster, cluster.traitSetOf(Convention.NONE),

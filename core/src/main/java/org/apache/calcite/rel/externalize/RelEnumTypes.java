@@ -33,6 +33,8 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /** Registry of {@link Enum} classes that can be serialized to JSON.
@@ -85,7 +87,7 @@ public abstract class RelEnumTypes {
 
   /** Converts a literal into a value that can be serialized to JSON.
    * In particular, if is an enum, converts it to its name. */
-  public static Object fromEnum(Object value) {
+  public static @Nullable Object fromEnum(@Nullable Object value) {
     return value instanceof Enum ? fromEnum((Enum) value) : value;
   }
 

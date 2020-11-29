@@ -21,6 +21,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -168,7 +170,7 @@ public class JoinNode implements Node {
    * Copies the value of row into context values.
    */
   private void copyToContext(Row row, boolean toLeftSide) {
-    Object[] values = row.getValues();
+    @Nullable Object[] values = row.getValues();
     requireNonNull(context.values, "context.values");
     if (toLeftSide) {
       System.arraycopy(values, 0, context.values, 0, values.length);

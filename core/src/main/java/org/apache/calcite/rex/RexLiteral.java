@@ -47,6 +47,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
@@ -192,7 +193,7 @@ public class RexLiteral extends RexNode {
    * represented by a {@link BigDecimal}. But since this field is private, it
    * doesn't really matter how the values are stored.
    */
-  private final Comparable value;
+  private final @Nullable Comparable value;
 
   /**
    * The real type of this literal, as reported by {@link #getType}.
@@ -220,7 +221,7 @@ public class RexLiteral extends RexNode {
    * Creates a <code>RexLiteral</code>.
    */
   RexLiteral(
-      Comparable value,
+      @Nullable Comparable value,
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
@@ -304,7 +305,7 @@ public class RexLiteral extends RexNode {
   /** Returns whether a value is appropriate for its type. (We have rules about
    * these things!) */
   public static boolean valueMatchesType(
-      Comparable value,
+      @Nullable Comparable value,
       SqlTypeName typeName,
       boolean strict) {
     if (value == null) {
@@ -410,7 +411,7 @@ public class RexLiteral extends RexNode {
   }
 
   private static String toJavaString(
-      Comparable value,
+      @Nullable Comparable value,
       SqlTypeName typeName, RelDataType type,
       RexDigestIncludeType includeType) {
     assert includeType != RexDigestIncludeType.OPTIONAL
@@ -448,7 +449,7 @@ public class RexLiteral extends RexNode {
    * @param type type of the literal
    * @return NO_TYPE when type can be omitted, ALWAYS otherwise
    */
-  private static RexDigestIncludeType shouldIncludeType(Comparable value,
+  private static RexDigestIncludeType shouldIncludeType(@Nullable Comparable value,
       RelDataType type) {
     if (type.isNullable()) {
       // This means "null literal", so we require a type for it
@@ -495,7 +496,7 @@ public class RexLiteral extends RexNode {
 
   /** Returns whether a value is valid as a constant value, using the same
    * criteria as {@link #valueMatchesType}. */
-  public static boolean validConstant(Object o, Litmus litmus) {
+  public static boolean validConstant(@Nullable Object o, Litmus litmus) {
     if (o == null
         || o instanceof BigDecimal
         || o instanceof NlsString
@@ -615,7 +616,7 @@ public class RexLiteral extends RexNode {
    * @param type Type to be used for the transformation of the value to a Java string
    * @param includeType Whether to include the data type in the Java representation
    */
-  private static void appendAsJava(Comparable value, StringBuilder sb,
+  private static void appendAsJava(@Nullable Comparable value, StringBuilder sb,
       SqlTypeName typeName, RelDataType type, boolean java,
       RexDigestIncludeType includeType) {
     switch (typeName) {
@@ -914,7 +915,7 @@ public class RexLiteral extends RexNode {
    * {@link Calendar} value in UTC time zone.
    */
   @Pure
-  public Comparable getValue() {
+  public @Nullable Comparable getValue() {
     assert valueMatchesType(value, typeName, true) : value;
     if (value == null) {
       return null;
@@ -933,7 +934,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that the calculator
    * program builder wants it.
    */
-  public Object getValue2() {
+  public @Nullable Object getValue2() {
     if (value == null) {
       return null;
     }
@@ -957,7 +958,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that the rex-to-lix
    * translator wants it.
    */
-  public Object getValue3() {
+  public @Nullable Object getValue3() {
     if (value == null) {
       return null;
     }
@@ -974,7 +975,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that {@link RexInterpreter}
    * wants it.
    */
-  public Comparable getValue4() {
+  public @Nullable Comparable getValue4() {
     if (value == null) {
       return null;
     }
@@ -1016,7 +1017,7 @@ public class RexLiteral extends RexNode {
    * @param <T> Return type
    * @return Value of this literal in the desired type
    */
-  public <T> T getValueAs(Class<T> clazz) {
+  public <T> @Nullable T getValueAs(Class<T> clazz) {
     if (value == null || clazz.isInstance(value)) {
       return clazz.cast(value);
     }
@@ -1152,7 +1153,7 @@ public class RexLiteral extends RexNode {
     return !booleanValue(this);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -1165,7 +1166,7 @@ public class RexLiteral extends RexNode {
     return Objects.hash(value, type);
   }
 
-  public static Comparable value(RexNode node) {
+  public static @Nullable Comparable value(RexNode node) {
     return findValue(node);
   }
 
@@ -1174,12 +1175,12 @@ public class RexLiteral extends RexNode {
     return ((Number) value).intValue();
   }
 
-  public static String stringValue(RexNode node) {
+  public static @Nullable String stringValue(RexNode node) {
     final Comparable value = findValue(node);
     return (value == null) ? null : ((NlsString) value).getValue();
   }
 
-  private static Comparable findValue(RexNode node) {
+  private static @Nullable Comparable findValue(RexNode node) {
     if (node instanceof RexLiteral) {
       return ((RexLiteral) node).value;
     }

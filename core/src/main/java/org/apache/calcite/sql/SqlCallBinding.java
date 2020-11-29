@@ -43,6 +43,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +72,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlValidator validator;
-  private final SqlValidatorScope scope;
+  private final @Nullable SqlValidatorScope scope;
   private final SqlCall call;
 
   //~ Constructors -----------------------------------------------------------
@@ -84,7 +86,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
    */
   public SqlCallBinding(
       SqlValidator validator,
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlCall call) {
     super(
         validator.getTypeFactory(),
@@ -128,7 +130,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /**
    * Returns the scope of the call.
    */
-  public SqlValidatorScope getScope() {
+  public @Nullable SqlValidatorScope getScope() {
     return scope;
   }
 
@@ -242,7 +244,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public String getStringLiteralOperand(int ordinal) {
+  @Override public @Nullable String getStringLiteralOperand(int ordinal) {
     SqlNode node = call.operand(ordinal);
     final Object o = SqlLiteral.value(node);
     return o instanceof NlsString ? ((NlsString) o).getValue() : null;
@@ -264,13 +266,13 @@ public class SqlCallBinding extends SqlOperatorBinding {
     throw new AssertionError();
   }
 
-  @Override public <T extends Object> T getOperandLiteralValue(int ordinal,
+  @Override public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal,
       Class<T> clazz) {
     final SqlNode node = operand(ordinal);
     return valueAs(node, clazz);
   }
 
-  @Override public Object getOperandLiteralValue(int ordinal, RelDataType type) {
+  @Override public @Nullable Object getOperandLiteralValue(int ordinal, RelDataType type) {
     if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
       return null;
     }
@@ -286,11 +288,11 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return EnumUtils.evaluate(o2, clazz);
   }
 
-  private <T extends Object> T valueAs(SqlNode node, Class<T> clazz) {
+  private <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
-      final List<Object> list = new ArrayList<>();
+      final List<@Nullable Object> list = new ArrayList<>();
       for (SqlNode o : ((SqlCall) node).getOperandList()) {
         list.add(valueAs(o, Object.class));
       }
@@ -362,7 +364,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return type;
   }
 
-  @Override public RelDataType getCursorOperand(int ordinal) {
+  @Override public @Nullable RelDataType getCursorOperand(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.CURSOR)) {
       return null;
@@ -372,7 +374,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return SqlTypeUtil.deriveType(this, query);
   }
 
-  @Override public String getColumnListParamInfo(
+  @Override public @Nullable String getColumnListParamInfo(
       int ordinal,
       String paramName,
       List<String> columnList) {

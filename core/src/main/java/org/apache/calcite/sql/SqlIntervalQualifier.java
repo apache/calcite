@@ -29,6 +29,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -102,7 +104,7 @@ public class SqlIntervalQualifier extends SqlNode {
   public SqlIntervalQualifier(
       TimeUnit startUnit,
       int startPrecision,
-      TimeUnit endUnit,
+      @Nullable TimeUnit endUnit,
       int fractionalSecondPrecision,
       SqlParserPos pos) {
     super(pos);
@@ -117,7 +119,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
   public SqlIntervalQualifier(
       TimeUnit startUnit,
-      TimeUnit endUnit,
+      @Nullable TimeUnit endUnit,
       SqlParserPos pos) {
     this(
         startUnit,
@@ -189,7 +191,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (node == null) {
       return litmus.fail("other==null");
     }

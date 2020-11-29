@@ -42,6 +42,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +87,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * we do this base on the fact that validate happens before type coercion.
    */
   protected boolean coerceOperandType(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlCall call,
       int index,
       RelDataType targetType) {
@@ -121,7 +123,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param commonType common type to coerce to
    */
   protected boolean coerceOperandsType(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlCall call,
       RelDataType commonType) {
     boolean coerced = false;
@@ -140,7 +142,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param targetType Target type to cast to
    */
   protected boolean coerceColumnType(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlNodeList nodeList,
       int index,
       RelDataType targetType) {
@@ -329,8 +331,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    *
    * @return tightest common type, i.e. INTEGER + DECIMAL(10, 2) returns DECIMAL(10, 2)
    */
-  @Override public RelDataType getTightestCommonType(
-      RelDataType type1, RelDataType type2) {
+  @Override public @Nullable RelDataType getTightestCommonType(
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
     if (type1 == null || type2 == null) {
       return null;
     }
@@ -411,7 +413,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   }
 
   private RelDataType getTightestCommonTypeOrThrow(
-      RelDataType type1, RelDataType type2) {
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
     return requireNonNull(getTightestCommonType(type1, type2),
         () -> "expected non-null getTightestCommonType for " + type1 + " and " + type2);
   }
@@ -419,8 +421,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   /**
    * Promote all the way to VARCHAR.
    */
-  private RelDataType promoteToVarChar(
-      RelDataType type1, RelDataType type2) {
+  private @Nullable RelDataType promoteToVarChar(
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
     RelDataType resultType = null;
     if (type1 == null || type2 == null) {
       return null;
@@ -448,8 +450,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * other is not. For date + timestamp operands, use timestamp as common type,
    * i.e. Timestamp(2017-01-01 00:00 ...) &gt; Date(2018) evaluates to be false.
    */
-  @Override public RelDataType commonTypeForBinaryComparison(
-      RelDataType type1, RelDataType type2) {
+  @Override public @Nullable RelDataType commonTypeForBinaryComparison(
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
     if (type1 == null || type2 == null) {
       return null;
     }
@@ -531,9 +533,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * is that we allow some precision loss when widening decimal to fractional,
    * or promote fractional to string type.
    */
-  @Override public RelDataType getWiderTypeForTwo(
-      RelDataType type1,
-      RelDataType type2,
+  @Override public @Nullable RelDataType getWiderTypeForTwo(
+      @Nullable RelDataType type1,
+      @Nullable RelDataType type2,
       boolean stringPromotion) {
     if (type1 == null || type2 == null) {
       return null;
@@ -568,8 +570,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * you can override it based on the specific system requirement in
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem}.
    */
-  @Override public RelDataType getWiderTypeForDecimal(
-      RelDataType type1, RelDataType type2) {
+  @Override public @Nullable RelDataType getWiderTypeForDecimal(
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
     if (type1 == null || type2 == null) {
       return null;
     }
@@ -594,7 +596,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * {@link #getWiderTypeForTwo} satisfies the associative law. For instance,
    * (DATE, INTEGER, VARCHAR) should have VARCHAR as the wider common type.
    */
-  @Override public RelDataType getWiderTypeFor(List<RelDataType> typeList,
+  @Override public @Nullable RelDataType getWiderTypeFor(List<RelDataType> typeList,
       boolean stringPromotion) {
     assert typeList.size() > 1;
     RelDataType resultType = typeList.get(0);
@@ -663,7 +665,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param expected Expected {@link SqlTypeFamily} of registered SqlFunction
    * @return common type of implicit cast, null if we do not find any
    */
-  public RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {
+  public @Nullable RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {
     List<SqlTypeFamily> numericFamilies = ImmutableList.of(
         SqlTypeFamily.NUMERIC,
         SqlTypeFamily.DECIMAL,

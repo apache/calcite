@@ -36,6 +36,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -1204,7 +1206,7 @@ public abstract class QueryableDefaults {
       return original.getElementType();
     }
 
-    @Override public Expression getExpression() {
+    @Override public @Nullable Expression getExpression() {
       return original.getExpression();
     }
 

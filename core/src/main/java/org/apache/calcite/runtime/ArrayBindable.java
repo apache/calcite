@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Extension to {@link Bindable} that returns rows that are arrays of objects.
@@ -23,7 +24,7 @@ package org.apache.calcite.runtime;
  * <p>It also implements {@link Typed}; the {@link #getElementType()} method
  * must return {@code Object[].class}.
  */
-public interface ArrayBindable extends Bindable<Object[]>, Typed {
+public interface ArrayBindable extends Bindable<@Nullable Object[]>, Typed {
   // override
   @Override Class<Object[]> getElementType();
 }

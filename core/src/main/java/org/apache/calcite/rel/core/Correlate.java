@@ -34,6 +34,8 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Set;
 
@@ -117,7 +119,7 @@ public abstract class Correlate extends BiRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return super.isValid(litmus, context)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
@@ -201,7 +203,7 @@ public abstract class Correlate extends BiRel {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 

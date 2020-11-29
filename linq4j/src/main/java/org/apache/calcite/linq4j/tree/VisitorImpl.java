@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ import java.util.List;
  * @param <R> Return type
  */
 @SuppressWarnings("unused")
-public class VisitorImpl<R> implements Visitor<R> {
+public class VisitorImpl<@Nullable R> implements Visitor<R> {
   public VisitorImpl() {
     super();
   }

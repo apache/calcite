@@ -41,6 +41,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TransientTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,8 +77,8 @@ public class ListTransientTable extends AbstractQueryableTable
       Prepare.CatalogReader catalogReader,
       RelNode child,
       TableModify.Operation operation,
-      List<String> updateColumnList,
-      List<RexNode> sourceExpressionList,
+      @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     return LogicalTableModify.create(table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
@@ -86,16 +88,16 @@ public class ListTransientTable extends AbstractQueryableTable
     return rows;
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     // add the table into the schema, so that it is accessible by any potential operator
     requireNonNull(root.getRootSchema(), "root.getRootSchema()")
         .add(name, this);
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
-        return new Enumerator<Object[]>() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return new Enumerator<@Nullable Object[]>() {
           private final List list = new ArrayList(rows);
           private int i = -1;
 

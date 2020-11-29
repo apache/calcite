@@ -64,6 +64,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -104,12 +106,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
-  private final RexProgram program;
+  private final @Nullable RexProgram program;
   final SqlConformance conformance;
   private final Expression root;
-  final RexToLixTranslator.InputGetter inputGetter;
+  final RexToLixTranslator.@Nullable InputGetter inputGetter;
   private final BlockBuilder list;
-  private final Function1<String, InputGetter> correlates;
+  private final @Nullable Function1<String, InputGetter> correlates;
 
   /**
    * Map from RexLiteral's variable name to its literal, which is often a
@@ -130,14 +132,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /** Map from RexNode under specific storage type to its Result, to avoid
    * generating duplicate code. For {@code RexInputRef}, {@code RexDynamicParam}
    * and {@code RexFieldAccess}. */
-  private final Map<Pair<RexNode, Type>, Result> rexWithStorageTypeResultMap =
+  private final Map<Pair<RexNode, @Nullable Type>, Result> rexWithStorageTypeResultMap =
       new HashMap<>();
 
   /** Map from RexNode to its Result, to avoid generating duplicate code.
    * For {@code RexLiteral} and {@code RexCall}. */
   private final Map<RexNode, Result> rexResultMap = new HashMap<>();
 
-  private Type currentStorageType;
+  private @Nullable Type currentStorageType;
 
   private static Method findMethod(
       Class<?> clazz, String name, Class... parameterTypes) {
@@ -148,14 +150,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
   }
 
-  private RexToLixTranslator(RexProgram program,
+  private RexToLixTranslator(@Nullable RexProgram program,
       JavaTypeFactory typeFactory,
       Expression root,
-      InputGetter inputGetter,
+      @Nullable InputGetter inputGetter,
       BlockBuilder list,
       RexBuilder builder,
       SqlConformance conformance,
-      Function1<String, InputGetter> correlates) {
+      @Nullable Function1<String, InputGetter> correlates) {
     this.program = program; // may be null
     this.typeFactory = requireNonNull(typeFactory);
     this.conformance = requireNonNull(conformance);
@@ -183,8 +185,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    */
   public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory, SqlConformance conformance,
-      BlockBuilder list, PhysType outputPhysType, Expression root,
-      InputGetter inputGetter, Function1<String, InputGetter> correlates) {
+      BlockBuilder list, @Nullable PhysType outputPhysType, Expression root,
+      InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
       final RelDataType rowType = outputPhysType.getRowType();
@@ -210,7 +212,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /** Creates a translator for translating aggregate functions. */
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
-      BlockBuilder list, InputGetter inputGetter, SqlConformance conformance) {
+      BlockBuilder list, @Nullable InputGetter inputGetter, SqlConformance conformance) {
     final ParameterExpression root = DataContext.ROOT;
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
         new RexBuilder(typeFactory), conformance, null);
@@ -226,14 +228,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return translate(expr, nullAs, null);
   }
 
-  Expression translate(RexNode expr, Type storageType) {
+  Expression translate(RexNode expr, @Nullable Type storageType) {
     final RexImpTable.NullAs nullAs =
         RexImpTable.NullAs.of(isNullable(expr));
     return translate(expr, nullAs, storageType);
   }
 
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
-      Type storageType) {
+      @Nullable Type storageType) {
     currentStorageType = storageType;
     final Result result = expr.accept(this);
     final Expression translated =
@@ -595,7 +597,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
-  private Expression translateCastToTime(RelDataType sourceType, Expression operand) {
+  private @Nullable Expression translateCastToTime(RelDataType sourceType, Expression operand) {
     Expression convert = null;
     switch (sourceType.getSqlTypeName()) {
     case CHAR:
@@ -633,7 +635,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return convert;
   }
 
-  private Expression translateCastToDate(RelDataType sourceType, Expression operand) {
+  private @Nullable Expression translateCastToDate(RelDataType sourceType, Expression operand) {
     Expression convert = null;
     switch (sourceType.getSqlTypeName()) {
     case CHAR:
@@ -818,9 +820,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   public List<Expression> translateList(
       List<RexNode> operandList,
       RexImpTable.NullAs nullAs,
-      List<? extends Type> storageTypes) {
+      List<? extends @Nullable Type> storageTypes) {
     final List<Expression> list = new ArrayList<>();
-    for (Pair<RexNode, ? extends Type> e : Pair.zip(operandList, storageTypes)) {
+    for (Pair<RexNode, ? extends @Nullable Type> e : Pair.zip(operandList, storageTypes)) {
       list.add(translate(e.left, nullAs, e.right));
     }
     return list;
@@ -857,7 +859,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * @return translated expressions
    */
   public List<Expression> translateList(List<? extends RexNode> operandList,
-      List<? extends Type> storageTypes) {
+      @Nullable List<? extends @Nullable Type> storageTypes) {
     final List<Expression> list = new ArrayList<>(operandList.size());
 
     for (int i = 0; i < operandList.size(); i++) {
@@ -926,7 +928,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   public RexToLixTranslator setCorrelates(
-      Function1<String, InputGetter> correlates) {
+      @Nullable Function1<String, InputGetter> correlates) {
     if (this.correlates == correlates) {
       return this;
     }
@@ -987,7 +989,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * }
    */
   @Override public Result visitInputRef(RexInputRef inputRef) {
-    final Pair<RexNode, Type> key = Pair.of(inputRef, currentStorageType);
+    final Pair<RexNode, @Nullable Type> key = Pair.of(inputRef, currentStorageType);
     // If the RexInputRef has been visited under current storage type already,
     // it is not necessary to visit it again, just return the result.
     if (rexWithStorageTypeResultMap.containsKey(key)) {
@@ -1133,7 +1135,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       throw new RuntimeException("cannot translate call " + call);
     }
     final List<RexNode> operandList = call.getOperands();
-    final List<Type> storageTypes = EnumUtils.internalTypes(operandList);
+    final List<@Nullable Type> storageTypes = EnumUtils.internalTypes(operandList);
     final List<Result> operandResults = new ArrayList<>();
     for (int i = 0; i < operandList.size(); i++) {
       final Result operandResult =
@@ -1147,7 +1149,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   private static Result implementCallOperand(final RexNode operand,
-      final Type storageType, final RexToLixTranslator translator) {
+      final @Nullable Type storageType, final RexToLixTranslator translator) {
     final Type originalStorageType = translator.currentStorageType;
     translator.currentStorageType = storageType;
     Result operandResult = operand.accept(translator);
@@ -1159,7 +1161,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   private static Expression implementCallOperand2(final RexNode operand,
-      final Type storageType, final RexToLixTranslator translator) {
+      final @Nullable Type storageType, final RexToLixTranslator translator) {
     final Type originalStorageType = translator.currentStorageType;
     translator.currentStorageType = storageType;
     final Expression result =  translator.translate(operand);
@@ -1239,7 +1241,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   private void implementRecursively(final RexToLixTranslator currentTranslator,
       final List<RexNode> operandList, final ParameterExpression valueVariable, int pos) {
     final BlockBuilder currentBlockBuilder = currentTranslator.getBlockBuilder();
-    final List<Type> storageTypes = EnumUtils.internalTypes(operandList);
+    final List<@Nullable Type> storageTypes = EnumUtils.internalTypes(operandList);
     // [ELSE] clause
     if (pos == operandList.size() - 1) {
       Expression res = implementCallOperand2(operandList.get(pos),
@@ -1304,7 +1306,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitDynamicParam(RexDynamicParam dynamicParam) {
-    final Pair<RexNode, Type> key = Pair.of(dynamicParam, currentStorageType);
+    final Pair<RexNode, @Nullable Type> key = Pair.of(dynamicParam, currentStorageType);
     if (rexWithStorageTypeResultMap.containsKey(key)) {
       return rexWithStorageTypeResultMap.get(key);
     }
@@ -1326,7 +1328,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {
-    final Pair<RexNode, Type> key = Pair.of(fieldAccess, currentStorageType);
+    final Pair<RexNode, @Nullable Type> key = Pair.of(fieldAccess, currentStorageType);
     if (rexWithStorageTypeResultMap.containsKey(key)) {
       return rexWithStorageTypeResultMap.get(key);
     }
@@ -1422,7 +1424,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   /** Returns the value of a literal. */
-  Object getLiteralValue(Expression expr) {
+  @Nullable Object getLiteralValue(@Nullable Expression expr) {
     if (expr instanceof ParameterExpression) {
       final Expression constantExpr = literalMap.get(expr);
       return getLiteralValue(constantExpr);
@@ -1440,7 +1442,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /** Translates a field of an input to an expression. */
   public interface InputGetter {
-    Expression field(BlockBuilder list, int index, Type storageType);
+    Expression field(BlockBuilder list, int index, @Nullable Type storageType);
   }
 
   /** Implementation of {@link InputGetter} that calls
@@ -1452,7 +1454,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       this.inputs = inputs;
     }
 
-    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       int offset = 0;
       for (Pair<Expression, PhysType> input : inputs) {
         final PhysType physType = input.right;

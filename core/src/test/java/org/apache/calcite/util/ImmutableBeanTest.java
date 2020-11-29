@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
@@ -573,12 +574,12 @@ class ImmutableBeanTest {
 
     /** Property is required because it has 'Nonnull' annotation. */
     @ImmutableBeans.Property
-    String getNonnullString();
+    @NonNull String getNonnullString();
     Bean2 withNonnullString(String s);
 
     @ImmutableBeans.Property
     @ImmutableBeans.StringDefault("abc")
-    String getStringWithDefault();
+    @NonNull String getStringWithDefault();
     Bean2 withStringWithDefault(String s);
 
     @ImmutableBeans.Property
@@ -588,7 +589,7 @@ class ImmutableBeanTest {
 
     @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("RED")
-    Color getColorWithDefault();
+    @NonNull Color getColorWithDefault();
     Bean2 withColorWithDefault(Color color);
 
     @ImmutableBeans.Property

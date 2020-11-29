@@ -37,6 +37,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -213,7 +215,7 @@ public class ProjectFilterTransposeRule
     }
 
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
-        boolean [] update) {
+        boolean @Nullable [] update) {
       ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
       for (RexNode operand : exprs) {
         RexNode clonedOperand = visit(operand);

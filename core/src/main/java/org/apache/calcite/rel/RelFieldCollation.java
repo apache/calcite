@@ -18,6 +18,8 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -29,7 +31,7 @@ import java.util.Objects;
 public class RelFieldCollation {
   /** Utility method that compares values taking into account null
    * direction. */
-  public static int compare(Comparable c1, Comparable c2, int nullComparison) {
+  public static int compare(@Nullable Comparable c1, @Nullable Comparable c2, int nullComparison) {
     if (c1 == c2) {
       return 0;
     } else if (c1 == null) {
@@ -279,7 +281,7 @@ public class RelFieldCollation {
     return withFieldIndex(fieldIndex + offset);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof RelFieldCollation
         && fieldIndex == ((RelFieldCollation) o).fieldIndex

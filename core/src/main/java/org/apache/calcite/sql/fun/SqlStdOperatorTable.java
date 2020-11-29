@@ -72,6 +72,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -2486,7 +2487,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** Returns the group function for which a given kind is an auxiliary
    * function, or null if it is not an auxiliary function. */
-  public static SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
+  public static @Nullable SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
     switch (kind) {
     case TUMBLE_START:
     case TUMBLE_END:
@@ -2507,7 +2508,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
+  public static @Nullable SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroupAuxiliary()) {

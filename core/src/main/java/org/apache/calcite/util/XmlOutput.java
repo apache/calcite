@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayDeque;
@@ -181,7 +183,7 @@ public class XmlOutput {
    * @param attributes an XMLAttrVector containing the attributes to include
    *   in the tag.
    */
-  public void beginTag(String tagName, XMLAttrVector attributes) {
+  public void beginTag(String tagName, @Nullable XMLAttrVector attributes) {
     beginBeginTag(tagName);
     if (attributes != null) {
       attributes.display(out, indent);
@@ -345,7 +347,7 @@ public class XmlOutput {
    *        ... <code>]]&gt;</code> regardless of the content of
    *        <code>data</code>; if false, quote only if the content needs it
    */
-  public void cdata(String data, boolean quote) {
+  public void cdata(@Nullable String data, boolean quote) {
     if (inTag) {
       // complete the parent's start tag
       if (compact) {
@@ -400,7 +402,7 @@ public class XmlOutput {
   /**
    * Writes content.
    */
-  public void content(String content) {
+  public void content(@Nullable String content) {
     // This method previously used a LineNumberReader, but that class is
     // susceptible to a form of DoS attack. It uses lots of memory and CPU if a
     // malicious client gives it input with very long lines.
@@ -459,7 +461,7 @@ public class XmlOutput {
   }
 
   /** Prints an XML attribute name and value for string {@code val}. */
-  private static void printAtt(PrintWriter pw, String name, String val) {
+  private static void printAtt(PrintWriter pw, String name, @Nullable String val) {
     if (val != null /* && !val.equals("") */) {
       pw.print(" ");
       pw.print(name);
@@ -544,8 +546,8 @@ public class XmlOutput {
    * use one of the global mappings pre-defined here.</p>
    */
   static class StringEscaper implements Cloneable {
-    private List<String> translationVector;
-    private String [] translationTable;
+    private @Nullable List<@Nullable String> translationVector;
+    private String @Nullable [] translationTable;
 
     public static final StringEscaper XML_ESCAPER;
     public static final StringEscaper XML_NUMERIC_ESCAPER;
@@ -563,7 +565,7 @@ public class XmlOutput {
      */
     public void defineEscape(char from, String to) {
       int i = (int) from;
-      List<String> translationVector = requireNonNull(this.translationVector,
+      List<@Nullable String> translationVector = requireNonNull(this.translationVector,
           "translationVector");
       if (i >= translationVector.size()) {
         // Extend list by adding the requisite number of nulls.

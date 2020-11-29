@@ -19,6 +19,8 @@ package org.apache.calcite.schema.impl;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -44,7 +46,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
 
   /** Creates a {@code TableMacro} from a class, looking for an "eval"
    * method. Returns null if there is no such method. */
-  public static TableMacro create(Class<?> clazz) {
+  public static @Nullable TableMacro create(Class<?> clazz) {
     final Method method = findMethod(clazz, "eval");
     if (method == null) {
       return null;
@@ -53,7 +55,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
   }
 
   /** Creates a {@code TableMacro} from a method. */
-  public static TableMacro create(final Method method) {
+  public static @Nullable TableMacro create(final Method method) {
     Class clazz = method.getDeclaringClass();
     if (!Modifier.isStatic(method.getModifiers())) {
       if (!classHasPublicZeroArgsConstructor(clazz)) {
@@ -73,7 +75,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
    * @param arguments Arguments
    * @return Table
    */
-  @Override public TranslatableTable apply(List<? extends Object> arguments) {
+  @Override public TranslatableTable apply(List<? extends @Nullable Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {

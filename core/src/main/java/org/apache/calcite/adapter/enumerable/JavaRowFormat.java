@@ -29,6 +29,8 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -61,7 +63,7 @@ public enum JavaRowFormat {
     }
 
     @Override public MemberExpression field(Expression expression, int field,
-        Type fromType, Type fieldType) {
+        @Nullable Type fromType, Type fieldType) {
       final Type type = expression.getType();
       if (type instanceof Types.RecordType) {
         Types.RecordType recordType = (Types.RecordType) type;
@@ -94,7 +96,7 @@ public enum JavaRowFormat {
       return expressions.get(0);
     }
 
-    @Override public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
         Type fieldType) {
       assert field == 0;
       return expression;
@@ -177,7 +179,7 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
         Type fieldType) {
       final MethodCallExpression e = Expressions.call(expression,
           BuiltInMethod.LIST_GET.method, Expressions.constant(field));
@@ -206,7 +208,7 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
     }
 
-    @Override public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
         Type fieldType) {
       final Expression e = Expressions.call(expression,
           BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
@@ -237,7 +239,7 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ARRAY_COMPARER.method);
     }
 
-    @Override public Expression field(Expression expression, int field, Type fromType,
+    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
         Type fieldType) {
       final IndexExpression e = Expressions.arrayIndex(expression,
           Expressions.constant(field));
@@ -280,7 +282,7 @@ public enum JavaRowFormat {
   public abstract Expression record(
       Type javaRowClass, List<Expression> expressions);
 
-  public Expression comparer() {
+  public @Nullable Expression comparer() {
     return null;
   }
 
@@ -290,5 +292,5 @@ public enum JavaRowFormat {
    * field.
    */
   public abstract Expression field(Expression expression, int field,
-      Type fromType, Type fieldType);
+      @Nullable Type fromType, Type fieldType);
 }

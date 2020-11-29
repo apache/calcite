@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.Objects;
@@ -28,7 +29,7 @@ import static java.util.Objects.requireNonNull;
 public class BinaryExpression extends Expression {
   public final Expression expression0;
   public final Expression expression1;
-  private final Primitive primitive;
+  private final @Nullable Primitive primitive;
 
   BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1) {
@@ -278,7 +279,7 @@ public class BinaryExpression extends Expression {
     return evaluateNumber(expression, evaluator).doubleValue();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

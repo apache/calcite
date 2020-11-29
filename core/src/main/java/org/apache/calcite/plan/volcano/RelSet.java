@@ -33,6 +33,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -79,7 +80,7 @@ class RelSet {
   /**
    * Exploring state of current RelSet.
    */
-  ExploringState exploringState;
+  @Nullable ExploringState exploringState;
 
   /**
    * Records conversions / enforcements that have happened on the
@@ -152,7 +153,7 @@ class RelSet {
     return rels;
   }
 
-  public RelSubset getSubset(RelTraitSet traits) {
+  public @Nullable RelSubset getSubset(RelTraitSet traits) {
     for (RelSubset subset : subsets) {
       if (subset.getTraitSet().equals(traits)) {
         return subset;

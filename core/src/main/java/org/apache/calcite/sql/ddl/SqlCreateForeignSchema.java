@@ -31,6 +31,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
@@ -42,9 +44,9 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  */
 public class SqlCreateForeignSchema extends SqlCreate {
   public final SqlIdentifier name;
-  public final SqlNode type;
-  public final SqlNode library;
-  private final SqlNodeList optionList;
+  public final @Nullable SqlNode type;
+  public final @Nullable SqlNode library;
+  private final @Nullable SqlNodeList optionList;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE FOREIGN SCHEMA",
@@ -52,8 +54,8 @@ public class SqlCreateForeignSchema extends SqlCreate {
 
   /** Creates a SqlCreateForeignSchema. */
   SqlCreateForeignSchema(SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, SqlNode type, SqlNode library,
-      SqlNodeList optionList) {
+      SqlIdentifier name, @Nullable SqlNode type, @Nullable SqlNode library,
+      @Nullable SqlNodeList optionList) {
     super(OPERATOR, pos, replace, ifNotExists);
     this.name = Objects.requireNonNull(name);
     this.type = type;
@@ -108,7 +110,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
   }
 
   private static List<Pair<SqlIdentifier, SqlNode>> options(
-      final SqlNodeList optionList) {
+      final @Nullable SqlNodeList optionList) {
     if (optionList == null) {
       return ImmutableList.of();
     }

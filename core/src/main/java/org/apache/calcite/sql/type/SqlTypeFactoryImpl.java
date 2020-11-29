@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -149,7 +151,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public RelDataType leastRestrictive(List<RelDataType> types) {
+  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     assert types != null;
     assert types.size() >= 1;
 
@@ -165,7 +167,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return super.leastRestrictive(types);
   }
 
-  private RelDataType leastRestrictiveByCast(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveByCast(List<RelDataType> types) {
     RelDataType resultType = types.get(0);
     boolean anyNullable = resultType.isNullable();
     for (int i = 1; i < types.size(); i++) {
@@ -230,7 +232,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
-  private RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
     int nullableCount = 0;

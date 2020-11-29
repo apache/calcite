@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,7 +43,7 @@ import java.util.function.Predicate;
 public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
 
-  private RelOptRuleOperand parent;
+  private @Nullable RelOptRuleOperand parent;
   private @NotOnlyInitialized RelOptRule rule;
   private final Predicate<RelNode> predicate;
 
@@ -51,7 +52,7 @@ public class RelOptRuleOperand {
   public int @MonotonicNonNull [] solveOrder;
   public int ordinalInParent;
   public int ordinalInRule;
-  public final RelTrait trait;
+  public final @Nullable RelTrait trait;
   private final Class<? extends RelNode> clazz;
   private final ImmutableList<RelOptRuleOperand> children;
 
@@ -105,7 +106,7 @@ public class RelOptRuleOperand {
       "initialization.invalid.field.write.initialized"})
   <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
-      RelTrait trait,
+      @Nullable RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildPolicy childPolicy,
       ImmutableList<RelOptRuleOperand> children) {
@@ -141,7 +142,7 @@ public class RelOptRuleOperand {
    *
    * @return parent operand
    */
-  public RelOptRuleOperand getParent() {
+  public @Nullable RelOptRuleOperand getParent() {
     return parent;
   }
 
@@ -150,7 +151,7 @@ public class RelOptRuleOperand {
    *
    * @param parent Parent operand
    */
-  public void setParent(RelOptRuleOperand parent) {
+  public void setParent(@Nullable RelOptRuleOperand parent) {
     this.parent = parent;
   }
 
@@ -177,7 +178,7 @@ public class RelOptRuleOperand {
     return Objects.hash(clazz, trait, children);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

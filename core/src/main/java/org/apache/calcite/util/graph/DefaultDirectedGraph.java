@@ -22,6 +22,7 @@ import com.google.common.collect.Ordering;
 import org.apiguardian.api.API;
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,7 +109,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return Collections.unmodifiableSet(edges);
   }
 
-  @Override public E addEdge(V vertex, V targetVertex) {
+  @Override public @Nullable E addEdge(V vertex, V targetVertex) {
     final VertexInfo<V, E> info = getVertex(vertex);
     final VertexInfo<V, E> targetInfo = getVertex(targetVertex);
     final E edge = edgeFactory.createEdge(vertex, targetVertex);
@@ -121,7 +122,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  @Override public E getEdge(V source, V target) {
+  @Override public @Nullable E getEdge(V source, V target) {
     // REVIEW: could instead use edges.get(new DefaultEdge(source, target))
     final VertexInfo<V, E> info = getVertex(source);
     for (E outEdge : info.outEdges) {

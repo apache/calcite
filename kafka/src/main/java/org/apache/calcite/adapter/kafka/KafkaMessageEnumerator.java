@@ -23,6 +23,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -39,14 +41,14 @@ import static java.util.Objects.requireNonNull;
  * @param <V> Type for Kafka message value,
  *           refer to {@link ConsumerConfig#VALUE_DESERIALIZER_CLASS_CONFIG};
  */
-public class KafkaMessageEnumerator<K, V> implements Enumerator<Object[]> {
+public class KafkaMessageEnumerator<K, V> implements Enumerator<@Nullable Object[]> {
   final Consumer consumer;
   final KafkaRowConverter<K, V> rowConverter;
   private final AtomicBoolean cancelFlag;
 
   //runtime
   private final Deque<ConsumerRecord<K, V>> bufferedRecords = new ArrayDeque<>();
-  private ConsumerRecord<K, V> curRecord;
+  private @Nullable ConsumerRecord<K, V> curRecord;
 
   KafkaMessageEnumerator(final Consumer consumer,
       final KafkaRowConverter<K, V> rowConverter,

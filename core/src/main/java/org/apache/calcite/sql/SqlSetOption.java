@@ -21,6 +21,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,8 +65,8 @@ public class SqlSetOption extends SqlAlter {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("SET_OPTION", SqlKind.SET_OPTION) {
         @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNode... operands) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
           final SqlNode scopeNode = operands[0];
           return new SqlSetOption(pos,
               scopeNode == null ? null : scopeNode.toString(),
@@ -80,7 +82,7 @@ public class SqlSetOption extends SqlAlter {
    * a {@link org.apache.calcite.sql.SqlIdentifier} with one
    * part. Reserved words (currently just 'ON') are converted to
    * identifiers by the parser. */
-  SqlNode value;
+  @Nullable SqlNode value;
 
   /**
    * Creates a node.
@@ -91,8 +93,8 @@ public class SqlSetOption extends SqlAlter {
    * @param value Value of option, as an identifier or literal, may be null.
    *              If null, assume RESET command, else assume SET command.
    */
-  public SqlSetOption(SqlParserPos pos, String scope, SqlIdentifier name,
-      SqlNode value) {
+  public SqlSetOption(SqlParserPos pos, @Nullable String scope, SqlIdentifier name,
+      @Nullable SqlNode value) {
     super(pos, scope);
     this.scope = scope;
     this.name = name;
@@ -110,7 +112,7 @@ public class SqlSetOption extends SqlAlter {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    final List<SqlNode> operandList = new ArrayList<>();
+    final List<@Nullable SqlNode> operandList = new ArrayList<>();
     if (scope == null) {
       operandList.add(null);
     } else {
@@ -121,7 +123,7 @@ public class SqlSetOption extends SqlAlter {
     return ImmutableNullableList.copyOf(operandList);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       if (operand != null) {
@@ -172,7 +174,7 @@ public class SqlSetOption extends SqlAlter {
     this.name = name;
   }
 
-  public SqlNode getValue() {
+  public @Nullable SqlNode getValue() {
     return value;
   }
 

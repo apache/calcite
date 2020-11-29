@@ -26,6 +26,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ public abstract class SqlCall extends SqlNode {
    * @param i Operand index
    * @param operand Operand value
    */
-  public void setOperand(int i, SqlNode operand) {
+  public void setOperand(int i, @Nullable SqlNode operand) {
     throw new UnsupportedOperationException();
   }
 
@@ -78,7 +79,7 @@ public abstract class SqlCall extends SqlNode {
 
   /**
    * Returns the list of operands. The set and order of operands is call-specific.
-   * <p>Note: the proper type would be {@code List<SqlNode>}, however,
+   * <p>Note: the proper type would be {@code List<@Nullable SqlNode>}, however,
    * it would trigger too many changes to the current codebase.</p>
    * @return the list of call operands, never null, the operands can be null
    */
@@ -87,7 +88,7 @@ public abstract class SqlCall extends SqlNode {
   /**
    * Returns i-th operand (0-based).
    * <p>Note: the result might be null, so the proper signature would be
-   * {@code <S extends SqlNode>}, however, it would trigger to many changes to the current
+   * {@code <S extends @Nullable SqlNode>}, however, it would trigger to many changes to the current
    * codebase.</p>
    * @param i operand index (0-based)
    * @param <S> type of the result
@@ -160,7 +161,7 @@ public abstract class SqlCall extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (node == this) {
       return true;
     }
@@ -187,7 +188,7 @@ public abstract class SqlCall extends SqlNode {
    */
   protected String getCallSignature(
       SqlValidator validator,
-      SqlValidatorScope scope) {
+      @Nullable SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
       final RelDataType argType = validator.deriveType(
@@ -201,7 +202,7 @@ public abstract class SqlCall extends SqlNode {
     return SqlUtil.getOperatorSignature(getOperator(), signatureList);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     Objects.requireNonNull(scope, "scope");
     // Delegate to operator.
     final SqlCallBinding binding =
@@ -231,7 +232,7 @@ public abstract class SqlCall extends SqlNode {
   }
 
   @Pure
-  public SqlLiteral getFunctionQuantifier() {
+  public @Nullable SqlLiteral getFunctionQuantifier() {
     return null;
   }
 }

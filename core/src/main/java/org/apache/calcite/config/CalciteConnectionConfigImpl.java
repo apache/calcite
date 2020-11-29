@@ -27,6 +27,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.List;
@@ -119,7 +120,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return operatorTableClass.cast(operatorTable);
   }
 
-  @Override public String model() {
+  @Override public @Nullable String model() {
     return CalciteConnectionProperty.MODEL.wrap(properties).getString();
   }
 

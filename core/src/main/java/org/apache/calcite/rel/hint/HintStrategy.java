@@ -21,6 +21,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -46,7 +48,7 @@ public class HintStrategy {
   //~ Instance fields --------------------------------------------------------
 
   public final HintPredicate predicate;
-  public final HintOptionChecker hintOptionChecker;
+  public final @Nullable HintOptionChecker hintOptionChecker;
   public final ImmutableSet<RelOptRule> excludedRules;
   public final ImmutableSet<ConverterRule> converterRules;
 
@@ -54,7 +56,7 @@ public class HintStrategy {
 
   private HintStrategy(
       HintPredicate predicate,
-      HintOptionChecker hintOptionChecker,
+      @Nullable HintOptionChecker hintOptionChecker,
       ImmutableSet<RelOptRule> excludedRules,
       ImmutableSet<ConverterRule> converterRules) {
     this.predicate = predicate;
@@ -78,7 +80,7 @@ public class HintStrategy {
   /** Builder for {@link HintStrategy}. */
   public static class Builder {
     private final HintPredicate predicate;
-    private HintOptionChecker optionChecker;
+    private @Nullable HintOptionChecker optionChecker;
     private ImmutableSet<RelOptRule> excludedRules;
     private ImmutableSet<ConverterRule> converterRules;
 

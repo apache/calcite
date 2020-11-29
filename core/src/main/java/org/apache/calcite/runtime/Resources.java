@@ -66,7 +66,7 @@ import static java.util.Objects.requireNonNull;
  * number and types of arguments to match the message.
  */
 public class Resources {
-  private static final ThreadLocal<Locale> MAP_THREAD_TO_LOCALE =
+  private static final ThreadLocal<@Nullable Locale> MAP_THREAD_TO_LOCALE =
       new ThreadLocal<>();
 
   private Resources() {}
@@ -96,7 +96,7 @@ public class Resources {
    * thread has not called {@link #setThreadLocale}.
    *
    * @return Locale */
-  public static Locale getThreadLocale() {
+  public static @Nullable Locale getThreadLocale() {
     return MAP_THREAD_TO_LOCALE.get();
   }
 
@@ -144,7 +144,7 @@ public class Resources {
    * @return Instance of the interface that can be used to instantiate
    * resources
    */
-  public static <T> T create(String base, Class<T> clazz) {
+  public static <T> T create(@Nullable String base, Class<T> clazz) {
     return create(base, EmptyPropertyAccessor.INSTANCE, clazz);
   }
 
@@ -160,7 +160,7 @@ public class Resources {
     return create(null, new PropertiesAccessor(properties), clazz);
   }
 
-  private static <T> T create(final String base,
+  private static <T> T create(final @Nullable String base,
       final PropertyAccessor accessor, Class<T> clazz) {
     //noinspection unchecked
     return (T) Proxy.newProxyInstance(clazz.getClassLoader(),
@@ -168,7 +168,7 @@ public class Resources {
         new InvocationHandler() {
           final Map<String, Object> cache = new ConcurrentHashMap<>();
 
-          @Override public Object invoke(Object proxy, Method method, Object [] args)
+          @Override public Object invoke(Object proxy, Method method, @Nullable Object @Nullable [] args)
               throws Throwable {
             if (args == null || args.length == 0) {
               Object o = cache.get(method.getName());
@@ -181,7 +181,7 @@ public class Resources {
             return create(method, args);
           }
 
-          private Object create(Method method, Object [] args)
+          private Object create(Method method, @Nullable Object @Nullable [] args)
               throws NoSuchMethodException, InstantiationException,
               IllegalAccessException, InvocationTargetException {
             if (method.equals(BuiltinMethod.OBJECT_TO_STRING.method)) {
@@ -238,7 +238,7 @@ public class Resources {
           && Inst.class.isAssignableFrom(method.getReturnType())) {
         ++count;
         final Class<?>[] parameterTypes = method.getParameterTypes();
-        Object[] args = new Object[parameterTypes.length];
+        @Nullable Object[] args = new Object[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
           args[i] = zero(parameterTypes[i]);
         }
@@ -259,7 +259,7 @@ public class Resources {
     }
   }
 
-  private static Object zero(Class<?> clazz) {
+  private static @Nullable Object zero(Class<?> clazz) {
     return clazz == String.class ? ""
         : clazz == byte.class ? (byte) 0
         : clazz == char.class ? (char) 0
@@ -273,7 +273,7 @@ public class Resources {
   }
 
   /** Returns whether two objects are equal or are both null. */
-  private static boolean equal(Object o0, Object o1) {
+  private static boolean equal(@Nullable Object o0, @Nullable Object o1) {
     return o0 == o1 || o0 != null && o0.equals(o1);
   }
 
@@ -305,16 +305,16 @@ public class Resources {
   public static class Inst extends Element {
     private final Locale locale;
     protected final String base;
-    protected final Object[] args;
+    protected final @Nullable Object[] args;
 
-    public Inst(String base, Locale locale, Method method, Object... args) {
+    public Inst(String base, Locale locale, Method method, @Nullable Object... args) {
       super(method);
       this.base = base;
       this.locale = locale;
       this.args = args;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj != null
           && obj.getClass() == this.getClass()
@@ -391,7 +391,7 @@ public class Resources {
         case ARGUMENT_MATCH:
           String raw = raw();
           MessageFormat format = new MessageFormat(raw);
-          final Format[] formats = format.getFormatsByArgumentIndex();
+          final @Nullable Format[] formats = format.getFormatsByArgumentIndex();
           final List<Class> types = new ArrayList<>();
           final Class<?>[] parameterTypes = method.getParameterTypes();
           for (int i = 0; i < formats.length; i++) {
@@ -473,7 +473,7 @@ public class Resources {
    * by exception.*/
   public static class ExInstWithCause<T extends Exception> extends Inst {
     public ExInstWithCause(String base, Locale locale, Method method,
-        Object... args) {
+        @Nullable Object... args) {
       super(base, locale, method, args);
     }
 
@@ -481,7 +481,7 @@ public class Resources {
       return new ExInstWithCause<T>(base, locale, method, args);
     }
 
-    public T ex(Throwable cause) {
+    public T ex(@Nullable Throwable cause) {
       try {
         //noinspection unchecked
         final Class<T> exceptionClass =
@@ -561,7 +561,7 @@ public class Resources {
       }
     }
 
-    protected void validateException(Callable<? extends Exception> exSupplier) {
+    protected void validateException(Callable<? extends @Nullable Exception> exSupplier) {
       Throwable cause = null;
       try {
         //noinspection ThrowableResultOfMethodCallIgnored
@@ -621,7 +621,7 @@ public class Resources {
     }
 
     @RequiresNonNull("method")
-    protected final Default getDefault(
+    protected final @Nullable Default getDefault(
         @UnderInitialization Prop this
     ) {
       if (hasDefault) {
@@ -749,7 +749,7 @@ public class Resources {
 
   /** String property instance. */
   public static class StringProp extends Prop {
-    private final String defaultValue;
+    private final @Nullable String defaultValue;
 
     public StringProp(PropertyAccessor accessor, Method method) {
       super(accessor, method);
@@ -762,7 +762,7 @@ public class Resources {
     }
 
     /** Returns the value of this String property. */
-    public String get() {
+    public @Nullable String get() {
       return accessor.stringValue(this);
     }
 
@@ -774,7 +774,7 @@ public class Resources {
       return accessor.stringValue(this, defaultValue);
     }
 
-    public String defaultValue() {
+    public @Nullable String defaultValue() {
       checkDefault();
       return defaultValue;
     }
@@ -794,7 +794,7 @@ public class Resources {
     boolean isSet(Prop p);
     int intValue(IntProp p);
     int intValue(IntProp p, int defaultValue);
-    String stringValue(StringProp p);
+    @Nullable String stringValue(StringProp p);
     @PolyNull String stringValue(StringProp p, @PolyNull String defaultValue);
     boolean booleanValue(BooleanProp p);
     boolean booleanValue(BooleanProp p, boolean defaultValue);
@@ -820,7 +820,7 @@ public class Resources {
       return defaultValue;
     }
 
-    @Override public String stringValue(StringProp p) {
+    @Override public @Nullable String stringValue(StringProp p) {
       return p.defaultValue();
     }
 
@@ -985,11 +985,11 @@ public class Resources {
      * Opens the properties file corresponding to a given class. The code is
      * copied from {@link ResourceBundle}.
      */
-    private static InputStream openPropertiesFile(Class clazz) {
+    private static @Nullable InputStream openPropertiesFile(Class clazz) {
       final ClassLoader loader = clazz.getClassLoader();
       final String resName = clazz.getName().replace('.', '/') + ".properties";
       return java.security.AccessController.doPrivileged(
-          (PrivilegedAction<InputStream>) () -> {
+          (PrivilegedAction<@Nullable InputStream>) () -> {
             if (loader != null) {
               return loader.getResourceAsStream(resName);
             } else {
@@ -1125,7 +1125,7 @@ public class Resources {
       return s == null ? defaultValue : Integer.parseInt(s, 10);
     }
 
-    @Override public String stringValue(StringProp p) {
+    @Override public @Nullable String stringValue(StringProp p) {
       final String s = properties.getProperty(p.key);
       if (s != null) {
         return s;

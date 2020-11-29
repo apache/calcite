@@ -34,6 +34,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +86,7 @@ public class AggregateProjectMergeRule
     }
   }
 
-  public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
+  public static @Nullable RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
     // Find all fields which we need to be straightforward field projections.
     final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);

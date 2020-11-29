@@ -82,6 +82,7 @@ import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -263,7 +264,7 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
-      @Override public void accept(Throwable throwable) {
+      @Override public void accept(@Nullable Throwable throwable) {
         assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);

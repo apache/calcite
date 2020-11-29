@@ -353,7 +353,7 @@ public abstract class SqlAbstractParserImpl {
 
   protected int nDynamicParams;
 
-  protected String originalSql;
+  protected @Nullable String originalSql;
 
   protected final List<CalciteContextException> warnings = new ArrayList<>();
 
@@ -424,7 +424,7 @@ public abstract class SqlAbstractParserImpl {
    * @param ex dirty excn
    * @return clean excn
    */
-  public abstract SqlParseException normalizeException(Throwable ex);
+  public abstract SqlParseException normalizeException(@Nullable Throwable ex);
 
   protected abstract SqlParserPos getPos() throws Exception;
 
@@ -502,7 +502,7 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Returns the SQL text.
    */
-  public String getOriginalSql() {
+  public @Nullable String getOriginalSql() {
     return originalSql;
   }
 
@@ -718,7 +718,7 @@ public abstract class SqlAbstractParserImpl {
      * @param name       Name of method. For example "ReservedFunctionName".
      * @return Result of calling method
      */
-    private Object virtualCall(
+    private @Nullable Object virtualCall(
         @UnderInitialization MetadataImpl this,
         SqlAbstractParserImpl parserImpl,
         String name) throws Throwable {

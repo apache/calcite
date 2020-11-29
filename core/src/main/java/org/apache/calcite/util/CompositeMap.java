@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -71,7 +72,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
   }
 
   @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @Override public boolean containsKey(Object key) {
+  @Override public boolean containsKey(@Nullable Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
         return true;
@@ -80,7 +81,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public boolean containsValue(Object value) {
+  @Override public boolean containsValue(@Nullable Object value) {
     for (Map<K, V> map : maps) {
       if (map.containsValue(value)) {
         return true;
@@ -89,7 +90,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public V get(Object key) {
+  @Override public @Nullable V get(@Nullable Object key) {
     for (Map<K, V> map : maps) {
       //noinspection SuspiciousMethodCalls
       if (map.containsKey(key)) {
@@ -104,7 +105,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public V remove(Object key) {
+  @Override public V remove(@Nullable Object key) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }

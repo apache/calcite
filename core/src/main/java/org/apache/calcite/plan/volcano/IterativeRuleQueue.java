@@ -23,6 +23,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -99,7 +100,7 @@ class IterativeRuleQueue extends RuleQueue {
    * obsolete set or has been pruned.
    *
    */
-  public VolcanoRuleMatch popMatch() {
+  public @Nullable VolcanoRuleMatch popMatch() {
     dumpPlannerState();
 
     VolcanoRuleMatch match;
@@ -204,7 +205,7 @@ class IterativeRuleQueue extends RuleQueue {
       return preQueue.size() + queue.size();
     }
 
-    VolcanoRuleMatch poll() {
+    @Nullable VolcanoRuleMatch poll() {
       VolcanoRuleMatch match = preQueue.poll();
       if (match == null) {
         match = queue.poll();

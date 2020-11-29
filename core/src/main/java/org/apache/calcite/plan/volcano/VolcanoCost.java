@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -132,7 +134,7 @@ class VolcanoCost implements RelOptCost {
         && (this.io == ((VolcanoCost) other).io);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (obj instanceof VolcanoCost) {
       return equals((VolcanoCost) obj);
     }

@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.Initialized;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public abstract class LatticeNode {
   public final LatticeTable table;
   final int startCol;
   final int endCol;
-  public final String alias;
+  public final @Nullable String alias;
   private final ImmutableList<LatticeChildNode> children;
   public final String digest;
 
@@ -45,7 +46,7 @@ public abstract class LatticeNode {
    *
    * <p>The {@code parent} and {@code mutableNode} arguments are used only
    * during construction. */
-  LatticeNode(LatticeSpace space, LatticeNode parent, MutableNode mutableNode) {
+  LatticeNode(LatticeSpace space, @Nullable LatticeNode parent, MutableNode mutableNode) {
     this.table = requireNonNull(mutableNode.table);
     this.startCol = mutableNode.startCol;
     this.endCol = mutableNode.endCol;

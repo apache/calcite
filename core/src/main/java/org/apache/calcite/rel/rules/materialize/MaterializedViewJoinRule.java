@@ -36,6 +36,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -54,21 +56,21 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     super(config);
   }
 
-  @Override protected boolean isValidPlan(Project topProject, RelNode node,
+  @Override protected boolean isValidPlan(@Nullable Project topProject, RelNode node,
       RelMetadataQuery mq) {
     return isValidRelNodePlan(node, mq);
   }
 
-  @Override protected ViewPartialRewriting compensateViewPartial(
+  @Override protected @Nullable ViewPartialRewriting compensateViewPartial(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
       RelNode input,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
       Set<RelTableRef> queryTableRefs,
       EquivalenceClasses queryEC,
-      Project topViewProject,
+      @Nullable Project topViewProject,
       RelNode viewNode,
       Set<RelTableRef> viewTableRefs) {
     // We only create the rewriting in the minimal subtree of plan operators.
@@ -142,14 +144,14 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     return ViewPartialRewriting.of(newView, null, newViewNode);
   }
 
-  @Override protected RelNode rewriteQuery(
+  @Override protected @Nullable RelNode rewriteQuery(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RexSimplify simplify,
       RelMetadataQuery mq,
       RexNode compensationColumnsEquiPred,
       RexNode otherCompensationPred,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
       EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
@@ -218,8 +220,8 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     return rewrittenPlan;
   }
 
-  @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
+  @Override protected @Nullable RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+      @Nullable RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
     relBuilder.push(unionInputQuery);
     relBuilder.push(unionInputView);
     relBuilder.union(true);
@@ -239,7 +241,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     return relBuilder.build();
   }
 
-  @Override protected RelNode rewriteView(
+  @Override protected @Nullable RelNode rewriteView(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RexSimplify simplify,
@@ -247,9 +249,9 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
       MatchModality matchModality,
       boolean unionRewriting,
       RelNode input,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
-      Project topViewProject,
+      @Nullable Project topViewProject,
       RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses queryEC) {
@@ -285,8 +287,8 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         .build();
   }
 
-  @Override public Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
-      RelNode topViewProject, RelNode viewNode, RexNode cond) {
+  @Override public Pair<@Nullable RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+      @Nullable RelNode topViewProject, RelNode viewNode, RexNode cond) {
     // Nothing to do
     return Pair.of(topViewProject, viewNode);
   }

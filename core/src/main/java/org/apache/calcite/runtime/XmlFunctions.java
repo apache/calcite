@@ -20,6 +20,7 @@ import org.apache.calcite.util.SimpleNamespaceContext;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -57,9 +58,9 @@ import static java.util.Objects.requireNonNull;
  */
 public class XmlFunctions {
 
-  private static final ThreadLocal<XPathFactory> XPATH_FACTORY =
+  private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
       ThreadLocal.withInitial(XPathFactory::newInstance);
-  private static final ThreadLocal<TransformerFactory> TRANSFORMER_FACTORY =
+  private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
       ThreadLocal.withInitial(TransformerFactory::newInstance);
 
   private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
@@ -70,7 +71,7 @@ public class XmlFunctions {
   private XmlFunctions() {
   }
 
-  public static String extractValue(String input, String xpath) {
+  public static @Nullable String extractValue(@Nullable String input, @Nullable String xpath) {
     if (input == null || xpath == null) {
       return null;
     }
@@ -79,7 +80,7 @@ public class XmlFunctions {
       try {
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(new InputSource(new StringReader(input)), XPathConstants.NODESET);
-        List<String> result = new ArrayList<>();
+        List<@Nullable String> result = new ArrayList<>();
         for (int i = 0; i < nodes.getLength(); i++) {
           Node item = castNonNull(nodes.item(i));
           Node firstChild = requireNonNull(item.getFirstChild(),
@@ -95,7 +96,7 @@ public class XmlFunctions {
     }
   }
 
-  public static String xmlTransform(String xml, String xslt) {
+  public static @Nullable String xmlTransform(@Nullable String xml, @Nullable String xslt) {
     if (xml == null || xslt == null) {
       return null;
     }
@@ -115,12 +116,12 @@ public class XmlFunctions {
     }
   }
 
-  public static String extractXml(String xml, String xpath) {
+  public static @Nullable String extractXml(@Nullable String xml, @Nullable String xpath) {
     return extractXml(xml, xpath, null);
   }
 
-  public static String extractXml(String xml, String xpath,
-      String namespace) {
+  public static @Nullable String extractXml(@Nullable String xml, @Nullable String xpath,
+      @Nullable String namespace) {
     if (xml == null || xpath == null) {
       return null;
     }
@@ -151,12 +152,12 @@ public class XmlFunctions {
     }
   }
 
-  public static Integer existsNode(String xml, String xpath) {
+  public static @Nullable Integer existsNode(@Nullable String xml, @Nullable String xpath) {
     return existsNode(xml, xpath, null);
   }
 
-  public static Integer existsNode(String xml, String xpath,
-      String namespace) {
+  public static @Nullable Integer existsNode(@Nullable String xml, @Nullable String xpath,
+      @Nullable String namespace) {
     if (xml == null || xpath == null) {
       return null;
     }

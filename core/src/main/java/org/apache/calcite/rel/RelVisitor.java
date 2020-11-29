@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A <code>RelVisitor</code> is a Visitor role in the
@@ -26,7 +27,7 @@ package org.apache.calcite.rel;
 public abstract class RelVisitor {
   //~ Instance fields --------------------------------------------------------
 
-  private RelNode root;
+  private @Nullable RelNode root;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -41,7 +42,7 @@ public abstract class RelVisitor {
   public void visit(
       RelNode node,
       int ordinal,
-      RelNode parent) {
+      @Nullable RelNode parent) {
     node.childrenAccept(this);
   }
 
@@ -50,14 +51,14 @@ public abstract class RelVisitor {
    *
    * @param node The new root node
    */
-  public void replaceRoot(RelNode node) {
+  public void replaceRoot(@Nullable RelNode node) {
     this.root = node;
   }
 
   /**
    * Starts an iteration.
    */
-  public RelNode go(RelNode p) {
+  public @Nullable RelNode go(RelNode p) {
     this.root = p;
     visit(p, 0, null);
     return root;

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Default implementation of {@link RexBiVisitor}, which visits each node but
@@ -24,7 +25,7 @@ package org.apache.calcite.rex;
  * @param <R> Return type from each {@code visitXxx} method
  * @param <P> Payload type
  */
-public class RexBiVisitorImpl<R, P> implements RexBiVisitor<R, P> {
+public class RexBiVisitorImpl<@Nullable R, P> implements RexBiVisitor<R, P> {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean deep;

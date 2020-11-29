@@ -26,6 +26,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -74,7 +76,7 @@ public class SqlPivot extends SqlCall {
   }
 
   @SuppressWarnings("nullness")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     // Only 'query' is mutable. (It is required for validation.)
     switch (i) {
     case 0:
@@ -127,7 +129,7 @@ public class SqlPivot extends SqlCall {
 
   /** Returns the aggregate list as (alias, call) pairs.
    * If there is no 'AS', alias is null. */
-  public void forEachAgg(BiConsumer<String, SqlNode> consumer) {
+  public void forEachAgg(BiConsumer<@Nullable String, SqlNode> consumer) {
     for (SqlNode agg : aggList) {
       final SqlNode call = SqlUtil.stripAs(agg);
       final String alias = SqlValidatorUtil.getAlias(agg, -1);

@@ -71,6 +71,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -929,7 +931,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       return node;
     }
 
-    private RexNode visit(final RexNode call) {
+    private @Nullable RexNode visit(final RexNode call) {
       int i = reducibleExps.indexOf(call);
       if (i == -1) {
         return null;
@@ -1030,7 +1032,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
     }
 
-    private Boolean isUdf(@SuppressWarnings("unused") SqlOperator operator) {
+    private Boolean isUdf(@SuppressWarnings("unused") @Nullable SqlOperator operator) {
       // return operator instanceof UserDefinedRoutine
       return false;
     }

@@ -25,6 +25,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -49,12 +51,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * Type of the output row, which comprises the name and type of each output
    * column. Set on validate.
    */
-  protected RelDataType rowType;
+  protected @Nullable RelDataType rowType;
 
   /** As {@link #rowType}, but not necessarily a struct. */
-  protected RelDataType type;
+  protected @Nullable RelDataType type;
 
-  protected final SqlNode enclosingNode;
+  protected final @Nullable SqlNode enclosingNode;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -66,7 +68,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    */
   AbstractNamespace(
       SqlValidatorImpl validator,
-      SqlNode enclosingNode) {
+      @Nullable SqlNode enclosingNode) {
     this.validator = validator;
     this.enclosingNode = enclosingNode;
   }
@@ -135,15 +137,15 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     this.rowType = convertToStruct(type);
   }
 
-  @Override public SqlNode getEnclosingNode() {
+  @Override public @Nullable SqlNode getEnclosingNode() {
     return enclosingNode;
   }
 
-  @Override public SqlValidatorTable getTable() {
+  @Override public @Nullable SqlValidatorTable getTable() {
     return null;
   }
 
-  @Override public SqlValidatorNamespace lookupChild(String name) {
+  @Override public @Nullable SqlValidatorNamespace lookupChild(String name) {
     return validator.lookupFieldNamespace(
         getRowType(),
         name);
@@ -213,7 +215,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   }
 
   /** Converts a type to a struct if it is not already. */
-  protected RelDataType toStruct(RelDataType type, SqlNode unnest) {
+  protected RelDataType toStruct(RelDataType type, @Nullable SqlNode unnest) {
     if (type.isStruct()) {
       return type;
     }

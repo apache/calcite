@@ -35,6 +35,8 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -63,13 +65,13 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
 
   /** Creates a {@link TableFunctionImpl} from a class, looking for an "eval"
    * method. Returns null if there is no such method. */
-  public static TableFunction create(Class<?> clazz) {
+  public static @Nullable TableFunction create(Class<?> clazz) {
     return create(clazz, "eval");
   }
 
   /** Creates a {@link TableFunctionImpl} from a class, looking for a method
    * with a given name. Returns null if there is no such method. */
-  public static TableFunction create(Class<?> clazz, String methodName) {
+  public static @Nullable TableFunction create(Class<?> clazz, String methodName) {
     final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;
@@ -78,7 +80,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   /** Creates a {@link TableFunctionImpl} from a method. */
-  public static TableFunction create(final Method method) {
+  public static @Nullable TableFunction create(final Method method) {
     if (!Modifier.isStatic(method.getModifiers())) {
       Class clazz = method.getDeclaringClass();
       if (!classHasPublicZeroArgsConstructor(clazz)) {
@@ -95,11 +97,11 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<? extends Object> arguments) {
+      List<? extends @Nullable Object> arguments) {
     return apply(arguments).getRowType(typeFactory);
   }
 
-  @Override public Type getElementType(List<? extends Object> arguments) {
+  @Override public Type getElementType(List<? extends @Nullable Object> arguments) {
     final Table table = apply(arguments);
     if (table instanceof QueryableTable) {
       QueryableTable queryableTable = (QueryableTable) table;
@@ -142,7 +144,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         }, NullPolicy.NONE, false);
   }
 
-  private Table apply(List<? extends Object> arguments) {
+  private Table apply(List<? extends @Nullable Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {

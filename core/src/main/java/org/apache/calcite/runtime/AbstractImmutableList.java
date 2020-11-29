@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -88,7 +89,7 @@ abstract class AbstractImmutableList<E> implements List<E> {
     return toList().subList(fromIndex, toIndex);
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return indexOf(castNonNull(o)) >= 0;
   }
 
@@ -101,7 +102,7 @@ abstract class AbstractImmutableList<E> implements List<E> {
     return true;
   }
 
-  @Override public boolean remove(Object o) {
+  @Override public boolean remove(@Nullable Object o) {
     throw new UnsupportedOperationException();
   }
 }

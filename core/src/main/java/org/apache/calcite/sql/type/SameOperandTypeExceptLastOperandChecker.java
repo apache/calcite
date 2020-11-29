@@ -24,6 +24,8 @@ import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -52,7 +54,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
   @Override protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      SqlCallBinding callBinding) {
+      @Nullable SqlCallBinding callBinding) {
     if (throwOnFailure && callBinding == null) {
       throw new IllegalArgumentException(
           "callBinding must be non-null in case throwOnFailure=true");

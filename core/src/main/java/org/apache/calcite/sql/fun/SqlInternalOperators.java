@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public abstract class SqlInternalOperators {
         @Override public void unparse(SqlWriter writer, SqlCall call,
             int leftPrec, int rightPrec) {
           @SuppressWarnings("assignment.type.incompatible")
-          List<SqlNode> operandList = call.getOperandList();
+          List<@Nullable SqlNode> operandList = call.getOperandList();
           writer.list(SqlWriter.FrameTypeEnum.PARENTHESES, SqlWriter.COMMA,
               SqlNodeList.of(call.getParserPosition(), operandList));
         }

@@ -43,6 +43,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -137,7 +139,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return RexOver.containsOver(program);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
@@ -166,7 +168,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
     double dCpu = mq.getRowCount(getInput())

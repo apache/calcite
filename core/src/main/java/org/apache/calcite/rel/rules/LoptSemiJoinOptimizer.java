@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -238,7 +240,7 @@ public class LoptSemiJoinOptimizer {
    * @return SemiJoin containing information regarding the semijoin that
    * can be used to filter the fact table
    */
-  private LogicalJoin findSemiJoinIndexByCost(
+  private @Nullable LogicalJoin findSemiJoinIndexByCost(
       LoptMultiJoin multiJoin,
       List<RexNode> joinFilters,
       int factIdx,
@@ -402,7 +404,7 @@ public class LoptSemiJoinOptimizer {
    * @return the underlying fact table if the semijoin keys are valid;
    * otherwise null
    */
-  private LcsTable validateKeys(
+  private @Nullable LcsTable validateKeys(
       RelNode factRel,
       List<Integer> leftKeys,
       List<Integer> rightKeys,
@@ -467,7 +469,7 @@ public class LoptSemiJoinOptimizer {
    * @return modified expression with filters that don't reference specified
    * keys removed
    */
-  private RexNode removeExtraFilters(
+  private @Nullable RexNode removeExtraFilters(
       List<Integer> keys,
       int nFields,
       RexNode condition) {
@@ -777,7 +779,7 @@ public class LoptSemiJoinOptimizer {
    * @param dimIdx index corresponding to dimension table
    */
   private void removePossibleSemiJoin(
-      Map<Integer, LogicalJoin> possibleDimensions,
+      @Nullable Map<Integer, LogicalJoin> possibleDimensions,
       Integer factIdx,
       Integer dimIdx) {
     // dimension table may not have a corresponding semijoin if it
@@ -834,7 +836,7 @@ public class LoptSemiJoinOptimizer {
   private static class LcsIndexOptimizer {
     LcsIndexOptimizer(LcsTableScan rel) {}
 
-    public FemLocalIndex findSemiJoinIndexByCost(RelNode dimRel,
+    public @Nullable FemLocalIndex findSemiJoinIndexByCost(RelNode dimRel,
         List<Integer> actualLeftKeys, List<Integer> rightKeys,
         List<Integer> bestKeyOrder) {
       return null;

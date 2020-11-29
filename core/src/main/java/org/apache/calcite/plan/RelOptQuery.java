@@ -21,6 +21,8 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -114,7 +116,7 @@ public class RelOptQuery {
   /**
    * Returns the relational expression which populates a correlating variable.
    */
-  public RelNode lookupCorrel(String name) {
+  public @Nullable RelNode lookupCorrel(String name) {
     return mapCorrelToRel.get(name);
   }
 

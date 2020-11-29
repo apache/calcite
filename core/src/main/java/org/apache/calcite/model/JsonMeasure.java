@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -54,12 +56,12 @@ public class JsonMeasure {
    * that each column you intend to use as a measure has a unique name within
    * the lattice (using "{@code AS alias}" if necessary).
    */
-  public final Object args;
+  public final @Nullable Object args;
 
   @JsonCreator
   public JsonMeasure(
       @JsonProperty(value = "agg", required = true) String agg,
-      @JsonProperty("args") Object args) {
+      @JsonProperty("args") @Nullable Object args) {
     this.agg = requireNonNull(agg, "agg");
     this.args = args;
   }

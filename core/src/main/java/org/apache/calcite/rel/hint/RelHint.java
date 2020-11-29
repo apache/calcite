@@ -20,6 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -99,8 +101,8 @@ public class RelHint {
   private RelHint(
       Iterable<Integer> inheritPath,
       String hintName,
-      List<String> listOption,
-      Map<String, String> kvOptions) {
+      @Nullable List<String> listOption,
+      @Nullable Map<String, String> kvOptions) {
     Objects.requireNonNull(inheritPath);
     Objects.requireNonNull(hintName);
     this.inheritPath = ImmutableList.copyOf(inheritPath);
@@ -127,7 +129,7 @@ public class RelHint {
     return new RelHint(inheritPath, hintName, listOptions, kvOptions);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

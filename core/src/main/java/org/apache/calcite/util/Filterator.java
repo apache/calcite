@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -38,7 +39,7 @@ public class Filterator<E extends Object> implements Iterator<E> {
 
   Class<E> includeFilter;
   Iterator<?> iterator;
-  E lookAhead;
+  @Nullable E lookAhead;
   boolean ready;
 
   //~ Constructors -----------------------------------------------------------

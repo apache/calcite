@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +51,7 @@ public abstract class AbstractSqlType
   protected AbstractSqlType(
       SqlTypeName typeName,
       boolean isNullable,
-      List<? extends RelDataTypeField> fields) {
+      @Nullable List<? extends RelDataTypeField> fields) {
     super(fields);
     this.typeName = Objects.requireNonNull(typeName);
     this.isNullable = isNullable || (typeName == SqlTypeName.NULL);

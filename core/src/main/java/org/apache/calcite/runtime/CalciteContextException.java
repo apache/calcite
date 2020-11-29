@@ -21,6 +21,7 @@ package org.apache.calcite.runtime;
 // dependencies on other Calcite code.
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Exception which contains information about the textual context of the causing
@@ -46,7 +47,7 @@ public class CalciteContextException extends CalciteException {
 
   private int endPosColumn;
 
-  private String originalStatement;
+  private @Nullable String originalStatement;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -167,18 +168,18 @@ public class CalciteContextException extends CalciteException {
   /**
    * Returns the input string that is associated with the context.
    */
-  public String getOriginalStatement() {
+  public @Nullable String getOriginalStatement() {
     return originalStatement;
   }
 
   /**
    * Sets the input string to associate with the current context.
    */
-  public void setOriginalStatement(String originalStatement) {
+  public void setOriginalStatement(@Nullable String originalStatement) {
     this.originalStatement = originalStatement;
   }
 
-  @Override public String getMessage() {
+  @Override public @Nullable String getMessage() {
     // The superclass' message is the textual context information
     // for this exception, so we add in the underlying cause to the message
     Throwable cause = getCause();

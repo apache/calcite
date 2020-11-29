@@ -25,6 +25,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import com.google.common.base.Preconditions;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.lang.reflect.InvocationTargetException;
@@ -146,7 +147,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     });
   }
 
-  @Override public SqlRexConvertlet get(SqlCall call) {
+  @Override public @Nullable SqlRexConvertlet get(SqlCall call) {
     SqlRexConvertlet convertlet;
     final SqlOperator op = call.getOperator();
 

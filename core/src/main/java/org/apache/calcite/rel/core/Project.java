@@ -48,6 +48,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -204,7 +205,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return RexOver.containsOver(getProjects(), null);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!super.isValid(litmus, context)) {
       return litmus.fail(null);
     }
@@ -237,7 +238,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(getInput());
     double dCpu = dRows * exps.size();
@@ -298,7 +299,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   @EnsuresNonNullIf(expression = "#1", result = true)
-  protected boolean deepEquals0(Object obj) {
+  protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -323,7 +324,7 @@ public abstract class Project extends SingleRel implements Hintable {
    *
    * @return Mapping, or null if this projection is not a mapping
    */
-  public Mappings.TargetMapping getMapping() {
+  public Mappings.@Nullable TargetMapping getMapping() {
     return getMapping(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -341,7 +342,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Mapping of a set of project expressions, or null if projection is
    * not a mapping
    */
-  public static Mappings.TargetMapping getMapping(int inputFieldCount,
+  public static Mappings.@Nullable TargetMapping getMapping(int inputFieldCount,
       List<? extends RexNode> projects) {
     if (inputFieldCount < projects.size()) {
       return null; // surjection is not possible
@@ -396,7 +397,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Permutation, if this projection is merely a permutation of its
    *   input fields; otherwise null
    */
-  public Permutation getPermutation() {
+  public @Nullable Permutation getPermutation() {
     return getPermutation(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -404,7 +405,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * Returns a permutation, if this projection is merely a permutation of its
    * input fields; otherwise null.
    */
-  public static Permutation getPermutation(int inputFieldCount,
+  public static @Nullable Permutation getPermutation(int inputFieldCount,
       List<? extends RexNode> projects) {
     final int fieldCount = projects.size();
     if (fieldCount != inputFieldCount) {

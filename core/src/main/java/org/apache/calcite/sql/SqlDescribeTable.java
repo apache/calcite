@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -31,20 +33,20 @@ public class SqlDescribeTable extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DESCRIBE_TABLE", SqlKind.DESCRIBE_TABLE) {
         @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNode... operands) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
           return new SqlDescribeTable(pos, (SqlIdentifier) operands[0],
-              (SqlIdentifier) operands[1]);
+              (@Nullable SqlIdentifier) operands[1]);
         }
       };
 
   SqlIdentifier table;
-  SqlIdentifier column;
+  @Nullable SqlIdentifier column;
 
   /** Creates a SqlDescribeTable. */
   public SqlDescribeTable(SqlParserPos pos,
       SqlIdentifier table,
-      SqlIdentifier column) {
+      @Nullable SqlIdentifier column) {
     super(pos);
     this.table = Objects.requireNonNull(table);
     this.column = column;
@@ -60,7 +62,7 @@ public class SqlDescribeTable extends SqlCall {
   }
 
   @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       table = (SqlIdentifier) operand;
@@ -86,7 +88,7 @@ public class SqlDescribeTable extends SqlCall {
     return table;
   }
 
-  public SqlIdentifier getColumn() {
+  public @Nullable SqlIdentifier getColumn() {
     return column;
   }
 }

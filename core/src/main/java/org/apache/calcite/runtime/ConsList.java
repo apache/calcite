@@ -19,6 +19,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.ArrayList;
@@ -82,7 +83,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().hashCode();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof List
         && toList().equals(o);
@@ -119,7 +120,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().toArray();
   }
 
-  @Override public <T> T[] toArray(T [] a) {
+  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
     final int s = size();
     if (s > castNonNull(a).length) {
       a = (T[]) Arrays.copyOf(a, s, a.getClass());
@@ -139,11 +140,11 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override public int indexOf(Object o) {
+  @Override public int indexOf(@Nullable Object o) {
     return toList().indexOf(o);
   }
 
-  @Override public int lastIndexOf(Object o) {
+  @Override public int lastIndexOf(@Nullable Object o) {
     return toList().lastIndexOf(o);
   }
 }

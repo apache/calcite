@@ -22,6 +22,8 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -33,18 +35,18 @@ public class SqlDelete extends SqlCall {
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
   SqlNode targetTable;
-  SqlNode condition;
-  SqlSelect sourceSelect;
-  SqlIdentifier alias;
+  @Nullable SqlNode condition;
+  @Nullable SqlSelect sourceSelect;
+  @Nullable SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlDelete(
       SqlParserPos pos,
       SqlNode targetTable,
-      SqlNode condition,
-      SqlSelect sourceSelect,
-      SqlIdentifier alias) {
+      @Nullable SqlNode condition,
+      @Nullable SqlSelect sourceSelect,
+      @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
@@ -68,7 +70,7 @@ public class SqlDelete extends SqlCall {
   }
 
   @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       targetTable = operand;
@@ -97,7 +99,7 @@ public class SqlDelete extends SqlCall {
   /**
    * Returns the alias for the target table of the deletion.
    */
-  public SqlIdentifier getAlias() {
+  public @Nullable SqlIdentifier getAlias() {
     return alias;
   }
 
@@ -107,7 +109,7 @@ public class SqlDelete extends SqlCall {
    * @return the condition expression for the data to be deleted, or null for
    * all rows in the table
    */
-  public SqlNode getCondition() {
+  public @Nullable SqlNode getCondition() {
     return condition;
   }
 
@@ -118,7 +120,7 @@ public class SqlDelete extends SqlCall {
    *
    * @return the source SELECT for the data to be inserted
    */
-  public SqlSelect getSourceSelect() {
+  public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;
   }
 

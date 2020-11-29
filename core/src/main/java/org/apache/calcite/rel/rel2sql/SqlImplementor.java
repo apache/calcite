@@ -93,6 +93,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -454,7 +455,7 @@ public abstract class SqlImplementor {
 
   /** Creates a result based on a single relational expression. */
   public Result result(SqlNode node, Collection<Clause> clauses,
-      RelNode rel, Map<String, RelDataType> aliases) {
+      RelNode rel, @Nullable Map<String, RelDataType> aliases) {
     assert aliases == null
         || aliases.size() < 2
         || aliases instanceof LinkedHashMap
@@ -489,7 +490,7 @@ public abstract class SqlImplementor {
    * <p>Call this method rather than creating a {@code Result} directly,
    * because sub-classes may override. */
   protected Result result(SqlNode node, Collection<Clause> clauses,
-      String neededAlias, RelDataType neededType,
+      @Nullable String neededAlias, @Nullable RelDataType neededType,
       Map<String, RelDataType> aliases) {
     return new Result(node, clauses, neededAlias, neededType, aliases);
   }
@@ -675,7 +676,7 @@ public abstract class SqlImplementor {
      * @param program Required only if {@code rex} contains {@link RexLocalRef}
      * @param rex Expression to convert
      */
-    public SqlNode toSql(RexProgram program, RexNode rex) {
+    public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
       final RexSubQuery subQuery;
       final SqlNode sqlSubQuery;
       final RexLiteral literal;
@@ -868,7 +869,7 @@ public abstract class SqlImplementor {
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
      * ranges are all points. */
     @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
-    private <C extends Comparable<C>> SqlNode toSql(RexProgram program,
+    private <C extends Comparable<C>> SqlNode toSql(@Nullable RexProgram program,
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
@@ -978,7 +979,7 @@ public abstract class SqlImplementor {
       throw new UnsupportedOperationException();
     }
 
-    private SqlCall toSql(RexProgram program, RexOver rexOver) {
+    private SqlCall toSql(@Nullable RexProgram program, RexOver rexOver) {
       final RexWindow rexWindow = rexOver.getWindow();
       final SqlNodeList partitionList = new SqlNodeList(
           toSql(program, rexWindow.partitionKeys), POS);
@@ -1033,7 +1034,7 @@ public abstract class SqlImplementor {
           window);
     }
 
-    private SqlNode toSql(RexProgram program, RexFieldCollation rfc) {
+    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc) {
       SqlNode node = toSql(program, rfc.left);
       switch (rfc.getDirection()) {
       case DESCENDING:
@@ -1084,7 +1085,7 @@ public abstract class SqlImplementor {
           + rexWindowBound);
     }
 
-    private List<SqlNode> toSql(RexProgram program, List<RexNode> operandList) {
+    private List<SqlNode> toSql(@Nullable RexProgram program, List<RexNode> operandList) {
       final List<SqlNode> list = new ArrayList<>();
       for (RexNode rex : operandList) {
         list.add(toSql(program, rex));
@@ -1123,7 +1124,7 @@ public abstract class SqlImplementor {
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-        RexProgram program, RexFieldCollation field) {
+        @Nullable RexProgram program, RexFieldCollation field) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
@@ -1329,7 +1330,7 @@ public abstract class SqlImplementor {
 
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
-  public static SqlNode toSql(RexProgram program, RexLiteral literal) {
+  public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal) {
     switch (literal.getTypeName()) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();
@@ -1491,7 +1492,7 @@ public abstract class SqlImplementor {
       super(dialect, aliases, false);
     }
 
-    @Override public SqlNode toSql(RexProgram program, RexNode rex) {
+    @Override public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
       if (rex.getKind() == SqlKind.LITERAL) {
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
@@ -1573,8 +1574,8 @@ public abstract class SqlImplementor {
   /** Result of implementing a node. */
   public class Result {
     final SqlNode node;
-    final String neededAlias;
-    private final RelDataType neededType;
+    final @Nullable String neededAlias;
+    private final @Nullable RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
@@ -1584,19 +1585,19 @@ public abstract class SqlImplementor {
     /** Clauses that will be generated to implement current relational
      * expression. */
     private final ImmutableSet<Clause> expectedClauses;
-    private final RelNode expectedRel;
+    private final @Nullable RelNode expectedRel;
     private final boolean needNew;
 
-    public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        RelDataType neededType, Map<String, RelDataType> aliases) {
+    public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
+        @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
           ImmutableSet.of(), null);
     }
 
-    private Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
+    private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
+        @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
         boolean ignoreClauses, Set<Clause> expectedClauses,
-        RelNode expectedRel) {
+        @Nullable RelNode expectedRel) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -2001,11 +2002,11 @@ public abstract class SqlImplementor {
     final SqlSelect select;
     public final Context context;
     final boolean anon;
-    private final Map<String, RelDataType> aliases;
+    private final @Nullable Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
         Context context, boolean anon,
-        Map<String, RelDataType> aliases) {
+        @Nullable Map<String, RelDataType> aliases) {
       this.rel = requireNonNull(rel);
       this.clauses = ImmutableList.copyOf(clauses);
       this.select = requireNonNull(select);

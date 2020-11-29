@@ -39,6 +39,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -60,10 +62,10 @@ class InnodbFilterTranslator {
   /** Secondary key metadata. */
   private final List<KeyMeta> skMetaList;
   /** If not null, force to use one specific index from hint. */
-  private final String forceIndexName;
+  private final @Nullable String forceIndexName;
 
   InnodbFilterTranslator(RexBuilder rexBuilder, RelDataType rowType,
-      TableDef tableDef, String forceIndexName) {
+      TableDef tableDef, @Nullable String forceIndexName) {
     this.rexBuilder = rexBuilder;
     this.fieldNames = InnodbRules.innodbFieldNames(rowType);
     this.pkMeta = tableDef.getPrimaryKeyMeta();

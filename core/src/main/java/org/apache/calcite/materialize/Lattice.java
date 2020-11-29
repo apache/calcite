@@ -67,6 +67,7 @@ import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
@@ -109,7 +110,7 @@ public class Lattice {
   private Lattice(CalciteSchema rootSchema, LatticeRootNode rootNode,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
       LatticeStatisticProvider.Factory statisticProviderFactory,
-      Double rowCountEstimate, ImmutableList<Column> columns,
+      @Nullable Double rowCountEstimate, ImmutableList<Column> columns,
       ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles,
       ImmutableListMultimap<Integer, Boolean> columnUses) {
     this.rootSchema = rootSchema;
@@ -160,8 +161,8 @@ public class Lattice {
     return litmus.succeed();
   }
 
-  private static void populateAliases(SqlNode from, List<String> aliases,
-      String current) {
+  private static void populateAliases(SqlNode from, List<@Nullable String> aliases,
+      @Nullable String current) {
     if (from instanceof SqlJoin) {
       SqlJoin join = (SqlJoin) from;
       populateAliases(join.getLeft(), aliases, null);
@@ -535,9 +536,9 @@ public class Lattice {
   /** Vertex in the temporary graph. */
   private static class Vertex {
     final LatticeTable table;
-    final String alias;
+    final @Nullable String alias;
 
-    private Vertex(LatticeTable table, String alias) {
+    private Vertex(LatticeTable table, @Nullable String alias) {
       this.table = table;
       this.alias = alias;
     }
@@ -553,11 +554,11 @@ public class Lattice {
   public static class Measure implements Comparable<Measure> {
     public final SqlAggFunction agg;
     public final boolean distinct;
-    public final String name;
+    public final @Nullable String name;
     public final ImmutableList<Column> args;
     public final String digest;
 
-    public Measure(SqlAggFunction agg, boolean distinct, String name,
+    public Measure(SqlAggFunction agg, boolean distinct, @Nullable String name,
         Iterable<Column> args) {
       this.agg = requireNonNull(agg);
       this.distinct = distinct;
@@ -602,7 +603,7 @@ public class Lattice {
       return Objects.hash(agg, args);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Measure
           && this.agg.equals(((Measure) obj).agg)
@@ -675,7 +676,7 @@ public class Lattice {
       return ordinal;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Column
           && this.ordinal == ((Column) obj).ordinal;
@@ -684,7 +685,7 @@ public class Lattice {
     public abstract void toSql(SqlWriter writer);
 
     /** The alias that SQL would give to this expression. */
-    public abstract String defaultAlias();
+    public abstract @Nullable String defaultAlias();
   }
 
   /** Column in a lattice. Columns are identified by table alias and
@@ -741,7 +742,7 @@ public class Lattice {
       writer.write(e);
     }
 
-    @Override public String defaultAlias() {
+    @Override public @Nullable String defaultAlias() {
       // there is no default alias for an expression
       return null;
     }
@@ -791,7 +792,7 @@ public class Lattice {
     private long algorithmMaxMillis = -1;
     private boolean auto = true;
     private @MonotonicNonNull Double rowCountEstimate;
-    private String statisticProvider;
+    private @Nullable String statisticProvider;
     private final Map<String, DerivedColumn> derivedColumnsByName =
         new LinkedHashMap<>();
 
@@ -808,7 +809,7 @@ public class Lattice {
       populate(relNodes, tempLinks, parsed.root.rel);
 
       // Get aliases.
-      List<String> aliases = new ArrayList<>();
+      List<@Nullable String> aliases = new ArrayList<>();
       SqlNode from = ((SqlSelect) parsed.sqlNode).getFrom();
       assert from != null : "from must not be null";
       populateAliases(from, aliases, null);
@@ -817,7 +818,7 @@ public class Lattice {
       final DirectedGraph<Vertex, Edge> graph =
           DefaultDirectedGraph.create(Edge.FACTORY);
       final List<Vertex> vertices = new ArrayList<>();
-      for (Pair<TableScan, String> p : Pair.zip(relNodes, aliases)) {
+      for (Pair<TableScan, @Nullable String> p : Pair.zip(relNodes, aliases)) {
         final LatticeTable table = space.register(p.left.getTable());
         final Vertex vertex = new Vertex(table, p.right);
         graph.addVertex(vertex);
@@ -920,7 +921,7 @@ public class Lattice {
     /** Sets the "statisticProvider" attribute.
      *
      * <p>If not set, the lattice will use {@link Lattices#CACHED_SQL}. */
-    public Builder statisticProvider(String statisticProvider) {
+    public Builder statisticProvider(@Nullable String statisticProvider) {
       this.statisticProvider = statisticProvider;
       return this;
     }
@@ -948,7 +949,7 @@ public class Lattice {
      * {@link org.apache.calcite.model.JsonMeasure}. They must either be null,
      * a string, or a list of strings. Throws if the structure is invalid, or if
      * any of the columns do not exist in the lattice. */
-    public ImmutableList<Column> resolveArgs(Object args) {
+    public ImmutableList<Column> resolveArgs(@Nullable Object args) {
       if (args == null) {
         return ImmutableList.of();
       } else if (args instanceof String) {
@@ -1027,7 +1028,7 @@ public class Lattice {
     }
 
     public Measure resolveMeasure(String aggName, boolean distinct,
-        Object args) {
+        @Nullable Object args) {
       final SqlAggFunction agg = resolveAgg(aggName);
       final ImmutableList<Column> list = resolveArgs(args);
       return new Measure(agg, distinct, aggName, list);

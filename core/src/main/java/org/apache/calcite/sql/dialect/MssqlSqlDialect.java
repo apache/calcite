@@ -36,6 +36,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -81,7 +83,7 @@ public class MssqlSqlDialect extends SqlDialect {
    *   {@code ORDER BY CASE WHEN x IS NULL THEN 0 ELSE 1 END, x}
    * </blockquote>
    */
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     // Default ordering preserved
     if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
@@ -112,15 +114,15 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     if (!top) {
       super.unparseOffsetFetch(writer, offset, fetch);
     }
   }
 
-  @Override public void unparseTopN(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     if (top) {
       // Per Microsoft:
       //   "For backward compatibility, the parentheses are optional in SELECT

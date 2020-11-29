@@ -23,6 +23,8 @@ import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -244,7 +246,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     private final OperandBuilderImpl parent;
     private final Class<R> relClass;
     final OperandBuilderImpl inputBuilder = new OperandBuilderImpl();
-    private RelTrait trait;
+    private @Nullable RelTrait trait;
     private Predicate<? super R> predicate = r -> true;
 
     OperandDetailBuilderImpl(OperandBuilderImpl parent, Class<R> relClass) {

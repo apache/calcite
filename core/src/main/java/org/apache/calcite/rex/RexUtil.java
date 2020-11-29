@@ -54,6 +54,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,7 +93,7 @@ public class RexUtil {
    *            selectivity of 1.0)
    * @return guessed selectivity
    */
-  public static double getSelectivity(RexNode exp) {
+  public static double getSelectivity(@Nullable RexNode exp) {
     if ((exp == null) || exp.isAlwaysTrue()) {
       return 1d;
     }
@@ -571,14 +572,14 @@ public class RexUtil {
 
   /** Expands all the calls to {@link SqlStdOperatorTable#SEARCH} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
-      RexProgram program, RexNode node) {
+      @Nullable RexProgram program, RexNode node) {
     return expandSearch(rexBuilder, program, node, -1);
   }
 
   /** Expands calls to {@link SqlStdOperatorTable#SEARCH}
    * whose complexity is greater than {@code maxComplexity} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
-       RexProgram program, RexNode node, int maxComplexity) {
+       @Nullable RexProgram program, RexNode node, int maxComplexity) {
     return node.accept(searchShuttle(rexBuilder, program, maxComplexity));
   }
 
@@ -591,7 +592,7 @@ public class RexUtil {
    * {@code x IS NULL} or {@code x > 10} while keeping more complex expressions
    * such as {@code x IN (3, 5, 7) OR x IS NULL} as a Sarg. */
   public static RexShuttle searchShuttle(RexBuilder rexBuilder,
-      RexProgram program, int maxComplexity) {
+      @Nullable RexProgram program, int maxComplexity) {
     return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
   }
 
@@ -633,7 +634,7 @@ public class RexUtil {
     return composeDisjunction(rexBuilder, orList);
   }
 
-  private static RexNode deref(RexProgram program, RexNode node) {
+  private static RexNode deref(@Nullable RexProgram program, RexNode node) {
     while (node instanceof RexLocalRef) {
       node = requireNonNull(program, "program")
           .getExprList().get(((RexLocalRef) node).index);
@@ -756,7 +757,7 @@ public class RexUtil {
    * @param operator Operator to look for
    * @param node     a RexNode tree
    */
-  public static RexCall findOperatorCall(
+  public static @Nullable RexCall findOperatorCall(
       final SqlOperator operator,
       RexNode node) {
     try {
@@ -1035,7 +1036,7 @@ public class RexUtil {
    * @param node a RexNode tree
    * @return first such node found or null if it there is no such node
    */
-  public static RexTableInputRef containsTableInputRef(RexNode node) {
+  public static @Nullable RexTableInputRef containsTableInputRef(RexNode node) {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
@@ -1095,8 +1096,8 @@ public class RexUtil {
   public static RelDataType createStructType(
       RelDataTypeFactory typeFactory,
       final List<? extends RexNode> exprs,
-      List<? extends String> names,
-      SqlValidatorUtil.Suggester suggester) {
+      @Nullable List<? extends @Nullable String> names,
+      SqlValidatorUtil.@Nullable Suggester suggester) {
     if (names != null && suggester != null) {
       names = SqlValidatorUtil.uniquify(names, suggester,
           typeFactory.getTypeSystem().isSchemaCaseSensitive());
@@ -1202,7 +1203,7 @@ public class RexUtil {
   /** As {@link #composeConjunction(RexBuilder, Iterable, boolean)} but never
    * returns null. */
   public static RexNode composeConjunction(RexBuilder rexBuilder,
-      Iterable<? extends RexNode> nodes) {
+      Iterable<? extends @Nullable RexNode> nodes) {
     final RexNode e = composeConjunction(rexBuilder, nodes, false);
     return requireNonNull(e);
   }
@@ -1215,8 +1216,8 @@ public class RexUtil {
    * Removes expressions that always evaluate to TRUE.
    * Returns null only if {@code nullOnEmpty} and expression is TRUE.
    */
-  public static RexNode composeConjunction(RexBuilder rexBuilder,
-      Iterable<? extends RexNode> nodes, boolean nullOnEmpty) {
+  public static @Nullable RexNode composeConjunction(RexBuilder rexBuilder,
+      Iterable<? extends @Nullable RexNode> nodes, boolean nullOnEmpty) {
     ImmutableList<RexNode> list = flattenAnd(nodes);
     switch (list.size()) {
     case 0:
@@ -1237,7 +1238,7 @@ public class RexUtil {
    *
    * <p>Treats null nodes as literal TRUE (i.e. ignores them). */
   public static ImmutableList<RexNode> flattenAnd(
-      Iterable<? extends RexNode> nodes) {
+      Iterable<? extends @Nullable RexNode> nodes) {
     if (nodes instanceof Collection && ((Collection) nodes).isEmpty()) {
       // Optimize common case
       return ImmutableList.of();
@@ -1285,7 +1286,7 @@ public class RexUtil {
    * Converts a collection of expressions into an OR,
    * optionally returning null if the list is empty.
    */
-  public static RexNode composeDisjunction(RexBuilder rexBuilder,
+  public static @Nullable RexNode composeDisjunction(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes, boolean nullOnEmpty) {
     ImmutableList<RexNode> list = flattenOr(nodes);
     switch (list.size()) {
@@ -1402,7 +1403,7 @@ public class RexUtil {
    * @param fieldCollation Field collation
    * @return collation with mapping applied
    */
-  public static RelFieldCollation apply(
+  public static @Nullable RelFieldCollation apply(
       Mappings.TargetMapping mapping,
       RelFieldCollation fieldCollation) {
     final int target =
@@ -1479,7 +1480,7 @@ public class RexUtil {
   public static void apply(
       RexVisitor<Void> visitor,
       RexNode[] exprs,
-      RexNode expr) {
+      @Nullable RexNode expr) {
     for (RexNode e : exprs) {
       e.accept(visitor);
     }
@@ -1499,7 +1500,7 @@ public class RexUtil {
   public static void apply(
       RexVisitor<Void> visitor,
       List<? extends RexNode> exprs,
-      RexNode expr) {
+      @Nullable RexNode expr) {
     for (RexNode e : exprs) {
       e.accept(visitor);
     }
@@ -2026,7 +2027,7 @@ public class RexUtil {
         .simplifyAnd2ForUnknownAsFalse(terms, notTerms);
   }
 
-  public static RexNode negate(RexBuilder rexBuilder, RexCall call) {
+  public static @Nullable RexNode negate(RexBuilder rexBuilder, RexCall call) {
     switch (call.getKind()) {
     case EQUALS:
     case NOT_EQUALS:
@@ -2042,7 +2043,7 @@ public class RexUtil {
     return null;
   }
 
-  public static RexNode invert(RexBuilder rexBuilder, RexCall call) {
+  public static @Nullable RexNode invert(RexBuilder rexBuilder, RexCall call) {
     switch (call.getKind()) {
     case EQUALS:
     case NOT_EQUALS:
@@ -2216,8 +2217,8 @@ public class RexUtil {
    * in the second map (in particular, the first element of the set in the map value).
    */
   public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
-      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping,
-      final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
+      final RexNode node, final @Nullable Map<RelTableRef, RelTableRef> tableMapping,
+      final @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
     RexShuttle visitor =
         new RexShuttle() {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
@@ -2248,8 +2249,8 @@ public class RexUtil {
    * {@link RexTableInputRef} using the contents in the second map.
    */
   public static RexNode swapColumnTableReferences(final RexBuilder rexBuilder,
-      final RexNode node, final Map<RexTableInputRef, ? extends Set<RexTableInputRef>> ec,
-      final Map<RelTableRef, RelTableRef> tableMapping) {
+      final RexNode node, final Map<RexTableInputRef, ? extends @Nullable Set<RexTableInputRef>> ec,
+      final @Nullable Map<RelTableRef, RelTableRef> tableMapping) {
     RexShuttle visitor =
         new RexShuttle() {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
@@ -2295,7 +2296,7 @@ public class RexUtil {
   /**
    * Walks over expressions and builds a bank of common sub-expressions.
    */
-  private static class ExpressionNormalizer extends RexVisitorImpl<RexNode> {
+  private static class ExpressionNormalizer extends RexVisitorImpl<@Nullable RexNode> {
     final Map<RexNode, RexNode> map = new HashMap<>();
     final boolean allowDups;
 
@@ -2810,7 +2811,7 @@ public class RexUtil {
       throw new Util.FoundOne(subQuery);
     }
 
-    public static RexSubQuery find(Iterable<RexNode> nodes) {
+    public static @Nullable RexSubQuery find(Iterable<RexNode> nodes) {
       for (RexNode node : nodes) {
         try {
           node.accept(INSTANCE);
@@ -2821,7 +2822,7 @@ public class RexUtil {
       return null;
     }
 
-    public static RexSubQuery find(RexNode node) {
+    public static @Nullable RexSubQuery find(RexNode node) {
       try {
         node.accept(INSTANCE);
         return null;
@@ -3018,10 +3019,10 @@ public class RexUtil {
    * are retained (not expanded). */
   private static class SearchExpandingShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
-    private final RexProgram program;
+    private final @Nullable RexProgram program;
     private final int maxComplexity;
 
-    SearchExpandingShuttle(RexProgram program, RexBuilder rexBuilder,
+    SearchExpandingShuttle(@Nullable RexProgram program, RexBuilder rexBuilder,
         int maxComplexity) {
       this.program = program;
       this.rexBuilder = rexBuilder;

@@ -42,6 +42,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +78,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
     return new EnumerableValues(getCluster(), getRowType(), tuples, traitSet);
   }
 
-  @Override public RelNode passThrough(final RelTraitSet required) {
+  @Override public @Nullable RelNode passThrough(final RelTraitSet required) {
     RelCollation collation = required.getCollation();
     if (collation == null || collation.isDefault()) {
       return null;

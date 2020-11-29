@@ -81,6 +81,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.MinLen;
 
 import java.util.ArrayDeque;
@@ -142,10 +143,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private final boolean restructure;
 
   private final Map<RelNode, RelNode> oldToNewRelMap = new HashMap<>();
-  private RelNode currentRel;
+  private @Nullable RelNode currentRel;
   private int iRestructureInput;
   @SuppressWarnings("unused")
-  private RelDataType flattenedRootType;
+  private @Nullable RelDataType flattenedRootType;
   boolean restructured;
   private final RelOptTable.ToRelContext toRelContext;
 
@@ -602,7 +603,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   private void flattenProjections(RewriteRexShuttle shuttle,
       List<? extends RexNode> exps,
-      List<? extends String> fieldNames,
+      @Nullable List<? extends @Nullable String> fieldNames,
       String prefix,
       List<Pair<RexNode, String>> flattenedExps) {
     for (int i = 0; i < exps.size(); ++i) {
@@ -612,7 +613,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  private String extractName(List<? extends String> fieldNames,
+  private String extractName(@Nullable List<? extends @Nullable String> fieldNames,
       String prefix, int i) {
     String fieldName = (fieldNames == null || fieldNames.get(i) == null)
         ? ("$" + i)
@@ -830,7 +831,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             RelStructuredTypeFlattener.class,
             RelNode.class);
 
-    @Override public void visit(RelNode p, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode p, int ordinal, @Nullable RelNode parent) {
       // rewrite children first
       super.visit(p, ordinal, parent);
 
@@ -1048,7 +1049,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   }
 
-  private int getNewInnerOrdinal(RexNode firstOp, String literalString) {
+  private int getNewInnerOrdinal(RexNode firstOp, @Nullable String literalString) {
     int newInnerOrdinal = 0;
     for (RelDataTypeField field : firstOp.getType().getFieldList()) {
       if (field.getName().equalsIgnoreCase(literalString)) {

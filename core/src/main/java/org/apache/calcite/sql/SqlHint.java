@@ -22,6 +22,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,9 +72,9 @@ public class SqlHint extends SqlCall {
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("HINT", SqlKind.HINT) {
         @Override public SqlCall createCall(
-            SqlLiteral functionQualifier,
+            @Nullable SqlLiteral functionQualifier,
             SqlParserPos pos,
-            SqlNode... operands) {
+            @Nullable SqlNode... operands) {
           return new SqlHint(pos,
               (SqlIdentifier) requireNonNull(operands[0], "name"),
               (SqlNodeList) requireNonNull(operands[1], "options"),

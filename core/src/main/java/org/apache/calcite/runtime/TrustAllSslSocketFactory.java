@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -103,7 +104,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
    *
    * @return SSLSocketFactory
    */
-  public static SSLSocketFactory createSSLSocketFactory() {
+  public static @Nullable SSLSocketFactory createSSLSocketFactory() {
     SSLSocketFactory sslsocketfactory = null;
     TrustManager[] trustAllCerts = {new DummyTrustManager()};
     try {

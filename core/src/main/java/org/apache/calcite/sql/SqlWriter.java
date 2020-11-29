@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.function.Consumer;
@@ -379,14 +380,14 @@ public interface SqlWriter {
   /**
    * Prints the OFFSET/FETCH clause.
    */
-  void fetchOffset(SqlNode fetch, SqlNode offset);
+  void fetchOffset(@Nullable SqlNode fetch, @Nullable SqlNode offset);
 
   /**
    * Prints the TOP(n) clause.
    *
    * @see #fetchOffset
    */
-  void topN(SqlNode fetch, SqlNode offset);
+  void topN(@Nullable SqlNode fetch, @Nullable SqlNode offset);
 
   /**
    * Prints a new line, and indents.
@@ -475,7 +476,7 @@ public interface SqlWriter {
    * @param frame The frame which was created by {@link #startList}.
    */
   @Pure
-  void endList(Frame frame);
+  void endList(@Nullable Frame frame);
 
   /**
    * Writes a list.

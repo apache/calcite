@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -211,14 +212,14 @@ public class RexImplicationChecker {
       return false;
     }
 
-    ImmutableList.Builder<Set<Pair<RexInputRef, RexNode>>> usagesBuilder =
+    ImmutableList.Builder<Set<Pair<RexInputRef, @Nullable RexNode>>> usagesBuilder =
         ImmutableList.builder();
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
+    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> entry
         : firstUsageFinder.usageMap.entrySet()) {
-      ImmutableSet.Builder<Pair<RexInputRef, RexNode>> usageBuilder =
+      ImmutableSet.Builder<Pair<RexInputRef, @Nullable RexNode>> usageBuilder =
           ImmutableSet.builder();
       if (entry.getValue().usageList.size() > 0) {
-        for (final Pair<SqlOperator, RexNode> pair
+        for (final Pair<SqlOperator, @Nullable RexNode> pair
             : entry.getValue().usageList) {
           usageBuilder.add(Pair.of(entry.getKey(), pair.getValue()));
         }
@@ -226,10 +227,10 @@ public class RexImplicationChecker {
       }
     }
 
-    final Set<List<Pair<RexInputRef, RexNode>>> usages =
+    final Set<List<Pair<RexInputRef, @Nullable RexNode>>> usages =
         Sets.cartesianProduct(usagesBuilder.build());
 
-    for (List<Pair<RexInputRef, RexNode>> usageList : usages) {
+    for (List<Pair<RexInputRef, @Nullable RexNode>> usageList : usages) {
       // Get the literals from first conjunction and executes second conjunction
       // using them.
       //
@@ -250,7 +251,7 @@ public class RexImplicationChecker {
     return true;
   }
 
-  private boolean isSatisfiable(RexNode second, DataContext dataValues) {
+  private boolean isSatisfiable(RexNode second, @Nullable DataContext dataValues) {
     if (dataValues == null) {
       return false;
     }
@@ -258,7 +259,7 @@ public class RexImplicationChecker {
     ImmutableList<RexNode> constExps = ImmutableList.of(second);
     final RexExecutable exec = RexExecutorImpl.getExecutable(builder, constExps, rowType);
 
-    Object[] result;
+    @Nullable Object[] result;
     exec.setDataContext(dataValues);
     try {
       result = exec.execute();
@@ -306,22 +307,22 @@ public class RexImplicationChecker {
    */
   private boolean checkSupport(InputUsageFinder firstUsageFinder,
       InputUsageFinder secondUsageFinder) {
-    final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>> firstUsageMap =
+    final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> firstUsageMap =
         firstUsageFinder.usageMap;
-    final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>> secondUsageMap =
+    final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> secondUsageMap =
         secondUsageFinder.usageMap;
 
-    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, RexNode>> entry
+    for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> entry
         : secondUsageMap.entrySet()) {
-      final InputRefUsage<SqlOperator, RexNode> secondUsage = entry.getValue();
-      final List<Pair<SqlOperator, RexNode>> secondUsageList = secondUsage.usageList;
+      final InputRefUsage<SqlOperator, @Nullable RexNode> secondUsage = entry.getValue();
+      final List<Pair<SqlOperator, @Nullable RexNode>> secondUsageList = secondUsage.usageList;
       final int secondLen = secondUsageList.size();
 
       if (secondUsage.usageCount != secondLen || secondLen > 2) {
         return false;
       }
 
-      final InputRefUsage<SqlOperator, RexNode> firstUsage =
+      final InputRefUsage<SqlOperator, @Nullable RexNode> firstUsage =
           firstUsageMap.get(entry.getKey());
 
       if (firstUsage == null
@@ -330,7 +331,7 @@ public class RexImplicationChecker {
         return false;
       }
 
-      final List<Pair<SqlOperator, RexNode>> firstUsageList = firstUsage.usageList;
+      final List<Pair<SqlOperator, @Nullable RexNode>> firstUsageList = firstUsage.usageList;
       final int firstLen = firstUsageList.size();
 
       final SqlKind fKind = firstUsageList.get(0).getKey().getKind();
@@ -381,7 +382,7 @@ public class RexImplicationChecker {
     }
   }
 
-  private boolean isEquivalentOp(SqlKind fKind, SqlKind sKind) {
+  private boolean isEquivalentOp(@Nullable SqlKind fKind, SqlKind sKind) {
     switch (sKind) {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
@@ -440,7 +441,7 @@ public class RexImplicationChecker {
    * </ul>
    */
   private static class InputUsageFinder extends RexVisitorImpl<Void> {
-    final Map<RexInputRef, InputRefUsage<SqlOperator, RexNode>> usageMap =
+    final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> usageMap =
         new HashMap<>();
 
     InputUsageFinder() {
@@ -448,7 +449,7 @@ public class RexImplicationChecker {
     }
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
-      InputRefUsage<SqlOperator, RexNode> inputRefUse = getUsageMap(inputRef);
+      InputRefUsage<SqlOperator, @Nullable RexNode> inputRefUse = getUsageMap(inputRef);
       inputRefUse.usageCount++;
       return null;
     }
@@ -502,15 +503,15 @@ public class RexImplicationChecker {
     }
 
     private void updateUsage(SqlOperator op, RexInputRef inputRef,
-        RexNode literal) {
-      final InputRefUsage<SqlOperator, RexNode> inputRefUse =
+        @Nullable RexNode literal) {
+      final InputRefUsage<SqlOperator, @Nullable RexNode> inputRefUse =
           getUsageMap(inputRef);
-      Pair<SqlOperator, RexNode> use = Pair.of(op, literal);
+      Pair<SqlOperator, @Nullable RexNode> use = Pair.of(op, literal);
       inputRefUse.usageList.add(use);
     }
 
-    private InputRefUsage<SqlOperator, RexNode> getUsageMap(RexInputRef rex) {
-      InputRefUsage<SqlOperator, RexNode> inputRefUse = usageMap.get(rex);
+    private InputRefUsage<SqlOperator, @Nullable RexNode> getUsageMap(RexInputRef rex) {
+      InputRefUsage<SqlOperator, @Nullable RexNode> inputRefUse = usageMap.get(rex);
       if (inputRefUse == null) {
         inputRefUse = new InputRefUsage<>();
         usageMap.put(rex, inputRefUse);

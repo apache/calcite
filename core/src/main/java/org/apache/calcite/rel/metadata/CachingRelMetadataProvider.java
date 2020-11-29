@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -58,7 +60,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     final UnboundMetadata<M> function =
@@ -94,7 +96,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
   private static class CacheEntry {
     long timestamp;
 
-    Object result;
+    @Nullable Object result;
   }
 
   /** Implementation of {@link InvocationHandler} for calls to a
@@ -108,7 +110,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
       this.metadata = requireNonNull(metadata);
     }
 
-    @Override public Object invoke(Object proxy, Method method, Object[] args)
+    @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
         throws Throwable {
       // Compute hash key.
       final ImmutableList.Builder<Object> builder = ImmutableList.builder();

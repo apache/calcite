@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMultiset;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,7 @@ public class AggregatingSelectScope
   private final boolean distinct;
 
   /** Use while resolving. */
-  private SqlValidatorUtil.GroupAnalyzer groupAnalyzer;
+  private SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
 
   @SuppressWarnings("methodref.receiver.bound.invalid")
   public final Supplier<Resolved> resolved =

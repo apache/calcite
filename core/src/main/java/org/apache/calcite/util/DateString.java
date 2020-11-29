@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Calendar;
 import java.util.regex.Pattern;
 
@@ -75,7 +77,7 @@ public class DateString implements Comparable<DateString> {
     return v;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // The value is in canonical form.
     return o == this
         || o instanceof DateString

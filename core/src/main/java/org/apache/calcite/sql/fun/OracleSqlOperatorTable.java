@@ -19,6 +19,8 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Operator table that contains only Oracle-specific functions and operators.
  *
@@ -33,7 +35,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The table of contains Oracle-specific operators.
    */
-  private static OracleSqlOperatorTable instance;
+  private static @Nullable OracleSqlOperatorTable instance;
 
   @Deprecated // to be removed before 2.0
   public static final SqlFunction DECODE = SqlLibraryOperators.DECODE;

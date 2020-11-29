@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -62,7 +64,7 @@ public abstract class Types {
    *
    * <p>Returns null if the type is not one of these.</p>
    */
-  public static Type getElementType(Type type) {
+  public static @Nullable Type getElementType(Type type) {
     if (type instanceof ArrayType) {
       return ((ArrayType) type).getComponentType();
     }
@@ -169,7 +171,7 @@ public abstract class Types {
   /**
    * Returns the component type of an array.
    */
-  public static Type getComponentType(Type type) {
+  public static @Nullable Type getComponentType(Type type) {
     if (type instanceof Class) {
       return ((Class) type).getComponentType();
     }
@@ -518,10 +520,10 @@ public abstract class Types {
   static class ParameterizedTypeImpl implements ParameterizedType {
     private final Type rawType;
     private final List<Type> typeArguments;
-    private final Type ownerType;
+    private final @Nullable Type ownerType;
 
     ParameterizedTypeImpl(Type rawType, List<Type> typeArguments,
-        Type ownerType) {
+        @Nullable Type ownerType) {
       super();
       this.rawType = rawType;
       this.typeArguments = typeArguments;
@@ -555,7 +557,7 @@ public abstract class Types {
       return rawType;
     }
 
-    @Override public Type getOwnerType() {
+    @Override public @Nullable Type getOwnerType() {
       return ownerType;
     }
   }

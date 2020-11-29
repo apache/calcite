@@ -35,6 +35,8 @@ import org.apache.calcite.runtime.Bindable;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -61,7 +63,7 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return Object[].class;
   }
 
-  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     final ImmutableMap<String, Object> map = ImmutableMap.of();
     final Bindable bindable = EnumerableInterpretable.toBindable(map, null,
         (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
@@ -74,8 +76,8 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
       final Sink sink =
           requireNonNull(implementor.relSinks.get(EnumerableBindable.this),
               () -> "relSinks.get is null for " + EnumerableBindable.this).get(0);
-      final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
-      final Enumerator<Object[]> enumerator = enumerable.enumerator();
+      final Enumerable<@Nullable Object[]> enumerable = bind(implementor.dataContext);
+      final Enumerator<@Nullable Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
         sink.send(Row.asCopy(enumerator.current()));
       }

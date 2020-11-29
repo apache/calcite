@@ -39,6 +39,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import com.google.common.base.Preconditions;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -79,8 +80,8 @@ public abstract class TableModify extends SingleRel {
    */
   protected final RelOptTable table;
   private final Operation operation;
-  private final List<String> updateColumnList;
-  private final List<RexNode> sourceExpressionList;
+  private final @Nullable List<String> updateColumnList;
+  private final @Nullable List<RexNode> sourceExpressionList;
   private @MonotonicNonNull RelDataType inputRowType;
   private final boolean flattened;
 
@@ -113,8 +114,8 @@ public abstract class TableModify extends SingleRel {
       Prepare.CatalogReader catalogReader,
       RelNode input,
       Operation operation,
-      List<String> updateColumnList,
-      List<RexNode> sourceExpressionList,
+      @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     super(cluster, traitSet, input);
     this.table = table;
@@ -169,11 +170,11 @@ public abstract class TableModify extends SingleRel {
     return table;
   }
 
-  public List<String> getUpdateColumnList() {
+  public @Nullable List<String> getUpdateColumnList() {
     return updateColumnList;
   }
 
-  public List<RexNode> getSourceExpressionList() {
+  public @Nullable List<RexNode> getSourceExpressionList() {
     return sourceExpressionList;
   }
 
@@ -257,7 +258,7 @@ public abstract class TableModify extends SingleRel {
         .item("flattened", flattened);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // REVIEW jvs 21-Apr-2006:  Just for now...
     double rowCount = mq.getRowCount(this);

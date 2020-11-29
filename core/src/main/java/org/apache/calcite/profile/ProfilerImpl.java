@@ -34,6 +34,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.yahoo.sketches.hll.HllSketch;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -114,7 +116,7 @@ public class ProfilerImpl implements Profiler {
             PartiallyOrderedSet.BIT_SET_INCLUSION_ORDERING);
     final Map<ImmutableBitSet, Distribution> distributions = new HashMap<>();
     /** List of spaces that have one column. */
-    final List<Space> singletonSpaces;
+    final List<@Nullable Space> singletonSpaces;
     /** Combinations of columns that we have computed but whose successors have
      * not yet been computed. We may add some of those successors to
      * {@link #spaceQueue}. */
@@ -459,14 +461,14 @@ public class ProfilerImpl implements Profiler {
     final BitSet dependencies = new BitSet();
     final Set<ImmutableBitSet> dependents = new HashSet<>();
     double expectedCardinality;
-    Collector collector;
+    @Nullable Collector collector;
     /** Assigned by {@link Collector#finish()}. */
     int nullCount;
     /** Number of distinct values. Null is counted as a value, if present.
      * Assigned by {@link Collector#finish()}. */
     int cardinality;
     /** Assigned by {@link Collector#finish()}. */
-    SortedSet<Comparable> valueSet;
+    @Nullable SortedSet<Comparable> valueSet;
 
     Space(Run run, ImmutableBitSet columnOrdinals, Iterable<Column> columns) {
       this.run = run;
@@ -478,7 +480,7 @@ public class ProfilerImpl implements Profiler {
       return columnOrdinals.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Space
           && columnOrdinals.equals(((Space) o).columnOrdinals);
@@ -486,7 +488,7 @@ public class ProfilerImpl implements Profiler {
 
     /** Returns the distribution created from this space, or null if no
      * distribution has been registered yet. */
-    public Distribution distribution() {
+    public @Nullable Distribution distribution() {
       return run.distributions.get(columnOrdinals);
     }
 

@@ -48,6 +48,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -73,15 +75,15 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcSchema implements Schema {
   final DataSource dataSource;
-  final String catalog;
-  final String schema;
+  final @Nullable String catalog;
+  final @Nullable String schema;
   public final SqlDialect dialect;
   final JdbcConvention convention;
-  private ImmutableMap<String, JdbcTable> tableMap;
+  private @Nullable ImmutableMap<String, JdbcTable> tableMap;
   private final boolean snapshot;
 
   @Experimental
-  public static final ThreadLocal<Foo> THREAD_METADATA = new ThreadLocal<>();
+  public static final ThreadLocal<@Nullable Foo> THREAD_METADATA = new ThreadLocal<>();
 
   private static final Ordering<Iterable<Integer>> VERSION_ORDERING =
       Ordering.<Integer>natural().lexicographical();
@@ -96,13 +98,13 @@ public class JdbcSchema implements Schema {
    * @param schema Schema name pattern
    */
   public JdbcSchema(DataSource dataSource, SqlDialect dialect,
-      JdbcConvention convention, String catalog, String schema) {
+      JdbcConvention convention, @Nullable String catalog, @Nullable String schema) {
     this(dataSource, dialect, convention, catalog, schema, null);
   }
 
   private JdbcSchema(DataSource dataSource, SqlDialect dialect,
-      JdbcConvention convention, String catalog, String schema,
-      ImmutableMap<String, JdbcTable> tableMap) {
+      JdbcConvention convention, @Nullable String catalog, @Nullable String schema,
+      @Nullable ImmutableMap<String, JdbcTable> tableMap) {
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.dialect = requireNonNull(dialect, "dialect");
     this.convention = convention;
@@ -116,8 +118,8 @@ public class JdbcSchema implements Schema {
       SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
-      String catalog,
-      String schema) {
+      @Nullable String catalog,
+      @Nullable String schema) {
     return create(parentSchema, name, dataSource,
         SqlDialectFactoryImpl.INSTANCE, catalog, schema);
   }
@@ -127,8 +129,8 @@ public class JdbcSchema implements Schema {
       String name,
       DataSource dataSource,
       SqlDialectFactory dialectFactory,
-      String catalog,
-      String schema) {
+      @Nullable String catalog,
+      @Nullable String schema) {
     final Expression expression =
         Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
     final SqlDialect dialect = createDialect(dialectFactory, dataSource);
@@ -199,8 +201,8 @@ public class JdbcSchema implements Schema {
   }
 
   /** Creates a JDBC data source with the given specification. */
-  public static DataSource dataSource(String url, String driverClassName,
-      String username, String password) {
+  public static DataSource dataSource(String url, @Nullable String driverClassName,
+      @Nullable String username, @Nullable String password) {
     if (url.startsWith("jdbc:hsqldb:")) {
       // Prevent hsqldb from screwing up java.util.logging.
       System.setProperty("hsqldb.reconfig_logging", "false");
@@ -223,7 +225,7 @@ public class JdbcSchema implements Schema {
     return dataSource;
   }
 
-  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
     requireNonNull(parentSchema, "parentSchema must not be null for JdbcSchema");
     return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
@@ -246,7 +248,7 @@ public class JdbcSchema implements Schema {
     ResultSet resultSet = null;
     try {
       connection = dataSource.getConnection();
-      final Pair<String, String> catalogSchema = getCatalogSchema(connection);
+      final Pair<@Nullable String, @Nullable String> catalogSchema = getCatalogSchema(connection);
       final String catalog = catalogSchema.left;
       final String schema = catalogSchema.right;
       final Iterable<MetaImpl.MetaTable> tableDefs;
@@ -311,7 +313,7 @@ public class JdbcSchema implements Schema {
   }
 
   /** Returns a pair of (catalog, schema) for the current connection. */
-  private Pair<String, String> getCatalogSchema(Connection connection)
+  private Pair<@Nullable String, @Nullable String> getCatalogSchema(Connection connection)
       throws SQLException {
     final DatabaseMetaData metaData = connection.getMetaData();
     final List<Integer> version41 = ImmutableList.of(4, 1); // JDBC 4.1
@@ -344,7 +346,7 @@ public class JdbcSchema implements Schema {
     return Pair.of(catalog, schema);
   }
 
-  @Override public Table getTable(String name) {
+  @Override public @Nullable Table getTable(String name) {
     return getTableMap(false).get(name);
   }
 
@@ -406,7 +408,7 @@ public class JdbcSchema implements Schema {
   }
 
   private RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
-      int precision, int scale, String typeString) {
+      int precision, int scale, @Nullable String typeString) {
     // Fall back to ANY if type is unknown
     final SqlTypeName sqlTypeName =
         Util.first(SqlTypeName.getNameForJdbcType(dataType), SqlTypeName.ANY);
@@ -486,7 +488,7 @@ public class JdbcSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public RelProtoDataType getType(String name) {
+  @Override public @Nullable RelProtoDataType getType(String name) {
     return getTypes().get(name);
   }
 
@@ -495,7 +497,7 @@ public class JdbcSchema implements Schema {
     return (Set<String>) getTypes().keySet();
   }
 
-  @Override public Schema getSubSchema(String name) {
+  @Override public @Nullable Schema getSubSchema(String name) {
     // JDBC does not support sub-schemas.
     return null;
   }
@@ -505,9 +507,9 @@ public class JdbcSchema implements Schema {
   }
 
   private static void close(
-      Connection connection,
-      Statement statement,
-      ResultSet resultSet) {
+      @Nullable Connection connection,
+      @Nullable Statement statement,
+      @Nullable ResultSet resultSet) {
     if (resultSet != null) {
       try {
         resultSet.close();
@@ -572,6 +574,6 @@ public class JdbcSchema implements Schema {
   /** Do not use. */
   @Experimental
   public interface Foo
-      extends BiFunction<String, String, Iterable<MetaImpl.MetaTable>> {
+      extends BiFunction<@Nullable String, @Nullable String, Iterable<MetaImpl.MetaTable>> {
   }
 }

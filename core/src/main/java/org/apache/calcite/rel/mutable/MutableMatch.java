@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -37,14 +39,14 @@ public class MutableMatch extends MutableSingleRel {
   public final boolean allRows;
   public final ImmutableBitSet partitionKeys;
   public final RelCollation orderKeys;
-  public final RexNode interval;
+  public final @Nullable RexNode interval;
 
   private MutableMatch(RelDataType rowType, MutableRel input,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      @Nullable RexNode interval) {
     super(MutableRelType.MATCH, rowType, input);
     this.pattern = pattern;
     this.strictStart = strictStart;
@@ -68,13 +70,13 @@ public class MutableMatch extends MutableSingleRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      @Nullable RexNode interval) {
     return new MutableMatch(rowType, input, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableMatch
         && pattern.equals(((MutableMatch) obj).pattern)

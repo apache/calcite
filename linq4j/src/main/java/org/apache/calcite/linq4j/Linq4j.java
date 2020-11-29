@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +38,7 @@ public abstract class Linq4j {
 
   private static final Object DUMMY = new Object();
 
-  public static Method getMethod(String className, String methodName,
+  public static @Nullable Method getMethod(String className, String methodName,
       Class... parameterTypes) {
     try {
       return Class.forName(className).getMethod(methodName, parameterTypes);
@@ -423,7 +425,7 @@ public abstract class Linq4j {
   }
 
   /** Closes an iterator, if it can be closed. */
-  private static <T> void closeIterator(Iterator<? extends T> iterator) {
+  private static <T> void closeIterator(@Nullable Iterator<? extends T> iterator) {
     if (iterator instanceof AutoCloseable) {
       try {
         ((AutoCloseable) iterator).close();
@@ -441,7 +443,7 @@ public abstract class Linq4j {
   @SuppressWarnings("unchecked")
   static class IterableEnumerator<T> implements Enumerator<T> {
     private final Iterable<? extends T> iterable;
-    Iterator<? extends T> iterator;
+    @Nullable Iterator<? extends T> iterator;
     T current;
 
     IterableEnumerator(Iterable<? extends T> iterable) {
@@ -645,7 +647,7 @@ public abstract class Linq4j {
   /** Enumerator that returns one null element.
    *
    * @param <E> element type */
-  private static class SingletonNullEnumerator<E> implements Enumerator<E> {
+  private static class SingletonNullEnumerator<@Nullable E> implements Enumerator<E> {
     int i = 0;
 
     @Override public E current() {

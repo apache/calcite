@@ -53,6 +53,8 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,11 +81,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private final HepProgram mainProgram;
 
-  private HepProgram currentProgram;
+  private @Nullable HepProgram currentProgram;
 
-  private HepRelVertex root;
+  private @Nullable HepRelVertex root;
 
-  private RelTraitSet requestedRootTraits;
+  private @Nullable RelTraitSet requestedRootTraits;
 
   /**
    * {@link RelDataType} is represented with its field types as {@code List<RelDataType>}.
@@ -130,7 +132,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param program program controlling rule application
    * @param context to carry while planning
    */
-  public HepPlanner(HepProgram program, Context context) {
+  public HepPlanner(HepProgram program, @Nullable Context context) {
     this(program, context, false, null, RelOptCostImpl.FACTORY);
   }
 
@@ -145,9 +147,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
    */
   public HepPlanner(
       HepProgram program,
-      Context context,
+      @Nullable Context context,
       boolean noDag,
-      Function2<RelNode, RelNode, Void> onCopyHook,
+      @Nullable Function2<RelNode, RelNode, Void> onCopyHook,
       RelOptCostFactory costFactory) {
     super(costFactory, context);
     this.mainProgram = program;
@@ -164,7 +166,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  @Override public RelNode getRoot() {
+  @Override public @Nullable RelNode getRoot() {
     return root;
   }
 
@@ -501,7 +503,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  private HepRelVertex applyRule(
+  private @Nullable HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
@@ -689,7 +691,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private HepRelVertex applyTransformationResults(
       HepRelVertex vertex,
       HepRuleCall call,
-      RelTrait parentTrait) {
+      @Nullable RelTrait parentTrait) {
     // TODO jvs 5-Apr-2006:  Take the one that gives the best
     // global cost rather than the best local cost.  That requires
     // "tentative" graph edits.
@@ -787,7 +789,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   // implement RelOptPlanner
   @Override public RelNode register(
       RelNode rel,
-      RelNode equivRel) {
+      @Nullable RelNode equivRel) {
     // Ignore; this call is mostly to tell Volcano how to avoid
     // infinite loops.
     return rel;
@@ -798,7 +800,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  @Override public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelNode ensureRegistered(RelNode rel, @Nullable RelNode equivRel) {
     return rel;
   }
 

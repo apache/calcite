@@ -20,6 +20,8 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -70,7 +72,7 @@ public enum CsvFieldType {
     return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
-  public static CsvFieldType of(String typeString) {
+  public static @Nullable CsvFieldType of(String typeString) {
     return MAP.get(typeString);
   }
 }

@@ -25,6 +25,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -43,7 +45,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    Pair<RelDataType, RelDataType> type =
+    Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
     return SqlTypeUtil.createMapType(
@@ -63,7 +65,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     if (argTypes.size() % 2 > 0) {
       throw callBinding.newValidationError(RESOURCE.mapRequiresEvenArgCount());
     }
-    final Pair<RelDataType, RelDataType> componentType =
+    final Pair<@Nullable RelDataType, @Nullable RelDataType> componentType =
         getComponentTypes(
             callBinding.getTypeFactory(), argTypes);
     if (null == componentType.left || null == componentType.right) {
@@ -75,7 +77,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     return true;
   }
 
-  private Pair<RelDataType, RelDataType> getComponentTypes(
+  private Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return Pair.of(

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
@@ -212,7 +213,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(Object o) {
+  public static void discard(@Nullable Object o) {
     if (false) {
       discard(o);
     }
@@ -260,7 +261,7 @@ public class Util {
    */
   public static void swallow(
       Throwable e,
-      Logger logger) {
+      @Nullable Logger logger) {
     if (logger != null) {
       logger.debug("Discarding exception", e);
     }
@@ -309,7 +310,7 @@ public class Util {
   @Deprecated // to be removed before 2.0
   public static int hash(
       int h,
-      Object o) {
+      @Nullable Object o) {
     int k = (o == null) ? 0 : o.hashCode();
     return ((h << 4) | h) ^ k;
   }
@@ -381,7 +382,7 @@ public class Util {
   @SuppressWarnings("JdkObsolete")
   public static void print(
       PrintWriter pw,
-      Object o,
+      @Nullable Object o,
       int indent) {
     if (o == null) {
       pw.print("null");
@@ -499,7 +500,7 @@ public class Util {
    */
   public static void printJavaString(
       Appendable appendable,
-      String s,
+      @Nullable String s,
       boolean nullMeansNull) {
     try {
       if (s == null) {
@@ -776,7 +777,7 @@ public class Util {
   /**
    * Returns whether s == null or if s.length() == 0.
    */
-  public static boolean isNullOrEmpty(String s) {
+  public static boolean isNullOrEmpty(@Nullable String s) {
     return (null == s) || (s.length() == 0);
   }
 
@@ -1075,7 +1076,7 @@ public class Util {
    *          overridden and a subclass forgot to do so.
    * @return an {@link UnsupportedOperationException}.
    */
-  public static RuntimeException needToImplement(Object o) {
+  public static RuntimeException needToImplement(@Nullable Object o) {
     String description = null;
     if (o != null) {
       description = o.getClass().toString() + ": " + o.toString();
@@ -1195,7 +1196,7 @@ public class Util {
    * @param jar jar to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchJar(JarFile jar) {
+  public static void squelchJar(@Nullable JarFile jar) {
     try {
       if (jar != null) {
         jar.close();
@@ -1213,7 +1214,7 @@ public class Util {
    * @param stream stream to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStream(InputStream stream) {
+  public static void squelchStream(@Nullable InputStream stream) {
     try {
       if (stream != null) {
         stream.close();
@@ -1233,7 +1234,7 @@ public class Util {
    * @param stream stream to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStream(OutputStream stream) {
+  public static void squelchStream(@Nullable OutputStream stream) {
     try {
       if (stream != null) {
         stream.close();
@@ -1251,7 +1252,7 @@ public class Util {
    * @param reader reader to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchReader(Reader reader) {
+  public static void squelchReader(@Nullable Reader reader) {
     try {
       if (reader != null) {
         reader.close();
@@ -1271,7 +1272,7 @@ public class Util {
    * @param writer writer to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchWriter(Writer writer) {
+  public static void squelchWriter(@Nullable Writer writer) {
     try {
       if (writer != null) {
         writer.close();
@@ -1289,7 +1290,7 @@ public class Util {
    * @param stmt stmt to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStmt(Statement stmt) {
+  public static void squelchStmt(@Nullable Statement stmt) {
     try {
       if (stmt != null) {
         stmt.close();
@@ -1307,7 +1308,7 @@ public class Util {
    * @param connection connection to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchConnection(Connection connection) {
+  public static void squelchConnection(@Nullable Connection connection) {
     try {
       if (connection != null) {
         connection.close();
@@ -1942,7 +1943,7 @@ public class Util {
    * @param <T>   Enum class type
    * @return Enum constant or null
    */
-  public static synchronized <T extends Enum<T>> T enumVal(
+  public static synchronized <T extends Enum<T>> @Nullable T enumVal(
       Class<T> clazz,
       String name) {
     return clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
@@ -1958,7 +1959,7 @@ public class Util {
    * @return         Enum constant, never null
    */
   public static synchronized <T extends Enum<T>> T enumVal(T default_,
-      String name) {
+      @Nullable String name) {
     final Class<T> clazz = default_.getDeclaringClass();
     final T t = clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
     if (t == null) {
@@ -2014,59 +2015,59 @@ public class Util {
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T extends Object> @PolyNull T first(T v0, @PolyNull T v1) {
+  public static <T extends Object> @PolyNull T first(@Nullable T v0, @PolyNull T v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Double} value,
    * using a given default value if it is null. */
-  public static double first(Double v0, double v1) {
+  public static double first(@Nullable Double v0, double v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Float} value,
    * using a given default value if it is null. */
-  public static float first(Float v0, float v1) {
+  public static float first(@Nullable Float v0, float v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Integer} value,
    * using a given default value if it is null. */
-  public static int first(Integer v0, int v1) {
+  public static int first(@Nullable Integer v0, int v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Long} value,
    * using a given default value if it is null. */
-  public static long first(Long v0, long v1) {
+  public static long first(@Nullable Long v0, long v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Boolean} value,
    * using a given default value if it is null. */
-  public static boolean first(Boolean v0, boolean v1) {
+  public static boolean first(@Nullable Boolean v0, boolean v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Short} value,
    * using a given default value if it is null. */
-  public static short first(Short v0, short v1) {
+  public static short first(@Nullable Short v0, short v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Character} value,
    * using a given default value if it is null. */
-  public static char first(Character v0, char v1) {
+  public static char first(@Nullable Character v0, char v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Byte} value,
    * using a given default value if it is null. */
-  public static byte first(Byte v0, byte v1) {
+  public static byte first(@Nullable Byte v0, byte v1) {
     return v0 != null ? v0 : v1;
   }
 
-  public static <T> Iterable<T> orEmpty(Iterable<T> v0) {
+  public static <T> Iterable<T> orEmpty(@Nullable Iterable<T> v0) {
     return v0 != null ? v0 : ImmutableList.of();
   }
 
@@ -2703,18 +2704,18 @@ public class Util {
    * Exception used to interrupt a tree walk of any kind.
    */
   public static class FoundOne extends ControlFlowException {
-    private final Object node;
+    private final @Nullable Object node;
 
     /** Singleton instance. Can be used if you don't care about node. */
     @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final FoundOne NULL = new FoundOne(null);
 
-    public FoundOne(Object node) {
+    public FoundOne(@Nullable Object node) {
       this.node = node;
     }
 
     @Pure
-    public Object getNode() {
+    public @Nullable Object getNode() {
       return node;
     }
   }

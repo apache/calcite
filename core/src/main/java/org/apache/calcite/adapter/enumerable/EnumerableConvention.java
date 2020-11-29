@@ -28,6 +28,8 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -53,7 +55,7 @@ public enum EnumerableConvention implements Convention {
     return "ENUMERABLE";
   }
 
-  @Override public RelNode enforce(
+  @Override public @Nullable RelNode enforce(
       final RelNode input,
       final RelTraitSet required) {
     RelNode rel = input;

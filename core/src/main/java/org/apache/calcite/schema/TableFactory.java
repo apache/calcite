@@ -18,6 +18,8 @@ package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -84,5 +86,5 @@ public interface TableFactory<T extends Table> {
       SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      RelDataType rowType);
+      @Nullable RelDataType rowType);
 }

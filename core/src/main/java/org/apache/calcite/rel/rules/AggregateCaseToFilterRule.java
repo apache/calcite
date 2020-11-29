@@ -39,6 +39,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -148,7 +150,7 @@ public class AggregateCaseToFilterRule
     call.getPlanner().prune(aggregate);
   }
 
-  private AggregateCall transform(AggregateCall aggregateCall,
+  private @Nullable AggregateCall transform(AggregateCall aggregateCall,
       Project project, List<RexNode> newProjects) {
     final int singleArg = soleArgument(aggregateCall);
     if (singleArg < 0) {

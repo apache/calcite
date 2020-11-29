@@ -30,6 +30,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +109,7 @@ public class Hoist {
       throw new RuntimeException(e);
     }
     node.accept(new SqlShuttle() {
-      @Override public SqlNode visit(SqlLiteral literal) {
+      @Override public @Nullable SqlNode visit(SqlLiteral literal) {
         variables.add(new Variable(sql, variables.size(), literal));
         return super.visit(literal);
       }

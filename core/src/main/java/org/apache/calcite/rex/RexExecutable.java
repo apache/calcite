@@ -22,6 +22,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
 import org.codehaus.janino.Scanner;
@@ -42,16 +43,16 @@ import static java.util.Objects.requireNonNull;
 public class RexExecutable {
   private static final String GENERATED_CLASS_NAME = "Reducer";
 
-  private final Function1<DataContext, Object []> compiledFunction;
+  private final Function1<DataContext, @Nullable Object @Nullable []> compiledFunction;
   private final String code;
-  private DataContext dataContext;
+  private @Nullable DataContext dataContext;
 
   public RexExecutable(String code, Object reason) {
     this.code = code;
     this.compiledFunction = compile(code, reason);
   }
 
-  private static Function1<DataContext, Object []> compile(String code,
+  private static Function1<DataContext, @Nullable Object @Nullable []> compile(String code,
       Object reason) {
     try {
       final ClassBodyEvaluator cbe = new ClassBodyEvaluator();
@@ -62,7 +63,7 @@ public class RexExecutable {
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
-      final Constructor<Function1<DataContext, Object []>> constructor =
+      final Constructor<Function1<DataContext, @Nullable Object @Nullable []>> constructor =
           c.getConstructor();
       return constructor.newInstance();
     } catch (CompileException | IOException | InstantiationException
@@ -78,7 +79,7 @@ public class RexExecutable {
 
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    Object[] values;
+    @Nullable Object[] values;
     try {
       values = execute();
       if (values == null) {
@@ -86,8 +87,8 @@ public class RexExecutable {
         values = new Object[constExps.size()];
       } else {
         assert values.length == constExps.size();
-        final List<Object> valueList = Arrays.asList(values);
-        for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
+        final List<@Nullable Object> valueList = Arrays.asList(values);
+        for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
           reducedValues.add(
               rexBuilder.makeLiteral(value.right, value.left.getType(), true));
         }
@@ -101,11 +102,11 @@ public class RexExecutable {
     Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
   }
 
-  public Function1<DataContext, Object []> getFunction() {
+  public Function1<DataContext, @Nullable Object @Nullable []> getFunction() {
     return compiledFunction;
   }
 
-  public Object [] execute() {
+  public @Nullable Object @Nullable [] execute() {
     return compiledFunction.apply(requireNonNull(dataContext, "dataContext"));
   }
 

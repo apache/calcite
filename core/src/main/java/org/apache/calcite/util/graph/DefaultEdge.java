@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
@@ -35,7 +36,7 @@ public class DefaultEdge {
     return source.hashCode() * 31 + target.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof DefaultEdge
         && ((DefaultEdge) obj).source.equals(source)

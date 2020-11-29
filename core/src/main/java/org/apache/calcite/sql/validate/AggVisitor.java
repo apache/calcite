@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +39,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
   protected final SqlOperatorTable opTab;
   /** Whether to find windowed aggregates. */
   protected final boolean over;
-  protected final AggFinder delegate;
+  protected final @Nullable AggFinder delegate;
   /** Whether to find regular (non-windowed) aggregates. */
   protected final boolean aggregate;
   /** Whether to find group functions (e.g. {@code TUMBLE})
@@ -57,7 +59,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
    * @param nameMatcher Whether to match the agg function names case-sensitively
    */
   AggVisitor(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
+      boolean group, @Nullable AggFinder delegate, SqlNameMatcher nameMatcher) {
     this.group = group;
     this.over = over;
     this.aggregate = aggregate;

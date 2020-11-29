@@ -22,6 +22,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.math.BigDecimal;
@@ -34,16 +35,16 @@ import static java.util.Objects.requireNonNull;
 public class SqlNumericLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
-  private Integer prec;
-  private Integer scale;
+  private @Nullable Integer prec;
+  private @Nullable Integer scale;
   private boolean isExact;
 
   //~ Constructors -----------------------------------------------------------
 
   protected SqlNumericLiteral(
       BigDecimal value,
-      Integer prec,
-      Integer scale,
+      @Nullable Integer prec,
+      @Nullable Integer scale,
       boolean isExact,
       SqlParserPos pos) {
     super(
@@ -61,12 +62,12 @@ public class SqlNumericLiteral extends SqlLiteral {
     return (BigDecimal) requireNonNull(value, "value");
   }
 
-  public Integer getPrec() {
+  public @Nullable Integer getPrec() {
     return prec;
   }
 
   @Pure
-  public Integer getScale() {
+  public @Nullable Integer getScale() {
     return scale;
   }
 

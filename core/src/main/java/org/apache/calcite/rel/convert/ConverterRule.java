@@ -26,6 +26,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
@@ -147,7 +149,7 @@ public abstract class ConverterRule
   /** Converts a relational expression to the target trait(s) of this rule.
    *
    * <p>Returns null if conversion is not possible. */
-  public abstract RelNode convert(RelNode rel);
+  public abstract @Nullable RelNode convert(RelNode rel);
 
   /**
    * Returns true if this rule can convert <em>any</em> relational expression

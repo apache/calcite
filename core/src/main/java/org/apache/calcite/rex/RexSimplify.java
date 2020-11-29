@@ -47,6 +47,8 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -686,7 +688,7 @@ public class RexSimplify {
     return simplified == null ? call : simplified;
   }
 
-  private RexNode simplifyIs1(SqlKind kind, RexNode a, RexUnknownAs unknownAs) {
+  private @Nullable RexNode simplifyIs1(SqlKind kind, RexNode a, RexUnknownAs unknownAs) {
     // UnknownAs.FALSE corresponds to x IS TRUE evaluation
     // UnknownAs.TRUE to x IS NOT FALSE
     // Note that both UnknownAs.TRUE and UnknownAs.FALSE only changes the meaning of Unknown
@@ -714,7 +716,7 @@ public class RexSimplify {
     return simplifyIs2(kind, a, unknownAs);
   }
 
-  private RexNode simplifyIsPredicate(SqlKind kind, RexNode a) {
+  private @Nullable RexNode simplifyIsPredicate(SqlKind kind, RexNode a) {
     if (!RexUtil.isReferenceOrAccess(a, true)) {
       return null;
     }
@@ -731,7 +733,7 @@ public class RexSimplify {
     return null;
   }
 
-  private RexNode simplifyIs2(SqlKind kind, RexNode a, RexUnknownAs unknownAs) {
+  private @Nullable RexNode simplifyIs2(SqlKind kind, RexNode a, RexUnknownAs unknownAs) {
     final RexNode simplified;
     switch (kind) {
     case IS_NULL:
@@ -796,7 +798,7 @@ public class RexSimplify {
     return null; // cannot be simplified
   }
 
-  private RexNode simplifyIsNotNull(RexNode a) {
+  private @Nullable RexNode simplifyIsNotNull(RexNode a) {
     // Simplify the argument first,
     // call ourselves recursively to see whether we can make more progress.
     // For example, given
@@ -845,7 +847,7 @@ public class RexSimplify {
     }
   }
 
-  private RexNode simplifyIsNull(RexNode a) {
+  private @Nullable RexNode simplifyIsNull(RexNode a) {
     // Simplify the argument first,
     // call ourselves recursively to see whether we can make more progress.
     // For example, given
@@ -1236,7 +1238,7 @@ public class RexSimplify {
     return r.accept(SafeRexVisitor.INSTANCE);
   }
 
-  private static RexNode simplifyBooleanCase(RexBuilder rexBuilder,
+  private static @Nullable RexNode simplifyBooleanCase(RexBuilder rexBuilder,
       List<CaseBranch> inputBranches, @SuppressWarnings("unused") RexUnknownAs unknownAs,
       RelDataType branchType) {
     RexNode result;
@@ -2169,7 +2171,7 @@ public class RexSimplify {
     return RexUtil.removeNullabilityCast(rexBuilder.getTypeFactory(), e);
   }
 
-  private static <C extends Comparable<C>> RexNode processRange(
+  private static <C extends Comparable<C>> @Nullable RexNode processRange(
       RexBuilder rexBuilder, List<RexNode> terms,
       Map<RexNode, Pair<Range<C>, List<RexNode>>> rangeTerms, RexNode term,
       RexNode ref, C v0, SqlKind comparison) {
@@ -2410,7 +2412,7 @@ public class RexSimplify {
   /** Marker interface for predicates (expressions that evaluate to BOOLEAN). */
   private interface Predicate {
     /** Wraps an expression in a Predicate or returns null. */
-    static Predicate of(RexNode t) {
+    static @Nullable Predicate of(RexNode t) {
       final Predicate p = Comparison.of(t);
       if (p != null) {
         return p;
@@ -2442,13 +2444,13 @@ public class RexSimplify {
 
     /** Creates a comparison, between a {@link RexInputRef} or {@link RexFieldAccess} or
      * deterministic {@link RexCall} and a literal. */
-    static Comparison of(RexNode e) {
+    static @Nullable Comparison of(RexNode e) {
       return of(e, node -> RexUtil.isReferenceOrAccess(node, true)
           || RexUtil.isDeterministic(node));
     }
 
     /** Creates a comparison, or returns null. */
-    static Comparison of(RexNode e, java.util.function.Predicate<RexNode> nodePredicate) {
+    static @Nullable Comparison of(RexNode e, java.util.function.Predicate<RexNode> nodePredicate) {
       switch (e.getKind()) {
       case EQUALS:
       case NOT_EQUALS:
@@ -2501,7 +2503,7 @@ public class RexSimplify {
     }
 
     /** Creates an IS predicate, or returns null. */
-    static IsPredicate of(RexNode e) {
+    static @Nullable IsPredicate of(RexNode e) {
       switch (e.getKind()) {
       case IS_NULL:
       case IS_NOT_NULL:
@@ -2565,7 +2567,7 @@ public class RexSimplify {
    * @param predicates Filter condition predicates
    * @return simplified conjunction of predicates for the filter, null if always false
    */
-  public RexNode simplifyFilterPredicates(Iterable<? extends RexNode> predicates) {
+  public @Nullable RexNode simplifyFilterPredicates(Iterable<? extends RexNode> predicates) {
     final RexNode simplifiedAnds =
         withPredicateElimination(Bug.CALCITE_2401_FIXED)
             .simplifyUnknownAsFalse(
@@ -2678,7 +2680,7 @@ public class RexSimplify {
 
     // always returns true
     private boolean accept1(RexNode e, SqlKind kind,
-        RexLiteral literal, List<RexNode> newTerms) {
+        @Nullable RexLiteral literal, List<RexNode> newTerms) {
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
@@ -2866,7 +2868,7 @@ public class RexSimplify {
       throw new UnsupportedOperationException();
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       throw new UnsupportedOperationException();
     }
 

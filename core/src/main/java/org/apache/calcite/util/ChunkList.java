@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractSequentialList;
 import java.util.Arrays;
@@ -49,8 +50,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
   }
 
   private int size;
-  private E [] first;
-  private E [] last;
+  private E @Nullable [] first;
+  private E @Nullable [] last;
 
   /**
    * Creates an empty ChunkList.
@@ -150,22 +151,22 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     }
   }
 
-  private static <E> E [] prev(E[] chunk) {
+  private static <E> E @Nullable [] prev(E[] chunk) {
     //noinspection unchecked
-    return (E []) chunk[0];
+    return (E @Nullable []) chunk[0];
   }
 
-  private static <E> void setPrev(E[] chunk, E [] prev) {
+  private static <E> void setPrev(E[] chunk, E @Nullable [] prev) {
     //noinspection unchecked
     chunk[0] = (E) prev;
   }
 
-  private static <E> E [] next(E[] chunk) {
+  private static <E> E @Nullable [] next(E[] chunk) {
     //noinspection unchecked
-    return (E []) chunk[1];
+    return (E @Nullable []) chunk[1];
   }
 
-  private static <E> void setNext(E[] chunk, E [] next) {
+  private static <E> void setNext(E[] chunk, E @Nullable [] next) {
     assert chunk != next;
     //noinspection unchecked
     chunk[1] = (E) next;
@@ -184,7 +185,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     return chunk[index];
   }
 
-  private static <E> void setElement(E[] chunk, int index, E element) {
+  private static <E> void setElement(E[] chunk, int index, @Nullable E element) {
     chunk[index] = castNonNull(element);
   }
 
@@ -211,7 +212,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   /** Iterator over a {@link ChunkList}. */
   private class ChunkListIterator implements ListIterator<E> {
-    private E [] chunk;
+    private E @Nullable [] chunk;
     /** Offset in the list of the first element of this chunk. */
     private int start;
     /** Offset within current chunk of the next element to return. */
@@ -222,7 +223,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     /** Offset of the first unoccupied location in the current chunk. */
     private int end;
 
-    ChunkListIterator(E [] chunk, int start, int cursor, int lastRet,
+    ChunkListIterator(E @Nullable [] chunk, int start, int cursor, int lastRet,
         int end) {
       this.chunk = chunk;
       this.start = start;

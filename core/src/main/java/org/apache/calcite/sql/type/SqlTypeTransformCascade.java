@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -51,7 +53,7 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
+  @Override public @Nullable RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     RelDataType ret = rule.inferReturnType(opBinding);
     if (ret == null) {

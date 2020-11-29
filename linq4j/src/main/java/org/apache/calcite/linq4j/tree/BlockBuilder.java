@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Modifier;
@@ -45,7 +46,7 @@ public class BlockBuilder {
       new HashMap<>();
 
   private final boolean optimizing;
-  private final BlockBuilder parent;
+  private final @Nullable BlockBuilder parent;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
 
@@ -70,7 +71,7 @@ public class BlockBuilder {
    *
    * @param optimizing Whether to eliminate common sub-expressions
    */
-  public BlockBuilder(boolean optimizing, BlockBuilder parent) {
+  public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
     this.optimizing = optimizing;
     this.parent = parent;
   }
@@ -239,7 +240,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
-  protected boolean isSimpleExpression(Expression expr) {
+  protected boolean isSimpleExpression(@Nullable Expression expr) {
     if (expr instanceof ParameterExpression
         || expr instanceof ConstantExpression) {
       return true;
@@ -291,7 +292,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return existing ParameterExpression or null
    */
-  public DeclarationStatement getComputedExpression(Expression expr) {
+  public @Nullable DeclarationStatement getComputedExpression(Expression expr) {
     if (parent != null) {
       DeclarationStatement decl = parent.getComputedExpression(expr);
       if (decl != null) {

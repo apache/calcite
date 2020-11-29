@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,7 +98,7 @@ public abstract class RelOptRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   protected RelOptRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
+      RelBuilderFactory relBuilderFactory, @Nullable String description) {
     this.operand = Objects.requireNonNull(operand);
     this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);
     if (description == null) {
@@ -466,7 +467,7 @@ public abstract class RelOptRule {
     return description.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return (obj instanceof RelOptRule)
         && equals((RelOptRule) obj);
   }
@@ -553,7 +554,7 @@ public abstract class RelOptRule {
    * @return Convention of the result of firing this rule, null if
    *   not known
    */
-  public Convention getOutConvention() {
+  public @Nullable Convention getOutConvention() {
     return null;
   }
 
@@ -564,7 +565,7 @@ public abstract class RelOptRule {
    * @return Trait which will be modified as a result of firing this rule,
    *   or null if the rule is not a converter rule
    */
-  public RelTrait getOutTrait() {
+  public @Nullable RelTrait getOutTrait() {
     return null;
   }
 
@@ -612,7 +613,7 @@ public abstract class RelOptRule {
    * @param toTrait  Desired trait
    * @return a relational expression with the desired trait; never null
    */
-  public static RelNode convert(RelNode rel, RelTrait toTrait) {
+  public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
     RelTraitSet outTraits = rel.getTraitSet();
     if (toTrait != null) {

@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -54,7 +56,7 @@ public class SelectNamespace extends AbstractNamespace {
   //~ Methods ----------------------------------------------------------------
 
   // implement SqlValidatorNamespace, overriding return type
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return select;
   }
 

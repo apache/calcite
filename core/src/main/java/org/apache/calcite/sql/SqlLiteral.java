@@ -39,6 +39,8 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
@@ -159,7 +161,7 @@ public class SqlLiteral extends SqlNode {
    * The value of this literal. The type of the value must be appropriate for
    * the typeName, as defined by the {@link #valueMatchesType} method.
    */
-  protected final Object value;
+  protected final @Nullable Object value;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -167,7 +169,7 @@ public class SqlLiteral extends SqlNode {
    * Creates a <code>SqlLiteral</code>.
    */
   protected SqlLiteral(
-      Object value,
+      @Nullable Object value,
       SqlTypeName typeName,
       SqlParserPos pos) {
     super(pos);
@@ -187,7 +189,7 @@ public class SqlLiteral extends SqlNode {
   /** Returns whether value is appropriate for its type. (We have rules about
    * these things!) */
   public static boolean valueMatchesType(
-      Object value,
+      @Nullable Object value,
       SqlTypeName typeName) {
     switch (typeName) {
     case BOOLEAN:
@@ -252,7 +254,7 @@ public class SqlLiteral extends SqlNode {
    * @see #booleanValue()
    * @see #symbolValue(Class)
    */
-  public Object getValue() {
+  public @Nullable Object getValue() {
     return value;
   }
 
@@ -385,13 +387,13 @@ public class SqlLiteral extends SqlNode {
 
   /** Returns the value as a symbol. */
   @Deprecated // to be removed before 2.0
-  public <E extends Enum<E>> E symbolValue_() {
+  public <E extends Enum<E>> @Nullable E symbolValue_() {
     //noinspection unchecked
-    return (E) value;
+    return (@Nullable E) value;
   }
 
   /** Returns the value as a symbol. */
-  public <E extends Enum<E>> E symbolValue(Class<E> class_) {
+  public <E extends Enum<E>> @Nullable E symbolValue(Class<E> class_) {
     return class_.cast(value);
   }
 
@@ -434,7 +436,7 @@ public class SqlLiteral extends SqlNode {
    * <li>Otherwise throws {@link IllegalArgumentException}.
    * </ul>
    */
-  public static Comparable value(SqlNode node)
+  public static @Nullable Comparable value(SqlNode node)
       throws IllegalArgumentException {
     if (node instanceof SqlLiteral) {
       final SqlLiteral literal = (SqlLiteral) node;
@@ -546,7 +548,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @return string representation of the value
    */
-  public String toValue() {
+  public @Nullable String toValue() {
     if (value == null) {
       return null;
     }
@@ -568,7 +570,7 @@ public class SqlLiteral extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlLiteral)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -579,7 +581,7 @@ public class SqlLiteral extends SqlNode {
     return litmus.succeed();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
@@ -615,7 +617,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @see #symbolValue(Class)
    */
-  public static SqlLiteral createSymbol(Enum<?> o, SqlParserPos pos) {
+  public static SqlLiteral createSymbol(@Nullable Enum<?> o, SqlParserPos pos) {
     return new SqlLiteral(o, SqlTypeName.SYMBOL, pos);
   }
 
@@ -628,7 +630,7 @@ public class SqlLiteral extends SqlNode {
     return new SqlLiteral(sampleSpec, SqlTypeName.SYMBOL, pos);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (!(obj instanceof SqlLiteral)) {
       return false;
     }
@@ -710,7 +712,7 @@ public class SqlLiteral extends SqlNode {
   /**
    * Returns a numeric literal's value as a {@link BigDecimal}.
    */
-  public BigDecimal bigDecimalValue() {
+  public @Nullable BigDecimal bigDecimalValue() {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
@@ -987,7 +989,7 @@ public class SqlLiteral extends SqlNode {
    */
   public static SqlCharStringLiteral createCharString(
       String s,
-      String charSet,
+      @Nullable String charSet,
       SqlParserPos pos) {
     NlsString slit = new NlsString(s, charSet, null);
     return new SqlCharStringLiteral(slit, pos);

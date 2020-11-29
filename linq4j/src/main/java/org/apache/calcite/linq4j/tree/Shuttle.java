@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -64,7 +65,7 @@ public class Shuttle {
     return this;
   }
 
-  public Statement visit(GotoStatement gotoStatement, Expression expression) {
+  public Statement visit(GotoStatement gotoStatement, @Nullable Expression expression) {
     return expression == gotoStatement.expression
         ? gotoStatement
         : Expressions.makeGoto(
@@ -81,8 +82,8 @@ public class Shuttle {
   }
 
   public ForStatement visit(ForStatement forStatement,
-      List<DeclarationStatement> declarations, Expression condition,
-      Expression post, Statement body) {
+      List<DeclarationStatement> declarations, @Nullable Expression condition,
+      @Nullable Expression post, Statement body) {
     return declarations.equals(forStatement.declarations)
         && condition == forStatement.condition
         && post == forStatement.post
@@ -119,7 +120,7 @@ public class Shuttle {
   }
 
   public DeclarationStatement visit(DeclarationStatement declarationStatement,
-      Expression initializer) {
+      @Nullable Expression initializer) {
     return declarationStatement.initializer == initializer
         ? declarationStatement
         : Expressions.declare(
@@ -136,7 +137,7 @@ public class Shuttle {
   }
 
   public Expression visit(FunctionExpression functionExpression,
-      BlockStatement body) {
+      @Nullable BlockStatement body) {
     return Objects.equals(body, functionExpression.body)
         ? functionExpression
         : Expressions.lambda(
@@ -200,7 +201,7 @@ public class Shuttle {
   }
 
   public Expression visit(MethodCallExpression methodCallExpression,
-      Expression targetExpression, List<Expression> expressions) {
+      @Nullable Expression targetExpression, List<Expression> expressions) {
     return methodCallExpression.targetExpression == targetExpression
            && methodCallExpression.expressions.equals(expressions)
         ? methodCallExpression
@@ -221,7 +222,7 @@ public class Shuttle {
   }
 
   public Expression visit(MemberExpression memberExpression,
-      Expression expression) {
+      @Nullable Expression expression) {
     return memberExpression.expression == expression
         ? memberExpression
         : Expressions.field(expression, memberExpression.field);
@@ -236,7 +237,7 @@ public class Shuttle {
   }
 
   public Expression visit(NewArrayExpression newArrayExpression, int dimension,
-      Expression bound, List<Expression> expressions) {
+      @Nullable Expression bound, @Nullable List<Expression> expressions) {
     return Objects.equals(expressions, newArrayExpression.expressions)
         && Objects.equals(bound, newArrayExpression.bound)
         ? newArrayExpression
@@ -257,7 +258,7 @@ public class Shuttle {
   }
 
   public Expression visit(NewExpression newExpression,
-      List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
+      List<Expression> arguments, @Nullable List<MemberDeclaration> memberDeclarations) {
     return arguments.equals(newExpression.arguments)
         && Objects.equals(memberDeclarations, newExpression.memberDeclarations)
         ? newExpression
@@ -273,7 +274,7 @@ public class Shuttle {
   }
 
   public Statement visit(TryStatement tryStatement,
-      Statement body, List<CatchBlock> catchBlocks, Statement fynally) {
+      Statement body, List<CatchBlock> catchBlocks, @Nullable Statement fynally) {
     return body.equals(tryStatement.body)
            && Objects.equals(catchBlocks, tryStatement.catchBlocks)
            && Objects.equals(fynally, tryStatement.fynally)
@@ -315,7 +316,7 @@ public class Shuttle {
   }
 
   public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
-      Expression initializer) {
+      @Nullable Expression initializer) {
     return Objects.equals(initializer, fieldDeclaration.initializer)
         ? fieldDeclaration
         : Expressions.fieldDecl(fieldDeclaration.modifier,

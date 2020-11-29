@@ -37,6 +37,7 @@ import org.apache.calcite.util.Litmus;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -117,7 +118,7 @@ public abstract class Filter extends SingleRel {
     return RexOver.containsOver(condition);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
       return litmus.fail("Cast for just nullability not allowed");
     }
@@ -130,7 +131,7 @@ public abstract class Filter extends SingleRel {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
     double dCpu = mq.getRowCount(getInput());
@@ -161,7 +162,7 @@ public abstract class Filter extends SingleRel {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   @EnsuresNonNullIf(expression = "#1", result = true)
-  protected boolean deepEquals0(Object obj) {
+  protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

@@ -26,6 +26,8 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.Objects;
 
@@ -36,7 +38,7 @@ import java.util.Objects;
 public class VolcanoRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj instanceof VolcanoRelMetadataProvider;
   }
 
@@ -44,7 +46,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return 103;
   }
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     if (relClass != RelSubset.class) {

@@ -48,6 +48,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -77,7 +79,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      @Nullable RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
@@ -89,7 +91,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      @Nullable RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE);
@@ -457,7 +459,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
    * A special Getter that is able to return a field from a list of objects.
    */
   static class PassedRowsInputGetter implements RexToLixTranslator.InputGetter {
-    private Expression index;
+    private @Nullable Expression index;
     private final ParameterExpression row;
     private final ParameterExpression passedRows;
     private final Function<Expression, RexToLixTranslator.InputGetter> generator;
@@ -473,12 +475,12 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       this.physType = physType;
     }
 
-    void setIndex(Expression index) {
+    void setIndex(@Nullable Expression index) {
       this.index = index;
     }
 
     @Override public Expression field(BlockBuilder list, int index,
-        Type storageType) {
+        @Nullable Type storageType) {
       if (this.index == null) {
         return generator.apply(this.row).field(list, index, storageType);
       }
@@ -499,7 +501,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
    * A special Getter that "interchanges" the PREV and the field call.
    */
   static class PrevInputGetter implements RexToLixTranslator.InputGetter {
-    private Expression offset;
+    private @Nullable Expression offset;
     private final ParameterExpression row;
     private final Function<Expression, RexToLixTranslator.InputGetter> generator;
     private final PhysType physType;
@@ -512,12 +514,12 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       this.physType = physType;
     }
 
-    void setOffset(Expression offset) {
+    void setOffset(@Nullable Expression offset) {
       this.offset = offset;
     }
 
     @Override public Expression field(BlockBuilder list, int index,
-        Type storageType) {
+        @Nullable Type storageType) {
       final ParameterExpression row =
           Expressions.parameter(physType.getJavaRowType());
       final ParameterExpression tmp =

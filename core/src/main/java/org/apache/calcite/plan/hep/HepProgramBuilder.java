@@ -20,6 +20,8 @@ import org.apache.calcite.plan.CommonRelSubExprRule;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +36,7 @@ public class HepProgramBuilder {
 
   private final List<HepInstruction> instructions = new ArrayList<>();
 
-  private HepInstruction.BeginGroup group;
+  private HepInstruction.@Nullable BeginGroup group;
 
   //~ Constructors -----------------------------------------------------------
 

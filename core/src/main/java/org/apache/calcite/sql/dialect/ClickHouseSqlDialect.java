@@ -36,6 +36,8 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -70,7 +72,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return CalendarPolicy.SHIFT;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
@@ -128,8 +130,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
     writer.literal(toFunc + "('" + literal.toFormattedString() + "')");
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     requireNonNull(fetch, "fetch");
 
     writer.newlineAndIndent();

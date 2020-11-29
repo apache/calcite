@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -126,7 +127,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   }
 
   // implement RelTraitDef
-  @Override public RelNode convert(
+  @Override public @Nullable RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       Convention toConvention,
@@ -175,7 +176,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
    * Tries to convert a relational expression to the target convention of an
    * arc.
    */
-  private RelNode changeConvention(
+  private @Nullable RelNode changeConvention(
       RelNode rel,
       Convention source,
       Convention target,

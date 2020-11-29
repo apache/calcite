@@ -20,6 +20,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.util.Holder;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,7 +110,7 @@ public enum Hook {
       new CopyOnWriteArrayList<>();
 
   @SuppressWarnings("ImmutableEnumChecker")
-  private final ThreadLocal<List<Consumer<Object>>> threadHandlers =
+  private final ThreadLocal<@Nullable List<Consumer<Object>>> threadHandlers =
       ThreadLocal.withInitial(ArrayList::new);
 
   /** Adds a handler for this Hook.

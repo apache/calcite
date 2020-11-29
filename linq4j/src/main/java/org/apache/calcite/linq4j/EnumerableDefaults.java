@@ -83,8 +83,8 @@ public abstract class EnumerableDefaults {
   /**
    * Applies an accumulator function over a sequence.
    */
-  public static <TSource> TSource aggregate(Enumerable<TSource> source,
-      Function2<TSource, TSource, TSource> func) {
+  public static <TSource> @Nullable TSource aggregate(Enumerable<TSource> source,
+      Function2<@Nullable TSource, TSource, TSource> func) {
     try (Enumerator<TSource> os = source.enumerator()) {
       if (!os.moveNext()) {
         return null;
@@ -402,7 +402,7 @@ public abstract class EnumerableDefaults {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  public static <TSource> Enumerable<TSource> defaultIfEmpty(
+  public static <TSource> Enumerable<@Nullable TSource> defaultIfEmpty(
       Enumerable<TSource> enumerable) {
     return defaultIfEmpty(enumerable, null);
   }
@@ -424,7 +424,7 @@ public abstract class EnumerableDefaults {
 
           private boolean nonFirst;
 
-          private Iterator<TSource> rest;
+          private @Nullable Iterator<TSource> rest;
 
           @Override public boolean hasNext() {
             return !nonFirst || requireNonNull(rest).hasNext();
@@ -515,7 +515,7 @@ public abstract class EnumerableDefaults {
    * sequence or a default value if the index is out of
    * range.
    */
-  public static <TSource> TSource elementAtOrDefault(
+  public static <TSource> @Nullable TSource elementAtOrDefault(
       Enumerable<TSource> enumerable, int index) {
     final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
         ? ((ListEnumerable<TSource>) enumerable)
@@ -640,7 +640,7 @@ public abstract class EnumerableDefaults {
    * Returns the first element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  public static <TSource> TSource firstOrDefault(
+  public static <TSource> @Nullable TSource firstOrDefault(
         Enumerable<TSource> enumerable) {
     try (Enumerator<TSource> os = enumerable.enumerator()) {
       if (os.moveNext()) {
@@ -655,7 +655,7 @@ public abstract class EnumerableDefaults {
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  public static <TSource> TSource firstOrDefault(Enumerable<TSource> enumerable,
+  public static <TSource> @Nullable TSource firstOrDefault(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
     for (TSource o : enumerable) {
       if (predicate.apply(o)) {
@@ -876,9 +876,9 @@ public abstract class EnumerableDefaults {
     private final Comparator<TKey> comparator;
     private boolean isInitialized;
     private boolean isLastMoveNextFalse;
-    private TAccumulate curAccumulator;
+    private @Nullable TAccumulate curAccumulator;
     private Enumerator<TSource> enumerator;
-    private TResult curResult;
+    private @Nullable TResult curResult;
 
     SortedAggregateEnumerator(
         Enumerable<TSource> enumerable,
@@ -1250,7 +1250,7 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
+      @Nullable EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     return hashEquiJoin_(
         outer,
@@ -1273,9 +1273,9 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
+      @Nullable EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
       boolean generateNullsOnRight,
-      Predicate2<TSource, TInner> predicate) {
+      @Nullable Predicate2<TSource, TInner> predicate) {
     if (predicate == null) {
       return hashEquiJoin_(
           outer,
@@ -1306,7 +1306,7 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector,
-      final EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TKey> comparer,
       final boolean generateNullsOnLeft,
       final boolean generateNullsOnRight) {
     return new AbstractEnumerable<TResult>() {
@@ -1319,7 +1319,7 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           Enumerator<TSource> outers = outer.enumerator();
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
-          Set<TKey> unmatchedKeys =
+          @Nullable Set<TKey> unmatchedKeys =
               generateNullsOnLeft
                   ? new HashSet<>(innerLookup.keySet())
                   : null;
@@ -1402,7 +1402,7 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector,
-      final EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TKey> comparer,
       final boolean generateNullsOnLeft,
       final boolean generateNullsOnRight, final Predicate2<TSource, TInner> predicate) {
 
@@ -1426,7 +1426,7 @@ public abstract class EnumerableDefaults {
         return new Enumerator<TResult>() {
           Enumerator<TSource> outers = outer.enumerator();
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
-          List<TInner> innersUnmatched =
+          @Nullable List<TInner> innersUnmatched =
               generateNullsOnLeft
                   ? new ArrayList<>(innerToLookUp.toList())
                   : null;
@@ -1512,7 +1512,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TInner, TResult> Enumerable<TResult> correlateJoin(
       final JoinType joinType, final Enumerable<TSource> outer,
       final Function1<TSource, Enumerable<TInner>> inner,
-      final Function2<TSource, ? super TInner, TResult> resultSelector) {
+      final Function2<TSource, ? super @Nullable TInner, TResult> resultSelector) {
     if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
       throw new IllegalArgumentException("JoinType " + joinType + " is not valid for correlation");
     }
@@ -1521,9 +1521,9 @@ public abstract class EnumerableDefaults {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           private final Enumerator<TSource> outerEnumerator = outer.enumerator();
-          private Enumerator<TInner> innerEnumerator;
-          TSource outerValue;
-          TInner innerValue;
+          private @Nullable Enumerator<TInner> innerEnumerator;
+          @Nullable TSource outerValue;
+          @Nullable TInner innerValue;
           int state = 0; // 0 -- moving outer, 1 moving inner;
 
           @Override public TResult current() {
@@ -1675,10 +1675,10 @@ public abstract class EnumerableDefaults {
           final Enumerator<TSource> outerEnumerator = outer.enumerator();
           final List<TSource> outerValues = new ArrayList<>(batchSize);
           final List<TInner> innerValues = new ArrayList<>();
-          TSource outerValue;
-          TInner innerValue;
-          Enumerable<TInner> innerEnumerable;
-          Enumerator<TInner> innerEnumerator;
+          @Nullable TSource outerValue;
+          @Nullable TInner innerValue;
+          @Nullable Enumerable<TInner> innerEnumerable;
+          @Nullable Enumerator<TInner> innerEnumerator;
           boolean innerEnumHasNext = false;
           boolean atLeastOneResult = false;
           int i = -1; // outer position
@@ -1952,7 +1952,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
-      final EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TKey> comparer,
       final boolean anti) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
@@ -1978,7 +1978,7 @@ public abstract class EnumerableDefaults {
   public static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Predicate2<TSource, TInner> predicate,
-      Function2<? super TSource, ? super TInner, TResult> resultSelector,
+      Function2<? super @Nullable TSource, ? super @Nullable TInner, TResult> resultSelector,
       final JoinType joinType) {
     if (!joinType.generatesNullsOnLeft()) {
       return nestedLoopJoinOptimized(outer, inner, predicate, resultSelector, joinType);
@@ -1993,7 +1993,7 @@ public abstract class EnumerableDefaults {
   private static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoinAsList(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Predicate2<TSource, TInner> predicate,
-      Function2<? super TSource, ? super TInner, TResult> resultSelector,
+      Function2<? super @Nullable TSource, ? super @Nullable TInner, TResult> resultSelector,
       final JoinType joinType) {
     final boolean generateNullsOnLeft = joinType.generatesNullsOnLeft();
     final boolean generateNullsOnRight = joinType.generatesNullsOnRight();
@@ -2049,7 +2049,7 @@ public abstract class EnumerableDefaults {
   private static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoinOptimized(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Predicate2<TSource, TInner> predicate,
-      Function2<? super TSource, ? super TInner, TResult> resultSelector,
+      Function2<? super TSource, ? super @Nullable TInner, TResult> resultSelector,
       final JoinType joinType) {
     if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
       throw new IllegalArgumentException("JoinType " + joinType + " is unsupported");
@@ -2059,10 +2059,10 @@ public abstract class EnumerableDefaults {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           private Enumerator<TSource> outerEnumerator = outer.enumerator();
-          private Enumerator<TInner> innerEnumerator = null;
+          private @Nullable Enumerator<TInner> innerEnumerator = null;
           private boolean outerMatch = false; // whether the outerValue has matched an innerValue
-          private TSource outerValue;
-          private TInner innerValue;
+          private @Nullable TSource outerValue;
+          private @Nullable TInner innerValue;
           private int state = 0; // 0 moving outer, 1 moving inner
 
           @Override public TResult current() {
@@ -2155,7 +2155,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
-      final Function2<TSource, TInner, TResult> resultSelector,
+      final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     if (generateNullsOnLeft) {
@@ -2195,7 +2195,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
-      final Function2<TSource, TInner, TResult> resultSelector,
+      final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       final JoinType joinType,
       final Comparator<TKey> comparator) {
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
@@ -2224,10 +2224,10 @@ public abstract class EnumerableDefaults {
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
-      final Predicate2<TSource, TInner> extraPredicate,
-      final Function2<TSource, TInner, TResult> resultSelector,
+      final @Nullable Predicate2<TSource, TInner> extraPredicate,
+      final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       final JoinType joinType,
-      final Comparator<TKey> comparator) {
+      final @Nullable Comparator<TKey> comparator) {
     if (!isMergeJoinSupported(joinType)) {
       throw new UnsupportedOperationException("MergeJoin unsupported for join type " + joinType);
     }
@@ -2280,7 +2280,7 @@ public abstract class EnumerableDefaults {
    * Returns the last element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  public static <TSource> TSource lastOrDefault(
+  public static <TSource> @Nullable TSource lastOrDefault(
       Enumerable<TSource> enumerable) {
     final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
         ? ((ListEnumerable<TSource>) enumerable)
@@ -2310,7 +2310,7 @@ public abstract class EnumerableDefaults {
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  public static <TSource> TSource lastOrDefault(Enumerable<TSource> enumerable,
+  public static <TSource> @Nullable TSource lastOrDefault(Enumerable<TSource> enumerable,
       Predicate1<TSource> predicate) {
     final ListEnumerable<TSource> list = enumerable instanceof ListEnumerable
         ? ((ListEnumerable<TSource>) enumerable)
@@ -2453,7 +2453,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable long value. (Defined
    * by Enumerable.)
    */
-  public static <TSource> Long max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Long max(Enumerable<TSource> source,
       NullableLongFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.LONG_MAX);
   }
@@ -2472,7 +2472,7 @@ public abstract class EnumerableDefaults {
    * sequence and returns the maximum nullable Float
    * value.
    */
-  public static <TSource> Float max(Enumerable<TSource> source,
+  public static <TSource> @Nullable Float max(Enumerable<TSource> source,
       NullableFloatFunction1<TSource> selector) {
     return aggregate(source.select(selector), Extensions.FLOAT_MAX);
   }
@@ -2482,7 +2482,7 @@ public abstract class EnumerableDefaults {
    * generic sequence and returns the maximum resulting
    * value.
    */
-  public static <TSource, TResult extends Comparable<TResult>> TResult max(
+  public static <TSource, TResult extends Comparable<TResult>> @Nullable TResult max(
       Enumerable<TSource> source, Function1<TSource, TResult> selector) {
     return aggregate(source.select(selector), maxFunction());
   }
@@ -2491,7 +2491,7 @@ public abstract class EnumerableDefaults {
    * Returns the minimum value in a generic
    * sequence.
    */
-  public static <TSource extends Comparable<TSource>> TSource min(
+  public static <TSource extends Comparable<TSource>> @Nullable TSource min(
       Enumerable<TSource> source) {
     return aggregate(source, minFunction());
   }
@@ -2610,7 +2610,7 @@ public abstract class EnumerableDefaults {
    * generic sequence and returns the minimum resulting
    * value.
    */
-  public static <TSource, TResult extends Comparable<TResult>> TResult min(
+  public static <TSource, TResult extends Comparable<TResult>> @Nullable TResult min(
       Enumerable<TSource> source, Function1<TSource, TResult> selector) {
     Function2<TResult, TResult, TResult> min = minFunction();
     return aggregate(source.select(selector), null, min);
@@ -2649,7 +2649,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource, TKey> Enumerable<TSource> orderBy(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
-      Comparator<TKey> comparator) {
+      @Nullable Comparator<TKey> comparator) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         // NOTE: TreeMap allows null comparator. But the caller of this method
@@ -3093,7 +3093,7 @@ public abstract class EnumerableDefaults {
    * {@code EqualityComparer<TSource>}.
    */
   public static <TSource> boolean sequenceEqual(Enumerable<TSource> first,
-      Enumerable<TSource> second, EqualityComparer<TSource> comparer) {
+      Enumerable<TSource> second, @Nullable EqualityComparer<TSource> comparer) {
     requireNonNull(first, "first");
     requireNonNull(second, "second");
     if (comparer == null) {
@@ -3185,7 +3185,7 @@ public abstract class EnumerableDefaults {
    * exception if there is more than one element in the
    * sequence.
    */
-  public static <TSource> TSource singleOrDefault(Enumerable<TSource> source) {
+  public static <TSource> @Nullable TSource singleOrDefault(Enumerable<TSource> source) {
     TSource toRet = null;
     try (Enumerator<TSource> os = source.enumerator()) {
       if (os.moveNext()) {
@@ -3206,7 +3206,7 @@ public abstract class EnumerableDefaults {
    * element exists; this method throws an exception if more than
    * one element satisfies the condition.
    */
-  public static <TSource> TSource singleOrDefault(Enumerable<TSource> source,
+  public static <TSource> @Nullable TSource singleOrDefault(Enumerable<TSource> source,
       Predicate1<TSource> predicate) {
     TSource toRet = null;
     for (TSource s : source) {
@@ -4014,7 +4014,7 @@ public abstract class EnumerableDefaults {
       return comparer.hashCode(element);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       //noinspection unchecked
       return obj == this || obj instanceof Wrapped && comparer.equal(element,
           ((Wrapped<T>) obj).element);
@@ -4068,7 +4068,7 @@ public abstract class EnumerableDefaults {
     }
 
     @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-    @Override public boolean containsKey(Object key) {
+    @Override public boolean containsKey(@Nullable Object key) {
       return map.containsKey(wrap((K) key));
     }
 
@@ -4077,16 +4077,16 @@ public abstract class EnumerableDefaults {
       return Wrapped.upAs(comparer, key);
     }
 
-    @Override public V get(Object key) {
+    @Override public @Nullable V get(@Nullable Object key) {
       return map.get(wrap((K) key));
     }
 
     @SuppressWarnings("contracts.postcondition.not.satisfied")
-    @Override public V put(K key, V value) {
+    @Override public @Nullable V put(K key, V value) {
       return map.put(wrap(key), value);
     }
 
-    @Override public V remove(Object key) {
+    @Override public @Nullable V remove(@Nullable Object key) {
       return map.remove(wrap((K) key));
     }
 
@@ -4149,18 +4149,18 @@ public abstract class EnumerableDefaults {
     private final List<TInner> rights = new ArrayList<>();
     private final Enumerable<TSource> leftEnumerable;
     private final Enumerable<TInner> rightEnumerable;
-    private Enumerator<TSource> leftEnumerator = null;
-    private Enumerator<TInner> rightEnumerator = null;
+    private @Nullable Enumerator<TSource> leftEnumerator = null;
+    private @Nullable Enumerator<TInner> rightEnumerator = null;
     private final Function1<TSource, TKey> outerKeySelector;
     private final Function1<TInner, TKey> innerKeySelector;
     // extra predicate in case of non equi-join, in case of equi-join it will be null
-    private final Predicate2<TSource, TInner> extraPredicate;
-    private final Function2<TSource, TInner, TResult> resultSelector;
+    private final @Nullable Predicate2<TSource, TInner> extraPredicate;
+    private final Function2<TSource, @Nullable TInner, TResult> resultSelector;
     private final JoinType joinType;
     // key comparator, possibly null (Comparable#compareTo to be used in that case)
-    private final Comparator<TKey> comparator;
+    private final @Nullable Comparator<TKey> comparator;
     private boolean done;
-    private Enumerator<TResult> results = null;
+    private @Nullable Enumerator<TResult> results = null;
     // used for LEFT/ANTI join: if right input is over, all remaining elements from left are results
     private boolean remainingLeft;
     private TResult current = (TResult) DUMMY;
@@ -4170,10 +4170,10 @@ public abstract class EnumerableDefaults {
         Enumerable<TInner> rightEnumerable,
         Function1<TSource, TKey> outerKeySelector,
         Function1<TInner, TKey> innerKeySelector,
-        Predicate2<TSource, TInner> extraPredicate,
-        Function2<TSource, TInner, TResult> resultSelector,
+        @Nullable Predicate2<TSource, TInner> extraPredicate,
+        Function2<TSource, @Nullable TInner, TResult> resultSelector,
         JoinType joinType,
-        Comparator<TKey> comparator) {
+        @Nullable Comparator<TKey> comparator) {
       this.leftEnumerable = leftEnumerable;
       this.rightEnumerable = rightEnumerable;
       this.outerKeySelector = outerKeySelector;
@@ -4488,10 +4488,10 @@ public abstract class EnumerableDefaults {
    * @param <TInner> right input record type */
   private static class CartesianProductJoinEnumerator<TResult, TOuter, TInner>
       extends CartesianProductEnumerator<Object, TResult> {
-    private final Function2<TOuter, TInner, TResult> resultSelector;
+    private final Function2<TOuter, @Nullable TInner, TResult> resultSelector;
 
     @SuppressWarnings("unchecked")
-    CartesianProductJoinEnumerator(Function2<TOuter, TInner, TResult> resultSelector,
+    CartesianProductJoinEnumerator(Function2<TOuter, @Nullable TInner, TResult> resultSelector,
         Enumerator<TOuter> outer, Enumerator<TInner> inner) {
       super(ImmutableList.of((Enumerator<Object>) outer, (Enumerator<Object>) inner));
       this.resultSelector = resultSelector;
@@ -4535,7 +4535,7 @@ public abstract class EnumerableDefaults {
           private boolean seedProcessed = false;
           private int currentIteration = 0;
           private final Enumerator<TSource> seedEnumerator = seed.enumerator();
-          private Enumerator<TSource> iterativeEnumerator = null;
+          private @Nullable Enumerator<TSource> iterativeEnumerator = null;
 
           // Set to control duplicates, only used if "all" is false
           private final Set<Wrapped<TSource>> processed = new HashSet<>();
