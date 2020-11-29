@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.util;
 
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

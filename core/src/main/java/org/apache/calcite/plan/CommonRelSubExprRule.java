@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan;
 
-
 /**
  * A <code>CommonRelSubExprRule</code> is an abstract base class for rules
  * that are fired only on relational expressions that appear more than once

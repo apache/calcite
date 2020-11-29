@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-
 /**
  * Enumeration of valid SQL compatibility modes.
  *

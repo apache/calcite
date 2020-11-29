@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Iterator;
