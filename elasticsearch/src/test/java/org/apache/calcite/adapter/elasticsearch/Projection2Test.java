@@ -47,7 +47,6 @@ import java.util.regex.PatternSyntaxException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-
 /**
  * Checks renaming of fields (also upper, lower cases) during projections.
  */

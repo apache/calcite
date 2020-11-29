@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 
-
 /**
  * Rule to convert a relational expression from
  * {@link org.apache.calcite.plan.Convention#NONE}

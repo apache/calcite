@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-
 /**
  * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW},
  * {@code DROP MATERIALIZED VIEW} and {@code DROP TYPE} statements.

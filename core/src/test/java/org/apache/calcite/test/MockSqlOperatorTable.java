@@ -40,7 +40,6 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
  * table, plus a list of operators.

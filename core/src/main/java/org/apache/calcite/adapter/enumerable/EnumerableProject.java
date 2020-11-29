@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableProject extends Project implements EnumerableRel {

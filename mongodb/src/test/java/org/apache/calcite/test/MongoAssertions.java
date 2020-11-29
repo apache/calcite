@@ -34,7 +34,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-
 /**
  * Util class which needs to be in the same package as {@link CalciteAssert}
  * due to package-private visibility.

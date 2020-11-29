@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.util.ImmutableIntList;
 
-
 /**
  * Rule to convert a {@link LogicalAggregate}
  * to an {@link EnumerableSortedAggregate}.

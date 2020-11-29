@@ -69,7 +69,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-
 /**
  * Utility methods concerning row-expressions.
  */
