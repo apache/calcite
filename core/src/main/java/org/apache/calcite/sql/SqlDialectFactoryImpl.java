@@ -171,7 +171,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     }
   }
 
-  private Casing getCasing(DatabaseMetaData databaseMetaData, boolean quoted) {
+  private static Casing getCasing(DatabaseMetaData databaseMetaData, boolean quoted) {
     try {
       if (quoted
           ? databaseMetaData.storesUpperCaseQuotedIdentifiers()
@@ -195,7 +195,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     }
   }
 
-  private boolean isCaseSensitive(DatabaseMetaData databaseMetaData) {
+  private static boolean isCaseSensitive(DatabaseMetaData databaseMetaData) {
     try {
       return databaseMetaData.supportsMixedCaseIdentifiers()
           || databaseMetaData.supportsMixedCaseQuotedIdentifiers();
@@ -204,7 +204,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     }
   }
 
-  private NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
+  private static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
     try {
       if (databaseMetaData.nullsAreSortedAtEnd()) {
         return NullCollation.LAST;
@@ -230,7 +230,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         .equals("Google Big Query");
   }
 
-  private String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
+  private static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
     try {
       return databaseMetaData.getIdentifierQuoteString();
     } catch (SQLException e) {

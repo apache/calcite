@@ -365,7 +365,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     }
   }
 
-  private void shuffleUp(final int[] zz, int x) {
+  private static void shuffleUp(final int[] zz, int x) {
     final int size = zz.length;
     int t = zz[size - 1];
     System.arraycopy(zz, x, zz, x + 1, size - 1 - x);

@@ -252,7 +252,7 @@ public class RelMdPredicates
    * @param columnsMapped Columns which the final predicate can reference
    * @return Predicate expression narrowed to reference only certain columns
    */
-  private RexNode projectPredicate(final RexBuilder rexBuilder, RelNode input,
+  private static RexNode projectPredicate(final RexBuilder rexBuilder, RelNode input,
       RexNode r, ImmutableBitSet columnsMapped) {
     ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
     if (columnsMapped.contains(rCols)) {
@@ -757,7 +757,7 @@ public class RelMdPredicates
       return () -> new ExprsItr(fields);
     }
 
-    private boolean checkTarget(ImmutableBitSet inferringFields,
+    private static boolean checkTarget(ImmutableBitSet inferringFields,
         Set<RexNode> allExprs, RexNode tr) {
       return inferringFields.contains(RelOptUtil.InputFinder.bits(tr))
           && !allExprs.contains(tr)
@@ -908,14 +908,14 @@ public class RelMdPredicates
       }
     }
 
-    private int pos(RexNode expr) {
+    private static int pos(RexNode expr) {
       if (expr instanceof RexInputRef) {
         return ((RexInputRef) expr).getIndex();
       }
       return -1;
     }
 
-    private boolean isAlwaysTrue(RexNode predicate) {
+    private static boolean isAlwaysTrue(RexNode predicate) {
       if (predicate instanceof RexCall) {
         RexCall c = (RexCall) predicate;
         if (c.getOperator().getKind() == SqlKind.EQUALS) {

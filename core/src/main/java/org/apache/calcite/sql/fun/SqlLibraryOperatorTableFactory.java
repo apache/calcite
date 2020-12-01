@@ -122,7 +122,7 @@ public class SqlLibraryOperatorTableFactory {
   }
 
   /** Returns whether an operator is in one or more of the given libraries. */
-  private boolean operatorIsInLibrary(String operatorName, Field field,
+  private static boolean operatorIsInLibrary(String operatorName, Field field,
       Set<SqlLibrary> seekLibrarySet) {
     LibraryOperator libraryOperator =
         field.getAnnotation(LibraryOperator.class);

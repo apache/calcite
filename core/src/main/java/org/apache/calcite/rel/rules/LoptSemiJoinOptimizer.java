@@ -190,7 +190,7 @@ public class LoptSemiJoinOptimizer {
    * @return index of corresponding dimension table if the filter is
    * appropriate; otherwise -1 is returned
    */
-  private int isSuitableFilter(
+  private static int isSuitableFilter(
       LoptMultiJoin multiJoin,
       RexNode joinFilter,
       int factIdx) {

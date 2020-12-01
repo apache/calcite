@@ -892,7 +892,7 @@ public class RexSimplify {
    * @param rexNode Rex node to validate the strong policy
    * @throws AssertionError If the validation fails
    */
-  private void validateStrongPolicy(RexNode rexNode) {
+  private static void validateStrongPolicy(RexNode rexNode) {
     if (hasCustomNullabilityRules(rexNode.getKind())) {
       return;
     }
@@ -927,7 +927,7 @@ public class RexSimplify {
    * @param sqlKind Sql kind to check
    * @return {@code true} if specified {@link SqlKind} has custom nullability rules
    */
-  private boolean hasCustomNullabilityRules(SqlKind sqlKind) {
+  private static boolean hasCustomNullabilityRules(SqlKind sqlKind) {
     switch (sqlKind) {
     case CAST:
     case ITEM:
@@ -1066,7 +1066,7 @@ public class RexSimplify {
    * If boolean is true, simplify cond in input branch and return new branch.
    * Otherwise, simply return input branch.
    */
-  private CaseBranch generateBranch(boolean simplifyCond, RexSimplify simplifier,
+  private static CaseBranch generateBranch(boolean simplifyCond, RexSimplify simplifier,
       CaseBranch branch) {
     if (simplifyCond) {
       // the previous branch was merged, time to simplify it and
@@ -1712,7 +1712,7 @@ public class RexSimplify {
    * </ul>
    */
   @SuppressWarnings("BetaApi")
-  private <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
+  private static <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
       RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
     RangeSet<C> result = r0;
     for (RexNode predicate : predicates) {

@@ -92,7 +92,7 @@ public class MongoSort extends Sort implements MongoRel {
     }
   }
 
-  private int direction(RelFieldCollation fieldCollation) {
+  private static int direction(RelFieldCollation fieldCollation) {
     switch (fieldCollation.getDirection()) {
     case DESCENDING:
     case STRICTLY_DESCENDING:

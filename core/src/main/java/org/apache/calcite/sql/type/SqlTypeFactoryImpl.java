@@ -218,7 +218,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  private void assertBasic(SqlTypeName typeName) {
+  private static void assertBasic(SqlTypeName typeName) {
     assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
         : "use createMultisetType() instead";
@@ -520,7 +520,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         nullable);
   }
 
-  private RelDataType copyObjectType(RelDataType type, boolean nullable) {
+  private static RelDataType copyObjectType(RelDataType type, boolean nullable) {
     return new ObjectSqlType(
         type.getSqlTypeName(),
         type.getSqlIdentifier(),

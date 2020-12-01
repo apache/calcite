@@ -306,7 +306,7 @@ public class SqlAdvisor {
     return recasedId.regionMatches(!parserConfig.caseSensitive(), 0, name, 0, name.length());
   }
 
-  private String applyCasing(String value, Casing casing) {
+  private static String applyCasing(String value, Casing casing) {
     return SqlParserUtil.toCase(value, casing);
   }
 

@@ -212,7 +212,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return result.build();
   }
 
-  private SqlMonikerImpl moniker(CalciteSchema schema, @Nullable String name,
+  private static SqlMonikerImpl moniker(CalciteSchema schema, @Nullable String name,
       SqlMonikerType type) {
     final List<String> path = schema.path(name);
     if (path.size() == 1

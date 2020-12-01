@@ -109,7 +109,7 @@ public class FileReader implements Iterable<Elements> {
     }
   }
 
-  private Element getBestTable(Document doc) throws FileReaderException {
+  private static Element getBestTable(Document doc) throws FileReaderException {
     Element bestTable = null;
     int bestScore = -1;
 

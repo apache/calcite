@@ -307,7 +307,7 @@ public class JdbcSchema implements Schema {
   }
 
   /** Returns [major, minor] version from a database metadata. */
-  private List<Integer> version(DatabaseMetaData metaData) throws SQLException {
+  private static List<Integer> version(DatabaseMetaData metaData) throws SQLException {
     return ImmutableList.of(metaData.getJDBCMajorVersion(),
         metaData.getJDBCMinorVersion());
   }
@@ -407,7 +407,7 @@ public class JdbcSchema implements Schema {
     return RelDataTypeImpl.proto(fieldInfo.build());
   }
 
-  private RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
+  private static RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
       int precision, int scale, @Nullable String typeString) {
     // Fall back to ANY if type is unknown
     final SqlTypeName sqlTypeName =
@@ -445,7 +445,7 @@ public class JdbcSchema implements Schema {
   /** Given "INTEGER", returns BasicSqlType(INTEGER).
    * Given "VARCHAR(10)", returns BasicSqlType(VARCHAR, 10).
    * Given "NUMERIC(10, 2)", returns BasicSqlType(NUMERIC, 10, 2). */
-  private RelDataType parseTypeString(RelDataTypeFactory typeFactory,
+  private static RelDataType parseTypeString(RelDataTypeFactory typeFactory,
       String typeString) {
     int precision = -1;
     int scale = -1;

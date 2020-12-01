@@ -879,7 +879,7 @@ public enum SqlTypeName {
     ZERO, UNDERFLOW, OVERFLOW
   }
 
-  private @Nullable BigDecimal getNumericLimit(
+  private static @Nullable BigDecimal getNumericLimit(
       int radix,
       int exponent,
       boolean sign,

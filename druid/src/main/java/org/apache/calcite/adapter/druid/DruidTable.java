@@ -193,13 +193,13 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         && isValidParentKind(parent);
   }
 
-  private boolean isValidParentKind(SqlNode node) {
+  private static boolean isValidParentKind(SqlNode node) {
     return node.getKind() == SqlKind.SELECT
             || node.getKind() == SqlKind.FILTER
             || isSupportedPostAggOperation(node.getKind());
   }
 
-  private boolean isCountDistinct(SqlCall call) {
+  private static boolean isCountDistinct(SqlCall call) {
     return call.getKind() == SqlKind.COUNT
             && call.getFunctionQuantifier() != null
             && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT;
@@ -207,7 +207,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   // Post aggs support +, -, /, * so we should allow the parent of a count distinct to be any one of
   // those.
-  private boolean isSupportedPostAggOperation(SqlKind kind) {
+  private static boolean isSupportedPostAggOperation(SqlKind kind) {
     return kind == SqlKind.PLUS
             || kind == SqlKind.MINUS
             || kind == SqlKind.DIVIDE

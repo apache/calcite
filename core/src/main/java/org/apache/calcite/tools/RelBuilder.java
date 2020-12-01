@@ -825,7 +825,7 @@ public class RelBuilder {
     return groupKey_(nodes, nodeLists);
   }
 
-  private GroupKey groupKey_(Iterable<? extends RexNode> nodes,
+  private static GroupKey groupKey_(Iterable<? extends RexNode> nodes,
       Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
     final ImmutableList.Builder<ImmutableList<RexNode>> builder =
         ImmutableList.builder();
@@ -1208,7 +1208,7 @@ public class RelBuilder {
    * @param op operator instance
    * @return column mappings associated with this function
    */
-  private @Nullable Set<RelColumnMapping> getColumnMappings(SqlOperator op) {
+  private static @Nullable Set<RelColumnMapping> getColumnMappings(SqlOperator op) {
     SqlReturnTypeInference inference = op.getReturnTypeInference();
     if (inference instanceof TableFunctionReturnTypeInference) {
       return ((TableFunctionReturnTypeInference) inference).getColumnMappings();
@@ -2583,7 +2583,7 @@ public class RelBuilder {
   }
 
   /** Returns whether all values for a given column are null. */
-  private boolean allNull(@Nullable Object[] values, int column, int columnCount) {
+  private static boolean allNull(@Nullable Object[] values, int column, int columnCount) {
     for (int i = column; i < values.length; i += columnCount) {
       if (values[i] != null) {
         return false;

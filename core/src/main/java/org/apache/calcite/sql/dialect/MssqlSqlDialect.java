@@ -186,7 +186,7 @@ public class MssqlSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
     TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
 
@@ -285,7 +285,7 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.literal(interval.getIntervalLiteral());
   }
 
-  private void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,
+  private static void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,
       String offset) {
     writer.print("CONVERT");
     SqlWriter.Frame frame = writer.startList("(", ")");

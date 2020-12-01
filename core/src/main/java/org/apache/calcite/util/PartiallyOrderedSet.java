@@ -364,7 +364,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     return parents;
   }
 
-  private <T> void replace(List<T> list, T remove, T add) {
+  private static <T> void replace(List<T> list, T remove, T add) {
     if (list.contains(add)) {
       list.remove(remove);
     } else {

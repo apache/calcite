@@ -188,7 +188,7 @@ public class ProjectWindowTransposeRule
     }
   }
 
-  private ImmutableBitSet findReference(final Project project,
+  private static ImmutableBitSet findReference(final Project project,
       final Window window) {
     final int windowInputColumn = window.getInput().getRowType().getFieldCount();
     final ImmutableBitSet.Builder beReferred = ImmutableBitSet.builder();
@@ -228,7 +228,7 @@ public class ProjectWindowTransposeRule
     return beReferred.build();
   }
 
-  private int getAdjustedIndex(final int initIndex,
+  private static int getAdjustedIndex(final int initIndex,
       final ImmutableBitSet beReferred, final int windowInputColumn) {
     if (initIndex >= windowInputColumn) {
       return beReferred.cardinality() + (initIndex - windowInputColumn);

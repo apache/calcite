@@ -102,7 +102,7 @@ public class SqlNameMatchers {
       return null;
     }
 
-    private List<String> concat(List<String> prefixNames, List<String> names) {
+    private static List<String> concat(List<String> prefixNames, List<String> names) {
       if (prefixNames.isEmpty()) {
         return names;
       } else {

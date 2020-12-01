@@ -826,7 +826,7 @@ public class SqlPrettyWriter implements SqlWriter {
     }
   }
 
-  private SqlWriterConfig.LineFolding f3(SqlWriterConfig.@Nullable LineFolding folding0,
+  private static SqlWriterConfig.LineFolding f3(SqlWriterConfig.@Nullable LineFolding folding0,
       SqlWriterConfig.@Nullable LineFolding folding1, boolean opt) {
     return folding0 != null ? folding0
         : folding1 != null ? folding1

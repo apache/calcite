@@ -208,7 +208,7 @@ public class JoinToMultiJoinRule
    *                               field reference counts
    * @return combined left and right inputs in an array
    */
-  private List<RelNode> combineInputs(
+  private static List<RelNode> combineInputs(
       Join join,
       RelNode left,
       RelNode right,
@@ -266,7 +266,7 @@ public class JoinToMultiJoinRule
    * @param joinSpecs      the list where the join types and conditions will be
    *                       copied
    */
-  private void combineOuterJoins(
+  private static void combineOuterJoins(
       Join joinRel,
       @SuppressWarnings("unused") List<RelNode> combinedInputs,
       RelNode left,
@@ -342,7 +342,7 @@ public class JoinToMultiJoinRule
    *                         are referencing
    * @param destFields       the destination fields that the new join conditions
    */
-  private void copyOuterJoinInfo(
+  private static void copyOuterJoinInfo(
       MultiJoin multiJoin,
       List<Pair<JoinRelType, @Nullable RexNode>> destJoinSpecs,
       int adjustmentAmount,
@@ -389,7 +389,7 @@ public class JoinToMultiJoinRule
    * @param right   Right input of the join
    * @return combined join filters AND-ed together
    */
-  private List<@Nullable RexNode> combineJoinFilters(
+  private static List<@Nullable RexNode> combineJoinFilters(
       Join join,
       RelNode left,
       RelNode right) {
@@ -425,7 +425,7 @@ public class JoinToMultiJoinRule
    * @param nullGenerating true if the input is null generating
    * @return true if the input can be combined into a parent MultiJoin
    */
-  private boolean canCombine(RelNode input, boolean nullGenerating) {
+  private static boolean canCombine(RelNode input, boolean nullGenerating) {
     return input instanceof MultiJoin
         && !((MultiJoin) input).isFullOuterJoin()
         && !((MultiJoin) input).containsOuter()
@@ -443,7 +443,7 @@ public class JoinToMultiJoinRule
    * @param rightFilter the filter originating from the right child
    * @return the adjusted right filter
    */
-  private @Nullable RexNode shiftRightFilter(
+  private static @Nullable RexNode shiftRightFilter(
       Join joinRel,
       RelNode left,
       MultiJoin right,
@@ -479,7 +479,7 @@ public class JoinToMultiJoinRule
    *
    * @return Map containing the new join condition
    */
-  private ImmutableMap<Integer, ImmutableIntList> addOnJoinFieldRefCounts(
+  private static ImmutableMap<Integer, ImmutableIntList> addOnJoinFieldRefCounts(
       List<RelNode> multiJoinInputs,
       int nTotalFields,
       RexNode joinCondition,
@@ -538,7 +538,7 @@ public class JoinToMultiJoinRule
    * @param right   right child of the LogicalJoin
    * @return combined post-join filters AND'd together
    */
-  private List<@Nullable RexNode> combinePostJoinFilters(
+  private static List<@Nullable RexNode> combinePostJoinFilters(
       Join joinRel,
       RelNode left,
       RelNode right) {

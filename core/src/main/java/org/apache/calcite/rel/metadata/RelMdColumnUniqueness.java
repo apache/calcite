@@ -224,7 +224,7 @@ public class RelMdColumnUniqueness
         Util.transform(program.getProjectList(), program::expandLocalRef));
   }
 
-  private @Nullable Boolean areProjectColumnsUnique(
+  private static @Nullable Boolean areProjectColumnsUnique(
       SingleRel rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls, List<RexNode> projExprs) {
     RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
@@ -421,7 +421,7 @@ public class RelMdColumnUniqueness
     return false;
   }
 
-  private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
+  private static boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
     if (!(rel instanceof Project)) {
       return false;
     }

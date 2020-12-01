@@ -332,7 +332,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   /**
    * This function extends collation by appending new collation fields defined on keys.
    */
-  private RelCollation extendCollation(RelCollation collation, List<Integer> keys) {
+  private static RelCollation extendCollation(RelCollation collation, List<Integer> keys) {
     List<RelFieldCollation> fieldsForNewCollation = new ArrayList<>(keys.size());
     fieldsForNewCollation.addAll(collation.getFieldCollations());
 
@@ -360,7 +360,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    * @param collation collation defined on the JOIN
    * @param joinKeys  the join keys
    */
-  private RelCollation intersectCollationAndJoinKey(
+  private static RelCollation intersectCollationAndJoinKey(
       RelCollation collation, ImmutableIntList joinKeys) {
     List<RelFieldCollation> fieldCollations = new ArrayList<>();
     for (RelFieldCollation rf : collation.getFieldCollations()) {

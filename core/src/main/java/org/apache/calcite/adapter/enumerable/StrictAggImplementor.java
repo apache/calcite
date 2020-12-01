@@ -48,7 +48,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return stateSize;
   }
 
-  protected final void accAdvance(AggAddContext add, Expression acc,
+  protected static void accAdvance(AggAddContext add, Expression acc,
       Expression next) {
     add.currentBlock().add(
         Expressions.statement(
@@ -71,7 +71,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return res;
   }
 
-  private boolean anyNullable(List<? extends RelDataType> types) {
+  private static boolean anyNullable(List<? extends RelDataType> types) {
     for (RelDataType type : types) {
       if (type.isNullable()) {
         return true;

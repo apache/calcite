@@ -383,7 +383,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       }
     }
 
-    private String quoteCharLiteral(RexLiteral literal) {
+    private static String quoteCharLiteral(RexLiteral literal) {
       String value = literalValue(literal);
       if (literal.getTypeName() == CHAR) {
         value = "'" + value + "'";
@@ -394,7 +394,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
     /**
      * Combines a field name, operator, and literal to produce a predicate string.
      */
-    private String translateOp2(String op, String name, RexLiteral right) {
+    private static String translateOp2(String op, String name, RexLiteral right) {
       String valueString = quoteCharLiteral(right);
       return name + " " + op + " " + valueString;
     }

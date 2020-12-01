@@ -103,7 +103,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
+      SqlTypeName typeName) {
     SqlBasicTypeNameSpec spec = new SqlBasicTypeNameSpec(typeName, SqlParserPos.ZERO) {
       @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
         // unparse as an identifier to ensure that type names are cased correctly
@@ -191,7 +192,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     final SqlLiteral timeUnitNode = call.operand(1);
     TimeUnitRange unit = timeUnitNode.getValueAs(TimeUnitRange.class);
 

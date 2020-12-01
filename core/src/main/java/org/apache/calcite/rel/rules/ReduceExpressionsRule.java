@@ -1032,7 +1032,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
     }
 
-    private Boolean isUdf(@SuppressWarnings("unused") @Nullable SqlOperator operator) {
+    private static Boolean isUdf(@SuppressWarnings("unused") @Nullable SqlOperator operator) {
       // return operator instanceof UserDefinedRoutine
       return false;
     }

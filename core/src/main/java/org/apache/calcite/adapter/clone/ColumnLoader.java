@@ -369,7 +369,7 @@ class ColumnLoader<T> {
       return new ArrayTable.ObjectArray(ordinal);
     }
 
-    private long toLong(Object o) {
+    private static long toLong(Object o) {
       // We treat Boolean and Character as if they were subclasses of
       // Number but actually they are not.
       if (o instanceof Boolean) {
@@ -382,7 +382,7 @@ class ColumnLoader<T> {
     }
 
     @EnsuresNonNullIf(result = true, expression = "#1")
-    private boolean canBeLong(@Nullable Object o) {
+    private static boolean canBeLong(@Nullable Object o) {
       return o instanceof Boolean
           || o instanceof Character
           || o instanceof Number;
@@ -397,7 +397,7 @@ class ColumnLoader<T> {
      * @param min Minimum value to be encoded
      * @param max Maximum value to be encoded (inclusive)
      */
-    private ArrayTable.Representation chooseFixedRep(
+    private static ArrayTable.Representation chooseFixedRep(
         int ordinal, Primitive p, long min, long max) {
       if (min == max) {
         return new ArrayTable.Constant(ordinal);

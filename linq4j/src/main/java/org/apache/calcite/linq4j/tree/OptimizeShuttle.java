@@ -388,7 +388,7 @@ public class OptimizeShuttle extends Shuttle {
     return super.visit(methodCallExpression, targetExpression, expressions);
   }
 
-  private boolean isConstantNull(Expression expression) {
+  private static boolean isConstantNull(Expression expression) {
     return expression instanceof ConstantExpression
         && ((ConstantExpression) expression).value == null;
   }

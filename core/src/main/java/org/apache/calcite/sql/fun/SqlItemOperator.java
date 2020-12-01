@@ -100,7 +100,7 @@ class SqlItemOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  private SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
+  private static SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
     final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:

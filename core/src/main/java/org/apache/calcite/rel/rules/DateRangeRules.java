@@ -496,7 +496,7 @@ public abstract class DateRangeRules {
     }
 
     // Assumes v is a valid value for given timeunit
-    private boolean next(Calendar c, TimeUnitRange timeUnit, int v,
+    private static boolean next(Calendar c, TimeUnitRange timeUnit, int v,
         Range<Calendar> r, boolean strict) {
       final Calendar original = (Calendar) c.clone();
       final int code = calendarUnitFor(timeUnit);
@@ -587,7 +587,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private Range<Calendar> extractRange(TimeUnitRange timeUnit, SqlKind comparison,
+    private static Range<Calendar> extractRange(TimeUnitRange timeUnit, SqlKind comparison,
         Calendar c) {
       switch (comparison) {
       case EQUALS:
@@ -608,7 +608,7 @@ public abstract class DateRangeRules {
 
     /** Returns a copy of a calendar, optionally rounded up to the next time
      * unit. */
-    private Calendar round(Calendar c, TimeUnitRange timeUnit, boolean down) {
+    private static Calendar round(Calendar c, TimeUnitRange timeUnit, boolean down) {
       c = (Calendar) c.clone();
       if (!down) {
         final Integer code = calendarUnitFor(timeUnit);
@@ -661,7 +661,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private Range<Calendar> floorRange(TimeUnitRange timeUnit, SqlKind comparison,
+    private static Range<Calendar> floorRange(TimeUnitRange timeUnit, SqlKind comparison,
         Calendar c) {
       Calendar floor = floor(c, timeUnit);
       boolean boundary = floor.equals(c);
@@ -681,7 +681,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private Range<Calendar> ceilRange(TimeUnitRange timeUnit, SqlKind comparison,
+    private static Range<Calendar> ceilRange(TimeUnitRange timeUnit, SqlKind comparison,
         Calendar c) {
       final Calendar ceil = ceil(c, timeUnit);
       boolean boundary = ceil.equals(c);
@@ -712,19 +712,19 @@ public abstract class DateRangeRules {
       }
     }
 
-    private Calendar increment(Calendar c, TimeUnitRange timeUnit) {
+    private static Calendar increment(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       c.add(calendarUnitFor(timeUnit), 1);
       return c;
     }
 
-    private Calendar decrement(Calendar c, TimeUnitRange timeUnit) {
+    private static Calendar decrement(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       c.add(calendarUnitFor(timeUnit), -1);
       return c;
     }
 
-    private Calendar ceil(Calendar c, TimeUnitRange timeUnit) {
+    private static Calendar ceil(Calendar c, TimeUnitRange timeUnit) {
       Calendar floor = floor(c, timeUnit);
       return floor.equals(c) ? floor : increment(floor, timeUnit);
     }
@@ -734,7 +734,7 @@ public abstract class DateRangeRules {
      *
      * @return returns a copy of calendar, floored to the given time unit
      */
-    private Calendar floor(Calendar c, TimeUnitRange timeUnit) {
+    private static Calendar floor(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       switch (timeUnit) {
       case YEAR:

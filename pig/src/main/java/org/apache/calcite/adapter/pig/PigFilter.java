@@ -127,7 +127,7 @@ public class PigFilter extends Filter implements PigRel {
     return '(' + fieldName + ' ' + op + ' ' + literal + ')';
   }
 
-  private boolean containsOnlyConjunctions(RexNode condition) {
+  private static boolean containsOnlyConjunctions(RexNode condition) {
     return RelOptUtil.disjunctions(condition).size() == 1;
   }
 
@@ -136,7 +136,7 @@ public class PigFilter extends Filter implements PigRel {
    *
    * <p>TODO: do proper literal to string conversion + escaping
    */
-  private String getLiteralAsString(RexLiteral literal) {
+  private static String getLiteralAsString(RexLiteral literal) {
     return '\'' + RexLiteral.stringValue(literal) + '\'';
   }
 }

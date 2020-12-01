@@ -1130,7 +1130,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param numericCollationIndexes flag of to determine sort comparator
    * @param queryOutputFieldNames query output fields
    */
-  private JsonLimit computeSort(@Nullable Integer fetch,
+  private static JsonLimit computeSort(@Nullable Integer fetch,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes,
       List<String> queryOutputFieldNames) {
@@ -1616,7 +1616,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           + DRUID_QUERY_FETCH + "\":true");
     }
 
-    private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
+    private static ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
       switch (field.getType().getSqlTypeName()) {
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       case TIMESTAMP:

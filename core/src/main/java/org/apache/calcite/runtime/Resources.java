@@ -428,7 +428,7 @@ public class Resources {
       }
     }
 
-    private int countQuotesIn(String message) {
+    private static int countQuotesIn(String message) {
       int count = 0;
       for (int i = 0, n = message.length(); i < n; i++) {
         if (message.charAt(i) == '\'') {

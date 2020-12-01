@@ -77,7 +77,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     return true;
   }
 
-  private Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
+  private static Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return Pair.of(

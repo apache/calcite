@@ -106,11 +106,13 @@ public class RelJson {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Object> T get(Map<String, ? extends @Nullable Object> map, String key) {
+  private static <T extends Object> T get(Map<String, ? extends @Nullable Object> map,
+      String key) {
     return (T) requireNonNull(map.get(key), () -> "entry for key " + key);
   }
 
-  private <T extends Enum<T>> T enumVal(Class<T> clazz, Map<String, Object> map, String key) {
+  private static <T extends Enum<T>> T enumVal(Class<T> clazz, Map<String, Object> map,
+      String key) {
     String textValue = get(map, key);
     return requireNonNull(
         Util.enumVal(clazz, textValue),
@@ -375,7 +377,7 @@ public class RelJson {
     return map;
   }
 
-  private Object toJson(CorrelationId node) {
+  private static Object toJson(CorrelationId node) {
     return node.getId();
   }
 

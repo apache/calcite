@@ -94,7 +94,7 @@ public class JavaTypeFactoryImpl
    * <p>Takes into account {@link org.apache.calcite.adapter.java.Array}
    * annotations if present.
    */
-  private Type fieldType(Field field) {
+  private static Type fieldType(Field field) {
     final Class<?> klass = field.getType();
     final org.apache.calcite.adapter.java.Array array =
         field.getAnnotation(org.apache.calcite.adapter.java.Array.class);

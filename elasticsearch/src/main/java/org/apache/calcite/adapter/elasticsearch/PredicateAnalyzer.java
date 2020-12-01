@@ -131,7 +131,7 @@ class PredicateAnalyzer {
       return new LiteralExpression(literal);
     }
 
-    private boolean supportedRexCall(RexCall call) {
+    private static boolean supportedRexCall(RexCall call) {
       final SqlSyntax syntax = call.getOperator().getSyntax();
       switch (syntax) {
       case BINARY:

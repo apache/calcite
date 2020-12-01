@@ -181,7 +181,7 @@ public class SqlSimpleParser {
     return buf.toString();
   }
 
-  private void consumeQuery(ListIterator<Token> iter, List<Token> outList) {
+  private static void consumeQuery(ListIterator<Token> iter, List<Token> outList) {
     while (iter.hasNext()) {
       consumeSelect(iter, outList);
       if (iter.hasNext()) {
@@ -212,7 +212,7 @@ public class SqlSimpleParser {
     }
   }
 
-  private void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
+  private static void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
     boolean isQuery = false;
     int start = outList.size();
     List<Token> subQueryList = new ArrayList<>();
@@ -428,7 +428,7 @@ public class SqlSimpleParser {
       return null;
     }
 
-    private int indexOfLineEnd(String sql, int i) {
+    private static int indexOfLineEnd(String sql, int i) {
       int length = sql.length();
       while (i < length) {
         char c = sql.charAt(i);

@@ -280,7 +280,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    *
    * <p>Ignore constant reduction which should happen in RexSimplify.
    */
-  private SqlNode castTo(SqlNode node, RelDataType type) {
+  private static SqlNode castTo(SqlNode node, RelDataType type) {
     return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
@@ -611,7 +611,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     return resultType;
   }
 
-  private List<RelDataType> partitionByCharacter(List<RelDataType> types) {
+  private static List<RelDataType> partitionByCharacter(List<RelDataType> types) {
     List<RelDataType> withCharacterTypes = new ArrayList<>();
     List<RelDataType> nonCharacterTypes = new ArrayList<>();
 

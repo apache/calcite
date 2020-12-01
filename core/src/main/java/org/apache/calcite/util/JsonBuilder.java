@@ -122,7 +122,7 @@ public class JsonBuilder {
     buf.append("}");
   }
 
-  private void newline(StringBuilder buf, int indent) {
+  private static void newline(StringBuilder buf, int indent) {
     Spaces.append(buf.append('\n'), indent * 2);
   }
 

@@ -116,7 +116,7 @@ public abstract class ListScope extends DelegatingScope {
     return null;
   }
 
-  private @Nullable List<String> getQualifiedName(@Nullable SqlValidatorTable table) {
+  private static @Nullable List<String> getQualifiedName(@Nullable SqlValidatorTable table) {
     return table == null ? null : table.getQualifiedName();
   }
 

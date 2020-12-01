@@ -377,8 +377,7 @@ abstract class DruidJsonFilter implements DruidJson {
    * @return Druid Json filters, or null when cannot translate to valid Druid
    * filters
    */
-  @Nullable
-  static DruidJsonFilter toDruidFilters(RexNode rexNode, RelDataType rowType,
+  static @Nullable DruidJsonFilter toDruidFilters(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery, RexBuilder rexBuilder) {
     rexNode = RexUtil.expandSearch(rexBuilder, null, rexNode);
     if (rexNode.isAlwaysTrue()) {

@@ -156,7 +156,7 @@ public class MongoAggregate
     }
   }
 
-  private String toMongo(SqlAggFunction aggregation, List<String> inNames,
+  private static String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
       if (args.size() == 0) {

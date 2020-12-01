@@ -78,7 +78,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         false);
   }
 
-  private @Nullable RelDataType getComponentType(
+  private static @Nullable RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);

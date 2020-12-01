@@ -620,7 +620,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return parents;
   }
 
-  private boolean matchOperands(
+  private static boolean matchOperands(
       RelOptRuleOperand operand,
       RelNode rel,
       List<RelNode> bindings,

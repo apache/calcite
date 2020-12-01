@@ -426,7 +426,7 @@ public abstract class CalcRelSplitter {
    * @param cohorts List of cohorts, each of which is a set of expr ordinals
    * @return Expression ordinals in topological order
    */
-  private List<Integer> computeTopologicalOrdering(
+  private static List<Integer> computeTopologicalOrdering(
       RexNode[] exprs,
       List<Set<Integer>> cohorts) {
     final DirectedGraph<Integer, DefaultEdge> graph =
@@ -480,7 +480,7 @@ public abstract class CalcRelSplitter {
     return null;
   }
 
-  private int[] identityArray(int length) {
+  private static int[] identityArray(int length) {
     final int[] ints = new int[length];
     for (int i = 0; i < ints.length; i++) {
       ints[i] = i;

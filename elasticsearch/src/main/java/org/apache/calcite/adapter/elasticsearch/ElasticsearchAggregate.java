@@ -180,7 +180,7 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
     }
   }
 
-  private List<String> fieldNames(RelDataType relDataType) {
+  private static List<String> fieldNames(RelDataType relDataType) {
     List<String> names = new ArrayList<>();
 
     for (RelDataTypeField rdtf : relDataType.getFieldList()) {

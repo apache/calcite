@@ -338,7 +338,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     }
   }
 
-  private void closeIfPossible(@Nullable Connection connection, @Nullable Statement statement) {
+  private static void closeIfPossible(@Nullable Connection connection,
+      @Nullable Statement statement) {
     if (statement != null) {
       try {
         statement.close();

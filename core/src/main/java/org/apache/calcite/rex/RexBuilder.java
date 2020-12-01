@@ -1342,7 +1342,7 @@ public class RexBuilder {
 
   /** Returns whether and argument and bounds are have types that are
    * sufficiently compatible to be converted to a {@link Sarg}. */
-  private boolean areAssignable(RexNode arg, List<? extends RexNode> bounds) {
+  private static boolean areAssignable(RexNode arg, List<? extends RexNode> bounds) {
     for (RexNode bound : bounds) {
       if (!SqlTypeUtil.inSameFamily(arg.getType(), bound.getType())
           && !(arg.getType().isStruct() && bound.getType().isStruct())) {

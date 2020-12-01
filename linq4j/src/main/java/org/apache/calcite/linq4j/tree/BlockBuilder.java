@@ -264,7 +264,7 @@ public class BlockBuilder {
     }
   }
 
-  private boolean isCostly(DeclarationStatement decl) {
+  private static boolean isCostly(DeclarationStatement decl) {
     return decl.initializer instanceof NewExpression;
   }
 
@@ -274,7 +274,7 @@ public class BlockBuilder {
    * @param decl inlining candidate
    * @return normalized expression
    */
-  private Expression normalizeDeclaration(DeclarationStatement decl) {
+  private static Expression normalizeDeclaration(DeclarationStatement decl) {
     Expression expr = decl.initializer;
     Type declType = decl.parameter.getType();
     if (expr == null) {

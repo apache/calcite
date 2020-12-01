@@ -940,7 +940,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Returns whether all of a collection of {@link CorRef}s are satisfied
    * by at least one of a collection of {@link CorDef}s. */
-  private boolean hasAll(Collection<CorRef> corRefs,
+  private static boolean hasAll(Collection<CorRef> corRefs,
       Collection<CorDef> corDefs) {
     for (CorRef corRef : corRefs) {
       if (!has(corDefs, corRef)) {
@@ -952,7 +952,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Returns whether a {@link CorrelationId} is satisfied by at least one of a
    * collection of {@link CorDef}s. */
-  private boolean has(Collection<CorDef> corDefs, CorRef corr) {
+  private static boolean has(Collection<CorDef> corDefs, CorRef corr) {
     for (CorDef corDef : corDefs) {
       if (corDef.corr.equals(corr.corr) && corDef.field == corr.field) {
         return true;
@@ -1032,7 +1032,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Finds a {@link RexInputRef} that is equivalent to a {@link CorRef},
    * and if found, throws a {@link org.apache.calcite.util.Util.FoundOne}. */
-  private void findCorrelationEquivalent(CorRef correlation, RexNode e)
+  private static void findCorrelationEquivalent(CorRef correlation, RexNode e)
       throws Util.FoundOne {
     switch (e.getKind()) {
     case EQUALS:
@@ -1055,7 +1055,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
-  private boolean references(RexNode e, CorRef correlation) {
+  private static boolean references(RexNode e, CorRef correlation) {
     switch (e.getKind()) {
     case CAST:
       final RexNode operand = ((RexCall) e).getOperands().get(0);
@@ -1084,7 +1084,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * <li>{@code VARCHAR(10)} is a widening of {@code VARCHAR(10) NOT NULL}.
    * </ul>
    */
-  private boolean isWidening(RelDataType type, RelDataType type1) {
+  private static boolean isWidening(RelDataType type, RelDataType type1) {
     return type.getSqlTypeName() == type1.getSqlTypeName()
         && type.getPrecision() >= type1.getPrecision();
   }

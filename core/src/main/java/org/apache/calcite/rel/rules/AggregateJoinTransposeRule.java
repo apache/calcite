@@ -153,7 +153,7 @@ public class AggregateJoinTransposeRule
   // OUTER joins are supported for group by without aggregate functions
   // FULL OUTER JOIN is not supported since it could produce wrong result
   // due to bug (CALCITE-3012)
-  private boolean isJoinSupported(final Join join, final Aggregate aggregate) {
+  private static boolean isJoinSupported(final Join join, final Aggregate aggregate) {
     return join.getJoinType() == JoinRelType.INNER || aggregate.getAggCallList().isEmpty();
   }
 

@@ -95,10 +95,10 @@ public class SortNode extends AbstractSingleNode<Sort> {
     }
     return Ordering.compound(
         Util.transform(rel.getCollation().getFieldCollations(),
-            this::comparator));
+            SortNode::comparator));
   }
 
-  private Comparator<Row> comparator(RelFieldCollation fieldCollation) {
+  private static Comparator<Row> comparator(RelFieldCollation fieldCollation) {
     final int nullComparison = fieldCollation.nullDirection.nullComparison;
     final int x = fieldCollation.getFieldIndex();
     switch (fieldCollation.direction) {

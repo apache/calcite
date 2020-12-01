@@ -186,7 +186,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  private RuntimeException handle(SQLException e, String sql) {
+  private static RuntimeException handle(SQLException e, String sql) {
     return new RuntimeException("Error while executing SQL for statistics: "
         + sql, e);
   }
@@ -200,7 +200,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
     return sql;
   }
 
-  private <R> R withBuilder(BuilderAction<R> action) {
+  private static <R> R withBuilder(BuilderAction<R> action) {
     return Frameworks.withPlanner(
         (cluster, relOptSchema, rootSchema) -> {
           final RelBuilder relBuilder =

@@ -72,7 +72,7 @@ public class CsvFilterableTable extends CsvTable
     };
   }
 
-  private boolean addFilter(RexNode filter, @Nullable Object[] filterValues) {
+  private static boolean addFilter(RexNode filter, @Nullable Object[] filterValues) {
     if (filter.isA(SqlKind.AND)) {
         // We cannot refine(remove) the operands of AND,
         // it will cause o.a.c.i.TableScanNode.createFilterable filters check failed.

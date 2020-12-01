@@ -55,7 +55,7 @@ public class CsvProjectTableScanRule
             fields));
   }
 
-  private int[] getProjectFields(List<RexNode> exps) {
+  private static int[] getProjectFields(List<RexNode> exps) {
     final int[] fields = new int[exps.size()];
     for (int i = 0; i < exps.size(); i++) {
       final RexNode exp = exps.get(i);

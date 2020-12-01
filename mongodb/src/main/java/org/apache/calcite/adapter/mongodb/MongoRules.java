@@ -228,7 +228,7 @@ public class MongoRules {
           + " is not supported by MongoProject");
     }
 
-    private String stripQuotes(String s) {
+    private static String stripQuotes(String s) {
       return s.startsWith("'") && s.endsWith("'")
           ? s.substring(1, s.length() - 1)
           : s;

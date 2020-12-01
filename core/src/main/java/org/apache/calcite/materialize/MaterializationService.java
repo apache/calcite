@@ -305,7 +305,7 @@ public class MaterializationService {
     return null;
   }
 
-  private boolean allSatisfiable(List<Lattice.Measure> measureList,
+  private static boolean allSatisfiable(List<Lattice.Measure> measureList,
       TileKey tileKey) {
     // A measure can be satisfied if it is contained in the measure list, or,
     // less obviously, if it is composed of grouping columns.

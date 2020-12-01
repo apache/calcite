@@ -975,15 +975,15 @@ public class EnumUtils {
       }
     }
 
-    private boolean isOverlapped(Pair<Long, Long> a, Pair<Long, Long> b) {
+    private static boolean isOverlapped(Pair<Long, Long> a, Pair<Long, Long> b) {
       return !(b.left >= a.right);
     }
 
-    private Pair<Long, Long> mergeWindows(Pair<Long, Long> a, Pair<Long, Long> b) {
+    private static Pair<Long, Long> mergeWindows(Pair<Long, Long> a, Pair<Long, Long> b) {
       return new Pair<>(a.left <= b.left ? a.left : b.left, a.right >= b.right ? a.right : b.right);
     }
 
-    private Pair<Long, Long> computeInitWindow(long ts, long gap) {
+    private static Pair<Long, Long> computeInitWindow(long ts, long gap) {
       return new Pair<>(ts, ts + gap);
     }
   }

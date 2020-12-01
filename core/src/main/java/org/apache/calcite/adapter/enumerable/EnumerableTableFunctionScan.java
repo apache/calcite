@@ -75,7 +75,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     }
   }
 
-  private boolean isImplementorDefined(RexCall call) {
+  private static boolean isImplementorDefined(RexCall call) {
     if (call.getOperator() instanceof SqlWindowTableFunction
         && RexImpTable.INSTANCE.get((SqlWindowTableFunction) call.getOperator()) != null) {
       return true;

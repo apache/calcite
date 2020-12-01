@@ -157,7 +157,7 @@ public class SqlDotOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
+  private static SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
     switch (operandType.getSqlTypeName()) {
     case ROW:
       return OperandTypes.family(SqlTypeFamily.STRING);

@@ -2581,7 +2581,7 @@ public class RexUtil {
       return list;
     }
 
-    private Map<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
+    private static Map<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
       final Map<RexNode, RexNode> map = new HashMap<>();
       int i = 0;
       for (RexNode node : nodes) {

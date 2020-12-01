@@ -199,7 +199,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return averageJoinColumnSizes(rel, mq);
   }
 
-  private @Nullable List<@Nullable Double> averageJoinColumnSizes(Join rel, RelMetadataQuery mq) {
+  private static @Nullable List<@Nullable Double> averageJoinColumnSizes(Join rel,
+      RelMetadataQuery mq) {
     boolean semiOrAntijoin = !rel.getJoinType().projectsRight();
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();

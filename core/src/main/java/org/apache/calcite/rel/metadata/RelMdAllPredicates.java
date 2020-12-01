@@ -151,7 +151,7 @@ public class RelMdAllPredicates
    * Add the Filter condition to the list obtained from the input.
    * The pred comes from the parent of rel.
    */
-  private @Nullable RelOptPredicateList getAllFilterPredicates(RelNode rel,
+  private static @Nullable RelOptPredicateList getAllFilterPredicates(RelNode rel,
       RelMetadataQuery mq, RexNode pred) {
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     final RelOptPredicateList predsBelow = mq.getAllPredicates(rel);

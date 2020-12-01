@@ -62,7 +62,7 @@ public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryab
     };
   }
 
-  private Queryable<Integer> fetchPreferredAlbums() {
+  private static Queryable<Integer> fetchPreferredAlbums() {
     if (EnvironmentFairy.getUser() == EnvironmentFairy.User.SPECIFIC_USER) {
       return Linq4j.asEnumerable(SPECIFIC_USER_PREFERRED_ALBUMS).asQueryable();
     } else {

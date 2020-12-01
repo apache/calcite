@@ -341,7 +341,7 @@ public class SqlFunction extends SqlOperator {
     }
   }
 
-  private boolean containsRowArg(List<SqlNode> args) {
+  private static boolean containsRowArg(List<SqlNode> args) {
     for (SqlNode operand : args) {
       if (operand.getKind() == SqlKind.ROW) {
         return true;

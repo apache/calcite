@@ -66,7 +66,7 @@ public class PrestoSqlDialect extends SqlDialect {
   }
 
   /** Unparses offset/fetch using "OFFSET offset LIMIT fetch " syntax. */
-  private void unparseUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
+  private static void unparseUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
     unparseOffset(writer, offset);

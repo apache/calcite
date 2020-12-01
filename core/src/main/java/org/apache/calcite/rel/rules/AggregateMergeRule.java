@@ -64,7 +64,7 @@ public class AggregateMergeRule
         .as(Config.class));
   }
 
-  private boolean isAggregateSupported(AggregateCall aggCall) {
+  private static boolean isAggregateSupported(AggregateCall aggCall) {
     if (aggCall.isDistinct()
         || aggCall.hasFilter()
         || aggCall.isApproximate()

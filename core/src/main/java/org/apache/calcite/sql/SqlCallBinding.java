@@ -288,7 +288,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return EnumUtils.evaluate(o2, clazz);
   }
 
-  private <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
+  private static <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:

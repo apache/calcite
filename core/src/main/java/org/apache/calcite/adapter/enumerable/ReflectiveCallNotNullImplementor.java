@@ -66,7 +66,7 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     return translator.handleMethodCheckedExceptions(callExpr);
   }
 
-  private boolean containsCheckedException(Method method) {
+  private static boolean containsCheckedException(Method method) {
     Class[] exceptions = method.getExceptionTypes();
     if (exceptions == null || exceptions.length == 0) {
       return false;

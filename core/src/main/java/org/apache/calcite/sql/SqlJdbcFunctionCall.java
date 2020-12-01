@@ -632,7 +632,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       }
     }
 
-    private String getArgCountMismatchMsg(int... possible) {
+    private static String getArgCountMismatchMsg(int... possible) {
       StringBuilder ret = new StringBuilder();
       for (int i = 0; i < possible.length; i++) {
         if (i > 0) {
@@ -778,7 +778,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       this.map = map.build();
     }
 
-    private MakeCall trim(SqlTrimFunction.Flag flag) {
+    private static MakeCall trim(SqlTrimFunction.Flag flag) {
       return new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
         @Override public SqlCall createCall(SqlParserPos pos,
             @Nullable SqlNode... operands) {
@@ -790,7 +790,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       };
     }
 
-    private MakeCall simple(SqlOperator operator) {
+    private static MakeCall simple(SqlOperator operator) {
       return new SimpleMakeCall(operator);
     }
 

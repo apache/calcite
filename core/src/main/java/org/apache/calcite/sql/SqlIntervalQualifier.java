@@ -353,7 +353,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return sign;
   }
 
-  private String stripLeadingSign(String value) {
+  private static String stripLeadingSign(String value) {
     String unsignedValue = value;
 
     if (!Util.isNullOrEmpty(value)) {
@@ -398,7 +398,7 @@ public class SqlIntervalQualifier extends SqlNode {
     BigDecimal.valueOf(1000000000),
   };
 
-  private boolean isFractionalSecondFieldInRange(BigDecimal field) {
+  private static boolean isFractionalSecondFieldInRange(BigDecimal field) {
     // we should never get handed a negative field value
     assert field.compareTo(ZERO) >= 0;
 
@@ -408,7 +408,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return true;
   }
 
-  private boolean isSecondaryFieldInRange(BigDecimal field, TimeUnit unit) {
+  private static boolean isSecondaryFieldInRange(BigDecimal field, TimeUnit unit) {
     // we should never get handed a negative field value
     assert field.compareTo(ZERO) >= 0;
 
@@ -430,13 +430,13 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  private BigDecimal normalizeSecondFraction(String secondFracStr) {
+  private static BigDecimal normalizeSecondFraction(String secondFracStr) {
     // Decimal value can be more than 3 digits. So just get
     // the millisecond part.
     return new BigDecimal("0." + secondFracStr).multiply(THOUSAND);
   }
 
-  private int[] fillIntervalValueArray(
+  private static int[] fillIntervalValueArray(
       int sign,
       BigDecimal year,
       BigDecimal month) {
@@ -449,7 +449,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return ret;
   }
 
-  private int[] fillIntervalValueArray(
+  private static int[] fillIntervalValueArray(
       int sign,
       BigDecimal day,
       BigDecimal hour,
@@ -1167,7 +1167,7 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  private BigDecimal parseField(Matcher m, int i) {
+  private static BigDecimal parseField(Matcher m, int i) {
     return new BigDecimal(castNonNull(m.group(i)));
   }
 
@@ -1178,7 +1178,7 @@ public class SqlIntervalQualifier extends SqlNode {
             "'" + value + "'", "INTERVAL " + toString()));
   }
 
-  private CalciteContextException fieldExceedsPrecisionException(
+  private static CalciteContextException fieldExceedsPrecisionException(
       SqlParserPos pos, int sign, BigDecimal value, TimeUnit type,
       int precision) {
     if (sign == -1) {

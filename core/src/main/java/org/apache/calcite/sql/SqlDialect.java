@@ -900,7 +900,7 @@ public class SqlDialect {
 
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
    * fetch ROWS ONLY" syntax. */
-  protected final void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
+  protected static void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
     if (offset != null) {
@@ -926,14 +926,14 @@ public class SqlDialect {
   }
 
   /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax. */
-  protected final void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
+  protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
     unparseLimit(writer, fetch);
     unparseOffset(writer, offset);
   }
 
-  protected final void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
+  protected static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
     if (fetch != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame fetchFrame =
@@ -944,7 +944,7 @@ public class SqlDialect {
     }
   }
 
-  protected final void unparseOffset(SqlWriter writer, @Nullable SqlNode offset) {
+  protected static void unparseOffset(SqlWriter writer, @Nullable SqlNode offset) {
     if (offset != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame offsetFrame =

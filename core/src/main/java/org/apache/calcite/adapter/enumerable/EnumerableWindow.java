@@ -123,7 +123,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   @SuppressWarnings({"unused", "nullness"})
-  private void sampleOfTheGeneratedWindowedAggregate() {
+  private static void sampleOfTheGeneratedWindowedAggregate() {
     // Here's overview of the generated code
     // For each list of rows that have the same partitioning key, evaluate
     // all of the windowed aggregate functions.
@@ -536,7 +536,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     return implementor.result(inputPhysType, builder.toBlock());
   }
 
-  private Function<BlockBuilder, WinAggFrameResultContext>
+  private static Function<BlockBuilder, WinAggFrameResultContext>
       getBlockBuilderWinAggFrameResultContextFunction(
       final JavaTypeFactory typeFactory, final SqlConformance conformance,
       final Result result, final List<Expression> translatedConstants,
@@ -647,7 +647,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     };
   }
 
-  private Pair<Expression, Expression> getPartitionIterator(
+  private static Pair<Expression, Expression> getPartitionIterator(
       BlockBuilder builder,
       Expression source_,
       PhysType inputPhysType,
@@ -754,7 +754,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             comparator_)));
   }
 
-  private Pair<@Nullable Expression, @Nullable Expression> getRowCollationKey(
+  private static Pair<@Nullable Expression, @Nullable Expression> getRowCollationKey(
       BlockBuilder builder, PhysType inputPhysType,
       Group group, int windowIdx) {
     if (!(group.isRows
@@ -859,7 +859,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     }
   }
 
-  private void implementAdd(List<AggImpState> aggs,
+  private static void implementAdd(List<AggImpState> aggs,
       final BlockBuilder builder7,
       final Function<BlockBuilder, WinAggFrameResultContext> frame,
       final Function<AggImpState, List<RexNode>> rexArguments,
@@ -883,7 +883,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     }
   }
 
-  private boolean implementResult(List<AggImpState> aggs,
+  private static boolean implementResult(List<AggImpState> aggs,
       final BlockBuilder builder,
       final Function<BlockBuilder, WinAggFrameResultContext> frame,
       final Function<AggImpState, List<RexNode>> rexArguments,
@@ -918,13 +918,13 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     return nonEmpty;
   }
 
-  private Expression translateBound(RexToLixTranslator translator,
-      ParameterExpression i_, Expression row_, Expression min_,
-      Expression max_, Expression rows_, Group group,
-      boolean lower,
-      PhysType physType,
-      @SuppressWarnings("unused") Expression rowComparator, // TODO: remove or use
-      @Nullable Expression keySelector, @Nullable Expression keyComparator) {
+  private static Expression translateBound(RexToLixTranslator translator,
+          ParameterExpression i_, Expression row_, Expression min_,
+          Expression max_, Expression rows_, Group group,
+          boolean lower,
+          PhysType physType,
+          @SuppressWarnings("unused") Expression rowComparator, // TODO: remove or use
+          @Nullable Expression keySelector, @Nullable Expression keyComparator) {
     RexWindowBound bound = lower ? group.lowerBound : group.upperBound;
     if (bound.isUnbounded()) {
       return bound.isPreceding() ? min_ : max_;

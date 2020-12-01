@@ -163,7 +163,7 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private SqlNode @Nullable [] convertExpressionList(
+  private static SqlNode @Nullable [] convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
     final SqlNode[] exprs = new SqlNode[nodes.size()];
@@ -246,7 +246,7 @@ public class RexSqlStandardConvertletTable
 
   /** Convertlet that converts a {@link SqlCall} to a {@link RexCall} of the
    * same operator. */
-  private class EquivConvertlet implements RexSqlConvertlet {
+  private static class EquivConvertlet implements RexSqlConvertlet {
     private final SqlOperator op;
 
     EquivConvertlet(SqlOperator op) {

@@ -198,7 +198,7 @@ public class JethroDataSqlDialect extends SqlDialect {
       }
     }
 
-    private JethroInfo makeInfo(Connection jethroConnection) {
+    private static JethroInfo makeInfo(Connection jethroConnection) {
       try (Statement jethroStatement = jethroConnection.createStatement();
            ResultSet functionsTupleSet =
                jethroStatement.executeQuery("show functions extended")) {

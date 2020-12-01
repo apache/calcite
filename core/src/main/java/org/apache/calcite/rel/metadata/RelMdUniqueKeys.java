@@ -104,7 +104,7 @@ public class RelMdUniqueKeys
         Util.transform(program.getProjectList(), program::expandLocalRef));
   }
 
-  private Set<ImmutableBitSet> getProjectUniqueKeys(SingleRel rel, RelMetadataQuery mq,
+  private static Set<ImmutableBitSet> getProjectUniqueKeys(SingleRel rel, RelMetadataQuery mq,
       boolean ignoreNulls, List<RexNode> projExprs) {
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it

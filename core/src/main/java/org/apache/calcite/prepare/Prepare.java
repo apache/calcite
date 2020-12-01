@@ -377,7 +377,7 @@ public abstract class Prepare {
     return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
   }
 
-  private boolean shouldTrim(RelNode rootRel) {
+  private static boolean shouldTrim(RelNode rootRel) {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.

@@ -129,7 +129,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
 
   }
 
-  private List<String> fieldNames(RelDataType relDataType) {
+  private static List<String> fieldNames(RelDataType relDataType) {
     ArrayList<String> names = new ArrayList<>();
 
     for (RelDataTypeField rdtf : relDataType.getFieldList()) {

@@ -243,39 +243,39 @@ public class BinaryExpression extends Expression {
       + nodeType + ", primitive=" + primitive);
   }
 
-  private boolean evaluateBoolean(Evaluator evaluator, Expression expression) {
+  private static boolean evaluateBoolean(Evaluator evaluator, Expression expression) {
     return (Boolean) requireNonNull(
         expression.evaluate(evaluator),
         () -> "boolean expected, got null while evaluating " + expression);
   }
 
-  private Number evaluateNumber(Expression expression, Evaluator evaluator) {
+  private static Number evaluateNumber(Expression expression, Evaluator evaluator) {
     return (Number) requireNonNull(
         expression.evaluate(evaluator),
         () -> "number expected, got null while evaluating " + expression);
   }
 
-  private int evaluateInt(Expression expression, Evaluator evaluator) {
+  private static int evaluateInt(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).intValue();
   }
 
-  private short evaluateShort(Expression expression, Evaluator evaluator) {
+  private static short evaluateShort(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).shortValue();
   }
 
-  private long evaluateLong(Expression expression, Evaluator evaluator) {
+  private static long evaluateLong(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).longValue();
   }
 
-  private byte evaluateByte(Expression expression, Evaluator evaluator) {
+  private static byte evaluateByte(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).byteValue();
   }
 
-  private float evaluateFloat(Expression expression, Evaluator evaluator) {
+  private static float evaluateFloat(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).floatValue();
   }
 
-  private double evaluateDouble(Expression expression, Evaluator evaluator) {
+  private static double evaluateDouble(Expression expression, Evaluator evaluator) {
     return evaluateNumber(expression, evaluator).doubleValue();
   }
 

@@ -182,7 +182,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         memberDeclarations);
   }
 
-  private ClassDeclaration classDecl(
+  private static ClassDeclaration classDecl(
       JavaTypeFactoryImpl.SyntheticRecordType type) {
     ClassDeclaration classDeclaration =
         Expressions.classDecl(
@@ -545,7 +545,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   }
 
   /** Adds a declaration of each synthetic type found in a code block. */
-  private class TypeRegistrar {
+  private static class TypeRegistrar {
     private final List<MemberDeclaration> memberDeclarations;
     private final Set<Type> seen = new HashSet<>();
 

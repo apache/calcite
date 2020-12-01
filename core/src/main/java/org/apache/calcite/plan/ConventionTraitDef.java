@@ -176,7 +176,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
    * Tries to convert a relational expression to the target convention of an
    * arc.
    */
-  private @Nullable RelNode changeConvention(
+  private static @Nullable RelNode changeConvention(
       RelNode rel,
       Convention source,
       Convention target,

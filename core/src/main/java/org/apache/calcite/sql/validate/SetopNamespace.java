@@ -77,7 +77,7 @@ public class SetopNamespace extends AbstractNamespace {
     return Util.first(monotonicity, SqlMonotonicity.NOT_MONOTONIC);
   }
 
-  private SqlMonotonicity combine(@Nullable SqlMonotonicity m0,
+  private static SqlMonotonicity combine(@Nullable SqlMonotonicity m0,
       SqlMonotonicity m1) {
     if (m0 == null) {
       return m1;

@@ -320,7 +320,7 @@ public abstract class ProjectToWindowRule
       return cohorts;
     }
 
-    private boolean isDependent(final DirectedGraph<Integer, DefaultEdge> graph,
+    private static boolean isDependent(final DirectedGraph<Integer, DefaultEdge> graph,
         final List<Integer> rank,
         final int ordinal1,
         final int ordinal2) {
@@ -355,7 +355,7 @@ public abstract class ProjectToWindowRule
       return false;
     }
 
-    private List<Integer> getRank(DirectedGraph<Integer, DefaultEdge> graph) {
+    private static List<Integer> getRank(DirectedGraph<Integer, DefaultEdge> graph) {
       final int[] rankArr = new int[graph.vertexSet().size()];
       int rank = 0;
       for (int i : TopologicalOrderIterator.of(graph)) {
@@ -364,7 +364,7 @@ public abstract class ProjectToWindowRule
       return ImmutableIntList.of(rankArr);
     }
 
-    private DirectedGraph<Integer, DefaultEdge> createGraphFromExpression(
+    private static DirectedGraph<Integer, DefaultEdge> createGraphFromExpression(
         final List<RexNode> exprs) {
       final DirectedGraph<Integer, DefaultEdge> graph =
           DefaultDirectedGraph.create();

@@ -251,7 +251,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
    * @param typeName Type name
    * @return new type name without local time zone definition
    */
-  private SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
+  private static SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {
     case TIME_WITH_LOCAL_TIME_ZONE:
       return SqlTypeName.TIME;

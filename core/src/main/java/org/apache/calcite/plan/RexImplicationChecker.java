@@ -305,7 +305,7 @@ public class RexImplicationChecker {
    *
    * @return whether input usage pattern is supported
    */
-  private boolean checkSupport(InputUsageFinder firstUsageFinder,
+  private static boolean checkSupport(InputUsageFinder firstUsageFinder,
       InputUsageFinder secondUsageFinder) {
     final Map<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> firstUsageMap =
         firstUsageFinder.usageMap;
@@ -372,7 +372,7 @@ public class RexImplicationChecker {
     return true;
   }
 
-  private boolean isSupportedUnaryOperators(SqlKind kind) {
+  private static boolean isSupportedUnaryOperators(SqlKind kind) {
     switch (kind) {
     case IS_NOT_NULL:
     case IS_NULL:
@@ -382,7 +382,7 @@ public class RexImplicationChecker {
     }
   }
 
-  private boolean isEquivalentOp(@Nullable SqlKind fKind, SqlKind sKind) {
+  private static boolean isEquivalentOp(@Nullable SqlKind fKind, SqlKind sKind) {
     switch (sKind) {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
@@ -405,7 +405,7 @@ public class RexImplicationChecker {
     return true;
   }
 
-  private boolean isOppositeOp(SqlKind fKind, SqlKind sKind) {
+  private static boolean isOppositeOp(SqlKind fKind, SqlKind sKind) {
     switch (sKind) {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
@@ -427,7 +427,7 @@ public class RexImplicationChecker {
     return true;
   }
 
-  private boolean validate(RexNode first, RexNode second) {
+  private static boolean validate(RexNode first, RexNode second) {
     return first instanceof RexCall && second instanceof RexCall;
   }
 
@@ -498,7 +498,7 @@ public class RexImplicationChecker {
       }
     }
 
-    private SqlOperator reverse(SqlOperator op) {
+    private static SqlOperator reverse(SqlOperator op) {
       return RelOptUtil.op(op.getKind().reverse(), op);
     }
 

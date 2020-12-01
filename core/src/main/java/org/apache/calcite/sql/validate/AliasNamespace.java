@@ -130,7 +130,7 @@ public class AliasNamespace extends AbstractNamespace {
     }
   }
 
-  private String getString(RelDataType rowType) {
+  private static String getString(RelDataType rowType) {
     StringBuilder buf = new StringBuilder();
     buf.append("(");
     for (RelDataTypeField field : rowType.getFieldList()) {

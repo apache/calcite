@@ -200,7 +200,7 @@ public class SemiJoinJoinTransposeRule
    * @param adjustY     the amount to adjust Y by
    * @param adjustZ     the amount to adjust Z by
    */
-  private void setJoinAdjustments(
+  private static void setJoinAdjustments(
       int[] adjustments,
       int nFieldsX,
       int nFieldsY,

@@ -238,7 +238,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    * expressions if any
    * @see RelOptUtil#conjunctions(RexNode)
    */
-  private List<RexNode> getConjunctions(Filter filter) {
+  private static List<RexNode> getConjunctions(Filter filter) {
     List<RexNode> conjunctions = conjunctions(filter.getCondition());
     RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     for (int i = 0; i < conjunctions.size(); i++) {

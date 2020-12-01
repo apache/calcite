@@ -149,7 +149,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     return cost;
   }
 
-  private double getValue(@Nullable RexNode r, double defaultValue) {
+  private static double getValue(@Nullable RexNode r, double defaultValue) {
     if (r == null || r instanceof RexDynamicParam) {
       return defaultValue;
     }

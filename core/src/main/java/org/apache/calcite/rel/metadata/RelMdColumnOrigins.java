@@ -253,7 +253,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private @PolyNull Set<RelColumnOrigin> createDerivedColumnOrigins(
+  private static @PolyNull Set<RelColumnOrigin> createDerivedColumnOrigins(
       @PolyNull Set<RelColumnOrigin> inputSet) {
     if (inputSet == null) {
       return null;
@@ -270,7 +270,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
+  private static Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
       final RelMetadataQuery mq) {
     final Set<RelColumnOrigin> set = new HashSet<>();
     final RexVisitor<Void> visitor =

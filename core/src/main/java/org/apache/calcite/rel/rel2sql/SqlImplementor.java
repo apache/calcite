@@ -497,7 +497,7 @@ public abstract class SqlImplementor {
 
   /** Returns the row type of {@code rel}, adjusting the field names if
    * {@code node} is "(query) as tableAlias (fieldAlias, ...)". */
-  private RelDataType adjustedRowType(RelNode rel, SqlNode node) {
+  private static RelDataType adjustedRowType(RelNode rel, SqlNode node) {
     final RelDataType rowType = rel.getRowType();
     final RelDataTypeFactory.Builder builder;
     switch (node.getKind()) {
@@ -555,7 +555,7 @@ public abstract class SqlImplementor {
     return result(join, ImmutableList.of(Clause.FROM), null, null, aliases);
   }
 
-  private void collectAliases(ImmutableMap.Builder<String, RelDataType> builder,
+  private static void collectAliases(ImmutableMap.Builder<String, RelDataType> builder,
       SqlNode node, Iterator<RelDataType> aliases) {
     if (node instanceof SqlJoin) {
       final SqlJoin join = (SqlJoin) node;
@@ -1022,7 +1022,7 @@ public abstract class SqlImplementor {
       return createOverCall(sqlAggregateFunction, nodeList, sqlWindow, rexOver.isDistinct());
     }
 
-    private SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
+    private static SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
         SqlWindow window, boolean isDistinct) {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"

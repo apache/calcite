@@ -1238,7 +1238,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    *      }
    * }</pre></blockquote>
    */
-  private void implementRecursively(final RexToLixTranslator currentTranslator,
+  private static void implementRecursively(final RexToLixTranslator currentTranslator,
       final List<RexNode> operandList, final ParameterExpression valueVariable, int pos) {
     final BlockBuilder currentBlockBuilder = currentTranslator.getBlockBuilder();
     final List<@Nullable Type> storageTypes = EnumUtils.internalTypes(operandList);

@@ -331,7 +331,7 @@ public class JdbcRules {
      * @param node Condition
      * @return Whether condition is supported
      */
-    private boolean canJoinOnCondition(RexNode node) {
+    private static boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
       switch (node.getKind()) {
       case AND:

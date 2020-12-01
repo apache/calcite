@@ -163,7 +163,7 @@ public class RelDotWriter extends RelWriterImpl {
     return "\"" + String.join("\\n", newlabels) + "\"";
   }
 
-  private List<RelNode> getInputs(RelNode parent) {
+  private static List<RelNode> getInputs(RelNode parent) {
     return Util.transform(parent.getInputs(), child -> {
       if (child instanceof HepRelVertex) {
         return ((HepRelVertex) child).getCurrentRel();

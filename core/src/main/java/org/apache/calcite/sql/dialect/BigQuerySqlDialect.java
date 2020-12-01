@@ -217,7 +217,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
    *  BQ Trim Function</a>.
    */
-  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+  private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final String operatorName;
     SqlLiteral trimFlag = call.operand(0);
@@ -247,7 +247,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(trimFrame);
   }
 
-  private TimeUnit validate(TimeUnit timeUnit) {
+  private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case MILLISECOND:
@@ -309,7 +309,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
+      SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);

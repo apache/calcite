@@ -87,7 +87,7 @@ class InnodbEnumerator implements Enumerator<Object> {
    * @param obj         object to convert, if needed
    * @param relDataType data type
    */
-  private Object convertToEnumeratorObject(Object obj, RelDataType relDataType) {
+  private static Object convertToEnumeratorObject(Object obj, RelDataType relDataType) {
     if (obj == null) {
       return null;
     }

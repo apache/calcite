@@ -59,7 +59,7 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);
   }
 
-  private double cardinality(Lattice lattice, Lattice.Column column) {
+  private static double cardinality(Lattice lattice, Lattice.Column column) {
     final String sql = lattice.countSql(ImmutableBitSet.of(column.ordinal));
     final Table table =
         new MaterializationService.DefaultTableFactory()

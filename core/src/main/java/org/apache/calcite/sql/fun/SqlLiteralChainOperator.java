@@ -76,7 +76,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   // all operands must be the same type
-  private boolean argTypesValid(SqlCallBinding callBinding) {
+  private static boolean argTypesValid(SqlCallBinding callBinding) {
     if (callBinding.getOperandCount() < 2) {
       return true; // nothing to compare
     }

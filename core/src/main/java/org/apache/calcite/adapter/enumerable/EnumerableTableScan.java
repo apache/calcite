@@ -209,7 +209,7 @@ public class EnumerableTableScan
     return toRows(physType, expression2);
   }
 
-  private Expression toEnumerable(Expression expression) {
+  private static Expression toEnumerable(Expression expression) {
     final Type type = expression.getType();
     if (Types.isArray(type)) {
       if (requireNonNull(toClass(type).getComponentType()).isPrimitive()) {
@@ -309,7 +309,7 @@ public class EnumerableTableScan
     return JavaRowFormat.CUSTOM;
   }
 
-  private boolean hasCollectionField(RelDataType rowType) {
+  private static boolean hasCollectionField(RelDataType rowType) {
     for (RelDataTypeField field : rowType.getFieldList()) {
       switch (field.getType().getSqlTypeName()) {
       case ARRAY:

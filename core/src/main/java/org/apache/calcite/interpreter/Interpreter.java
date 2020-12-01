@@ -151,7 +151,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   /** Not used. */
   @SuppressWarnings("unused")
-  private class FooCompiler implements ScalarCompiler {
+  private static class FooCompiler implements ScalarCompiler {
     @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
       final RexNode node = nodes.get(0);
       if (node instanceof RexCall) {

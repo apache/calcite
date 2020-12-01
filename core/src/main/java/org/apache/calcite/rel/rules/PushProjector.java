@@ -807,7 +807,7 @@ public class PushProjector {
      * @return index in the list corresponding to the matching RexNode; -1
      * if no match
      */
-    private int findExprInLists(
+    private static int findExprInLists(
         RexNode rex,
         List<RexNode> rexList1,
         int adjust1,

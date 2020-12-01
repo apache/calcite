@@ -36,7 +36,7 @@ public class ComplexMetric {
     this.type = type;
   }
 
-  private void validate(DruidType type) {
+  private static void validate(DruidType type) {
     if (!type.isComplex()) {
       throw new IllegalArgumentException("Druid type: " + type + " is not complex");
     }

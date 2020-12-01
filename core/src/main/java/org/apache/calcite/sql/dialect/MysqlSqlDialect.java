@@ -234,7 +234,7 @@ public class MysqlSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
     TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
 
@@ -322,7 +322,7 @@ public class MysqlSqlDialect extends SqlDialect {
     }
   }
 
-  private TimeUnit validate(TimeUnit timeUnit) {
+  private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case SECOND:

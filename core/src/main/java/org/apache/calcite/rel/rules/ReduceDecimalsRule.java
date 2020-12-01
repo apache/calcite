@@ -1286,7 +1286,7 @@ public class ReduceDecimalsRule
      * @param value inner value
      * @return whether the two reinterpret casts can be removed
      */
-    private boolean canSimplify(
+    private static boolean canSimplify(
         RexCall outer,
         RexCall inner,
         RexNode value) {

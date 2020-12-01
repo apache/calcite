@@ -561,7 +561,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   /** Returns whether {@code rowType} contains more than one star column or
    * fields with the same name, which implies ambiguous column. */
-  private boolean hasAmbiguousField(RelDataType rowType,
+  private static boolean hasAmbiguousField(RelDataType rowType,
       RelDataTypeField field, String columnName, SqlNameMatcher nameMatcher) {
     if (field.isDynamicStar()
         && !DynamicRecordType.isDynamicStarColName(columnName)) {

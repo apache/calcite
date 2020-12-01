@@ -238,7 +238,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 builder.toBlock())));
   }
 
-  private Expression implementMeasure(RexToLixTranslator translator,
+  private static Expression implementMeasure(RexToLixTranslator translator,
       ParameterExpression rows_, ParameterExpression symbols_,
       ParameterExpression i_, ParameterExpression row_, RexNode value) {
     final SqlMatchFunction matchFunction;
@@ -331,7 +331,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   }
 
   /** Generates code for a predicate. */
-  private Expression implementPredicate(PhysType physType,
+  private static Expression implementPredicate(PhysType physType,
       ParameterExpression rows_, BlockStatement body) {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
     ParameterExpression row_ = Expressions.parameter(
@@ -384,8 +384,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
    *
    * <p>For example, for the pattern {@code (A B)}, generates
    * {@code patternBuilder.symbol("A").symbol("B").seq()}. */
-  private Expression implementPattern(Expression patternBuilder_,
-      RexNode pattern) {
+  private static Expression implementPattern(Expression patternBuilder_,
+          RexNode pattern) {
     switch (pattern.getKind()) {
     case LITERAL:
       final String symbol = ((RexLiteral) pattern).getValueAs(String.class);

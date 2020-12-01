@@ -233,7 +233,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return builder.build();
   }
 
-  private ImmutableMap.Builder<DatabaseProperty, Object> addProperty(
+  private static ImmutableMap.Builder<DatabaseProperty, Object> addProperty(
       ImmutableMap.Builder<DatabaseProperty, Object> builder,
       DatabaseProperty p) {
     switch (p) {
@@ -587,8 +587,8 @@ public class CalciteMetaImpl extends MetaImpl {
   /** Wraps the SQL string in a
    * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object, giving the
    * {@link Hook#STRING_TO_QUERY} hook chance to override. */
-  private CalcitePrepare.Query<Object> toQuery(
-      Context context, String sql) {
+  private static CalcitePrepare.Query<Object> toQuery(
+          Context context, String sql) {
     final Holder<CalcitePrepare.Query<Object>> queryHolder =
         Holder.of(CalcitePrepare.Query.of(sql));
     final FrameworkConfig config = Frameworks.newConfigBuilder()

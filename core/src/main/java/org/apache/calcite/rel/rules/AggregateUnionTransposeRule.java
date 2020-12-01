@@ -159,7 +159,7 @@ public class AggregateUnionTransposeRule
     call.transformTo(relBuilder.build());
   }
 
-  private @Nullable List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
+  private static @Nullable List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
     final List<AggregateCall> newCalls = new ArrayList<>();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {

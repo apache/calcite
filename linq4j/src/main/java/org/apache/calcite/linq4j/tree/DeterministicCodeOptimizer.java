@@ -332,7 +332,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
         && constructor.isAnnotationPresent(Deterministic.class);
   }
 
-  private <C> @Nullable Constructor<C> getConstructor(Class<C> klass) {
+  private static <C> @Nullable Constructor<C> getConstructor(Class<C> klass) {
     try {
       return klass.getConstructor();
     } catch (NoSuchMethodException e) {

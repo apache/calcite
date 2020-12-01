@@ -54,7 +54,7 @@ public class MongoSchemaFactory implements SchemaFactory {
     return new MongoSchema(host, database, credential, options.build());
   }
 
-  private MongoCredential createCredential(Map<String, Object> map) {
+  private static MongoCredential createCredential(Map<String, Object> map) {
     final String authMechanismName = (String) map.get("authMechanism");
     final AuthenticationMechanism authenticationMechanism =
         AuthenticationMechanism.fromMechanismName(authMechanismName);

@@ -343,7 +343,7 @@ public class IndexCondition {
     return builder.toString();
   }
 
-  private void append(StringBuilder builder, List<String> keyColumnNames,
+  private static void append(StringBuilder builder, List<String> keyColumnNames,
       List<Object> key, String op) {
     builder.append(", ");
     for (Pair<String, Object> value : Pair.zip(keyColumnNames, key)) {

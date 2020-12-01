@@ -541,6 +541,9 @@ allprojects {
                 options.errorprone {
                     disableWarningsInGeneratedCode.set(true)
                     errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
+                    enable(
+                        "MethodCanBeStatic"
+                    )
                     disable(
                         "ComplexBooleanConstant",
                         "EqualsGetClass",

@@ -111,7 +111,7 @@ public class SubQueryRemoveRule
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int inputCount, int offset) {
     builder.push(e.rel);
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
@@ -134,7 +134,7 @@ public class SubQueryRemoveRule
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
@@ -283,7 +283,7 @@ public class SubQueryRemoveRule
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder) {
     builder.push(e.rel);
 
@@ -320,7 +320,7 @@ public class SubQueryRemoveRule
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder, int offset) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
@@ -565,7 +565,7 @@ public class SubQueryRemoveRule
 
   /** Returns a reference to a particular field, by offset, across several
    * inputs on a {@link RelBuilder}'s stack. */
-  private RexInputRef field(RelBuilder builder, int inputCount, int offset) {
+  private static RexInputRef field(RelBuilder builder, int inputCount, int offset) {
     for (int inputOrdinal = 0;;) {
       final RelNode r = builder.peek(inputCount, inputOrdinal);
       if (offset < r.getRowType().getFieldCount()) {

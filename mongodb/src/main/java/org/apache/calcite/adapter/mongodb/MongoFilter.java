@@ -141,7 +141,7 @@ public class MongoFilter extends Filter implements MongoRel {
       return map;
     }
 
-    private void addPredicate(Map<String, Object> map, String op, Object v) {
+    private static void addPredicate(Map<String, Object> map, String op, Object v) {
       if (map.containsKey(op) && stronger(op, map.get(op), v)) {
         return;
       }
@@ -154,7 +154,7 @@ public class MongoFilter extends Filter implements MongoRel {
      * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
      * "&lt; 100" is a more powerful condition than "&lt; 200".
      */
-    private boolean stronger(String key, Object v0, Object v1) {
+    private static boolean stronger(String key, Object v0, Object v1) {
       if (key.equals("$lt") || key.equals("$lte")) {
         if (v0 instanceof Number && v1 instanceof Number) {
           return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();

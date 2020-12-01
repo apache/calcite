@@ -308,7 +308,7 @@ public class SplunkPushDownRule
   // TODO: refactor this to use more tree like parsing, need to also
   //      make sure we use parens properly - currently precedence
   //      rules are simply left to right
-  private boolean getFilter(SqlOperator op, List<RexNode> operands,
+  private static boolean getFilter(SqlOperator op, List<RexNode> operands,
       StringBuilder s, List<String> fieldNames) {
     if (!valid(op.getKind())) {
       return false;
@@ -340,7 +340,7 @@ public class SplunkPushDownRule
     return true;
   }
 
-  private boolean asd(boolean like, List<RexNode> operands, StringBuilder s,
+  private static boolean asd(boolean like, List<RexNode> operands, StringBuilder s,
       List<String> fieldNames, int i) {
     RexNode operand = operands.get(i);
     if (operand instanceof RexCall) {
@@ -375,12 +375,12 @@ public class SplunkPushDownRule
     return true;
   }
 
-  private boolean valid(SqlKind kind) {
+  private static boolean valid(SqlKind kind) {
     return SUPPORTED_OPS.contains(kind);
   }
 
   @SuppressWarnings("unused")
-  private String toString(SqlOperator op) {
+  private static String toString(SqlOperator op) {
     if (op.equals(SqlStdOperatorTable.LIKE)) {
       return SqlStdOperatorTable.EQUALS.toString();
     } else if (op.equals(SqlStdOperatorTable.NOT_EQUALS)) {
@@ -414,7 +414,7 @@ public class SplunkPushDownRule
     return str;
   }
 
-  private String toString(boolean like, RexLiteral literal) {
+  private static String toString(boolean like, RexLiteral literal) {
     String value = null;
     SqlTypeName litSqlType = literal.getTypeName();
     if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {

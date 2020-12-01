@@ -290,7 +290,7 @@ public class MultiJoinOptimizeBushyRule
     call.transformTo(relBuilder.build());
   }
 
-  private void trace(List<Vertex> vertexes,
+  private static void trace(List<Vertex> vertexes,
       List<LoptMultiJoin.Edge> unusedEdges, List<LoptMultiJoin.Edge> usedEdges,
       int edgeOrdinal, PrintWriter pw) {
     pw.println("bestEdge: " + edgeOrdinal);

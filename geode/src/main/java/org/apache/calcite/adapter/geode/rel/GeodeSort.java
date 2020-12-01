@@ -94,7 +94,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     return getRowType().getFieldList().get(index).getName();
   }
 
-  private String direction(RelFieldCollation.Direction relDirection) {
+  private static String direction(RelFieldCollation.Direction relDirection) {
     if (relDirection == RelFieldCollation.Direction.DESCENDING) {
       return DESC;
     }

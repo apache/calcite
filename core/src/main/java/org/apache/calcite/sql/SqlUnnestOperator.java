@@ -101,7 +101,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
     return builder.build();
   }
 
-  private boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {
+  private static boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {
     return (operatorBinding instanceof SqlCallBinding)
         && ((SqlCallBinding) operatorBinding)
         .getValidator()

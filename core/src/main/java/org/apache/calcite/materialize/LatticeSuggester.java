@@ -367,7 +367,7 @@ public class LatticeSuggester {
   /** Copies measures and column usages from an existing lattice into a builder,
    * using a mapper to translate old-to-new columns, so that the new lattice can
    * inherit from the old. */
-  private void copyMeasures(Lattice.Builder builder, Lattice lattice) {
+  private static void copyMeasures(Lattice.Builder builder, Lattice lattice) {
     final Function<Lattice.Column, Lattice.Column> mapper =
         (Lattice.Column c) -> {
           if (c instanceof Lattice.BaseColumn) {
@@ -389,7 +389,7 @@ public class LatticeSuggester {
     }
   }
 
-  private int matchQuality(Lattice lattice, Lattice target) {
+  private static int matchQuality(Lattice lattice, Lattice target) {
     if (!lattice.rootNode.table.equals(target.rootNode.table)) {
       return 0;
     }
@@ -408,7 +408,7 @@ public class LatticeSuggester {
     return c3;
   }
 
-  private void frames(List<Frame> frames, final Query q, RelNode r) {
+  private static void frames(List<Frame> frames, final Query q, RelNode r) {
     if (r instanceof SetOp) {
       r.getInputs().forEach(input -> frames(frames, q, input));
     } else {
@@ -419,7 +419,7 @@ public class LatticeSuggester {
     }
   }
 
-  private @Nullable Frame frame(final Query q, RelNode r) {
+  private static @Nullable Frame frame(final Query q, RelNode r) {
     if (r instanceof Sort) {
       final Sort sort = (Sort) r;
       return frame(q, sort.getInput());

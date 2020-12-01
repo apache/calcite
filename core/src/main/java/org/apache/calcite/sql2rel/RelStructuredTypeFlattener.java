@@ -613,7 +613,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  private String extractName(@Nullable List<? extends @Nullable String> fieldNames,
+  private static String extractName(@Nullable List<? extends @Nullable String> fieldNames,
       String prefix, int i) {
     String fieldName = (fieldNames == null || fieldNames.get(i) == null)
         ? ("$" + i)
@@ -742,7 +742,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  private boolean isConstructor(RexNode rexNode) {
+  private static boolean isConstructor(RexNode rexNode) {
     // TODO jvs 11-Feb-2005:  share code with SqlToRelConverter
     if (!(rexNode instanceof RexCall)) {
       return false;

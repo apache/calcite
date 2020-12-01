@@ -521,7 +521,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
    * preparation process. */
-  private <T> CalciteSignature<T> simplePrepare(Context context, String sql) {
+  private static <T> CalciteSignature<T> simplePrepare(Context context, String sql) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType x =
         typeFactory.builder()
@@ -555,7 +555,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
    *
    * @param kind Kind of statement
    */
-  private Meta.StatementType getStatementType(SqlKind kind) {
+  private static Meta.StatementType getStatementType(SqlKind kind) {
     switch (kind) {
     case INSERT:
     case DELETE:
@@ -572,7 +572,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
    *
    * @param preparedResult Prepare result
    */
-  private Meta.StatementType getStatementType(Prepare.PreparedResult preparedResult) {
+  private static Meta.StatementType getStatementType(Prepare.PreparedResult preparedResult) {
     if (preparedResult.isDml()) {
       return Meta.StatementType.IS_DML;
     } else {
@@ -714,7 +714,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         statementType);
   }
 
-  private SqlValidator createSqlValidator(Context context,
+  private static SqlValidator createSqlValidator(Context context,
       CalciteCatalogReader catalogReader) {
     final SqlOperatorTable opTab0 =
         context.config().fun(SqlOperatorTable.class,
@@ -734,7 +734,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         config);
   }
 
-  private List<ColumnMetaData> getColumnMetaDataList(
+  private static List<ColumnMetaData> getColumnMetaDataList(
       JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
       List<? extends @Nullable List<String>> originList) {
     final List<ColumnMetaData> columns = new ArrayList<>();
@@ -750,7 +750,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return columns;
   }
 
-  private ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,
+  private static ColumnMetaData metaData(JavaTypeFactory typeFactory, int ordinal,
       String fieldName, RelDataType type, @Nullable RelDataType fieldType,
       @Nullable List<String> origins) {
     final ColumnMetaData.AvaticaType avaticaType =
@@ -780,7 +780,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         avaticaType.columnClassName());
   }
 
-  private ColumnMetaData.AvaticaType avaticaType(JavaTypeFactory typeFactory,
+  private static ColumnMetaData.AvaticaType avaticaType(JavaTypeFactory typeFactory,
       RelDataType type, @Nullable RelDataType fieldType) {
     final String typeName = getTypeName(type);
     if (type.getComponentType() != null) {
@@ -820,7 +820,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         : origins.get(origins.size() - 1 - offsetFromEnd);
   }
 
-  private int getTypeOrdinal(RelDataType type) {
+  private static int getTypeOrdinal(RelDataType type) {
     return type.getSqlTypeName().getJdbcOrdinal();
   }
 
@@ -1082,7 +1082,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     protected SqlValidator createSqlValidator(CatalogReader catalogReader) {
-      return prepare.createSqlValidator(context,
+      return CalcitePrepareImpl.createSqlValidator(context,
           (CalciteCatalogReader) catalogReader);
     }
 

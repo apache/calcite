@@ -65,12 +65,12 @@ public class RexTransformer {
 
   //~ Methods ----------------------------------------------------------------
 
-  private boolean isBoolean(RexNode node) {
+  private static boolean isBoolean(RexNode node) {
     RelDataType type = node.getType();
     return SqlTypeUtil.inBooleanFamily(type);
   }
 
-  private boolean isNullable(RexNode node) {
+  private static boolean isNullable(RexNode node) {
     return node.getType().isNullable();
   }
 

@@ -678,7 +678,7 @@ public class RexImpTable {
     tvfImplementorMap.put(SESSION, SessionImplementor::new);
   }
 
-  private <T> Supplier<T> constructorSupplier(Class<T> klass) {
+  private static <T> Supplier<T> constructorSupplier(Class<T> klass) {
     final Constructor<T> constructor;
     try {
       constructor = klass.getDeclaredConstructor();
@@ -2208,7 +2208,7 @@ public class RexImpTable {
     }
 
     /** Returns whether any of a call's operands have ANY type. */
-    private boolean anyAnyOperands(RexCall call) {
+    private static boolean anyAnyOperands(RexCall call) {
       for (RexNode operand : call.operands) {
         if (operand.getType().getSqlTypeName() == SqlTypeName.ANY) {
           return true;
@@ -2228,7 +2228,7 @@ public class RexImpTable {
           expression0, expression1);
     }
 
-    private Expression maybeBox(Expression expression) {
+    private static Expression maybeBox(Expression expression) {
       final Primitive primitive = Primitive.of(expression.getType());
       if (primitive != null) {
         expression = Expressions.box(expression, primitive);
@@ -2461,7 +2461,7 @@ public class RexImpTable {
       return implementRecurse(translator, argValueList);
     }
 
-    private Expression implementRecurse(RexToLixTranslator translator,
+    private static Expression implementRecurse(RexToLixTranslator translator,
         final List<Expression> argValueList) {
       if (argValueList.size() == 1) {
         return argValueList.get(0);
@@ -2508,7 +2508,7 @@ public class RexImpTable {
               targetType, argValueList.get(0));
     }
 
-    private RelDataType nullifyType(JavaTypeFactory typeFactory,
+    private static RelDataType nullifyType(JavaTypeFactory typeFactory,
         final RelDataType type, final boolean nullable) {
       if (type instanceof RelDataTypeFactoryImpl.JavaType) {
         Class<?> javaClass = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
@@ -2809,7 +2809,7 @@ public class RexImpTable {
     }
 
     /** Normalizes a TIME value into 00:00:00..23:59:39. */
-    private Expression normalize(SqlTypeName typeName, Expression e) {
+    private static Expression normalize(SqlTypeName typeName, Expression e) {
       switch (typeName) {
       case TIME:
         return Expressions.call(BuiltInMethod.FLOOR_MOD.method, e,
@@ -2878,7 +2878,7 @@ public class RexImpTable {
       }
     }
 
-    private void setInputGetterIndex(RexToLixTranslator translator, @Nullable Expression o) {
+    private static void setInputGetterIndex(RexToLixTranslator translator, @Nullable Expression o) {
       requireNonNull((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter,
           "inputGetter").setIndex(o);
     }
@@ -3011,7 +3011,7 @@ public class RexImpTable {
     }
 
     /** Ensures that operands have identical type. */
-    private List<Expression> harmonize(final List<Expression> argValueList,
+    private static List<Expression> harmonize(final List<Expression> argValueList,
         final RexToLixTranslator translator, final RexCall call) {
       int nullCount = 0;
       final List<RelDataType> types = new ArrayList<>();
@@ -3057,7 +3057,7 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.STRICT || nullPolicy == NullPolicy.ANY
           || nullPolicy == NullPolicy.SEMI_STRICT) {
         unboxValueList = argValueList.stream()
-            .map(this::unboxExpression)
+            .map(AbstractRexCallImplementor::unboxExpression)
             .collect(Collectors.toList());
       }
       if (nullPolicy == NullPolicy.ARG0 && argValueList.size() > 0) {
@@ -3067,7 +3067,7 @@ public class RexImpTable {
       return unboxValueList;
     }
 
-    private Expression unboxExpression(final Expression argValue) {
+    private static Expression unboxExpression(final Expression argValue) {
       Primitive fromBox = Primitive.ofBox(argValue.getType());
       if (fromBox == null || fromBox == Primitive.VOID) {
         return argValue;

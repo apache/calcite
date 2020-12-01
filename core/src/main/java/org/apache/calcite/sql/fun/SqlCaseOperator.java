@@ -225,7 +225,7 @@ public class SqlCaseOperator extends SqlOperator {
     return inferTypeFromValidator((SqlCallBinding) opBinding);
   }
 
-  private RelDataType inferTypeFromValidator(
+  private static RelDataType inferTypeFromValidator(
       SqlCallBinding callBinding) {
     SqlCase caseCall = (SqlCase) callBinding.getCall();
     SqlNodeList thenList = caseCall.getThenOperands();
@@ -290,7 +290,7 @@ public class SqlCaseOperator extends SqlOperator {
     return ret;
   }
 
-  private RelDataType inferTypeFromOperands(SqlOperatorBinding opBinding) {
+  private static RelDataType inferTypeFromOperands(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final List<RelDataType> argTypes = opBinding.collectOperandTypes();
     assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "

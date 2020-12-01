@@ -290,7 +290,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(resultNode, leftResult, rightResult);
   }
 
-  private boolean isCrossJoin(final Join e) {
+  private static boolean isCrossJoin(final Join e) {
     return e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue();
   }
 
@@ -514,7 +514,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  private SqlNode groupItem(List<SqlNode> groupKeys,
+  private static SqlNode groupItem(List<SqlNode> groupKeys,
       ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
     final List<SqlNode> nodes = groupSet.asList().stream()
         .map(key -> groupKeys.get(wholeGroupSet.indexOf(key)))
@@ -696,7 +696,7 @@ public class RelToSqlConverter extends SqlImplementor
     return new SqlIdentifier(names, POS);
   }
 
-  private SqlNode createAlwaysFalseCondition() {
+  private static SqlNode createAlwaysFalseCondition() {
     // Building the select query in the form:
     // select * from VALUES(NULL,NULL ...) where 1=0
     // Use condition 1=0 since "where false" does not seem to be supported
@@ -795,7 +795,7 @@ public class RelToSqlConverter extends SqlImplementor
             fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
-  private SqlIdentifier getSqlTargetTable(RelNode e) {
+  private static SqlIdentifier getSqlTargetTable(RelNode e) {
     // Use the foreign catalog, schema and table names, if they exist,
     // rather than the qualified name of the shadow table in Calcite.
     final RelOptTable table = requireNonNull(e.getTable());
@@ -859,7 +859,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Converts a list of {@link RexNode} expressions to {@link SqlNode}
    * expressions. */
-  private SqlNodeList exprList(final Context context,
+  private static SqlNodeList exprList(final Context context,
       List<? extends RexNode> exprs) {
     return new SqlNodeList(
         Util.transform(exprs, e -> context.toSql(null, e)), POS);
@@ -867,7 +867,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Converts a list of names expressions to a list of single-part
    * {@link SqlIdentifier}s. */
-  private SqlNodeList identifierList(List<String> names) {
+  private static SqlNodeList identifierList(List<String> names) {
     return new SqlNodeList(
         Util.transform(names, name -> new SqlIdentifier(name, POS)), POS);
   }
@@ -967,7 +967,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 
-  private SqlCall as(SqlNode e, String alias) {
+  private static SqlCall as(SqlNode e, String alias) {
     return SqlStdOperatorTable.AS.createCall(POS, e,
         new SqlIdentifier(alias, POS));
   }

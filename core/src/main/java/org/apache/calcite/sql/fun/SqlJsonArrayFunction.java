@@ -104,7 +104,7 @@ public class SqlJsonArrayFunction extends SqlFunction {
   }
 
   @SuppressWarnings("unchecked")
-  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
+  private static <E extends Enum<E>> E getEnumValue(SqlNode operand) {
     return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }

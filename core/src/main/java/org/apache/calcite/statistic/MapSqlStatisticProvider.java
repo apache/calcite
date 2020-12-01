@@ -128,7 +128,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .contains(columnNames(table, columns));
   }
 
-  private List<String> columnNames(RelOptTable table, List<Integer> columns) {
+  private static List<String> columnNames(RelOptTable table, List<Integer> columns) {
     return columns.stream()
         .map(columnOrdinal -> table.getRowType().getFieldNames()
             .get(columnOrdinal))

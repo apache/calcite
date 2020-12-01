@@ -276,7 +276,7 @@ public final class AggregateExpandDistinctAggregatesRule
    * @param argLists   Arguments and filters to the distinct aggregate function
    *
    */
-  private RelBuilder convertSingletonDistinct(RelBuilder relBuilder,
+  private static RelBuilder convertSingletonDistinct(RelBuilder relBuilder,
       Aggregate aggregate, Set<Pair<List<Integer>, Integer>> argLists) {
 
     // In this case, we are assuming that there is a single distinct function.
@@ -402,7 +402,7 @@ public final class AggregateExpandDistinctAggregatesRule
     return relBuilder;
   }
 
-  private void rewriteUsingGroupingSets(RelOptRuleCall call,
+  private static void rewriteUsingGroupingSets(RelOptRuleCall call,
       Aggregate aggregate) {
     final Set<ImmutableBitSet> groupSetTreeSet =
         new TreeSet<>(ImmutableBitSet.ORDERING);
@@ -585,7 +585,7 @@ public final class AggregateExpandDistinctAggregatesRule
    * distinct aggregate function (or perhaps several over the same arguments)
    * and no non-distinct aggregate functions.
    */
-  private RelBuilder convertMonopole(RelBuilder relBuilder, Aggregate aggregate,
+  private static RelBuilder convertMonopole(RelBuilder relBuilder, Aggregate aggregate,
       List<Integer> argList, int filterArg) {
     // For example,
     //    SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal)
@@ -636,7 +636,7 @@ public final class AggregateExpandDistinctAggregatesRule
    *                  result of this rule. Those relating to this arg list will
    *                  be modified
    */
-  private void doRewrite(RelBuilder relBuilder, Aggregate aggregate, int n,
+  private static void doRewrite(RelBuilder relBuilder, Aggregate aggregate, int n,
       List<Integer> argList, int filterArg, List<@Nullable RexInputRef> refs) {
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final List<RelDataTypeField> leftFields;
@@ -859,7 +859,7 @@ public final class AggregateExpandDistinctAggregatesRule
    * @return Aggregate relational expression which projects the required
    * columns
    */
-  private RelBuilder createSelectDistinct(RelBuilder relBuilder,
+  private static RelBuilder createSelectDistinct(RelBuilder relBuilder,
       Aggregate aggregate, List<Integer> argList, int filterArg,
       Map<Integer, Integer> sourceOf) {
     relBuilder.push(aggregate.getInput());

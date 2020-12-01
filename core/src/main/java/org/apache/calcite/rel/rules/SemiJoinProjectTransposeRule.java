@@ -105,7 +105,7 @@ public class SemiJoinProjectTransposeRule
    * @param semiJoin the semijoin
    * @return the modified semijoin condition
    */
-  private RexNode adjustCondition(Project project, Join semiJoin) {
+  private static RexNode adjustCondition(Project project, Join semiJoin) {
     // create two RexPrograms -- the bottom one representing a
     // concatenation of the project and the RHS of the semijoin and the
     // top one representing the semijoin condition

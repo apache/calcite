@@ -654,7 +654,7 @@ public class SqlWindow extends SqlCall {
     }
   }
 
-  private void validateFrameBoundary(
+  private static void validateFrameBoundary(
       @Nullable SqlNode bound,
       boolean isRows,
       @Nullable SqlTypeFamily orderTypeFam,

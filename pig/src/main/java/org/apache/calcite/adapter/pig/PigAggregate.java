@@ -159,7 +159,7 @@ public class PigAggregate extends Aggregate implements PigRel {
     return aggFunc.name() + "(" + fields + ") AS " + alias;
   }
 
-  private PigAggFunction toPigAggFunc(AggregateCall aggCall) {
+  private static PigAggFunction toPigAggFunc(AggregateCall aggCall) {
     return PigAggFunction.valueOf(aggCall.getAggregation().getKind(),
         aggCall.getArgList().size() < 1);
   }

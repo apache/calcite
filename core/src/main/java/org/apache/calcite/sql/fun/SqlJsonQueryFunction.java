@@ -95,7 +95,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  private void unparseEmptyOrErrorBehavior(SqlWriter writer,
+  private static void unparseEmptyOrErrorBehavior(SqlWriter writer,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior) {
     switch (emptyBehavior) {
     case NULL:
@@ -116,7 +116,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
   }
 
   @SuppressWarnings("unchecked")
-  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
+  private static <E extends Enum<E>> E getEnumValue(SqlNode operand) {
     return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }

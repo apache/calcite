@@ -169,7 +169,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the right precedence of the preceding operator token. */
-  private int prevRight(@Nullable Token token) {
+  private static int prevRight(@Nullable Token token) {
     for (; token != null; token = token.previous) {
       if (token.type == Type.POSTFIX) {
         return Integer.MAX_VALUE;
@@ -182,7 +182,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the left precedence of the following operator token. */
-  private int nextLeft(@Nullable Token token) {
+  private static int nextLeft(@Nullable Token token) {
     for (; token != null; token = token.next) {
       if (token.type == Type.PREFIX) {
         return Integer.MAX_VALUE;

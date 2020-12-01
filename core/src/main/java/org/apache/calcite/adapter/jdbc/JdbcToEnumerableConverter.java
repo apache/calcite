@@ -205,14 +205,14 @@ public class JdbcToEnumerableConverter
     return implementor.result(physType, builder0.toBlock());
   }
 
-  private List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
+  private static List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
     return requireNonNull(sqlString.getDynamicParameters(),
         () -> "sqlString.getDynamicParameters() is null for " + sqlString).stream()
         .map(Expressions::constant)
         .collect(Collectors.toList());
   }
 
-  private UnaryExpression getTimeZoneExpression(
+  private static UnaryExpression getTimeZoneExpression(
       EnumerableRelImplementor implementor) {
     return Expressions.convert_(
         Expressions.call(
@@ -222,7 +222,7 @@ public class JdbcToEnumerableConverter
         TimeZone.class);
   }
 
-  private void generateGet(EnumerableRelImplementor implementor,
+  private static void generateGet(EnumerableRelImplementor implementor,
       PhysType physType, BlockBuilder builder, ParameterExpression resultSet_,
       int i, Expression target, @Nullable Expression calendar_,
       SqlDialect.CalendarPolicy calendarPolicy) {
@@ -299,7 +299,7 @@ public class JdbcToEnumerableConverter
     }
   }
 
-  private Method getMethod(SqlTypeName sqlTypeName, boolean nullable,
+  private static Method getMethod(SqlTypeName sqlTypeName, boolean nullable,
       boolean offset) {
     switch (sqlTypeName) {
     case DATE:
@@ -323,7 +323,7 @@ public class JdbcToEnumerableConverter
     }
   }
 
-  private Method getMethod2(SqlTypeName sqlTypeName) {
+  private static Method getMethod2(SqlTypeName sqlTypeName) {
     switch (sqlTypeName) {
     case DATE:
       return BuiltInMethod.RESULT_SET_GET_DATE2.method;
@@ -337,7 +337,7 @@ public class JdbcToEnumerableConverter
   }
 
   /** E,g, {@code jdbcGetMethod(int)} returns "getInt". */
-  private String jdbcGetMethod(@Nullable Primitive primitive) {
+  private static String jdbcGetMethod(@Nullable Primitive primitive) {
     return primitive == null
         ? "getObject"
         : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));

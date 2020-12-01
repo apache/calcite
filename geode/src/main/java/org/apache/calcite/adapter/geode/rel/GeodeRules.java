@@ -116,7 +116,7 @@ public class GeodeRules {
       return super.visitCall(call);
     }
 
-    private String stripQuotes(String s) {
+    private static String stripQuotes(String s) {
       return s.startsWith("'") && s.endsWith("'") ? s.substring(1, s.length() - 1) : s;
     }
   }
@@ -283,7 +283,7 @@ public class GeodeRules {
      * @param fieldNames Names of all columns in the table
      * @return True if the node represents an equality predicate on a primary key
      */
-    private boolean isEqualityOnKey(RexNode node, List<String> fieldNames) {
+    private static boolean isEqualityOnKey(RexNode node, List<String> fieldNames) {
 
       if (isBooleanColumnReference(node, fieldNames)) {
         return true;
@@ -305,7 +305,7 @@ public class GeodeRules {
 
     }
 
-    private boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
+    private static boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
       if (node.isA(SqlKind.CAST)) {
         node = ((RexCall) node).getOperands().get(0);
@@ -331,7 +331,7 @@ public class GeodeRules {
      * @param fieldNames Names of all columns in the table
      * @return Whether condition is supported
      */
-    private boolean checkConditionContainsInputRefOrLiterals(RexNode left,
+    private static boolean checkConditionContainsInputRefOrLiterals(RexNode left,
         RexNode right, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
       if (left.isA(SqlKind.CAST)) {
@@ -370,7 +370,7 @@ public class GeodeRules {
       }
     }
 
-    private RelNode convert(LogicalFilter filter) {
+    private static RelNode convert(LogicalFilter filter) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(GeodeRel.CONVENTION);
       return new GeodeFilter(
           filter.getCluster(),

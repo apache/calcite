@@ -271,7 +271,7 @@ class QueryBuilders {
       gen.writeEndObject();
     }
 
-    private void writeJsonArray(String field, List<QueryBuilder> clauses, JsonGenerator gen)
+    private static void writeJsonArray(String field, List<QueryBuilder> clauses, JsonGenerator gen)
         throws IOException {
       if (clauses.isEmpty()) {
         return;

@@ -267,7 +267,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  private AggregateFunctionImpl getAggFunction(Class<?> clazz) {
+  private static AggregateFunctionImpl getAggFunction(Class<?> clazz) {
     return requireNonNull(
         AggregateFunctionImpl.create(clazz),
         () -> "Unable to create AggregateFunctionImpl for " + clazz);

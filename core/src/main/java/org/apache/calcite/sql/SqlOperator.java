@@ -283,7 +283,7 @@ public abstract class SqlOperator {
    * {@link SqlNodeList} extends {@link SqlNode}
    * and also implements {@code List<SqlNode>}. */
   @Deprecated
-  public final SqlCall createCall(
+  public static SqlCall createCall(
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNodeList operands) {

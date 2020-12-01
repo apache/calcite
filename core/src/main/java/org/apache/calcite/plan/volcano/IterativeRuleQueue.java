@@ -137,7 +137,7 @@ class IterativeRuleQueue extends RuleQueue {
   /**
    * Dumps rules queue to the logger when debug level is set to {@code TRACE}.
    */
-  private void dumpRuleQueue(MatchList matchList) {
+  private static void dumpRuleQueue(MatchList matchList) {
     if (LOGGER.isTraceEnabled()) {
       StringBuilder b = new StringBuilder();
       b.append("Rule queue:");

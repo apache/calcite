@@ -216,7 +216,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     }
   }
 
-  private int minMin(List<SqlOperandCountRange> ranges) {
+  private static int minMin(List<SqlOperandCountRange> ranges) {
     int min = Integer.MAX_VALUE;
     for (SqlOperandCountRange range : ranges) {
       min = Math.min(min, range.getMin());

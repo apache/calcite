@@ -1034,7 +1034,7 @@ public class Lattice {
       return new Measure(agg, distinct, aggName, list);
     }
 
-    private SqlAggFunction resolveAgg(String aggName) {
+    private static SqlAggFunction resolveAgg(String aggName) {
       if (aggName.equalsIgnoreCase("count")) {
         return SqlStdOperatorTable.COUNT;
       } else if (aggName.equalsIgnoreCase("sum")) {

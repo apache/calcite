@@ -150,7 +150,7 @@ public class AggregateCaseToFilterRule
     call.getPlanner().prune(aggregate);
   }
 
-  private @Nullable AggregateCall transform(AggregateCall aggregateCall,
+  private static @Nullable AggregateCall transform(AggregateCall aggregateCall,
       Project project, List<RexNode> newProjects) {
     final int singleArg = soleArgument(aggregateCall);
     if (singleArg < 0) {
