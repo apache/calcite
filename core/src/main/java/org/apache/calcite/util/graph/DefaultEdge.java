@@ -43,6 +43,10 @@ public class DefaultEdge {
         && ((DefaultEdge) obj).target.equals(target);
   }
 
+  @Override public String toString() {
+    return source + " -> " + target;
+  }
+
   public static <V extends Object> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
     // see https://github.com/typetools/checker-framework/issues/3637
     //noinspection Convert2MethodRef
