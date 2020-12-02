@@ -25,7 +25,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.InvalidRelException;
@@ -221,6 +221,7 @@ public class JdbcRules {
   /** Creates a list of rules with the given JDBC convention instance. */
   public static List<RelOptRule> rules(JdbcConvention out) {
     final ImmutableList.Builder<RelOptRule> b = ImmutableList.builder();
+    b.add(JdbcToEnumerableConverterRule.create(out));
     foreachRule(out, b::add);
     return b.build();
   }
@@ -230,14 +231,27 @@ public class JdbcRules {
   public static List<RelOptRule> rules(JdbcConvention out,
       RelBuilderFactory relBuilderFactory) {
     final ImmutableList.Builder<RelOptRule> b = ImmutableList.builder();
+    b.add(JdbcToEnumerableConverterRule.create(out)
+        .config.withRelBuilderFactory(relBuilderFactory).toRule());
     foreachRule(out, r ->
         b.add(r.config.withRelBuilderFactory(relBuilderFactory).toRule()));
     return b.build();
   }
 
+  /** Creates a list of rules with the given JDBC convention instance
+   * and builder factory. */
+  public static List<RelOptRule> rules(RelTrait in, JdbcConvention out,
+      RelBuilderFactory relBuilderFactory) {
+    final ImmutableList.Builder<RelOptRule> b = ImmutableList.builder();
+    b.add(JdbcToEnumerableConverterRule.create(out)
+        .config.withRelBuilderFactory(relBuilderFactory).toRule());
+    foreachRule(out, r ->
+        b.add(r.config.withInTrait(in).withRelBuilderFactory(relBuilderFactory).toRule()));
+    return b.build();
+  }
+
   private static void foreachRule(JdbcConvention out,
-      Consumer<RelRule<?>> consumer) {
-    consumer.accept(JdbcToEnumerableConverterRule.create(out));
+      Consumer<ConverterRule> consumer) {
     consumer.accept(JdbcJoinRule.create(out));
     consumer.accept(JdbcCalcRule.create(out));
     consumer.accept(JdbcProjectRule.create(out));
