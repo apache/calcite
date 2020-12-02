@@ -375,6 +375,18 @@ class DirectedGraphTest {
     assertThat(Iterables.size(g.getEdges("A", "B")), is(2));
   }
 
+  @Test void testToString() {
+    DefaultDirectedGraph<String, DefaultEdge> g = createDag();
+    assertThat(
+        g.toString(), is("graph(vertices: [A, B, C, D, E, F], "
+            + "edges: [A -> B, A -> E, B -> C, C -> D, E -> C, E -> F])"));
+
+    DefaultDirectedGraph<String, DefaultEdge> g1 = createDag1();
+    assertThat(
+        g1.toString(), is("graph(vertices: [A, B, C, D, E, F], "
+            + "edges: [A -> B, A -> D, B -> C, C -> E, D -> E])"));
+  }
+
   /** Edge that stores its attributes in a list. */
   private static class DefaultAttributedEdge extends DefaultEdge {
     private final List list;
