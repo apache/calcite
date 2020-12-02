@@ -54,4 +54,8 @@ public class SqlRandFunction extends SqlFunction {
   @Override public boolean isDynamicFunction() {
     return true;
   }
+
+  @Override public boolean isDeterministic() {
+    return false;
+  }
 }
