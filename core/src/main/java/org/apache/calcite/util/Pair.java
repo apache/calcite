@@ -182,14 +182,19 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
       final List<? extends K> ks,
       final List<? extends V> vs,
       boolean strict) {
+    final int kSize = ks.size();
+    final int vSize = vs.size();
     final int size;
     if (strict) {
-      if (ks.size() != vs.size()) {
-        throw new AssertionError();
+      if (kSize != vSize) {
+        throw new IllegalArgumentException(
+            "The size of two lists to be combined is required to be equal. "
+                + "The size of the first list is " + kSize
+                + ", while the size of the second list is " + vSize + ".");
       }
-      size = ks.size();
+      size = kSize;
     } else {
-      size = Math.min(ks.size(), vs.size());
+      size = Math.min(kSize, vSize);
     }
     return new ZipList<>(ks, vs, size);
   }

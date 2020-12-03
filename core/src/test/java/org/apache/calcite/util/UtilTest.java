@@ -116,6 +116,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -965,6 +966,17 @@ class UtilTest {
       x += pair.right;
     }
     assertEquals(5825, x);
+  }
+
+  /**
+   * Unit test for {@link Pair#zip(java.util.List, java.util.List, boolean)}.
+   */
+  @Test void testPairZipWithStrict() {
+    List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
+    List<Integer> integers = Arrays.asList(1942, 1943);
+    assertThrows(IllegalArgumentException.class, () -> {
+      List<Pair<String, Integer>> zip = Pair.zip(strings, integers, true);
+    });
   }
 
   /**
