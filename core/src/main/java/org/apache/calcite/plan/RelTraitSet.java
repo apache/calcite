@@ -483,6 +483,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @see org.apache.calcite.plan.RelTrait#satisfies(RelTrait)
    */
   public boolean satisfies(RelTraitSet that) {
+    if (this == that) {
+      return true;
+    }
     final int n =
         Math.min(
             this.size(),
