@@ -6163,6 +6163,16 @@ public class RelToSqlConverterTest {
             .ok(bigQueryExpected);
   }
 
+  @Test public void testIff() {
+    final String query = "SELECT IF(\"first_name\" IS NULL OR \"first_name\" = '', NULL, \"first_name\")" +
+            " from \"employee\"";
+    final String snowFlakeExpected = "SELECT IFF(\"first_name\" IS NULL OR \"first_name\" = '', NULL, \"first_name\")\n" +
+           "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(snowFlakeExpected);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
