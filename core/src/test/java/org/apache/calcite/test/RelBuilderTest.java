@@ -1102,6 +1102,25 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4429">[CALCITE-4429]
+   * RelOptUtil#createCastRel should throw an exception when the desired row type
+   * and the row type to be converted don't have the same number of fields</a>. */
+  @Test void testConvertNegative() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelDataType rowType =
+        builder.getTypeFactory().builder()
+            .add("a", SqlTypeName.BIGINT)
+            .add("b", SqlTypeName.VARCHAR, 10)
+            .build();
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      builder.scan("DEPT")
+          .convert(rowType, false)
+          .build();
+    }, "Convert should fail since the field counts are not equal.");
+    assertThat(ex.getMessage(), containsString("Field counts are not equal"));
+  }
+
   @Test void testAggregate() {
     // Equivalent SQL:
     //   SELECT COUNT(DISTINCT deptno) AS c

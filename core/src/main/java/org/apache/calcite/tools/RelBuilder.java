@@ -2838,6 +2838,9 @@ public class RelBuilder {
    * Creates a projection that converts the current relational expression's
    * output to a desired row type.
    *
+   * <p>The desired row type and the row type to be converted must have the
+   * same number of fields.
+   *
    * @param castRowType row type after cast
    * @param rename      if true, use field names from castRowType; if false,
    *                    preserve field names from rel
