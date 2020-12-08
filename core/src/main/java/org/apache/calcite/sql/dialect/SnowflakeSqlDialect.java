@@ -109,6 +109,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case IF:
+      final SqlWriter.Frame iffFrame = writer.startFunCall("IFF");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(iffFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
