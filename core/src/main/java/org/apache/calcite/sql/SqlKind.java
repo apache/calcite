@@ -626,6 +626,18 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code SUBSTR} function (BigQuery semantics). */
+  SUBSTR_BIG_QUERY,
+
+  /** {@code SUBSTR} function (MySQL semantics). */
+  SUBSTR_MYSQL,
+
+  /** {@code SUBSTR} function (Oracle semantics). */
+  SUBSTR_ORACLE,
+
+  /** {@code SUBSTR} function (PostgreSQL semantics). */
+  SUBSTR_POSTGRESQL,
+
   /** Call to a function using JDBC function syntax. */
   JDBC_FN,
 

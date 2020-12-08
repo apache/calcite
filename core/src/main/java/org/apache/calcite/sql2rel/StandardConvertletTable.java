@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -54,6 +55,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
 import org.apache.calcite.sql.fun.SqlJsonValueFunction;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
@@ -63,6 +65,7 @@ import org.apache.calcite.sql.fun.SqlOverlapsOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSequenceValueOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -74,6 +77,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -145,7 +149,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.GREATEST, new GreatestConvertlet());
     registerOp(SqlLibraryOperators.LEAST, new GreatestConvertlet());
-    registerOp(SqlLibraryOperators.ORACLE_SUBSTR, new OracleSubstrConvertlet());
+    registerOp(SqlLibraryOperators.SUBSTR_BIG_QUERY,
+        new SubstrConvertlet(SqlLibrary.BIG_QUERY));
+    registerOp(SqlLibraryOperators.SUBSTR_MYSQL,
+        new SubstrConvertlet(SqlLibrary.MYSQL));
+    registerOp(SqlLibraryOperators.SUBSTR_ORACLE,
+        new SubstrConvertlet(SqlLibrary.ORACLE));
+    registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
+        new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -1046,6 +1057,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   /**
+   * Converts a SUBSTRING expression.
+   *
+   * <p>Called automatically via reflection.
+   */
+  public RexNode convertSubstring(
+      SqlRexContext cx,
+      SqlSubstringFunction op,
+      SqlCall call) {
+    final SqlLibrary library =
+        cx.getValidator().config().sqlConformance().semantics();
+    final SqlBasicCall basicCall = (SqlBasicCall) call;
+    switch (library) {
+    case BIG_QUERY:
+      return toRex(cx, basicCall, SqlLibraryOperators.SUBSTR_BIG_QUERY);
+    case MYSQL:
+      return toRex(cx, basicCall, SqlLibraryOperators.SUBSTR_MYSQL);
+    case ORACLE:
+      return toRex(cx, basicCall, SqlLibraryOperators.SUBSTR_ORACLE);
+    case POSTGRESQL:
+    default:
+      return convertFunction(cx, op, call);
+    }
+  }
+
+  private RexNode toRex(SqlRexContext cx, SqlBasicCall call, SqlFunction f) {
+    final SqlCall call2 =
+        new SqlBasicCall(f, call.operands, call.getParserPosition());
+    final SqlRexConvertlet convertlet = requireNonNull(get(call2));
+    return convertlet.convertCall(cx, call2);
+  }
+
+  /**
    * Converts a LiteralChain expression: that is, concatenates the operands
    * immediately, to produce a single literal string.
    *
@@ -1543,20 +1586,67 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
-  /** Convertlet that handles Oracle's {@code SUBSTR} function. */
-  private static class OracleSubstrConvertlet implements SqlRexConvertlet {
+  /** Convertlet that handles the {@code SUBSTR} function; various dialects
+   * have slightly different specifications. PostgreSQL seems to comply with
+   * the ISO standard for the {@code SUBSTRING} function, and therefore
+   * Calcite's default behavior matches PostgreSQL. */
+  private static class SubstrConvertlet implements SqlRexConvertlet {
+    private final SqlLibrary library;
+
+    SubstrConvertlet(SqlLibrary library) {
+      this.library = library;
+      Preconditions.checkArgument(library == SqlLibrary.ORACLE
+          || library == SqlLibrary.MYSQL
+          || library == SqlLibrary.BIG_QUERY
+          || library == SqlLibrary.POSTGRESQL);
+    }
+
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // Translate
       //   SUBSTR(value, start, length)
-      // to
+      //
+      // to the following if we want PostgreSQL semantics:
+      //   SUBSTRING(value, start, length)
+      //
+      // to the following if we want Oracle semantics:
       //   SUBSTRING(
       //     value
       //     FROM CASE
-      //          WHEN start = 0 THEN 1
-      //          WHEN start + length(value) < 0
+      //          WHEN start = 0
+      //          THEN 1
+      //          WHEN start + (length(value) + 1) < 1
       //          THEN length(value) + 1
+      //          WHEN start < 0
+      //          THEN start + (length(value) + 1)
       //          ELSE start)
       //     FOR CASE WHEN length < 0 THEN 0 ELSE length END)
+      //
+      // to the following in MySQL:
+      //   SUBSTRING(
+      //     value
+      //     FROM CASE
+      //          WHEN start = 0
+      //          THEN length(value) + 1    -- different from Oracle
+      //          WHEN start + (length(value) + 1) < 1
+      //          THEN length(value) + 1
+      //          WHEN start < 0
+      //          THEN start + length(value) + 1
+      //          ELSE start)
+      //     FOR CASE WHEN length < 0 THEN 0 ELSE length END)
+      //
+      // to the following if we want BigQuery semantics:
+      //   CASE
+      //   WHEN start + (length(value) + 1) < 1
+      //   THEN value
+      //   ELSE SUBSTRING(
+      //       value
+      //       FROM CASE
+      //            WHEN start = 0
+      //            THEN 1
+      //            WHEN start < 0
+      //            THEN start + length(value) + 1
+      //            ELSE start)
+      //       FOR CASE WHEN length < 0 THEN 0 ELSE length END)
 
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final List<RexNode> exprs =
@@ -1566,37 +1656,86 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RelDataType startType = start.getType();
       final RexNode zeroLiteral = rexBuilder.makeLiteral(0, startType, false);
       final RexNode oneLiteral = rexBuilder.makeLiteral(1, startType, false);
-
       final RexNode valueLength =
-          rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, value);
-      final RexNode newStart =
-          rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, start,
-                  zeroLiteral),
-              oneLiteral,
-              rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
-                  rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
-                      valueLength),
-                  zeroLiteral),
-              rexBuilder.makeCall(SqlStdOperatorTable.PLUS, valueLength,
-                  oneLiteral),
-              start);
+          SqlTypeUtil.isBinary(value.getType())
+              ? rexBuilder.makeCall(SqlStdOperatorTable.OCTET_LENGTH, value)
+              : rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, value);
+      final RexNode valueLengthPlusOne =
+          rexBuilder.makeCall(SqlStdOperatorTable.PLUS, valueLength,
+              oneLiteral);
 
-      switch (call.operandCount()) {
-      case 2:
+      final RexNode newStart;
+      switch (library) {
+      case POSTGRESQL:
+        if (call.operandCount() == 2) {
+          newStart = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+              rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, start,
+                  oneLiteral),
+              oneLiteral, start);
+        } else {
+          newStart = start;
+        }
+        break;
+      case BIG_QUERY:
+        newStart = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, start,
+                zeroLiteral),
+            oneLiteral,
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, start,
+                zeroLiteral),
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                valueLengthPlusOne),
+            start);
+        break;
+      default:
+        newStart = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, start,
+                zeroLiteral),
+            library == SqlLibrary.MYSQL ? valueLengthPlusOne : oneLiteral,
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                    valueLengthPlusOne),
+                oneLiteral),
+            valueLengthPlusOne,
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, start,
+                zeroLiteral),
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                valueLengthPlusOne),
+            start);
+        break;
+      }
+
+      if (call.operandCount() == 2) {
         return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
             newStart);
-      case 3:
-        final RexNode length = exprs.get(2);
-        final RexNode newLength =
+      }
+
+      assert call.operandCount() == 3;
+      final RexNode length = exprs.get(2);
+      final RexNode newLength;
+      switch (library) {
+      case POSTGRESQL:
+        newLength = length;
+        break;
+      default:
+        newLength =
             rexBuilder.makeCall(SqlStdOperatorTable.CASE,
                 rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, length,
                     zeroLiteral),
                 zeroLiteral, length);
-        return rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value,
-            newStart, newLength);
+      }
+      final RexNode substringCall =
+          rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, value, newStart,
+              newLength);
+      switch (library) {
+      case BIG_QUERY:
+        return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
+                rexBuilder.makeCall(SqlStdOperatorTable.PLUS, start,
+                    valueLengthPlusOne), oneLiteral),
+            value, substringCall);
       default:
-        throw new AssertionError();
+        return substringCall;
       }
     }
   }

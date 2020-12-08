@@ -151,7 +151,22 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * default constructor or an {@code INSTANCE} constant. */
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
-  /** SQL conformance level. */
+  /** SQL conformance level.
+   *
+   * <p>Controls the semantics of ISO standard SQL features that are implemented
+   * in non-standard ways in some other systems.
+   *
+   * <p>For example, the {@code SUBSTRING(string FROM start [FOR length])}
+   * operator treats negative {@code start} values as 1, but BigQuery's
+   * implementation regards negative {@code starts} as counting from the end.
+   * If {@code conformance=BIG_QUERY} we will use BigQuery's behavior.
+   *
+   * <p>This property only affects ISO standard SQL features. For example, the
+   * {@code SUBSTR} function is non-standard, so is controlled by the
+   * {@link #FUN fun} property. If you set {@code fun=oracle} you will get
+   * {@code SUBSTR} with Oracle's semantics; if you set {@code fun=postgres} you
+   * will get {@code SUBSTR} with PostgreSQL's (slightly different)
+   * semantics. */
   CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false),
 
   /** Whether to make implicit type coercion when type mismatch

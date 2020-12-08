@@ -1302,6 +1302,7 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- |:-----------
 | binary &#124;&#124; binary | Concatenates two binary strings
+| OCTET_LENGTH(binary) | Returns the number of bytes in *binary*
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
 | POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
 | OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
@@ -2476,7 +2477,7 @@ semantics.
 | o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00

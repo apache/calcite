@@ -1518,6 +1518,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
+  /** Alias for {@link #CHAR_LENGTH}. */
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
@@ -1525,6 +1526,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction OCTET_LENGTH =
+      new SqlFunction(
+          "OCTET_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.BINARY,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =

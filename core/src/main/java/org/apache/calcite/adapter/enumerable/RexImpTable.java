@@ -267,6 +267,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
@@ -357,9 +358,12 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
+    defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method,
+        NullPolicy.STRICT);
     defineMethod(CONCAT, BuiltInMethod.STRING_CONCAT.method,
         NullPolicy.STRICT);
-    defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method, NullPolicy.STRICT);
+    defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
+        NullPolicy.STRICT);
     defineMethod(CONCAT2, BuiltInMethod.STRING_CONCAT.method, NullPolicy.STRICT);
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);

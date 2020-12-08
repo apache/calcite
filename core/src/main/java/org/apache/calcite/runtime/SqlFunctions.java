@@ -257,50 +257,58 @@ public class SqlFunctions {
     return flags;
   }
 
+  /** SQL SUBSTRING(string FROM ...) function. */
+  public static String substring(String c, int s) {
+    final int s0 = s - 1;
+    if (s0 <= 0) {
+      return c;
+    }
+    if (s > c.length()) {
+      return "";
+    }
+    return c.substring(s0);
+  }
+
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
   public static String substring(String c, int s, int l) {
     int lc = c.length();
-    if (s < 0) {
-      s += lc + 1;
-    }
     int e = s + l;
-    if (e < s) {
+    if (l < 0) {
       throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
     if (s > lc || e < 1) {
       return "";
     }
-    int s1 = Math.max(s, 1);
-    int e1 = Math.min(e, lc + 1);
-    return c.substring(s1 - 1, e1 - 1);
+    final int s0 = Math.max(s - 1, 0);
+    final int e0 = Math.min(e - 1, lc);
+    return c.substring(s0, e0);
   }
 
-  /** SQL SUBSTRING(string FROM ...) function. */
-  public static String substring(String c, int s) {
-    return substring(c, s, c.length() + 1);
+  /** SQL SUBSTRING(binary FROM ...) function for binary. */
+  public static ByteString substring(ByteString c, int s) {
+    final int s0 = s - 1;
+    if (s0 <= 0) {
+      return c;
+    }
+    if (s > c.length()) {
+      return ByteString.EMPTY;
+    }
+    return c.substring(s0);
   }
 
-  /** SQL SUBSTRING(binary FROM ... FOR ...) function. */
+  /** SQL SUBSTRING(binary FROM ... FOR ...) function for binary. */
   public static ByteString substring(ByteString c, int s, int l) {
     int lc = c.length();
-    if (s < 0) {
-      s += lc + 1;
-    }
     int e = s + l;
-    if (e < s) {
+    if (l < 0) {
       throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
     if (s > lc || e < 1) {
       return ByteString.EMPTY;
     }
-    int s1 = Math.max(s, 1);
-    int e1 = Math.min(e, lc + 1);
-    return c.substring(s1 - 1, e1 - 1);
-  }
-
-  /** SQL SUBSTRING(binary FROM ...) function. */
-  public static ByteString substring(ByteString c, int s) {
-    return substring(c, s, c.length() + 1);
+    final int s0 = Math.max(s - 1, 0);
+    final int e0 = Math.min(e - 1, lc);
+    return c.substring(s0, e0);
   }
 
   /** SQL UPPER(string) function. */
@@ -448,6 +456,11 @@ public class SqlFunctions {
   /** SQL CHR(long) function. */
   public static String chr(long n) {
     return String.valueOf(Character.toChars((int) n));
+  }
+
+  /** SQL OCTET_LENGTH(binary) function. */
+  public static int octetLength(ByteString s) {
+    return s.length();
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */

@@ -50,7 +50,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction RTRIM = SqlLibraryOperators.RTRIM;
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction SUBSTR = SqlLibraryOperators.ORACLE_SUBSTR;
+  public static final SqlFunction SUBSTR = SqlLibraryOperators.SUBSTR_ORACLE;
 
   @Deprecated // to be removed before 2.0
   public static final SqlFunction GREATEST = SqlLibraryOperators.GREATEST;

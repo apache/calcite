@@ -50,7 +50,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Geometries;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindowTableFunction;
@@ -63,6 +62,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -77,8 +77,8 @@ import java.util.Map;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PREV;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SEARCH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
@@ -92,17 +92,13 @@ import static java.util.Objects.requireNonNull;
  */
 public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result> {
   public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
-      Util.mapOf(
-          findMethod(String.class, "toUpperCase"), UPPER,
-          findMethod(
-              SqlFunctions.class, "substring", String.class, Integer.TYPE,
-              Integer.TYPE), SUBSTRING,
-          findMethod(SqlFunctions.class, "charLength", String.class),
-          CHARACTER_LENGTH,
-          findMethod(SqlFunctions.class, "charLength", String.class),
-          CHAR_LENGTH,
-          findMethod(SqlFunctions.class, "translate3", String.class, String.class,
-              String.class), TRANSLATE3);
+      ImmutableMap.<Method, SqlOperator>builder()
+          .put(findMethod(String.class, "toUpperCase"), UPPER)
+          .put(BuiltInMethod.SUBSTRING.method, SUBSTRING)
+          .put(BuiltInMethod.OCTET_LENGTH.method, OCTET_LENGTH)
+          .put(BuiltInMethod.CHAR_LENGTH.method, CHAR_LENGTH)
+          .put(BuiltInMethod.TRANSLATE3.method, TRANSLATE3)
+          .build();
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;

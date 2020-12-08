@@ -155,6 +155,22 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SUBSTR_BIG_QUERY =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_BIG_QUERY,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction SUBSTR_MYSQL =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_MYSQL,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
    * <p>It has different semantics to standard SQL's
@@ -170,8 +186,16 @@ public abstract class SqlLibraryOperators {
    * </ul>
    */
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_SUBSTR =
-      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction SUBSTR_ORACLE =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_ORACLE,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** PostgreSQL's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction SUBSTR_POSTGRESQL =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_POSTGRESQL,
           ReturnTypes.ARG0_NULLABLE_VARYING, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
