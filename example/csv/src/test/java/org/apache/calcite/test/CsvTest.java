@@ -72,9 +72,18 @@ import static java.sql.Timestamp.valueOf;
  * Unit test of the Calcite adapter for CSV.
  */
 class CsvTest {
+
+
+  /**
+   * 关闭指定链接
+   *
+   * @param connection
+   * @param statement
+   */
   private void close(Connection connection, Statement statement) {
     if (statement != null) {
       try {
+        // 关闭资源
         statement.close();
       } catch (SQLException e) {
         // ignore
@@ -82,6 +91,7 @@ class CsvTest {
     }
     if (connection != null) {
       try {
+        // 关闭资源
         connection.close();
       } catch (SQLException e) {
         // ignore
@@ -90,12 +100,18 @@ class CsvTest {
   }
 
 
-  /** Quotes a string for Java or JSON. */
+  /**
+   * Quotes(引用) a string for Java or JSON.
+   */
   private static String escapeString(String s) {
     return escapeString(new StringBuilder(), s).toString();
   }
 
-  /** Quotes a string for Java or JSON, into a builder. */
+  /**
+   * Quotes a string for Java or JSON, into a builder.
+   *
+   * escape 转义、转码
+   */
   private static StringBuilder escapeString(StringBuilder buf, String s) {
     buf.append('"');
     int n = s.length();
@@ -126,6 +142,7 @@ class CsvTest {
     return buf.append('"');
   }
 
+  // 返回包含 test 和 dot 的流。
   static Stream<String> explainFormats() {
     return Stream.of("text", "dot");
   }
@@ -1110,6 +1127,7 @@ class CsvTest {
    * 执行测试动作的api。
    */
   private class Fluent {
+    // 模型、sql
     private final String model;
     private final String sql;
     private final Consumer<ResultSet> expect;
@@ -1143,6 +1161,8 @@ class CsvTest {
 
     /**
      * Sets the rows that are expected to be returned from the SQL query.
+     *
+     * 设置期望从查询中返回的列。
      */
     Fluent returns(String... expectedLines) {
       return checking(expect(expectedLines));
@@ -1151,6 +1171,8 @@ class CsvTest {
     /**
      * Sets the rows that are expected to be returned from the SQL query,
      * in no particular order.
+     *
+     * 同 returns ，无顺。
      */
     Fluent returnsUnordered(String... expectedLines) {
       return checking(expectUnordered(expectedLines));
