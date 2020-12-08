@@ -94,7 +94,7 @@ public class RelRoot {
     this.validatedRowType = validatedRowType;
     this.kind = kind;
     this.fields = ImmutableList.copyOf(fields);
-    this.collation = Objects.requireNonNull(collation);
+    this.collation = Objects.requireNonNull(collation, "collation");
     this.hints = ImmutableList.copyOf(hints);
   }
 

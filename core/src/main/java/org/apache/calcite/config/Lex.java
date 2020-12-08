@@ -87,9 +87,9 @@ public enum Lex {
       Casing quotedCasing,
       boolean caseSensitive,
       CharLiteralStyle... charLiteralStyles) {
-    this.quoting = Objects.requireNonNull(quoting);
-    this.unquotedCasing = Objects.requireNonNull(unquotedCasing);
-    this.quotedCasing = Objects.requireNonNull(quotedCasing);
+    this.quoting = Objects.requireNonNull(quoting, "quoting");
+    this.unquotedCasing = Objects.requireNonNull(unquotedCasing, "unquotedCasing");
+    this.quotedCasing = Objects.requireNonNull(quotedCasing, "quotedCasing");
     this.caseSensitive = caseSensitive;
     this.charLiteralStyles = ImmutableSet.copyOf(charLiteralStyles);
   }

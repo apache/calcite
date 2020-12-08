@@ -1616,9 +1616,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     private DecorrelateRexShuttle(RelNode currentRel,
         Map<RelNode, Frame> map, CorelMap cm) {
-      this.currentRel = requireNonNull(currentRel);
-      this.map = requireNonNull(map);
-      this.cm = requireNonNull(cm);
+      this.currentRel = requireNonNull(currentRel, "currentRel");
+      this.map = requireNonNull(map, "map");
+      this.cm = requireNonNull(cm, "cm");
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -2968,7 +2968,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Frame(RelNode oldRel, RelNode r, NavigableMap<CorDef, Integer> corDefOutputs,
         Map<Integer, Integer> oldToNewOutputs) {
-      this.r = requireNonNull(r);
+      this.r = requireNonNull(r, "r");
       this.corDefOutputs = ImmutableSortedMap.copyOf(corDefOutputs);
       this.oldToNewOutputs = ImmutableSortedMap.copyOf(oldToNewOutputs);
       assert allLessThan(this.corDefOutputs.values(),

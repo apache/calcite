@@ -9926,10 +9926,10 @@ public class SqlParserTest {
 
     Sql(StringAndPos sap, boolean expression, SqlDialect dialect,
         Consumer<SqlParser> parserChecker) {
-      this.sap = Objects.requireNonNull(sap);
+      this.sap = Objects.requireNonNull(sap, "sap");
       this.expression = expression;
       this.dialect = dialect;
-      this.parserChecker = Objects.requireNonNull(parserChecker);
+      this.parserChecker = Objects.requireNonNull(parserChecker, "parserChecker");
     }
 
     public Sql same() {

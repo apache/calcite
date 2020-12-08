@@ -96,7 +96,7 @@ public class RelDistributions {
     private final ImmutableIntList keys;
 
     private RelDistributionImpl(Type type, ImmutableIntList keys) {
-      this.type = Objects.requireNonNull(type);
+      this.type = Objects.requireNonNull(type, "type");
       this.keys = ImmutableIntList.copyOf(keys);
       assert type != Type.HASH_DISTRIBUTED
           || keys.size() < 2

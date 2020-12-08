@@ -71,7 +71,7 @@ public class RexOver extends RexCall {
       boolean ignoreNulls) {
     super(type, op, operands);
     Preconditions.checkArgument(op.isAggregator());
-    this.window = Objects.requireNonNull(window);
+    this.window = Objects.requireNonNull(window, "window");
     this.distinct = distinct;
     this.ignoreNulls = ignoreNulls;
   }

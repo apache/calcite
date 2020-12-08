@@ -208,7 +208,7 @@ public class BitString {
    * @return BitString
    */
   public static BitString createFromBytes(byte[] bytes) {
-    int bitCount = Objects.requireNonNull(bytes).length * 8;
+    int bitCount = Objects.requireNonNull(bytes, "bytes").length * 8;
     StringBuilder sb = new StringBuilder(bitCount);
     for (byte b : bytes) {
       final String s = Integer.toBinaryString(Byte.toUnsignedInt(b));

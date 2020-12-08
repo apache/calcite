@@ -48,7 +48,7 @@ public class SqlDescribeTable extends SqlCall {
       SqlIdentifier table,
       @Nullable SqlIdentifier column) {
     super(pos);
-    this.table = Objects.requireNonNull(table);
+    this.table = Objects.requireNonNull(table, "table");
     this.column = column;
   }
 

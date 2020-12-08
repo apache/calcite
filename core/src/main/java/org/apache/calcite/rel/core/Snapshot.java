@@ -64,7 +64,7 @@ public abstract class Snapshot extends SingleRel  {
   protected Snapshot(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RexNode period) {
     super(cluster, traitSet, input);
-    this.period = Objects.requireNonNull(period);
+    this.period = Objects.requireNonNull(period, "period");
     // Too expensive for everyday use:
     assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }

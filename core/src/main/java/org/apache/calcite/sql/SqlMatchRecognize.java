@@ -77,20 +77,20 @@ public class SqlMatchRecognize extends SqlCall {
       @Nullable SqlLiteral rowsPerMatch, SqlNodeList partitionList,
       SqlNodeList orderList, @Nullable SqlLiteral interval) {
     super(pos);
-    this.tableRef = Objects.requireNonNull(tableRef);
-    this.pattern = Objects.requireNonNull(pattern);
+    this.tableRef = Objects.requireNonNull(tableRef, "tableRef");
+    this.pattern = Objects.requireNonNull(pattern, "pattern");
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
-    this.patternDefList = Objects.requireNonNull(patternDefList);
+    this.patternDefList = Objects.requireNonNull(patternDefList, "patternDefList");
     Preconditions.checkArgument(patternDefList.size() > 0);
-    this.measureList = Objects.requireNonNull(measureList);
+    this.measureList = Objects.requireNonNull(measureList, "measureList");
     this.after = after;
     this.subsetList = subsetList;
     Preconditions.checkArgument(rowsPerMatch == null
         || rowsPerMatch.value instanceof RowsPerMatchOption);
     this.rowsPerMatch = rowsPerMatch;
-    this.partitionList = Objects.requireNonNull(partitionList);
-    this.orderList = Objects.requireNonNull(orderList);
+    this.partitionList = Objects.requireNonNull(partitionList, "partitionList");
+    this.orderList = Objects.requireNonNull(orderList, "orderList");
     this.interval = interval;
   }
 
@@ -124,7 +124,7 @@ public class SqlMatchRecognize extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = Objects.requireNonNull(operand);
+      tableRef = Objects.requireNonNull(operand, "operand");
       break;
     case OPERAND_PATTERN:
       pattern = operand;

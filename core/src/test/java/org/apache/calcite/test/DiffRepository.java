@@ -794,7 +794,7 @@ public class DiffRepository {
     private final Filter filter;
 
     Key(Class<?> clazz, DiffRepository baseRepository, Filter filter) {
-      this.clazz = Objects.requireNonNull(clazz);
+      this.clazz = Objects.requireNonNull(clazz, "clazz");
       this.baseRepository = baseRepository;
       this.filter = filter;
     }

@@ -582,11 +582,11 @@ public abstract class Prepare {
         RelNode rootRel,
         TableModify.@Nullable Operation tableModOp,
         boolean isDml) {
-      this.rowType = requireNonNull(rowType);
-      this.parameterRowType = requireNonNull(parameterRowType);
-      this.fieldOrigins = requireNonNull(fieldOrigins);
+      this.rowType = requireNonNull(rowType, "rowType");
+      this.parameterRowType = requireNonNull(parameterRowType, "parameterRowType");
+      this.fieldOrigins = requireNonNull(fieldOrigins, "fieldOrigins");
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = requireNonNull(rootRel);
+      this.rootRel = requireNonNull(rootRel, "rootRel");
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

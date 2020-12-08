@@ -73,15 +73,15 @@ class SqlPrettyWriterTest {
 
     Sql(String sql, boolean expr, String desc, String formatted,
         UnaryOperator<SqlWriterConfig> transform) {
-      this.sql = Objects.requireNonNull(sql);
+      this.sql = Objects.requireNonNull(sql, "sql");
       this.expr = expr;
       this.desc = desc;
-      this.formatted = Objects.requireNonNull(formatted);
-      this.transform = Objects.requireNonNull(transform);
+      this.formatted = Objects.requireNonNull(formatted, "formatted");
+      this.transform = Objects.requireNonNull(transform, "transform");
     }
 
     Sql withWriter(UnaryOperator<SqlWriterConfig> transform) {
-      Objects.requireNonNull(transform);
+      Objects.requireNonNull(transform, "transform");
       return new Sql(sql, expr, desc, formatted, w ->
           transform.apply(this.transform.apply(w)));
     }

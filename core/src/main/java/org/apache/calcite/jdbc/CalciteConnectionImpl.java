@@ -509,7 +509,7 @@ abstract class CalciteConnectionImpl
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
       this.mutableRootSchema = connection.rootSchema;
@@ -601,7 +601,7 @@ abstract class CalciteConnectionImpl
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
     }
 
     @Override public Context createPrepareContext() {

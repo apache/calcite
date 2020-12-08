@@ -197,8 +197,8 @@ class RexProgramTestBase extends RexProgramBuilderBase {
     final RexNode node;
 
     Node(RexBuilder rexBuilder, RexNode node) {
-      this.rexBuilder = Objects.requireNonNull(rexBuilder);
-      this.node = Objects.requireNonNull(node);
+      this.rexBuilder = Objects.requireNonNull(rexBuilder, "rexBuilder");
+      this.node = Objects.requireNonNull(node, "node");
     }
   }
 

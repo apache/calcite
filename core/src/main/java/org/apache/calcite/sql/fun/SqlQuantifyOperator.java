@@ -49,7 +49,7 @@ public class SqlQuantifyOperator extends SqlInOperator {
    */
   SqlQuantifyOperator(SqlKind kind, SqlKind comparisonKind) {
     super(comparisonKind.sql + " " + kind, kind);
-    this.comparisonKind = Objects.requireNonNull(comparisonKind);
+    this.comparisonKind = Objects.requireNonNull(comparisonKind, "comparisonKind");
     Preconditions.checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS
         || comparisonKind == SqlKind.LESS_THAN_OR_EQUAL

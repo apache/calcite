@@ -514,6 +514,7 @@ allprojects {
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
                     replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
+                    replaceRegex("require message for requireNonNull", """(?<!#)requireNonNull\(\s*(\w+)\s*(?:,\s*"(?!\1")\w+"\s*)?\)""", "requireNonNull($1, \"$1\")")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")

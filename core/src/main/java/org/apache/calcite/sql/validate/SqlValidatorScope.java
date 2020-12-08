@@ -269,11 +269,11 @@ public interface SqlValidatorScope {
 
     Step(Path parent, @Nullable RelDataType rowType, int i, String name,
         StructKind kind) {
-      this.parent = Objects.requireNonNull(parent);
+      this.parent = Objects.requireNonNull(parent, "parent");
       this.rowType = rowType; // may be null
       this.i = i;
       this.name = name;
-      this.kind = Objects.requireNonNull(kind);
+      this.kind = Objects.requireNonNull(kind, "kind");
     }
 
     @Override public int stepCount() {
@@ -330,11 +330,11 @@ public interface SqlValidatorScope {
 
     Resolve(SqlValidatorNamespace namespace, boolean nullable,
         @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
-      this.namespace = Objects.requireNonNull(namespace);
+      this.namespace = Objects.requireNonNull(namespace, "namespace");
       this.nullable = nullable;
       this.scope = scope;
       assert !(scope instanceof TableScope);
-      this.path = Objects.requireNonNull(path);
+      this.path = Objects.requireNonNull(path, "path");
       this.remainingNames = remainingNames == null ? ImmutableList.of()
           : ImmutableList.copyOf(remainingNames);
     }

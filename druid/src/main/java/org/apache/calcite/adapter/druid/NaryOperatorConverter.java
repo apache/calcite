@@ -35,8 +35,8 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final String druidOperatorName;
 
   public NaryOperatorConverter(SqlOperator operator, String druidOperatorName) {
-    this.operator = Objects.requireNonNull(operator);
-    this.druidOperatorName = Objects.requireNonNull(druidOperatorName);
+    this.operator = Objects.requireNonNull(operator, "operator");
+    this.druidOperatorName = Objects.requireNonNull(druidOperatorName, "druidOperatorName");
   }
 
   @Override public SqlOperator calciteOperator() {

@@ -287,10 +287,10 @@ public abstract class DateRangeRules {
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<RexNode, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
-      this.rexBuilder = requireNonNull(rexBuilder);
-      this.timeUnit = requireNonNull(timeUnit);
-      this.operandRanges = requireNonNull(operandRanges);
-      this.timeUnitRanges = requireNonNull(timeUnitRanges);
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
+      this.timeUnit = requireNonNull(timeUnit, "timeUnit");
+      this.operandRanges = requireNonNull(operandRanges, "operandRanges");
+      this.timeUnitRanges = requireNonNull(timeUnitRanges, "timeUnitRanges");
       this.timeZone = timeZone;
     }
 

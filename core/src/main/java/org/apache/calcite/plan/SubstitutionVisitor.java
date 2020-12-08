@@ -935,10 +935,10 @@ public class SubstitutionVisitor {
 
     public UnifyRuleCall(UnifyRule rule, MutableRel query, MutableRel target,
         ImmutableList<MutableRel> slots) {
-      this.rule = requireNonNull(rule);
-      this.query = requireNonNull(query);
-      this.target = requireNonNull(target);
-      this.slots = requireNonNull(slots);
+      this.rule = requireNonNull(rule, "rule");
+      this.query = requireNonNull(query, "query");
+      this.target = requireNonNull(target, "target");
+      this.slots = requireNonNull(slots, "slots");
     }
 
     public UnifyResult result(MutableRel result) {

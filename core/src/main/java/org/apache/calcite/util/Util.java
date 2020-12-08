@@ -914,7 +914,7 @@ public class Util {
    * but we don't require Guava version 20 yet. */
   public static void throwIfUnchecked(Throwable throwable) {
     Bug.upgrade("Remove when minimum Guava version is 20");
-    Objects.requireNonNull(throwable);
+    Objects.requireNonNull(throwable, "throwable");
     if (throwable instanceof RuntimeException) {
       throw (RuntimeException) throwable;
     }

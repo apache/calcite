@@ -78,7 +78,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
    * should allow O(1) access to elements. */
   private SqlNodeList(SqlParserPos pos, List<@Nullable SqlNode> list) {
     super(pos);
-    this.list = Objects.requireNonNull(list);
+    this.list = Objects.requireNonNull(list, "list");
   }
 
   /**

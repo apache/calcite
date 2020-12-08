@@ -132,7 +132,7 @@ public class SqlFunction extends SqlOperator {
         operandTypeChecker);
 
     this.sqlIdentifier = sqlIdentifier;
-    this.category = Objects.requireNonNull(category);
+    this.category = Objects.requireNonNull(category, "category");
   }
 
   //~ Methods ----------------------------------------------------------------

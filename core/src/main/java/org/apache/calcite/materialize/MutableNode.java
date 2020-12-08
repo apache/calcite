@@ -66,7 +66,7 @@ class MutableNode {
   /** Creates a non-root node. */
   @SuppressWarnings("argument.type.incompatible")
   MutableNode(LatticeTable table, @Nullable MutableNode parent, @Nullable Step step) {
-    this.table = Objects.requireNonNull(table);
+    this.table = Objects.requireNonNull(table, "table");
     this.parent = parent;
     this.step = step;
     if (parent != null) {

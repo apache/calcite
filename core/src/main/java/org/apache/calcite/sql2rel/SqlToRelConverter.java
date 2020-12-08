@@ -336,13 +336,13 @@ public class SqlToRelConverter {
     this.typeFactory = rexBuilder.getTypeFactory();
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
-    this.config = requireNonNull(config);
+    this.config = requireNonNull(config, "config");
     this.relBuilder = config.getRelBuilderFactory().create(cluster, null)
         .transform(config.getRelBuilderConfigTransform());
     this.hintStrategies = config.getHintStrategyTable();
 
     cluster.setHintStrategies(this.hintStrategies);
-    this.cluster = requireNonNull(cluster);
+    this.cluster = requireNonNull(cluster, "cluster");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -5088,7 +5088,7 @@ public class SqlToRelConverter {
 
       // Apply standard conversions.
       rex = expr.accept(this);
-      return requireNonNull(rex);
+      return requireNonNull(rex, "rex");
     }
 
     /**

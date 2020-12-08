@@ -1205,7 +1205,7 @@ public class RexUtil {
   public static RexNode composeConjunction(RexBuilder rexBuilder,
       Iterable<? extends @Nullable RexNode> nodes) {
     final RexNode e = composeConjunction(rexBuilder, nodes, false);
-    return requireNonNull(e);
+    return requireNonNull(e, "e");
   }
 
   /**
@@ -1279,7 +1279,7 @@ public class RexUtil {
   public static RexNode composeDisjunction(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
     final RexNode e = composeDisjunction(rexBuilder, nodes, false);
-    return requireNonNull(e);
+    return requireNonNull(e, "e");
   }
 
   /**
@@ -2952,10 +2952,10 @@ public class RexUtil {
 
     RangeToRex(RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
         RelDataType type) {
-      this.ref = requireNonNull(ref);
-      this.list = requireNonNull(list);
-      this.rexBuilder = requireNonNull(rexBuilder);
-      this.type = requireNonNull(type);
+      this.ref = requireNonNull(ref, "ref");
+      this.list = requireNonNull(list, "list");
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
+      this.type = requireNonNull(type, "type");
     }
 
     private void addAnd(RexNode... nodes) {

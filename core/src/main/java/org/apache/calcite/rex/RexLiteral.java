@@ -225,8 +225,8 @@ public class RexLiteral extends RexNode {
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = requireNonNull(type);
-    this.typeName = requireNonNull(typeName);
+    this.type = requireNonNull(type, "type");
+    this.typeName = requireNonNull(typeName, "typeName");
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);

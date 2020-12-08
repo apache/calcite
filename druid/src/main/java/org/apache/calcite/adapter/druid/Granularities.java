@@ -87,9 +87,9 @@ public class Granularities {
     private final String timeZone;
 
     private PeriodGranularity(Type type, String period, String timeZone) {
-      this.type = Objects.requireNonNull(type);
-      this.period = Objects.requireNonNull(period);
-      this.timeZone = Objects.requireNonNull(timeZone);
+      this.type = Objects.requireNonNull(type, "type");
+      this.period = Objects.requireNonNull(period, "period");
+      this.timeZone = Objects.requireNonNull(timeZone, "timeZone");
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {

@@ -577,7 +577,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         ColumnStrategy strategy) {
       this.expr = expr;
       this.type = type;
-      this.strategy = Objects.requireNonNull(strategy);
+      this.strategy = Objects.requireNonNull(strategy, "strategy");
       Preconditions.checkArgument(
           strategy == ColumnStrategy.NULLABLE
               || strategy == ColumnStrategy.NOT_NULLABLE

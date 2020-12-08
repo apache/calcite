@@ -59,10 +59,10 @@ public class SqlPivot extends SqlCall {
   public SqlPivot(SqlParserPos pos, SqlNode query, SqlNodeList aggList,
       SqlNodeList axisList, SqlNodeList inList) {
     super(pos);
-    this.query = Objects.requireNonNull(query);
-    this.aggList = Objects.requireNonNull(aggList);
-    this.axisList = Objects.requireNonNull(axisList);
-    this.inList = Objects.requireNonNull(inList);
+    this.query = Objects.requireNonNull(query, "query");
+    this.aggList = Objects.requireNonNull(aggList, "aggList");
+    this.axisList = Objects.requireNonNull(axisList, "axisList");
+    this.inList = Objects.requireNonNull(inList, "inList");
   }
 
   //~ Methods ----------------------------------------------------------------

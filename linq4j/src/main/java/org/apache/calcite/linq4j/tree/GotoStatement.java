@@ -98,7 +98,7 @@ public class GotoStatement extends Statement {
     case Sequence:
       // NOTE: We ignore control flow. This is only correct if "return"
       // is the last statement in the block.
-      return requireNonNull(expression).evaluate(evaluator);
+      return requireNonNull(expression, "expression").evaluate(evaluator);
     default:
       throw new AssertionError("evaluate not implemented");
     }

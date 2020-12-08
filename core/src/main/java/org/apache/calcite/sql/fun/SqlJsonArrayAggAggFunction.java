@@ -50,7 +50,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
         InferTypes.ANY_NULLABLE, OperandTypes.family(SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
-    this.nullClause = Objects.requireNonNull(nullClause);
+    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

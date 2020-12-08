@@ -48,7 +48,7 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a SqlLatticeStatisticProvider. */
   private SqlLatticeStatisticProvider(Lattice lattice) {
-    this.lattice = requireNonNull(lattice);
+    this.lattice = requireNonNull(lattice, "lattice");
   }
 
   @Override public double cardinality(List<Lattice.Column> columns) {

@@ -43,7 +43,7 @@ public class SqlMonikerImpl implements SqlMoniker {
    */
   public SqlMonikerImpl(List<String> names, SqlMonikerType type) {
     this.names = ImmutableList.copyOf(names);
-    this.type = Objects.requireNonNull(type);
+    this.type = Objects.requireNonNull(type, "type");
   }
 
   /**

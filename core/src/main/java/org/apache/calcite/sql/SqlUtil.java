@@ -497,7 +497,7 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
       Iterator<SqlOperator> routines, final SqlKind sqlKind) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator).getKind() == sqlKind);
+        operator -> Objects.requireNonNull(operator, "operator").getKind() == sqlKind);
   }
 
   /**
@@ -607,7 +607,7 @@ public abstract class SqlUtil {
           Predicates.instanceOf(SqlFunction.class));
     default:
       return Iterators.filter(sqlOperators.iterator(),
-          operator -> Objects.requireNonNull(operator).getSyntax() == syntax);
+          operator -> Objects.requireNonNull(operator, "operator").getSyntax() == syntax);
     }
   }
 
@@ -615,7 +615,7 @@ public abstract class SqlUtil {
       Iterator<SqlOperator> routines,
       final List<RelDataType> argTypes) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator)
+        operator -> Objects.requireNonNull(operator, "operator")
             .getOperandCountRange().isValidCount(argTypes.size()));
   }
 

@@ -62,12 +62,12 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       Optionality requiresGroupOrder, Optionality distinctOptionality,
       SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator) {
     super(name, sqlIdentifier, kind,
-        requireNonNull(returnTypeInference), operandTypeInference,
-        requireNonNull(operandTypeChecker),
-        requireNonNull(funcType), requiresOrder, requiresOver,
+        requireNonNull(returnTypeInference, "returnTypeInference"), operandTypeInference,
+        requireNonNull(operandTypeChecker, "operandTypeChecker"),
+        requireNonNull(funcType, "funcType"), requiresOrder, requiresOver,
         requiresGroupOrder);
-    this.distinctOptionality = requireNonNull(distinctOptionality);
-    this.syntax = requireNonNull(syntax);
+    this.distinctOptionality = requireNonNull(distinctOptionality, "distinctOptionality");
+    this.syntax = requireNonNull(syntax, "syntax");
     this.allowsNullTreatment = allowsNullTreatment;
     this.allowsSeparator = allowsSeparator;
   }

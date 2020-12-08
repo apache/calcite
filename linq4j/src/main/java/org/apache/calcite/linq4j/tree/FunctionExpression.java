@@ -86,7 +86,7 @@ public final class FunctionExpression<F extends Function<?>>
       for (int i = 0; i < args.length; i++) {
         evaluator.push(parameterList.get(i), args[i]);
       }
-      return evaluator.evaluate(requireNonNull(body));
+      return evaluator.evaluate(requireNonNull(body, "body"));
     };
   }
 
@@ -150,7 +150,7 @@ public final class FunctionExpression<F extends Function<?>>
           ? "." + requireNonNull(Primitive.of(parameterType)).primitiveName + "Value()"
           : ""));
     }
-    requireNonNull(body);
+    requireNonNull(body, "body");
     Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
     if (bridgeResultType == null) {
       bridgeResultType = body.getType();

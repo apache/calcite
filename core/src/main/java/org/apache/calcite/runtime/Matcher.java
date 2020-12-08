@@ -58,7 +58,7 @@ public class Matcher<E> {
    */
   private Matcher(Automaton automaton,
       ImmutableMap<String, Predicate<MemoryFactory.Memory<E>>> predicates) {
-    this.predicates = Objects.requireNonNull(predicates);
+    this.predicates = Objects.requireNonNull(predicates, "predicates");
     final ImmutableBitSet.Builder startSetBuilder =
         ImmutableBitSet.builder();
     startSetBuilder.set(automaton.startState.id);

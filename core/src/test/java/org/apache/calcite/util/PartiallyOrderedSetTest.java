@@ -222,7 +222,7 @@ class PartiallyOrderedSetTest {
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset,
             (Function<Integer, Iterable<Integer>>) i -> {
-              int r = Objects.requireNonNull(i); // bits not yet cleared
+              int r = Objects.requireNonNull(i, "i"); // bits not yet cleared
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; r != 0; z <<= 1) {
                 if ((i & z) != 0) {
@@ -233,7 +233,7 @@ class PartiallyOrderedSetTest {
               return list;
             },
             i -> {
-              Objects.requireNonNull(i);
+              Objects.requireNonNull(i, "i");
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; z <= n; z <<= 1) {
                 if ((i & z) == 0) {

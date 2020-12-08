@@ -41,7 +41,7 @@ class SchemaNamespace extends AbstractNamespace {
   /** Creates a SchemaNamespace. */
   SchemaNamespace(SqlValidatorImpl validator, ImmutableList<String> names) {
     super(validator, null);
-    this.names = Objects.requireNonNull(names);
+    this.names = Objects.requireNonNull(names, "names");
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {

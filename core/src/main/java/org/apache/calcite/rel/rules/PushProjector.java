@@ -216,7 +216,7 @@ public class PushProjector {
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-    this.relBuilder = requireNonNull(relBuilder);
+    this.relBuilder = requireNonNull(relBuilder, "relBuilder");
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {

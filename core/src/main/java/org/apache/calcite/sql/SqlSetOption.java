@@ -133,7 +133,7 @@ public class SqlSetOption extends SqlAlter {
       }
       break;
     case 1:
-      name = (SqlIdentifier) requireNonNull(operand, "name");
+      name = (SqlIdentifier) requireNonNull(operand, /**/ "name");
       break;
     case 2:
       value = operand;

@@ -57,7 +57,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
   private final ImmutableSet<Object> elements;
 
   private ImmutableNullableSet(ImmutableSet<Object> elements) {
-    this.elements = Objects.requireNonNull(elements);
+    this.elements = Objects.requireNonNull(elements, "elements");
   }
 
   @Override public Iterator<E> iterator() {

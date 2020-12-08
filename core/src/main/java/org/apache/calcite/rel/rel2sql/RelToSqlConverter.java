@@ -1050,9 +1050,9 @@ public class RelToSqlConverter extends SqlImplementor
 
     Frame(RelNode parent, int ordinalInParent, RelNode r, boolean anon,
         boolean ignoreClauses, Iterable<? extends Clause> expectedClauses) {
-      this.parent = requireNonNull(parent);
+      this.parent = requireNonNull(parent, "parent");
       this.ordinalInParent = ordinalInParent;
-      this.r = requireNonNull(r);
+      this.r = requireNonNull(r, "r");
       this.anon = anon;
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);

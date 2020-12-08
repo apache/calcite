@@ -213,7 +213,7 @@ public class Geometries {
     final Geometry g;
 
     SimpleGeom(Geometry g) {
-      this.g = Objects.requireNonNull(g);
+      this.g = Objects.requireNonNull(g, "g");
     }
 
     @Override public String toString() {
@@ -253,7 +253,7 @@ public class Geometries {
     final MapGeometry mg;
 
     MapGeom(MapGeometry mg) {
-      this.mg = Objects.requireNonNull(mg);
+      this.mg = Objects.requireNonNull(mg, "mg");
     }
 
     @Override public String toString() {

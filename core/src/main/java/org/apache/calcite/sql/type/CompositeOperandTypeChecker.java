@@ -104,8 +104,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
       @Nullable String allowedSignatures,
       @Nullable SqlOperandCountRange range) {
-    this.allowedRules = requireNonNull(allowedRules);
-    this.composition = requireNonNull(composition);
+    this.allowedRules = requireNonNull(allowedRules, "allowedRules");
+    this.composition = requireNonNull(composition, "composition");
     this.allowedSignatures = allowedSignatures;
     this.range = range;
     assert (range != null) == (composition == Composition.REPEAT);

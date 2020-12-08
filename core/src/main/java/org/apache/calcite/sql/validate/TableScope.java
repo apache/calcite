@@ -42,8 +42,8 @@ class TableScope extends ListScope {
    * @param parent  Parent scope
    */
   TableScope(SqlValidatorScope parent, SqlNode node) {
-    super(Objects.requireNonNull(parent));
-    this.node = Objects.requireNonNull(node);
+    super(Objects.requireNonNull(parent, "parent"));
+    this.node = Objects.requireNonNull(node, "node");
   }
 
   //~ Methods ----------------------------------------------------------------

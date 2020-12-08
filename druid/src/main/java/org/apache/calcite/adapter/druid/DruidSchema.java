@@ -54,8 +54,8 @@ public class DruidSchema extends AbstractSchema {
    */
   public DruidSchema(String url, String coordinatorUrl,
       boolean discoverTables) {
-    this.url = Objects.requireNonNull(url);
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url, "url");
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
     this.discoverTables = discoverTables;
   }
 

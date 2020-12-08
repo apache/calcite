@@ -155,12 +155,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       SqlConformance conformance,
       @Nullable Function1<String, InputGetter> correlates) {
     this.program = program; // may be null
-    this.typeFactory = requireNonNull(typeFactory);
-    this.conformance = requireNonNull(conformance);
-    this.root = requireNonNull(root);
+    this.typeFactory = requireNonNull(typeFactory, "typeFactory");
+    this.conformance = requireNonNull(conformance, "conformance");
+    this.root = requireNonNull(root, "root");
     this.inputGetter = inputGetter;
-    this.list = requireNonNull(list);
-    this.builder = requireNonNull(builder);
+    this.list = requireNonNull(list, "list");
+    this.builder = requireNonNull(builder, "builder");
     this.correlates = correlates; // may be null
   }
 

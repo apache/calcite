@@ -99,9 +99,9 @@ public abstract class Join extends BiRel implements Hintable {
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
-    this.condition = Objects.requireNonNull(condition);
+    this.condition = Objects.requireNonNull(condition, "condition");
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
-    this.joinType = Objects.requireNonNull(joinType);
+    this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.joinInfo = JoinInfo.of(left, right, condition);
     this.hints = ImmutableList.copyOf(hints);
   }
