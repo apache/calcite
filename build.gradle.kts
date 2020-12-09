@@ -77,6 +77,20 @@ val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
+// Java versions prior to 1.8.0u202 have known issues that cause invalid bytecode in certain patterns
+// of annotation usage.
+// So we require at least 1.8.0u202
+System.getProperty("java.version").let { version ->
+    version.takeIf { it.startsWith("1.8.0_") }
+        ?.removePrefix("1.8.0_")
+        ?.toIntOrNull()
+        ?.let {
+            require(it >= 202) {
+                "Apache Calcite requires Java 1.8.0u202 or later. The current Java version is $version"
+            }
+        }
+}
+
 ide {
     copyrightToAsf()
     ideaInstructionsUri =
