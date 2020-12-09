@@ -626,6 +626,8 @@ allprojects {
             }
 
             configureEach<JavaCompile> {
+                inputs.property("java.version", System.getProperty("java.version"))
+                inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
                 if (werror) {
