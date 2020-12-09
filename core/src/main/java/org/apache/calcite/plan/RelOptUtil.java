@@ -829,8 +829,8 @@ public abstract class RelOptUtil {
    * instead, create a projection with the input of {@code rel} and the new
    * cast expressions.
    *
-   * <p>The field count of the desired row type and the row type to be converted
-   * should be equal. Otherwise, it would throw an exception.
+   * <p>The desired row type and the row type to be converted must have the
+   * same number of fields.
    *
    * @param rel         producer of rows to be converted
    * @param castRowType row type after cast
@@ -853,8 +853,8 @@ public abstract class RelOptUtil {
    * instead, create a projection with the input of {@code rel} and the new
    * cast expressions.
    *
-   * <p>The field count of the desired row type and the row type to be converted
-   * should be equal. Otherwise, it would throw an exception.
+   * <p>The desired row type and the row type to be converted must have the
+   * same number of fields.
    *
    * @param rel         producer of rows to be converted
    * @param castRowType row type after cast
@@ -875,7 +875,7 @@ public abstract class RelOptUtil {
       return rel;
     }
     if (rowType.getFieldCount() != castRowType.getFieldCount()) {
-      throw new IllegalArgumentException("Field count is not equal: "
+      throw new IllegalArgumentException("Field counts are not equal: "
           + "rowType [" + rowType + "] castRowType [" + castRowType + "]");
     }
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
