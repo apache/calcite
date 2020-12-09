@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CartesianProductEnumerator;
@@ -144,9 +143,6 @@ public class SqlFunctions {
       ThreadLocal.withInitial(HashMap::new);
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
-
-  private static final boolean ALLOW_FIELD_INDEX_ACCESS =
-      CalciteSystemProperty.ALLOW_FIELD_INDEX_ACCESS.value();
 
   private SqlFunctions() {
   }
@@ -2996,18 +2992,10 @@ public class SqlFunctions {
     } else {
       Class<?> beanClass = structObject.getClass();
       try {
-        Field structField;
         if (fieldName == null) {
-          if (ALLOW_FIELD_INDEX_ACCESS) {
-            structField = beanClass.getDeclaredFields()[index];
-          } else {
-            throw new IllegalArgumentException("fieldName is null, fieldIndex is " + (index + 1)
-                + ", you might add 'calcite.enable.enumerable.fieldIndexAccess=true' to allow "
-                + "index-based field access");
-          }
-        } else {
-          structField = beanClass.getDeclaredField(fieldName);
+          throw new IllegalStateException("Field name cannot be null for struct field access");
         }
+        Field structField = beanClass.getDeclaredField(fieldName);
         return structField.get(structObject);
       } catch (NoSuchFieldException | IllegalAccessException ex) {
         throw RESOURCE.failedToAccessField(fieldName, index, beanClass.getName()).ex(ex);
