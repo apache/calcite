@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -186,6 +188,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         (cx, call) -> cx.getRexBuilder().makeFieldAccess(
             cx.convertExpression(call.operand(0)),
             call.operand(1).toString(), false));
+    // "ITEM"
+    registerOp(SqlStdOperatorTable.ITEM, this::convertItem);
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
@@ -835,6 +839,42 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             initializationExprs.build());
 
     return rexBuilder.makeNewInvocation(type, defaultCasts);
+  }
+
+  private RexNode convertItem(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx,
+      SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final SqlOperator op = call.getOperator();
+    SqlOperandTypeChecker operandTypeChecker = op.getOperandTypeChecker();
+    final SqlOperandTypeChecker.Consistency consistency =
+        operandTypeChecker == null
+            ? SqlOperandTypeChecker.Consistency.NONE
+            : operandTypeChecker.getConsistency();
+    final List<RexNode> exprs = convertOperands(cx, call, consistency);
+
+    final RelDataType collectionType = exprs.get(0).getType();
+    final boolean isRowTypeField = SqlTypeUtil.isRow(collectionType);
+    final boolean isNumericIndex = SqlTypeUtil.isIntType(exprs.get(1).getType());
+
+    if (isRowTypeField && isNumericIndex) {
+      final SqlOperatorBinding opBinding = new RexCallBinding(
+          cx.getTypeFactory(), op, exprs, ImmutableList.of());
+      final RelDataType operandType = opBinding.getOperandType(0);
+
+      final Integer index = opBinding.getOperandLiteralValue(1, Integer.class);
+      if (index == null || index < 1 || index > operandType.getFieldCount()) {
+        throw new AssertionError("Cannot access field at position "
+            + index + " within ROW type: " + operandType);
+      } else {
+        RelDataTypeField relDataTypeField = collectionType.getFieldList().get(index - 1);
+        return rexBuilder.makeFieldAccess(
+            exprs.get(0), relDataTypeField.getName(), false);
+      }
+    }
+    RelDataType type = rexBuilder.deriveReturnType(op, exprs);
+    return rexBuilder.makeCall(type, op, RexUtil.flatten(exprs, op));
   }
 
   /**

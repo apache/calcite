@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
@@ -78,15 +77,6 @@ public abstract class QuidemTest {
           return Bug.CALCITE_1045_FIXED;
         case "calcite1048":
           return Bug.CALCITE_1048_FIXED;
-        }
-        return null;
-      };
-    case "allow":
-      // Quidem requires a Java 8 function
-      return (Function<String, Object>) v -> {
-        switch (v) {
-        case "fieldIndexAccess":
-          return CalciteSystemProperty.ALLOW_FIELD_INDEX_ACCESS.value();
         }
         return null;
       };
