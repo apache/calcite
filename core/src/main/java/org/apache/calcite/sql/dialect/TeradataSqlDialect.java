@@ -31,6 +31,10 @@ public class TeradataSqlDialect extends SqlDialect {
   public TeradataSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
 }
 
 // End TeradataSqlDialect.java
