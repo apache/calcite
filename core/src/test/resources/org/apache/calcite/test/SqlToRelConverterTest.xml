@@ -6799,6 +6799,22 @@ LogicalProject(EXPR$0=[IS JSON VALUE($1)], EXPR$1=[IS JSON VALUE($1)], EXPR$2=[I
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUnpivot">
+        <Resource name="sql">
+            <![CDATA[SELECT * FROM emp
+UNPIVOT INCLUDE NULLS (remuneration
+  FOR remuneration_type IN (comm AS 'commission',
+                            sal as 'salary'))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7], SLACKER=[$8], REMUNERATION_TYPE=[$9], REMUNERATION=[CASE(=($9, 'commission'), $6, =($9, 'salary    '), $5, null:NULL)])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 'commission' }, { 'salary    ' }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWithinGroup1">
         <Resource name="sql">
             <![CDATA[select deptno,

@@ -127,6 +127,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlUnnestOperator;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
@@ -1769,11 +1770,12 @@ public class SqlToRelConverter {
       // don't use LogicalValues for those
       return null;
     }
+    return convertLiteral((SqlLiteral) sqlNode, bb, type);
+  }
 
-    RexNode literalExpr =
-        exprConverter.convertLiteral(
-            bb,
-            (SqlLiteral) sqlNode);
+  private RexLiteral convertLiteral(SqlLiteral sqlLiteral,
+      Blackboard bb, RelDataType type) {
+    RexNode literalExpr = exprConverter.convertLiteral(bb, sqlLiteral);
 
     if (!(literalExpr instanceof RexLiteral)) {
       assert literalExpr.isA(SqlKind.CAST);
@@ -2142,13 +2144,11 @@ public class SqlToRelConverter {
       convertPivot(bb, (SqlPivot) from);
       return;
 
+    case UNPIVOT:
+      convertUnpivot(bb, (SqlUnpivot) from);
+      return;
+
     case WITH_ITEM:
-/*
-      final SqlWithItem withItem = (SqlWithItem) from; // TODO: revert?
-      final List<String> fieldNames2 =
-          ImmutableList.copyOf(SqlIdentifier.simpleNames(withItem.columnList));
-      convertFrom(bb, withItem.query, fieldNames2);
-*/
       convertFrom(bb, ((SqlWithItem) from).query);
       return;
 
@@ -2520,6 +2520,49 @@ public class SqlToRelConverter {
         relBuilder.pivot(groupKey, aggCalls, axes, valueList.build())
             .build();
     bb.setRoot(rel, true);
+  }
+
+  protected void convertUnpivot(Blackboard bb, SqlUnpivot unpivot) {
+    final SqlValidatorScope scope = validator().getJoinScope(unpivot);
+
+    final Blackboard unpivotBb = createBlackboard(scope, null, false);
+
+    // Convert input
+    convertFrom(unpivotBb, unpivot.query);
+    final RelNode input = unpivotBb.root();
+    relBuilder.push(input);
+
+    final List<String> measureNames = unpivot.measureList.stream()
+        .map(node -> ((SqlIdentifier) node).getSimple())
+        .collect(Util.toImmutableList());
+    final List<String> axisNames =  unpivot.axisList.stream()
+        .map(node -> ((SqlIdentifier) node).getSimple())
+        .collect(Util.toImmutableList());
+    final ImmutableList.Builder<Pair<List<RexLiteral>, List<RexNode>>> axisMap =
+        ImmutableList.builder();
+    unpivot.forEachNameValues((nodeList, valueList) -> {
+      if (valueList == null) {
+        valueList = new SqlNodeList(
+            Collections.nCopies(axisNames.size(),
+                SqlLiteral.createCharString(SqlUnpivot.aliasValue(nodeList),
+                    SqlParserPos.ZERO)),
+            SqlParserPos.ZERO);
+      }
+      final List<RexLiteral> literals = new ArrayList<>();
+      Pair.forEach(valueList, unpivot.axisList, (value, axis) -> {
+        final RelDataType type = validator().getValidatedNodeType(axis);
+        literals.add(convertLiteral((SqlLiteral) value, bb, type));
+      });
+      final List<RexNode> nodes = nodeList.stream()
+          .map(unpivotBb::convertExpression)
+          .collect(Util.toImmutableList());
+      axisMap.add(Pair.of(literals, nodes));
+    });
+    relBuilder.unpivot(unpivot.includeNulls, measureNames, axisNames,
+        axisMap.build());
+    relBuilder.convert(getNamespace(unpivot).getRowType(), false);
+
+    bb.setRoot(relBuilder.build(), true);
   }
 
   private void convertIdentifier(Blackboard bb, SqlIdentifier id,

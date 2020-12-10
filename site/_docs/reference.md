@@ -229,6 +229,7 @@ tableReference:
       tablePrimary
       [ FOR SYSTEM_TIME AS OF expression ]
       [ pivot ]
+      [ unpivot ]
       [ matchRecognize ]
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
@@ -284,6 +285,23 @@ pivotList:
 
 pivotExpr:
       exprOrList [ [ AS ] alias ]
+
+unpivot:
+      UNPIVOT [ INCLUDING NULLS | EXCLUDING NULLS ] '('
+      unpivotMeasureList
+      FOR unpivotAxisList
+      IN '(' unpivotValue [, unpivotValue ]* ')'
+      ')'
+
+unpivotMeasureList:
+      columnOrList
+
+unpivotAxisList:
+      columnOrList
+
+unpivotValue:
+      column [ AS literal ]
+  |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
       VALUES expression [, expression ]*

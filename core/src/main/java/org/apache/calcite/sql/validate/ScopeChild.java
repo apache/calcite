@@ -30,7 +30,7 @@ class ScopeChild {
   /** Creates a ScopeChild.
    *
    * @param ordinal Ordinal of child within parent scope
-   * @param name Table alias (may be null)
+   * @param name Table alias
    * @param namespace Namespace of child
    * @param nullable Whether fields of the child are nullable when seen from the
    *   parent, due to outer joins
@@ -41,5 +41,10 @@ class ScopeChild {
     this.name = name;
     this.namespace = namespace;
     this.nullable = nullable;
+  }
+
+  @Override public String toString() {
+    return ordinal + ": " + name + ": " + namespace
+        + (nullable ? " (nullable)" : "");
   }
 }

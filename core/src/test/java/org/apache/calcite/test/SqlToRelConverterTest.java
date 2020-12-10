@@ -3492,6 +3492,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUnpivot() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT INCLUDE NULLS (remuneration\n"
+        + "  FOR remuneration_type IN (comm AS 'commission',\n"
+        + "                            sal as 'salary'))";
+    sql(sql).ok();
+  }
+
   @Test void testMatchRecognize1() {
     final String sql = "select *\n"
         + "  from emp match_recognize\n"

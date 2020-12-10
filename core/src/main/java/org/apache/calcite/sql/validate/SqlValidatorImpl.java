@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -73,6 +72,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -139,6 +139,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -2129,30 +2130,59 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerPivot(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
-      SqlPivot call,
+      SqlPivot pivot,
       SqlNode enclosingNode,
       @Nullable String alias,
       boolean forceNullable) {
     final PivotNamespace namespace =
-        createPivotNameSpace(call, enclosingNode);
+        createPivotNameSpace(pivot, enclosingNode);
     registerNamespace(usingScope, alias, namespace, forceNullable);
 
     final SqlValidatorScope scope =
-        new PivotScope(parentScope, call);
-    scopes.put(call, scope);
+        new PivotScope(parentScope, pivot);
+    scopes.put(pivot, scope);
 
     // parse input query
-    SqlNode expr = call.query;
-    SqlNode newExpr = registerFrom(scope, scope, true, expr,
+    SqlNode expr = pivot.query;
+    SqlNode newExpr = registerFrom(parentScope, scope, true, expr,
         expr, null, null, forceNullable, false);
     if (expr != newExpr) {
-      call.setOperand(0, newExpr);
+      pivot.setOperand(0, newExpr);
     }
   }
 
   protected PivotNamespace createPivotNameSpace(SqlPivot call,
       SqlNode enclosingNode) {
     return new PivotNamespace(this, call, enclosingNode);
+  }
+
+  private void registerUnpivot(
+      SqlValidatorScope parentScope,
+      SqlValidatorScope usingScope,
+      SqlUnpivot call,
+      SqlNode enclosingNode,
+      @Nullable String alias,
+      boolean forceNullable) {
+    final UnpivotNamespace namespace =
+        createUnpivotNameSpace(call, enclosingNode);
+    registerNamespace(usingScope, alias, namespace, forceNullable);
+
+    final SqlValidatorScope scope =
+        new UnpivotScope(parentScope, call);
+    scopes.put(call, scope);
+
+    // parse input query
+    SqlNode expr = call.query;
+    SqlNode newExpr = registerFrom(parentScope, scope, true, expr,
+        expr, null, null, forceNullable, false);
+    if (expr != newExpr) {
+      call.setOperand(0, newExpr);
+    }
+  }
+
+  protected UnpivotNamespace createUnpivotNameSpace(SqlUnpivot call,
+      SqlNode enclosingNode) {
+    return new UnpivotNamespace(this, call, enclosingNode);
   }
 
   /**
@@ -2249,6 +2279,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case OTHER_FUNCTION:
       case COLLECTION_TABLE:
       case PIVOT:
+      case UNPIVOT:
       case MATCH_RECOGNIZE:
 
         // give this anonymous construct a name since later
@@ -2333,6 +2364,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case PIVOT:
       registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,
+          alias, forceNullable);
+      return node;
+
+    case UNPIVOT:
+      registerUnpivot(parentScope, usingScope, (SqlUnpivot) node, enclosingNode,
           alias, forceNullable);
       return node;
 
@@ -5209,7 +5245,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * The exception is determined when the function is applied.
    */
   class ValidationErrorFunction
-      implements Function2<SqlNode, Resources.ExInst<SqlValidatorException>,
+      implements BiFunction<SqlNode, Resources.ExInst<SqlValidatorException>,
             CalciteContextException> {
     @Override public CalciteContextException apply(
         SqlNode v0, Resources.ExInst<SqlValidatorException> v1) {
@@ -5573,6 +5609,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     mr.setOperand(SqlMatchRecognize.OPERAND_PATTERN_DEFINES, list);
   }
 
+  /** Returns the alias of a "expr AS alias" expression. */
+  private static String alias(SqlNode item) {
+    assert item instanceof SqlCall;
+    assert item.getKind() == SqlKind.AS;
+    final SqlIdentifier identifier = ((SqlCall) item).operand(1);
+    return identifier.getSimple();
+  }
+
   public void validatePivot(SqlPivot pivot) {
     final PivotScope scope = (PivotScope) requireNonNull(getJoinScope(pivot),
         () -> "joinScope for " + pivot);
@@ -5650,12 +5694,135 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     ns.setType(rowType);
   }
 
-  /** Returns the alias of a "expr AS alias" expression. */
-  private static String alias(SqlNode item) {
-    assert item instanceof SqlCall;
-    assert item.getKind() == SqlKind.AS;
-    final SqlIdentifier identifier = ((SqlCall) item).operand(1);
-    return identifier.getSimple();
+  public void validateUnpivot(SqlUnpivot unpivot) {
+    final UnpivotScope scope =
+        (UnpivotScope) requireNonNull(getJoinScope(unpivot), () ->
+            "scope for " + unpivot);
+
+    final UnpivotNamespace ns =
+        getNamespaceOrThrow(unpivot).unwrap(UnpivotNamespace.class);
+    assert ns.rowType == null;
+
+    // Given
+    //   query UNPIVOT ((measure1, ..., measureM)
+    //   FOR (axis1, ..., axisN)
+    //   IN ((c11, ..., c1M) AS (value11, ..., value1N),
+    //       (c21, ..., c2M) AS (value21, ..., value2N), ...)
+    // the type is
+    //   k1, ... kN, axis1, ..., axisN, measure1, ..., measureM
+    // where k1, ... kN are columns that are not referenced as an argument to
+    // an aggregate or as an axis.
+
+    // First, And make sure that each
+    final int measureCount = unpivot.measureList.size();
+    final int axisCount = unpivot.axisList.size();
+    unpivot.forEachNameValues((nodeList, valueList) -> {
+      // Make sure that each (ci1, ... ciM) list has the same arity as
+      // (measure1, ..., measureM).
+      if (nodeList.size() != measureCount) {
+        throw newValidationError(nodeList,
+            RESOURCE.unpivotValueArityMismatch(nodeList.size(),
+                measureCount));
+      }
+
+      // Make sure that each (vi1, ... viN) list has the same arity as
+      // (axis1, ..., axisN).
+      if (valueList != null && valueList.size() != axisCount) {
+        throw newValidationError(valueList,
+            RESOURCE.unpivotValueArityMismatch(valueList.size(),
+                axisCount));
+      }
+
+      // Make sure that each IN expression is a valid column from the input.
+      nodeList.forEach(node -> deriveType(scope, node));
+    });
+
+    // What columns from the input are not referenced by a column in the IN
+    // list?
+    final SqlValidatorNamespace inputNs =
+        Objects.requireNonNull(getNamespace(unpivot.query));
+    final Set<String> unusedColumnNames =
+        catalogReader.nameMatcher().createSet();
+    unusedColumnNames.addAll(inputNs.getRowType().getFieldNames());
+    unusedColumnNames.removeAll(unpivot.usedColumnNames());
+
+    // What columns will be present in the output row type?
+    final Set<String> columnNames = catalogReader.nameMatcher().createSet();
+    columnNames.addAll(unusedColumnNames);
+
+    // Gather the name and type of each measure.
+    final List<Pair<String, RelDataType>> measureNameTypes = new ArrayList<>();
+    Ord.forEach(unpivot.measureList, (measure, i) -> {
+      final String measureName = ((SqlIdentifier) measure).getSimple();
+      final List<RelDataType> types = new ArrayList<>();
+      final List<SqlNode> nodes = new ArrayList<>();
+      unpivot.forEachNameValues((nodeList, valueList) -> {
+        final SqlNode alias = nodeList.get(i);
+        nodes.add(alias);
+        types.add(deriveType(scope, alias));
+      });
+      final RelDataType type0 = typeFactory.leastRestrictive(types);
+      if (type0 == null) {
+        throw newValidationError(nodes.get(0),
+            RESOURCE.unpivotCannotDeriveMeasureType(measureName));
+      }
+      final RelDataType type =
+          typeFactory.createTypeWithNullability(type0,
+              unpivot.includeNulls || unpivot.measureList.size() > 1);
+      setValidatedNodeType(measure, type);
+      if (!columnNames.add(measureName)) {
+        throw newValidationError(measure,
+            RESOURCE.unpivotDuplicate(measureName));
+      }
+      measureNameTypes.add(Pair.of(measureName, type));
+    });
+
+    // Gather the name and type of each axis.
+    // Consider
+    //   FOR (job, deptno)
+    //   IN (a AS ('CLERK', 10),
+    //       b AS ('ANALYST', 20))
+    // There are two axes, (job, deptno), and so each value list ('CLERK', 10),
+    // ('ANALYST', 20) must have arity two.
+    //
+    // The type of 'job' is derived as the least restrictive type of the values
+    // ('CLERK', 'ANALYST'), namely VARCHAR(7). The derived type of 'deptno' is
+    // the type of values (10, 20), namely INTEGER.
+    final List<Pair<String, RelDataType>> axisNameTypes = new ArrayList<>();
+    Ord.forEach(unpivot.axisList, (axis, i) -> {
+      final String axisName = ((SqlIdentifier) axis).getSimple();
+      final List<RelDataType> types = new ArrayList<>();
+      unpivot.forEachNameValues((aliasList, valueList) ->
+          types.add(
+              valueList == null
+                  ? typeFactory.createSqlType(SqlTypeName.VARCHAR,
+                        SqlUnpivot.aliasValue(aliasList).length())
+                  : deriveType(scope, valueList.get(i))));
+      final RelDataType type = typeFactory.leastRestrictive(types);
+      if (type == null) {
+        throw newValidationError(axis,
+            RESOURCE.unpivotCannotDeriveAxisType(axisName));
+      }
+      setValidatedNodeType(axis, type);
+      if (!columnNames.add(axisName)) {
+        throw newValidationError(axis, RESOURCE.unpivotDuplicate(axisName));
+      }
+      axisNameTypes.add(Pair.of(axisName, type));
+    });
+
+    // Columns that have been seen as arguments to aggregates or as axes
+    // do not appear in the output.
+    final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
+    scope.getChild().getRowType().getFieldList().forEach(field -> {
+      if (unusedColumnNames.contains(field.getName())) {
+        typeBuilder.add(field);
+      }
+    });
+    typeBuilder.addAll(axisNameTypes);
+    typeBuilder.addAll(measureNameTypes);
+
+    final RelDataType rowType = typeBuilder.build();
+    ns.setType(rowType);
   }
 
   /** Checks that all pattern variables within a function are the same,

@@ -100,6 +100,7 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
@@ -2601,7 +2602,18 @@ public class Util {
     }
   }
 
-  /** Transforms a iterator, applying a function to each element. */
+  /** Transforms a list, applying a function to each element, also passing in
+   * the element's index in the list. */
+  public static <F, T> List<T> transformIndexed(List<? extends F> list,
+      BiFunction<? super F, Integer, ? extends T> function) {
+    if (list instanceof RandomAccess) {
+      return new RandomAccessTransformingIndexedList<>(list, function);
+    } else {
+      return new TransformingIndexedList<>(list, function);
+    }
+  }
+
+  /** Transforms an iterable, applying a function to each element. */
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
@@ -2774,6 +2786,49 @@ public class Util {
       extends TransformingList<F, T> implements RandomAccess {
     RandomAccessTransformingList(List<? extends F> list,
         java.util.function.Function<? super F, ? extends T> function) {
+      super(list, function);
+    }
+  }
+
+  /** List that returns the same number of elements as a backing list,
+   * applying a transformation function to each one.
+   *
+   * @param <F> Element type of backing list
+   * @param <T> Element type of this list
+   */
+  private static class TransformingIndexedList<F, T> extends AbstractList<T> {
+    private final BiFunction<? super F, Integer, ? extends T> function;
+    private final List<? extends F> list;
+
+    TransformingIndexedList(List<? extends F> list,
+        BiFunction<? super F, Integer, ? extends T> function) {
+      this.function = function;
+      this.list = list;
+    }
+
+    @Override public T get(int i) {
+      return function.apply(list.get(i), i);
+    }
+
+    @Override public int size() {
+      return list.size();
+    }
+
+    @Override public Iterator<T> iterator() {
+      return listIterator();
+    }
+  }
+
+  /** Extension to {@link TransformingIndexedList} that implements
+   * {@link RandomAccess}.
+   *
+   * @param <F> Element type of backing list
+   * @param <T> Element type of this list
+   */
+  private static class RandomAccessTransformingIndexedList<F, T>
+      extends TransformingIndexedList<F, T> implements RandomAccess {
+    RandomAccessTransformingIndexedList(List<? extends F> list,
+        BiFunction<? super F, Integer, ? extends T> function) {
       super(list, function);
     }
   }
