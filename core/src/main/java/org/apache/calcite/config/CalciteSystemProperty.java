@@ -251,7 +251,7 @@ public final class CalciteSystemProperty<T> {
   // calcite.test.foodmart.queries.ids. Moreover, I am not in favor of using system properties for
   // parameterized tests.
   public static final CalciteSystemProperty<@Nullable String> TEST_FOODMART_QUERY_IDS =
-      new CalciteSystemProperty<>("calcite.ids", Function.identity());
+      new CalciteSystemProperty<>("calcite.ids", Function.<@Nullable String>identity());
 
   /**
    * Whether the optimizer will consider adding converters of infinite cost in

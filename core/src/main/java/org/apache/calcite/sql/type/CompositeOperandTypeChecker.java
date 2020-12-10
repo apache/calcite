@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -86,7 +87,9 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Instance fields --------------------------------------------------------
 
-  protected final ImmutableList<? extends SqlOperandTypeChecker> allowedRules;
+  // It is not clear if @UnknownKeyFor is needed here or not, however, checkerframework inference
+  // fails otherwise, see https://github.com/typetools/checker-framework/issues/4048
+  protected final ImmutableList<@UnknownKeyFor ? extends SqlOperandTypeChecker> allowedRules;
   protected final Composition composition;
   private final @Nullable String allowedSignatures;
 
@@ -381,9 +384,10 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public @Nullable SqlOperandTypeInference typeInference() {
     if (composition == Composition.REPEAT) {
-      if (Iterables.getOnlyElement(allowedRules) instanceof SqlOperandTypeInference) {
+      SqlOperandTypeChecker checker = Iterables.getOnlyElement(allowedRules);
+      if (checker instanceof SqlOperandTypeInference) {
         final SqlOperandTypeInference rule =
-            (SqlOperandTypeInference) Iterables.getOnlyElement(allowedRules);
+            (SqlOperandTypeInference) checker;
         return (callBinding, returnType, operandTypes) -> {
           for (int i = 0; i < callBinding.getOperandCount(); i++) {
             final RelDataType[] operandTypes0 = new RelDataType[1];
