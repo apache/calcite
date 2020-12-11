@@ -155,7 +155,7 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
     assert refType.isStruct();
     final RelDataTypeField field = fieldAccess.getField();
     final int index = field.getIndex();
-    if ((index < 0) || (index > refType.getFieldList().size())) {
+    if ((index < 0) || (index >= refType.getFieldList().size())) {
       ++failCount;
       return litmus.fail(null);
     }
