@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
@@ -28,6 +30,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -41,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -51,6 +55,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -735,4 +740,46 @@ class RexBuilderTest {
         literal.getValueAs(BigDecimal.class).toString(), is(val));
   }
 
+  @Test void testValidateRexFieldAccess() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType longType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+
+    RelDataType structType = typeFactory.createStructType(
+        Arrays.asList(intType, longType), Arrays.asList("x", "y"));
+    RexInputRef inputRef = builder.makeInputRef(structType, 0);
+
+    // construct RexFieldAccess fails because of negative index
+    IllegalArgumentException e1 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", -1, intType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e1.getMessage(),
+        is("Field #-1: z INTEGER does not exist for expression $0"));
+
+    // construct RexFieldAccess fails because of too large index
+    IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", 2, intType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e2.getMessage(),
+        is("Field #2: z INTEGER does not exist for expression $0"));
+
+    // construct RexFieldAccess fails because of incorrect type
+    IllegalArgumentException e3 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", 0, longType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e3.getMessage(),
+        is("Field #0: z BIGINT does not exist for expression $0"));
+
+    // construct RexFieldAccess successfully
+    RelDataTypeField field = new RelDataTypeFieldImpl("x", 0, intType);
+    RexFieldAccess fieldAccess = new RexFieldAccess(inputRef, field);
+    RexChecker checker = new RexChecker(structType, () -> null, Litmus.THROW);
+    assertThat(fieldAccess.accept(checker), is(true));
+  }
 }
