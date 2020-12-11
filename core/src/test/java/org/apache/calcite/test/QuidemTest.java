@@ -80,15 +80,6 @@ public abstract class QuidemTest {
         }
         return null;
       };
-    case "allow":
-      // Quidem requires a Java 8 function
-      return (Function<String, Object>) v -> {
-        switch (v) {
-        case "fieldIndexAccess":
-          return CalciteSystemProperty.ALLOW_FIELD_INDEX_ACCESS.value();
-        }
-        return null;
-      };
     default:
       return null;
     }

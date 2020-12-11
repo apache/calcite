@@ -676,8 +676,6 @@ allprojects {
                 passProperty("junit.jupiter.execution.timeout.default", "5 m")
                 passProperty("user.language", "TR")
                 passProperty("user.country", "tr")
-                // For better test coverage field index access should be enabled.
-                passProperty("calcite.enable.enumerable.fieldIndexAccess", "true")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
                     if (e.startsWith("calcite.") || e.startsWith("avatica.")) {
