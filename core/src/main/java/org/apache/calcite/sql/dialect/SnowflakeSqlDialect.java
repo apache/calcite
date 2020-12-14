@@ -262,6 +262,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+    return ((SqlBasicCall) aggCall).operand(0);
+  }
+
 }
 
 // End SnowflakeSqlDialect.java
