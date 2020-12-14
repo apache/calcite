@@ -114,7 +114,7 @@ public enum SqlTypeName {
   MAP(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.MAP),
   DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
   STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
-  ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
+  ROW(PrecScale.NO_NO, false, Types.STRUCT, SqlTypeFamily.ARRAY),
   OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
   CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
       SqlTypeFamily.CURSOR),
