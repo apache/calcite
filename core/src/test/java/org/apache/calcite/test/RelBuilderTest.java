@@ -807,7 +807,7 @@ public class RelBuilderTest {
             .empty()
             .project(
                 rex.makeLiteral(value,
-                    rex.getTypeFactory().createSqlType(sqlTypeName), false))
+                    rex.getTypeFactory().createSqlType(sqlTypeName)))
             .build();
     assertThat(message, actual, hasTree(expected));
   }

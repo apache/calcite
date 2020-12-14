@@ -2189,9 +2189,9 @@ class RexProgramTest extends RexProgramTestBase {
     literals.add(rexBuilder.makeLiteral("1969-07-20 12:34:56"));
     literals.add(rexBuilder.makeLiteral("1969-07-20"));
     literals.add(rexBuilder.makeLiteral("12:34:45"));
-    literals.add((RexLiteral)
+    literals.add(
         rexBuilder.makeLiteral(new ByteString(new byte[] {1, 2, -34, 0, -128}),
-            typeFactory.createSqlType(SqlTypeName.BINARY, 5), false));
+            typeFactory.createSqlType(SqlTypeName.BINARY, 5)));
     literals.add(rexBuilder.makeDateLiteral(new DateString(1974, 8, 9)));
     literals.add(rexBuilder.makeTimeLiteral(new TimeString(1, 23, 45), 0));
     literals.add(

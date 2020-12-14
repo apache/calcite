@@ -411,8 +411,8 @@ public class SubQueryRemoveRule
         .map(builder::isNull)
         .collect(Collectors.toList());
 
-    final RexLiteral trueLiteral = (RexLiteral) builder.literal(true);
-    final RexLiteral falseLiteral = (RexLiteral) builder.literal(false);
+    final RexLiteral trueLiteral = builder.literal(true);
+    final RexLiteral falseLiteral = builder.literal(false);
     final RexLiteral unknownLiteral =
         builder.getRexBuilder().makeNullLiteral(trueLiteral.getType());
     if (allLiterals) {

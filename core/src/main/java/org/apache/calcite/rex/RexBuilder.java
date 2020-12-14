@@ -1450,10 +1450,10 @@ public class RexBuilder {
    * </ul>
    *
    * @param type      Type
-   * @return Simple literal, or cast simple literal
+   * @return Simple literal
    */
-  public RexNode makeZeroLiteral(RelDataType type) {
-    return makeLiteral(zeroValue(type), type, false);
+  public RexLiteral makeZeroLiteral(RelDataType type) {
+    return makeLiteral(zeroValue(type), type);
   }
 
   private static Comparable zeroValue(RelDataType type) {
@@ -1488,6 +1488,18 @@ public class RexBuilder {
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
+  }
+
+  /**
+   * Creates a literal of a given type, padding values of constant-width
+   * types to match their type, not allowing casts.
+   *
+   * @param value     Value
+   * @param type      Type
+   * @return Simple literal
+   */
+  public RexLiteral makeLiteral(@Nullable Object value, RelDataType type) {
+    return (RexLiteral) makeLiteral(value, type, false, false);
   }
 
   /**
@@ -1534,8 +1546,11 @@ public class RexBuilder {
     if (type.isNullable()) {
       final RelDataType typeNotNull =
           typeFactory.createTypeWithNullability(type, false);
-      RexNode literalNotNull = makeLiteral(value, typeNotNull, allowCast);
-      return makeAbstractCast(type, literalNotNull);
+      if (allowCast) {
+        RexNode literalNotNull = makeLiteral(value, typeNotNull, allowCast);
+        return makeAbstractCast(type, literalNotNull);
+      }
+      type = typeNotNull;
     }
     value = clean(value, type);
     RexLiteral literal;

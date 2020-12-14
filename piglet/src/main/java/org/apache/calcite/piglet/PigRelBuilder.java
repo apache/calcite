@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -570,10 +571,10 @@ public class PigRelBuilder extends RelBuilder {
     return super.dot(node, (String) field);
   }
 
-  public RexNode literal(Object value, RelDataType type) {
+  public RexLiteral literal(Object value, RelDataType type) {
     if (value instanceof Tuple) {
       assert type.isStruct();
-      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type, false);
+      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type);
     }
 
     if (value instanceof DataBag) {
@@ -582,9 +583,9 @@ public class PigRelBuilder extends RelBuilder {
       for (Tuple tuple : (DataBag) value) {
         multisetObj.add(tuple.getAll());
       }
-      return getRexBuilder().makeLiteral(multisetObj, type, false);
+      return getRexBuilder().makeLiteral(multisetObj, type);
     }
-    return getRexBuilder().makeLiteral(value, type, false);
+    return getRexBuilder().makeLiteral(value, type);
   }
 
   /**

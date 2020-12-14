@@ -898,7 +898,7 @@ public abstract class SqlImplementor {
         final RangeSets.Consumer<C> consumer =
             new RangeToSql<>(operandSql, orList, v ->
                 toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type, false)));
+                    implementor().rexBuilder.makeLiteral(v, type)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);

@@ -185,7 +185,8 @@ public class RexFuzzer extends RexProgramBuilderBase {
     case 1: {
       int i = r.nextInt(INT_VALUES.length + 1);
       int val = i < INT_VALUES.length ? INT_VALUES[i] : r.nextInt();
-      return rexBuilder.makeLiteral(val, r.nextBoolean() ? intType : nullableIntType, false);
+      return rexBuilder.makeLiteral(val,
+          r.nextBoolean() ? intType : nullableIntType);
     }
     case 2:
       return nullInt;

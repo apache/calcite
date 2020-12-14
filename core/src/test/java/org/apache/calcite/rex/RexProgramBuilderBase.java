@@ -474,7 +474,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexLiteral literal(boolean value) {
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableBool, false);
+    return rexBuilder.makeLiteral(value, nonNullableBool);
   }
 
   protected RexLiteral literal(Boolean value) {
@@ -485,7 +485,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexLiteral literal(int value) {
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableInt, false);
+    return rexBuilder.makeLiteral(value, nonNullableInt);
   }
 
   protected RexLiteral literal(BigDecimal value) {
@@ -507,8 +507,7 @@ public abstract class RexProgramBuilderBase {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableVarchar);
     }
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableVarchar,
-        false);
+    return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
   // Variables

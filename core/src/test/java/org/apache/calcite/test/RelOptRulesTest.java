@@ -88,6 +88,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
@@ -3512,9 +3513,9 @@ class RelOptRulesTest extends RelOptTestBase {
     RelNode left = relBuilder
         .values(new String[]{"x", "y"}, 1, 2).build();
     RexNode ref = rexBuilder.makeInputRef(left, 0);
-    RexNode literal1 = rexBuilder.makeLiteral(1, type, false);
-    RexNode literal2 = rexBuilder.makeLiteral(2, type, false);
-    RexNode literal3 = rexBuilder.makeLiteral(3, type, false);
+    RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
+    RexLiteral literal2 = rexBuilder.makeLiteral(2, type);
+    RexLiteral literal3 = rexBuilder.makeLiteral(3, type);
 
     // CASE WHEN x % 2 = 1 THEN x < 2
     //      WHEN x % 3 = 2 THEN x < 1

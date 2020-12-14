@@ -615,7 +615,7 @@ public class RelJson {
         if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
         }
-        return rexBuilder.makeLiteral(literal, type, false);
+        return rexBuilder.makeLiteral(literal, type);
       }
       throw new UnsupportedOperationException("cannot convert to rex " + o);
     } else if (o instanceof Boolean) {

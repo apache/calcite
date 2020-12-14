@@ -398,7 +398,7 @@ public class RelBuilder {
   // Methods that return scalar expressions
 
   /** Creates a literal (constant expression). */
-  public RexNode literal(@Nullable Object value) {
+  public RexLiteral literal(@Nullable Object value) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (value == null) {
       final RelDataType type = getTypeFactory().createSqlType(SqlTypeName.NULL);
@@ -417,7 +417,7 @@ public class RelBuilder {
       return rexBuilder.makeLiteral((String) value);
     } else if (value instanceof Enum) {
       return rexBuilder.makeLiteral(value,
-          getTypeFactory().createSqlType(SqlTypeName.SYMBOL), false);
+          getTypeFactory().createSqlType(SqlTypeName.SYMBOL));
     } else {
       throw new IllegalArgumentException("cannot convert " + value
           + " (" + value.getClass() + ") to a constant");
@@ -2573,7 +2573,7 @@ public class RelBuilder {
     final List<RexLiteral> valueList = new ArrayList<>();
     for (int i = 0; i < values.length; i++) {
       Object value = values[i];
-      valueList.add((RexLiteral) literal(value));
+      valueList.add(literal(value));
       if ((i + 1) % columnCount == 0) {
         listBuilder.add(ImmutableList.copyOf(valueList));
         valueList.clear();

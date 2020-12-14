@@ -1694,8 +1694,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexNode value = exprs.get(0);
       final RexNode start = exprs.get(1);
       final RelDataType startType = start.getType();
-      final RexNode zeroLiteral = rexBuilder.makeLiteral(0, startType, false);
-      final RexNode oneLiteral = rexBuilder.makeLiteral(1, startType, false);
+      final RexLiteral zeroLiteral = rexBuilder.makeLiteral(0, startType);
+      final RexLiteral oneLiteral = rexBuilder.makeLiteral(1, startType);
       final RexNode valueLength =
           SqlTypeUtil.isBinary(value.getType())
               ? rexBuilder.makeCall(SqlStdOperatorTable.OCTET_LENGTH, value)
