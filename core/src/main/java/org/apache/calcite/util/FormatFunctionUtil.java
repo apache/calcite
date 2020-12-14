@@ -110,7 +110,7 @@ public class FormatFunctionUtil {
       modifiedOperand = StringUtils.repeat("9", patternRepeatNumber);
       int decimalValue = Integer.valueOf(modifiedOperandArry[1]);
       modifiedOperand += "." + StringUtils.repeat("0", decimalValue);
-      if (modifiedOperandForSF != null) {
+      if (null != modifiedOperandForSF) {
         modifiedOperand = modifiedOperandForSF;
       }
     } else if (call.operand(0).toString().contains("d")) {
