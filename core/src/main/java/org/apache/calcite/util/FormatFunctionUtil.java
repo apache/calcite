@@ -69,6 +69,8 @@ public class FormatFunctionUtil {
       modifiedOperand = call.operand(1).toString()
           .replaceAll("[0-9]", "9")
           .replaceAll("'", "");
+    } else if (call.operand(0).toString().contains("d")) {
+      modifiedOperand = getModifiedLiteralOperandForInteger(call);
     } else {
       int firstOperand = Integer.valueOf(call.operand(0).toString()
           .replaceAll("[^0-9]", "")) - 1;
@@ -85,18 +87,26 @@ public class FormatFunctionUtil {
 
   private SqlNode[] handleColumnOperand(SqlCall call) {
     String modifiedOperand;
+    String modifiedOperandForSF = null;
     SqlNode[] sqlNode;
     if (call.operand(0).toString().contains(".")) {
       modifiedOperand = call.operand(0).toString()
           .replaceAll("%|f|'", "");
       String[] modifiedOperandArry = modifiedOperand.split("\\.");
       int patternRepeatNumber = Integer.valueOf(modifiedOperandArry[0]) - 1;
-      if (Integer.valueOf(modifiedOperandArry[1]) != 0) {
+      if (modifiedOperandArry[1].contains("E")) {
+        modifiedOperandForSF = getModifiedOperandForFloat(modifiedOperandArry);
+      } else if (Integer.valueOf(modifiedOperandArry[1]) != 0) {
         patternRepeatNumber = patternRepeatNumber - 1 - Integer.valueOf(modifiedOperandArry[1]);
       }
       modifiedOperand = StringUtils.repeat("9", patternRepeatNumber);
       int decimalValue = Integer.valueOf(modifiedOperandArry[1]);
       modifiedOperand += "." + StringUtils.repeat("0", decimalValue);
+      if (null != modifiedOperandForSF) {
+        modifiedOperand = modifiedOperandForSF;
+      }
+    } else if (call.operand(0).toString().contains("d")) {
+      modifiedOperand = getModifiedOperandForInteger(call);
     } else {
       int intValue = Integer.valueOf(call.operand(0).toString()
           .replaceAll("[^0-9]", ""));
@@ -107,6 +117,42 @@ public class FormatFunctionUtil {
         SqlLiteral.createCharString(modifiedOperand.trim(),
             SqlParserPos.ZERO)};
     return sqlNode;
+  }
+
+  private String getModifiedLiteralOperandForInteger(SqlCall call) {
+    int firstOperand = Integer.valueOf(call.operand(0).toString()
+            .replaceAll("[^0-9]", "")) - 1;
+    String modifiedString = call.operand(0).toString()
+            .replaceAll("[^0-9]", "");
+    String modifiedOperand;
+    if (modifiedString.charAt(0) == '0') {
+      modifiedOperand = "FM" + StringUtils.repeat("0", firstOperand + 1);
+    } else {
+      modifiedOperand = StringUtils.repeat("9", firstOperand);
+    }
+    return  modifiedOperand;
+  }
+
+  private String getModifiedOperandForInteger(SqlCall call) {
+    String modifiedOperand = call.operand(0).toString()
+            .replaceAll("[^0-9]", "");
+    String[] modifiedOperandArry = modifiedOperand.split(",");
+    int patternRepeatNumber = Integer.valueOf(modifiedOperandArry[0]);
+    if (modifiedOperand.charAt(0) == '0') {
+      modifiedOperand = "FM" + StringUtils.repeat("0", patternRepeatNumber);
+    } else {
+      modifiedOperand = StringUtils.repeat("9", patternRepeatNumber - 1);
+    }
+    return modifiedOperand;
+  }
+
+  private String getModifiedOperandForFloat(String[] modifiedOperandArry) {
+    modifiedOperandArry[1] = modifiedOperandArry[1].replaceAll("E", "");
+    int secondValue = Integer.valueOf(modifiedOperandArry[1]);
+    int firstValue = Integer.valueOf(modifiedOperandArry[0]);
+    String modifiedOperand = StringUtils.repeat("0", firstValue) + "d"
+            + StringUtils.repeat("0", secondValue) + StringUtils.repeat("E", 5);
+    return modifiedOperand;
   }
 }
 

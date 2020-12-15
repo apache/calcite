@@ -993,6 +993,8 @@ public class SqlFunctionsTest {
   @Test public void testFormat() {
     assertThat(format("%4d", 23), is("  23"));
     assertThat(format("%4.1f", 1.5), is(" 1.5"));
+    assertThat(format("%1.14E", 177.5879), is("1.77587900000000E+02"));
+    assertThat(format("%05d", 1879), is("01879"));
   }
 
   /** Test for {@link SqlFunctions#toVarchar}. */
