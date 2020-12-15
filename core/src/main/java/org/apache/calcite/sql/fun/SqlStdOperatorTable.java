@@ -2079,7 +2079,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The item operator {@code [ ... ]}, used to access a given element of an
-   * array or map. For example, {@code myArray[3]} or {@code "myMap['foo']"}.
+   * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
+   * {@code myStruct[2]} or {@code myStruct['fieldName']}.
    *
    * <p>The SQL standard calls the ARRAY variant a
    * &lt;array element reference&gt;. Index is 1-based. The standard says
