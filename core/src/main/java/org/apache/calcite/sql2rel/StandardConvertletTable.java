@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -860,6 +861,29 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             : operandTypeChecker.getConsistency();
     final List<RexNode> exprs = convertOperands(cx, call, consistency);
     RelDataType type = rexBuilder.deriveReturnType(op, exprs);
+
+    //generate relation for `=(Row1,Row2)`
+    if (op.kind == SqlKind.EQUALS) {
+      RexNode expr0 = RexUtil.removeCast(exprs.get(0));
+      RexNode expr1 = RexUtil.removeCast(exprs.get(1));
+      SqlKind expr0Kind = expr0.getKind();
+      SqlKind expr1Kind = expr1.getKind();
+      if (expr0Kind == SqlKind.ROW && expr1Kind == SqlKind.ROW) {
+        RexCall call0 = (RexCall) expr0;
+        RexCall call1 = (RexCall) expr1;
+        int cmpCount = call0.getOperands().size();
+        ImmutableList.Builder<RexNode> compareBuilder = ImmutableList.builder();
+        for (int i = 0; i < cmpCount; i += 1) {
+          RexNode cmp = rexBuilder.makeCall(type, op,
+              FlatLists.of(
+                  call0.getOperands().get(i),
+                  call1.getOperands().get(i))
+          );
+          compareBuilder.add(cmp);
+        }
+        return rexBuilder.makeCall(type, SqlStdOperatorTable.AND, compareBuilder.build());
+      }
+    }
     return rexBuilder.makeCall(type, op, RexUtil.flatten(exprs, op));
   }
 
