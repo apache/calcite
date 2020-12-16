@@ -35,6 +35,8 @@
 !/.idea/icon.png
 !/.idea/vcs.xml
 *.iml
+*.ipr
+*.iws
 
 settings.xml
 .classpath.txt
