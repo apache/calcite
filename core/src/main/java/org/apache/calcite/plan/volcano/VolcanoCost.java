@@ -97,24 +97,25 @@ class VolcanoCost implements RelOptCost {
     return io;
   }
 
-  @Override public boolean isLe(RelOptCost other) {
-    VolcanoCost that = (VolcanoCost) other;
-    if (true) {
-      return this == that
-          || this.rowCount <= that.rowCount;
+  int compare(VolcanoCost other) {
+    if (this.rowCount != other.rowCount) {
+      return Double.compare(this.rowCount, other.rowCount);
     }
-    return (this == that)
-        || ((this.rowCount <= that.rowCount)
-        && (this.cpu <= that.cpu)
-        && (this.io <= that.io));
+    return Double.compare(this.cpu, other.cpu);
+  }
+
+  @Override public boolean isLe(RelOptCost other) {
+    if (this == other) {
+      return true;
+    }
+    return other instanceof VolcanoCost && this.compare((VolcanoCost) other) <= 0;
   }
 
   @Override public boolean isLt(RelOptCost other) {
-    if (true) {
-      VolcanoCost that = (VolcanoCost) other;
-      return this.rowCount < that.rowCount;
+    if (this == other) {
+      return false;
     }
-    return isLe(other) && !equals(other);
+    return other instanceof VolcanoCost && this.compare((VolcanoCost) other) < 0;
   }
 
   @Override public double getRows() {

@@ -233,8 +233,8 @@ EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL
       EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
         EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
           EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
@@ -262,13 +262,13 @@ LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$
       <![CDATA[
 EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
   EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
         EnumerableLimit(fetch=[100])
           EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
@@ -323,8 +323,8 @@ LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
-  EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+EnumerableSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
     EnumerableLimit(fetch=[10])
       EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -378,8 +378,8 @@ LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  EnumerableSort(sort0=[$6], sort1=[$8], dir0=[ASC], dir1=[ASC])
+EnumerableSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     EnumerableLimit(fetch=[10])
       EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -851,8 +851,8 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
   EnumerableHashJoin(condition=[AND(=($0, $10), =($3, $11))], joinType=[left])
-    EnumerableSort(sort0=[$1], dir0=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+    EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      EnumerableSort(sort0=[$1], dir0=[DESC])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
     EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
@@ -1117,8 +1117,8 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
   EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-    EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+    EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
     EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
@@ -1147,8 +1147,8 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
   EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-    EnumerableSort(sort0=[$1], dir0=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+    EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      EnumerableSort(sort0=[$1], dir0=[DESC])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
     EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
@@ -1365,8 +1365,8 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
   EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], batchSize=[100])
-    EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+    EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
     EnumerableFilter(condition=[OR(AND(>($cor0.CONTACTNO, $0), <($cor0.EMAIL, $1)), AND(>($cor1.CONTACTNO, $0), <($cor1.EMAIL, $1)), AND(>($cor2.CONTACTNO, $0), <($cor2.EMAIL, $1)), AND(>($cor3.CONTACTNO, $0), <($cor3.EMAIL, $1)), AND(>($cor4.CONTACTNO, $0), <($cor4.EMAIL, $1)), AND(>($cor5.CONTACTNO, $0), <($cor5.EMAIL, $1)), AND(>($cor6.CONTACTNO, $0), <($cor6.EMAIL, $1)), AND(>($cor7.CONTACTNO, $0), <($cor7.EMAIL, $1)), AND(>($cor8.CONTACTNO, $0), <($cor8.EMAIL, $1)), AND(>($cor9.CONTACTNO, $0), <($cor9.EMAIL, $1)), AND(>($cor10.CONTACTNO, $0), <($cor10.EMAIL, $1)), AND(>($cor11.CONTACTNO, $0), <($cor11.EMAIL, $1)), AND(>($cor12.CONTACTNO, $0), <($cor12.EMAIL, $1)), AND(>($cor13.CONTACTNO, $0), <($cor13.EMAIL, $1)), AND(>($cor14.CONTACTNO, $0), <($cor14.EMAIL, $1)), AND(>($cor15.CONTACTNO, $0), <($cor15.EMAIL, $1)), AND(>($cor16.CONTACTNO, $0), <($cor16.EMAIL, $1)), AND(>($cor17.CONTACTNO, $0), <($cor17.EMAIL, $1)), AND(>($cor18.CONTACTNO, $0), <($cor18.EMAIL, $1)), AND(>($cor19.CONTACTNO, $0), <($cor19.EMAIL, $1)), AND(>($cor20.CONTACTNO, $0), <($cor20.EMAIL, $1)), AND(>($cor21.CONTACTNO, $0), <($cor21.EMAIL, $1)), AND(>($cor22.CONTACTNO, $0), <($cor22.EMAIL, $1)), AND(>($cor23.CONTACTNO, $0), <($cor23.EMAIL, $1)), AND(>($cor24.CONTACTNO, $0), <($cor24.EMAIL, $1)), AND(>($cor25.CONTACTNO, $0), <($cor25.EMAIL, $1)), AND(>($cor26.CONTACTNO, $0), <($cor26.EMAIL, $1)), AND(>($cor27.CONTACTNO, $0), <($cor27.EMAIL, $1)), AND(>($cor28.CONTACTNO, $0), <($cor28.EMAIL, $1)), AND(>($cor29.CONTACTNO, $0), <($cor29.EMAIL, $1)), AND(>($cor30.CONTACTNO, $0), <($cor30.EMAIL, $1)), AND(>($cor31.CONTACTNO, $0), <($cor31.EMAIL, $1)), AND(>($cor32.CONTACTNO, $0), <($cor32.EMAIL, $1)), AND(>($cor33.CONTACTNO, $0), <($cor33.EMAIL, $1)), AND(>($cor34.CONTACTNO, $0), <($cor34.EMAIL, $1)), AND(>($cor35.CONTACTNO, $0), <($cor35.EMAIL, $1)), AND(>($cor36.CONTACTNO, $0), <($cor36.EMAIL, $1)), AND(>($cor37.CONTACTNO, $0), <($cor37.EMAIL, $1)), AND(>($cor38.CONTACTNO, $0), <($cor38.EMAIL, $1)), AND(>($cor39.CONTACTNO, $0), <($cor39.EMAIL, $1)), AND(>($cor40.CONTACTNO, $0), <($cor40.EMAIL, $1)), AND(>($cor41.CONTACTNO, $0), <($cor41.EMAIL, $1)), AND(>($cor42.CONTACTNO, $0), <($cor42.EMAIL, $1)), AND(>($cor43.CONTACTNO, $0), <($cor43.EMAIL, $1)), AND(>($cor44.CONTACTNO, $0), <($cor44.EMAIL, $1)), AND(>($cor45.CONTACTNO, $0), <($cor45.EMAIL, $1)), AND(>($cor46.CONTACTNO, $0), <($cor46.EMAIL, $1)), AND(>($cor47.CONTACTNO, $0), <($cor47.EMAIL, $1)), AND(>($cor48.CONTACTNO, $0), <($cor48.EMAIL, $1)), AND(>($cor49.CONTACTNO, $0), <($cor49.EMAIL, $1)), AND(>($cor50.CONTACTNO, $0), <($cor50.EMAIL, $1)), AND(>($cor51.CONTACTNO, $0), <($cor51.EMAIL, $1)), AND(>($cor52.CONTACTNO, $0), <($cor52.EMAIL, $1)), AND(>($cor53.CONTACTNO, $0), <($cor53.EMAIL, $1)), AND(>($cor54.CONTACTNO, $0), <($cor54.EMAIL, $1)), AND(>($cor55.CONTACTNO, $0), <($cor55.EMAIL, $1)), AND(>($cor56.CONTACTNO, $0), <($cor56.EMAIL, $1)), AND(>($cor57.CONTACTNO, $0), <($cor57.EMAIL, $1)), AND(>($cor58.CONTACTNO, $0), <($cor58.EMAIL, $1)), AND(>($cor59.CONTACTNO, $0), <($cor59.EMAIL, $1)), AND(>($cor60.CONTACTNO, $0), <($cor60.EMAIL, $1)), AND(>($cor61.CONTACTNO, $0), <($cor61.EMAIL, $1)), AND(>($cor62.CONTACTNO, $0), <($cor62.EMAIL, $1)), AND(>($cor63.CONTACTNO, $0), <($cor63.EMAIL, $1)), AND(>($cor64.CONTACTNO, $0), <($cor64.EMAIL, $1)), AND(>($cor65.CONTACTNO, $0), <($cor65.EMAIL, $1)), AND(>($cor66.CONTACTNO, $0), <($cor66.EMAIL, $1)), AND(>($cor67.CONTACTNO, $0), <($cor67.EMAIL, $1)), AND(>($cor68.CONTACTNO, $0), <($cor68.EMAIL, $1)), AND(>($cor69.CONTACTNO, $0), <($cor69.EMAIL, $1)), AND(>($cor70.CONTACTNO, $0), <($cor70.EMAIL, $1)), AND(>($cor71.CONTACTNO, $0), <($cor71.EMAIL, $1)), AND(>($cor72.CONTACTNO, $0), <($cor72.EMAIL, $1)), AND(>($cor73.CONTACTNO, $0), <($cor73.EMAIL, $1)), AND(>($cor74.CONTACTNO, $0), <($cor74.EMAIL, $1)), AND(>($cor75.CONTACTNO, $0), <($cor75.EMAIL, $1)), AND(>($cor76.CONTACTNO, $0), <($cor76.EMAIL, $1)), AND(>($cor77.CONTACTNO, $0), <($cor77.EMAIL, $1)), AND(>($cor78.CONTACTNO, $0), <($cor78.EMAIL, $1)), AND(>($cor79.CONTACTNO, $0), <($cor79.EMAIL, $1)), AND(>($cor80.CONTACTNO, $0), <($cor80.EMAIL, $1)), AND(>($cor81.CONTACTNO, $0), <($cor81.EMAIL, $1)), AND(>($cor82.CONTACTNO, $0), <($cor82.EMAIL, $1)), AND(>($cor83.CONTACTNO, $0), <($cor83.EMAIL, $1)), AND(>($cor84.CONTACTNO, $0), <($cor84.EMAIL, $1)), AND(>($cor85.CONTACTNO, $0), <($cor85.EMAIL, $1)), AND(>($cor86.CONTACTNO, $0), <($cor86.EMAIL, $1)), AND(>($cor87.CONTACTNO, $0), <($cor87.EMAIL, $1)), AND(>($cor88.CONTACTNO, $0), <($cor88.EMAIL, $1)), AND(>($cor89.CONTACTNO, $0), <($cor89.EMAIL, $1)), AND(>($cor90.CONTACTNO, $0), <($cor90.EMAIL, $1)), AND(>($cor91.CONTACTNO, $0), <($cor91.EMAIL, $1)), AND(>($cor92.CONTACTNO, $0), <($cor92.EMAIL, $1)), AND(>($cor93.CONTACTNO, $0), <($cor93.EMAIL, $1)), AND(>($cor94.CONTACTNO, $0), <($cor94.EMAIL, $1)), AND(>($cor95.CONTACTNO, $0), <($cor95.EMAIL, $1)), AND(>($cor96.CONTACTNO, $0), <($cor96.EMAIL, $1)), AND(>($cor97.CONTACTNO, $0), <($cor97.EMAIL, $1)), AND(>($cor98.CONTACTNO, $0), <($cor98.EMAIL, $1)), AND(>($cor99.CONTACTNO, $0), <($cor99.EMAIL, $1)))])
       EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
@@ -1538,13 +1538,13 @@ LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$
       <![CDATA[
 EnumerableCalc(expr#0..7=[{inputs}], proj#0..6=[{exprs}])
   EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):VARCHAR NOT NULL], expr#4=[1], expr#5=[+($t2, $t4)], ENAME=[$t0], JOB=[$t3], EXPR$2=[$t5])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):VARCHAR NOT NULL], expr#4=[1], expr#5=[+($t2, $t4)], ENAME=[$t0], JOB=[$t3], EXPR$2=[$t5])
         EnumerableLimit(fetch=[100])
           EnumerableCalc(expr#0..8=[{inputs}], ENAME=[$t1], JOB=[$t2], SAL=[$t5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR NOT NULL], proj#0..4=[{exprs}])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR NOT NULL], proj#0..4=[{exprs}])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
