@@ -36,11 +36,8 @@ public interface ArrowRel extends RelNode {
   Convention CONVENTION = new Convention.Impl("ARROW", ArrowRel.class);
 
   class Implementor {
-    final Map<String, String> selectFields = new LinkedHashMap<>();
+    final List<Integer> selectFields = new ArrayList<>();
     final List<String> whereClause = new ArrayList<>();
-    int offset = 0;
-    int fetch = -1;
-    final List<String> order = new ArrayList<>();
 
     RelOptTable table;
     ArrowTable arrowTable;
@@ -50,17 +47,15 @@ public interface ArrowRel extends RelNode {
      * @param fields New fields to be projected from a query
      * @param predicates New predicates to be applied to the query
      */
-    public void add(Map<String, String> fields, List<String> predicates) {
+    public void add(int[] fields, List<String> predicates) {
       if (fields != null) {
-        selectFields.putAll(fields);
+        for (int field : fields) {
+          selectFields.add(field);
+        }
       }
       if (predicates != null) {
         whereClause.addAll(predicates);
       }
-    }
-
-    public void addOrder(List<String> newOrder) {
-      order.addAll(newOrder);
     }
 
     public void visitChild(int ordinal, RelNode input) {

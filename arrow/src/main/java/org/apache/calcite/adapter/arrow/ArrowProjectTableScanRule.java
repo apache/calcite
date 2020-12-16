@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -41,21 +43,19 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
 
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
-    final ArrowTableScan scan = call.rel(1);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
       // Project contains expressions more complex than just field references.
       return;
     }
+    final RelTraitSet traitSet = project.getTraitSet().replace(ArrowRel.CONVENTION);
+
     call.transformTo(
-        new ArrowTableScan(
-            scan.getCluster(),
-            scan.getTable(),
-            scan.arrowTable,
-            fields,
-            null,
-            -1,
-            null));
+        new ArrowProject(
+          project.getCluster(),
+          traitSet,
+          convert(project.getInput(), ArrowRel.CONVENTION),
+          project.getProjects(), project.getRowType()));
   }
 
   private int[] getProjectFields(List<RexNode> exps) {
@@ -73,11 +73,11 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
 
   /** Rule configuration. */
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    ArrowProjectTableScanRule.Config DEFAULT = EMPTY
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(ArrowTableScan.class).noInputs()))
-        .as(Config.class);
+        .as(ArrowProjectTableScanRule.Config.class);
 
     @Override default ArrowProjectTableScanRule toRule() {
       return new ArrowProjectTableScanRule(this);

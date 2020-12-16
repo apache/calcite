@@ -17,15 +17,24 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Pair;
 
+import java.util.List;
 
+/**
+ * ArrowFilterTableScanRule.
+ */
 public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.Config> {
 
   protected ArrowFilterTableScanRule(Config config) {
@@ -43,15 +52,21 @@ public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.C
     RexNode left = rexCall.getOperands().get(0);
     RexNode right = rexCall.getOperands().get(1);
 
-    call.transformTo(
-        new ArrowTableScan(
-            scan.getCluster(),
-            scan.getTable(),
-            scan.arrowTable,
-            fields,
-            operator,
-            ((RexInputRef) left).getIndex(),
-            ((RexLiteral) right).getValue2()));
+    if (filter.getTraitSet().contains(Convention.NONE)) {
+      final RelNode converted = convert(filter);
+      if (converted != null) {
+        call.transformTo(converted);
+      }
+    }
+  }
+
+  RelNode convert(LogicalFilter filter) {
+    final RelTraitSet traitSet = filter.getTraitSet().replace(ArrowRel.CONVENTION);
+    return new ArrowFilter(
+        filter.getCluster(),
+        traitSet,
+        convert(filter.getInput(), ArrowRel.CONVENTION),
+        filter.getCondition());
   }
 
   /** Rule configuration. */

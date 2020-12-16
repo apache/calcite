@@ -38,8 +38,10 @@ public class ArrowFilter extends Filter implements ArrowRel {
       RexNode condition) {
     super(cluster, traitSet, child, condition);
 
-    Translator translator = new Translator(getRowType());
+//    Translator translator = new Translator(getRowType());
 //    this.match = translator.translateMatch(condition);
+//    assert getConvention() == ArrowRel.CONVENTION;
+//    assert getConvention() == child.getConvention();
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
@@ -51,8 +53,10 @@ public class ArrowFilter extends Filter implements ArrowRel {
   }
 
   public void implement(Implementor implementor) {
+    System.out.println("1");
     implementor.visitChild(0, getInput());
-    implementor.add(null, Collections.singletonList(match));
+    int[] f = {1,2,3};
+    implementor.add(f, Collections.singletonList(match));
   }
 
   static class Translator {
@@ -63,24 +67,6 @@ public class ArrowFilter extends Filter implements ArrowRel {
       this.rowType = rowType;
       this.fieldNames = ArrowRules.arrowFieldNames(rowType);
     }
-
-//    private String translateMatch(RexNode condition) {
-//      // CQL does not support disjunctions
-//      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
-//      if (disjunctions.size() == 1) {
-//        return translateAnd(disjunctions.get(0));
-//      } else {
-//        throw new AssertionError("cannot translate " + condition);
-//      }
-//    }
-
-//    private String translateAnd(RexNode condition) {
-//      List<String> predicates = new ArrayList<>();
-//      for (RexNode node : RelOptUtil.conjunctions(condition)) {
-////        predicates.add(translateMatch2(node));
-//      }
-//      return Util.toString(predicates, "", " AND ", "");
-//    }
 
   }
 }
