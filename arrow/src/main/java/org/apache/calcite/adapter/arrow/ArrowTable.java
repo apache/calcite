@@ -37,6 +37,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -140,8 +141,9 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = ArrowEnumerator.identityList(fieldCount);
-    return new ArrowTableScan(context.getCluster(), relOptTable, this, fields,
-        null, -1, null);
+    final RelOptCluster cluster = context.getCluster();
+    return new ArrowTableScan(cluster, cluster.traitSetOf(ArrowRel.CONVENTION), relOptTable,
+        this, fields);
   }
 
   private RelDataType deduceRowType(Schema schema, JavaTypeFactory typeFactory) {

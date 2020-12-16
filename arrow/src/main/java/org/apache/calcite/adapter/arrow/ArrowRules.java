@@ -34,6 +34,10 @@ public class ArrowRules {
   public static final ArrowFilterTableScanRule FILTER_SCAN =
       ArrowFilterTableScanRule.Config.DEFAULT.toRule();
 
+  public static final ArrowToEnumerableConverterRule TO_ENUMERABLE =
+      ArrowToEnumerableConverterRule.DEFAULT_CONFIG
+          .toRule(ArrowToEnumerableConverterRule.class);
+
   public static final RelOptRule[] RULES = {
       FILTER_SCAN,
       PROJECT_SCAN

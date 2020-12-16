@@ -19,11 +19,10 @@ package org.apache.calcite.adapter.arrow;
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.calcite.adapter.enumerable.*;
-import org.apache.calcite.linq4j.tree.Blocks;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
@@ -31,45 +30,37 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
 
-public class ArrowTableScan extends TableScan implements EnumerableRel {
+/**
+ * ArrowTableScan.
+ */
+public class ArrowTableScan extends TableScan implements ArrowRel {
   private RelOptTable relOptTable;
   final ArrowTable arrowTable;
   private final int[] fields;
-  private final SqlKind condition;
-  private final int fieldToCompare;
-  private final Object valueToCompare;
 
   public ArrowTable getArrowTable() {
     return this.arrowTable;
   }
 
-  public ArrowTableScan(RelOptCluster cluster, RelOptTable relOptTable, ArrowTable arrowTable,
-                        int[] fields, SqlKind condition, int fieldToCompare, Object valueToCompare) {
-    super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        ImmutableList.of(), relOptTable);
+  public ArrowTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable relOptTable, ArrowTable arrowTable,
+                        int[] fields) {
+    super(cluster, traitSet, ImmutableList.of(), relOptTable);
     this.relOptTable = relOptTable;
     this.arrowTable = arrowTable;
     this.fields = fields;
-    this.condition = condition;
-    this.fieldToCompare = fieldToCompare;
-    this.valueToCompare = valueToCompare;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new ArrowTableScan(getCluster(), table, arrowTable, fields, condition, fieldToCompare, valueToCompare);
+    return this;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("fields", Primitive.asList(fields))
-        .item("condition", condition)
-        .item("fieldToCompare", fieldToCompare)
-        .item("valueToCompare", valueToCompare);
+        .item("fields", Primitive.asList(fields));
   }
 
   @Override public RelDataType deriveRowType() {
@@ -83,23 +74,13 @@ public class ArrowTableScan extends TableScan implements EnumerableRel {
   }
 
   @Override public void register(RelOptPlanner planner) {
+    planner.addRule(ArrowRules.TO_ENUMERABLE);
     planner.addRule(ArrowRules.PROJECT_SCAN);
     planner.addRule(ArrowRules.FILTER_SCAN);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
-            pref.preferArray());
-
-    return implementor.result(
-        physType,
-        Blocks.toBlock(
-            Expressions.call(table.getExpression(ArrowTable.class),
-                ArrowMethod.ARROW_PROJECT.method, implementor.getRootExpression(),
-                Expressions.constant(fields), Expressions.constant(condition),
-                Expressions.constant(fieldToCompare), Expressions.constant(valueToCompare))));
+  public void implement(ArrowRel.Implementor implementor) {
+    implementor.arrowTable = arrowTable;
+    implementor.table = table;
   }
 }
