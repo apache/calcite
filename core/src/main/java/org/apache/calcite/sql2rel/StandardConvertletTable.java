@@ -845,8 +845,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx,
       SqlCall call) {
-    assert call.operandCount() == 2;
-
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final SqlOperator op = call.getOperator();
     SqlOperandTypeChecker operandTypeChecker = op.getOperandTypeChecker();
