@@ -117,6 +117,23 @@ public class SnowflakeSqlDialect extends SqlDialect {
       }
       writer.endFunCall(iffFrame);
       break;
+    case OTHER_FUNCTION:
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "FORMAT_DATE":
+      final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(formatDate);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
