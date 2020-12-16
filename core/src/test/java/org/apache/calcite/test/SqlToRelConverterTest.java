@@ -1300,6 +1300,26 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4437">[CALCITE-4437]
+   * The Sort rel should be decorrelated even though it has fetch or limit
+   * when it is not inside a Correlate</a>.
+   */
+  @Test void testProjectSortLimitWithCorrelateInput() {
+    final String sql = ""
+        + "SELECT ename||deptno FROM\n"
+        + "    (SELECT deptno, ename\n"
+        + "    FROM\n"
+        + "        (SELECT DISTINCT deptno FROM emp) t1,\n"
+        + "          LATERAL (\n"
+        + "            SELECT ename, sal\n"
+        + "            FROM emp\n"
+        + "            WHERE deptno = t1.deptno)\n"
+        + "    ORDER BY ename DESC\n"
+        + "    LIMIT 3)";
+    sql(sql).ok();
+  }
+
   @Test void testSample() {
     final String sql =
         "select * from emp tablesample substitute('DATASET1') where empno > 5";
