@@ -48,10 +48,17 @@ public class FormatFunctionUtil {
       }
       break;
     case 2:
-      SqlNode[] sqlNode;
-      if (call.operand(1) instanceof SqlIdentifier) {
+      SqlNode[] sqlNode = new SqlNode[]{
+          call.operand(1),
+          SqlLiteral.createCharString(call.operand(1).toString(),
+              SqlParserPos.ZERO)};
+      SqlNode sqlNode1 = call.operand(1);
+      while (sqlNode1 instanceof SqlBasicCall) {
+        sqlNode1 = ((SqlBasicCall) sqlNode1).operand(0);
+      }
+      if (sqlNode1 instanceof SqlIdentifier) {
         sqlNode = handleColumnOperand(call);
-      } else {
+      } else if (sqlNode1 instanceof SqlLiteral) {
         sqlNode = handleLiteralOperand(call);
       }
       sqlCall = new SqlBasicCall(TO_VARCHAR, sqlNode, SqlParserPos.ZERO);
@@ -93,17 +100,10 @@ public class FormatFunctionUtil {
       modifiedOperand = call.operand(0).toString()
           .replaceAll("%|f|'", "");
       String[] modifiedOperandArry = modifiedOperand.split("\\.");
-      int patternRepeatNumber = Integer.valueOf(modifiedOperandArry[0]) - 1;
-      if (modifiedOperandArry[1].contains("E")) {
-        modifiedOperandForSF = getModifiedOperandForFloat(modifiedOperandArry);
-      } else if (Integer.valueOf(modifiedOperandArry[1]) != 0) {
-        patternRepeatNumber = patternRepeatNumber - 1 - Integer.valueOf(modifiedOperandArry[1]);
-      }
-      modifiedOperand = StringUtils.repeat("9", patternRepeatNumber);
-      int decimalValue = Integer.valueOf(modifiedOperandArry[1]);
-      modifiedOperand += "." + StringUtils.repeat("0", decimalValue);
-      if (null != modifiedOperandForSF) {
-        modifiedOperand = modifiedOperandForSF;
+      if (StringUtils.isNotBlank(modifiedOperandArry[0])) {
+        modifiedOperand = getModifiedOperandForDecimal(modifiedOperandForSF, modifiedOperandArry);
+      } else {
+        modifiedOperand = "TM9";
       }
     } else if (call.operand(0).toString().contains("d")) {
       modifiedOperand = getModifiedOperandForInteger(call);
@@ -117,6 +117,25 @@ public class FormatFunctionUtil {
         SqlLiteral.createCharString(modifiedOperand.trim(),
             SqlParserPos.ZERO)};
     return sqlNode;
+  }
+
+  private String getModifiedOperandForDecimal(String modifiedOperandForSF,
+        String[] modifiedOperandArry) {
+    int patternRepeatNumber;
+    String modifiedOperand;
+    patternRepeatNumber = Integer.valueOf(modifiedOperandArry[0]) - 1;
+    if (modifiedOperandArry[1].contains("E")) {
+      modifiedOperandForSF = getModifiedOperandForFloat(modifiedOperandArry);
+    } else if (Integer.valueOf(modifiedOperandArry[1]) != 0) {
+      patternRepeatNumber = patternRepeatNumber - 1 - Integer.valueOf(modifiedOperandArry[1]);
+    }
+    modifiedOperand = StringUtils.repeat("9", patternRepeatNumber);
+    int decimalValue = Integer.valueOf(modifiedOperandArry[1]);
+    modifiedOperand += "." + StringUtils.repeat("0", decimalValue);
+    if (null != modifiedOperandForSF) {
+      modifiedOperand = modifiedOperandForSF;
+    }
+    return modifiedOperand;
   }
 
   private String getModifiedLiteralOperandForInteger(SqlCall call) {
