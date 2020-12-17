@@ -6229,6 +6229,30 @@ public class RelToSqlConverterTest {
             .ok(snowFlakeExpected);
   }
 
+  @Test public void testLog10Function() {
+    final String query = "SELECT LOG10(2) as dd";
+    final String expectedSnowFlake = "SELECT LOG(10, 2) AS \"DD\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testLog10ForOne() {
+    final String query = "SELECT LOG10(1) as dd";
+    final String expectedSnowFlake = "SELECT 0 AS \"DD\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testLog10ForColumn() {
+    final String query = "SELECT LOG10(\"product_id\") as dd from \"product\"";
+    final String expectedSnowFlake = "SELECT LOG(10, \"product_id\") AS \"DD\"\n"
+                      + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
 }
 
 // End RelToSqlConverterTest.java

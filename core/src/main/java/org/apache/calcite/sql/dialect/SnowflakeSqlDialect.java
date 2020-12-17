@@ -134,6 +134,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(formatDate);
       break;
+    case "LOG10":
+      if (call.operand(0) instanceof SqlLiteral && "1".equals(call.operand(0).toString())) {
+        writer.print(0);
+      } else {
+        final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+        writer.print("10");
+        writer.print(", ");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(logFrame);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
