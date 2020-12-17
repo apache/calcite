@@ -113,6 +113,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case DIVIDE_INTEGER:
+      unparseDivideInteger(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

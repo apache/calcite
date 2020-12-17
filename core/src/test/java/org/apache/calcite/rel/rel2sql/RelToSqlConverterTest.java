@@ -6266,6 +6266,22 @@ public class RelToSqlConverterTest {
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
+
+  @Test public void testDivideIntegerSnowflake() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intdivideRexNode = builder.call(SqlStdOperatorTable.DIVIDE_INTEGER,
+            builder.scan("EMP").field(0), builder.scan("EMP").field(3));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(intdivideRexNode, "a"))
+            .build();
+    final String expectedSql = "SELECT \"EMPNO\" /INT \"MGR\" AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedSF = "SELECT FLOOR(\"EMPNO\" / \"MGR\") AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
 }
 
 // End RelToSqlConverterTest.java
