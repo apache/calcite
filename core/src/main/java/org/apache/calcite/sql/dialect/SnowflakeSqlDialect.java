@@ -30,9 +30,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -143,6 +146,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case "IF":
       unparseIf(writer, call, leftPrec, rightPrec);
+      break;
+    case "STR_TO_DATE":
+      SqlCall parseDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
+          call.operand(1));
+      unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
