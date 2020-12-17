@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -28,6 +29,7 @@ import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -42,6 +44,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -143,7 +146,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(DDMMYY, "%d%m%y");
         put(MMDDYYYY, "%m%d%Y");
         put(MMDDYY, "%m%d%y");
-        put(YYYYMMDD, "%Y%m%d");
         put(YYYYMMDD, "%Y%m%d");
         put(YYMMDD, "%y%m%d");
         put(DAYOFWEEK, "%A");
@@ -254,7 +256,14 @@ public class BigQuerySqlDialect extends SqlDialect {
             return SqlLibraryOperators.DATE_SUB;
           }
           return SqlLibraryOperators.DATE_ADD;
+        default:
+          return super.getTargetFunc(call);
         }
+      case TIMESTAMP:
+        if (call.op.kind == SqlKind.MINUS) {
+          return SqlLibraryOperators.TIMESTAMP_SUB;
+        }
+        return SqlLibraryOperators.TIMESTAMP_ADD;
       default:
         return super.getTargetFunc(call);
       }
@@ -549,7 +558,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
-      unparseLiteralIntervalCall(call.operand(1), writer);
+      unparseSqlIntervalLiteral(writer, call.operand(1), leftPrec, rightPrec);
       break;
     case TIMES:
       unparseExpressionIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
@@ -560,25 +569,35 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(frame);
   }
 
-  /**
-   * Unparse the literal call from input query and write the INTERVAL part. Below is an example:
-   * Input: date + INTERVAL 1 DAY
-   * It will write this as: INTERVAL 1 DAY
-   *
-   * @param call SqlCall :INTERVAL 1 DAY
-   * @param writer Target SqlWriter to write the call
-   */
-  private void unparseLiteralIntervalCall(
-      SqlLiteral call, SqlWriter writer) {
-    SqlIntervalLiteral intervalLiteralValue = (SqlIntervalLiteral) call;
-    SqlIntervalLiteral.IntervalValue literalValue =
-        (SqlIntervalLiteral.IntervalValue) intervalLiteralValue.getValue();
+  @Override public void unparseSqlIntervalLiteral(
+      SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    literal = updateSqlIntervalLiteral(literal);
+    SqlIntervalLiteral.IntervalValue intervalValue =
+        (SqlIntervalLiteral.IntervalValue) literal.getValue();
     writer.sep("INTERVAL");
-    if (literalValue.getSign() == -1) {
+    if (intervalValue.getSign() == -1) {
       writer.print("-");
     }
-    writer.sep(literalValue.getIntervalLiteral());
-    writer.print(literalValue.getIntervalQualifier().toString());
+    writer.sep(intervalValue.getIntervalLiteral());
+    unparseSqlIntervalQualifier(
+        writer, intervalValue.getIntervalQualifier(), RelDataTypeSystem.DEFAULT);
+  }
+
+  private SqlIntervalLiteral updateSqlIntervalLiteral(SqlIntervalLiteral literal) {
+    SqlIntervalLiteral.IntervalValue interval =
+        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+    switch (literal.getTypeName()) {
+    case INTERVAL_HOUR_SECOND:
+      long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
+          interval.getIntervalQualifier()) / 1000;
+      SqlIntervalQualifier qualifier = new SqlIntervalQualifier(TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, SqlParserPos.ZERO);
+      return SqlLiteral.createInterval(interval.getSign(), Long.toString(equivalentSecondValue),
+          qualifier, literal.getParserPosition());
+    default:
+      return literal;
+    }
   }
 
   /**
