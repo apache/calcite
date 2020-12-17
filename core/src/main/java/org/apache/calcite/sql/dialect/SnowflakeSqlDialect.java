@@ -110,8 +110,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
     case IF:
-      unparseIf(writer, call, leftPrec, rightPrec);
-      break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
@@ -263,6 +261,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     writer.endFunCall(trimFrame);
   }
 
+  /**
+   * For usage of IFF() in snowflake
+   */
   private void unparseIf(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame iffFrame = writer.startFunCall("IFF");
     for (SqlNode operand : call.getOperandList()) {
