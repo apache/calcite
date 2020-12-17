@@ -256,6 +256,8 @@ public class BigQuerySqlDialect extends SqlDialect {
             return SqlLibraryOperators.DATE_SUB;
           }
           return SqlLibraryOperators.DATE_ADD;
+        default:
+          return super.getTargetFunc(call);
         }
       case TIMESTAMP:
         if (call.op.kind == SqlKind.MINUS) {
