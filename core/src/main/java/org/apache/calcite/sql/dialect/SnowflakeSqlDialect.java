@@ -127,6 +127,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "TRUNC":
+    case "ROUND":
+      handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -137,6 +141,28 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void handleMathFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame mathFun = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    writer.print("CASE WHEN ");
+    if (!(call.operand(1) instanceof SqlBasicCall)) {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.print("ELSE ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    } else {
+      ((SqlBasicCall) call.operand(1)).operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print("> 38 THEN 38 ");
+      writer.print("WHEN ");
+      ((SqlBasicCall) call.operand(1)).operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print("> -38 THEN -1 ");
+      writer.print("ELSE ");
+      ((SqlBasicCall) call.operand(1)).operand(0).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.print("END");
+    writer.endFunCall(mathFun);
   }
 
   /**
