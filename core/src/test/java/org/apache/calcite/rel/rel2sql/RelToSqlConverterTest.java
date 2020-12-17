@@ -4729,6 +4729,19 @@ public class RelToSqlConverterTest {
         .ok(expectedSnowflake);
   }
 
+  @Test public void testIntervalHourToSecond() {
+    String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
+        + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
+        + "FROM \"employee\"";
+    final String expectedBigQuery = "SELECT "
+        + "TIMESTAMP_ADD(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND), "
+        + "TIMESTAMP_SUB(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void minusDateFunctionForHiveAndSparkAndBigQuery() {
     String query = "select (\"birth_date\" - DATE '1899-12-31') day from \"employee\"";
     final String expectedHive = "SELECT DATEDIFF(birth_date, DATE '1899-12-31')\n"
