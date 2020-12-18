@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -59,8 +60,7 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.literal("'" + literal.toFormattedString() + "'");
   }
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       if (call.operandCount() != 3) {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
@@ -75,7 +75,9 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
-
+      case TRIM:
+        unparseTrim(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -204,6 +206,31 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.print("+'" + offset + "'");
     }
     writer.endList(frame);
+  }
+
+  /**
+   * For usage of TRIM in MSSQL
+   */
+  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    SqlLiteral valueToTrim = call.operand(1);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+      case BOTH:
+        operatorName = " ";
+        break;
+      default:
+        operatorName = call.getOperator().getName();
+        break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    if (!valueToTrim.toValue().matches("\\s+")) {
+      writer.literal(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(trimFrame);
   }
 }
 
