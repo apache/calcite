@@ -117,6 +117,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowExtendedTrim();
   }
 
+  @Override public boolean allowIsTrue() {
+    return SqlConformanceEnum.DEFAULT.allowIsTrue();
+  }
+
   @Override public boolean allowPluralTimeUnits() {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }

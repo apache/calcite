@@ -42,6 +42,7 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -3092,4 +3093,97 @@ public class SqlFunctions {
     }
   }
 
+  /***
+   * If size is less than the str, then return substring of str
+   * Append whitespace at the beginning of the str
+   *
+   * @return String
+   */
+  public static String lpad(String str, Integer size) {
+    return lpad(str, size, StringUtils.SPACE);
+  }
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append padStr at the beginning of the str
+   *
+   * @return String
+   */
+  public static String lpad(String str, Integer size, String padStr) {
+    int strLen = str.length();
+    if (strLen > size) {
+      return str.substring(0, size);
+    }
+    return StringUtils.leftPad(str, size, padStr);
+  }
+
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append whitespace at the end of the str
+   *
+   * @return String
+   */
+  public static String rpad(String str, Integer size) {
+    return rpad(str, size, StringUtils.SPACE);
+  }
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append padStr at the end of the str
+   *
+   * @return String
+   */
+  public static String rpad(String str, Integer size, String padStr) {
+    int strLen = str.length();
+    if (strLen > size) {
+      return str.substring(0, size);
+    }
+    return StringUtils.rightPad(str, size, padStr);
+  }
+
+  /***
+   * Format string as per the {format} defined
+   * @param format operand
+   * @param value operand
+   * @return Object
+   */
+  public static Object format(Object format, Object value) {
+    return String.format(Locale.ENGLISH, (String) format, value);
+  }
+
+  /***
+   * Format string as per the {format} defined
+   * @param value operand
+   * @param format operand
+   * @return Object
+   */
+  public static Object toVarchar(Object value, Object format) {
+    if (null == value || null == format) {
+      return null;
+    }
+    String[] formatStore = ((String) format).split("\\.");
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("%");
+    pattern.append(formatStore[0].length());
+    if (formatStore.length > 1) {
+      pattern.append(".");
+      pattern.append(formatStore[1].length());
+      pattern.append("f");
+    } else {
+      pattern.append("d");
+    }
+    return String.format(Locale.ENGLISH, pattern.toString(), value);
+  }
+
+  /** Return date value from Timestamp */
+  public static java.sql.Date timestampToDate(Object obj) {
+    long timestamp = 0;
+    if (obj instanceof String) {
+      timestamp = DateTimeUtils.timestampStringToUnixDate(obj.toString()); //Example -> in ms
+    } else if (obj instanceof Timestamp) {
+      timestamp = ((Timestamp) obj).getTime();
+    }
+    return new java.sql.Date(timestamp);
+  }
 }

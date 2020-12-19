@@ -254,6 +254,7 @@ public class SqlSelectOperator extends SqlOperator {
                         }
                         if (literalNode == groupKey
                             && !visitedLiteralNodeList.contains(literalNode)) {
+                          writer.sep(",");
                           String ordinal = String.valueOf(
                               select.selectList.getList().indexOf(selectSqlNode) + 1);
                           SqlLiteral groupKeyLiteralNode = SqlLiteral.createExactNumeric(ordinal,

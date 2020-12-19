@@ -663,12 +663,7 @@ public enum SqlKind {
    */
   TO_NUMBER,
 
-  /**
-   * The "IF" function.
-   */
-  IF,
-
-  /**
+   /**
    * The "ASCII" function.
    */
   ASCII,
@@ -1183,6 +1178,7 @@ public enum SqlKind {
    * {@link #SELECT},
    * {@link #JOIN},
    * {@link #OTHER_FUNCTION},
+   * {@link #FORMAT},
    * {@link #CAST},
    * {@link #TRIM},
    * {@link #LITERAL_CHAIN},
@@ -1208,7 +1204,7 @@ public enum SqlKind {
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, UNNEST),
+                  JSON_VALUE_EXPRESSION, UNNEST, FORMAT),
               AGGREGATE, DML, DDL));
 
   /**

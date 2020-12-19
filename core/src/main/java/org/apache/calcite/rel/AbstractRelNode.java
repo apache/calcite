@@ -32,12 +32,14 @@ import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
@@ -122,6 +124,11 @@ public abstract class AbstractRelNode implements RelNode {
 
   @Override public final RelOptCluster getCluster() {
     return cluster;
+  }
+
+  @SuppressWarnings("deprecation")
+  public List<RexNode> getChildExps() {
+    return ImmutableList.of();
   }
 
   @Pure

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -49,32 +50,8 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
-import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlAsOperator;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlDynamicParam;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlMatchRecognize;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOverOperator;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlSelectKeyword;
-import org.apache.calcite.sql.SqlSetOperator;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.fun.SqlCase;
-import org.apache.calcite.sql.fun.SqlCaseOperator;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
+import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.fun.*;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -141,17 +118,17 @@ public abstract class SqlImplementor {
   /** Private RexBuilder for short-lived expressions. It has its own
    * dedicated type factory, so don't trust the types to be canonized. */
   final RexBuilder rexBuilder =
-      new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+    new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
   /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
    * applied to that kind. */
   private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
-      ImmutableMap.<SqlKind, SqlOperator>builder()
-          .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
-          .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
-          .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
-          .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
-          .build();
+    ImmutableMap.<SqlKind, SqlOperator>builder()
+      .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
+      .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
+      .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
+      .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
+      .build();
 
   protected SqlImplementor(SqlDialect dialect) {
     this.dialect = requireNonNull(dialect);
@@ -209,10 +186,10 @@ public abstract class SqlImplementor {
    * @see #isAnon()
    */
   public abstract Result visitInput(RelNode e, int i, boolean anon,
-      boolean ignoreClauses, Set<Clause> expectedClauses);
+                                    boolean ignoreClauses, Set<Clause> expectedClauses);
 
   public void addSelect(List<SqlNode> selectList, SqlNode node,
-      RelDataType rowType) {
+                        RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
@@ -238,7 +215,7 @@ public abstract class SqlImplementor {
   /** Returns whether a list of expressions projects all fields, in order,
    * from the input, with the same names. */
   public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
-      RelDataType projectRowType) {
+                               RelDataType projectRowType) {
     assert exps.size() == projectRowType.getFieldCount();
     int i = 0;
     for (RexNode ref : exps) {
@@ -249,7 +226,7 @@ public abstract class SqlImplementor {
       }
     }
     return i == inputRowType.getFieldCount()
-        && inputRowType.getFieldNames().equals(projectRowType.getFieldNames());
+      && inputRowType.getFieldNames().equals(projectRowType.getFieldNames());
   }
 
   public static boolean isStar(RexProgram program) {
@@ -273,9 +250,9 @@ public abstract class SqlImplementor {
       }
     }
     assert node != null : "set op must have at least one input, operator = " + operator
-        + ", rel = " + rel;
+      + ", rel = " + rel;
     final List<Clause> clauses =
-        Expressions.list(Clause.SET_OP);
+      Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
   }
 
@@ -289,10 +266,10 @@ public abstract class SqlImplementor {
    * @return SqlNode that represents the condition
    */
   public static SqlNode convertConditionToSqlNode(RexNode node,
-      Context leftContext,
-      Context rightContext,
-      int leftFieldCount,
-      SqlDialect dialect) {
+                                                  Context leftContext,
+                                                  Context rightContext,
+                                                  int leftFieldCount,
+                                                  SqlDialect dialect) {
     if (node.isAlwaysTrue()) {
       return SqlLiteral.createBoolean(true, POS);
     }
@@ -310,74 +287,75 @@ public abstract class SqlImplementor {
     final SqlOperator op;
     final Context joinContext;
     switch (node.getKind()) {
-    case AND:
-    case OR:
-      operands = ((RexCall) node).getOperands();
-      op = ((RexCall) node).getOperator();
-      final List<SqlNode> sqlOperands = new ArrayList<>();
-      for (RexNode operand : operands) {
-        sqlOperands.add(
+      case AND:
+      case OR:
+        operands = ((RexCall) node).getOperands();
+        op = ((RexCall) node).getOperator();
+        final List<SqlNode> sqlOperands = new ArrayList<>();
+        for (RexNode operand : operands) {
+          sqlOperands.add(
             convertConditionToSqlNode(operand, leftContext,
-                rightContext, leftFieldCount, dialect));
-      }
-      return SqlUtil.createCall(op, POS, sqlOperands);
+              rightContext, leftFieldCount, dialect));
+        }
+        return SqlUtil.createCall(op, POS, sqlOperands);
 
-    case EQUALS:
-    case IS_DISTINCT_FROM:
-    case IS_NOT_DISTINCT_FROM:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-    case LIKE:
-    case NOT:
-      node = stripCastFromString(node, dialect);
-      operands = ((RexCall) node).getOperands();
-      op = ((RexCall) node).getOperator();
-      if (operands.size() == 2
+      case EQUALS:
+      case IS_DISTINCT_FROM:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case LIKE:
+      case IN:
+      case NOT:
+        node = stripCastFromString(node, dialect);
+        operands = ((RexCall) node).getOperands();
+        op = ((RexCall) node).getOperator();
+        if (operands.size() == 2
           && operands.get(0) instanceof RexInputRef
           && operands.get(1) instanceof RexInputRef) {
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        final RexInputRef op1 = (RexInputRef) operands.get(1);
+          final RexInputRef op0 = (RexInputRef) operands.get(0);
+          final RexInputRef op1 = (RexInputRef) operands.get(1);
 
-        if (op0.getIndex() < leftFieldCount
+          if (op0.getIndex() < leftFieldCount
             && op1.getIndex() >= leftFieldCount) {
-          // Arguments were of form 'op0 = op1'
-          return op.createCall(POS,
+            // Arguments were of form 'op0 = op1'
+            return op.createCall(POS,
               leftContext.field(op0.getIndex()),
               rightContext.field(op1.getIndex() - leftFieldCount));
-        }
-        if (op1.getIndex() < leftFieldCount
+          }
+          if (op1.getIndex() < leftFieldCount
             && op0.getIndex() >= leftFieldCount) {
-          // Arguments were of form 'op1 = op0'
-          return reverseOperatorDirection(op).createCall(POS,
+            // Arguments were of form 'op1 = op0'
+            return reverseOperatorDirection(op).createCall(POS,
               leftContext.field(op1.getIndex()),
               rightContext.field(op0.getIndex() - leftFieldCount));
+          }
         }
-      }
-      joinContext =
+        joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    case IS_NULL:
-    case IS_NOT_NULL:
-      operands = ((RexCall) node).getOperands();
-      if (operands.size() == 1
+        return joinContext.toSql(null, node);
+      case IS_NULL:
+      case IS_NOT_NULL:
+        operands = ((RexCall) node).getOperands();
+        if (operands.size() == 1
           && operands.get(0) instanceof RexInputRef) {
-        op = ((RexCall) node).getOperator();
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        if (op0.getIndex() < leftFieldCount) {
-          return op.createCall(POS, leftContext.field(op0.getIndex()));
-        } else {
-          return op.createCall(POS,
+          op = ((RexCall) node).getOperator();
+          final RexInputRef op0 = (RexInputRef) operands.get(0);
+          if (op0.getIndex() < leftFieldCount) {
+            return op.createCall(POS, leftContext.field(op0.getIndex()));
+          } else {
+            return op.createCall(POS,
               rightContext.field(op0.getIndex() - leftFieldCount));
+          }
         }
-      }
-      joinContext =
+        joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    default:
-      throw new AssertionError(node);
+        return joinContext.toSql(null, node);
+      default:
+        throw new AssertionError(node);
     }
   }
 
@@ -388,105 +366,105 @@ public abstract class SqlImplementor {
    */
   private static RexNode stripCastFromString(RexNode node, SqlDialect dialect) {
     switch (node.getKind()) {
-    case EQUALS:
-    case IS_NOT_DISTINCT_FROM:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-      final RexCall call = (RexCall) node;
-      final RexNode o0 = call.operands.get(0);
-      final RexNode o1 = call.operands.get(1);
-      if (o0.getKind() == SqlKind.CAST
+      case EQUALS:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+        final RexCall call = (RexCall) node;
+        final RexNode o0 = call.operands.get(0);
+        final RexNode o1 = call.operands.get(1);
+        if (o0.getKind() == SqlKind.CAST
           && o1.getKind() != SqlKind.CAST) {
-        if (!dialect.supportsImplicitTypeCoercion((RexCall) o0)) {
-          // If the dialect does not support implicit type coercion,
-          // we definitely can not strip the cast.
-          return node;
+          if (!dialect.supportsImplicitTypeCoercion((RexCall) o0)) {
+            // If the dialect does not support implicit type coercion,
+            // we definitely can not strip the cast.
+            return node;
+          }
+          final RexNode o0b = ((RexCall) o0).getOperands().get(0);
+          return call.clone(call.getType(), ImmutableList.of(o0b, o1));
         }
-        final RexNode o0b = ((RexCall) o0).getOperands().get(0);
-        return call.clone(call.getType(), ImmutableList.of(o0b, o1));
-      }
-      if (o1.getKind() == SqlKind.CAST
+        if (o1.getKind() == SqlKind.CAST
           && o0.getKind() != SqlKind.CAST) {
-        if (!dialect.supportsImplicitTypeCoercion((RexCall) o1)) {
-          return node;
+          if (!dialect.supportsImplicitTypeCoercion((RexCall) o1)) {
+            return node;
+          }
+          final RexNode o1b = ((RexCall) o1).getOperands().get(0);
+          return call.clone(call.getType(), ImmutableList.of(o0, o1b));
         }
-        final RexNode o1b = ((RexCall) o1).getOperands().get(0);
-        return call.clone(call.getType(), ImmutableList.of(o0, o1b));
-      }
-      break;
-    default:
-      break;
+        break;
+      default:
+        break;
     }
     return node;
   }
 
   private static SqlOperator reverseOperatorDirection(SqlOperator op) {
     switch (op.kind) {
-    case GREATER_THAN:
-      return SqlStdOperatorTable.LESS_THAN;
-    case GREATER_THAN_OR_EQUAL:
-      return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-    case LESS_THAN:
-      return SqlStdOperatorTable.GREATER_THAN;
-    case LESS_THAN_OR_EQUAL:
-      return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-    case EQUALS:
-    case IS_NOT_DISTINCT_FROM:
-    case NOT_EQUALS:
-      return op;
-    default:
-      throw new AssertionError(op);
+      case GREATER_THAN:
+        return SqlStdOperatorTable.LESS_THAN;
+      case GREATER_THAN_OR_EQUAL:
+        return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+      case LESS_THAN:
+        return SqlStdOperatorTable.GREATER_THAN;
+      case LESS_THAN_OR_EQUAL:
+        return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+      case EQUALS:
+      case IS_NOT_DISTINCT_FROM:
+      case NOT_EQUALS:
+        return op;
+      default:
+        throw new AssertionError(op);
     }
   }
 
   public static JoinType joinType(JoinRelType joinType) {
     switch (joinType) {
-    case LEFT:
-      return JoinType.LEFT;
-    case RIGHT:
-      return JoinType.RIGHT;
-    case INNER:
-      return JoinType.INNER;
-    case FULL:
-      return JoinType.FULL;
-    default:
-      throw new AssertionError(joinType);
+      case LEFT:
+        return JoinType.LEFT;
+      case RIGHT:
+        return JoinType.RIGHT;
+      case INNER:
+        return JoinType.INNER;
+      case FULL:
+        return JoinType.FULL;
+      default:
+        throw new AssertionError(joinType);
     }
   }
 
   /** Creates a result based on a single relational expression. */
   public Result result(SqlNode node, Collection<Clause> clauses,
-      RelNode rel, @Nullable Map<String, RelDataType> aliases) {
+                       RelNode rel, @Nullable Map<String, RelDataType> aliases) {
     assert aliases == null
-        || aliases.size() < 2
-        || aliases instanceof LinkedHashMap
-        || aliases instanceof ImmutableMap
-        : "must use a Map implementation that preserves order";
+      || aliases.size() < 2
+      || aliases instanceof LinkedHashMap
+      || aliases instanceof ImmutableMap
+      : "must use a Map implementation that preserves order";
     final String alias2 = SqlValidatorUtil.getAlias(node, -1);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 =
-        SqlValidatorUtil.uniquify(
-            alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+      SqlValidatorUtil.uniquify(
+        alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
     final RelDataType rowType = adjustedRowType(rel, node);
     if (aliases != null
-        && !aliases.isEmpty()
-        && (!dialect.hasImplicitTableAlias()
-        || aliases.size() > 1)) {
+      && !aliases.isEmpty()
+      && (!dialect.hasImplicitTableAlias()
+      || aliases.size() > 1)) {
       return result(node, clauses, alias4, rowType, aliases);
     }
     final String alias5;
     if (alias2 == null
-        || !alias2.equals(alias4)
-        || !dialect.hasImplicitTableAlias()) {
+      || !alias2.equals(alias4)
+      || !dialect.hasImplicitTableAlias()) {
       alias5 = alias4;
     } else {
       alias5 = null;
     }
     return result(node, clauses, alias5, rowType,
-        ImmutableMap.of(alias4, rowType));
+      ImmutableMap.of(alias4, rowType));
   }
 
   /** Factory method for {@link Result}.
@@ -494,8 +472,8 @@ public abstract class SqlImplementor {
    * <p>Call this method rather than creating a {@code Result} directly,
    * because sub-classes may override. */
   protected Result result(SqlNode node, Collection<Clause> clauses,
-      @Nullable String neededAlias, @Nullable RelDataType neededType,
-      Map<String, RelDataType> aliases) {
+                          @Nullable String neededAlias, @Nullable RelDataType neededType,
+                          Map<String, RelDataType> aliases) {
     return new Result(node, clauses, neededAlias, neededType, aliases);
   }
 
@@ -505,40 +483,40 @@ public abstract class SqlImplementor {
     final RelDataType rowType = rel.getRowType();
     final RelDataTypeFactory.Builder builder;
     switch (node.getKind()) {
-    case UNION:
-    case INTERSECT:
-    case EXCEPT:
-      return adjustedRowType(rel, ((SqlCall) node).getOperandList().get(0));
+      case UNION:
+      case INTERSECT:
+      case EXCEPT:
+        return adjustedRowType(rel, ((SqlCall) node).getOperandList().get(0));
 
-    case SELECT:
-      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      if (selectList == null) {
-        return rowType;
-      }
-      builder = rel.getCluster().getTypeFactory().builder();
-      Pair.forEach(selectList,
+      case SELECT:
+        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        if (selectList == null) {
+          return rowType;
+        }
+        builder = rel.getCluster().getTypeFactory().builder();
+        Pair.forEach(selectList,
           rowType.getFieldList(),
           (selectItem, field) ->
-              builder.add(
-                  Util.first(SqlValidatorUtil.getAlias(selectItem, -1),
-                      field.getName()),
-                  field.getType()));
-      return builder.build();
+            builder.add(
+              Util.first(SqlValidatorUtil.getAlias(selectItem, -1),
+                field.getName()),
+              field.getType()));
+        return builder.build();
 
-    case AS:
-      final List<SqlNode> operandList = ((SqlCall) node).getOperandList();
-      if (operandList.size() <= 2) {
-        return rowType;
-      }
-      builder = rel.getCluster().getTypeFactory().builder();
-      Pair.forEach(Util.skip(operandList, 2),
+      case AS:
+        final List<SqlNode> operandList = ((SqlCall) node).getOperandList();
+        if (operandList.size() <= 2) {
+          return rowType;
+        }
+        builder = rel.getCluster().getTypeFactory().builder();
+        Pair.forEach(Util.skip(operandList, 2),
           rowType.getFieldList(),
           (operand, field) ->
-              builder.add(operand.toString(), field.getType()));
-      return builder.build();
+            builder.add(operand.toString(), field.getType()));
+        return builder.build();
 
-    default:
-      return rowType;
+      default:
+        return rowType;
     }
   }
 
@@ -548,10 +526,10 @@ public abstract class SqlImplementor {
     final Map<String, RelDataType> aliases;
     if (join.getKind() == SqlKind.JOIN) {
       final ImmutableMap.Builder<String, RelDataType> builder =
-          ImmutableMap.builder();
+        ImmutableMap.builder();
       collectAliases(builder, join,
-          Iterables.concat(leftResult.aliases.values(),
-              rightResult.aliases.values()).iterator());
+        Iterables.concat(leftResult.aliases.values(),
+          rightResult.aliases.values()).iterator());
       aliases = builder.build();
     } else {
       aliases = leftResult.aliases;
@@ -560,10 +538,10 @@ public abstract class SqlImplementor {
   }
 
   private static void collectAliases(ImmutableMap.Builder<String, RelDataType> builder,
-      SqlNode node, Iterator<RelDataType> aliases) {
+                                     SqlNode node, Iterator<RelDataType> aliases) {
     if (node instanceof SqlJoin) {
       final SqlJoin join = (SqlJoin) node;
-      collectAliases(builder, join.getLeft(), aliases);
+      collectAliases(builder, join.getLeft(),  aliases);
       collectAliases(builder, join.getRight(), aliases);
     } else {
       final String alias = SqlValidatorUtil.getAlias(node, -1);
@@ -610,18 +588,18 @@ public abstract class SqlImplementor {
    *  "SELECT ... FROM (node)". */
   SqlSelect wrapSelect(SqlNode node) {
     assert node instanceof SqlJoin
-        || node instanceof SqlIdentifier
-        || node instanceof SqlMatchRecognize
-        || node instanceof SqlCall
-        && (((SqlCall) node).getOperator() instanceof SqlSetOperator
-        || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
-        || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
-        : node;
+      || node instanceof SqlIdentifier
+      || node instanceof SqlMatchRecognize
+      || node instanceof SqlCall
+      && (((SqlCall) node).getOperator() instanceof SqlSetOperator
+      || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
+      || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
+      : node;
     if (requiresAlias(node)) {
       node = as(node, "t");
     }
     return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
-        SqlNodeList.EMPTY, null, null, null, null);
+      SqlNodeList.EMPTY, null, null, null, null);
   }
 
   /** Returns whether we need to add an alias if this node is to be the FROM
@@ -631,14 +609,14 @@ public abstract class SqlImplementor {
       return false;
     }
     switch (node.getKind()) {
-    case IDENTIFIER:
-      return !dialect.hasImplicitTableAlias();
-    case AS:
-    case JOIN:
-    case EXPLICIT_TABLE:
-      return false;
-    default:
-      return true;
+      case IDENTIFIER:
+        return !dialect.hasImplicitTableAlias();
+      case AS:
+      case JOIN:
+      case EXPLICIT_TABLE:
+        return false;
+      default:
+        return true;
     }
   }
 
@@ -687,143 +665,167 @@ public abstract class SqlImplementor {
       final SqlNode sqlSubQuery;
       final RexLiteral literal;
       switch (rex.getKind()) {
-      case LOCAL_REF:
-        final int index = ((RexLocalRef) rex).getIndex();
-        return toSql(program, requireNonNull(program, "program").getExprList().get(index));
+        case LOCAL_REF:
+          final int index = ((RexLocalRef) rex).getIndex();
+          return toSql(program, requireNonNull(program, "program").getExprList().get(index));
 
-      case INPUT_REF:
-        return field(((RexInputRef) rex).getIndex());
+        case INPUT_REF:
+          return field(((RexInputRef) rex).getIndex());
 
-      case FIELD_ACCESS:
-        final Deque<RexFieldAccess> accesses = new ArrayDeque<>();
-        RexNode referencedExpr = rex;
-        while (referencedExpr.getKind() == SqlKind.FIELD_ACCESS) {
-          accesses.offerLast((RexFieldAccess) referencedExpr);
-          referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
-        }
-        SqlIdentifier sqlIdentifier;
-        switch (referencedExpr.getKind()) {
-        case CORREL_VARIABLE:
-          final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
-          final Context correlAliasContext = getAliasContext(variable);
-          final RexFieldAccess lastAccess = accesses.pollLast();
-          assert lastAccess != null;
-          sqlIdentifier = (SqlIdentifier) correlAliasContext
-              .field(lastAccess.getField().getIndex());
-          break;
-        case ROW:
-          final SqlNode expr = toSql(program, referencedExpr);
-          sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
-          break;
-        default:
-          sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
-        }
+        case FIELD_ACCESS:
+          final Deque<RexFieldAccess> accesses = new ArrayDeque<>();
+          RexNode referencedExpr = rex;
+          while (referencedExpr.getKind() == SqlKind.FIELD_ACCESS) {
+            accesses.offerLast((RexFieldAccess) referencedExpr);
+            referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
+          }
+          SqlIdentifier sqlIdentifier;
+          switch (referencedExpr.getKind()) {
+            case CORREL_VARIABLE:
+              final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
+              final Context correlAliasContext = getAliasContext(variable);
+              final RexFieldAccess lastAccess = accesses.pollLast();
+              assert lastAccess != null;
+              sqlIdentifier = (SqlIdentifier) correlAliasContext
+                .field(lastAccess.getField().getIndex());
+              break;
+            case ROW:
+              final SqlNode expr = toSql(program, referencedExpr);
+              sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
+              break;
+            default:
+              sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
+          }
 
-        int nameIndex = sqlIdentifier.names.size();
-        RexFieldAccess access;
-        while ((access = accesses.pollLast()) != null) {
-          sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
-        }
-        return sqlIdentifier;
+          int nameIndex = sqlIdentifier.names.size();
+          RexFieldAccess access;
+          while ((access = accesses.pollLast()) != null) {
+            sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
+          }
+          return sqlIdentifier;
 
-      case PATTERN_INPUT_REF:
-        final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
-        String pv = ref.getAlpha();
-        SqlNode refNode = field(ref.getIndex());
-        final SqlIdentifier id = (SqlIdentifier) refNode;
-        if (id.names.size() > 1) {
-          return id.setName(0, pv);
-        } else {
-          return new SqlIdentifier(ImmutableList.of(pv, id.names.get(0)), POS);
-        }
+        case PATTERN_INPUT_REF:
+          final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
+          String pv = ref.getAlpha();
+          SqlNode refNode = field(ref.getIndex());
+          final SqlIdentifier id = (SqlIdentifier) refNode;
+          if (id.names.size() > 1) {
+            return id.setName(0, pv);
+          } else {
+            return new SqlIdentifier(ImmutableList.of(pv, id.names.get(0)), POS);
+          }
 
-      case LITERAL:
-        return SqlImplementor.toSql(program, (RexLiteral) rex);
+        case LITERAL:
+          return SqlImplementor.toSql(program, (RexLiteral) rex);
 
-      case CASE:
-        final RexCall caseCall = (RexCall) rex;
-        final List<SqlNode> caseNodeList =
+        case CASE:
+          final RexCall caseCall = (RexCall) rex;
+          final List<SqlNode> caseNodeList =
             toSql(program, caseCall.getOperands());
-        final SqlNode valueNode;
-        final List<SqlNode> whenList = Expressions.list();
-        final List<SqlNode> thenList = Expressions.list();
-        final SqlNode elseNode;
-        if (caseNodeList.size() % 2 == 0) {
-          // switched:
-          //   "case x when v1 then t1 when v2 then t2 ... else e end"
-          valueNode = caseNodeList.get(0);
-          for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
-            whenList.add(caseNodeList.get(i));
-            thenList.add(caseNodeList.get(i + 1));
+          final SqlNode valueNode;
+          final List<SqlNode> whenList = Expressions.list();
+          final List<SqlNode> thenList = Expressions.list();
+          final SqlNode elseNode;
+          if (caseNodeList.size() % 2 == 0) {
+            // switched:
+            //   "case x when v1 then t1 when v2 then t2 ... else e end"
+            valueNode = caseNodeList.get(0);
+            for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
+              whenList.add(caseNodeList.get(i));
+              thenList.add(caseNodeList.get(i + 1));
+            }
+          } else {
+            // other: "case when w1 then t1 when w2 then t2 ... else e end"
+            valueNode = null;
+            for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
+              whenList.add(caseNodeList.get(i));
+              thenList.add(caseNodeList.get(i + 1));
+            }
           }
-        } else {
-          // other: "case when w1 then t1 when w2 then t2 ... else e end"
-          valueNode = null;
-          for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
-            whenList.add(caseNodeList.get(i));
-            thenList.add(caseNodeList.get(i + 1));
-          }
-        }
-        elseNode = caseNodeList.get(caseNodeList.size() - 1);
-        return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
+          elseNode = caseNodeList.get(caseNodeList.size() - 1);
+          return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
             new SqlNodeList(thenList, POS), elseNode);
 
-      case DYNAMIC_PARAM:
-        final RexDynamicParam caseParam = (RexDynamicParam) rex;
-        return new SqlDynamicParam(caseParam.getIndex(), POS);
+        case DYNAMIC_PARAM:
+          final RexDynamicParam caseParam = (RexDynamicParam) rex;
+          return new SqlDynamicParam(caseParam.getIndex(), POS);
 
-      case IN:
-        subQuery = (RexSubQuery) rex;
-        sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
-        final List<RexNode> operands = subQuery.operands;
-        SqlNode op0;
-        if (operands.size() == 1) {
-          op0 = toSql(program, operands.get(0));
-        } else {
-          final List<SqlNode> cols = toSql(program, operands);
-          op0 = new SqlNodeList(cols, POS);
-        }
-        return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
-
-      case SEARCH:
-        final RexCall search = (RexCall) rex;
-        literal = (RexLiteral) search.operands.get(1);
-        final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
-        //noinspection unchecked
-        return toSql(program, search.operands.get(0), literal.getType(), sarg);
-
-      case EXISTS:
-      case SCALAR_QUERY:
-        subQuery = (RexSubQuery) rex;
-        sqlSubQuery =
-            implementor().visitRoot(subQuery.rel).asQueryOrValues();
-        return subQuery.getOperator().createCall(POS, sqlSubQuery);
-
-      case NOT:
-        RexNode operand = ((RexCall) rex).operands.get(0);
-        final SqlNode node = toSql(program, operand);
-        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
-        if (inverseOperator != null) {
-          switch (operand.getKind()) {
-          case IN:
-            assert operand instanceof RexSubQuery
-                : "scalar IN is no longer allowed in RexCall: " + rex;
-            break;
-          default:
-            break;
+        case IN:
+          if (rex instanceof RexSubQuery) {
+            subQuery = (RexSubQuery) rex;
+            sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
+            final List<RexNode> operands = subQuery.operands;
+            SqlNode op0;
+            if (operands.size() == 1) {
+              op0 = toSql(program, operands.get(0));
+            } else {
+              final List<SqlNode> cols = toSql(program, operands);
+              op0 = new SqlNodeList(cols, POS);
+            }
+            return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
+          } else {
+            final RexCall call = (RexCall) rex;
+            final List<SqlNode> cols = toSql(program, call.operands);
+            return call.getOperator().createCall(POS, cols.get(0),
+              new SqlNodeList(cols.subList(1, cols.size()), POS));
           }
-          return inverseOperator.createCall(POS,
+        case SEARCH:
+          final RexCall search = (RexCall) rex;
+          literal = (RexLiteral) search.operands.get(1);
+          final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
+          //noinspection unchecked
+          return toSql(program, search.operands.get(0), literal.getType(), sarg);
+
+        case EXISTS:
+        case SCALAR_QUERY:
+          subQuery = (RexSubQuery) rex;
+          sqlSubQuery =
+            implementor().visitRoot(subQuery.rel).asQueryOrValues();
+          return subQuery.getOperator().createCall(POS, sqlSubQuery);
+
+        case NOT:
+          RexNode operand = ((RexCall) rex).operands.get(0);
+          final SqlNode node = toSql(program, operand);
+          final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
+          if (inverseOperator != null) {
+            switch (operand.getKind()) {
+              case IN:
+                assert operand instanceof RexSubQuery
+                  : "scalar IN is no longer allowed in RexCall: " + rex;
+                return SqlStdOperatorTable.NOT_IN
+                  .createCall(POS, ((SqlCall) node).getOperandList());
+              case LIKE:
+                return SqlStdOperatorTable.NOT_LIKE
+                  .createCall(POS, ((SqlCall) node).getOperandList());
+              case SIMILAR:
+                return SqlStdOperatorTable.NOT_SIMILAR_TO
+                  .createCall(POS, ((SqlCall) node).getOperandList());
+              default:
+                break;
+            }
+            return inverseOperator.createCall(POS,
               ((SqlCall) node).getOperandList());
-        } else {
-          return SqlStdOperatorTable.NOT.createCall(POS, node);
-        }
+          } else {
+            return SqlStdOperatorTable.NOT.createCall(POS, node);
+          }
+        case IS_NOT_TRUE:
+        case IS_TRUE:
+          if (!dialect.getConformance().allowIsTrue()) {
+            operand = ((RexCall) rex).operands.get(0);
+            final SqlNode nodes = toSql(program, operand);
+            SqlOperator op = dialect.getTargetFunc((RexCall) rex);
+            return op
+              .createCall(POS, ((SqlCall) nodes).getOperandList());
+          } else {
+            List<SqlNode> nodes = toSql(program, ((RexCall) rex).getOperands());
+            return ((RexCall) rex).getOperator().createCall(new SqlNodeList(nodes, POS));
+          }
+        default:
+          if (rex instanceof RexOver) {
+            return toSql(program, (RexOver) rex);
+          }
 
-      default:
-        if (rex instanceof RexOver) {
-          return toSql(program, (RexOver) rex);
-        }
-
-        return callToSql(program, (RexCall) rex, false);
+          return callToSql(program, (RexCall) rex, false);
       }
     }
 
@@ -831,49 +833,49 @@ public abstract class SqlImplementor {
       final RexCall call = (RexCall) stripCastFromString(rex, dialect);
       SqlOperator op = call.getOperator();
       switch (op.getKind()) {
-      case SUM0:
-        op = SqlStdOperatorTable.SUM;
-        break;
-      case NOT:
-        RexNode operand = call.operands.get(0);
-        if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
-          return callToSql(program, (RexCall) operand, !not);
-        }
-        break;
-      default:
-        break;
+        case SUM0:
+          op = SqlStdOperatorTable.SUM;
+          break;
+        case NOT:
+          RexNode operand = call.operands.get(0);
+          if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
+            return callToSql(program, (RexCall) operand, !not);
+          }
+          break;
+        default:
+          break;
       }
       if (not) {
         SqlKind kind = op.getKind();
         op = requireNonNull(NOT_KIND_OPERATORS.get(kind),
-            () -> "unable to negate " + kind);
+          () -> "unable to negate " + kind);
       }
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
-      case CAST:
-        // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
-        // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
-        RelDataType dataType = rex.getType();
-        if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
-          RexNode operand0 = ((RexCall) rex).operands.get(0);
-          assert operand0 instanceof RexInputRef;
-          int ordinal = ((RexInputRef) operand0).getIndex();
-          SqlNode fieldOperand = field(ordinal);
-          return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
-        }
-        if (ignoreCast) {
-          assert nodeList.size() == 1;
-          return nodeList.get(0);
-        } else {
-          nodeList.add(castNonNull(dialect.getCastSpec(call.getType())));
-        }
-        break;
-      case PLUS:
-      case MINUS:
-        op = dialect.getTargetFunc(call);
-        break;
-      default:
-        break;
+        case CAST:
+          // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
+          // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
+          RelDataType dataType = rex.getType();
+          if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
+            RexNode operand0 = ((RexCall) rex).operands.get(0);
+            assert operand0 instanceof RexInputRef;
+            int ordinal = ((RexInputRef) operand0).getIndex();
+            SqlNode fieldOperand = field(ordinal);
+            return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
+          }
+          if (ignoreCast) {
+            assert nodeList.size() == 1;
+            return nodeList.get(0);
+          } else {
+            nodeList.add(castNonNull(dialect.getCastSpec(call.getType())));
+          }
+          break;
+        case PLUS:
+        case MINUS:
+          op = dialect.getTargetFunc(call);
+          break;
+        default:
+          break;
       }
       return SqlUtil.createCall(op, POS, nodeList);
     }
@@ -882,7 +884,7 @@ public abstract class SqlImplementor {
      * ranges are all points. */
     @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
     private <C extends Comparable<C>> SqlNode toSql(@Nullable RexProgram program,
-        RexNode operand, RelDataType type, Sarg<C> sarg) {
+                                                    RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
       if (sarg.containsNull) {
@@ -890,25 +892,25 @@ public abstract class SqlImplementor {
       }
       if (sarg.isPoints()) {
         final SqlNodeList list = sarg.rangeSet.asRanges().stream()
-            .map(range ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
-                        type, true, true)))
-            .collect(SqlNode.toList());
+          .map(range ->
+            toSql(program,
+              implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
+                type, true, true)))
+          .collect(SqlNode.toList());
         switch (list.size()) {
-        case 1:
-          orList.add(
+          case 1:
+            orList.add(
               SqlStdOperatorTable.EQUALS.createCall(POS, operandSql,
-                  list.get(0)));
-          break;
-        default:
-          orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
+                list.get(0)));
+            break;
+          default:
+            orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
         }
       } else {
         final RangeSets.Consumer<C> consumer =
-            new RangeToSql<>(operandSql, orList, v ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type)));
+          new RangeToSql<>(operandSql, orList, v ->
+            toSql(program,
+              implementor().rexBuilder.makeLiteral(v, type)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
@@ -921,18 +923,18 @@ public abstract class SqlImplementor {
      */
     public SqlNode toSql(RexWindowBound rexWindowBound) {
       final SqlNode offsetLiteral =
-          rexWindowBound.getOffset() == null
-              ? null
-              : SqlLiteral.createCharString(rexWindowBound.getOffset().toString(),
-                  SqlParserPos.ZERO);
+        rexWindowBound.getOffset() == null
+          ? null
+          : SqlLiteral.createCharString(rexWindowBound.getOffset().toString(),
+          SqlParserPos.ZERO);
       if (rexWindowBound.isPreceding()) {
         return offsetLiteral == null
-            ? SqlWindow.createUnboundedPreceding(POS)
-            : SqlWindow.createPreceding(offsetLiteral, POS);
+          ? SqlWindow.createUnboundedPreceding(POS)
+          : SqlWindow.createPreceding(offsetLiteral, POS);
       } else if (rexWindowBound.isFollowing()) {
         return offsetLiteral == null
-            ? SqlWindow.createUnboundedFollowing(POS)
-            : SqlWindow.createFollowing(offsetLiteral, POS);
+          ? SqlWindow.createUnboundedFollowing(POS)
+          : SqlWindow.createFollowing(offsetLiteral, POS);
       } else {
         assert rexWindowBound.isCurrentRow();
         return SqlWindow.createCurrentRow(POS);
@@ -940,14 +942,14 @@ public abstract class SqlImplementor {
     }
 
     public List<SqlNode> toSql(Window.Group group, ImmutableList<RexLiteral> constants,
-        int inputFieldCount) {
+                               int inputFieldCount) {
       final List<SqlNode> rexOvers = new ArrayList<>();
       final List<SqlNode> partitionKeys = new ArrayList<>();
       final List<SqlNode> orderByKeys = new ArrayList<>();
-      for (int partition : group.keys) {
+      for (int partition: group.keys) {
         partitionKeys.add(this.field(partition));
       }
-      for (RelFieldCollation collation : group.orderKeys.getFieldCollations()) {
+      for (RelFieldCollation collation: group.orderKeys.getFieldCollations()) {
         this.addOrderItem(orderByKeys, collation);
       }
       SqlLiteral isRows = SqlLiteral.createBoolean(group.isRows, POS);
@@ -956,11 +958,11 @@ public abstract class SqlImplementor {
 
       final SqlLiteral allowPartial = null;
 
-      for (Window.RexWinAggCall winAggCall : group.aggCalls) {
+      for (Window.RexWinAggCall winAggCall: group.aggCalls) {
         SqlAggFunction aggFunction = (SqlAggFunction) winAggCall.getOperator();
         final SqlWindow sqlWindow = SqlWindow.create(null, null,
-            new SqlNodeList(partitionKeys, POS), new SqlNodeList(orderByKeys, POS),
-            isRows, lowerBound, upperBound, allowPartial, POS);
+          new SqlNodeList(partitionKeys, POS), new SqlNodeList(orderByKeys, POS),
+          isRows, lowerBound, upperBound, allowPartial, POS);
         if (aggFunction.allowsFraming()) {
           lowerBound = createSqlWindowBound(group.lowerBound);
           upperBound = createSqlWindowBound(group.upperBound);
@@ -994,7 +996,7 @@ public abstract class SqlImplementor {
     private SqlCall toSql(@Nullable RexProgram program, RexOver rexOver) {
       final RexWindow rexWindow = rexOver.getWindow();
       final SqlNodeList partitionList = new SqlNodeList(
-          toSql(program, rexWindow.partitionKeys), POS);
+        toSql(program, rexWindow.partitionKeys), POS);
 
       List<SqlNode> orderNodes = Expressions.list();
       if (rexWindow.orderKeys != null) {
@@ -1003,10 +1005,10 @@ public abstract class SqlImplementor {
         }
       }
       final SqlNodeList orderList =
-          new SqlNodeList(orderNodes, POS);
+        new SqlNodeList(orderNodes, POS);
 
       final SqlLiteral isRows =
-          SqlLiteral.createBoolean(rexWindow.isRows(), POS);
+        SqlLiteral.createBoolean(rexWindow.isRows(), POS);
 
       // null defaults to true.
       // During parsing the allowPartial == false (e.g. disallow partial)
@@ -1026,55 +1028,55 @@ public abstract class SqlImplementor {
       }
 
       final SqlWindow sqlWindow = SqlWindow.create(null, null, partitionList,
-          orderList, isRows, lowerBound, upperBound, allowPartial, POS);
+        orderList, isRows, lowerBound, upperBound, allowPartial, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
       return createOverCall(sqlAggregateFunction, nodeList, sqlWindow, rexOver.isDistinct());
     }
 
     private static SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
-        SqlWindow window, boolean isDistinct) {
+                                          SqlWindow window, boolean isDistinct) {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
-            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
+          createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
-            SqlLiteral.createExactNumeric("0", POS));
+          SqlLiteral.createExactNumeric("0", POS));
       }
       SqlCall aggFunctionCall;
       if (isDistinct) {
         aggFunctionCall = op.createCall(
-            SqlSelectKeyword.DISTINCT.symbol(POS),
-            POS,
-            operands);
+          SqlSelectKeyword.DISTINCT.symbol(POS),
+          POS,
+          operands);
       } else {
         aggFunctionCall = op.createCall(POS, operands);
       }
       return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
-          window);
+        window);
     }
 
     private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc) {
       SqlNode node = toSql(program, rfc.left);
       switch (rfc.getDirection()) {
-      case DESCENDING:
-      case STRICTLY_DESCENDING:
-        node = SqlStdOperatorTable.DESC.createCall(POS, node);
-        break;
-      default:
-        break;
-      }
-      if (rfc.getNullDirection()
-          != dialect.defaultNullDirection(rfc.getDirection())) {
-        switch (rfc.getNullDirection()) {
-        case FIRST:
-          node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
-          break;
-        case LAST:
-          node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+        case DESCENDING:
+        case STRICTLY_DESCENDING:
+          node = SqlStdOperatorTable.DESC.createCall(POS, node);
           break;
         default:
           break;
+      }
+      if (rfc.getNullDirection()
+        != dialect.defaultNullDirection(rfc.getDirection())) {
+        switch (rfc.getNullDirection()) {
+          case FIRST:
+            node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
+            break;
+          case LAST:
+            node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+            break;
+          default:
+            break;
         }
       }
       return node;
@@ -1102,7 +1104,7 @@ public abstract class SqlImplementor {
       }
 
       throw new AssertionError("Unsupported Window bound: "
-          + rexWindowBound);
+        + rexWindowBound);
     }
 
     private List<SqlNode> toSql(@Nullable RexProgram program, List<RexNode> operandList) {
@@ -1128,53 +1130,40 @@ public abstract class SqlImplementor {
     void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
-            field.nullDirection == RelFieldCollation.NullDirection.FIRST;
+          field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(getSortBySqlNode(field.getFieldIndex()),
-//getSortBySqlNode(field.getFieldIndex())
-                first, field.direction.isDescending());
+          dialect.emulateNullDirection(field(field.getFieldIndex()),
+            first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
-              field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
+            field.getDirection(),
+            RelFieldCollation.NullDirection.UNSPECIFIED);
         }
       }
       orderByList.add(toSql(field));
     }
 
-    private SqlNode getSortBySqlNode(int index) {
-      /*if (dialect.getConformance().isSortByOrdinal()) {
-        return SqlLiteral.createExactNumeric(String.valueOf(index + 1),
-            SqlParserPos.ZERO);
-      }*/
-      if (dialect.getConformance().isSortByAlias()) {
-        return field(index, true);
-      }
-      return field(index);
-    }
-
-
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-        @Nullable RexProgram program, RexFieldCollation field) {
+                              @Nullable RexProgram program, RexFieldCollation field) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
-            field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
+          field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
         nullDirectionNode = dialect.emulateNullDirection(
-            node, first, field.getDirection().isDescending());
+          node, first, field.getDirection().isDescending());
       }
       if (nullDirectionNode != null) {
         orderByList.add(nullDirectionNode);
         switch (field.getDirection()) {
-        case DESCENDING:
-        case STRICTLY_DESCENDING:
-          node = SqlStdOperatorTable.DESC.createCall(POS, node);
-          break;
-        default:
-          break;
+          case DESCENDING:
+          case STRICTLY_DESCENDING:
+            node = SqlStdOperatorTable.DESC.createCall(POS, node);
+            break;
+          default:
+            break;
         }
         orderByList.add(node);
       } else {
@@ -1185,21 +1174,21 @@ public abstract class SqlImplementor {
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
       return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
-          Util.transform(aggCall.getArgList(), this::field),
-          aggCall.filterArg, aggCall.collation);
+        Util.transform(aggCall.getArgList(), this::field),
+        aggCall.filterArg, aggCall.collation);
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,
      * to an expression. */
     private SqlCall toSql(SqlOperator op, boolean distinct,
-        List<SqlNode> operandList, int filterArg, RelCollation collation) {
+                          List<SqlNode> operandList, int filterArg, RelCollation collation) {
       final SqlLiteral qualifier =
-          distinct ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
+        distinct ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node = toSql(SqlStdOperatorTable.SUM, distinct,
-            operandList, filterArg, collation);
+          operandList, filterArg, collation);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
-            SqlLiteral.createExactNumeric("0", POS));
+          SqlLiteral.createExactNumeric("0", POS));
       }
 
       // Handle filter on dialects that do support FILTER by generating CASE.
@@ -1210,13 +1199,13 @@ public abstract class SqlImplementor {
         // COUNT(x, y) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN x END, y)
         final SqlNodeList whenList = SqlNodeList.of(field(filterArg));
         final SqlNodeList thenList =
-            SqlNodeList.of(operandList.isEmpty()
-                ? SqlLiteral.createExactNumeric("1", POS)
-                : operandList.get(0));
+          SqlNodeList.of(operandList.isEmpty()
+            ? SqlLiteral.createExactNumeric("1", POS)
+            : operandList.get(0));
         final SqlNode elseList = SqlLiteral.createNull(POS);
         final SqlCall caseCall =
-            SqlStdOperatorTable.CASE.createCall(null, POS, null, whenList,
-                thenList, elseList);
+          SqlStdOperatorTable.CASE.createCall(null, POS, null, whenList,
+            thenList, elseList);
         final List<SqlNode> newOperandList = new ArrayList<>();
         newOperandList.add(caseCall);
         if (operandList.size() > 1) {
@@ -1231,7 +1220,7 @@ public abstract class SqlImplementor {
         operandList = ImmutableList.of(SqlIdentifier.STAR);
       }
       final SqlCall call =
-          op.createCall(qualifier, POS, operandList);
+        op.createCall(qualifier, POS, operandList);
 
       // Handle filter by generating FILTER (WHERE ...)
       final SqlCall call2;
@@ -1240,7 +1229,7 @@ public abstract class SqlImplementor {
       } else {
         assert dialect.supportsAggregateFunctionFilter(); // we checked above
         call2 = SqlStdOperatorTable.FILTER.createCall(POS, call,
-            field(filterArg));
+          field(filterArg));
       }
 
       // Handle collation
@@ -1258,31 +1247,30 @@ public abstract class SqlImplementor {
         addOrderItem(orderByList, field);
       }
       return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
-          new SqlNodeList(orderByList, POS));
+        new SqlNodeList(orderByList, POS));
     }
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      // SqlNode node = getSortBySqlNode(collation.getFieldIndex());
       SqlNode node = orderField(collation.getFieldIndex());
       switch (collation.getDirection()) {
-      case DESCENDING:
-      case STRICTLY_DESCENDING:
-        node = SqlStdOperatorTable.DESC.createCall(POS, node);
-        break;
-      default:
-        break;
-      }
-      if (collation.nullDirection != dialect.defaultNullDirection(collation.direction)) {
-        switch (collation.nullDirection) {
-        case FIRST:
-          node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
-          break;
-        case LAST:
-          node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+        case DESCENDING:
+        case STRICTLY_DESCENDING:
+          node = SqlStdOperatorTable.DESC.createCall(POS, node);
           break;
         default:
           break;
+      }
+      if (collation.nullDirection != dialect.defaultNullDirection(collation.direction)) {
+        switch (collation.nullDirection) {
+          case FIRST:
+            node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
+            break;
+          case LAST:
+            node = SqlStdOperatorTable.NULLS_LAST.createCall(POS, node);
+            break;
+          default:
+            break;
         }
       }
       return node;
@@ -1294,13 +1282,13 @@ public abstract class SqlImplementor {
      *
      * @param <C> Value type */
     private static class RangeToSql<C extends Comparable<C>>
-        implements RangeSets.Consumer<C> {
+      implements RangeSets.Consumer<C> {
       private final List<SqlNode> list;
       private final Function<C, SqlNode> literalFactory;
       private final SqlNode arg;
 
       RangeToSql(SqlNode arg, List<SqlNode> list,
-          Function<C, SqlNode> literalFactory) {
+                 Function<C, SqlNode> literalFactory) {
         this.arg = arg;
         this.list = list;
         this.literalFactory = literalFactory;
@@ -1308,8 +1296,8 @@ public abstract class SqlImplementor {
 
       private void addAnd(SqlNode... nodes) {
         list.add(
-            SqlUtil.createCall(SqlStdOperatorTable.AND, POS,
-                ImmutableList.copyOf(nodes)));
+          SqlUtil.createCall(SqlStdOperatorTable.AND, POS,
+            ImmutableList.copyOf(nodes)));
       }
 
       private SqlNode op(SqlOperator op, C value) {
@@ -1342,22 +1330,22 @@ public abstract class SqlImplementor {
 
       @Override public void closed(C lower, C upper) {
         addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-            op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
       }
 
       @Override public void closedOpen(C lower, C upper) {
         addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-            op(SqlStdOperatorTable.LESS_THAN, upper));
+          op(SqlStdOperatorTable.LESS_THAN, upper));
       }
 
       @Override public void openClosed(C lower, C upper) {
         addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-            op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
       }
 
       @Override public void open(C lower, C upper) {
         addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-            op(SqlStdOperatorTable.LESS_THAN, upper));
+          op(SqlStdOperatorTable.LESS_THAN, upper));
       }
     }
   }
@@ -1366,24 +1354,24 @@ public abstract class SqlImplementor {
    * to a {@link SqlNode}. */
   public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal) {
     switch (literal.getTypeName()) {
-    case SYMBOL:
-      final Enum symbol = (Enum) literal.getValue();
-      return SqlLiteral.createSymbol(symbol, POS);
+      case SYMBOL:
+        final Enum symbol = (Enum) literal.getValue();
+        return SqlLiteral.createSymbol(symbol, POS);
 
-    case ROW:
-      //noinspection unchecked
-      final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
-      return SqlStdOperatorTable.ROW.createCall(POS,
+      case ROW:
+        //noinspection unchecked
+        final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
+        return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(program, e))
-              .collect(Util.toImmutableList()));
+            .collect(Util.toImmutableList()));
 
-    case SARG:
-      final Sarg arg = literal.getValueAs(Sarg.class);
-      throw new AssertionError("sargs [" + arg
+      case SARG:
+        final Sarg arg = literal.getValueAs(Sarg.class);
+        throw new AssertionError("sargs [" + arg
           + "] should be handled as part of predicates, not as literals");
 
-    default:
-      return toSql(literal);
+      default:
+        return toSql(literal);
     }
   }
 
@@ -1391,66 +1379,66 @@ public abstract class SqlImplementor {
   public static SqlNode toSql(RexLiteral literal) {
     SqlTypeName typeName = literal.getTypeName();
     switch (typeName) {
-    case SYMBOL:
-      final Enum symbol = (Enum) literal.getValue();
-      return SqlLiteral.createSymbol(symbol, POS);
+      case SYMBOL:
+        final Enum symbol = (Enum) literal.getValue();
+        return SqlLiteral.createSymbol(symbol, POS);
 
-    case ROW:
-      //noinspection unchecked
-      final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
-      return SqlStdOperatorTable.ROW.createCall(POS,
+      case ROW:
+        //noinspection unchecked
+        final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
+        return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(e))
-              .collect(Util.toImmutableList()));
+            .collect(Util.toImmutableList()));
 
-    case SARG:
-      final Sarg arg = literal.getValueAs(Sarg.class);
-      throw new AssertionError("sargs [" + arg
+      case SARG:
+        final Sarg arg = literal.getValueAs(Sarg.class);
+        throw new AssertionError("sargs [" + arg
           + "] should be handled as part of predicates, not as literals");
-    default:
-      break;
-    }
-    SqlTypeFamily family = requireNonNull(typeName.getFamily(),
-        () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
-    switch (family) {
-    case CHARACTER:
-      return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
-    case NUMERIC:
-    case EXACT_NUMERIC:
-      return SqlLiteral.createExactNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
-    case APPROXIMATE_NUMERIC:
-      return SqlLiteral.createApproxNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
-    case BOOLEAN:
-      return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)),
-          POS);
-    case INTERVAL_YEAR_MONTH:
-    case INTERVAL_DAY_TIME:
-      final boolean negative = castNonNull(literal.getValueAs(Boolean.class));
-      return SqlLiteral.createInterval(negative ? -1 : 1,
-          castNonNull(literal.getValueAs(String.class)),
-          castNonNull(literal.getType().getIntervalQualifier()), POS);
-    case DATE:
-      return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
-          POS);
-    case TIME:
-      return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
-          literal.getType().getPrecision(), POS);
-    case TIMESTAMP:
-      return SqlLiteral.createTimestamp(
-          castNonNull(literal.getValueAs(TimestampString.class)),
-          literal.getType().getPrecision(), POS);
-    case ANY:
-    case NULL:
-      switch (typeName) {
-      case NULL:
-        return SqlLiteral.createNull(POS);
       default:
         break;
-      }
-      // fall through
-    default:
-      throw new AssertionError(literal + ": " + typeName);
+    }
+    SqlTypeFamily family = requireNonNull(typeName.getFamily(),
+      () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
+    switch (family) {
+      case CHARACTER:
+        return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
+      case NUMERIC:
+      case EXACT_NUMERIC:
+        return SqlLiteral.createExactNumeric(
+          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      case APPROXIMATE_NUMERIC:
+        return SqlLiteral.createApproxNumeric(
+          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      case BOOLEAN:
+        return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)),
+          POS);
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        final boolean negative = castNonNull(literal.getValueAs(Boolean.class));
+        return SqlLiteral.createInterval(negative ? -1 : 1,
+          castNonNull(literal.getValueAs(String.class)),
+          castNonNull(literal.getType().getIntervalQualifier()), POS);
+      case DATE:
+        return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
+          POS);
+      case TIME:
+        return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
+          literal.getType().getPrecision(), POS);
+      case TIMESTAMP:
+        return SqlLiteral.createTimestamp(
+          castNonNull(literal.getValueAs(TimestampString.class)),
+          literal.getType().getPrecision(), POS);
+      case ANY:
+      case NULL:
+        switch (typeName) {
+          case NULL:
+            return SqlLiteral.createNull(POS);
+          default:
+            break;
+        }
+        // fall through
+      default:
+        throw new AssertionError(literal + ": " + typeName);
     }
   }
 
@@ -1459,7 +1447,6 @@ public abstract class SqlImplementor {
    * {@link SqlImplementor} or {@link org.apache.calcite.tools.RelBuilder}
    * to use it. It is a good way to convert a {@link RexNode} to SQL text. */
   public static class SimpleContext extends Context {
-
     private final IntFunction<SqlNode> field;
 
     public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field) {
@@ -1471,11 +1458,11 @@ public abstract class SqlImplementor {
       throw new UnsupportedOperationException();
     }
 
-    @Override public SqlNode field(int ordinal, boolean useAlias) {
+    public SqlNode field(int ordinal, boolean useAlias) {
       throw new IllegalStateException("SHouldn't be here");
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       return field.apply(ordinal);
     }
   }
@@ -1489,8 +1476,8 @@ public abstract class SqlImplementor {
 
     @Override protected Context getAliasContext(RexCorrelVariable variable) {
       return requireNonNull(
-          correlTableMap.get(variable.id),
-          () -> "variable " + variable.id + " is not found");
+        correlTableMap.get(variable.id),
+        () -> "variable " + variable.id + " is not found");
     }
 
     @Override public SqlImplementor implementor() {
@@ -1499,7 +1486,7 @@ public abstract class SqlImplementor {
   }
 
   private static int computeFieldCount(
-      Map<String, RelDataType> aliases) {
+    Map<String, RelDataType> aliases) {
     int x = 0;
     for (RelDataType type : aliases.values()) {
       x += type.getFieldCount();
@@ -1508,7 +1495,7 @@ public abstract class SqlImplementor {
   }
 
   public Context aliasContext(Map<String, RelDataType> aliases,
-      boolean qualified) {
+                              boolean qualified) {
     return new AliasContext(dialect, aliases, qualified);
   }
 
@@ -1527,7 +1514,7 @@ public abstract class SqlImplementor {
   /** Context for translating MATCH_RECOGNIZE clause. */
   public class MatchRecognizeContext extends AliasContext {
     protected MatchRecognizeContext(SqlDialect dialect,
-        Map<String, RelDataType> aliases) {
+                                    Map<String, RelDataType> aliases) {
       super(dialect, aliases, false);
     }
 
@@ -1550,37 +1537,37 @@ public abstract class SqlImplementor {
 
     /** Creates an AliasContext; use {@link #aliasContext(Map, boolean)}. */
     protected AliasContext(SqlDialect dialect,
-        Map<String, RelDataType> aliases, boolean qualified) {
+                           Map<String, RelDataType> aliases, boolean qualified) {
       super(dialect, computeFieldCount(aliases));
       this.aliases = aliases;
       this.qualified = qualified;
     }
 
-    @Override public SqlNode field(int ordinal, boolean useAlias) {
+    public SqlNode field(int ordinal, boolean useAlias) {
       //Falling back to default behaviour & ignoring useAlias.
       // We can handle this as & when use cases arise.
       return field(ordinal);
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       for (Map.Entry<String, RelDataType> alias : aliases.entrySet()) {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
           final SqlNode mappedSqlNode =
-              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
+            ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
           if (mappedSqlNode != null) {
             return mappedSqlNode;
           }
           return new SqlIdentifier(!qualified
-              ? ImmutableList.of(field.getName())
-              : ImmutableList.of(alias.getKey(), field.getName()),
-              POS);
+            ? ImmutableList.of(field.getName())
+            : ImmutableList.of(alias.getKey(), field.getName()),
+            POS);
         }
         ordinal -= fields.size();
       }
       throw new AssertionError(
-          "field ordinal " + ordinal + " out of range " + aliases);
+        "field ordinal " + ordinal + " out of range " + aliases);
     }
   }
 
@@ -1592,17 +1579,17 @@ public abstract class SqlImplementor {
 
     /** Creates a JoinContext; use {@link #joinContext(Context, Context)}. */
     private JoinContext(SqlDialect dialect, Context leftContext,
-        Context rightContext) {
+                        Context rightContext) {
       super(dialect, leftContext.fieldCount + rightContext.fieldCount);
       this.leftContext = leftContext;
       this.rightContext = rightContext;
     }
 
-    @Override public SqlNode field(int ordinal, boolean useAlias) {
+    public SqlNode field(int ordinal, boolean useAlias) {
       throw new IllegalStateException("SHouldn't be here");
     }
 
-    public SqlNode field(int ordinal) {
+    @Override public SqlNode field(int ordinal) {
       if (ordinal < leftContext.fieldCount) {
         return leftContext.field(ordinal);
       } else {
@@ -1610,7 +1597,6 @@ public abstract class SqlImplementor {
       }
     }
   }
-
   /** Context for translating call of a TableFunctionScan from {@link RexNode} to
    * {@link SqlNode}. */
   class TableFunctionScanContext extends BaseContext {
@@ -1626,7 +1612,7 @@ public abstract class SqlImplementor {
     }
 
     @Override public SqlNode field(int ordinal, boolean useAlias) {
-      return inputSqlNodes.get(ordinal);
+      throw new IllegalStateException("Shouldn't be here");
     }
   }
 
@@ -1648,15 +1634,15 @@ public abstract class SqlImplementor {
     private final boolean needNew;
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
-        @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
+                  @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of(), null);
+        ImmutableSet.of(), null);
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
-        @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
-        boolean ignoreClauses, Set<Clause> expectedClauses,
-        @Nullable RelNode expectedRel) {
+                   @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
+                   boolean ignoreClauses, Set<Clause> expectedClauses,
+                   @Nullable RelNode expectedRel) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1667,9 +1653,9 @@ public abstract class SqlImplementor {
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
       this.expectedRel = expectedRel;
       final Set<Clause> clauses2 =
-          ignoreClauses ? ImmutableSet.of() : expectedClauses;
+        ignoreClauses ? ImmutableSet.of() : expectedClauses;
       this.needNew = expectedRel != null
-          && needNewSubQuery(expectedRel, this.clauses, clauses2);
+        && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
 
     /** Creates a builder for the SQL of the given relational expression,
@@ -1710,10 +1696,49 @@ public abstract class SqlImplementor {
       assert expectedClauses.containsAll(clauses);
       assert rel.equals(expectedRel);
       final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
-      final Clause maxClause = maxClause();
-      final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
+      boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
+
       boolean keepColumnAlias = false;
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+        && !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Project
+        && !dialect.supportNestedAnalyticalFunctions()
+        && hasNestedAnalyticalFunctions((Project) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Aggregate
+        && !dialect.supportsNestedAggregations()
+        && hasNestedAggregations((Aggregate) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+        && dialect.getConformance().isGroupByAlias()
+        && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Aggregate && rel.getInput(0) instanceof Project
+        && dialect.getConformance().isGroupByAlias()
+        && hasAnalyticalFunctionUsedInGroupBy((Aggregate) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Aggregate
+        && !dialect.supportsAnalyticalFunctionInAggregate()
+        && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof LogicalSort
+        && dialect.getConformance().isSortByAlias()) {
+        keepColumnAlias = true;
+      }
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1726,66 +1751,43 @@ public abstract class SqlImplementor {
       final Context newContext;
       Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
-      final RelNode relNode = rel;
       if (selectList != null) {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
-            && dialect.getConformance().isHavingAlias();
-        boolean keepColumnAliasFinal = keepColumnAlias;
+          && dialect.getConformance().isHavingAlias() || keepColumnAlias;
         newContext = new Context(dialect, selectList.size()) {
-
-         @Override public SqlImplementor implementor() {
+          @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
           }
 
           @Override public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
-            case AS:
-              final SqlCall asCall = (SqlCall) selectItem;
-              if (aliasRef) {
-                // For BigQuery, given the query
-                //   SELECT SUM(x) AS x FROM t HAVING(SUM(t.x) > 0)
-                // we can generate
-                //   SELECT SUM(x) AS x FROM t HAVING(x > 0)
-                // because 'x' in HAVING resolves to the 'AS x' not 't.x'.
-                return asCall.operand(1);
-              }
-              return asCall.operand(0);
-            default:
-              break;
+              case AS:
+                final SqlCall asCall = (SqlCall) selectItem;
+                if (aliasRef) {
+                  // For BigQuery, given the query
+                  //   SELECT SUM(x) AS x FROM t HAVING(SUM(t.x) > 0)
+                  // we can generate
+                  //   SELECT SUM(x) AS x FROM t HAVING(x > 0)
+                  // because 'x' in HAVING resolves to the 'AS x' not 't.x'.
+                  return asCall.operand(1);
+                }
+                return asCall.operand(0);
+              default:
+                break;
             }
             return selectItem;
           }
-
           public SqlNode field(int ordinal, boolean useAlias) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
-            case AS:
-              if (useAlias) {
-                SqlNode sqlNode = ((SqlCall) selectItem).operand(1);
-                if (!sqlNode.toString().toLowerCase(Locale.ROOT).startsWith("expr$")) {
-                  return sqlNode;
+              case AS:
+                if (useAlias) {
+                  return ((SqlCall) selectItem).operand(1);
                 }
-              }
-              return ((SqlCall) selectItem).operand(0);
+                return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
-          }
-
-          @Override public SqlImplementor implementor() {
-            final RelNode scalarSubQuery = relNode.accept(new RexShuttle() {
-              @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
-                if (subQuery.getOperator() == SqlStdOperatorTable.SCALAR_QUERY) {
-                  return subQuery;
-                }
-                return null;
-              }
-            });
-            if (scalarSubQuery != null) {
-              return SqlImplementor.this;
-            } else {
-              return super.implementor();
-            }
           }
 
           @Override public SqlNode orderField(int ordinal) {
@@ -1798,113 +1800,43 @@ public abstract class SqlImplementor {
             // "ORDER BY empno" would give incorrect result;
             // "ORDER BY x" is acceptable but is not preferred.
             final SqlNode node = field(ordinal);
-            if (dialect.getConformance().isSortByOrdinal()
-                && node instanceof SqlIdentifier
-                && ((SqlIdentifier) node).isSimple()) {
+            if (node instanceof SqlIdentifier
+              && ((SqlIdentifier) node).isSimple()) {
               final String name = ((SqlIdentifier) node).getSimple();
               for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
                 if (selectItem.i != ordinal) {
                   final String alias =
-                      SqlValidatorUtil.getAlias(selectItem.e, -1);
+                    SqlValidatorUtil.getAlias(selectItem.e, -1);
                   if (name.equalsIgnoreCase(alias)) {
                     return SqlLiteral.createExactNumeric(
-                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+                      Integer.toString(ordinal + 1), SqlParserPos.ZERO);
                   }
                 }
               }
-            }
-            if (dialect.getConformance().isSortByAlias()) {
-              return field(ordinal, true);
             }
             return node;
           }
         };
       } else {
         boolean qualified =
-            !dialect.hasImplicitTableAlias() || aliases.size() > 1;
+          !dialect.hasImplicitTableAlias() || aliases.size() > 1;
         // basically, we did a subSelect() since needNew is set and neededAlias is not null
         // now, we need to make sure that we need to update the alias context.
         // if our aliases map has a single element:  <neededAlias, rowType>,
         // then we don't need to rewrite the alias but otherwise, it should be updated.
         if (needNew
-            && neededAlias != null
-            && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
+          && neededAlias != null
+          && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
           newAliases =
-              ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
+            ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
           newContext = aliasContext(newAliases, qualified);
         } else {
           newContext = aliasContext(aliases, qualified);
         }
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
-          needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
+        needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
     }
-
-    /** Returns whether a new sub-query is required. */
-    private boolean needNewSubQuery(
-        @UnknownInitialization Result this,
-        RelNode rel, List<Clause> clauses,
-        Set<Clause> expectedClauses) {
-      if (clauses.isEmpty()) {
-        return false;
-      }
-      final Clause maxClause = Collections.max(clauses);
-      // If old and new clause are equal and belong to below set,
-      // then new SELECT wrap is not required
-      final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
-      for (Clause clause : expectedClauses) {
-        if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause == clause
-            && !nonWrapSet.contains(clause))) {
-          return true;
-        }
-      }
-
-      if (rel instanceof Project) {
-       /* if (this.clauses.contains(Clause.HAVING)
-            && dialect.getConformance().isHavingAlias()) {
-          return true;
-        }*/
-        if (rel.getInput(0) instanceof Aggregate
-          && dialect.getConformance().isGroupByAlias()
-          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
-          return true;
-        }
-      }
-
-      if (rel instanceof Project
-          && ((Project) rel).containsOver()
-          && maxClause == Clause.SELECT) {
-        // Cannot merge a Project that contains windowed functions onto an
-        // underlying Project
-        return true;
-      }
-
-      if (rel instanceof Aggregate) {
-        final Aggregate agg = (Aggregate) rel;
-        final boolean hasNestedAgg = hasNestedAggregations(agg);
-        if (!dialect.supportsNestedAggregations()
-            && hasNestedAgg) {
-          return true;
-        }
-
-        if (clauses.contains(Clause.GROUP_BY)) {
-          // Avoid losing the distinct attribute of inner aggregate.
-          return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
-        }
-        if (rel.getInput(0) instanceof Project
-            && dialect.getConformance().isGroupByAlias()
-            & hasAnalyticalFunctionUsedInGroupBy((Aggregate) rel)) {
-          return true;
-        }
-        if (!dialect.supportsAnalyticalFunctionInAggregate()
-            && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
 
     private boolean hasAnalyticalFunctionInAggregate(Aggregate rel) {
       boolean present = false;
@@ -1918,7 +1850,7 @@ public abstract class SqlImplementor {
           for (int aggregatesArg : aggregatesArgs) {
             if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
               final SqlBasicCall call =
-                  (SqlBasicCall) selectList.get(aggregatesArg);
+                (SqlBasicCall) selectList.get(aggregatesArg);
               present = hasAnalyticalFunction(call);
               if (!present) {
                 present = hasAnalyticalFunctionInWhenClauseOfCase(call);
@@ -1973,13 +1905,152 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    boolean isAnalyticalRex(RexNode rexNode) {
-      return rexNode instanceof RexOver;
+    private boolean hasAggFunctionUsedInGroupBy(Project project) {
+      if (!(node instanceof SqlSelect && ((SqlSelect) node).getGroup() != null)) {
+        return false;
+      }
+      List<RexNode> expressions = project.getChildExps();
+      List<Pair<Integer, List<RexInputRef>>> identifiersPerSelectListItem = new ArrayList<>();
+      int index = 0;
+      for (RexNode expr : expressions) {
+        identifiersPerSelectListItem.add(new Pair<>(index, getIdentifiers(expr)));
+        index++;
+      }
+      List<String> columnNames = new ArrayList<>();
+      List<SqlNode> selectList = ((SqlSelect) node).getSelectList().getList();
+      for (Pair<Integer, List<RexInputRef>> identifiersWithIndex : identifiersPerSelectListItem) {
+        boolean hasAggFunction = false;
+        for (RexInputRef identifier: identifiersWithIndex.right) {
+          SqlNode sqlNode = selectList.get(identifier.getIndex());
+          if (sqlNode instanceof SqlCall) {
+            if (hasSpecifiedFunction((SqlCall) sqlNode, SqlAggFunction.class)) {
+              hasAggFunction = true;
+            }
+          }
+        }
+        if (hasAggFunction) {
+          columnNames.
+            add(project.getRowType().getFieldList().get(identifiersWithIndex.left).getName());
+        }
+      }
+      List<SqlNode> groupByList = ((SqlSelect) node).getGroup().getList();
+      for (SqlNode groupByItem : groupByList) {
+        if (groupByItem instanceof SqlIdentifier
+          && columnNames.contains(SqlIdentifier.getString(((SqlIdentifier) groupByItem).names))) {
+          return true;
+        }
+      }
+      return false;
     }
 
+    List<RexInputRef> getIdentifiers(RexNode rexNode) {
+      List<RexInputRef> identifiers = new ArrayList<>();
+      if (rexNode instanceof RexInputRef) {
+        identifiers.add((RexInputRef) rexNode);
+      } else if (rexNode instanceof RexCall) {
+        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+          identifiers.addAll(getIdentifiers(operand));
+        }
+      }
+      return identifiers;
+    }
+
+    private boolean hasSpecifiedFunction(SqlCall call, Class sqlOperator) {
+      List<SqlNode> operands;
+      if (sqlOperator.isInstance(call.getOperator())) {
+        return true;
+      } else if (call instanceof SqlCase) {
+        operands = getListOfCaseOperands((SqlCase) call);
+      } else {
+        operands = call.getOperandList();
+      }
+      for (SqlNode sqlNode : operands) {
+        if (sqlNode instanceof SqlCall) {
+          if (hasSpecifiedFunction((SqlCall) sqlNode, sqlOperator)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    List<SqlNode> getListOfCaseOperands(SqlCase sqlCase) {
+      List<SqlNode> operandList = new ArrayList<>();
+      operandList.add(sqlCase.getValueOperand());
+      operandList.addAll(sqlCase.getWhenOperands().getList());
+      operandList.addAll(sqlCase.getThenOperands().getList());
+      operandList.add(sqlCase.getElseOperand());
+      return operandList;
+    }
+
+    /** Returns whether a new sub-query is required. */
+    private boolean needNewSubQuery(
+      @UnknownInitialization Result this,
+      RelNode rel, List<Clause> clauses,
+      Set<Clause> expectedClauses) {
+      if (clauses.isEmpty()) {
+        return false;
+      }
+      final Clause maxClause = Collections.max(clauses);
+      // If old and new clause are equal and belong to below set,
+      // then new SELECT wrap is not required
+      final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
+      for (Clause clause : expectedClauses) {
+        if (maxClause.ordinal() > clause.ordinal()
+          || (maxClause == clause
+          && !nonWrapSet.contains(clause))) {
+          return true;
+        }
+      }
+
+      if (rel instanceof Project
+        && clauses.contains(Clause.HAVING)
+        && dialect.getConformance().isHavingAlias()) {
+        return true;
+      }
+
+      if (rel instanceof Project
+        && ((Project) rel).containsOver()
+        && maxClause == Clause.SELECT) {
+        // Cannot merge a Project that contains windowed functions onto an
+        // underlying Project
+        return true;
+      }
+
+      if (rel instanceof Aggregate) {
+        final Aggregate agg = (Aggregate) rel;
+        final boolean hasNestedAgg = hasNestedAggregations(agg);
+        if (!dialect.supportsNestedAggregations()
+          && hasNestedAgg) {
+          return true;
+        }
+
+        if (clauses.contains(Clause.GROUP_BY)) {
+          // Avoid losing the distinct attribute of inner aggregate.
+          return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
+        }
+      }
+
+      return false;
+    }
+
+    boolean isAnalyticalRex(RexNode rexNode) {
+      if (rexNode instanceof RexOver) {
+        return true;
+      } else if (rexNode instanceof RexCall) {
+        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+          if (isAnalyticalRex(operand)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+
     private boolean hasNestedAggregations(
-        @UnknownInitialization Result this,
-        Aggregate rel) {
+      @UnknownInitialization Result this,
+      Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
@@ -1990,10 +2061,10 @@ public abstract class SqlImplementor {
           for (int aggregatesArg : aggregatesArgs) {
             if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
               final SqlBasicCall call =
-                  (SqlBasicCall) selectList.get(aggregatesArg);
+                (SqlBasicCall) selectList.get(aggregatesArg);
               for (SqlNode operand : call.getOperands()) {
                 if (operand instanceof SqlCall
-                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
+                  && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
                   return true;
                 }
               }
@@ -2003,7 +2074,6 @@ public abstract class SqlImplementor {
       }
       return false;
     }
-
 
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
@@ -2015,7 +2085,7 @@ public abstract class SqlImplementor {
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
                 if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, rel)) {
+                  && !grpCallPresentInFinalProjection(grpCall, rel)) {
                   return true;
                 }
               }
@@ -2028,13 +2098,43 @@ public abstract class SqlImplementor {
 
     boolean grpCallIsAlias(String grpCall, SqlBasicCall selectCall) {
       return selectCall.getOperator() instanceof SqlAsOperator
-          && grpCall.equals(selectCall.operand(1).toString());
+        && grpCall.equals(selectCall.operand(1).toString());
     }
 
     boolean grpCallPresentInFinalProjection(String grpCall, Project rel) {
       List<String> projFieldList = rel.getRowType().getFieldNames();
       for (String finalProj : projFieldList) {
         if (grpCall.equals(finalProj)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean hasNestedAnalyticalFunctions(Project rel) {
+      if (!(node instanceof SqlSelect)) {
+        return false;
+      }
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      if (selectList == null) {
+        return false;
+      }
+      List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
+      for (RexNode rexNode : rel.getChildExps()) {
+        if (isAnalyticalRex(rexNode)) {
+          rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
+        }
+      }
+      if (rexInputRefsInAnalytical.isEmpty()) {
+        return false;
+      }
+      for (RexInputRef rexInputRef : rexInputRefsInAnalytical) {
+        SqlNode sqlNode = selectList.get(rexInputRef.getIndex());
+        boolean hasAnalyticalFunction = false;
+        if (sqlNode instanceof SqlCall) {
+          hasAnalyticalFunction = hasSpecifiedFunction((SqlCall) sqlNode, SqlOverOperator.class);
+        }
+        if (hasAnalyticalFunction) {
           return true;
         }
       }
@@ -2063,7 +2163,7 @@ public abstract class SqlImplementor {
           return SqlStdOperatorTable.AS.createCall(POS, operands);
         } else {
           return SqlStdOperatorTable.AS.createCall(POS, node,
-              new SqlIdentifier(neededAlias, POS));
+            new SqlIdentifier(neededAlias, POS));
         }
       }
       return node;
@@ -2087,40 +2187,40 @@ public abstract class SqlImplementor {
 
     public void stripTrivialAliases(SqlNode node) {
       switch (node.getKind()) {
-      case SELECT:
-        final SqlSelect select = (SqlSelect) node;
-        final SqlNodeList nodeList = select.getSelectList();
-        if (nodeList != null) {
-          for (int i = 0; i < nodeList.size(); i++) {
-            final SqlNode n = nodeList.get(i);
-            if (n.getKind() == SqlKind.AS) {
-              final SqlCall call = (SqlCall) n;
-              final SqlIdentifier identifier = call.operand(1);
-              if (identifier.getSimple().toLowerCase(Locale.ROOT)
+        case SELECT:
+          final SqlSelect select = (SqlSelect) node;
+          final SqlNodeList nodeList = select.getSelectList();
+          if (nodeList != null) {
+            for (int i = 0; i < nodeList.size(); i++) {
+              final SqlNode n = nodeList.get(i);
+              if (n.getKind() == SqlKind.AS) {
+                final SqlCall call = (SqlCall) n;
+                final SqlIdentifier identifier = call.operand(1);
+                if (identifier.getSimple().toLowerCase(Locale.ROOT)
                   .startsWith("expr$")) {
-                nodeList.set(i, call.operand(0));
+                  nodeList.set(i, call.operand(0));
+                }
               }
             }
           }
-        }
-        break;
+          break;
 
-      case UNION:
-      case INTERSECT:
-      case EXCEPT:
-      case INSERT:
-      case UPDATE:
-      case DELETE:
-      case MERGE:
-        final SqlCall call = (SqlCall) node;
-        for (SqlNode operand : call.getOperandList()) {
-          if (operand != null) {
-            stripTrivialAliases(operand);
+        case UNION:
+        case INTERSECT:
+        case EXCEPT:
+        case INSERT:
+        case UPDATE:
+        case DELETE:
+        case MERGE:
+          final SqlCall call = (SqlCall) node;
+          for (SqlNode operand : call.getOperandList()) {
+            if (operand != null) {
+              stripTrivialAliases(operand);
+            }
           }
-        }
-        break;
-      default:
-        break;
+          break;
+        default:
+          break;
       }
     }
 
@@ -2137,16 +2237,16 @@ public abstract class SqlImplementor {
      * remain as is. */
     public SqlNode asStatement() {
       switch (node.getKind()) {
-      case UNION:
-      case INTERSECT:
-      case EXCEPT:
-      case INSERT:
-      case UPDATE:
-      case DELETE:
-      case MERGE:
-        return maybeStrip(node);
-      default:
-        return maybeStrip(asSelect());
+        case UNION:
+        case INTERSECT:
+        case EXCEPT:
+        case INSERT:
+        case UPDATE:
+        case DELETE:
+        case MERGE:
+          return maybeStrip(node);
+        default:
+          return maybeStrip(asSelect());
       }
     }
 
@@ -2154,13 +2254,13 @@ public abstract class SqlImplementor {
      * INTERSECT, EXCEPT) and VALUES remain as is. */
     public SqlNode asQueryOrValues() {
       switch (node.getKind()) {
-      case UNION:
-      case INTERSECT:
-      case EXCEPT:
-      case VALUES:
-        return maybeStrip(node);
-      default:
-        return maybeStrip(asSelect());
+        case UNION:
+        case INTERSECT:
+        case EXCEPT:
+        case VALUES:
+          return maybeStrip(node);
+        default:
+          return maybeStrip(asSelect());
       }
     }
 
@@ -2180,8 +2280,8 @@ public abstract class SqlImplementor {
         return this;
       } else {
         return new Result(node, clauses, neededAlias, neededType,
-            ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
-            expectedClauses, expectedRel);
+          ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
+          expectedClauses, expectedRel);
       }
     }
 
@@ -2193,27 +2293,27 @@ public abstract class SqlImplementor {
      */
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
-          ImmutableMap.of(alias, type), anon, ignoreClauses,
-          expectedClauses, expectedRel);
+        ImmutableMap.of(alias, type), anon, ignoreClauses,
+        expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
-          : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, expectedClauses, expectedRel);
+        : new Result(node, clauses, neededAlias, neededType, aliases, anon,
+        ignoreClauses, expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of
      * {@code ignoreClauses} and {@code expectedClauses}. */
     Result withExpectedClauses(boolean ignoreClauses,
-        Set<? extends Clause> expectedClauses, RelNode expectedRel) {
+                               Set<? extends Clause> expectedClauses, RelNode expectedRel) {
       return ignoreClauses == this.ignoreClauses
-          && expectedClauses.equals(this.expectedClauses)
-          && expectedRel == this.expectedRel
-          ? this
-          : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
+        && expectedClauses.equals(this.expectedClauses)
+        && expectedRel == this.expectedRel
+        ? this
+        : new Result(node, clauses, neededAlias, neededType, aliases, anon,
+        ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
     }
   }
 
@@ -2227,8 +2327,8 @@ public abstract class SqlImplementor {
     private final @Nullable Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
-        Context context, boolean anon,
-        @Nullable Map<String, RelDataType> aliases) {
+                   Context context, boolean anon,
+                   @Nullable Map<String, RelDataType> aliases) {
       this.rel = requireNonNull(rel);
       this.clauses = ImmutableList.copyOf(clauses);
       this.select = requireNonNull(select);
@@ -2272,13 +2372,13 @@ public abstract class SqlImplementor {
     }
 
     public void addOrderItem(List<SqlNode> orderByList,
-        RelFieldCollation field) {
+                             RelFieldCollation field) {
       context.addOrderItem(orderByList, field);
     }
 
     public Result result() {
       return SqlImplementor.this.result(select, clauses, rel, aliases)
-          .withAnon(anon);
+        .withAnon(anon);
     }
   }
 

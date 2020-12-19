@@ -82,6 +82,9 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   @Override public SqlLibrary semantics() {
     return delegate.semantics();
   }
+  @Override public boolean allowIsTrue() {
+    return delegate.allowIsTrue();
+  }
 
   @Override public boolean isDollarSupportedinAlias() {
     return delegate.isDollarSupportedinAlias();

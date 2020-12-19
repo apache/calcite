@@ -84,6 +84,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -120,7 +121,7 @@ class RelToSqlConverterTest {
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+            new MockSqlOperatorTable(SqlStdOperatorTable.instance());
     MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -1141,6 +1142,44 @@ class RelToSqlConverterTest {
         .ok(expectedBigQuery);
   }
 
+  @Test public void testAnalyticalFunctionInGroupByWhereAnalyticalFunctionIsInputOfOtherFunction() {
+    final String query = "select\n"
+        + "\"rnk\""
+        + "  from ("
+        + "    select\n"
+        + "    CASE WHEN \"salary\"=20 THEN MAX(\"salary\") OVER(PARTITION BY \"position_id\") END AS \"rnk\""
+        + "    from \"foodmart\".\"employee\"\n) group by \"rnk\"";
+    final String expectedSql = "SELECT CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) = 20 THEN"
+        + " MAX(\"salary\") OVER (PARTITION BY \"position_id\" RANGE BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING) ELSE NULL END AS \"rnk\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) = 20 THEN MAX"
+        + "(\"salary\") OVER (PARTITION BY \"position_id\" RANGE BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING) ELSE NULL END";
+    final String expectedHive = "SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX"
+        + "(salary) OVER (PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED "
+        + "FOLLOWING) ELSE NULL END rnk\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT rnk\n"
+        + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END AS rnk\n"
+        + "FROM foodmart.employee) AS t\n"
+        + "GROUP BY rnk";
+    sql(query)
+        .ok(expectedSql)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
    * JDBC adapter throws NullPointerException while generating GROUP BY query
@@ -1174,6 +1213,17 @@ class RelToSqlConverterTest {
         + "FROM `scott`.`EMP`\n"
         + "WHERE `DEPTNO` = 10";
     relFn(relFn).withMysql().ok(expectedSql);
+  }
+
+  /**  */
+  @Test public void testTableFunctionScanWithUnnest() {
+    final RelBuilder builder = relBuilder();
+    String[] array = {"abc", "bcd", "fdc"};
+    RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
+            builder.literal(Arrays.asList(array))).project(builder.field(0)).build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
   /** Test case for
@@ -1662,13 +1712,17 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithBoth() {
@@ -1676,13 +1730,17 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithLeadingSpace() {
@@ -1690,13 +1748,17 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT LTRIM(' str ')\n"
+              + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithTailingSpace() {
@@ -1704,13 +1766,17 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT RTRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithLeadingCharacter() {
@@ -1720,13 +1786,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE(first_name, '^(A)*', '')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT LTRIM(\"first_name\", 'A')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithTrailingCharacter() {
@@ -1736,13 +1806,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT RTRIM('AABCAADCAA', 'A')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithBothCharacter() {
@@ -1752,13 +1826,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT TRIM('AABCAADCAA', 'A')\n"
+              + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithLeadingSpecialCharacter() {
@@ -1769,13 +1847,17 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('A$@*AABCA$@*AADCAA$@*', '^(A\\$\\@\\*)*', '')\n"
             + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT LTRIM('A$@*AABCA$@*AADCAA$@*', 'A$@*')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithTrailingSpecialCharacter() {
@@ -1786,13 +1868,17 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('$A@*AABC$@*AADCAA$A@*', '(\\$A\\@\\*)*$', '')\n"
             + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT RTRIM('$A@*AABC$@*AADCAA$A@*', '$A@*')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
 
@@ -1805,13 +1891,17 @@ class RelToSqlConverterTest {
         "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
             + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
             + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
+              + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedHS)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testTrimWithFunction() {
@@ -1825,13 +1915,18 @@ class RelToSqlConverterTest {
     final String expectedSpark =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
+    final String expectedSnowFlake = "SELECT TRIM(SUBSTR(\"full_name\", 2, 3))\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+
     sql(query)
         .withHive()
         .ok(expectedHS)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test void testHiveAndSparkTrimWithTailingChar() {
@@ -1961,8 +2056,15 @@ class RelToSqlConverterTest {
         + "WHERE DEPTNO = 40))) AS SC_DEPTNO, COUNT(1) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
+    final String expectedSnowflake = "SELECT \"EMPNO\", (((SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = 40))) AS \"SC_DEPTNO\", COUNT(1) AS \"pid\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"EMPNO\"";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowflake));
   }
 
   @Test void testSelectQueryWithLimitClause() {
@@ -2231,26 +2333,34 @@ class RelToSqlConverterTest {
     final String query = "select char_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT LENGTH('xyz')\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withHive()
         .ok(expected)
         .withBigQuery()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test public void testCharacterLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
     final String query = "select character_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
       + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT LENGTH('xyz')\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
       .withHive()
       .ok(expected)
       .withBigQuery()
       .ok(expected)
       .withSpark()
-      .ok(expected);
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test void testHiveSubstringWithLength() {
@@ -3897,7 +4007,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedPostgresql;
+    final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2)\n"
+            + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
@@ -3944,7 +4055,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedPostgresql;
+    final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+            + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
         + "FROM `foodmart`.`product`";
@@ -5119,7 +5231,10 @@ class RelToSqlConverterTest {
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
-    final String expectedSnowflake = expectedPostgresql;
+    final String expectedSnowflake = "SELECT \"a\"\n"
+        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
     final String expectedRedshift = expectedPostgresql;
     sql(sql)
         .withHsqldb()
@@ -5630,6 +5745,20 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testRegexSubstrFunction5ArgswithBackSlash() {
+    final String query = "select regexp_substr('chocolate Chip cookies','[-\\_] V[0-9]+',"
+        + " 1,1,'i')\n"
+        + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
+    final String expected = "SELECT "
+        + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)[-\\\\_] V[0-9]+') [OFFSET(0)]\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+
   @Test public void testTimestampFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode currentTimestampRexNode = builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP,
@@ -5693,7 +5822,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -1)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 1 MONTH)\n"
+    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL -1 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -5763,13 +5892,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateSubColumnFunction() {
@@ -5780,13 +5913,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" - 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateValuePlusColumnFunction() {
@@ -5797,13 +5934,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (DATE '2018-01-01' + 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateValueSubColumnFunction() {
@@ -5814,13 +5955,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (DATE '2018-01-01' - 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateIntColumnFunction() {
@@ -5831,13 +5976,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 2 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + 2)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateSubInterFunction() {
@@ -5848,13 +5997,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 2 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" - 2)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusColumnVariFunction() {
@@ -5865,13 +6018,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusIntervalColumnFunction() {
@@ -5882,13 +6039,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusIntervalIntFunction() {
@@ -5899,13 +6060,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + 10)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateSubColumnVariFunction() {
@@ -5916,13 +6081,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateValuePlusColumnVariFunction() {
@@ -5933,13 +6102,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (DATE '2018-01-01' + \"store_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusColumnFunctionWithArithOp() {
@@ -5950,13 +6123,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusColumnFunctionVariWithArithOp() {
@@ -5967,13 +6144,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDateSubColumnFunctionVariWithArithOp() {
@@ -5984,13 +6165,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\" * 11)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testDatePlusIntervalDayFunctionWithArithOp() {
@@ -6001,13 +6186,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + 10 * 2)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testIntervalDayPlusDateFunction() {
@@ -6018,13 +6207,30 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
+    final String expectedSnowflake = "SELECT (\"birth_date\" + 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
+  }
+
+  @Test public void testIntervalHourToSecond() {
+    String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
+        + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
+        + "FROM \"employee\"";
+    final String expectedBigQuery = "SELECT "
+        + "TIMESTAMP_ADD(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND), "
+        + "TIMESTAMP_SUB(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
   }
 
   @Test public void truncateFunctionEmulationForBigQuery() {
@@ -6395,41 +6601,70 @@ class RelToSqlConverterTest {
 
   @Test public void testToNumberFunctionHandlingHexaToInt() {
     String query = "select TO_NUMBER('03ea02653f6938ba','XXXXXXXXXXXXXXXX')";
-    final String expected = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS INT64)";
+    final String expectedBigQuery = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS BIGINT)";
+    final String expected = "SELECT CAST(CONV('03ea02653f6938ba', 16, 10) AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('03ea02653f6938ba', 'XXXXXXXXXXXXXXXX')";
     sql(query)
         .withBigQuery()
-        .ok(expected);
-  }
-
-  @Test public void testToNumberFunctionHandlingFloatingPoint() {
-    String query = "select TO_NUMBER('1.789','9.999')";
-    final String expected = "SELECT CAST('1.789' AS FLOAT)";
-    final String expectedBq = "SELECT CAST('1.789' AS FLOAT64)";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
+        .ok(expectedBigQuery)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingFloatingPoint() {
+    String query = "select TO_NUMBER('-1.7892','9.9999')";
+    final String expected = "SELECT CAST('-1.7892' AS FLOAT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-1.7892', 38, 4)";
+    sql(query)
+        .withBigQuery()
+        .ok(expected)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingFloatingPointWithD() {
     String query = "select TO_NUMBER('1.789','9D999')";
     final String expected = "SELECT CAST('1.789' AS FLOAT)";
     final String expectedBq = "SELECT CAST('1.789' AS FLOAT64)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1.789', 38, 3)";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingWithSingleFloatingPoint() {
+    String query = "select TO_NUMBER('1.789')";
+    final String expected = "SELECT CAST('1.789' AS FLOAT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1.789', 38, 3)";
+    sql(query)
+        .withBigQuery()
+        .ok(expected)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithComma() {
     String query = "SELECT TO_NUMBER ('1,789', '9,999')";
-    final String expectedSpark = "SELECT CAST('1789' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1,789', '9,999')";
     final String expectedBq = "SELECT CAST('1789' AS INT64)";
     final String expectedHive = "SELECT CAST('1789' AS INT)";
     sql(query)
@@ -6438,12 +6673,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrency() {
     String query = "SELECT TO_NUMBER ('$1789', '$9999')";
-    final String expectedSpark = "SELECT CAST('1789' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('$1789', '$9999')";
     final String expectedHive = "SELECT CAST('1789' AS INT)";
     final String expectedBq = "SELECT CAST('1789' AS INT64)";
     sql(query)
@@ -6452,12 +6690,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrencyAndL() {
     String query = "SELECT TO_NUMBER ('$1789', 'L9999')";
-    final String expectedSpark = "SELECT CAST('1789' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('$1789', '$9999')";
     final String expectedHive = "SELECT CAST('1789' AS INT)";
     final String expectedBq = "SELECT CAST('1789' AS INT64)";
     sql(query)
@@ -6466,27 +6707,33 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMinus() {
     String query = "SELECT TO_NUMBER ('-12334', 'S99999')";
     final String expectedBq = "SELECT CAST('-12334' AS INT64)";
     final String expectedHive = "SELECT CAST('-12334' AS INT)";
-    final String expectedSpark = "SELECT CAST('-12334' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('-12334' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-12334', 'S99999')";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMinusLast() {
     String query = "SELECT TO_NUMBER ('12334-', '99999S')";
     final String expectedHive = "SELECT CAST('-12334' AS INT)";
-    final String expectedSpark = "SELECT CAST('-12334' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('-12334' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('12334-', '99999S')";
     final String expectedBq = "SELECT CAST('-12334' AS INT64)";
     sql(query)
         .withBigQuery()
@@ -6494,7 +6741,9 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithE() {
@@ -6502,18 +6751,22 @@ class RelToSqlConverterTest {
     final String expectedBq = "SELECT CAST('12E3' AS NUMERIC)";
     final String expected = "SELECT CAST('12E3' AS DECIMAL(19, 0))";
     //final String expected = "SELECT CAST('12E3' AS DECIMAL(19, 0))";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('12E3', '99EEEE')";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrencyName() {
     String query = "SELECT TO_NUMBER('dollar1234','L9999','NLS_CURRENCY=''dollar''')";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
@@ -6522,12 +6775,60 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingWithCurrencyNameFloat() {
+    String query = "SELECT TO_NUMBER('dollar12.34','L99D99','NLS_CURRENCY=''dollar''')";
+    final String expected = "SELECT CAST('12.34' AS FLOAT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('12.34', 38, 2)";
+    sql(query)
+        .withBigQuery()
+        .ok(expected)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingWithCurrencyNameNull() {
+    String query = "SELECT TO_NUMBER('dollar12.34','L99D99',null)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
+    sql(query)
+        .withBigQuery()
+        .ok(expected)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingWithCurrencyNameMinus() {
+    String query = "SELECT TO_NUMBER('-dollar1234','L9999','NLS_CURRENCY=''dollar''')";
+    final String expected = "SELECT CAST('-1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-1234')";
+    sql(query)
+        .withBigQuery()
+        .ok(expected)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithG() {
     String query = "SELECT TO_NUMBER ('1,2345', '9G9999')";
-    final String expectedSpark = "SELECT CAST('12345' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('12345' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1,2345', '9G9999')";
     final String expectedHive = "SELECT CAST('12345' AS INT)";
     final String expectedBq = "SELECT CAST('12345' AS INT64)";
     sql(query)
@@ -6536,12 +6837,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithU() {
     String query = "SELECT TO_NUMBER ('$1234', 'U9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('$1234', '$9999')";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
@@ -6550,12 +6854,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithPR() {
     String query = "SELECT TO_NUMBER (' 123 ', '999PR')";
-    final String expectedSpark = "SELECT CAST('123' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('123' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('123')";
     final String expectedHive = "SELECT CAST('123' AS INT)";
     final String expectedBq = "SELECT CAST('123' AS INT64)";
     sql(query)
@@ -6564,12 +6871,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMI() {
     String query = "SELECT TO_NUMBER ('1234-', '9999MI')";
-    final String expectedSpark = "SELECT CAST('-1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('-1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234-', '9999MI')";
     final String expectedHive = "SELECT CAST('-1234' AS INT)";
     final String expectedBq = "SELECT CAST('-1234' AS INT64)";
     sql(query)
@@ -6578,25 +6888,31 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMIDecimal() {
     String query = "SELECT TO_NUMBER ('1.234-', '9.999MI')";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)";
     final String expectedBq = "SELECT CAST('-1.234' AS FLOAT64)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-1.234', 38, 3)";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithZero() {
     String query = "select TO_NUMBER('01234','09999')";
-    final String expectedSpark = "SELECT CAST('01234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('01234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('01234', '09999')";
     final String expectedHive = "SELECT CAST('01234' AS INT)";
     final String expectedBq = "SELECT CAST('01234' AS INT64)";
     sql(query)
@@ -6605,13 +6921,16 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithB() {
     String query = "select TO_NUMBER('1234','B9999')";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234', 'B9999')";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
         .withBigQuery()
@@ -6619,12 +6938,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithC() {
     String query = "select TO_NUMBER('USD1234','C9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
@@ -6633,12 +6955,15 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandling() {
     final String query = "SELECT TO_NUMBER ('1234', '9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234', '9999')";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
@@ -6647,48 +6972,72 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSingleArgumentInt() {
     final String query = "SELECT TO_NUMBER ('1234')";
     final String expectedBq = "SELECT CAST('1234' AS INT64)";
     final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedSpark = "SELECT CAST('1234' AS INTEGER)";
+    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSingleArgumentFloat() {
     final String query = "SELECT TO_NUMBER ('-1.234')";
     final String expectedBq = "SELECT CAST('-1.234' AS FLOAT64)";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-1.234', 38, 3)";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingNull() {
     final String query = "SELECT TO_NUMBER ('-1.234',null)";
-    final String expectedSpark = "SELECT CAST(NULL AS INTEGER)";
-    final String expectedHive = "SELECT CAST(NULL AS INT)";
-    final String expectedBq = "SELECT CAST(NULL AS INT64)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
+    sql(query)
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingNullOperand() {
+    final String query = "SELECT TO_NUMBER (null)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
         .withBigQuery()
-        .ok(expectedBq)
+        .ok(expected)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSecoNull() {
@@ -6696,57 +7045,80 @@ class RelToSqlConverterTest {
     final String expectedBq = "SELECT CAST(NULL AS INT64)";
     final String expectedHive = "SELECT CAST(NULL AS INT)";
     final String expectedSpark = "SELECT CAST(NULL AS INTEGER)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
         .withBigQuery()
         .ok(expectedBq)
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingFunctionAsArgument() {
     final String query = "SELECT TO_NUMBER(SUBSTRING('12345',2))";
-    final String expectedHive = "SELECT CAST(SUBSTR('12345', 2) AS INT)";
-    final String expectedBq = "SELECT CAST(SUBSTR('12345', 2) AS INT64)";
-    final String expectedSpark = "SELECT CAST(SUBSTRING('12345', 2) AS INTEGER)";
+    final String expected = "SELECT CAST(SUBSTR('12345', 2) AS BIGINT)";
+    final String expectedSpark = "SELECT CAST(SUBSTRING('12345', 2) AS BIGINT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(SUBSTR('12345', 2))";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
-        .withHive()
-        .ok(expectedHive)
-        .withSpark()
-        .ok(expectedSpark);
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expectedSpark)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithNullArgument() {
     final String query = "SELECT TO_NUMBER (null)";
-    final String expectedSpark = "SELECT CAST(NULL AS INTEGER)";
-    final String expectedBq = "SELECT CAST(NULL AS INT64)";
-    final String expectedHive = "SELECT CAST(NULL AS INT)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
-        .withHive()
-        .ok(expectedHive)
-        .withSpark()
-        .ok(expectedSpark);
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingCaseWhenThen() {
     final String query = "select case when TO_NUMBER('12.77') is not null then "
-        + "'is_numeric' else 'is not numeric' end";
+      + "'is_numeric' else 'is not numeric' end";
     final String expected = "SELECT CASE WHEN CAST('12.77' AS FLOAT) IS NOT NULL THEN "
-        + "'is_numeric    ' ELSE 'is not numeric' END";
-    final String expectedBq = "SELECT CASE WHEN CAST('12.77' AS FLOAT64) IS NOT NULL THEN "
-        + "'is_numeric    ' ELSE 'is not numeric' END";
+      + "'is_numeric    ' ELSE 'is not numeric' END";
+    final String expectedSnowFlake = "SELECT CASE WHEN TO_NUMBER('12.77', 38, 2) IS NOT NULL THEN"
+      + " 'is_numeric    ' ELSE 'is not numeric' END";
+    sql(query)
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingWithGDS() {
+    String query = "SELECT TO_NUMBER ('12,454.8-', '99G999D9S')";
+    final String expected = "SELECT CAST('-12454.8' AS FLOAT)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER('-12454.8', 38, 1)";
     sql(query)
         .withBigQuery()
-        .ok(expectedBq)
+        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected);
+        .ok(expected)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testAscii() {
@@ -7074,6 +7446,234 @@ class RelToSqlConverterTest {
   }
 */
 
+
+  @Test public void testCastToTimestamp() {
+    String query = "SELECT cast(\"birth_date\" as TIMESTAMP) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT CAST(birth_date AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+  @Test public void testCastToTimestampWithPrecision() {
+    String query = "SELECT cast(\"birth_date\" as TIMESTAMP(3)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP(0)), "
+        + "'yyyy-MM-dd HH:mm:ss.sss') AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
+        + "(birth_date AS TIMESTAMP(0))) AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTime() {
+    String query = "SELECT cast(\"hire_date\" as TIME) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss'), ' ')[1]\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT CAST(hire_date AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecision() {
+    String query = "SELECT cast(\"hire_date\" as TIME(5)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.sss'), "
+        + "' ')[1]\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME"
+        + "(0))) AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecisionWithStringInput() {
+    String query = "SELECT cast('12:00'||':05' as TIME(5)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT CONCAT('12:00', ':05')\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
+        + "':05') AS TIME(0))) AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
+    String query = "SELECT cast('12:00:05' as TIME(3)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT '12:00:05'\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT TIME '12:00:05.000'\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testFormatDateRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("YYYY-MM-DD"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatDateRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_DATE('YYYY-MM-DD', \"HIREDATE\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_DATE('%F', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSnowFlake = "SELECT TO_VARCHAR(\"HIREDATE\", 'YYYY-MM-DD') AS \"FD\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
+  }
+
+  @Test public void testFormatTimestampRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYY-MM-DD HH:MI:SS.S(5)"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('YYYY-MM-DD HH:MI:SS.S(5)', \"HIREDATE\") "
+        + "AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%F %I:%M:%E5S', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd hh:mm:ss.sssss') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testFormatTimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimeRexNode = builder.call(SqlLibraryOperators.FORMAT_TIME,
+        builder.literal("HH:MI:SS"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimeRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIME('HH:MI:SS', \"HIREDATE\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIME('%I:%M:%S', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'hh:mm:ss') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testStrToDateRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strToDateNode1 = builder.call(SqlLibraryOperators.STR_TO_DATE,
+        builder.literal("20181106"), builder.literal("YYYYMMDD"));
+    final RexNode strToDateNode2 = builder.call(SqlLibraryOperators.STR_TO_DATE,
+        builder.literal("2018/11/06"), builder.literal("YYYY/MM/DD"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strToDateNode1, "date1"), builder.alias(strToDateNode2, "date2"))
+        .build();
+    final String expectedSql = "SELECT STR_TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
+        + "STR_TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '20181106') AS date1, "
+        + "PARSE_DATE('%Y/%m/%d', '2018/11/06') AS date2\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT CAST(FROM_UNIXTIME("
+        + "UNIX_TIMESTAMP('20181106', 'yyyyMMdd'), 'yyyy-MM-dd') AS DATE) date1, "
+        + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    final String expectedSnowflake =
+        "SELECT TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
+        + "TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
+  }
+
+  @Test public void testFormatDatetimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateNode1 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+            builder.literal("DDMMYY"), builder.literal("2008-12-25 15:30:00"));
+    final RexNode formatDateNode2 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+            builder.literal("YY/MM/DD"), builder.literal("2012-12-25 12:50:10"));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(formatDateNode1, "date1"),
+                    builder.alias(formatDateNode2, "date2"))
+            .build();
+    final String expectedSql = "SELECT FORMAT_DATETIME('DDMMYY', '2008-12-25 15:30:00') AS "
+            + "\"date1\", FORMAT_DATETIME('YY/MM/DD', '2012-12-25 12:50:10') AS \"date2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_DATETIME('%d%m%y', '2008-12-25 15:30:00') "
+            + "AS date1, FORMAT_DATETIME('%y/%m/%d', '2012-12-25 12:50:10') AS date2\n"
+            + "FROM scott.EMP";
+    final String expectedSpark = "SELECT DATE_FORMAT('2008-12-25 15:30:00', 'ddMMyy') date1, "
+            + "DATE_FORMAT('2012-12-25 12:50:10', 'yy/MM/dd') date2\n"
+            + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -7333,5 +7933,111 @@ class RelToSqlConverterTest {
       return new Sql(schemaSpec, sql, dialect, parserConfig, config, relFn,
           transforms);
     }
+  }
+
+  @Test public void testIsNotTrueWithEqualCondition() {
+    final String query = "select \"product_name\" from \"product\" where "
+        + "\"product_name\" = 'Hello World' is not true";
+    final String bigQueryExpected = "SELECT product_name\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_name <> 'Hello World'";
+    sql(query)
+        .withBigQuery()
+        .ok(bigQueryExpected);
+  }
+
+  @Test public void testCoalseceWithCast() {
+    final String query = "Select coalesce(cast('2099-12-31 00:00:00.123' as TIMESTAMP),\n"
+            + "cast('2010-12-31 01:00:00.123' as TIMESTAMP))";
+    final String expectedHive = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    final String expectedSpark = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    final String bigQueryExpected = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testCoalseceWithLiteral() {
+    final String query = "Select coalesce('abc','xyz')";
+    final String expectedHive = "SELECT 'abc'";
+    final String expectedSpark = "SELECT 'abc'";
+    final String bigQueryExpected = "SELECT 'abc'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+  @Test public void testCoalseceWithNull() {
+    final String query = "Select coalesce(null, 'abc')";
+    final String expectedHive = "SELECT 'abc'";
+    final String expectedSpark = "SELECT 'abc'";
+    final String bigQueryExpected = "SELECT 'abc'";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testIff() {
+    final String query = "SELECT \n"
+            + "IF(\"first_name\" IS NULL OR \"first_name\" = '', NULL, \"first_name\")\n"
+            + " from \"employee\"";
+    final String snowFlakeExpected = "SELECT IFF(\"first_name\" IS NULL OR \"first_name\" = '', "
+            + "NULL, \"first_name\")\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(snowFlakeExpected);
+  }
+
+  @Test public void testLog10Function() {
+    final String query = "SELECT LOG10(2) as dd";
+    final String expectedSnowFlake = "SELECT LOG(10, 2) AS \"DD\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testLog10ForOne() {
+    final String query = "SELECT LOG10(1) as dd";
+    final String expectedSnowFlake = "SELECT 0 AS \"DD\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testLog10ForColumn() {
+    final String query = "SELECT LOG10(\"product_id\") as dd from \"product\"";
+    final String expectedSnowFlake = "SELECT LOG(10, \"product_id\") AS \"DD\"\n"
+                      + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testDivideIntegerSnowflake() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intdivideRexNode = builder.call(SqlStdOperatorTable.DIVIDE_INTEGER,
+            builder.scan("EMP").field(0), builder.scan("EMP").field(3));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(intdivideRexNode, "a"))
+            .build();
+    final String expectedSql = "SELECT \"EMPNO\" /INT \"MGR\" AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedSF = "SELECT FLOOR(\"EMPNO\" / \"MGR\") AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 }

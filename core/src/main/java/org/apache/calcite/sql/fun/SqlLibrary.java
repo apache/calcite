@@ -63,14 +63,10 @@ public enum SqlLibrary {
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
   SPARK("s", "spark"),
-  /** A collection of operators that are in BigQuery but not in standard SQL. */
-  BIGQUERY("b"),
-  /** A collection of operators that are in Hive but not in standard SQL. */
-  HIVE("h"),
-  /** A collection of operators that are in Spark but not in standard SQL. */
-  SPARK("s"),
   /** A collection of operators that are in Teradata but not in standard SQL. */
-  TERADATA("t");
+  TERADATA("t", "teradata"),
+  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  SNOWFLAKE("sf", "snowflake");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
@@ -83,7 +79,7 @@ public enum SqlLibrary {
     this.abbrev = Objects.requireNonNull(abbrev);
     this.fun = Objects.requireNonNull(fun);
     Preconditions.checkArgument(
-        fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
+      fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
 
   /** Looks up a value.
@@ -98,7 +94,7 @@ public enum SqlLibrary {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
     for (String libraryName : libraryNameList.split(",")) {
       SqlLibrary library = Objects.requireNonNull(
-          SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
+        SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
       list.add(library);
     }
     return list.build();
@@ -108,7 +104,7 @@ public enum SqlLibrary {
 
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
-        ImmutableMap.builder();
+      ImmutableMap.builder();
     for (SqlLibrary value : values()) {
       builder.put(value.name(), value);
       builder.put(value.fun, value);

@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -42,16 +43,20 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
@@ -59,17 +64,51 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-import static java.util.Objects.requireNonNull;
-
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR_BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -107,6 +146,39 @@ public class BigQuerySqlDialect extends SqlDialect {
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
 
+  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
+      new HashMap<SqlDateTimeFormat, String>() {{
+        put(DAYOFMONTH, "%d");
+        put(DAYOFYEAR, "%j");
+        put(NUMERICMONTH, "%m");
+        put(ABBREVIATEDMONTH, "%b");
+        put(MONTHNAME, "%B");
+        put(TWODIGITYEAR, "%y");
+        put(FOURDIGITYEAR, "%Y");
+        put(DDMMYYYY, "%d%m%Y");
+        put(DDMMYY, "%d%m%y");
+        put(MMDDYYYY, "%m%d%Y");
+        put(MMDDYY, "%m%d%y");
+        put(YYYYMMDD, "%Y%m%d");
+        put(YYMMDD, "%y%m%d");
+        put(DAYOFWEEK, "%A");
+        put(ABBREVIATEDDAYOFWEEK, "%a");
+        put(TWENTYFOURHOUR, "%H");
+        put(HOUR, "%I");
+        put(MINUTE, "%M");
+        put(SECOND, "%S");
+        put(FRACTIONONE, "1S");
+        put(FRACTIONTWO, "2S");
+        put(FRACTIONTHREE, "3S");
+        put(FRACTIONFOUR, "4S");
+        put(FRACTIONFIVE, "5S");
+        put(FRACTIONSIX, "6S");
+        put(AMPM, "%p");
+        put(TIMEZONE, "%Z");
+        put(YYYYMM, "%Y%m");
+        put(MMYY, "%m%y");
+      }};
+
   /**
    * An unquoted BigQuery identifier must start with a letter and be followed
    * by zero or more letters, digits or _.
@@ -119,6 +191,18 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
+  }
+
+  @Override public String quoteIdentifier(String val) {
+    return quoteIdentifier(new StringBuilder(), val).toString();
+  }
+
+  @Override public boolean supportAggInGroupByClause() {
+    return false;
+  }
+
+  @Override public boolean supportNestedAnalyticalFunctions() {
+    return false;
   }
 
   @Override protected boolean identifierNeedsQuote(String val) {
@@ -172,10 +256,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public boolean supportsAliasedValues() {
-    return false;
-  }
-
   @Override public boolean supportsCharSet() {
     return false;
   }
@@ -197,19 +277,70 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public SqlOperator getTargetFunc(RexCall call) {
-    switch (call.type.getSqlTypeName()) {
-    case DATE:
-      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-      case INTERVAL_DAY:
-      case INTERVAL_MONTH:
-        if (call.op.kind == SqlKind.MINUS) {
-          return SqlLibraryOperators.DATE_SUB;
+    switch (call.getOperator().kind) {
+    case PLUS:
+    case MINUS:
+      switch (call.type.getSqlTypeName()) {
+      case DATE:
+        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_DAY:
+        case INTERVAL_MONTH:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.DATE_SUB;
+          }
+          return SqlLibraryOperators.DATE_ADD;
+        default:
+          return super.getTargetFunc(call);
         }
-        return SqlLibraryOperators.DATE_ADD;
+      case TIMESTAMP:
+        if (call.op.kind == SqlKind.MINUS) {
+          return SqlLibraryOperators.TIMESTAMP_SUB;
+        }
+        return SqlLibraryOperators.TIMESTAMP_ADD;
+      default:
+        return super.getTargetFunc(call);
+      }
+    case IS_NOT_TRUE:
+      if (call.getOperands().get(0).getKind() == SqlKind.EQUALS) {
+        return SqlStdOperatorTable.NOT_EQUALS;
+      } else if (call.getOperands().get(0).getKind() == SqlKind.NOT_EQUALS) {
+        return SqlStdOperatorTable.EQUALS;
+      } else {
+        return super.getTargetFunc(call);
+      }
+    case IS_TRUE:
+      if (call.getOperands().get(0).getKind() == SqlKind.EQUALS) {
+        return SqlStdOperatorTable.EQUALS;
+      } else if (call.getOperands().get(0).getKind() == SqlKind.NOT_EQUALS) {
+        return SqlStdOperatorTable.NOT_EQUALS;
+      } else {
+        return super.getTargetFunc(call);
       }
     default:
       return super.getTargetFunc(call);
     }
+  }
+
+  @Override public SqlNode getCastCall(
+      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
+      return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
+          castTo.getPrecision());
+    } else if (castTo.getSqlTypeName() == SqlTypeName.TIME && castTo.getPrecision() > 0) {
+      return makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
+    }
+    return super.getCastCall(operandToCast, castFrom, castTo);
+  }
+
+  private SqlNode makCastCallForTimeWithPrecision(SqlNode operandToCast, int precision) {
+    SqlParserPos pos = SqlParserPos.ZERO;
+    SqlNode timeWithoutPrecision =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME));
+    SqlCall castedTimeNode = CAST.createCall(pos, operandToCast, timeWithoutPrecision);
+    SqlCharStringLiteral timeFormat = SqlLiteral.createCharString(String.format
+        (Locale.ROOT, "%s%s%s", "HH24:MI:SS.S(", precision, ")"), pos);
+    SqlCall formattedCall = FORMAT_TIME.createCall(pos, timeFormat, castedTimeNode);
+    return CAST.createCall(pos, formattedCall, timeWithoutPrecision);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
@@ -248,8 +379,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec,
           rightPrec);
       break;
-    case CHAR_LENGTH:
     case CHARACTER_LENGTH:
+    case CHAR_LENGTH:
       final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
@@ -292,7 +423,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexSubstr(writer, call, leftPrec, rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     case ASCII:
       SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
@@ -312,24 +443,16 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
-        unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+    case COLLECTION_TABLE:
+      if (call.operandCount() > 1) {
+        throw new RuntimeException("Table function supports only one argument in Big Query");
       }
-      break;
-    case "CURRENT_USER":
-    case "SESSION_USER":
-      final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
-      writer.endFunCall(sessionUserFunc);
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      SqlCollectionTableOperator operator = (SqlCollectionTableOperator) call.getOperator();
+      if (operator.getAliasName() == null) {
+        throw new RuntimeException("Table function must have alias in Big Query");
+      }
+      writer.sep("as " + operator.getAliasName());
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -396,6 +519,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
     String regexStr = call.operand(1).toString();
+    regexStr = regexStr.replace("\\", "\\\\");
     String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
     return SqlLiteral.createCharString(regexLiteral,
         call.operand(1).getParserPosition());
@@ -403,7 +527,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCall makeSubstringSqlCall(SqlCall call) {
     SqlNode[] sqlNodes = new SqlNode[]{call.operand(0), call.operand(2)};
-    return new SqlBasicCall(SUBSTR, sqlNodes, SqlParserPos.ZERO);
+    return new SqlBasicCall(SUBSTR_BIG_QUERY, sqlNodes, SqlParserPos.ZERO);
   }
 
   /**
@@ -429,7 +553,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
-      unparseLiteralIntervalCall(call.operand(1), writer);
+      unparseSqlIntervalLiteral(writer, call.operand(1), leftPrec, rightPrec);
       break;
     case TIMES:
       unparseExpressionIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
@@ -440,22 +564,21 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(frame);
   }
 
-  /**
-   * Unparse the literal call from input query and write the INTERVAL part. Below is an example:
-   * Input: date + INTERVAL 1 DAY
-   * It will write this as: INTERVAL 1 DAY
-   *
-   * @param call   SqlCall :INTERVAL 1 DAY
-   * @param writer Target SqlWriter to write the call
-   */
-  private void unparseLiteralIntervalCall(
-      SqlLiteral call, SqlWriter writer) {
-    SqlIntervalLiteral intervalLiteralValue = (SqlIntervalLiteral) call;
-    SqlIntervalLiteral.IntervalValue literalValue =
-        (SqlIntervalLiteral.IntervalValue) intervalLiteralValue.getValue();
-    writer.sep("INTERVAL");
-    writer.sep(literalValue.getIntervalLiteral());
-    writer.print(literalValue.getIntervalQualifier().toString());
+  private SqlIntervalLiteral updateSqlIntervalLiteral(SqlIntervalLiteral literal) {
+    SqlIntervalLiteral.IntervalValue interval =
+        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+    switch (literal.getTypeName()) {
+    case INTERVAL_HOUR_SECOND:
+      long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
+          interval.getIntervalQualifier()) / 1000;
+      SqlIntervalQualifier qualifier = new SqlIntervalQualifier(TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, SqlParserPos.ZERO);
+      return SqlLiteral.createInterval(interval.getSign(), Long.toString(equivalentSecondValue),
+          qualifier, literal.getParserPosition());
+    default:
+      return literal;
+    }
   }
 
   /**
@@ -519,13 +642,61 @@ public class BigQuerySqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+      if (((SqlBasicCall) call).getOperands().length > 0) {
+        new CurrentTimestampHandler(this)
+            .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case "CURRENT_USER":
+    case "SESSION_USER":
+      final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
+      writer.endFunCall(sessionUserFunc);
+      break;
+    case "FORMAT_TIMESTAMP":
+    case "FORMAT_TIME":
+    case "FORMAT_DATE":
+    case "FORMAT_DATETIME":
+      SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+      break;
+    case "STR_TO_DATE":
+      SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
+          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+      unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        DATE_TIME_FORMAT_MAP);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
+  }
+
+  @Override protected String getDateTimeFormatString(
+      String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
+    String dateTimeFormat = super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+    return dateTimeFormat
+        .replace("%Y-%m-%d", "%F")
+        .replace("%S.", "%E");
+  }
+
   /**
    * BigQuery interval syntax: INTERVAL int64 time_unit.
    */
   @Override public void unparseSqlIntervalLiteral(
-      SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    literal = updateSqlIntervalLiteral(literal);
     SqlIntervalLiteral.IntervalValue interval =
-        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
+      literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     writer.keyword("INTERVAL");
     if (interval.getSign() == -1) {
       writer.print("-");
@@ -537,11 +708,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
-        RelDataTypeSystem.DEFAULT);
+      RelDataTypeSystem.DEFAULT);
   }
 
   @Override public void unparseSqlIntervalQualifier(
-      SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     final String start = validate(qualifier.timeUnitRange.startUnit).name();
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
@@ -561,15 +732,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlLiteral trimFlag = call.operand(0);
     SqlLiteral valueToTrim = call.operand(1);
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
+      case LEADING:
+        operatorName = "LTRIM";
+        break;
+      case TRAILING:
+        operatorName = "RTRIM";
+        break;
+      default:
+        operatorName = call.getOperator().getName();
+        break;
     }
     final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
@@ -587,20 +758,20 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
-    case MICROSECOND:
-    case MILLISECOND:
-    case SECOND:
-    case MINUTE:
-    case HOUR:
-    case DAY:
-    case WEEK:
-    case MONTH:
-    case QUARTER:
-    case YEAR:
-    case ISOYEAR:
-      return timeUnit;
-    default:
-      throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
+      case MICROSECOND:
+      case MILLISECOND:
+      case SECOND:
+      case MINUTE:
+      case HOUR:
+      case DAY:
+      case WEEK:
+      case MONTH:
+      case QUARTER:
+      case YEAR:
+      case ISOYEAR:
+        return timeUnit;
+      default:
+        throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
   }
 
@@ -614,38 +785,39 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
-      // BigQuery only supports INT64 for integer types.
-      case TINYINT:
-      case SMALLINT:
-      case INTEGER:
-      case BIGINT:
-        return createSqlDataTypeSpecByName("INT64", typeName);
-      // BigQuery only supports FLOAT64(aka. Double) for floating point types.
-      case FLOAT:
-      case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64", typeName);
-      case DECIMAL:
-        return createSqlDataTypeSpecByName("NUMERIC", typeName);
-      case BOOLEAN:
-        return createSqlDataTypeSpecByName("BOOL", typeName);
-      case CHAR:
-      case VARCHAR:
-        return createSqlDataTypeSpecByName("STRING", typeName);
-      case BINARY:
-      case VARBINARY:
-        return createSqlDataTypeSpecByName("BYTES", typeName);
-      case DATE:
-        return createSqlDataTypeSpecByName("DATE", typeName);
-      case TIME:
-        return createSqlDataTypeSpecByName("TIME", typeName);
-      case TIMESTAMP:
-        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
-      default:
-        break;
+        // BigQuery only supports INT64 for integer types.
+        case TINYINT:
+        case SMALLINT:
+        case INTEGER:
+        case BIGINT:
+          return createSqlDataTypeSpecByName("INT64", typeName);
+        // BigQuery only supports FLOAT64(aka. Double) for floating point types.
+        case FLOAT:
+        case DOUBLE:
+          return createSqlDataTypeSpecByName("FLOAT64", typeName);
+        case DECIMAL:
+          return createSqlDataTypeSpecByName("NUMERIC", typeName);
+        case BOOLEAN:
+          return createSqlDataTypeSpecByName("BOOL", typeName);
+        case CHAR:
+        case VARCHAR:
+          return createSqlDataTypeSpecByName("STRING", typeName);
+        case BINARY:
+        case VARBINARY:
+          return createSqlDataTypeSpecByName("BYTES", typeName);
+        case DATE:
+          return createSqlDataTypeSpecByName("DATE", typeName);
+        case TIME:
+          return createSqlDataTypeSpecByName("TIME", typeName);
+        case TIMESTAMP:
+          return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+        default:
+          break;
       }
     }
     return super.getCastSpec(type);
   }
+
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
