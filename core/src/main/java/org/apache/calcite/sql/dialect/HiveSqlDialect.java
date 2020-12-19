@@ -330,7 +330,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   /**
-   * This method will handle the TRIM function if the value to be trimmed is space
+   * This method will handle the TRIM function if the value to be trimmed is space.
    * Below is an example :
    * INPUT : SELECT TRIM(both ' ' from "ABC")
    * OUPUT : SELECT TRIM(ABC)
@@ -360,7 +360,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   /**
-   * This method will handle the TRIM function if the value to be trimmed is not space
+   * This method will handle the TRIM function if the value to be trimmed is not space.
    * Below is an example :
    * INPUT : SELECT TRIM(both 'A' from "ABC")
    * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
@@ -668,8 +668,8 @@ public class HiveSqlDialect extends SqlDialect {
       writer.sep(",", true);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       if (3 == call.operandCount()) {
-         writer.sep(",", true);
-         call.operand(2).unparse(writer, leftPrec, rightPrec);
+          writer.sep(",", true);
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(funCallFrame);
       break;

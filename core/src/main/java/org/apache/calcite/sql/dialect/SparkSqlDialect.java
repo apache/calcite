@@ -492,7 +492,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   /**
-   * For usage of TRIM, LTRIM and RTRIM in Spark
+   * For usage of TRIM, LTRIM and RTRIM in Spark.
    */
   private void unparseTrim(
       SqlWriter writer, SqlCall call, int leftPrec,
@@ -506,7 +506,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   /**
-   * This method will handle the TRIM function if the value to be trimmed is space
+   * This method will handle the TRIM function if the value to be trimmed is space.
    * Below is an example :
    * INPUT : SELECT TRIM(both ' ' from "ABC")
    * OUPUT : SELECT TRIM(ABC)
@@ -536,7 +536,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   /**
-   * This method will handle the TRIM function if the value to be trimmed is not space
+   * This method will handle the TRIM function if the value to be trimmed is not space.
    * Below is an example :
    * INPUT : SELECT TRIM(both 'A' from "ABC")
    * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')

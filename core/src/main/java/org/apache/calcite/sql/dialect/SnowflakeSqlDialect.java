@@ -257,7 +257,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
     /**
-     * For usage of TRIM, LTRIM and RTRIM in SnowFlake
+     * For usage of TRIM, LTRIM and RTRIM in SnowFlake.
      */
   private void unparseTrim(
       SqlWriter writer, SqlCall call, int leftPrec,
@@ -286,7 +286,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   /**
-   * For usage of IFF() in snowflake
+   * For usage of IFF() in snowflake.
    */
   private void unparseIf(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame iffFrame = writer.startFunCall("IFF");
