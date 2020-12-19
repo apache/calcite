@@ -20,8 +20,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.Util;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Namespace based upon a set operation (UNION, INTERSECT, EXCEPT).
@@ -50,7 +55,7 @@ public class SetopNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 
@@ -61,15 +66,19 @@ public class SetopNamespace extends AbstractNamespace {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
     for (SqlNode operand : call.getOperandList()) {
-      final SqlValidatorNamespace namespace = validator.getNamespace(operand);
+      final SqlValidatorNamespace namespace =
+          requireNonNull(
+              validator.getNamespace(operand),
+              () -> "namespace for " + operand);
       monotonicity = combine(monotonicity,
           namespace.getMonotonicity(
               namespace.getRowType().getFieldNames().get(index)));
     }
-    return monotonicity;
+    return Util.first(monotonicity, SqlMonotonicity.NOT_MONOTONIC);
   }
 
-  private SqlMonotonicity combine(SqlMonotonicity m0, SqlMonotonicity m1) {
+  private static SqlMonotonicity combine(@Nullable SqlMonotonicity m0,
+      SqlMonotonicity m1) {
     if (m0 == null) {
       return m1;
     }
@@ -88,14 +97,16 @@ public class SetopNamespace extends AbstractNamespace {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  public RelDataType validateImpl(RelDataType targetRowType) {
+  @Override public RelDataType validateImpl(RelDataType targetRowType) {
     switch (call.getKind()) {
     case UNION:
     case INTERSECT:
     case EXCEPT:
-      final SqlValidatorScope scope = validator.scopes.get(call);
+      final SqlValidatorScope scope = requireNonNull(
+          validator.scopes.get(call),
+          () -> "scope for " + call);
       for (SqlNode operand : call.getOperandList()) {
-        if (!(operand.isA(SqlKind.QUERY))) {
+        if (!operand.isA(SqlKind.QUERY)) {
           throw validator.newValidationError(operand,
               RESOURCE.needQueryOp(operand.toString()));
         }

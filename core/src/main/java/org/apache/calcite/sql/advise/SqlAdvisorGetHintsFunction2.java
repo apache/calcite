@@ -36,6 +36,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -73,20 +75,20 @@ public class SqlAdvisorGetHintsFunction2
           .add(int.class, "pos")
           .build();
 
-  public CallImplementor getImplementor() {
+  @Override public CallImplementor getImplementor() {
     return IMPLEMENTOR;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
+      List<? extends @Nullable Object> arguments) {
     return typeFactory.createJavaType(SqlAdvisorHint2.class);
   }
 
-  public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<? extends @Nullable Object> arguments) {
     return SqlAdvisorHint2.class;
   }
 
-  public List<FunctionParameter> getParameters() {
+  @Override public List<FunctionParameter> getParameters() {
     return PARAMETERS;
   }
 
@@ -103,7 +105,7 @@ public class SqlAdvisorGetHintsFunction2
    */
   public static Enumerable<SqlAdvisorHint2> getCompletionHints(
       final SqlAdvisor advisor, final String sql, final int pos) {
-    final String[] replaced = {null};
+    final String[] replaced = new String[1];
     final List<SqlMoniker> hints = advisor.getCompletionHints(sql,
         pos, replaced);
     final List<SqlAdvisorHint2> res = new ArrayList<>(hints.size() + 1);

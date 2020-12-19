@@ -94,13 +94,13 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testValidQuery() throws SQLException {
+  @Test void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
   }
 
-  @Test public void testNonSqlException() throws SQLException {
+  @Test void testNonSqlException() throws SQLException {
     try {
       runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
@@ -111,7 +111,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSyntaxError() {
+  @Test void testSyntaxError() {
     try {
       runQuery("invalid sql");
       fail("Query should fail");
@@ -122,7 +122,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSemanticError() {
+  @Test void testSemanticError() {
     try {
       // implicit type coercion.
       runQuery("select \"name\" - \"id\" from \"entries\"");
@@ -132,7 +132,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testNonexistentTable() {
+  @Test void testNonexistentTable() {
     try {
       runQuery("select name from \"nonexistentTable\"");
       fail("Query should fail");

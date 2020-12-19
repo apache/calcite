@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * An interface of an object identifier that represents a SqlIdentifier
+ * An interface of an object identifier that represents a SqlIdentifier.
  */
 public interface SqlMoniker {
   Comparator<SqlMoniker> COMPARATOR =
@@ -32,7 +32,7 @@ public interface SqlMoniker {
         final Ordering<Iterable<String>> listOrdering =
             Ordering.<String>natural().lexicographical();
 
-        public int compare(SqlMoniker o1, SqlMoniker o2) {
+        @Override public int compare(SqlMoniker o1, SqlMoniker o2) {
           int c = o1.getType().compareTo(o2.getType());
           if (c == 0) {
             c = listOrdering.compare(o1.getFullyQualifiedNames(),

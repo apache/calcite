@@ -16,21 +16,22 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.linq4j.function.Hints;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.function.Strict;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.runtime.Geometries.CapStyle;
+import org.apache.calcite.runtime.Geometries.Geom;
+import org.apache.calcite.runtime.Geometries.JoinStyle;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Line;
-import com.esri.core.geometry.MapGeometry;
-import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorBoundary;
-import com.esri.core.geometry.OperatorFactoryLocal;
-import com.esri.core.geometry.OperatorIntersects;
 import com.esri.core.geometry.Point;
 import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.Polyline;
@@ -38,8 +39,19 @@ import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktExportFlags;
 import com.esri.core.geometry.WktImportFlags;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Objects;
+
+import static org.apache.calcite.runtime.Geometries.NO_SRID;
+import static org.apache.calcite.runtime.Geometries.bind;
+import static org.apache.calcite.runtime.Geometries.buffer;
+import static org.apache.calcite.runtime.Geometries.envelope;
+import static org.apache.calcite.runtime.Geometries.intersects;
+import static org.apache.calcite.runtime.Geometries.makeLine;
+import static org.apache.calcite.runtime.Geometries.point;
+import static org.apache.calcite.runtime.Geometries.todo;
 
 /**
  * Helper methods to implement Geo-spatial functions in generated code.
@@ -61,34 +73,13 @@ import java.util.Objects;
  *   <li>Make {@link #ST_MakeLine(Geom, Geom)} varargs</li>
  * </ul>
  */
-@SuppressWarnings({"UnnecessaryUnboxing", "WeakerAccess", "unused"})
+@SuppressWarnings({"WeakerAccess", "unused"})
 @Deterministic
 @Strict
 @Experimental
 public class GeoFunctions {
-  private static final int NO_SRID = 0;
-  private static final SpatialReference SPATIAL_REFERENCE =
-      SpatialReference.create(4326);
 
   private GeoFunctions() {}
-
-  private static UnsupportedOperationException todo() {
-    return new UnsupportedOperationException();
-  }
-
-  protected static Geom bind(Geometry geometry, int srid) {
-    if (geometry == null) {
-      return null;
-    }
-    if (srid == NO_SRID) {
-      return new SimpleGeom(geometry);
-    }
-    return bind(geometry, SpatialReference.create(srid));
-  }
-
-  private static MapGeom bind(Geometry geometry, SpatialReference sr) {
-    return new MapGeom(new MapGeometry(geometry, sr));
-  }
 
   // Geometry conversion functions (2D and 3D) ================================
 
@@ -101,152 +92,171 @@ public class GeoFunctions {
         WktExportFlags.wktExportDefaults);
   }
 
-  public static Geom ST_GeomFromText(String s) {
+  public static @Nullable Geom ST_GeomFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_GeomFromText(String s, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(s,
+  public static @Nullable Geom ST_GeomFromText(String s, int srid) {
+    final Geometry g = fromWkt(s,
         WktImportFlags.wktImportDefaults, Geometry.Type.Unknown);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_LineFromText(String s) {
+  public static @Nullable Geom ST_LineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_LineFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_LineFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Line);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPointFromText(String s) {
+  public static @Nullable Geom ST_MPointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPointFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MPointFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.MultiPoint);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PointFromText(String s) {
+  public static @Nullable Geom ST_PointFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PointFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
-        WktImportFlags.wktImportDefaults,
-        Geometry.Type.Point);
-    return bind(g, srid);
+  public static @Nullable Geom ST_PointFromText(String wkt, int srid) {
+    final Geometry g =
+        fromWkt(wkt, WktImportFlags.wktImportDefaults, Geometry.Type.Point);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_PolyFromText(String s) {
+  public static @Nullable Geom ST_PolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_PolyFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_PolyFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Polygon);
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MLineFromText(String s) {
+  public static @Nullable Geom ST_MLineFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MLineFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MLineFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiLine
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
-  public static Geom ST_MPolyFromText(String s) {
+  public static @Nullable Geom ST_MPolyFromText(String s) {
     return ST_GeomFromText(s, NO_SRID);
   }
 
-  public static Geom ST_MPolyFromText(String wkt, int srid) {
-    final Geometry g = GeometryEngine.geometryFromWkt(wkt,
+  public static @Nullable Geom ST_MPolyFromText(String wkt, int srid) {
+    final Geometry g = fromWkt(wkt,
         WktImportFlags.wktImportDefaults,
         Geometry.Type.Unknown); // NOTE: there is no Geometry.Type.MultiPolygon
-    return bind(g, srid);
+    return g == null ? null : bind(g, srid);
   }
 
   // Geometry creation functions ==============================================
 
-  /**  Creates a line-string from the given POINTs (or MULTIPOINTs). */
+  /** Calculates a regular grid of polygons based on {@code geom}. */
+  private static void ST_MakeGrid(final Geom geom,
+      final BigDecimal deltaX, final BigDecimal deltaY) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlGeoFunctions.
+  }
+
+  /** Calculates a regular grid of points based on {@code geom}. */
+  private static void ST_MakeGridPoints(final Geom geom,
+      final BigDecimal deltaX, final BigDecimal deltaY) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlGeoFunctions.
+  }
+
+  /** Creates a rectangular Polygon. */
+  public static Geom ST_MakeEnvelope(BigDecimal xMin, BigDecimal yMin,
+      BigDecimal xMax, BigDecimal yMax, int srid) {
+    Geom geom = ST_GeomFromText("POLYGON(("
+        + xMin + " " + yMin + ", "
+        + xMin + " " + yMax + ", "
+        + xMax + " " + yMax + ", "
+        + xMax + " " + yMin + ", "
+        + xMin + " " + yMin + "))", srid);
+    return Objects.requireNonNull(geom);
+  }
+
+  /** Creates a rectangular Polygon. */
+  public static Geom ST_MakeEnvelope(BigDecimal xMin, BigDecimal yMin,
+      BigDecimal xMax, BigDecimal yMax) {
+    return ST_MakeEnvelope(xMin, yMin, xMax, yMax, NO_SRID);
+  }
+
+  /** Creates a line-string from the given POINTs (or MULTIPOINTs). */
+  @Hints({"SqlKind:ST_MAKE_LINE"})
   public static Geom ST_MakeLine(Geom geom1, Geom geom2) {
     return makeLine(geom1, geom2);
   }
 
+  @Hints({"SqlKind:ST_MAKE_LINE"})
   public static Geom ST_MakeLine(Geom geom1, Geom geom2, Geom geom3) {
     return makeLine(geom1, geom2, geom3);
   }
 
+  @Hints({"SqlKind:ST_MAKE_LINE"})
   public static Geom ST_MakeLine(Geom geom1, Geom geom2, Geom geom3,
       Geom geom4) {
     return makeLine(geom1, geom2, geom3, geom4);
   }
 
+  @Hints({"SqlKind:ST_MAKE_LINE"})
   public static Geom ST_MakeLine(Geom geom1, Geom geom2, Geom geom3,
       Geom geom4, Geom geom5) {
     return makeLine(geom1, geom2, geom3, geom4, geom5);
   }
 
+  @Hints({"SqlKind:ST_MAKE_LINE"})
   public static Geom ST_MakeLine(Geom geom1, Geom geom2, Geom geom3,
       Geom geom4, Geom geom5, Geom geom6) {
     return makeLine(geom1, geom2, geom3, geom4, geom5, geom6);
   }
 
-  private static Geom makeLine(Geom... geoms) {
-    final Polyline g = new Polyline();
-    Point p = null;
-    for (Geom geom : geoms) {
-      if (geom.g() instanceof Point) {
-        final Point prev = p;
-        p = (Point) geom.g();
-        if (prev != null) {
-          final Line line = new Line();
-          line.setStart(prev);
-          line.setEnd(p);
-          g.addSegment(line, false);
-        }
-      }
-    }
-    return new SimpleGeom(g);
-  }
-
-  /**  Alias for {@link #ST_Point(BigDecimal, BigDecimal)}. */
+  /** Alias for {@link #ST_Point(BigDecimal, BigDecimal)}. */
+  @Hints({"SqlKind:ST_POINT"})
   public static Geom ST_MakePoint(BigDecimal x, BigDecimal y) {
     return ST_Point(x, y);
   }
 
-  /**  Alias for {@link #ST_Point(BigDecimal, BigDecimal, BigDecimal)}. */
+  /** Alias for {@link #ST_Point(BigDecimal, BigDecimal, BigDecimal)}. */
+  @Hints({"SqlKind:ST_POINT3"})
   public static Geom ST_MakePoint(BigDecimal x, BigDecimal y, BigDecimal z) {
     return ST_Point(x, y, z);
   }
 
-  /**  Constructs a 2D point from coordinates. */
+  /** Constructs a 2D point from coordinates. */
+  @Hints({"SqlKind:ST_POINT"})
   public static Geom ST_Point(BigDecimal x, BigDecimal y) {
     // NOTE: Combine the double and BigDecimal variants of this function
     return point(x.doubleValue(), y.doubleValue());
   }
 
-  /**  Constructs a 3D point from coordinates. */
+  /** Constructs a 3D point from coordinates. */
+  @Hints({"SqlKind:ST_POINT3"})
   public static Geom ST_Point(BigDecimal x, BigDecimal y, BigDecimal z) {
     final Geometry g = new Point(x.doubleValue(), y.doubleValue(),
         z.doubleValue());
-    return new SimpleGeom(g);
-  }
-
-  private static Geom point(double x, double y) {
-    final Geometry g = new Point(x, y);
-    return new SimpleGeom(g);
+    return new Geometries.SimpleGeom(g);
   }
 
   // Geometry properties (2D and 3D) ==========================================
@@ -257,17 +267,17 @@ public class GeoFunctions {
   }
 
   /** Returns the x-value of the first coordinate of {@code geom}. */
-  public static Double ST_X(Geom geom) {
+  public static @Nullable Double ST_X(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getX() : null;
   }
 
   /** Returns the y-value of the first coordinate of {@code geom}. */
-  public static Double ST_Y(Geom geom) {
+  public static @Nullable Double ST_Y(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getY() : null;
   }
 
   /** Returns the z-value of the first coordinate of {@code geom}. */
-  public static Double ST_Z(Geom geom) {
+  public static @Nullable Double ST_Z(Geom geom) {
     return geom.g().getDescription().hasZ() && geom.g() instanceof Point
         ? ((Point) geom.g()).getZ() : null;
   }
@@ -286,34 +296,12 @@ public class GeoFunctions {
 
   /** Returns the type of {@code geom}. */
   public static String ST_GeometryType(Geom geom) {
-    return type(geom.g()).name();
+    return Geometries.type(geom.g()).name();
   }
 
   /** Returns the OGC SFS type code of {@code geom}. */
   public static int ST_GeometryTypeCode(Geom geom) {
-    return type(geom.g()).code;
-  }
-
-  /** Returns the OGC type of a geometry. */
-  private static Type type(Geometry g) {
-    switch (g.getType()) {
-    case Point:
-      return Type.POINT;
-    case Polyline:
-      return Type.LINESTRING;
-    case Polygon:
-      return Type.POLYGON;
-    case MultiPoint:
-      return Type.MULTIPOINT;
-    case Envelope:
-      return Type.POLYGON;
-    case Line:
-      return Type.LINESTRING;
-    case Unknown:
-      return Type.Geometry;
-    default:
-      throw new AssertionError(g);
-    }
+    return Geometries.type(geom.g()).code;
   }
 
   /** Returns the minimum bounding box of {@code geom} (which may be a
@@ -323,15 +311,10 @@ public class GeoFunctions {
     return geom.wrap(env);
   }
 
-  private static Envelope envelope(Geometry g) {
-    final Envelope env = new Envelope();
-    g.queryEnvelope(env);
-    return env;
-  }
-
   // Geometry predicates ======================================================
 
   /** Returns whether {@code geom1} contains {@code geom2}. */
+  @Hints({"SqlKind:ST_CONTAINS"})
   public static boolean ST_Contains(Geom geom1, Geom geom2) {
     return GeometryEngine.contains(geom1.g(), geom2.g(), geom1.sr());
   }
@@ -379,13 +362,6 @@ public class GeoFunctions {
     return intersects(g1, g2, sr);
   }
 
-  private static boolean intersects(Geometry g1, Geometry g2,
-      SpatialReference sr) {
-    final OperatorIntersects op = (OperatorIntersects) OperatorFactoryLocal
-        .getInstance().getOperator(Operator.Type.Intersects);
-    return op.execute(g1, g2, sr, null);
-  }
-
   /** Returns whether {@code geom1} equals {@code geom2} and their coordinates
    * and component Geometries are listed in the same order. */
   public static boolean ST_OrderingEquals(Geom geom1, Geom geom2)  {
@@ -409,6 +385,7 @@ public class GeoFunctions {
 
   /** Returns whether {@code geom1} and {@code geom2} are within
    * {@code distance} of each other. */
+  @Hints({"SqlKind:ST_DWITHIN"})
   public static boolean ST_DWithin(Geom geom1, Geom geom2, double distance) {
     final double distance1 =
         GeometryEngine.distance(geom1.g(), geom2.g(), geom1.sr());
@@ -449,7 +426,7 @@ public class GeoFunctions {
       String value = style.substring(equals + 1, space);
       switch (name) {
       case "quad_segs":
-        quadSegCount = Integer.valueOf(value);
+        quadSegCount = Integer.parseInt(value);
         break;
       case "endcap":
         endCapStyle = CapStyle.of(value);
@@ -477,14 +454,6 @@ public class GeoFunctions {
     }
     return buffer(geom, bufferSize, quadSegCount, endCapStyle, joinStyle,
         mitreLimit);
-  }
-
-  private static Geom buffer(Geom geom, double bufferSize,
-      int quadSegCount, CapStyle endCapStyle, JoinStyle joinStyle,
-      float mitreLimit) {
-    Util.discard(endCapStyle + ":" + joinStyle + ":" + mitreLimit
-        + ":" + quadSegCount);
-    throw todo();
   }
 
   /** Computes the union of {@code geom1} and {@code geom2}. */
@@ -516,143 +485,111 @@ public class GeoFunctions {
     return geom.transform(srid);
   }
 
+  // Space-filling curves
+
+  /** Returns the position of a point on the Hilbert curve,
+   * or null if it is not a 2-dimensional point. */
+  @Hints({"SqlKind:HILBERT"})
+  public static @Nullable Long hilbert(Geom geom) {
+    final Geometry g = geom.g();
+    if (g instanceof Point) {
+      final double x = ((Point) g).getX();
+      final double y = ((Point) g).getY();
+      return new HilbertCurve2D(8).toIndex(x, y);
+    }
+    return null;
+  }
+
+  /** Returns the position of a point on the Hilbert curve. */
+  @Hints({"SqlKind:HILBERT"})
+  public static long hilbert(BigDecimal x, BigDecimal y) {
+    return new HilbertCurve2D(8).toIndex(x.doubleValue(), y.doubleValue());
+  }
+
+  /** Creates a geometry from a WKT.
+   * If the engine returns a null, throws; never returns null. */
+  private static @Nullable Geometry fromWkt(String wkt, int importFlags,
+      Geometry.Type geometryType) {
+    return GeometryEngine.geometryFromWkt(wkt, importFlags, geometryType);
+  }
+
   // Inner classes ============================================================
 
-  /** How the "buffer" command terminates the end of a line. */
-  enum CapStyle {
-    ROUND, FLAT, SQUARE;
+  /** Used at run time by the {@link #ST_MakeGrid} and
+   * {@link #ST_MakeGridPoints} functions. */
+  public static class GridEnumerable extends AbstractEnumerable<Object[]> {
+    private final Envelope envelope;
+    private final boolean point;
+    private final double deltaX;
+    private final double deltaY;
+    private final double minX;
+    private final double minY;
+    private final int baseX;
+    private final int baseY;
+    private final int spanX;
+    private final int spanY;
+    private final int area;
 
-    static CapStyle of(String value) {
-      switch (value) {
-      case "round":
-        return ROUND;
-      case "flat":
-      case "butt":
-        return FLAT;
-      case "square":
-        return SQUARE;
-      default:
-        throw new IllegalArgumentException("unknown endcap value: " + value);
-      }
+    public GridEnumerable(Envelope envelope, BigDecimal deltaX,
+        BigDecimal deltaY, boolean point) {
+      this.envelope = envelope;
+      this.deltaX = deltaX.doubleValue();
+      this.deltaY = deltaY.doubleValue();
+      this.point = point;
+      this.spanX = (int) Math.floor((envelope.getXMax() - envelope.getXMin())
+          / this.deltaX) + 1;
+      this.baseX = (int) Math.floor(envelope.getXMin() / this.deltaX);
+      this.minX = this.deltaX * baseX;
+      this.spanY = (int) Math.floor((envelope.getYMax() - envelope.getYMin())
+          / this.deltaY) + 1;
+      this.baseY = (int) Math.floor(envelope.getYMin() / this.deltaY);
+      this.minY = this.deltaY * baseY;
+      this.area = this.spanX * this.spanY;
+    }
+
+    @Override public Enumerator<Object[]> enumerator() {
+      return new Enumerator<Object[]>() {
+        int id = -1;
+
+        @Override public Object[] current() {
+          final Geom geom;
+          final int x = id % spanX;
+          final int y = id / spanX;
+          if (point) {
+            final double xCurrent = minX + (x + 0.5D) * deltaX;
+            final double yCurrent = minY + (y + 0.5D) * deltaY;
+            geom = ST_MakePoint(BigDecimal.valueOf(xCurrent),
+                BigDecimal.valueOf(yCurrent));
+          } else {
+            final Polygon polygon = new Polygon();
+            final double left = minX + x * deltaX;
+            final double right = left + deltaX;
+            final double bottom = minY + y * deltaY;
+            final double top = bottom + deltaY;
+
+            final Polyline polyline = new Polyline();
+            polyline.addSegment(new Line(left, bottom, right, bottom), true);
+            polyline.addSegment(new Line(right, bottom, right, top), false);
+            polyline.addSegment(new Line(right, top, left, top), false);
+            polyline.addSegment(new Line(left, top, left, bottom), false);
+            polygon.add(polyline, false);
+            geom = new Geometries.SimpleGeom(polygon);
+          }
+          return new Object[] {geom, id, x + 1, y + 1, baseX + x, baseY + y};
+        }
+
+        @Override public boolean moveNext() {
+          return ++id < area;
+        }
+
+        @Override public void reset() {
+          id = -1;
+        }
+
+        @Override public void close() {
+        }
+      };
     }
   }
 
-  /** How the "buffer" command decorates junctions between line segments. */
-  enum JoinStyle {
-    ROUND, MITRE, BEVEL;
-
-    static JoinStyle of(String value) {
-      switch (value) {
-      case "round":
-        return ROUND;
-      case "mitre":
-      case "miter":
-        return MITRE;
-      case "bevel":
-        return BEVEL;
-      default:
-        throw new IllegalArgumentException("unknown join value: " + value);
-      }
-    }
-  }
-
-  /** Geometry. It may or may not have a spatial reference
-   * associated with it. */
-  public interface Geom {
-    Geometry g();
-
-    SpatialReference sr();
-
-    Geom transform(int srid);
-
-    Geom wrap(Geometry g);
-  }
-
-  /** Sub-class of geometry that has no spatial reference. */
-  static class SimpleGeom implements Geom {
-    final Geometry g;
-
-    SimpleGeom(Geometry g) {
-      this.g = Objects.requireNonNull(g);
-    }
-
-    @Override public String toString() {
-      return g.toString();
-    }
-
-    public Geometry g() {
-      return g;
-    }
-
-    public SpatialReference sr() {
-      return SPATIAL_REFERENCE;
-    }
-
-    public Geom transform(int srid) {
-      if (srid == SPATIAL_REFERENCE.getID()) {
-        return this;
-      }
-      return bind(g, srid);
-    }
-
-    public Geom wrap(Geometry g) {
-      return new SimpleGeom(g);
-    }
-  }
-
-  /** Sub-class of geometry that has a spatial reference. */
-  static class MapGeom implements Geom {
-    final MapGeometry mg;
-
-    MapGeom(MapGeometry mg) {
-      this.mg = Objects.requireNonNull(mg);
-    }
-
-    @Override public String toString() {
-      return mg.toString();
-    }
-
-    public Geometry g() {
-      return mg.getGeometry();
-    }
-
-    public SpatialReference sr() {
-      return mg.getSpatialReference();
-    }
-
-    public Geom transform(int srid) {
-      if (srid == NO_SRID) {
-        return new SimpleGeom(mg.getGeometry());
-      }
-      if (srid == mg.getSpatialReference().getID()) {
-        return this;
-      }
-      return bind(mg.getGeometry(), srid);
-    }
-
-    public Geom wrap(Geometry g) {
-      return bind(g, this.mg.getSpatialReference());
-    }
-  }
-
-  /** Geometry types, with the names and codes assigned by OGC. */
-  enum Type {
-    Geometry(0),
-    POINT(1),
-    LINESTRING(2),
-    POLYGON(3),
-    MULTIPOINT(4),
-    MULTILINESTRING(5),
-    MULTIPOLYGON(6),
-    GEOMCOLLECTION(7),
-    CURVE(13),
-    SURFACE(14),
-    POLYHEDRALSURFACE(15);
-
-    final int code;
-
-    Type(int code) {
-      this.code = code;
-    }
-  }
 }

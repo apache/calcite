@@ -258,4 +258,21 @@ LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUseMergeJoin">
+        <Resource name="sql">
+            <![CDATA[select /*+ use_merge_join(emp, dept) */
+ename, job, sal, dept.name
+from emp join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
+  EnumerableMergeJoin(condition=[=($7, $9)], joinType=[inner])
+    EnumerableSort(sort0=[$7], dir0=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

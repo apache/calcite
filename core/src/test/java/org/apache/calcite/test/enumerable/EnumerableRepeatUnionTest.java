@@ -31,9 +31,9 @@ import java.util.Arrays;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-public class EnumerableRepeatUnionTest {
+class EnumerableRepeatUnionTest {
 
-  @Test public void testGenerateNumbers() {
+  @Test void testGenerateNumbers() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -59,7 +59,7 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
-  @Test public void testGenerateNumbers2() {
+  @Test void testGenerateNumbers2() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -87,7 +87,7 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
   }
 
-  @Test public void testGenerateNumbers3() {
+  @Test void testGenerateNumbers3() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -125,7 +125,7 @@ public class EnumerableRepeatUnionTest {
             "i=9; j=0");
   }
 
-  @Test public void testFactorial() {
+  @Test void testFactorial() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -165,7 +165,7 @@ public class EnumerableRepeatUnionTest {
             "n=7; fact=5040");
   }
 
-  @Test public void testGenerateNumbersNestedRecursion() {
+  @Test void testGenerateNumbersNestedRecursion() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -208,6 +208,29 @@ public class EnumerableRepeatUnionTest {
             "n=1",   "n=2",   "n=3",   "n=4",   "n=5",   "n=6",   "n=7",   "n=8",   "n=9",
             "n=10",  "n=20",  "n=30",  "n=40",  "n=50",  "n=60",  "n=70",  "n=80",  "n=90",
             "n=100", "n=200", "n=300", "n=400", "n=500", "n=600", "n=700", "n=800", "n=900");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4139">[CALCITE-4139]
+   * Prevent NPE in ListTransientTable</a>. */
+  @Test void testGenerateNumbersWithNull() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            builder -> builder
+                .values(new String[] { "i" }, 1, 2, null, 3)
+                .transientScan("DELTA")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(3)))
+                .project(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field(0),
+                        builder.literal(1)))
+                .repeatUnion("DELTA", true)
+                .build())
+        .returnsOrdered("i=1", "i=2", "i=null", "i=3", "i=2", "i=3", "i=3");
   }
 
 }

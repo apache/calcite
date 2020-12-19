@@ -21,7 +21,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
@@ -50,7 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * <p>Only runs as part of slow test suite.</p>
  */
 @Tag("slow")
-public class TpcdsTest {
+class TpcdsTest {
   private static Consumer<Holder<Program>> handler(
       final boolean bushy, final int minJoinCount) {
     return holder -> holder.set(
@@ -86,7 +85,7 @@ public class TpcdsTest {
     return CalciteAssert.model(TPCDS_MODEL);
   }
 
-  @Test public void testCallCenter() {
+  @Test void testCallCenter() {
     final String[] strings = {
         "CC_CALL_CENTER_SK=1; CC_CALL_CENTER_ID=AAAAAAAABAAAAAAA; CC_REC_START_DATE=1998-01-01;"
             + " CC_REC_END_DATE=null; CC_CLOSED_DATE_SK=null; CC_OPEN_DATE_SK=2450952;"
@@ -165,7 +164,8 @@ public class TpcdsTest {
     with().query("select * from tpcds.call_center").returnsUnordered(strings);
   }
 
-  @Test public void testTableCount() {
+  @Disabled("it's wasting time to count each table")
+  @Test void testTableCount() {
     final CalciteAssert.AssertThat with = with();
     foo(with, "CALL_CENTER", 6);
     foo(with, "CATALOG_PAGE", 11_718);
@@ -202,18 +202,18 @@ public class TpcdsTest {
 
   /** Tests the customer table with scale factor 5. */
   @Disabled("add tests like this that count each table")
-  @Test public void testCustomer5() {
+  @Test void testCustomer5() {
     with()
         .query("select * from tpcds_5.customer")
         .returnsCount(750000);
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery01() {
+  @Test void testQuery01() {
     checkQuery(1).runs();
   }
 
-  @Test public void testQuery17Plan() {
+  @Test void testQuery17Plan() {
     //noinspection unchecked
     checkQuery(17)
         .withHook(Hook.PROGRAM, handler(true, 2))
@@ -224,7 +224,7 @@ public class TpcdsTest {
                 + "    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC]): rowcount = 5.434029018852197E26, cumulative cost = {1.2435775409784036E28 rows, 2.555295485909236E30 cpu, 0.0 io}\n"
                 + "      EnumerableAggregate(group=[{0, 1, 2}], STORE_SALES_QUANTITYCOUNT=[COUNT()], agg#1=[$SUM0($3)], agg#2=[$SUM0($6)], agg#3=[$SUM0($4)], agg#4=[$SUM0($7)], agg#5=[$SUM0($5)], agg#6=[$SUM0($8)]): rowcount = 5.434029018852197E26, cumulative cost = {1.1892372507898816E28 rows, 1.2172225002228922E30 cpu, 0.0 io}\n"
                 + "        EnumerableCalc(expr#0..211=[{inputs}], expr#212=[*($t89, $t89)], expr#213=[*($t140, $t140)], expr#214=[*($t196, $t196)], I_ITEM_ID=[$t58], I_ITEM_DESC=[$t61], S_STATE=[$t24], SS_QUANTITY=[$t89], SR_RETURN_QUANTITY=[$t140], CS_QUANTITY=[$t196], $f6=[$t212], $f7=[$t213], $f8=[$t214]): rowcount = 5.434029018852197E27, cumulative cost = {1.0873492066864028E28 rows, 1.2172225002228922E30 cpu, 0.0 io}\n"
-                + "          EnumerableHashJoin(condition=[AND(=($82, $133), =($81, $132), =($88, $139))], joinType=[inner]): rowcount = 5.434029018852197E27, cumulative cost = {5.439463048011832E27 rows, 1.8506796E7 cpu, 0.0 io}\n"
+                + "          EnumerableHashJoin(condition=[AND(=($82, $133), =($81, $132), =($88, $139))], joinType=[inner]): rowcount = 5.434029018852197E27, cumulative cost = {5.439463048011832E27 rows, 1.7776306E7 cpu, 0.0 io}\n"
                 + "            EnumerableHashJoin(condition=[=($0, $86)], joinType=[inner]): rowcount = 2.3008402586892598E13, cumulative cost = {4.8588854672854766E13 rows, 7281360.0 cpu, 0.0 io}\n"
                 + "              EnumerableTableScan(table=[[TPCDS, STORE]]): rowcount = 12.0, cumulative cost = {12.0 rows, 13.0 cpu, 0.0 io}\n"
                 + "              EnumerableHashJoin(condition=[=($0, $50)], joinType=[inner]): rowcount = 1.2782445881607E13, cumulative cost = {1.279800620431234E13 rows, 7281347.0 cpu, 0.0 io}\n"
@@ -233,41 +233,41 @@ public class TpcdsTest {
                 + "                EnumerableHashJoin(condition=[=($0, $24)], joinType=[inner]): rowcount = 7.7770908E9, cumulative cost = {7.783045975286664E9 rows, 2898406.0 cpu, 0.0 io}\n"
                 + "                  EnumerableTableScan(table=[[TPCDS, ITEM]]): rowcount = 18000.0, cumulative cost = {18000.0 rows, 18001.0 cpu, 0.0 io}\n"
                 + "                  EnumerableTableScan(table=[[TPCDS, STORE_SALES]]): rowcount = 2880404.0, cumulative cost = {2880404.0 rows, 2880405.0 cpu, 0.0 io}\n"
-                + "            EnumerableHashJoin(condition=[AND(=($31, $79), =($30, $91))], joinType=[inner]): rowcount = 6.9978029381741304E16, cumulative cost = {7.0048032234040472E16 rows, 1.1225436E7 cpu, 0.0 io}\n"
-                + "              EnumerableHashJoin(condition=[=($0, $28)], joinType=[inner]): rowcount = 7.87597881975E8, cumulative cost = {7.884434212216867E8 rows, 5035701.0 cpu, 0.0 io}\n"
-                + "                EnumerableCalc(expr#0..27=[{inputs}], expr#28=['1998Q1'], expr#29=[=($t15, $t28)], expr#30=['1998Q2'], expr#31=[=($t15, $t30)], expr#32=['1998Q3'], expr#33=[=($t15, $t32)], expr#34=[OR($t29, $t31, $t33)], proj#0..27=[{exprs}], $condition=[$t34]): rowcount = 18262.25, cumulative cost = {91311.25 rows, 4748186.0 cpu, 0.0 io}\n"
+                + "            EnumerableHashJoin(condition=[AND(=($31, $79), =($30, $91))], joinType=[inner]): rowcount = 6.9978029381741304E16, cumulative cost = {7.0048032234040472E16 rows, 1.0494946E7 cpu, 0.0 io}\n"
+                + "              EnumerableHashJoin(condition=[=($0, $28)], joinType=[inner]): rowcount = 7.87597881975E8, cumulative cost = {7.884434212216867E8 rows, 4670456.0 cpu, 0.0 io}\n"
+                + "                EnumerableCalc(expr#0..27=[{inputs}], expr#28=[Sarg['1998Q1', '1998Q2', '1998Q3']:CHAR(6)], expr#29=[SEARCH($t15, $t28)], proj#0..27=[{exprs}], $condition=[$t29]): rowcount = 18262.25, cumulative cost = {91311.25 rows, 4382941.0 cpu, 0.0 io}\n"
                 + "                  EnumerableTableScan(table=[[TPCDS, DATE_DIM]]): rowcount = 73049.0, cumulative cost = {73049.0 rows, 73050.0 cpu, 0.0 io}\n"
                 + "                EnumerableTableScan(table=[[TPCDS, STORE_RETURNS]]): rowcount = 287514.0, cumulative cost = {287514.0 rows, 287515.0 cpu, 0.0 io}\n"
-                + "              EnumerableHashJoin(condition=[=($0, $28)], joinType=[inner]): rowcount = 3.94888649445E9, cumulative cost = {3.9520401026966867E9 rows, 6189735.0 cpu, 0.0 io}\n"
-                + "                EnumerableCalc(expr#0..27=[{inputs}], expr#28=['1998Q1'], expr#29=[=($t15, $t28)], expr#30=['1998Q2'], expr#31=[=($t15, $t30)], expr#32=['1998Q3'], expr#33=[=($t15, $t32)], expr#34=[OR($t29, $t31, $t33)], proj#0..27=[{exprs}], $condition=[$t34]): rowcount = 18262.25, cumulative cost = {91311.25 rows, 4748186.0 cpu, 0.0 io}\n"
+                + "              EnumerableHashJoin(condition=[=($0, $28)], joinType=[inner]): rowcount = 3.94888649445E9, cumulative cost = {3.9520401026966867E9 rows, 5824490.0 cpu, 0.0 io}\n"
+                + "                EnumerableCalc(expr#0..27=[{inputs}], expr#28=[Sarg['1998Q1', '1998Q2', '1998Q3']:CHAR(6)], expr#29=[SEARCH($t15, $t28)], proj#0..27=[{exprs}], $condition=[$t29]): rowcount = 18262.25, cumulative cost = {91311.25 rows, 4382941.0 cpu, 0.0 io}\n"
                 + "                  EnumerableTableScan(table=[[TPCDS, DATE_DIM]]): rowcount = 73049.0, cumulative cost = {73049.0 rows, 73050.0 cpu, 0.0 io}\n"
                 + "                EnumerableTableScan(table=[[TPCDS, CATALOG_SALES]]): rowcount = 1441548.0, cumulative cost = {1441548.0 rows, 1441549.0 cpu, 0.0 io}\n"));
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery27() {
+  @Test void testQuery27() {
     checkQuery(27).runs();
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery58() {
+  @Test void testQuery58() {
     checkQuery(58).explainContains("PLAN").runs();
   }
 
   @Disabled("takes too long to optimize")
-  @Test public void testQuery72() {
+  @Test void testQuery72() {
     checkQuery(72).runs();
   }
 
   @Disabled("work in progress")
-  @Test public void testQuery72Plan() {
+  @Test void testQuery72Plan() {
     checkQuery(72)
         .withHook(Hook.PROGRAM, handler(true, 2))
         .planContains("xx");
   }
 
   @Disabled("throws 'java.lang.AssertionError: type mismatch'")
-  @Test public void testQuery95() {
+  @Test void testQuery95() {
     checkQuery(95)
         .withHook(Hook.PROGRAM, handler(false, 6))
         .runs();
@@ -297,7 +297,7 @@ public class TpcdsTest {
       break;
     }
     return with()
-        .query(sql.replaceAll("tpcds\\.", "tpcds_01."));
+        .query(sql.replace("tpcds.", "tpcds_01."));
   }
 
   public Frameworks.ConfigBuilder config() throws Exception {
@@ -344,7 +344,7 @@ public class TpcdsTest {
    *  LIMIT 100
    * </pre></blockquote>
    */
-  @Test public void testQuery27Builder() throws Exception {
+  @Test void testQuery27Builder() throws Exception {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =
         builder.scan("STORE_SALES")
@@ -366,15 +366,13 @@ public class TpcdsTest {
                 builder.equals(builder.field("CD_EDUCATION_STATUS"),
                     builder.literal("HIGH SCHOOL")),
                 builder.equals(builder.field("D_YEAR"), builder.literal(1998)),
-                builder.call(SqlStdOperatorTable.IN,
-                    builder.field("S_STATE"),
-                    builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-                        builder.literal("CA"),
-                        builder.literal("OR"),
-                        builder.literal("WA"),
-                        builder.literal("TX"),
-                        builder.literal("OK"),
-                        builder.literal("MD"))))
+                builder.in(builder.field("S_STATE"),
+                    builder.literal("CA"),
+                    builder.literal("OR"),
+                    builder.literal("WA"),
+                    builder.literal("TX"),
+                    builder.literal("OK"),
+                    builder.literal("MD")))
             .aggregate(builder.groupKey("I_ITEM_ID", "S_STATE"),
                 builder.avg(false, "AGG1", builder.field("SS_QUANTITY")),
                 builder.avg(false, "AGG2", builder.field("SS_LIST_PRICE")),
@@ -385,7 +383,10 @@ public class TpcdsTest {
     String expectResult = ""
         + "LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[100])\n"
         + "  LogicalAggregate(group=[{84, 90}], AGG1=[AVG($10)], AGG2=[AVG($12)], AGG3=[AVG($19)], AGG4=[AVG($13)])\n"
-        + "    LogicalFilter(condition=[AND(=($0, $32), =($2, $89), =($7, $60), =($4, $23), =($24, 'M'), =($25, 'S'), =($26, 'HIGH SCHOOL'), =($38, 1998), IN($84, ARRAY('CA', 'OR', 'WA', 'TX', 'OK', 'MD')))])\n"
+        + "    LogicalFilter(condition=[AND(=($0, $32), =($2, $89), "
+        + "=($7, $60), =($4, $23), =($24, 'M'), "
+        + "=($25, 'S'), =($26, 'HIGH SCHOOL'), =($38, 1998), "
+        + "SEARCH($84, Sarg['CA', 'MD', 'OK', 'OR', 'TX', 'WA']:CHAR(2)))])\n"
         + "      LogicalJoin(condition=[true], joinType=[inner])\n"
         + "        LogicalTableScan(table=[[TPCDS, STORE_SALES]])\n"
         + "        LogicalJoin(condition=[true], joinType=[inner])\n"

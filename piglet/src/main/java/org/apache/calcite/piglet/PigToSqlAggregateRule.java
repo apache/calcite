@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.piglet;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -35,7 +34,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.math.BigDecimal;
@@ -56,20 +54,22 @@ import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
  * first then apply the Pig aggregate UDF later.  It is inefficient to
  * do that in SQL.
  */
-public class PigToSqlAggregateRule extends RelOptRule {
+public class PigToSqlAggregateRule
+    extends RelRule<PigToSqlAggregateRule.Config> {
   private static final String MULTISET_PROJECTION = "MULTISET_PROJECTION";
 
   public static final PigToSqlAggregateRule INSTANCE =
-      new PigToSqlAggregateRule(RelFactories.LOGICAL_BUILDER);
+      Config.EMPTY.withOperandSupplier(b0 ->
+          b0.operand(Project.class).oneInput(b1 ->
+              b1.operand(Project.class).oneInput(b2 ->
+                  b2.operand(Aggregate.class).oneInput(b3 ->
+                      b3.operand(Project.class).anyInputs()))))
+          .as(Config.class)
+          .toRule();
 
-  private PigToSqlAggregateRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(Project.class,
-            operand(Project.class,
-                operand(Aggregate.class,
-                    operand(Project.class, any())))),
-        relBuilderFactory,
-        "PigToSqlAggregateRule");
+  /** Creates a PigToSqlAggregateRule. */
+  protected PigToSqlAggregateRule(Config config) {
+    super(config);
   }
 
   /**
@@ -77,39 +77,37 @@ public class PigToSqlAggregateRule extends RelOptRule {
    * projection called in an expression and also whether a column is
    * referred in that expression.
    */
-  private class PigAggUdfFinder extends RexVisitorImpl<Void> {
+  private static class PigAggUdfFinder extends RexVisitorImpl<Void> {
     // Index of the column
-    private final int projCol;
+    private final int projectCol;
     // List of all Pig aggregate UDFs found in the expression
     private final List<RexCall> pigAggCalls;
     // True iff the column is referred in the expression
-    private boolean projColReferred;
+    private boolean projectColReferred;
     // True to ignore multiset projection inside a PigUDF
-    private boolean ignoreMultisetProj = false;
+    private boolean ignoreMultisetProject = false;
 
-    PigAggUdfFinder(int projCol) {
+    PigAggUdfFinder(int projectCol) {
       super(true);
-      this.projCol = projCol;
+      this.projectCol = projectCol;
       pigAggCalls = new ArrayList<>();
-      projColReferred = false;
+      projectColReferred = false;
     }
 
     @Override public Void visitCall(RexCall call) {
       if (PigRelUdfConverter.getSqlAggFuncForPigUdf(call) != null) {
         pigAggCalls.add(call);
-        ignoreMultisetProj = true;
-      } else if (isMultisetProjection(call) && !ignoreMultisetProj) {
+        ignoreMultisetProject = true;
+      } else if (isMultisetProjection(call) && !ignoreMultisetProject) {
         pigAggCalls.add(call);
       }
-      for (RexNode operand : call.operands) {
-        operand.accept(this);
-      }
+      visitEach(call.operands);
       return null;
     }
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
-      if (inputRef.getIndex() == projCol) {
-        projColReferred = true;
+      if (inputRef.getIndex() == projectCol) {
+        projectColReferred = true;
       }
       return null;
     }
@@ -121,17 +119,17 @@ public class PigToSqlAggregateRule extends RelOptRule {
    *
    * <p>It also replaces a projection by a new projection.
    */
-  private class RexCallReplacer extends RexShuttle {
+  private static class RexCallReplacer extends RexShuttle {
     private final Map<RexNode, RexNode> replacementMap;
     private final RexBuilder builder;
-    private final int oldProjCol;
+    private final int oldProjectCol;
     private final RexNode newProjectCol;
 
     RexCallReplacer(RexBuilder builder, Map<RexNode, RexNode> replacementMap,
-        int oldProjCol, RexNode newProjectCol) {
+        int oldProjectCol, RexNode newProjectCol) {
       this.replacementMap = replacementMap;
       this.builder = builder;
-      this.oldProjCol = oldProjCol;
+      this.oldProjectCol = oldProjectCol;
       this.newProjectCol = newProjectCol;
     }
 
@@ -156,7 +154,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
-      if (inputRef.getIndex() == oldProjCol
+      if (inputRef.getIndex() == oldProjectCol
           && newProjectCol != null
           && inputRef.getType() == newProjectCol.getType()) {
         return newProjectCol;
@@ -181,7 +179,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
     // Step 0: Find all target Pig aggregate UDFs to rewrite
     final List<RexCall> pigAggUdfs = new ArrayList<>();
     // Whether we need to keep the grouping aggregate call in the new aggregate
-    boolean needGoupingCol = false;
+    boolean needGroupingCol = false;
     for (RexNode rex : oldTopProject.getProjects()) {
       PigAggUdfFinder udfVisitor = new PigAggUdfFinder(1);
       rex.accept(udfVisitor);
@@ -191,8 +189,8 @@ public class PigToSqlAggregateRule extends RelOptRule {
             pigAggUdfs.add(pigAgg);
           }
         }
-      } else if (udfVisitor.projColReferred) {
-        needGoupingCol = true;
+      } else if (udfVisitor.projectColReferred) {
+        needGroupingCol = true;
       }
     }
 
@@ -202,15 +200,15 @@ public class PigToSqlAggregateRule extends RelOptRule {
     relBuilder.push(oldBottomProject.getInput());
     // First project all group keys, just copy from old one
     for (int i = 0; i < oldAgg.getGroupCount(); i++) {
-      newBottomProjects.add(oldBottomProject.getChildExps().get(i));
+      newBottomProjects.add(oldBottomProject.getProjects().get(i));
     }
     // If grouping aggregate is needed, project the whole ROW
-    if (needGoupingCol) {
+    if (needGroupingCol) {
       final RexNode row = relBuilder.getRexBuilder().makeCall(relBuilder.peek().getRowType(),
           SqlStdOperatorTable.ROW, relBuilder.fields());
       newBottomProjects.add(row);
     }
-    final int groupCount = oldAgg.getGroupCount() + (needGoupingCol ? 1 : 0);
+    final int groupCount = oldAgg.getGroupCount() + (needGroupingCol ? 1 : 0);
 
     // Now figure out which columns need to be projected for Pig UDF aggregate calls
     // We need to project these columns for the new aggregate
@@ -237,13 +235,13 @@ public class PigToSqlAggregateRule extends RelOptRule {
         } else {
           // Add it to the projection list if we never project it before
           // First get the ROW operator call
-          final RexCall rowCall = (RexCall) oldBottomProject.getChildExps()
-                                                .get(oldAgg.getGroupCount());
+          final RexCall rowCall = (RexCall) oldBottomProject.getProjects()
+              .get(oldAgg.getGroupCount());
           // Get the corresponding column index in parent rel through the call operand list
-          final RexInputRef columRef = (RexInputRef) rowCall.getOperands().get(col);
+          final RexInputRef columnRef = (RexInputRef) rowCall.getOperands().get(col);
           final int newIndex = newBottomProjects.size();
-          newBottomProjects.add(columRef);
-          projectedAggColumns.put(columRef.getIndex(), newIndex);
+          newBottomProjects.add(columnRef);
+          projectedAggColumns.put(columnRef.getIndex(), newIndex);
           newColIndexes.add(newIndex);
 
         }
@@ -260,7 +258,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
             (Iterable<ImmutableBitSet>) oldAgg.groupSets);
     // The construct the agg call list
     final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
-    if (needGoupingCol) {
+    if (needGroupingCol) {
       aggCalls.add(
           relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT,
               relBuilder.field(groupCount - 1)));
@@ -325,10 +323,12 @@ public class PigToSqlAggregateRule extends RelOptRule {
         // project the whole group (as a record)
         newTopProjects.add(oldMiddleProject.getProjects().get(0));
       } else {
-        // aggregate funcs
+        // aggregate functions
         RexCallReplacer replacer =
-            needGoupingCol ? new RexCallReplacer(relBuilder.getRexBuilder(),
-                pigCallToNewProjections, 1,
+            needGroupingCol ? new RexCallReplacer(
+                relBuilder.getRexBuilder(),
+                pigCallToNewProjections,
+                1,
                 relBuilder.field(groupCount - 1))
                 : new RexCallReplacer(relBuilder.getRexBuilder(), pigCallToNewProjections);
         newTopProjects.add(rexNode.accept(replacer));
@@ -343,15 +343,17 @@ public class PigToSqlAggregateRule extends RelOptRule {
   private static RelDataType createRecordType(RelBuilder relBuilder, List<Integer> fields) {
     final List<String> destNames = new ArrayList<>();
     final List<RelDataType> destTypes = new ArrayList<>();
+    final List<RelDataTypeField> fieldList =
+        relBuilder.peek().getRowType().getFieldList();
     for (Integer index : fields) {
-      final RelDataTypeField field = relBuilder.peek().getRowType().getFieldList().get(index);
+      final RelDataTypeField field = fieldList.get(index);
       destNames.add(field.getName());
       destTypes.add(field.getType());
     }
     return TYPE_FACTORY.createStructType(destTypes, destNames);
   }
 
-  private int getGroupRefIndex(RexNode rex) {
+  private static int getGroupRefIndex(RexNode rex) {
     if (rex instanceof RexFieldAccess) {
       final RexFieldAccess fieldAccess = (RexFieldAccess) rex;
       if (fieldAccess.getReferenceExpr() instanceof RexInputRef) {
@@ -370,7 +372,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
    *
    * @param pigAggCall Pig aggregate UDF call
    */
-  private List<Integer> getAggColumns(RexCall pigAggCall) {
+  private static List<Integer> getAggColumns(RexCall pigAggCall) {
     if (isMultisetProjection(pigAggCall)) {
       return getColsFromMultisetProjection(pigAggCall);
     }
@@ -391,7 +393,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
     return new ArrayList<>();
   }
 
-  private List<Integer> getColsFromMultisetProjection(RexCall multisetProjection) {
+  private static List<Integer> getColsFromMultisetProjection(RexCall multisetProjection) {
     final List<Integer> columns = new ArrayList<>();
     assert multisetProjection.getOperands().size() >= 1;
     for (int i = 1; i < multisetProjection.getOperands().size(); i++) {
@@ -404,5 +406,12 @@ public class PigToSqlAggregateRule extends RelOptRule {
 
   private static boolean isMultisetProjection(RexCall rexCall) {
     return rexCall.getOperator().getName().equals(MULTISET_PROJECTION);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    @Override default PigToSqlAggregateRule toRule() {
+      return new PigToSqlAggregateRule(this);
+    }
   }
 }

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Planner rule that matches an {@link Aggregate} on a {@link Aggregate}
@@ -45,38 +44,38 @@ import java.util.Objects;
  * <p>For example, SUM of SUM becomes SUM; SUM of COUNT becomes COUNT;
  * MAX of MAX becomes MAX; MIN of MIN becomes MIN. AVG of AVG would not
  * match, nor would COUNT of COUNT.
+ *
+ * @see CoreRules#AGGREGATE_MERGE
  */
-public class AggregateMergeRule extends RelOptRule {
-  public static final AggregateMergeRule INSTANCE =
-      new AggregateMergeRule();
-
-  private AggregateMergeRule() {
-    this(
-        operand(Aggregate.class,
-            operandJ(Aggregate.class, null,
-                agg -> Aggregate.isSimple(agg), any())),
-        RelFactories.LOGICAL_BUILDER);
-  }
+public class AggregateMergeRule
+    extends RelRule<AggregateMergeRule.Config>
+    implements TransformationRule {
 
   /** Creates an AggregateMergeRule. */
-  public AggregateMergeRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory) {
-    super(operand, relBuilderFactory, null);
+  protected AggregateMergeRule(Config config) {
+    super(config);
   }
 
-  private boolean isAggregateSupported(AggregateCall aggCall) {
+  @Deprecated // to be removed before 2.0
+  public AggregateMergeRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
+  }
+
+  private static boolean isAggregateSupported(AggregateCall aggCall) {
     if (aggCall.isDistinct()
         || aggCall.hasFilter()
         || aggCall.isApproximate()
         || aggCall.getArgList().size() > 1) {
       return false;
     }
-    SqlSplittableAggFunction splitter = aggCall.getAggregation()
-        .unwrap(SqlSplittableAggFunction.class);
-    return splitter != null;
+    return aggCall.getAggregation()
+        .maybeUnwrap(SqlSplittableAggFunction.class).isPresent();
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate topAgg = call.rel(0);
     final Aggregate bottomAgg = call.rel(1);
     if (topAgg.getGroupCount() > bottomAgg.getGroupCount()) {
@@ -99,7 +98,7 @@ public class AggregateMergeRule extends RelOptRule {
     }
 
     boolean hasEmptyGroup = topAgg.getGroupSets()
-        .stream().anyMatch(n -> n.isEmpty());
+        .stream().anyMatch(ImmutableBitSet::isEmpty);
 
     final List<AggregateCall> finalCalls = new ArrayList<>();
     for (AggregateCall topCall : topAgg.getAggCallList()) {
@@ -120,11 +119,13 @@ public class AggregateMergeRule extends RelOptRule {
       // 0, which is wrong.
       if (!isAggregateSupported(bottomCall)
           || (bottomCall.getAggregation() == SqlStdOperatorTable.COUNT
+               && topCall.getAggregation().getKind() != SqlKind.SUM0
                && hasEmptyGroup)) {
         return;
       }
-      SqlSplittableAggFunction splitter = Objects.requireNonNull(
-          bottomCall.getAggregation().unwrap(SqlSplittableAggFunction.class));
+      SqlSplittableAggFunction splitter =
+          bottomCall.getAggregation()
+              .unwrapOrThrow(SqlSplittableAggFunction.class);
       AggregateCall finalCall = splitter.merge(topCall, bottomCall);
       // fail to merge the aggregate call, bail out
       if (finalCall == null) {
@@ -145,5 +146,21 @@ public class AggregateMergeRule extends RelOptRule {
         topAgg.copy(topAgg.getTraitSet(), bottomAgg.getInput(), topGroupSet,
             newGroupingSets, finalCalls);
     call.transformTo(finalAgg);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(Aggregate.class)
+                .oneInput(b1 ->
+                    b1.operand(Aggregate.class)
+                        .predicate(Aggregate::isSimple)
+                        .anyInputs()))
+        .as(Config.class);
+
+    @Override default AggregateMergeRule toRule() {
+      return new AggregateMergeRule(this);
+    }
   }
 }

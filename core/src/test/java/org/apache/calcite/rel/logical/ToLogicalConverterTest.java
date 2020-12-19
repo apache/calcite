@@ -17,18 +17,16 @@
 package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
@@ -49,15 +47,16 @@ import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for {@link ToLogicalConverter}.
  */
-public class ToLogicalConverterTest {
+class ToLogicalConverterTest {
   private static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
-          ProjectToWindowRule.PROJECT,
+          CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -73,20 +72,16 @@ public class ToLogicalConverterTest {
           EnumerableRules.ENUMERABLE_MINUS_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableInterpreterRule.INSTANCE);
+          EnumerableRules.TO_INTERPRETER);
 
   private static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
-      SqlToRelConverter.configBuilder()
-          .withTrimUnusedFields(false)
-          .withConvertTableAccess(false)
-          .build();
+      SqlToRelConverter.config().withTrimUnusedFields(false);
 
   private static FrameworkConfig frameworkConfig() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema,
         CalciteAssert.SchemaSpec.JDBC_FOODMART);
     return Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
         .sqlToRelConverterConfig(DEFAULT_REL_CONFIG)
         .build();
@@ -130,7 +125,7 @@ public class ToLogicalConverterTest {
     assertThat(logical, hasTree(expectedLogical));
   }
 
-  @Test public void testValues() {
+  @Test void testValues() {
     // Equivalent SQL:
     //   VALUES (true, 1), (false, -50) AS t(a, b)
     final RelBuilder builder = builder();
@@ -143,7 +138,7 @@ public class ToLogicalConverterTest {
         "LogicalValues(tuples=[[{ true, 1 }, { false, -50 }]])\n");
   }
 
-  @Test public void testScan() {
+  @Test void testScan() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -156,7 +151,7 @@ public class ToLogicalConverterTest {
         "LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
-  @Test public void testProject() {
+  @Test void testProject() {
     // Equivalent SQL:
     //   SELECT deptno
     //   FROM emp
@@ -174,7 +169,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testFilter() {
+  @Test void testFilter() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -196,7 +191,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testSort() {
+  @Test void testSort() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -215,7 +210,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testLimit() {
+  @Test void testLimit() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -234,7 +229,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testSortLimit() {
+  @Test void testSortLimit() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -254,7 +249,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testAggregate() {
+  @Test void testAggregate() {
     // Equivalent SQL:
     //   SELECT COUNT(empno) AS c
     //   FROM emp
@@ -274,7 +269,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testJoin() {
+  @Test void testJoin() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -299,7 +294,33 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testCorrelation() {
+  @Test void testDeepEquals() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   JOIN dept ON emp.deptno = dept.deptno
+    final RelBuilder builder = builder();
+    RelNode[] rels = new RelNode[2];
+    for (int i = 0; i < 2; i++) {
+      rels[i] = builder.scan("EMP")
+          .scan("DEPT")
+          .join(JoinRelType.INNER,
+              builder.call(SqlStdOperatorTable.EQUALS,
+                  builder.field(2, 0, "DEPTNO"),
+                  builder.field(2, 1, "DEPTNO")))
+          .build();
+    }
+
+    // Currently, default implementation uses identity equals
+    assertThat(rels[0].equals(rels[1]), is(false));
+    assertThat(rels[0].getInput(0).equals(rels[1].getInput(0)), is(false));
+
+    // Deep equals and hashCode check
+    assertThat(rels[0].deepEquals(rels[1]), is(true));
+    assertThat(rels[0].deepHashCode() == rels[1].deepHashCode(), is(true));
+  }
+
+  @Test void testCorrelation() {
     final RelBuilder builder = builder();
     final Holder<RexCorrelVariable> v = Holder.of(null);
     final RelNode rel = builder.scan("EMP")
@@ -323,7 +344,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testUnion() {
+  @Test void testUnion() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   UNION ALL
@@ -351,7 +372,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   INTERSECT ALL
@@ -379,7 +400,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testMinus() {
+  @Test void testMinus() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   EXCEPT ALL
@@ -407,7 +428,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testUncollect() {
+  @Test void testUncollect() {
     final String sql = ""
         + "select did\n"
         + "from unnest(select collect(\"department_id\") as deptid"
@@ -426,23 +447,21 @@ public class ToLogicalConverterTest {
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
-  @Test public void testWindow() {
+  @Test void testWindow() {
     String sql = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expectedPhysical = ""
         + "EnumerableProject($0=[$17])\n"
-        + "  EnumerableWindow(window#0=[window(partition {} order by [9] range between "
-        + "UNBOUNDED PRECEDING and CURRENT ROW aggs [RANK()])])\n"
+        + "  EnumerableWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    JdbcToEnumerableConverter\n"
         + "      JdbcTableScan(table=[[foodmart, employee]])\n";
     String expectedLogical = ""
         + "LogicalProject($0=[$17])\n"
-        + "  LogicalWindow(window#0=[window(partition {} order by [9] range between UNBOUNDED"
-        + " PRECEDING and CURRENT ROW aggs [RANK()])])\n"
+        + "  LogicalWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
-  @Test public void testTableModify() {
+  @Test void testTableModify() {
     final String sql = "insert into \"employee\" select * from \"employee\"";
     final String expectedPhysial = ""
         + "JdbcToEnumerableConverter\n"

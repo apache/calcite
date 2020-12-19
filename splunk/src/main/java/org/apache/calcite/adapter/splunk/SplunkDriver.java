@@ -45,11 +45,11 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     new SplunkDriver().register();
   }
 
-  protected String getConnectStringPrefix() {
+  @Override protected String getConnectStringPrefix() {
     return "jdbc:splunk:";
   }
 
-  protected DriverVersion createDriverVersion() {
+  @Override protected DriverVersion createDriverVersion() {
     return new SplunkDriverVersion();
   }
 
@@ -90,34 +90,37 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   }
 
   /** Connection that looks up responses from a static map. */
+  @SuppressWarnings("unused")
   private static class MockSplunkConnection implements SplunkConnection {
-    public Enumerator<Object> getSearchResultEnumerator(String search,
+    @Override public Enumerator<Object> getSearchResultEnumerator(String search,
         Map<String, String> otherArgs, List<String> fieldList) {
-      throw null;
+      throw new NullPointerException();
     }
 
-    public void getSearchResults(String search, Map<String, String> otherArgs,
+    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
         List<String> fieldList, SearchResultListener srl) {
       throw new UnsupportedOperationException();
     }
   }
 
   /** Connection that records requests and responses. */
+  @SuppressWarnings("unused")
   private static class WrappingSplunkConnection implements SplunkConnection {
+    @SuppressWarnings("unused")
     private final SplunkConnection connection;
 
     WrappingSplunkConnection(SplunkConnection connection) {
       this.connection = connection;
     }
 
-    public void getSearchResults(String search, Map<String, String> otherArgs,
+    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
         List<String> fieldList, SearchResultListener srl) {
       System.out.println("search='" + search
           + "', otherArgs=" + otherArgs
           + ", fieldList='" + fieldList);
     }
 
-    public Enumerator<Object> getSearchResultEnumerator(String search,
+    @Override public Enumerator<Object> getSearchResultEnumerator(String search,
         Map<String, String> otherArgs, List<String> fieldList) {
       throw new UnsupportedOperationException();
     }

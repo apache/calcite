@@ -52,10 +52,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /** Various automated checks on the documentation. */
-public class DocumentationTest {
+class DocumentationTest {
   /** Generates a copy of {@code reference.md} with the current set of key
    * words. Fails if the copy is different from the original. */
-  @Test public void testGenerateKeyWords() throws IOException {
+  @Test void testGenerateKeyWords() throws IOException {
     final FileFixture f = new FileFixture();
     f.outFile.getParentFile().mkdirs();
     try (BufferedReader r = Util.reader(f.inFile);
@@ -100,7 +100,7 @@ public class DocumentationTest {
 
   /** Tests that every function in {@link SqlStdOperatorTable} is documented in
    * reference.md. */
-  @Test public void testAllFunctionsAreDocumented() throws IOException {
+  @Test void testAllFunctionsAreDocumented() throws IOException {
     final FileFixture f = new FileFixture();
     final Map<String, PatternOp> map = new TreeMap<>();
     addOperators(map, "", SqlStdOperatorTable.instance().getOperatorList());

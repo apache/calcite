@@ -42,7 +42,7 @@ public abstract class TableSpool extends Spool {
     this.table = Objects.requireNonNull(table);
   }
 
-  public RelOptTable getTable() {
+  @Override public RelOptTable getTable() {
     return table;
   }
 

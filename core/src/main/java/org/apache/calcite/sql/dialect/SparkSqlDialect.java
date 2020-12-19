@@ -49,6 +49,10 @@ import org.apache.calcite.util.ToNumberUtils;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
+
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
@@ -107,8 +111,8 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
@@ -132,7 +136,7 @@ public class SparkSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-      SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call);
+      SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
 
@@ -203,15 +207,18 @@ public class SparkSqlDialect extends SqlDialect {
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
+      case TRIM:
+        unparseHiveTrim(writer, call, leftPrec, rightPrec);
+        break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
         break;
       case TO_NUMBER:
         ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
         break;
-      case TRIM:
+      /*case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
-        break;
+        break;*/
       case OTHER_FUNCTION:
         if (call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())
             && ((SqlBasicCall) call).getOperands().length > 0) {

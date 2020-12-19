@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -44,6 +45,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -54,10 +56,14 @@ import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
@@ -115,16 +121,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public String quoteIdentifier(String val) {
-    return quoteIdentifier(new StringBuilder(), val).toString();
-  }
-
   @Override protected boolean identifierNeedsQuote(String val) {
     return !IDENTIFIER_REGEX.matcher(val).matches()
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -135,9 +137,23 @@ public class BigQuerySqlDialect extends SqlDialect {
         && !SqlTypeUtil.isNumeric(call.type);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
+
+  @Override public SqlParser.Config configureParser(
+      SqlParser.Config configBuilder) {
+    return super.configureParser(configBuilder)
+        .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles);
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
   }
 
   @Override public boolean supportsNestedAggregations() {
@@ -390,37 +406,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     return new SqlBasicCall(SUBSTR, sqlNodes, SqlParserPos.ZERO);
   }
 
-
-  /**
-   * For usage of TRIM, LTRIM and RTRIM in BQ
-   */
-  private void unparseTrim(
-      SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    final String operatorName;
-    SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
-    }
-    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    if (!valueToTrim.toValue().matches("\\s+")) {
-      writer.literal(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(trimFrame);
-  }
-
   /**
    * For usage of DATE_ADD,DATE_SUB function in BQ. It will unparse the SqlCall and write it into BQ
    * format. Below are few examples:
@@ -540,18 +525,17 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseSqlIntervalLiteral(
       SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     writer.keyword("INTERVAL");
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    Long intervalValueInLong;
     try {
-      intervalValueInLong = Long.parseLong(literal.getValue().toString());
+      Long.parseLong(interval.getIntervalLiteral());
     } catch (NumberFormatException e) {
       throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
     }
-    writer.literal(intervalValueInLong.toString());
+    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
   }
@@ -566,7 +550,42 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private TimeUnit validate(TimeUnit timeUnit) {
+  /**
+   * For usage of TRIM, LTRIM and RTRIM in BQ see
+   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
+   *  BQ Trim Function</a>.
+   */
+  private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    SqlLiteral valueToTrim = call.operand(1);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+
+    // If the trimmed character is a non-space character, add it to the target SQL.
+    // eg: TRIM(BOTH 'A' from 'ABCD'
+    // Output Query: TRIM('ABC', 'A')
+    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
+    if (!value.matches("\\s+")) {
+      writer.literal(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(trimFrame);
+  }
+
+  private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case MILLISECOND:
@@ -585,12 +604,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  /**
-   * BigQuery data type reference:
+  /** {@inheritDoc}
+   *
+   * <p>BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
-   * BigQuery Standard SQL Data Types</a>
+   * BigQuery Standard SQL Data Types</a>.
    */
-  @Override public SqlNode getCastSpec(final RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
@@ -620,12 +640,15 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+      default:
+        break;
       }
     }
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
+      SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);

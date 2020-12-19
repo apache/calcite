@@ -21,9 +21,14 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for the RelMetadataQuery that uses the metadata handler class
@@ -63,16 +68,16 @@ public class RelMetadataQueryBase {
   /** Set of active metadata queries, and cache of previous results. */
   public final Table<RelNode, List, Object> map = HashBasedTable.create();
 
-  public final JaninoRelMetadataProvider metadataProvider;
+  public final @Nullable JaninoRelMetadataProvider metadataProvider;
 
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ThreadLocal<JaninoRelMetadataProvider> THREAD_PROVIDERS =
+  public static final ThreadLocal<@Nullable JaninoRelMetadataProvider> THREAD_PROVIDERS =
       new ThreadLocal<>();
 
   //~ Constructors -----------------------------------------------------------
 
-  protected RelMetadataQueryBase(JaninoRelMetadataProvider metadataProvider) {
+  protected RelMetadataQueryBase(@Nullable JaninoRelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
   }
 
@@ -80,7 +85,7 @@ public class RelMetadataQueryBase {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {
-              final RelNode r = (RelNode) args[0];
+              final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
               throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
             }));
   }
@@ -91,6 +96,7 @@ public class RelMetadataQueryBase {
    * {@code class_} if it is not already present. */
   protected <M extends Metadata, H extends MetadataHandler<M>> H
       revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
+    requireNonNull(metadataProvider, "metadataProvider");
     return metadataProvider.revise(class_, def);
   }
 
@@ -98,8 +104,15 @@ public class RelMetadataQueryBase {
    * Removes cached metadata values for specified RelNode.
    *
    * @param rel RelNode whose cached metadata should be removed
+   * @return true if cache for the provided RelNode was not empty
    */
-  public void clearCache(RelNode rel) {
-    map.row(rel).clear();
+  public boolean clearCache(RelNode rel) {
+    Map<List, Object> row = map.row(rel);
+    if (row.isEmpty()) {
+      return false;
+    }
+
+    row.clear();
+    return true;
   }
 }

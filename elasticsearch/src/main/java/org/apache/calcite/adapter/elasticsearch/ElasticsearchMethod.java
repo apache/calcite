@@ -40,6 +40,7 @@ enum ElasticsearchMethod {
       Long.class, // offset
       Long.class); // fetch
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   public static final ImmutableMap<Method, ElasticsearchMethod> MAP;

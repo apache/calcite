@@ -44,11 +44,11 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,
@@ -78,7 +78,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     return checkSingleOperandType(
@@ -88,15 +88,15 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
         throwOnFailure);
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(1);
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<LITERAL>";
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }

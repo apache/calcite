@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -36,11 +37,15 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
@@ -100,7 +105,28 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
         condition, variablesSet, joinType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, left.getRowType().getFieldCount(), getTraitSet());
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    // should only derive traits (limited to collation for now) from left join input.
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, getTraitSet(), right.getTraitSet());
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    if (joinType == JoinRelType.FULL || joinType == JoinRelType.RIGHT) {
+      return DeriveMode.PROHIBITED;
+    }
+
+    return DeriveMode.LEFT_FIRST;
+  }
+
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 

@@ -24,9 +24,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Call to an aggregate function over a window.
@@ -96,7 +97,7 @@ public class RexOver extends RexCall {
     return ignoreNulls;
   }
 
-  @Override protected @Nonnull String computeDigest(boolean withType) {
+  @Override protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     if (distinct) {
@@ -111,18 +112,22 @@ public class RexOver extends RexCall {
       sb.append(":");
       sb.append(type.getFullTypeString());
     }
-    sb.append(" OVER (")
-        .append(window)
+    sb.append(" OVER (");
+    window.appendDigest(sb, op.allowsFraming())
         .append(")");
     return sb.toString();
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitOver(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitOver(this, arg);
+  }
+
+  @Override public int nodeCount() {
+    return super.nodeCount() + window.nodeCount;
   }
 
   /**
@@ -154,7 +159,8 @@ public class RexOver extends RexCall {
   /**
    * Returns whether an expression list contains an OVER clause.
    */
-  public static boolean containsOver(List<RexNode> exprs, RexNode condition) {
+  public static boolean containsOver(List<? extends RexNode> exprs,
+      @Nullable RexNode condition) {
     try {
       RexUtil.apply(FINDER, exprs, condition);
       return false;
@@ -187,8 +193,33 @@ public class RexOver extends RexCall {
       super(true);
     }
 
-    public Void visitOver(RexOver over) {
+    @Override public Void visitOver(RexOver over) {
       throw OverFound.INSTANCE;
     }
+  }
+
+  @Override public boolean equals(@Nullable Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    RexOver rexOver = (RexOver) o;
+    return distinct == rexOver.distinct
+        && ignoreNulls == rexOver.ignoreNulls
+        && window.equals(rexOver.window)
+        && op.allowsFraming() == rexOver.op.allowsFraming();
+  }
+
+  @Override public int hashCode() {
+    if (hash == 0) {
+      hash = Objects.hash(super.hashCode(), window,
+          distinct, ignoreNulls, op.allowsFraming());
+    }
+    return hash;
   }
 }

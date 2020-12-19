@@ -25,6 +25,8 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Abstract base class for implementing {@link Table}.
  *
@@ -38,15 +40,15 @@ public abstract class AbstractTable implements Table, Wrapper {
   }
 
   // Default implementation. Override if you have statistics.
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 
-  public Schema.TableType getJdbcTableType() {
+  @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
   }
 
-  public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }
@@ -58,7 +60,7 @@ public abstract class AbstractTable implements Table, Wrapper {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(String column,
-      SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+      SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
     return true;
   }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -35,7 +37,7 @@ public class ThrowStatement extends Statement {
     return shuttle.visit(this, expression);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -43,7 +45,7 @@ public class ThrowStatement extends Statement {
     writer.append("throw ").append(expression).append(';').newlineAndIndent();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

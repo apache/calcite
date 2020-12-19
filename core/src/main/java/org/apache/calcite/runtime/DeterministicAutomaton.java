@@ -19,6 +19,8 @@ package org.apache.calcite.runtime;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,6 +40,7 @@ public class DeterministicAutomaton {
   private final ImmutableList<Transition> transitions;
 
   /** Constructs the DFA from an epsilon-NFA. */
+  @SuppressWarnings("method.invocation.invalid")
   DeterministicAutomaton(Automaton automaton) {
     this.automaton = Objects.requireNonNull(automaton);
     // Calculate eps closure of start state
@@ -169,7 +172,7 @@ public class DeterministicAutomaton {
       return states.contains(state);
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof MultiState
           && Objects.equals(states, ((MultiState) o).states);

@@ -30,8 +30,10 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -41,12 +43,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 /**
@@ -59,37 +57,21 @@ final class JdbcUtils {
 
   /** Pool of dialects. */
   static class DialectPool {
-    final Map<DataSource, Map<SqlDialectFactory, SqlDialect>> map0 = new IdentityHashMap<>();
-    final Map<List, SqlDialect> map = new HashMap<>();
-
     public static final DialectPool INSTANCE = new DialectPool();
 
-    // TODO: Discuss why we need a pool. If we do, I'd like to improve performance
-    synchronized SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
-      Map<SqlDialectFactory, SqlDialect> dialectMap = map0.get(dataSource);
-      if (dialectMap != null) {
-        final SqlDialect sqlDialect = dialectMap.get(dialectFactory);
-        if (sqlDialect != null) {
-          return sqlDialect;
-        }
-      }
+    private final LoadingCache<Pair<SqlDialectFactory, DataSource>, SqlDialect> cache =
+        CacheBuilder.newBuilder().softValues()
+            .build(CacheLoader.from(DialectPool::dialect));
+
+    private static SqlDialect dialect(
+        Pair<SqlDialectFactory, DataSource> key) {
+      SqlDialectFactory dialectFactory = key.left;
+      DataSource dataSource = key.right;
       Connection connection = null;
       try {
         connection = dataSource.getConnection();
         DatabaseMetaData metaData = connection.getMetaData();
-        String productName = metaData.getDatabaseProductName();
-        String productVersion = metaData.getDatabaseProductVersion();
-        List key = ImmutableList.of(productName, productVersion, dialectFactory);
-        SqlDialect dialect = map.get(key);
-        if (dialect == null) {
-          dialect = dialectFactory.create(metaData);
-          map.put(key, dialect);
-          if (dialectMap == null) {
-            dialectMap = new IdentityHashMap<>();
-            map0.put(dataSource, dialectMap);
-          }
-          dialectMap.put(dialectFactory, dialect);
-        }
+        SqlDialect dialect = dialectFactory.create(metaData);
         connection.close();
         connection = null;
         return dialect;
@@ -105,12 +87,18 @@ final class JdbcUtils {
         }
       }
     }
+
+    public SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
+      final Pair<SqlDialectFactory, DataSource> key =
+          Pair.of(dialectFactory, dataSource);
+      return cache.getUnchecked(key);
+    }
   }
 
   /** Builder that calls {@link ResultSet#getObject(int)} for every column,
    * or {@code getXxx} if the result type is a primitive {@code xxx},
    * and returns an array of objects for each row. */
-  static class ObjectArrayRowBuilder implements Function0<Object[]> {
+  static class ObjectArrayRowBuilder implements Function0<@Nullable Object[]> {
     private final ResultSet resultSet;
     private final int columnCount;
     private final ColumnMetaData.Rep[] reps;
@@ -125,13 +113,13 @@ final class JdbcUtils {
       this.columnCount = resultSet.getMetaData().getColumnCount();
     }
 
-    public static Function1<ResultSet, Function0<Object[]>> factory(
+    public static Function1<ResultSet, Function0<@Nullable Object[]>> factory(
         final List<Pair<ColumnMetaData.Rep, Integer>> list) {
       return resultSet -> {
         try {
           return new ObjectArrayRowBuilder(
               resultSet,
-              Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
+              Pair.left(list).toArray(new ColumnMetaData.Rep[0]),
               Ints.toArray(Pair.right(list)));
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -139,9 +127,9 @@ final class JdbcUtils {
       };
     }
 
-    public Object[] apply() {
+    @Override public @Nullable Object[] apply() {
       try {
-        final Object[] values = new Object[columnCount];
+        final @Nullable Object[] values = new Object[columnCount];
         for (int i = 0; i < columnCount; i++) {
           values[i] = value(i);
         }
@@ -156,7 +144,7 @@ final class JdbcUtils {
      *
      * @param i Ordinal of column (1-based, per JDBC)
      */
-    private Object value(int i) throws SQLException {
+    private @Nullable Object value(int i) throws SQLException {
       // MySQL returns timestamps shifted into local time. Using
       // getTimestamp(int, Calendar) with a UTC calendar should prevent this,
       // but does not. So we shift explicitly.
@@ -167,11 +155,15 @@ final class JdbcUtils {
         return shift(resultSet.getTime(i + 1));
       case Types.DATE:
         return shift(resultSet.getDate(i + 1));
+      default:
+        break;
       }
       return reps[i].jdbcGet(resultSet, i + 1);
     }
 
-    private static Timestamp shift(Timestamp v) {
+    /** Returns a timestamp shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Timestamp shift(@PolyNull Timestamp v) {
       if (v == null) {
         return null;
       }
@@ -180,7 +172,9 @@ final class JdbcUtils {
       return new Timestamp(time + offset);
     }
 
-    private static Time shift(Time v) {
+    /** Returns a time shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Time shift(@PolyNull Time v) {
       if (v == null) {
         return null;
       }
@@ -189,7 +183,9 @@ final class JdbcUtils {
       return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
     }
 
-    private static Date shift(Date v) {
+    /** Returns a date shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Date shift(@PolyNull Date v) {
       if (v == null) {
         return null;
       }
@@ -209,12 +205,12 @@ final class JdbcUtils {
   static class DataSourcePool {
     public static final DataSourcePool INSTANCE = new DataSourcePool();
 
-    private final LoadingCache<List<String>, BasicDataSource> cache =
+    private final LoadingCache<List<@Nullable String>, BasicDataSource> cache =
         CacheBuilder.newBuilder().softValues()
             .build(CacheLoader.from(DataSourcePool::dataSource));
 
-    private static @Nonnull BasicDataSource dataSource(
-          @Nonnull List<String> key) {
+    private static BasicDataSource dataSource(
+          List<? extends @Nullable String> key) {
       BasicDataSource dataSource = new BasicDataSource();
       dataSource.setUrl(key.get(0));
       dataSource.setUsername(key.get(1));
@@ -223,11 +219,11 @@ final class JdbcUtils {
       return dataSource;
     }
 
-    public DataSource get(String url, String driverClassName,
-        String username, String password) {
+    public DataSource get(String url, @Nullable String driverClassName,
+        @Nullable String username, @Nullable String password) {
       // Get data source objects from a cache, so that we don't have to sniff
       // out what kind of database they are quite as often.
-      final List<String> key =
+      final List<@Nullable String> key =
           ImmutableNullableList.of(url, username, password, driverClassName);
       return cache.getUnchecked(key);
     }

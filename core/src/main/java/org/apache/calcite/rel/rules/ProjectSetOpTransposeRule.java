@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,44 +38,32 @@ import java.util.List;
  * <p>The children of the {@code SetOp} will project
  * only the {@link RexInputRef}s referenced in the original
  * {@code LogicalProject}.
+ *
+ * @see CoreRules#PROJECT_SET_OP_TRANSPOSE
  */
-public class ProjectSetOpTransposeRule extends RelOptRule {
-  public static final ProjectSetOpTransposeRule INSTANCE =
-      new ProjectSetOpTransposeRule(expr -> !(expr instanceof RexOver),
-          RelFactories.LOGICAL_BUILDER);
+public class ProjectSetOpTransposeRule
+    extends RelRule<ProjectSetOpTransposeRule.Config>
+    implements TransformationRule {
 
-  //~ Instance fields --------------------------------------------------------
+  /** Creates a ProjectSetOpTransposeRule. */
+  protected ProjectSetOpTransposeRule(Config config) {
+    super(config);
+  }
 
-  /**
-   * Expressions that should be preserved in the projection
-   */
-  private PushProjector.ExprCondition preserveExprCondition;
-
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a ProjectSetOpTransposeRule with an explicit condition whether
-   * to preserve expressions.
-   *
-   * @param preserveExprCondition Condition whether to preserve expressions
-   */
+  @Deprecated // to be removed before 2.0
   public ProjectSetOpTransposeRule(
       PushProjector.ExprCondition preserveExprCondition,
       RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(
-            LogicalProject.class,
-            operand(SetOp.class, any())),
-        relBuilderFactory, null);
-    this.preserveExprCondition = preserveExprCondition;
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withPreserveExprCondition(preserveExprCondition));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
-  public void onMatch(RelOptRuleCall call) {
-    LogicalProject origProj = call.rel(0);
-    SetOp setOp = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final LogicalProject origProject = call.rel(0);
+    final SetOp setOp = call.rel(1);
 
     // cannot push project past a distinct
     if (!setOp.all) {
@@ -83,42 +71,63 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
     }
 
     // locate all fields referenced in the projection
-    PushProjector pushProject =
-        new PushProjector(
-            origProj, null, setOp, preserveExprCondition, call.builder());
-    pushProject.locateAllRefs();
+    final PushProjector pushProjector =
+        new PushProjector(origProject, null, setOp,
+            config.preserveExprCondition(), call.builder());
+    pushProjector.locateAllRefs();
 
-    List<RelNode> newSetOpInputs = new ArrayList<>();
-    int[] adjustments = pushProject.getAdjustments();
+    final List<RelNode> newSetOpInputs = new ArrayList<>();
+    final int[] adjustments = pushProjector.getAdjustments();
 
     final RelNode node;
-    if (RexOver.containsOver(origProj.getProjects(), null)) {
-      // should not push over past setop but can push its operand down.
+    if (origProject.containsOver()) {
+      // should not push over past set-op but can push its operand down.
       for (RelNode input : setOp.getInputs()) {
-        Project p = pushProject.createProjectRefsAndExprs(input, true, false);
+        Project p = pushProjector.createProjectRefsAndExprs(input, true, false);
         // make sure that it is not a trivial project to avoid infinite loop.
         if (p.getRowType().equals(input.getRowType())) {
           return;
         }
         newSetOpInputs.add(p);
       }
-      SetOp newSetOp =
+      final SetOp newSetOp =
           setOp.copy(setOp.getTraitSet(), newSetOpInputs);
-      node = pushProject.createNewProject(newSetOp, adjustments);
+      node = pushProjector.createNewProject(newSetOp, adjustments);
     } else {
-      // push some expressions below the setop; this
+      // push some expressions below the set-op; this
       // is different from pushing below a join, where we decompose
       // to try to keep expensive expressions above the join,
       // because UNION ALL does not have any filtering effect,
       // and it is the only operator this rule currently acts on
       setOp.getInputs().forEach(input ->
           newSetOpInputs.add(
-              pushProject.createNewProject(
-                  pushProject.createProjectRefsAndExprs(
+              pushProjector.createNewProject(
+                  pushProjector.createProjectRefsAndExprs(
                       input, true, false), adjustments)));
       node = setOp.copy(setOp.getTraitSet(), newSetOpInputs);
     }
 
     call.transformTo(node);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalProject.class).oneInput(b1 ->
+                b1.operand(SetOp.class).anyInputs()))
+        .as(Config.class)
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+
+    @Override default ProjectSetOpTransposeRule toRule() {
+      return new ProjectSetOpTransposeRule(this);
+    }
+
+    /** Defines when an expression should not be pushed. */
+    @ImmutableBeans.Property
+    PushProjector.ExprCondition preserveExprCondition();
+
+    /** Sets {@link #preserveExprCondition()}. */
+    Config withPreserveExprCondition(PushProjector.ExprCondition condition);
   }
 }

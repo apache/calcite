@@ -65,8 +65,7 @@ void debug_message1()
 }
 
 JAVACODE String unquotedIdentifier() {
-  return SqlParserUtil.strip(getToken(0).image, null, null, null,
-    Casing.UNCHANGED);
+  return SqlParserUtil.toCase(getToken(0).image, Casing.UNCHANGED);
 }
 
 String nonReservedKeyWord() :

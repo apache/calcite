@@ -34,9 +34,10 @@ public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
   private Iterator results;
 
   private E current;
+  @SuppressWarnings("unused")
   private ClientCache clientCache;
 
-  public GeodeSimpleEnumerator(ClientCache clientCache, String regionName) {
+  protected GeodeSimpleEnumerator(ClientCache clientCache, String regionName) {
     this.clientCache = clientCache;
     QueryService queryService = clientCache.getQueryService();
     String oql = "select * from /" + regionName.trim();

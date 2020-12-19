@@ -40,7 +40,7 @@ import java.util.function.Function;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-public class EnumerableRepeatUnionHierarchyTest {
+class EnumerableRepeatUnionHierarchyTest {
 
   // Tests for the following hierarchy:
   //      Emp1

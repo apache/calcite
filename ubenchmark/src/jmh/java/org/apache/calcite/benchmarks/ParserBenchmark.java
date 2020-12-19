@@ -42,7 +42,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmarks JavaCC-generated SQL parser
+ * Benchmarks JavaCC-generated SQL parser.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx128m")
 @Measurement(iterations = 7, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -81,6 +81,8 @@ public class ParserBenchmark {
         case 2:
           sb.append('\'').append(rnd.nextLong()).append(rnd.nextLong())
               .append('\'');
+          break;
+        default:
           break;
         }
       }

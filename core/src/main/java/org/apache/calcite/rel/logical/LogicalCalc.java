@@ -33,7 +33,6 @@ import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.Util;
 
@@ -133,9 +132,7 @@ public final class LogicalCalc extends Calc {
   @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     final RelOptUtil.VariableUsedVisitor vuv =
         new RelOptUtil.VariableUsedVisitor(null);
-    for (RexNode expr : program.getExprList()) {
-      expr.accept(vuv);
-    }
+    vuv.visitEach(program.getExprList());
     variableSet.addAll(vuv.variables);
   }
 

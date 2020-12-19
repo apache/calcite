@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +52,13 @@ public class JsonTile {
    *
    * <p>If not specified, uses {@link JsonLattice#defaultMeasures}.
    */
-  public List<JsonMeasure> measures;
+  public final List<JsonMeasure> measures;
+
+  @JsonCreator
+  public JsonTile(@JsonProperty("measures") @Nullable List<JsonMeasure> measures) {
+    this.measures = measures == null
+        ? ImmutableList.of(new JsonMeasure("count", null)) : measures;
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

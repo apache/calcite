@@ -23,17 +23,21 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 
 /**
- * Rule to convert a {@link LogicalRepeatUnion} into an {@link EnumerableRepeatUnion}.
+ * Rule to convert a {@link LogicalRepeatUnion} into an
+ * {@link EnumerableRepeatUnion}.
+ *
+ * @see EnumerableRules#ENUMERABLE_REPEAT_UNION_RULE
  */
 public class EnumerableRepeatUnionRule extends ConverterRule {
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalRepeatUnion.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableRepeatUnionRule")
+      .withRuleFactory(EnumerableRepeatUnionRule::new);
 
-  EnumerableRepeatUnionRule() {
-    super(
-        LogicalRepeatUnion.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableRepeatUnionRule");
-
+  /** Called from the Config. */
+  protected EnumerableRepeatUnionRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

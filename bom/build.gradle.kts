@@ -38,25 +38,32 @@ fun DependencyConstraintHandlerScope.runtimev(
 ) =
     "runtime"(notation + ":" + versionProp.v)
 
+javaPlatform {
+    allowDependencies()
+}
+
 dependencies {
+    api(platform("com.fasterxml.jackson:jackson-bom:${"jackson".v}"))
+
     // Parenthesis are needed here: https://github.com/gradle/gradle/issues/9248
     (constraints) {
         // api means "the dependency is for both compilation and runtime"
         // runtime means "the dependency is only for runtime, not for compilation"
         // In other words, marking dependency as "runtime" would avoid accidental
         // dependency on it during compilation
+        apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
+        apiv("org.checkerframework:checker-qual", "checkerframework")
         apiv("com.datastax.cassandra:cassandra-driver-core")
         apiv("com.esri.geometry:esri-geometry-api")
-        apiv("com.fasterxml.jackson.core:jackson-annotations", "jackson")
-        apiv("com.fasterxml.jackson.core:jackson-core", "jackson")
         apiv("com.fasterxml.jackson.core:jackson-databind")
-        apiv("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", "jackson")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.stephenc.jcip:jcip-annotations")
-        apiv("com.google.code.findbugs:jsr305", "findbugs.jsr305")
+        apiv("com.google.errorprone:error_prone_annotations", "errorprone")
+        apiv("com.google.errorprone:error_prone_type_annotations", "errorprone")
         apiv("com.google.guava:guava")
         apiv("com.google.protobuf:protobuf-java", "protobuf")
+        apiv("com.google.uzaygezen:uzaygezen-core", "uzaygezen")
         apiv("com.h2database:h2")
         apiv("com.jayway.jsonpath:json-path")
         apiv("com.joestelmach:natty")
@@ -68,11 +75,10 @@ dependencies {
         apiv("de.bwaldvogel:mongo-java-server", "mongo-java-server")
         apiv("de.bwaldvogel:mongo-java-server-core", "mongo-java-server")
         apiv("de.bwaldvogel:mongo-java-server-memory-backend", "mongo-java-server")
-        apiv("io.airlift.tpch:tpch")
+        apiv("io.prestosql.tpch:tpch")
         apiv("javax.servlet:javax.servlet-api", "servlet")
         apiv("joda-time:joda-time")
         apiv("junit:junit", "junit4")
-        apiv("log4j:log4j", "log4j")
         apiv("mysql:mysql-connector-java")
         apiv("net.hydromatic:aggdesigner-algorithm")
         apiv("net.hydromatic:chinook-data-hsqldb")

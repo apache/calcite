@@ -41,7 +41,7 @@ public abstract class SqlTypeNameSpec {
    * @param name Name of the type
    * @param pos  Parser position, must not be null
    */
-  public SqlTypeNameSpec(SqlIdentifier name, SqlParserPos pos) {
+  protected SqlTypeNameSpec(SqlIdentifier name, SqlParserPos pos) {
     this.typeName = name;
     this.pos = pos;
   }

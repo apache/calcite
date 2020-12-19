@@ -26,12 +26,14 @@ import org.apache.calcite.rel.convert.ConverterRule;
  * {@link PigRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class PigToEnumerableConverterRule extends ConverterRule {
-  public static final ConverterRule INSTANCE =
-      new PigToEnumerableConverterRule();
+  public static final ConverterRule INSTANCE = Config.INSTANCE
+      .withConversion(RelNode.class, PigRel.CONVENTION,
+          EnumerableConvention.INSTANCE, "PigToEnumerableConverterRule")
+      .withRuleFactory(PigToEnumerableConverterRule::new)
+      .toRule(PigToEnumerableConverterRule.class);
 
-  private PigToEnumerableConverterRule() {
-    super(RelNode.class, PigRel.CONVENTION, EnumerableConvention.INSTANCE,
-        "PigToEnumerableConverterRule");
+  private PigToEnumerableConverterRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

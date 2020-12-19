@@ -65,6 +65,16 @@
   githubId: ebegoli
   org: Oak Ridge National Laboratory
   role: Committer
+- name: Feng Zhu
+  apacheId: fengzhu
+  githubId: DonnyZone
+  org: Tencent
+  role: Committer
+- name: Forward Xu
+  apacheId: forwardxu
+  githubId: XuQianJin-Stars
+  org: Tencent
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
@@ -79,7 +89,7 @@
   apacheId: hyuan
   githubId: hsyuan
   org: Alibaba
-  role: PMC
+  role: PMC Chair
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
@@ -110,6 +120,11 @@
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jin Xing
+  apacheId: jinxing
+  githubId: jinxing64
+  org: Ant Financial
+  role: Committer
 - name: John Pullokkaran
   apacheId: jpullokk
   githubId: jpullokkaran
@@ -188,6 +203,11 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
+  role: PMC
+- name: Rui Wang
+  apacheId: amaliujia
+  githubId: amaliujia
+  org: Google
   role: Committer
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
@@ -207,8 +227,8 @@
 - name: Stamatis Zampetakis
   apacheId: zabetak
   githubId: zabetak
-  org: TIBCO
-  role: PMC Chair
+  org: Cloudera
+  role: PMC
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
@@ -221,6 +241,11 @@
   org: MapR
   role: PMC
   avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
+- name: Vineet Garg
+  apacheId: vgarg
+  githubId: vineetgarg02
+  org: Cloudera
+  role: Committer
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov
   githubId: vlsi
@@ -231,6 +256,11 @@
   githubId: vvysotskyi
   org:
   role: PMC
+- name: Wang Yanlin
+  apacheId: yanlin
+  githubId: yanlin-Lynn
+  org: Ant Financial
+  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking

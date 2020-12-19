@@ -75,15 +75,15 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
     activeVertices.remove(start);
   }
 
-  public boolean hasNext() {
+  @Override public boolean hasNext() {
     return iterator.hasNext();
   }
 
-  public V next() {
+  @Override public V next() {
     return iterator.next();
   }
 
-  public void remove() {
+  @Override public void remove() {
     throw new UnsupportedOperationException();
   }
 }

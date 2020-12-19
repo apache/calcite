@@ -19,9 +19,6 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelDistribution;
-import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -36,22 +33,22 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple
  * levels.
  */
-public class RelToSqlConverterStructsTest {
+class RelToSqlConverterStructsTest {
 
   private static final Schema SCHEMA = new Schema() {
     @Override public Table getTable(String name) {
@@ -86,7 +83,7 @@ public class RelToSqlConverterStructsTest {
       return ImmutableSet.of();
     }
 
-    @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
       return null;
     }
 
@@ -101,16 +98,22 @@ public class RelToSqlConverterStructsTest {
 
   private static final Table TABLE = new Table() {
     /**
-     * Table schema is as following:
+     * {@inheritDoc}
+     *
+     * <p>Table schema is as follows:
+     *
+     * <blockquote>
+     * <pre>
      *  myTable(
      *          a: BIGINT,
-     *          n1: STRUCT<
-     *                n11: STRUCT<b: BIGINT>,
-     *                n12: STRUCT<c: BIGINT>
-     *              >,
-     *          n2: STRUCT<d: BIGINT>,
-     *          e: BIGINT
-     *  )
+     *          n1: STRUCT&lt;
+     *                n11: STRUCT&lt;b: BIGINT&gt;,
+     *                n12: STRUCT&lt;c: BIGINT&gt;
+     *              &gt;,
+     *          n2: STRUCT&lt;d: BIGINT&gt;,
+     *          e: BIGINT)
+     * </pre>
+     * </blockquote>
      */
     @Override public RelDataType getRowType(RelDataTypeFactory tf) {
       RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
@@ -144,8 +147,8 @@ public class RelToSqlConverterStructsTest {
     @Override public boolean rolledUpColumnValidInsideAgg(
         String column,
         SqlCall call,
-        SqlNode parent,
-        CalciteConnectionConfig config) {
+        @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   };
@@ -153,26 +156,6 @@ public class RelToSqlConverterStructsTest {
   private static final Statistic STATS = new Statistic() {
     @Override public Double getRowCount() {
       return 0D;
-    }
-
-    @Override public boolean isKey(ImmutableBitSet columns) {
-      return false;
-    }
-
-    @Override public List<ImmutableBitSet> getKeys() {
-      return ImmutableList.of();
-    }
-
-    @Override public List<RelReferentialConstraint> getReferentialConstraints() {
-      return ImmutableList.of();
-    }
-
-    @Override public List<RelCollation> getCollations() {
-      return ImmutableList.of();
-    }
-
-    @Override public RelDistribution getDistribution() {
-      return null;
     }
   };
 
@@ -182,10 +165,10 @@ public class RelToSqlConverterStructsTest {
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        RelToSqlConverterTest.DEFAULT_REL_CONFIG, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of());
   }
 
-  @Test public void testNestedSchemaSelectStar() {
+  @Test void testNestedSchemaSelectStar() {
     String query = "SELECT * FROM \"myTable\"";
     String expected = "SELECT \"a\", "
         + "ROW(ROW(\"n1\".\"n11\".\"b\"), ROW(\"n1\".\"n12\".\"c\")) AS \"n1\", "
@@ -195,7 +178,7 @@ public class RelToSqlConverterStructsTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testNestedSchemaRootColumns() {
+  @Test void testNestedSchemaRootColumns() {
     String query = "SELECT \"a\", \"e\" FROM \"myTable\"";
     String expected = "SELECT \"a\", "
         + "\"e\"\n"
@@ -203,7 +186,7 @@ public class RelToSqlConverterStructsTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testNestedSchemaNestedColumns() {
+  @Test void testNestedSchemaNestedColumns() {
     String query = "SELECT \"a\", \"e\", "
         + "\"myTable\".\"n1\".\"n11\".\"b\", "
         + "\"myTable\".\"n2\".\"d\" "

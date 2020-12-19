@@ -25,14 +25,22 @@ import org.apache.calcite.rel.logical.LogicalWindow;
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalWindow} to
  * an {@link org.apache.calcite.adapter.enumerable.EnumerableWindow}.
+ *
+ * @see EnumerableRules#ENUMERABLE_WINDOW_RULE
  */
 class EnumerableWindowRule extends ConverterRule {
-  EnumerableWindowRule() {
-    super(LogicalWindow.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableWindowRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalWindow.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableWindowRule")
+      .withRuleFactory(EnumerableWindowRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableWindowRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final LogicalWindow winAgg = (LogicalWindow) rel;
     final RelTraitSet traitSet =
         winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE);

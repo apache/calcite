@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects
  * and passing a payload to each.
@@ -51,4 +56,39 @@ public interface RexBiVisitor<R, P> {
   R visitTableInputRef(RexTableInputRef ref, P arg);
 
   R visitPatternFieldRef(RexPatternFieldRef ref, P arg);
+
+  /** Visits a list and writes the results to another list. */
+  default void visitList(Iterable<? extends RexNode> exprs, P arg,
+      List<R> out) {
+    for (RexNode expr : exprs) {
+      out.add(expr.accept(this, arg));
+    }
+  }
+
+  /** Visits a list and returns a list of the results.
+   * The resulting list is immutable and does not contain nulls. */
+  default List<R> visitList(Iterable<? extends RexNode> exprs, P arg) {
+    final List<R> out = new ArrayList<>();
+    visitList(exprs, arg, out);
+    return ImmutableList.copyOf(out);
+  }
+
+  /** Visits a list of expressions. */
+  default void visitEach(Iterable<? extends RexNode> exprs, P arg) {
+    for (RexNode expr : exprs) {
+      expr.accept(this, arg);
+    }
+  }
+
+  /** Visits a list of expressions, passing the 0-based index of the expression
+   * in the list.
+   *
+   * <p>Assumes that the payload type {@code P} is {@code Integer}. */
+  default void visitEachIndexed(Iterable<? extends RexNode> exprs) {
+    int i = 0;
+    for (RexNode expr : exprs) {
+      //noinspection unchecked
+      expr.accept(this, (P) (Integer) i++);
+    }
+  }
 }

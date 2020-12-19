@@ -22,9 +22,13 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -54,14 +58,14 @@ public class SqlSelectOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  public SqlCall createCall(
-      SqlLiteral functionQualifier,
+  @Override public SqlCall createCall(
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     assert functionQualifier == null;
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
@@ -124,7 +128,7 @@ public class SqlSelectOperator extends SqlOperator {
         hints);
   }
 
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -136,7 +140,7 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @SuppressWarnings("deprecation")
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -148,7 +152,7 @@ public class SqlSelectOperator extends SqlOperator {
 
     if (select.hasHints()) {
       writer.sep("/*+");
-      select.hints.unparse(writer, leftPrec, rightPrec);
+      castNonNull(select.hints).unparse(writer, 0, 0);
       writer.print("*/");
       writer.newlineAndIndent();
     }
@@ -181,11 +185,12 @@ public class SqlSelectOperator extends SqlOperator {
       writer.endList(fromFrame);
     }
 
-    if (select.where != null) {
+    SqlNode where = select.where;
+    if (where != null) {
       writer.sep("WHERE");
 
       if (!writer.isAlwaysUseParentheses()) {
-        SqlNode node = select.where;
+        SqlNode node = where;
 
         // decide whether to split on ORs or ANDs
         SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
@@ -206,9 +211,9 @@ public class SqlSelectOperator extends SqlOperator {
 
         // unparse in a WHERE_LIST frame
         writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
-            new SqlNodeList(list, select.where.getParserPosition()));
+            new SqlNodeList(list, where.getParserPosition()));
       } else {
-        select.where.unparse(writer, 0, 0);
+        where.unparse(writer, 0, 0);
       }
     }
 
@@ -292,7 +297,7 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  public boolean argumentMustBeScalar(int ordinal) {
+  @Override public boolean argumentMustBeScalar(int ordinal) {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }

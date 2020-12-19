@@ -26,12 +26,15 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
@@ -39,21 +42,25 @@ import java.util.List;
  * {@link EnumerableConvention enumerable calling convention}.
  *
  * @see EnumerableJoinRule
+ * @see EnumerableRules#ENUMERABLE_MERGE_JOIN_RULE
  */
 class EnumerableMergeJoinRule extends ConverterRule {
-  EnumerableMergeJoinRule() {
-    super(LogicalJoin.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableMergeJoinRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalJoin.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableMergeJoinRule")
+      .withRuleFactory(EnumerableMergeJoinRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableMergeJoinRule(Config config) {
+    super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  @Override public @Nullable RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
     final JoinInfo info = join.analyzeCondition();
-    if (join.getJoinType() != JoinRelType.INNER) {
-      // EnumerableMergeJoin only supports inner join.
-      // (It supports non-equi join, using a post-filter; see below.)
+    if (!EnumerableMergeJoin.isMergeJoinSupported(join.getJoinType())) {
+      // EnumerableMergeJoin only supports certain join types.
       return null;
     }
     if (info.pairs().size() == 0) {
@@ -90,19 +97,25 @@ class EnumerableMergeJoinRule extends ConverterRule {
     if (!collations.isEmpty()) {
       traitSet = traitSet.replace(collations);
     }
+    // Re-arrange condition: first the equi-join elements, then the non-equi-join ones (if any);
+    // this is not strictly necessary but it will be useful to avoid spurious errors in the
+    // unit tests when verifying the plan.
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+    final RexNode equi = info.getEquiCondition(left, right, rexBuilder);
+    final RexNode condition;
+    if (info.isEqui()) {
+      condition = equi;
+    } else {
+      final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
+      condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
+    }
     newRel = new EnumerableMergeJoin(cluster,
         traitSet,
         left,
         right,
-        info.getEquiCondition(left, right, cluster.getRexBuilder()),
+        condition,
         join.getVariablesSet(),
         join.getJoinType());
-    if (!info.isEqui()) {
-      RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
-          info.nonEquiConditions);
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, nonEqui);
-    }
     return newRel;
   }
 }

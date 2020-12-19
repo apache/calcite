@@ -33,10 +33,14 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Join}
@@ -101,7 +105,7 @@ public final class LogicalJoin extends Join {
       ImmutableList<RelDataTypeField> systemFieldList) {
     super(cluster, traitSet, hints, left, right, condition, variablesSet, joinType);
     this.semiJoinDone = semiJoinDone;
-    this.systemFieldList = Objects.requireNonNull(systemFieldList);
+    this.systemFieldList = requireNonNull(systemFieldList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -147,8 +151,10 @@ public final class LogicalJoin extends Join {
     this(input.getCluster(), input.getCluster().traitSetOf(Convention.NONE),
         new ArrayList<>(),
         input.getInputs().get(0), input.getInputs().get(1),
-        input.getExpression("condition"), ImmutableSet.of(),
-        input.getEnum("joinType", JoinRelType.class), false,
+        requireNonNull(input.getExpression("condition"), "condition"),
+        ImmutableSet.of(),
+        requireNonNull(input.getEnum("joinType", JoinRelType.class), "joinType"),
+        false,
         ImmutableList.of());
   }
 
@@ -170,36 +176,6 @@ public final class LogicalJoin extends Join {
         variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
-  @Deprecated // to be removed before 1.23
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    return create(left, right, ImmutableList.of(), condition, variablesSet,
-        joinType, false, ImmutableList.of());
-  }
-
-  @Deprecated // to be removed before 1.23
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
-      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
-    return create(left, right, ImmutableList.of(), condition, variablesSet,
-        joinType, semiJoinDone, systemFieldList);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
-      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
-    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
-        joinType, semiJoinDone, systemFieldList);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
-    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
-        joinType, false, ImmutableList.of());
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
@@ -214,18 +190,31 @@ public final class LogicalJoin extends Join {
     return shuttle.visit(this);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     // Don't ever print semiJoinDone=false. This way, we
     // don't clutter things up in optimizers that don't use semi-joins.
     return super.explainTerms(pw)
         .itemIf("semiJoinDone", semiJoinDone, semiJoinDone);
   }
 
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    return deepEquals0(obj)
+        && semiJoinDone == ((LogicalJoin) obj).semiJoinDone
+        && systemFieldList.equals(((LogicalJoin) obj).systemFieldList);
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(deepHashCode0(), semiJoinDone, systemFieldList);
+  }
+
   @Override public boolean isSemiJoinDone() {
     return semiJoinDone;
   }
 
-  public List<RelDataTypeField> getSystemFieldList() {
+  @Override public List<RelDataTypeField> getSystemFieldList() {
     return systemFieldList;
   }
 

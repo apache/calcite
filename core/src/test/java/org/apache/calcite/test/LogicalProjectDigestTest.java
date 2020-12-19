@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -32,11 +33,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Verifies digest for {@link LogicalProject}.
  */
-public class LogicalProjectDigestTest {
-  /**
-   * Planner does not compare
-   */
-  @Test public void fieldNamesDoNotInfluenceDigest() {
+class LogicalProjectDigestTest {
+  /** Planner does not compare. */
+  @Test void fieldNamesDoNotInfluenceDigest() {
     final RelBuilder rb = RelBuilder.create(Frameworks.newConfigBuilder().build());
     final RelNode xAsEmpid = rb.values(new String[]{"x", "y", "z"}, 1, 2, 3)
         .project(
@@ -65,5 +64,19 @@ public class LogicalProjectDigestTest {
         isLinux(""
             + "LogicalProject(renamed_x=[$0], renamed_y=[$1], extra_field=['u'])\n"
             + "  LogicalValues(tuples=[[{ 1, 2, 3 }]])\n"));
+  }
+
+  @Test void testProjectDigestWithOneTrivialField() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("EMPNO"))
+        .build();
+    String digest = RelOptUtil.toString(rel, SqlExplainLevel.DIGEST_ATTRIBUTES);
+    final String expected = ""
+        + "LogicalProject(inputs=[0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(digest, isLinux(expected));
   }
 }

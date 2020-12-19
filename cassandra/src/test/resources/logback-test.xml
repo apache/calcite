@@ -29,4 +29,7 @@
     <appender-ref ref="STDOUT" />
   </root>
 
+  <!-- Avoid showing connection errors on cassandra shutdown -->
+  <logger name="com.datastax.driver.core.ControlConnection" level="off" additivity="false"/>
+
 </configuration>

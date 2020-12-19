@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -52,16 +53,19 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -73,13 +77,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.rel.RelDistributions.EMPTY;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities for converting {@link org.apache.calcite.rel.RelNode}
  * into JSON format.
  */
 public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
-  private final JsonBuilder jsonBuilder;
+  private final @Nullable JsonBuilder jsonBuilder;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -89,12 +97,30 @@ public class RelJson {
           "org.apache.calcite.adapter.jdbc.",
           "org.apache.calcite.adapter.jdbc.JdbcRules$");
 
-  public RelJson(JsonBuilder jsonBuilder) {
+  public RelJson(@Nullable JsonBuilder jsonBuilder) {
     this.jsonBuilder = jsonBuilder;
   }
 
+  private JsonBuilder jsonBuilder() {
+    return requireNonNull(jsonBuilder, "jsonBuilder");
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Object> T get(Map<String, ? extends @Nullable Object> map,
+      String key) {
+    return (T) requireNonNull(map.get(key), () -> "entry for key " + key);
+  }
+
+  private static <T extends Enum<T>> T enumVal(Class<T> clazz, Map<String, Object> map,
+      String key) {
+    String textValue = get(map, key);
+    return requireNonNull(
+        Util.enumVal(clazz, textValue),
+        () -> "unable to find enum value " + textValue + " in class " + clazz);
+  }
+
   public RelNode create(Map<String, Object> map) {
-    String type = (String) map.get("type");
+    String type = get(map, "type");
     Constructor constructor = getConstructor(type);
     try {
       return (RelNode) constructor.newInstance(map);
@@ -161,7 +187,7 @@ public class RelJson {
   public Object toJson(RelCollationImpl node) {
     final List<Object> list = new ArrayList<>();
     for (RelFieldCollation fieldCollation : node.getFieldCollations()) {
-      final Map<String, Object> map = jsonBuilder.map();
+      final Map<String, @Nullable Object> map = jsonBuilder().map();
       map.put("field", fieldCollation.getFieldIndex());
       map.put("direction", fieldCollation.getDirection().name());
       map.put("nulls", fieldCollation.nullDirection.name());
@@ -180,18 +206,36 @@ public class RelJson {
   }
 
   public RelFieldCollation toFieldCollation(Map<String, Object> map) {
-    final Integer field = (Integer) map.get("field");
+    final Integer field = get(map, "field");
     final RelFieldCollation.Direction direction =
-        Util.enumVal(RelFieldCollation.Direction.class,
-            (String) map.get("direction"));
+        enumVal(RelFieldCollation.Direction.class,
+            map, "direction");
     final RelFieldCollation.NullDirection nullDirection =
-        Util.enumVal(RelFieldCollation.NullDirection.class,
-            (String) map.get("nulls"));
+        enumVal(RelFieldCollation.NullDirection.class,
+            map, "nulls");
     return new RelFieldCollation(field, direction, nullDirection);
   }
 
-  public RelDistribution toDistribution(Object o) {
-    return RelDistributions.ANY; // TODO:
+  public RelDistribution toDistribution(Map<String, Object> map) {
+    final RelDistribution.Type type =
+        enumVal(RelDistribution.Type.class,
+            map, "type");
+
+    ImmutableIntList list = EMPTY;
+    List<Integer> keys = (List<Integer>) map.get("keys");
+    if (keys != null) {
+      list = ImmutableIntList.copyOf(keys);
+    }
+    return RelDistributions.of(type, list);
+  }
+
+  private Object toJson(RelDistribution relDistribution) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("type", relDistribution.getType().name());
+    if (!relDistribution.getKeys().isEmpty()) {
+      map.put("keys", relDistribution.getKeys());
+    }
+    return map;
   }
 
   public RelDataType toType(RelDataTypeFactory typeFactory, Object o) {
@@ -200,7 +244,7 @@ public class RelJson {
       final List<Map<String, Object>> jsonList = (List<Map<String, Object>>) o;
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map<String, Object> jsonMap : jsonList) {
-        builder.add((String) jsonMap.get("name"), toType(typeFactory, jsonMap));
+        builder.add(get(jsonMap, "name"), toType(typeFactory, jsonMap));
       }
       return builder.build();
     } else if (o instanceof Map) {
@@ -212,7 +256,7 @@ public class RelJson {
         return toType(typeFactory, fields);
       } else {
         final SqlTypeName sqlTypeName =
-            Util.enumVal(SqlTypeName.class, (String) map.get("type"));
+            enumVal(SqlTypeName.class, map, "type");
         final Integer precision = (Integer) map.get("precision");
         final Integer scale = (Integer) map.get("scale");
         if (SqlTypeName.INTERVAL_TYPES.contains(sqlTypeName)) {
@@ -222,26 +266,33 @@ public class RelJson {
               new SqlIntervalQualifier(startUnit, endUnit, SqlParserPos.ZERO));
         }
         final RelDataType type;
-        if (precision == null) {
+        if (sqlTypeName == SqlTypeName.ARRAY) {
+          type = typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
+        } else if (precision == null) {
           type = typeFactory.createSqlType(sqlTypeName);
         } else if (scale == null) {
           type = typeFactory.createSqlType(sqlTypeName, precision);
         } else {
           type = typeFactory.createSqlType(sqlTypeName, precision, scale);
         }
-        final boolean nullable = (Boolean) map.get("nullable");
+        final boolean nullable = get(map, "nullable");
         return typeFactory.createTypeWithNullability(type, nullable);
       }
     } else {
-      final SqlTypeName sqlTypeName =
-          Util.enumVal(SqlTypeName.class, (String) o);
+      final SqlTypeName sqlTypeName = requireNonNull(
+          Util.enumVal(SqlTypeName.class, (String) o),
+          () -> "unable to find enum value " + o + " in class " + SqlTypeName.class);
       return typeFactory.createSqlType(sqlTypeName);
     }
   }
 
   public Object toJson(AggregateCall node) {
-    final Map<String, Object> map = jsonBuilder.map();
-    map.put("agg", toJson(node.getAggregation()));
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    final Map<String, @Nullable Object> aggMap = toJson(node.getAggregation());
+    if (node.getAggregation().getFunctionType().isUserDefined()) {
+      aggMap.put("class", node.getAggregation().getClass().getName());
+    }
+    map.put("agg", aggMap);
     map.put("type", toJson(node.getType()));
     map.put("distinct", node.isDistinct());
     map.put("operands", node.getArgList());
@@ -249,7 +300,7 @@ public class RelJson {
     return map;
   }
 
-  public Object toJson(Object value) {
+  public @Nullable Object toJson(@Nullable Object value) {
     if (value == null
         || value instanceof Number
         || value instanceof String
@@ -266,13 +317,13 @@ public class RelJson {
     } else if (value instanceof CorrelationId) {
       return toJson((CorrelationId) value);
     } else if (value instanceof List) {
-      final List<Object> list = jsonBuilder.list();
-      for (Object o : (List) value) {
+      final List<@Nullable Object> list = jsonBuilder().list();
+      for (Object o : (List<?>) value) {
         list.add(toJson(o));
       }
       return list;
     } else if (value instanceof ImmutableBitSet) {
-      final List<Object> list = jsonBuilder.list();
+      final List<@Nullable Object> list = jsonBuilder().list();
       for (Integer integer : (ImmutableBitSet) value) {
         list.add(toJson(integer));
       }
@@ -285,6 +336,8 @@ public class RelJson {
       return toJson((RelDataType) value);
     } else if (value instanceof RelDataTypeField) {
       return toJson((RelDataTypeField) value);
+    } else if (value instanceof RelDistribution) {
+      return toJson((RelDistribution) value);
     } else {
       throw new UnsupportedOperationException("type not serializable: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
@@ -293,13 +346,13 @@ public class RelJson {
 
   private Object toJson(RelDataType node) {
     if (node.isStruct()) {
-      final List<Object> list = jsonBuilder.list();
+      final List<@Nullable Object> list = jsonBuilder().list();
       for (RelDataTypeField field : node.getFieldList()) {
         list.add(toJson(field));
       }
       return list;
     } else {
-      final Map<String, Object> map = jsonBuilder.map();
+      final Map<String, @Nullable Object> map = jsonBuilder().map();
       map.put("type", node.getSqlTypeName().name());
       map.put("nullable", node.isNullable());
       if (node.getSqlTypeName().allowsPrec()) {
@@ -313,26 +366,26 @@ public class RelJson {
   }
 
   private Object toJson(RelDataTypeField node) {
-    final Map<String, Object> map;
+    final Map<String, @Nullable Object> map;
     if (node.getType().isStruct()) {
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       map.put("fields", toJson(node.getType()));
     } else {
-      map = (Map<String, Object>) toJson(node.getType());
+      map = (Map<String, @Nullable Object>) toJson(node.getType());
     }
     map.put("name", node.getName());
     return map;
   }
 
-  private Object toJson(CorrelationId node) {
+  private static Object toJson(CorrelationId node) {
     return node.getId();
   }
 
   private Object toJson(RexNode node) {
-    final Map<String, Object> map;
+    final Map<String, @Nullable Object> map;
     switch (node.getKind()) {
     case FIELD_ACCESS:
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       final RexFieldAccess fieldAccess = (RexFieldAccess) node;
       map.put("field", fieldAccess.getField().getName());
       map.put("expr", toJson(fieldAccess.getReferenceExpr()));
@@ -340,32 +393,32 @@ public class RelJson {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) node;
       final Object value = literal.getValue3();
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       map.put("literal", RelEnumTypes.fromEnum(value));
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       map.put("input", ((RexSlot) node).getIndex());
       map.put("name", ((RexSlot) node).getName());
       return map;
     case LOCAL_REF:
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       map.put("input", ((RexSlot) node).getIndex());
       map.put("name", ((RexSlot) node).getName());
       map.put("type", toJson(node.getType()));
       return map;
     case CORREL_VARIABLE:
-      map = jsonBuilder.map();
+      map = jsonBuilder().map();
       map.put("correl", ((RexCorrelVariable) node).getName());
       map.put("type", toJson(node.getType()));
       return map;
     default:
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
-        map = jsonBuilder.map();
+        map = jsonBuilder().map();
         map.put("op", toJson(call.getOperator()));
-        final List<Object> list = jsonBuilder.list();
+        final List<@Nullable Object> list = jsonBuilder().list();
         for (RexNode operand : call.getOperands()) {
           list.add(toJson(operand));
         }
@@ -373,6 +426,9 @@ public class RelJson {
         switch (node.getKind()) {
         case CAST:
           map.put("type", toJson(node.getType()));
+          break;
+        default:
+          break;
         }
         if (call.getOperator() instanceof SqlFunction) {
           if (((SqlFunction) call.getOperator()).getFunctionType().isUserDefined()) {
@@ -396,7 +452,7 @@ public class RelJson {
   }
 
   private Object toJson(RexWindow window) {
-    final Map<String, Object> map = jsonBuilder.map();
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
     if (window.partitionKeys.size() > 0) {
       map.put("partition", toJson(window.partitionKeys));
     }
@@ -424,7 +480,7 @@ public class RelJson {
   }
 
   private Object toJson(RexFieldCollation collation) {
-    final Map<String, Object> map = jsonBuilder.map();
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
     map.put("expr", toJson(collation.left));
     map.put("direction", collation.getDirection().name());
     map.put("null-direction", collation.getNullDirection().name());
@@ -432,45 +488,49 @@ public class RelJson {
   }
 
   private Object toJson(RexWindowBound windowBound) {
-    final Map<String, Object> map = jsonBuilder.map();
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
     if (windowBound.isCurrentRow()) {
       map.put("type", "CURRENT_ROW");
     } else if (windowBound.isUnbounded()) {
       map.put("type", windowBound.isPreceding() ? "UNBOUNDED_PRECEDING" : "UNBOUNDED_FOLLOWING");
     } else {
       map.put("type", windowBound.isPreceding() ? "PRECEDING" : "FOLLOWING");
-      map.put("offset", toJson(windowBound.getOffset()));
+      RexNode offset = requireNonNull(windowBound.getOffset(),
+          () -> "getOffset for window bound " + windowBound);
+      map.put("offset", toJson(offset));
     }
     return map;
   }
 
-  RexNode toRex(RelInput relInput, Object o) {
+  @PolyNull RexNode toRex(RelInput relInput, @PolyNull Object o) {
     final RelOptCluster cluster = relInput.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {
       return null;
     } else if (o instanceof Map) {
       Map map = (Map) o;
-      final Map<String, Object> opMap = (Map) map.get("op");
+      final Map<String, @Nullable Object> opMap = (Map) map.get("op");
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (opMap != null) {
         if (map.containsKey("class")) {
           opMap.put("class", map.get("class"));
         }
-        final List operands = (List) map.get("operands");
+        @SuppressWarnings("unchecked")
+        final List operands = get((Map<String, Object>) map, "operands");
         final List<RexNode> rexOperands = toRexList(relInput, operands);
         final Object jsonType = map.get("type");
         final Map window = (Map) map.get("window");
         if (window != null) {
-          final SqlAggFunction operator = toAggregation(opMap);
-          final RelDataType type = toType(typeFactory, jsonType);
+          final SqlAggFunction operator = requireNonNull(toAggregation(opMap), "operator");
+          final RelDataType type = toType(typeFactory, requireNonNull(jsonType, "jsonType"));
           List<RexNode> partitionKeys = new ArrayList<>();
-          if (window.containsKey("partition")) {
-            partitionKeys = toRexList(relInput, (List) window.get("partition"));
+          Object partition = window.get("partition");
+          if (partition != null) {
+            partitionKeys = toRexList(relInput, (List) partition);
           }
           List<RexFieldCollation> orderKeys = new ArrayList<>();
           if (window.containsKey("order")) {
-            orderKeys = toRexFieldCollationList(relInput, (List) window.get("order"));
+            addRexFieldCollationList(orderKeys, relInput, (List) window.get("order"));
           }
           final RexWindowBound lowerBound;
           final RexWindowBound upperBound;
@@ -485,16 +545,20 @@ public class RelJson {
             physical = false;
           } else {
             // No ROWS or RANGE clause
+            // Note: lower and upper bounds are non-nullable, so this branch is not reachable
             lowerBound = null;
             upperBound = null;
             physical = false;
           }
-          final boolean distinct = (Boolean) map.get("distinct");
+          final boolean distinct = get((Map<String, Object>) map, "distinct");
           return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
-              ImmutableList.copyOf(orderKeys), lowerBound, upperBound, physical,
+              ImmutableList.copyOf(orderKeys),
+              requireNonNull(lowerBound, "lowerBound"),
+              requireNonNull(upperBound, "upperBound"),
+              physical,
               true, false, distinct, false);
         } else {
-          final SqlOperator operator = toOp(opMap);
+          final SqlOperator operator = requireNonNull(toOp(opMap), "operator");
           final RelDataType type;
           if (jsonType != null) {
             type = toType(typeFactory, jsonType);
@@ -526,13 +590,13 @@ public class RelJson {
       }
       final String field = (String) map.get("field");
       if (field != null) {
-        final Object jsonExpr = map.get("expr");
+        final Object jsonExpr = get(map, "expr");
         final RexNode expr = toRex(relInput, jsonExpr);
         return rexBuilder.makeFieldAccess(expr, field, true);
       }
       final String correl = (String) map.get("correl");
       if (correl != null) {
-        final Object jsonType = map.get("type");
+        final Object jsonType = get(map, "type");
         RelDataType type = toType(typeFactory, jsonType);
         return rexBuilder.makeCorrel(type, new CorrelationId(correl));
       }
@@ -551,7 +615,7 @@ public class RelJson {
         if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
         }
-        return rexBuilder.makeLiteral(literal, type, false);
+        return rexBuilder.makeLiteral(literal, type);
       }
       throw new UnsupportedOperationException("cannot convert to rex " + o);
     } else if (o instanceof Boolean) {
@@ -572,55 +636,46 @@ public class RelJson {
     }
   }
 
-  private List<RexFieldCollation> toRexFieldCollationList(
-      RelInput relInput, List<Map<String, Object>> order) {
+  private void addRexFieldCollationList(
+      List<RexFieldCollation> list,
+      RelInput relInput, @Nullable List<Map<String, Object>> order) {
     if (order == null) {
-      return null;
+      return;
     }
 
-    List<RexFieldCollation> list = new ArrayList<>();
     for (Map<String, Object> o : order) {
-      RexNode expr = toRex(relInput, o.get("expr"));
+      RexNode expr = requireNonNull(toRex(relInput, o.get("expr")), "expr");
       Set<SqlKind> directions = new HashSet<>();
-      if (Direction.valueOf((String) o.get("direction")) == Direction.DESCENDING) {
+      if (Direction.valueOf(get(o, "direction")) == Direction.DESCENDING) {
         directions.add(SqlKind.DESCENDING);
       }
-      if (NullDirection.valueOf((String) o.get("null-direction")) == NullDirection.FIRST) {
+      if (NullDirection.valueOf(get(o, "null-direction")) == NullDirection.FIRST) {
         directions.add(SqlKind.NULLS_FIRST);
       } else {
         directions.add(SqlKind.NULLS_LAST);
       }
       list.add(new RexFieldCollation(expr, directions));
     }
-    return list;
   }
 
-  private RexWindowBound toRexWindowBound(RelInput input, Map<String, Object> map) {
+  private @Nullable RexWindowBound toRexWindowBound(RelInput input,
+      @Nullable Map<String, Object> map) {
     if (map == null) {
       return null;
     }
 
-    final String type = (String) map.get("type");
+    final String type = get(map, "type");
     switch (type) {
     case "CURRENT_ROW":
-      return RexWindowBound.create(
-          SqlWindow.createCurrentRow(SqlParserPos.ZERO), null);
+      return RexWindowBounds.CURRENT_ROW;
     case "UNBOUNDED_PRECEDING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_PRECEDING;
     case "UNBOUNDED_FOLLOWING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_FOLLOWING;
     case "PRECEDING":
-      RexNode precedingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.PRECEDING_OPERATOR, precedingOffset));
+      return RexWindowBounds.preceding(toRex(input, get(map, "offset")));
     case "FOLLOWING":
-      RexNode followingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.FOLLOWING_OPERATOR, followingOffset));
+      return RexWindowBounds.following(toRex(input, get(map, "offset")));
     default:
       throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
     }
@@ -634,11 +689,11 @@ public class RelJson {
     return list;
   }
 
-  SqlOperator toOp(Map<String, Object> map) {
+  @Nullable SqlOperator toOp(Map<String, ? extends @Nullable Object> map) {
     // in case different operator has the same kind, check with both name and kind.
-    String name = map.get("name").toString();
-    String kind = map.get("kind").toString();
-    String syntax = map.get("syntax").toString();
+    String name = get(map, "name");
+    String kind = get(map, "kind");
+    String syntax = get(map, "syntax");
     SqlKind sqlKind = SqlKind.valueOf(kind);
     SqlSyntax  sqlSyntax = SqlSyntax.valueOf(syntax);
     List<SqlOperator> operators = new ArrayList<>();
@@ -660,13 +715,13 @@ public class RelJson {
     return null;
   }
 
-  SqlAggFunction toAggregation(Map<String, Object> map) {
+  @Nullable SqlAggFunction toAggregation(Map<String, ? extends @Nullable Object> map) {
     return (SqlAggFunction) toOp(map);
   }
 
-  private Map toJson(SqlOperator operator) {
+  private Map<String, @Nullable Object> toJson(SqlOperator operator) {
     // User-defined operators are not yet handled.
-    Map map = jsonBuilder.map();
+    Map<String, @Nullable Object> map = jsonBuilder().map();
     map.put("name", operator.getName());
     map.put("kind", operator.kind.toString());
     map.put("syntax", operator.getSyntax().toString());

@@ -25,8 +25,10 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -39,6 +41,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Column loader.
@@ -63,10 +67,11 @@ class ColumnLoader<T> {
    * @param sourceTable Source data
    * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
+  @SuppressWarnings("method.invocation.invalid")
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
-      List<ColumnMetaData.Rep> repList) {
+      @Nullable List<ColumnMetaData.Rep> repList) {
     this.typeFactory = typeFactory;
     final RelDataType rowType = protoRowType.apply(typeFactory);
     if (repList == null) {
@@ -152,12 +157,12 @@ class ColumnLoader<T> {
         new AbstractList<Type>() {
           final List<RelDataTypeField> fields =
               elementType.getFieldList();
-          public Type get(int index) {
+          @Override public Type get(int index) {
             return typeFactory.getJavaClass(
                 fields.get(index).getType());
           }
 
-          public int size() {
+          @Override public int size() {
             return fields.size();
           }
         };
@@ -170,11 +175,12 @@ class ColumnLoader<T> {
               : new AbstractList<Object>() {
                 final int slice = pair.i;
 
-                public Object get(int index) {
-                  return ((Object[]) list.get(index))[slice];
+                @Override public Object get(int index) {
+                  T row = requireNonNull(list.get(index), () -> "null value at index " + index);
+                  return ((Object[]) row)[slice];
                 }
 
-                public int size() {
+                @Override public int size() {
                   return list.size();
                 }
               };
@@ -195,8 +201,10 @@ class ColumnLoader<T> {
           && valueSet.map.keySet().size() == list.size()) {
         // We have discovered a the first unique key in the table.
         sort[0] = pair.i;
+        // map.keySet().size() == list.size() above implies list contains only non-null elements
+        @SuppressWarnings("assignment.type.incompatible")
         final Comparable[] values =
-            valueSet.values.toArray(new Comparable[list.size()]);
+            valueSet.values.toArray(new Comparable[0]);
         final Kev[] kevs = new Kev[list.size()];
         for (int i = 0; i < kevs.length; i++) {
           kevs[i] = new Kev(i, values[i]);
@@ -231,34 +239,45 @@ class ColumnLoader<T> {
    * value needs to be converted to a {@link Long}. Similarly
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
-  private static List wrap(ColumnMetaData.Rep rep, List list,
+  private static List<? extends @Nullable Object> wrap(ColumnMetaData.Rep rep, List<?> list,
       RelDataType type) {
     switch (type.getSqlTypeName()) {
     case TIMESTAMP:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        return Lists.transform(list,
+        final List<@Nullable Long> longs = Util.transform((List<@Nullable Timestamp>) list,
             (Timestamp t) -> t == null ? null : t.getTime());
+        return longs;
+      default:
+        break;
       }
       break;
     case TIME:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIME:
-        return Lists.transform(list, (Time t) -> t == null
-            ? null
-            : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
+        return Util.<@Nullable Time, @Nullable Integer>transform(
+            (List<@Nullable Time>) list, (Time t) -> t == null
+                ? null
+                : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
+      default:
+        break;
       }
       break;
     case DATE:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_DATE:
-        return Lists.transform(list, (Date d) -> d == null
-            ? null
-            : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
+        return Util.<@Nullable Date, @Nullable Integer>transform(
+            (List<@Nullable Date>) list, (Date d) -> d == null
+                ? null
+                : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
+      default:
+        break;
       }
+      break;
+    default:
       break;
     }
     return list;
@@ -271,16 +290,16 @@ class ColumnLoader<T> {
   static class ValueSet {
     final Class clazz;
     final Map<Comparable, Comparable> map = new HashMap<>();
-    final List<Comparable> values = new ArrayList<>();
-    Comparable min;
-    Comparable max;
+    final List<@Nullable Comparable> values = new ArrayList<>();
+    @Nullable Comparable min;
+    @Nullable Comparable max;
     boolean containsNull;
 
     ValueSet(Class clazz) {
       this.clazz = clazz;
     }
 
-    void add(Comparable e) {
+    void add(@Nullable Comparable e) {
       if (e != null) {
         final Comparable old = e;
         e = map.get(e);
@@ -304,7 +323,7 @@ class ColumnLoader<T> {
 
     /** Freezes the contents of this value set into a column, optionally
      * re-ordering if {@code sources} is specified. */
-    ArrayTable.Column freeze(int ordinal, int[] sources) {
+    ArrayTable.Column freeze(int ordinal, int @Nullable [] sources) {
       ArrayTable.Representation representation = chooseRep(ordinal);
       final int cardinality = map.size() + (containsNull ? 1 : 0);
       final Object data = representation.freeze(this, sources);
@@ -323,7 +342,11 @@ class ColumnLoader<T> {
         case OTHER:
         case VOID:
           throw new AssertionError("wtf?!");
+        default:
+          break;
         }
+        Comparable min = this.min;
+        Comparable max = this.max;
         if (canBeLong(min) && canBeLong(max)) {
           return chooseFixedRep(
               ordinal, p, toLong(min), toLong(max));
@@ -346,7 +369,7 @@ class ColumnLoader<T> {
       return new ArrayTable.ObjectArray(ordinal);
     }
 
-    private long toLong(Object o) {
+    private static long toLong(Object o) {
       // We treat Boolean and Character as if they were subclasses of
       // Number but actually they are not.
       if (o instanceof Boolean) {
@@ -358,7 +381,8 @@ class ColumnLoader<T> {
       }
     }
 
-    private boolean canBeLong(Object o) {
+    @EnsuresNonNullIf(result = true, expression = "#1")
+    private static boolean canBeLong(@Nullable Object o) {
       return o instanceof Boolean
           || o instanceof Character
           || o instanceof Number;
@@ -373,7 +397,7 @@ class ColumnLoader<T> {
      * @param min Minimum value to be encoded
      * @param max Maximum value to be encoded (inclusive)
      */
-    private ArrayTable.Representation chooseFixedRep(
+    private static ArrayTable.Representation chooseFixedRep(
         int ordinal, Primitive p, long min, long max) {
       if (min == max) {
         return new ArrayTable.Constant(ordinal);
@@ -416,6 +440,8 @@ class ColumnLoader<T> {
         case 64:
           return new ArrayTable.PrimitiveArray(
               ordinal, Primitive.LONG, p);
+        default:
+          break;
         }
       }
       return new ArrayTable.BitSlicedPrimitiveArray(
@@ -423,6 +449,7 @@ class ColumnLoader<T> {
     }
 
     /** Two's complement absolute on int value. */
+    @SuppressWarnings("unused")
     private static int abs2(int v) {
       // -128 becomes +127
       return v < 0 ? ~v : v;
@@ -445,7 +472,7 @@ class ColumnLoader<T> {
       this.key = key;
     }
 
-    public int compareTo(Kev o) {
+    @Override public int compareTo(Kev o) {
       //noinspection unchecked
       return key.compareTo(o.key);
     }

@@ -24,7 +24,7 @@ import java.util.Collection;
 /**
  * Test that runs every Quidem file in the "core" module as a test.
  */
-public class CoreQuidemTest extends QuidemTest {
+class CoreQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:

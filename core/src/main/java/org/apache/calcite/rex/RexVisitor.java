@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  *
@@ -51,4 +56,26 @@ public interface RexVisitor<R> {
   R visitTableInputRef(RexTableInputRef fieldRef);
 
   R visitPatternFieldRef(RexPatternFieldRef fieldRef);
+
+  /** Visits a list and writes the results to another list. */
+  default void visitList(Iterable<? extends RexNode> exprs, List<R> out) {
+    for (RexNode expr : exprs) {
+      out.add(expr.accept(this));
+    }
+  }
+
+  /** Visits a list and returns a list of the results.
+   * The resulting list is immutable and does not contain nulls. */
+  default List<R> visitList(Iterable<? extends RexNode> exprs) {
+    final List<R> out = new ArrayList<>();
+    visitList(exprs, out);
+    return ImmutableList.copyOf(out);
+  }
+
+  /** Visits a list of expressions. */
+  default void visitEach(Iterable<? extends RexNode> exprs) {
+    for (RexNode expr : exprs) {
+      expr.accept(this);
+    }
+  }
 }

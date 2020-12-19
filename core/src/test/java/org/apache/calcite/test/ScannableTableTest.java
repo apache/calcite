@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.ScannableTable;
@@ -38,10 +39,12 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert.ConnectionPostProcessor;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -67,7 +70,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit test for {@link org.apache.calcite.schema.ScannableTable}.
  */
 public class ScannableTableTest {
-  @Test public void testTens() throws SQLException {
+  @Test void testTens() throws SQLException {
     final Enumerator<Object[]> cursor = tens();
     assertTrue(cursor.moveNext());
     assertThat(cursor.current()[0], equalTo((Object) 0));
@@ -82,7 +85,7 @@ public class ScannableTableTest {
   }
 
   /** A table with one column. */
-  @Test public void testSimple() throws Exception {
+  @Test void testSimple() throws Exception {
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("simple", new SimpleTable())))
         .query("select * from \"s\".\"simple\"")
@@ -90,7 +93,7 @@ public class ScannableTableTest {
   }
 
   /** A table with two columns. */
-  @Test public void testSimple2() throws Exception {
+  @Test void testSimple2() throws Exception {
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", new BeatlesTable())))
         .query("select * from \"s\".\"beatles\"")
@@ -101,7 +104,7 @@ public class ScannableTableTest {
   }
 
   /** A filter on a {@link FilterableTable} with two columns (cooperative). */
-  @Test public void testFilterableTableCooperative() throws Exception {
+  @Test void testFilterableTableCooperative() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesFilterableTable(buf, true);
     final String explain = "PLAN="
@@ -115,11 +118,11 @@ public class ScannableTableTest {
             "i=4; j=Paul; k=1942");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=4"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>"));
   }
 
   /** A filter on a {@link FilterableTable} with two columns (noncooperative). */
-  @Test public void testFilterableTableNonCooperative() throws Exception {
+  @Test void testFilterableTableNonCooperative() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesFilterableTable(buf, false);
     final String explain = "PLAN="
@@ -136,7 +139,7 @@ public class ScannableTableTest {
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
    * with two columns (cooperative). */
-  @Test public void testProjectableFilterableCooperative() throws Exception {
+  @Test void testProjectableFilterableCooperative() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
@@ -150,10 +153,10 @@ public class ScannableTableTest {
             "j=Paul");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=4, projects=[1]"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1]"));
   }
 
-  @Test public void testProjectableFilterableNonCooperative() throws Exception {
+  @Test void testProjectableFilterableNonCooperative() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
@@ -170,7 +173,7 @@ public class ScannableTableTest {
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
    * with two columns, and a project in the query. (Cooperative)*/
-  @Test public void testProjectableFilterableWithProjectAndFilter() throws Exception {
+  @Test void testProjectableFilterableWithProjectAndFilter() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
@@ -183,12 +186,12 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; j=John",
             "k=1942; j=Paul");
     assertThat(buf.toString(),
-        is("returnCount=2, filter=4, projects=[2, 1]"));
+        is("returnCount=2, filter=<0, 4>, projects=[2, 1]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
    * with two columns, and a project in the query (NonCooperative). */
-  @Test public void testProjectableFilterableWithProjectFilterNonCooperative()
+  @Test void testProjectableFilterableWithProjectFilterNonCooperative()
       throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
@@ -210,7 +213,7 @@ public class ScannableTableTest {
    * {@link org.apache.calcite.schema.ProjectableFilterableTable}. The table
    * refuses to execute the filter, so Calcite should add a pull up and
    * transform the filter (projecting the column needed by the filter). */
-  @Test public void testPFTableRefusesFilterCooperative() throws Exception {
+  @Test void testPFTableRefusesFilterCooperative() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN=EnumerableInterpreter\n"
@@ -225,7 +228,7 @@ public class ScannableTableTest {
         is("returnCount=4, projects=[2, 0]"));
   }
 
-  @Test public void testPFPushDownProjectFilterInAggregateNoGroup() {
+  @Test void testPFPushDownProjectFilterInAggregateNoGroup() {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN=EnumerableAggregate(group=[{}], M=[MAX($0)])\n"
@@ -238,7 +241,7 @@ public class ScannableTableTest {
         .returnsUnordered("M=1943");
   }
 
-  @Test public void testPFPushDownProjectFilterAggregateGroup() {
+  @Test void testPFPushDownProjectFilterAggregateGroup() {
     final String sql = "select \"i\", count(*) as c\n"
         + "from \"s\".\"beatles\"\n"
         + "where \"k\" > 1900\n"
@@ -259,7 +262,7 @@ public class ScannableTableTest {
             "i=6; C=1");
   }
 
-  @Test public void testPFPushDownProjectFilterAggregateNested() {
+  @Test void testPFPushDownProjectFilterAggregateNested() {
     final StringBuilder buf = new StringBuilder();
     final String sql = "select \"k\", count(*) as c\n"
         + "from (\n"
@@ -268,10 +271,10 @@ public class ScannableTableTest {
         + "group by \"k\"";
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
-        + "EnumerableAggregate(group=[{1}], C=[COUNT()])\n"
+        + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
         + "  EnumerableAggregate(group=[{0, 1}])\n"
         + "    EnumerableInterpreter\n"
-        + "      BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[0, 2]])";
+        + "      BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query(sql)
@@ -279,7 +282,7 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; C=2");
   }
 
-  private static Integer getFilter(boolean cooperative, List<RexNode> filters) {
+  private static Pair<Integer, Object> getFilter(boolean cooperative, List<RexNode> filters) {
     final Iterator<RexNode> filterIter = filters.iterator();
     while (filterIter.hasNext()) {
       final RexNode node = filterIter.next();
@@ -287,12 +290,17 @@ public class ScannableTableTest {
           && node instanceof RexCall
           && ((RexCall) node).getOperator() == SqlStdOperatorTable.EQUALS
           && ((RexCall) node).getOperands().get(0) instanceof RexInputRef
-          && ((RexInputRef) ((RexCall) node).getOperands().get(0)).getIndex()
-          == 0
           && ((RexCall) node).getOperands().get(1) instanceof RexLiteral) {
-        final RexNode op1 = ((RexCall) node).getOperands().get(1);
         filterIter.remove();
-        return ((BigDecimal) ((RexLiteral) op1).getValue()).intValue();
+        final int pos = ((RexInputRef) ((RexCall) node).getOperands().get(0)).getIndex();
+        final RexLiteral op1 = (RexLiteral) ((RexCall) node).getOperands().get(1);
+        switch (pos) {
+        case 0:
+        case 2:
+          return Pair.of(pos, ((BigDecimal) op1.getValue()).intValue());
+        case 1:
+          return Pair.of(pos, ((NlsString) op1.getValue()).getValue());
+        }
       }
     }
     return null;
@@ -302,7 +310,7 @@ public class ScannableTableTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-458">[CALCITE-458]
    * ArrayIndexOutOfBoundsException when using just a single column in
    * interpreter</a>. */
-  @Test public void testPFTableRefusesFilterSingleColumn() throws Exception {
+  @Test void testPFTableRefusesFilterSingleColumn() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
@@ -320,7 +328,7 @@ public class ScannableTableTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3405">[CALCITE-3405]
    * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
-  @Test public void testPushNonSimpleMappingProject() throws Exception {
+  @Test void testPushNonSimpleMappingProject() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
@@ -343,7 +351,7 @@ public class ScannableTableTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3405">[CALCITE-3405]
    * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
-  @Test public void testPushSimpleMappingProject() throws Exception {
+  @Test void testPushSimpleMappingProject() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     // Note that no redundant Project on EnumerableInterpreter
@@ -367,7 +375,7 @@ public class ScannableTableTest {
    * Stack overflow error thrown when running join query</a>
    * Test two ProjectableFilterableTable can join and produce right plan.
    */
-  @Test public void testProjectableFilterableTableJoin() throws Exception {
+  @Test void testProjectableFilterableTableJoin() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final String explain = "PLAN="
         + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
@@ -389,7 +397,7 @@ public class ScannableTableTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
    * In prepared statement, CsvScannableTable.scan is called twice</a>. */
-  @Test public void testPrepared2() throws SQLException {
+  @Test void testPrepared2() throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
@@ -408,7 +416,7 @@ public class ScannableTableTest {
                       return super.scan(root);
                     }
 
-                    @Override public Enumerable<Object[]>
+                    @Override public Enumerable<@Nullable Object[]>
                     scan(final DataContext root) {
                       scanCount.incrementAndGet();
                       return new AbstractEnumerable<Object[]>() {
@@ -456,6 +464,26 @@ public class ScannableTableTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3758">[CALCITE-3758]
+   * FilterTableScanRule generate wrong mapping for filter condition
+   * when underlying is BindableTableScan</a>. */
+  @Test public void testPFTableInBindableConvention() {
+    final StringBuilder buf = new StringBuilder();
+    final Table table = new BeatlesProjectableFilterableTable(buf, true);
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      final String explain = "PLAN="
+          + "BindableTableScan(table=[[s, beatles]], filters=[[=($1, 'John')]], projects=[[1]])";
+      CalciteAssert.that()
+          .with(newSchema("s", Pair.of("beatles", table)))
+          .query("select \"j\" from \"s\".\"beatles\" where \"j\" = 'John'")
+          .explainContains(explain)
+          .returnsUnordered("j=John");
+      assertThat(buf.toString(),
+          is("returnCount=1, filter=<1, John>, projects=[1]"));
+    }
+  }
+
   protected ConnectionPostProcessor newSchema(final String schemaName,
       Pair<String, Table>... tables) {
     return connection -> {
@@ -479,7 +507,7 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return tens();
@@ -499,7 +527,7 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(new StringBuilder(), null, null);
@@ -528,8 +556,8 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
-      final Integer filter = getFilter(cooperative, filters);
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
+      final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(buf, filter, null);
@@ -545,7 +573,7 @@ public class ScannableTableTest {
     private final StringBuilder buf;
     private final boolean cooperative;
 
-    public BeatlesProjectableFilterableTable(StringBuilder buf,
+    BeatlesProjectableFilterableTable(StringBuilder buf,
         boolean cooperative) {
       this.buf = buf;
       this.cooperative = cooperative;
@@ -559,9 +587,9 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        final int[] projects) {
-      final Integer filter = getFilter(cooperative, filters);
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+        final int @Nullable [] projects) {
+      final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(buf, filter, projects);
@@ -606,7 +634,7 @@ public class ScannableTableTest {
   };
 
   private static Enumerator<Object[]> beatles(final StringBuilder buf,
-      final Integer filter, final int[] projects) {
+      final Pair<Integer, Object> filter, final int[] projects) {
     return new Enumerator<Object[]>() {
       int row = -1;
       int returnCount = 0;
@@ -619,7 +647,7 @@ public class ScannableTableTest {
       public boolean moveNext() {
         while (++row < 4) {
           Object[] current = BEATLES[row % 4];
-          if (filter == null || filter.equals(current[0])) {
+          if (filter == null || filter.right.equals(current[filter.left])) {
             if (projects == null) {
               this.current = current;
             } else {

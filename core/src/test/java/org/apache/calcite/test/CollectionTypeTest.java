@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -57,8 +58,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-1386">[CALCITE-1386]
  * ITEM operator seems to ignore the value type of collection and assign the value to Object</a>.
  */
-public class CollectionTypeTest {
-  @Test public void testAccessNestedMap() throws Exception {
+class CollectionTypeTest {
+  @Test void testAccessNestedMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -76,7 +77,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNonExistKeyFromMap() throws Exception {
+  @Test void testAccessNonExistKeyFromMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -91,7 +92,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test public void testAccessNonExistKeyFromNestedMap() throws Exception {
+  @Test void testAccessNonExistKeyFromNestedMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -106,7 +107,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test public void testInvalidAccessUseStringForIndexOnArray() throws Exception {
+  @Test void testInvalidAccessUseStringForIndexOnArray() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -125,7 +126,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test public void testNestedArrayOutOfBoundAccess() throws Exception {
+  @Test void testNestedArrayOutOfBoundAccess() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -144,7 +145,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test public void testAccessNestedMapWithAnyType() throws Exception {
+  @Test void testAccessNestedMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -164,7 +165,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNestedMapWithAnyTypeWithoutCast() throws Exception {
+  @Test void testAccessNestedMapWithAnyTypeWithoutCast() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -186,7 +187,7 @@ public class CollectionTypeTest {
   }
 
 
-  @Test public void testArithmeticToAnyTypeWithoutCast() throws Exception {
+  @Test void testArithmeticToAnyTypeWithoutCast() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -217,7 +218,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNonExistKeyFromMapWithAnyType() throws Exception {
+  @Test void testAccessNonExistKeyFromMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -232,7 +233,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test public void testAccessNonExistKeyFromNestedMapWithAnyType() throws Exception {
+  @Test void testAccessNonExistKeyFromNestedMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -247,7 +248,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test public void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
+  @Test void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -266,7 +267,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test public void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
+  @Test void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -395,7 +396,7 @@ public class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -407,9 +408,9 @@ public class CollectionTypeTest {
       return false;
     }
 
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+    @Override public boolean rolledUpColumnValidInsideAgg(
+        String column, SqlCall call, @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -435,7 +436,7 @@ public class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -448,7 +449,7 @@ public class CollectionTypeTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }

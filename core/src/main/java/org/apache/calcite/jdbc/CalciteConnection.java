@@ -71,10 +71,10 @@ public interface CalciteConnection extends Connection, QueryProvider {
   Properties getProperties();
 
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
-  void setSchema(String schema) throws SQLException;
+  @Override void setSchema(String schema) throws SQLException;
 
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
-  String getSchema() throws SQLException;
+  @Override String getSchema() throws SQLException;
 
   CalciteConnectionConfig config();
 

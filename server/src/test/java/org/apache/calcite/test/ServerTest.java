@@ -18,9 +18,22 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.server.DdlExecutorImpl;
+import org.apache.calcite.server.ServerDdlExecutor;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.ddl.SqlCreateForeignSchema;
+import org.apache.calcite.sql.ddl.SqlCreateFunction;
+import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
+import org.apache.calcite.sql.ddl.SqlCreateSchema;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateType;
+import org.apache.calcite.sql.ddl.SqlCreateView;
+import org.apache.calcite.sql.ddl.SqlDropFunction;
+import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
+import org.apache.calcite.sql.ddl.SqlDropSchema;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -30,6 +43,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,12 +53,16 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for server and DDL.
  */
-public class ServerTest {
+class ServerTest {
 
   static final String URL = "jdbc:calcite:";
 
@@ -52,14 +70,39 @@ public class ServerTest {
     return DriverManager.getConnection(URL,
         CalciteAssert.propBuilder()
             .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlDdlParserImpl.class.getName() + "#FACTORY")
+                ServerDdlExecutor.class.getName() + "#PARSER_FACTORY")
             .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
                 "true")
             .set(CalciteConnectionProperty.FUN, "standard,oracle")
             .build());
   }
 
-  @Test public void testStatement() throws Exception {
+  /** Contains calls to all overloaded {@code execute} methods in
+   * {@link DdlExecutorImpl} to silence warnings that these methods are not
+   * called. (They are, not from this test, but via reflection.) */
+  @Test void testAll() {
+    //noinspection ConstantConditions
+    if (true) {
+      return;
+    }
+    final ServerDdlExecutor executor = ServerDdlExecutor.INSTANCE;
+    final Object o = "x";
+    final CalcitePrepare.Context context = (CalcitePrepare.Context) o;
+    executor.execute((SqlNode) o, context);
+    executor.execute((SqlCreateFunction) o, context);
+    executor.execute((SqlCreateTable) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateMaterializedView) o, context);
+    executor.execute((SqlCreateView) o, context);
+    executor.execute((SqlCreateType) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateForeignSchema) o, context);
+    executor.execute((SqlDropMaterializedView) o, context);
+    executor.execute((SqlDropFunction) o, context);
+    executor.execute((SqlDropSchema) o, context);
+  }
+
+  @Test void testStatement() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement();
          ResultSet r = s.executeQuery("values 1, 2")) {
@@ -70,7 +113,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testCreateSchema() throws Exception {
+  @Test void testCreateSchema() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create schema s");
@@ -87,7 +130,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testCreateType() throws Exception {
+  @Test void testCreateType() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype1 as BIGINT");
@@ -116,7 +159,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testDropType() throws Exception {
+  @Test void testDropType() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype1 as BIGINT");
@@ -130,7 +173,7 @@ public class ServerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3046">[CALCITE-3046]
    * CompileException when inserting casted value of composited user defined type
    * into table</a>. */
-  @Test public void testCreateTable() throws Exception {
+  @Test void testCreateTable() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create table t (i int not null)");
@@ -167,7 +210,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testCreateFunction() throws Exception {
+  @Test void testCreateFunction() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create schema s");
@@ -176,14 +219,15 @@ public class ServerTest {
         boolean f = s.execute("create function if not exists s.t\n"
                 + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
                 + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+        fail("expected error, got " + f);
       } catch (SQLException e) {
         assertThat(e.getMessage(),
-                containsString("CREATE FUNCTION is not supported yet"));
+            containsString("CREATE FUNCTION is not supported"));
       }
     }
   }
 
-  @Test public void testDropFunction() throws Exception {
+  @Test void testDropFunction() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create schema s");
@@ -229,7 +273,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testInsertCastedValueOfCompositeUdt() throws Exception {
+  @Test void testInsertCastedValueOfCompositeUdt() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype as (i int, j int)");
@@ -242,7 +286,27 @@ public class ServerTest {
     }
   }
 
-  @Test public void testStoredGeneratedColumn() throws Exception {
+  @Test void testInsertCreateNewCompositeUdt() throws Exception {
+    try (Connection c = connect();
+        Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype as (i int, j int)");
+      assertFalse(b);
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertFalse(b);
+      int x = s.executeUpdate("insert into w "
+          + "values (1, mytype(1, 1))");
+      assertEquals(x, 1);
+
+      try (ResultSet r = s.executeQuery("select * from w")) {
+        assertTrue(r.next());
+        assertEquals(r.getInt("i"), 1);
+        assertArrayEquals(r.getObject("j", Struct.class).getAttributes(), new Object[] {1, 1});
+        assertFalse(r.next());
+      }
+    }
+  }
+
+  @Test void testStoredGeneratedColumn() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql0 = "create table t (\n"
@@ -360,7 +424,7 @@ public class ServerTest {
   }
 
   @Disabled("not working yet")
-  @Test public void testStoredGeneratedColumn2() throws Exception {
+  @Test void testStoredGeneratedColumn2() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql = "create table t (\n"
@@ -382,7 +446,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testVirtualColumn() throws Exception {
+  @Test void testVirtualColumn() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql0 = "create table t (\n"
@@ -415,7 +479,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testVirtualColumnWithFunctions() throws Exception {
+  @Test void testVirtualColumnWithFunctions() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       // Test builtin and library functions.

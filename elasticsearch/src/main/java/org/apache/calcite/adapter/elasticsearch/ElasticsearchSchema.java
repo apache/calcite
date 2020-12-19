@@ -102,7 +102,7 @@ public class ElasticsearchSchema extends AbstractSchema {
   }
 
   /**
-   * Queries {@code _alias} definition to automatically detect all indices
+   * Queries {@code _alias} definition to automatically detect all indices.
    *
    * @return list of indices
    * @throws IOException for any IO related issues

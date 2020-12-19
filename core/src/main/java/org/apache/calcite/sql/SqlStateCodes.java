@@ -33,6 +33,7 @@ public enum SqlStateCodes {
 
   NUMERIC_VALUE_OUT_OF_RANGE("numeric value out of range", "22", "003");
 
+  @SuppressWarnings("unused")
   private final String msg;
   private final String stateClass;
   private final String stateSubClass;

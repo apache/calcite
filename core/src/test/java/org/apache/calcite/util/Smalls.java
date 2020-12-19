@@ -50,6 +50,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -245,7 +247,7 @@ public class Smalls {
         return typeFactory.builder().add("N", SqlTypeName.BIGINT).build();
       }
 
-      public Enumerable<Object[]> scan(DataContext root) {
+      public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return new AbstractEnumerable<Object[]>() {
           public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
@@ -291,15 +293,13 @@ public class Smalls {
       }
 
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };
   }
 
-  /**
-   * A function that adds a number to the first column of input cursor
-   */
+  /** Table function that adds a number to the first column of input cursor. */
   public static QueryableTable processCursor(final int offset,
       final Enumerable<Object[]> a) {
     return new AbstractQueryableTable(Object[].class) {
@@ -606,9 +606,9 @@ public class Smalls {
     public static java.sql.Time toTimeFun(Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
-    /** for Overloaded user-defined functions that have Double and BigDecimal
-     * arguments will goes wrong
-     * */
+
+    /** For overloaded user-defined functions that have {@code double} and
+     * {@code BigDecimal} arguments will go wrong. */
     public static double toDouble(BigDecimal var) {
       return var == null ? null : var.doubleValue();
     }
@@ -661,7 +661,7 @@ public class Smalls {
     }
   }
 
-  /** A generic interface for defining user defined aggregate functions
+  /** A generic interface for defining user-defined aggregate functions.
    *
    * @param <A> accumulator type
    * @param <V> value type
@@ -843,6 +843,30 @@ public class Smalls {
     }
   }
 
+  /** User-defined table-macro function with named and optional parameters. */
+  public static class AnotherTableMacroFunctionWithNamedParameters {
+    public TranslatableTable eval(
+        @Parameter(name = "R", optional = true) String r,
+        @Parameter(name = "S") String s,
+        @Parameter(name = "T", optional = true) Integer t,
+        @Parameter(name = "S2", optional = true) String s2) {
+      final StringBuilder sb = new StringBuilder();
+      abc(sb, r);
+      abc(sb, s);
+      abc(sb, t);
+      return view(sb.toString());
+    }
+
+    private void abc(StringBuilder sb, Object s) {
+      if (s != null) {
+        if (sb.length() > 0) {
+          sb.append(", ");
+        }
+        sb.append('(').append(s).append(')');
+      }
+    }
+  }
+
   /** A table function that returns a {@link QueryableTable}. */
   public static class SimpleTableFunction {
     public QueryableTable eval(Integer s) {
@@ -903,7 +927,7 @@ public class Smalls {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
       return Linq4j.asEnumerable(rows);
     }

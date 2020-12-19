@@ -41,6 +41,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -60,7 +62,7 @@ public class RelMdDistribution
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.Distribution> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Distribution> getDef() {
     return BuiltInMetadata.Distribution.DEF;
   }
 
@@ -90,7 +92,7 @@ public class RelMdDistribution
     return mq.distribution(rel.getInput());
   }
 
-  public RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
+  public @Nullable RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
     return table(scan.getTable());
   }
 
@@ -114,7 +116,7 @@ public class RelMdDistribution
 
   /** Helper method to determine a
    * {@link TableScan}'s distribution. */
-  public static RelDistribution table(RelOptTable table) {
+  public static @Nullable RelDistribution table(RelOptTable table) {
     return table.getDistribution();
   }
 

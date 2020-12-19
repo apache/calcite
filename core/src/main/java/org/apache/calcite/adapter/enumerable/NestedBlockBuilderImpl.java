@@ -17,29 +17,23 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.rex.RexNode;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Allows to build nested code blocks with tracking of current context and the
- * nullability of particular {@link org.apache.calcite.rex.RexNode} expressions.
+ * Allows to build nested code blocks with tracking of current context.
  *
  * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor#implementAdd(AggContext, AggAddContext)
  */
 public class NestedBlockBuilderImpl implements NestedBlockBuilder {
   private final List<BlockBuilder> blocks = new ArrayList<>();
-  private final List<Map<RexNode, Boolean>> nullables =
-      new ArrayList<>();
 
   /**
    * Constructs nested block builders starting of a given code block.
    * @param block root code block
    */
+  @SuppressWarnings("method.invocation.invalid")
   public NestedBlockBuilderImpl(BlockBuilder block) {
     nestBlock(block);
   }
@@ -50,9 +44,9 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @return new code block that can optimize expressions and reuse already
    * calculated values from the parent blocks.
    */
-  public final BlockBuilder nestBlock() {
+  @Override public final BlockBuilder nestBlock() {
     BlockBuilder block = new BlockBuilder(true, currentBlock());
-    nestBlock(block, Collections.emptyMap());
+    nestBlock(block);
     return block;
   }
 
@@ -62,57 +56,22 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @param block new code block
    * @see #exitBlock()
    */
-  public final void nestBlock(BlockBuilder block) {
-    nestBlock(block, Collections.emptyMap());
-  }
-
-  /**
-   * Uses given block as the new code context and the map of nullability.
-   * The current block will be restored after {@link #exitBlock()} call.
-   * @param block new code block
-   * @param nullables map of expression to its nullability state
-   * @see #exitBlock()
-   */
-  public final void nestBlock(BlockBuilder block,
-      Map<RexNode, Boolean> nullables) {
+  @Override public final void nestBlock(BlockBuilder block) {
     blocks.add(block);
-    Map<RexNode, Boolean> prev = this.nullables.isEmpty()
-        ? Collections.emptyMap()
-        : this.nullables.get(this.nullables.size() - 1);
-    Map<RexNode, Boolean> next;
-    if (nullables == null || nullables.isEmpty()) {
-      next = prev;
-    } else {
-      next = new HashMap<>(nullables);
-      next.putAll(prev);
-      next = Collections.unmodifiableMap(next);
-    }
-    this.nullables.add(next);
   }
 
   /**
-   * Returns the current code block
-   * @return current code block
+   * Returns the current code block.
    */
-  public final BlockBuilder currentBlock() {
+  @Override public final BlockBuilder currentBlock() {
     return blocks.get(blocks.size() - 1);
-  }
-
-  /**
-   * Returns the current nullability state of rex nodes.
-   * The resulting value is the summary of all the maps in the block hierarchy.
-   * @return current nullability state of rex nodes
-   */
-  public final Map<RexNode, Boolean> currentNullables() {
-    return nullables.get(nullables.size() - 1);
   }
 
   /**
    * Leaves the current code block.
    * @see #nestBlock()
    */
-  public final void exitBlock() {
+  @Override public final void exitBlock() {
     blocks.remove(blocks.size() - 1);
-    nullables.remove(nullables.size() - 1);
   }
 }

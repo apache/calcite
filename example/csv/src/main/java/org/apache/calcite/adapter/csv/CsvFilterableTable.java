@@ -17,6 +17,9 @@
 package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.CsvEnumerator;
+import org.apache.calcite.adapter.file.CsvFieldType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -27,10 +30,15 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
@@ -45,24 +53,26 @@ public class CsvFilterableTable extends CsvTable
     super(source, protoRowType);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CsvFilterableTable";
   }
 
-  public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
-    final String[] filterValues = new String[fieldTypes.size()];
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "typeFactory");
+    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
+    final @Nullable String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
-    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
-            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, false));
       }
     };
   }
 
-  private boolean addFilter(RexNode filter, Object[] filterValues) {
+  private static boolean addFilter(RexNode filter, @Nullable Object[] filterValues) {
     if (filter.isA(SqlKind.AND)) {
         // We cannot refine(remove) the operands of AND,
         // it will cause o.a.c.i.TableScanNode.createFilterable filters check failed.

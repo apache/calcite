@@ -21,6 +21,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,7 +64,7 @@ public class MutableJoin extends MutableBiRel {
         variablesStopped);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableJoin
         && joinType == ((MutableJoin) obj).joinType

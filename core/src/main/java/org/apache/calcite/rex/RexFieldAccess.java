@@ -20,6 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 
+import com.google.common.base.Preconditions;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Access to a field of a row-expression.
  *
@@ -57,31 +61,40 @@ public class RexFieldAccess extends RexNode {
   RexFieldAccess(
       RexNode expr,
       RelDataTypeField field) {
+    checkValid(expr, field);
     this.expr = expr;
     this.field = field;
     this.digest = expr + "." + field.getName();
-    assert expr.getType().getFieldList().get(field.getIndex()) == field;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private static void checkValid(RexNode expr, RelDataTypeField field) {
+    RelDataType exprType = expr.getType();
+    int fieldIdx = field.getIndex();
+    Preconditions.checkArgument(
+        fieldIdx >= 0 && fieldIdx < exprType.getFieldList().size()
+            && exprType.getFieldList().get(fieldIdx).equals(field),
+        "Field " + field + " does not exist for expression " + expr);
+  }
 
   public RelDataTypeField getField() {
     return field;
   }
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return field.getType();
   }
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.FIELD_ACCESS;
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitFieldAccess(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitFieldAccess(this, arg);
   }
 
@@ -92,7 +105,7 @@ public class RexFieldAccess extends RexNode {
     return expr;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

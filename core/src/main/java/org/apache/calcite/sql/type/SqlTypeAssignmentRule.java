@@ -63,10 +63,6 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
       rules.add(interval, SqlTypeName.DAY_INTERVAL_TYPES);
     }
-    for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
-      final Set<SqlTypeName> dayIntervalTypes = SqlTypeName.DAY_INTERVAL_TYPES;
-      rules.add(interval, dayIntervalTypes);
-    }
 
     // MULTISET is assignable from...
     rules.add(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
@@ -166,13 +162,11 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // DATE is assignable from...
     rule.clear();
     rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIMESTAMP);
     rules.add(SqlTypeName.DATE, rule);
 
     // TIME is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIMESTAMP);
     rules.add(SqlTypeName.TIME, rule);
 
     // TIME WITH LOCAL TIME ZONE is assignable from...

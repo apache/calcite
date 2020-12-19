@@ -46,8 +46,9 @@ import java.util.stream.IntStream;
  * Tests usage of scrolling API like correct results and resource cleanup
  * (delete scroll after scan).
  */
+@Disabled("RestClient often timeout in PR CI")
 @ResourceLock("elasticsearch-scrolls")
-public class ScrollingTest {
+class ScrollingTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
@@ -80,7 +81,7 @@ public class ScrollingTest {
 
   @Disabled("It seems like other tests leave scrolls behind, so this test fails if executed after"
       + " one of the other elasticsearch test")
-  @Test public void scrolling() throws Exception {
+  @Test void scrolling() throws Exception {
     final String[] expected = IntStream.range(0, SIZE).mapToObj(i -> "V=" + i)
         .toArray(String[]::new);
     final String query = String.format(Locale.ROOT, "select _MAP['value'] as v from "

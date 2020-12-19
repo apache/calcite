@@ -30,6 +30,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +66,7 @@ public class RedisTable extends AbstractTable
     this.redisConfig = redisConfig;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
@@ -84,9 +86,8 @@ public class RedisTable extends AbstractTable
       String tableName,
       RedisConfig redisConfig,
       RelProtoDataType protoRowType) {
-    final RedisEnumerator redisEnumerator = new RedisEnumerator(redisConfig, schema, tableName);
     RedisTableFieldInfo tableFieldInfo = schema.getTableFieldInfo(tableName);
-    Map<String, Object> allFields = redisEnumerator.deduceRowType(tableFieldInfo);
+    Map<String, Object> allFields = RedisEnumerator.deduceRowType(tableFieldInfo);
     return new RedisTable(schema, tableName, protoRowType,
         allFields, tableFieldInfo.getDataFormat(), redisConfig);
   }
@@ -101,9 +102,9 @@ public class RedisTable extends AbstractTable
     return create(schema, tableName, redisConfig, protoRowType);
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new RedisEnumerator(redisConfig, schema, tableName);
       }
     };

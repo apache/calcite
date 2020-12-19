@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 
 import org.junit.jupiter.api.Assertions;
 
@@ -24,6 +25,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +45,17 @@ public abstract class TestUtil {
 
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
+
+  private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
+      Suppliers.memoize(TestUtil::computeGuavaMajorVersion)::get;
+
+  /** Matches a number with at least four zeros after the point. */
+  private static final Pattern TRAILING_ZERO_PATTERN =
+      Pattern.compile("-?[0-9]+\\.([0-9]*[1-9])?(00000*[0-9][0-9]?)");
+
+  /** Matches a number with at least four nines after the point. */
+  private static final Pattern TRAILING_NINE_PATTERN =
+      Pattern.compile("-?[0-9]+\\.([0-9]*[0-8])?(99999*[0-9][0-9]?)");
 
   /** This is to be used by {@link #rethrow(Throwable, String)} to add extra information via
    * {@link Throwable#addSuppressed(Throwable)}. */
@@ -178,19 +191,58 @@ public abstract class TestUtil {
    * Quotes a pattern.
    */
   public static String quotePattern(String s) {
-    return s.replaceAll("\\\\", "\\\\")
-        .replaceAll("\\.", "\\\\.")
-        .replaceAll("\\+", "\\\\+")
-        .replaceAll("\\{", "\\\\{")
-        .replaceAll("\\}", "\\\\}")
-        .replaceAll("\\|", "\\\\||")
-        .replaceAll("[$]", "\\\\\\$")
-        .replaceAll("\\?", "\\\\?")
-        .replaceAll("\\*", "\\\\*")
-        .replaceAll("\\(", "\\\\(")
-        .replaceAll("\\)", "\\\\)")
-        .replaceAll("\\[", "\\\\[")
-        .replaceAll("\\]", "\\\\]");
+    return s.replace("\\", "\\\\")
+        .replace(".", "\\.")
+        .replace("+", "\\+")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("|", "\\||")
+        .replace("$", "\\$")
+        .replace("?", "\\?")
+        .replace("*", "\\*")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .replace("[", "\\[")
+        .replace("]", "\\]");
+  }
+
+  /** Removes floating-point rounding errors from the end of a string.
+   *
+   * <p>{@code 12.300000006} becomes {@code 12.3};
+   * {@code -12.37999999991} becomes {@code -12.38}. */
+  public static String correctRoundedFloat(String s) {
+    if (s == null) {
+      return s;
+    }
+    final Matcher m = TRAILING_ZERO_PATTERN.matcher(s);
+    if (m.matches()) {
+      s = s.substring(0, s.length() - m.group(2).length());
+    }
+    final Matcher m2 = TRAILING_NINE_PATTERN.matcher(s);
+    if (m2.matches()) {
+      s = s.substring(0, s.length() - m2.group(2).length());
+      if (s.length() > 0) {
+        final char c = s.charAt(s.length() - 1);
+        switch (c) {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case  '8':
+          // '12.3499999996' became '12.34', now we make it '12.35'
+          s = s.substring(0, s.length() - 1) + (char) (c + 1);
+          break;
+        case '.':
+          // '12.9999991' became '12.', which we leave as is.
+          break;
+        }
+      }
+    }
+    return s;
   }
 
   /**
@@ -224,6 +276,26 @@ public abstract class TestUtil {
     }
 
     return Integer.parseInt(matcher.group());
+  }
+
+  /** Returns the Guava major version. */
+  public static int getGuavaMajorVersion() {
+    return GUAVA_MAJOR_VERSION.get();
+  }
+
+  /** Computes the Guava major version. */
+  private static int computeGuavaMajorVersion() {
+    // A list of classes and the Guava version that they were introduced.
+    // The list should not contain any classes that are removed in future
+    // versions of Guava.
+    return new VersionChecker()
+        .tryClass(2, "com.google.common.collect.ImmutableList")
+        .tryClass(14, "com.google.common.reflect.Parameter")
+        .tryClass(17, "com.google.common.base.VerifyException")
+        .tryClass(21, "com.google.common.io.RecursiveDeleteOption")
+        .tryClass(23, "com.google.common.util.concurrent.FluentFuture")
+        .tryClass(26, "com.google.common.util.concurrent.ExecutionSequencer")
+        .bestVersion;
   }
 
   /** Checks if exceptions have give substring. That is handy to prevent logging SQL text twice */
@@ -262,4 +334,18 @@ public abstract class TestUtil {
     return sw.toString();
   }
 
+  /** Checks whether a given class exists, and updates a version if it does. */
+  private static class VersionChecker {
+    int bestVersion = -1;
+
+    VersionChecker tryClass(int version, String className) {
+      try {
+        Class.forName(className);
+        bestVersion = Math.max(version, bestVersion);
+      } catch (ClassNotFoundException e) {
+        // ignore
+      }
+      return this;
+    }
+  }
 }

@@ -65,7 +65,7 @@ public class RexImplicationCheckerTest {
   //~ Methods ----------------------------------------------------------------
 
   // Simple Tests for Operators
-  @Test public void testSimpleGreaterCond() {
+  @Test void testSimpleGreaterCond() {
     final Fixture f = new Fixture();
     final RexNode iGt10 = f.gt(f.i, f.literal(10));
     final RexNode iGt30 = f.gt(f.i, f.literal(30));
@@ -87,7 +87,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(iGe30, iGe30);
   }
 
-  @Test public void testSimpleLesserCond() {
+  @Test void testSimpleLesserCond() {
     final Fixture f = new Fixture();
     final RexNode iLt10 = f.lt(f.i, f.literal(10));
     final RexNode iLt30 = f.lt(f.i, f.literal(30));
@@ -110,7 +110,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(iLe30, iLe30);
   }
 
-  @Test public void testSimpleEq() {
+  @Test void testSimpleEq() {
     final Fixture f = new Fixture();
     final RexNode iEq30 = f.eq(f.i, f.literal(30));
     final RexNode iNe10 = f.ne(f.i, f.literal(10));
@@ -124,7 +124,7 @@ public class RexImplicationCheckerTest {
   }
 
   // Simple Tests for DataTypes
-  @Test public void testSimpleDec() {
+  @Test void testSimpleDec() {
     final Fixture f = new Fixture();
     final RexNode node1 = f.lt(f.dec, f.floatLiteral(30.9));
     final RexNode node2 = f.lt(f.dec, f.floatLiteral(40.33));
@@ -133,7 +133,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(node2, node1);
   }
 
-  @Test public void testSimpleBoolean() {
+  @Test void testSimpleBoolean() {
     final Fixture f = new Fixture();
     final RexNode bEqTrue = f.eq(f.bl, f.rexBuilder.makeLiteral(true));
     final RexNode bEqFalse = f.eq(f.bl, f.rexBuilder.makeLiteral(false));
@@ -143,7 +143,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(bEqTrue, bEqFalse);
   }
 
-  @Test public void testSimpleLong() {
+  @Test void testSimpleLong() {
     final Fixture f = new Fixture();
     final RexNode xGeBig = f.ge(f.lg, f.longLiteral(324324L));
     final RexNode xGtBigger = f.gt(f.lg, f.longLiteral(324325L));
@@ -155,7 +155,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(xGeBig, xGtBigger);
   }
 
-  @Test public void testSimpleShort() {
+  @Test void testSimpleShort() {
     final Fixture f = new Fixture();
     final RexNode xGe10 = f.ge(f.sh, f.shortLiteral((short) 10));
     final RexNode xGe11 = f.ge(f.sh, f.shortLiteral((short) 11));
@@ -164,7 +164,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(xGe10, xGe11);
   }
 
-  @Test public void testSimpleChar() {
+  @Test void testSimpleChar() {
     final Fixture f = new Fixture();
     final RexNode xGeB = f.ge(f.ch, f.charLiteral("b"));
     final RexNode xGeA = f.ge(f.ch, f.charLiteral("a"));
@@ -173,14 +173,14 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(xGeA, xGeB);
   }
 
-  @Test public void testSimpleString() {
+  @Test void testSimpleString() {
     final Fixture f = new Fixture();
     final RexNode node1 = f.eq(f.str, f.rexBuilder.makeLiteral("en"));
 
     f.checkImplies(node1, node1);
   }
 
-  @Test public void testSimpleDate() {
+  @Test void testSimpleDate() {
     final Fixture f = new Fixture();
     final DateString d = DateString.fromCalendarFields(Util.calendar());
     final RexNode node1 = f.ge(f.d, f.dateLiteral(d));
@@ -196,7 +196,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(nodeBe2, nodeBe1);
   }
 
-  @Test public void testSimpleTimeStamp() {
+  @Test void testSimpleTimeStamp() {
     final Fixture f = new Fixture();
     final TimestampString ts =
         TimestampString.fromCalendarFields(Util.calendar());
@@ -215,7 +215,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(nodeBe2, nodeBe1);
   }
 
-  @Test public void testSimpleTime() {
+  @Test void testSimpleTime() {
     final Fixture f = new Fixture();
     final TimeString t = TimeString.fromCalendarFields(Util.calendar());
     final RexNode node1 = f.lt(f.t, f.timeLiteral(t));
@@ -224,7 +224,7 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(node2, node1);
   }
 
-  @Test public void testSimpleBetween() {
+  @Test void testSimpleBetween() {
     final Fixture f = new Fixture();
     final RexNode iGe30 = f.ge(f.i, f.literal(30));
     final RexNode iLt70 = f.lt(f.i, f.literal(70));
@@ -243,7 +243,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(iGe50AndLt60, iGe30);
   }
 
-  @Test public void testSimpleBetweenCornerCases() {
+  @Test void testSimpleBetweenCornerCases() {
     final Fixture f = new Fixture();
     final RexNode node1 = f.gt(f.i, f.literal(30));
     final RexNode node2 = f.gt(f.i, f.literal(50));
@@ -263,7 +263,7 @@ public class RexImplicationCheckerTest {
    * {@code x > 1 OR (y > 2 AND z > 4)}
    * implies
    * {@code (y > 3 AND z > 5)}. */
-  @Test public void testOr() {
+  @Test void testOr() {
     final Fixture f = new Fixture();
     final RexNode xGt1 = f.gt(f.i, f.literal(1));
     final RexNode yGt2 = f.gt(f.dec, f.literal(2));
@@ -277,7 +277,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(yGt3AndZGt5, or);
   }
 
-  @Test public void testNotNull() {
+  @Test void testNotNull() {
     final Fixture f = new Fixture();
     final RexNode node1 = f.eq(f.str, f.rexBuilder.makeLiteral("en"));
     final RexNode node2 = f.notNull(f.str);
@@ -288,7 +288,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(node2, node2);
   }
 
-  @Test public void testIsNull() {
+  @Test void testIsNull() {
     final Fixture f = new Fixture();
     final RexNode sEqEn = f.eq(f.str, f.charLiteral("en"));
     final RexNode sIsNotNull = f.notNull(f.str);
@@ -341,7 +341,7 @@ public class RexImplicationCheckerTest {
    * NOT NULL</a> and match nullability.
    *
    * @see RexSimplify#simplifyPreservingType(RexNode, RexUnknownAs, boolean) */
-  @Test public void testSimplifyCastMatchNullability() {
+  @Test void testSimplifyCastMatchNullability() {
     final Fixture f = new Fixture();
 
     // The cast is nullable, while the literal is not nullable. When we simplify
@@ -376,7 +376,7 @@ public class RexImplicationCheckerTest {
   }
 
   /** Test case for simplifier of ceil/floor. */
-  @Test public void testSimplifyCeilFloor() {
+  @Test void testSimplifyCeilFloor() {
     // We can add more time units here once they are supported in
     // RexInterpreter, e.g., TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
     // TimeUnitRange.SECOND.

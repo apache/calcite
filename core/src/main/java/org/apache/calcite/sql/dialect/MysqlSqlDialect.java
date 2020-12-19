@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
@@ -45,13 +46,34 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
  */
 public class MysqlSqlDialect extends SqlDialect {
+
+  /** MySQL type system. */
+  public static final RelDataTypeSystem MYSQL_TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case CHAR:
+            return 255;
+          case VARCHAR:
+            return 65535;
+          case TIMESTAMP:
+            return 6;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+      };
+
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
       .withIdentifierQuoteString("`")
+      .withDataTypeSystem(MYSQL_TYPE_SYSTEM)
       .withUnquotedCasing(Casing.UNCHANGED)
       .withNullCollation(NullCollation.LOW);
 
@@ -79,17 +101,17 @@ public class MysqlSqlDialect extends SqlDialect {
     return true;
   }
 
-  public boolean supportsAliasedValues() {
+  @Override public boolean supportsAliasedValues() {
     // MySQL supports VALUES only in INSERT; not in a FROM clause
     return false;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -107,6 +129,8 @@ public class MysqlSqlDialect extends SqlDialect {
       // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)",
       // only the non-standard "GROUP BY x, y WITH ROLLUP".
       return majorVersion >= 8;
+    default:
+      break;
     }
     return false;
   }
@@ -123,12 +147,17 @@ public class MysqlSqlDialect extends SqlDialect {
     return CalendarPolicy.SHIFT;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case VARCHAR:
       // MySQL doesn't have a VARCHAR type, only CHAR.
+      int vcMaxPrecision = this.getTypeSystem().getMaxPrecision(SqlTypeName.CHAR);
+      int precision = type.getPrecision();
+      if (vcMaxPrecision > 0 && precision > vcMaxPrecision) {
+        precision = vcMaxPrecision;
+      }
       return new SqlDataTypeSpec(
-          new SqlBasicTypeNameSpec(SqlTypeName.CHAR, type.getPrecision(), SqlParserPos.ZERO),
+          new SqlBasicTypeNameSpec(SqlTypeName.CHAR, precision, SqlParserPos.ZERO),
           SqlParserPos.ZERO);
     case INTEGER:
     case BIGINT:
@@ -138,6 +167,15 @@ public class MysqlSqlDialect extends SqlDialect {
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case TIMESTAMP:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "DATETIME",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    default:
+      break;
     }
     return super.getCastSpec(type);
   }
@@ -196,9 +234,9 @@ public class MysqlSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
-    TimeUnitRange unit = (TimeUnitRange) node.getValue();
+    TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
 
     if (unit == TimeUnitRange.WEEK) {
       writer.print("STR_TO_DATE");
@@ -284,7 +322,7 @@ public class MysqlSqlDialect extends SqlDialect {
     }
   }
 
-  private TimeUnit validate(TimeUnit timeUnit) {
+  private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case SECOND:

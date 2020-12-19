@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Minus;
@@ -37,35 +37,32 @@ import org.apache.calcite.util.Util;
  * into a single {@link org.apache.calcite.rel.core.SetOp}.
  *
  * <p>Originally written for {@link Union} (hence the name),
- * but now also applies to {@link Intersect}.
+ * but now also applies to {@link Intersect} and {@link Minus}.
  */
-public class UnionMergeRule extends RelOptRule {
-  public static final UnionMergeRule INSTANCE =
-      new UnionMergeRule(LogicalUnion.class, "UnionMergeRule",
-          RelFactories.LOGICAL_BUILDER);
-  public static final UnionMergeRule INTERSECT_INSTANCE =
-      new UnionMergeRule(LogicalIntersect.class, "IntersectMergeRule",
-          RelFactories.LOGICAL_BUILDER);
-  public static final UnionMergeRule MINUS_INSTANCE =
-      new UnionMergeRule(LogicalMinus.class, "MinusMergeRule",
-          RelFactories.LOGICAL_BUILDER);
-
-  //~ Constructors -----------------------------------------------------------
+public class UnionMergeRule
+    extends RelRule<UnionMergeRule.Config>
+    implements TransformationRule {
 
   /** Creates a UnionMergeRule. */
-  public UnionMergeRule(Class<? extends SetOp> unionClazz, String description,
-      RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(unionClazz,
-            operand(RelNode.class, any()),
-            operand(RelNode.class, any())),
-        relBuilderFactory, description);
+  protected UnionMergeRule(Config config) {
+    super(config);
   }
 
   @Deprecated // to be removed before 2.0
-  public UnionMergeRule(Class<? extends Union> unionClazz,
+  public UnionMergeRule(Class<? extends SetOp> setOpClass, String description,
+      RelBuilderFactory relBuilderFactory) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .as(Config.class)
+        .withOperandFor(setOpClass));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public UnionMergeRule(Class<? extends Union> setOpClass,
       RelFactories.SetOpFactory setOpFactory) {
-    this(unionClazz, null, RelBuilder.proto(setOpFactory));
+    this(Config.DEFAULT.withRelBuilderFactory(RelBuilder.proto(setOpFactory))
+        .as(Config.class)
+        .withOperandFor(setOpClass));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -92,7 +89,7 @@ public class UnionMergeRule extends RelOptRule {
     return true;
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final SetOp topOp = call.rel(0);
     @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =
         (Class) operands.get(0).getMatchedClass();
@@ -160,5 +157,33 @@ public class UnionMergeRule extends RelOptRule {
       relBuilder.minus(topOp.all, n);
     }
     call.transformTo(relBuilder.build());
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.withDescription("UnionMergeRule")
+        .as(Config.class)
+        .withOperandFor(LogicalUnion.class);
+
+    Config INTERSECT = EMPTY.withDescription("IntersectMergeRule")
+        .as(Config.class)
+        .withOperandFor(LogicalIntersect.class);
+
+    Config MINUS = EMPTY.withDescription("MinusMergeRule")
+        .as(Config.class)
+        .withOperandFor(LogicalMinus.class);
+
+    @Override default UnionMergeRule toRule() {
+      return new UnionMergeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends RelNode> setOpClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(setOpClass).inputs(
+              b1 -> b1.operand(RelNode.class).anyInputs(),
+              b2 -> b2.operand(RelNode.class).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

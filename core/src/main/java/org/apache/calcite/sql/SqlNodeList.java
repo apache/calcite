@@ -24,27 +24,33 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
+import java.util.RandomAccess;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
  * {@link SqlNode}, so may appear in a parse tree.
+ *
+ * @see SqlNode#toList()
  */
-public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
+public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
    * An immutable, empty SqlNodeList.
    */
   public static final SqlNodeList EMPTY =
-      new SqlNodeList(SqlParserPos.ZERO) {
-        public void add(SqlNode node) {
-          throw new UnsupportedOperationException();
-        }
-      };
+      new SqlNodeList(ImmutableList.of(), SqlParserPos.ZERO);
 
   /**
    * A SqlNodeList that has a single element that is an empty list.
@@ -56,21 +62,30 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    * A SqlNodeList that has a single element that is a star identifier.
    */
   public static final SqlNodeList SINGLETON_STAR =
-      new SqlNodeList(ImmutableList.of(SqlIdentifier.star(SqlParserPos.ZERO)),
-          SqlParserPos.ZERO);
+      new SqlNodeList(ImmutableList.of(SqlIdentifier.STAR), SqlParserPos.ZERO);
 
   //~ Instance fields --------------------------------------------------------
 
-  private final List<SqlNode> list;
+  // Sometimes null values are present in the list, however, it is assumed that callers would
+  // perform all the required null-checks.
+  private final List<@Nullable SqlNode> list;
 
   //~ Constructors -----------------------------------------------------------
 
+  /** Creates a SqlNodeList with a given backing list.
+   *
+   * <p>Because SqlNodeList implements {@link RandomAccess}, the backing list
+   * should allow O(1) access to elements. */
+  private SqlNodeList(SqlParserPos pos, List<@Nullable SqlNode> list) {
+    super(pos);
+    this.list = Objects.requireNonNull(list);
+  }
+
   /**
-   * Creates an empty <code>SqlNodeList</code>.
+   * Creates a SqlNodeList that is initially empty.
    */
   public SqlNodeList(SqlParserPos pos) {
-    super(pos);
-    list = new ArrayList<>();
+    this(pos, new ArrayList<>());
   }
 
   /**
@@ -78,44 +93,146 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    * list</code>. The list is copied, but the nodes in it are not.
    */
   public SqlNodeList(
-      Collection<? extends SqlNode> collection,
+      Collection<? extends @Nullable SqlNode> collection,
       SqlParserPos pos) {
-    super(pos);
-    list = new ArrayList<>(collection);
+    this(pos, new ArrayList<@Nullable SqlNode>(collection));
+  }
+
+  /**
+   * Creates a SqlNodeList with a given backing list.
+   * Does not copy the list.
+   */
+  public static SqlNodeList of(SqlParserPos pos, List<@Nullable SqlNode> list) {
+    return new SqlNodeList(pos, list);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement Iterable<SqlNode>
-  public Iterator<SqlNode> iterator() {
-    return list.iterator();
+  // List, Collection and Iterable methods
+
+
+  @Override public int hashCode() {
+    return list.hashCode();
   }
 
-  public List<SqlNode> getList() {
-    return list;
+  @Override public boolean equals(@Nullable Object o) {
+    return this == o
+        || o instanceof SqlNodeList && list.equals(((SqlNodeList) o).list)
+        || o instanceof List && list.equals(o);
   }
 
-  public void add(SqlNode node) {
-    list.add(node);
+  @Override public boolean isEmpty() {
+    return list.isEmpty();
   }
 
-  public SqlNodeList clone(SqlParserPos pos) {
-    return new SqlNodeList(list, pos);
-  }
-
-  public SqlNode get(int n) {
-    return list.get(n);
-  }
-
-  public SqlNode set(int n, SqlNode node) {
-    return list.set(n, node);
-  }
-
-  public int size() {
+  @Override public int size() {
     return list.size();
   }
 
-  public void unparse(
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Iterator</*Nullable*/ SqlNode> iterator() {
+    return list.iterator();
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public ListIterator</*Nullable*/ SqlNode> listIterator() {
+    return list.listIterator();
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public ListIterator</*Nullable*/ SqlNode> listIterator(int index) {
+    return list.listIterator(index);
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public List</*Nullable*/ SqlNode> subList(int fromIndex, int toIndex) {
+    return list.subList(fromIndex, toIndex);
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public /*Nullable*/ SqlNode get(int n) {
+    return list.get(n);
+  }
+
+  @Override public SqlNode set(int n, @Nullable SqlNode node) {
+    return castNonNull(list.set(n, node));
+  }
+
+  @Override public boolean contains(@Nullable Object o) {
+    return list.contains(o);
+  }
+
+  @Override public boolean containsAll(Collection<?> c) {
+    return list.containsAll(c);
+  }
+
+  @Override public int indexOf(@Nullable Object o) {
+    return list.indexOf(o);
+  }
+
+  @Override public int lastIndexOf(@Nullable Object o) {
+    return list.lastIndexOf(o);
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Object[] toArray() {
+    // Per JDK specification, must return an Object[] not SqlNode[]; see e.g.
+    // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6260652
+    return list.toArray();
+  }
+
+  @SuppressWarnings("return.type.incompatible")
+  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+    return list.toArray(a);
+  }
+
+  @Override public boolean add(@Nullable SqlNode node) {
+    return list.add(node);
+  }
+
+  @Override public void add(int index, @Nullable SqlNode element) {
+    list.add(index, element);
+  }
+
+  @Override public boolean addAll(Collection<? extends @Nullable SqlNode> c) {
+    return list.addAll(c);
+  }
+
+  @Override public boolean addAll(int index, Collection<? extends @Nullable SqlNode> c) {
+    return list.addAll(index, c);
+  }
+
+  @Override public void clear() {
+    list.clear();
+  }
+
+  @Override public boolean remove(@Nullable Object o) {
+    return list.remove(o);
+  }
+
+  @Override public SqlNode remove(int index) {
+    return castNonNull(list.remove(index));
+  }
+
+  @Override public boolean removeAll(Collection<?> c) {
+    return list.removeAll(c);
+  }
+
+  @Override public boolean retainAll(Collection<?> c) {
+    return list.retainAll(c);
+  }
+
+  // SqlNodeList-specific methods
+
+  public List<@Nullable SqlNode> getList() {
+    return list;
+  }
+
+  @Override public SqlNodeList clone(SqlParserPos pos) {
+    return new SqlNodeList(list, pos);
+  }
+
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -136,17 +253,20 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, sepOp, this);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     for (SqlNode child : list) {
+      if (child == null) {
+        continue;
+      }
       child.validate(validator, scope);
     }
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlNodeList)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -157,6 +277,13 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     for (int i = 0; i < list.size(); i++) {
       SqlNode thisChild = list.get(i);
       final SqlNode thatChild = that.list.get(i);
+      if (thisChild == null) {
+        if (thatChild == null) {
+          continue;
+        } else {
+          return litmus.fail(null);
+        }
+      }
       if (!thisChild.equalsDeep(thatChild, litmus)) {
         return litmus.fail(null);
       }
@@ -164,43 +291,33 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return litmus.succeed();
   }
 
-  public SqlNode[] toArray() {
-    return list.toArray(new SqlNode[0]);
-  }
-
   public static boolean isEmptyList(final SqlNode node) {
-    if (node instanceof SqlNodeList) {
-      if (0 == ((SqlNodeList) node).size()) {
-        return true;
-      }
-    }
-    return false;
+    return node instanceof SqlNodeList
+        && ((SqlNodeList) node).isEmpty();
   }
 
   public static SqlNodeList of(SqlNode node1) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final List<@Nullable SqlNode> list = new ArrayList<>(1);
     list.add(node1);
-    return list;
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
   public static SqlNodeList of(SqlNode node1, SqlNode node2) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final List<@Nullable SqlNode> list = new ArrayList<>(2);
     list.add(node1);
     list.add(node2);
-    return list;
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
-  public static SqlNodeList of(SqlNode node1, SqlNode node2, SqlNode... nodes) {
-    SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+  public static SqlNodeList of(SqlNode node1, SqlNode node2, @Nullable SqlNode... nodes) {
+    final List<@Nullable SqlNode> list = new ArrayList<>(nodes.length + 2);
     list.add(node1);
     list.add(node2);
-    for (SqlNode node : nodes) {
-      list.add(node);
-    }
-    return list;
+    Collections.addAll(list, nodes);
+    return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
-  public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
     // While a SqlNodeList is not always a valid expression, this
     // implementation makes that assumption. It just validates the members
     // of the list.
@@ -215,6 +332,9 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     //       SqlNodeList(SqlLiteral(10), SqlLiteral(20))  }
 
     for (SqlNode node : list) {
+      if (node == null) {
+        continue;
+      }
       node.validateExpr(validator, scope);
     }
   }

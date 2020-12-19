@@ -22,14 +22,16 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * The {@code GROUPING} function.
+ * The {@code GROUPING} function. It accepts 1 or more arguments and they must be
+ * from the GROUP BY list. The result is calculated from a bitmap (the right most bit
+ * is the lowest), which indicates whether an argument is aggregated or grouped
+ * -- The N-th bit is lit if the N-th argument is aggregated.
  *
- * <p>Accepts 1 or more arguments.
- * Example: {@code GROUPING(deptno, gender)} returns
- * 3 if both deptno and gender are being grouped,
- * 2 if only deptno is being grouped,
- * 1 if only gender is being groped,
- * 0 if neither deptno nor gender are being grouped.
+ * <p>Example: {@code GROUPING(deptno, gender)} returns
+ * 0 if both deptno and gender are being grouped,
+ * 1 if only deptno is being grouped,
+ * 2 if only gender is being grouped,
+ * 3 if neither deptno nor gender are being grouped.
  *
  * <p>This function is defined in the SQL standard.
  * {@code GROUPING_ID} is a non-standard synonym.

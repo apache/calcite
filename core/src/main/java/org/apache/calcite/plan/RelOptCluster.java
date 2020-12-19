@@ -30,11 +30,17 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * An environment for related relational expressions during the
@@ -44,16 +50,16 @@ public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeFactory typeFactory;
-  private RelOptPlanner planner;
+  private final RelOptPlanner planner;
   private final AtomicInteger nextCorrel;
   private final Map<String, RelNode> mapCorrelToRel;
   private RexNode originalExpression;
   private final RexBuilder rexBuilder;
   private RelMetadataProvider metadataProvider;
   private MetadataFactory metadataFactory;
-  private HintStrategyTable hintStrategies;
+  private @Nullable HintStrategyTable hintStrategies;
   private final RelTraitSet emptyTraitSet;
-  private RelMetadataQuery mq;
+  private @Nullable RelMetadataQuery mq;
   private Supplier<RelMetadataQuery> mqSupplier;
 
   //~ Constructors -----------------------------------------------------------
@@ -105,7 +111,7 @@ public class RelOptCluster {
 
   @Deprecated // to be removed before 2.0
   public RelOptQuery getQuery() {
-    return new RelOptQuery(planner, nextCorrel, mapCorrelToRel);
+    return new RelOptQuery(castNonNull(planner), nextCorrel, mapCorrelToRel);
   }
 
   @Deprecated // to be removed before 2.0
@@ -130,7 +136,7 @@ public class RelOptCluster {
     return rexBuilder;
   }
 
-  public RelMetadataProvider getMetadataProvider() {
+  public @Nullable RelMetadataProvider getMetadataProvider() {
     return metadataProvider;
   }
 
@@ -139,7 +145,10 @@ public class RelOptCluster {
    *
    * @param metadataProvider custom provider
    */
-  public void setMetadataProvider(RelMetadataProvider metadataProvider) {
+  @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
+  public void setMetadataProvider(
+      @UnknownInitialization RelOptCluster this,
+      RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
     this.metadataFactory = new MetadataFactoryImpl(metadataProvider);
     // Wrap the metadata provider as a JaninoRelMetadataProvider
@@ -154,7 +163,7 @@ public class RelOptCluster {
   }
 
   /**
-   * Set up the customized {@link RelMetadataQuery} instance supplier that to
+   * Sets up the customized {@link RelMetadataQuery} instance supplier that to
    * use during rule planning.
    *
    * <p>Note that the {@code mqSupplier} should return
@@ -162,26 +171,29 @@ public class RelOptCluster {
    * cached in this cluster, and we may invalidate and re-generate it
    * for each {@link RelOptRuleCall} cycle.
    */
-  public void setMetadataQuerySupplier(Supplier<RelMetadataQuery> mqSupplier) {
+  @EnsuresNonNull("this.mqSupplier")
+  public void setMetadataQuerySupplier(
+      @UnknownInitialization RelOptCluster this,
+      Supplier<RelMetadataQuery> mqSupplier) {
     this.mqSupplier = mqSupplier;
   }
 
-  /** Returns the current RelMetadataQuery.
+  /**
+   * Returns the current RelMetadataQuery.
    *
    * <p>This method might be changed or moved in future.
    * If you have a {@link RelOptRuleCall} available,
    * for example if you are in a {@link RelOptRule#onMatch(RelOptRuleCall)}
    * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
-  public <M extends RelMetadataQuery> M getMetadataQuery() {
+  public RelMetadataQuery getMetadataQuery() {
     if (mq == null) {
-      mq = this.mqSupplier.get();
+      mq = castNonNull(mqSupplier).get();
     }
-    //noinspection unchecked
-    return (M) mq;
+    return mq;
   }
 
   /**
-   * @return The supplier of RelMetadataQuery
+   * Returns the supplier of RelMetadataQuery.
    */
   public Supplier<RelMetadataQuery> getMetadataQuerySupplier() {
     return this.mqSupplier;
@@ -196,21 +208,20 @@ public class RelOptCluster {
   }
 
   /**
-   * Setup the hint propagation strategies to be used during rule planning.
+   * Sets up the hint propagation strategies to be used during rule planning.
    *
    * <p>Use <code>RelOptNode.getCluster().getHintStrategies()</code> to fetch
    * the hint strategies.
    *
-   * <p>Note that this method is only for internal use, the cluster {@code hintStrategies}
+   * <p>Note that this method is only for internal use; the cluster {@code hintStrategies}
    * would be always set up with the instance configured by
-   * {@link org.apache.calcite.sql2rel.SqlToRelConverter.ConfigBuilder}.
+   * {@link org.apache.calcite.sql2rel.SqlToRelConverter.Config}.
    *
    * @param hintStrategies The specified hint strategies to override the default one(empty)
    */
-  public RelOptCluster withHintStrategies(HintStrategyTable hintStrategies) {
+  public void setHintStrategies(HintStrategyTable hintStrategies) {
     Objects.requireNonNull(hintStrategies);
     this.hintStrategies = hintStrategies;
-    return this;
   }
 
   /**
@@ -236,6 +247,7 @@ public class RelOptCluster {
     return emptyTraitSet;
   }
 
+  // CHECKSTYLE: IGNORE 2
   /** @deprecated For {@code traitSetOf(t1, t2)},
    * use {@link #traitSet}().replace(t1).replace(t2). */
   @Deprecated // to be removed before 2.0

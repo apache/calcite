@@ -116,7 +116,7 @@ public class GeodeUtils {
   }
 
   /**
-   * Obtains a proxy pointing to an existing Region on the server
+   * Obtains a proxy pointing to an existing Region on the server.
    *
    * @param cache {@link GemFireCache} instance to interact with the Geode server
    * @param regionName  Name of the region to create proxy for.
@@ -215,6 +215,7 @@ public class GeodeUtils {
     return values;
   }
 
+  @SuppressWarnings("CatchAndPrintStackTrace")
   private static Object handleJavaObjectEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 
@@ -245,6 +246,7 @@ public class GeodeUtils {
     return values;
   }
 
+  @SuppressWarnings("JdkObsolete")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;

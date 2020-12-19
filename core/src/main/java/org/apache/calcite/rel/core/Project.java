@@ -33,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -44,11 +45,17 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that computes a set of
@@ -75,6 +82,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param projects List of expressions for the input columns
    * @param rowType  Output row type
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -111,7 +119,7 @@ public abstract class Project extends SingleRel implements Hintable {
         input.getTraitSet(),
         ImmutableList.of(),
         input.getInput(),
-        input.getExpressionList("exprs"),
+        requireNonNull(input.getExpressionList("exprs"), "exprs"),
         input.getRowType("exprs", "fields"));
   }
 
@@ -119,7 +127,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, rowType);
+    return copy(traitSet, sole(inputs), exps, getRowType());
   }
 
   /**
@@ -150,11 +158,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return true;
   }
 
-  @Override public List<RexNode> getChildExps() {
-    return exps;
-  }
-
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     List<RexNode> exps = shuttle.apply(this.exps);
     if (this.exps == exps) {
       return this;
@@ -163,7 +167,7 @@ public abstract class Project extends SingleRel implements Hintable {
         RexUtil.createStructType(
             getInput().getCluster().getTypeFactory(),
             exps,
-            this.rowType.getFieldNames(),
+            getRowType().getFieldNames(),
             null);
     return copy(traitSet, getInput(), exps, rowType);
   }
@@ -196,7 +200,12 @@ public abstract class Project extends SingleRel implements Hintable {
     return 1;
   }
 
-  public boolean isValid(Litmus litmus, Context context) {
+  /** Returns whether this Project contains any windowed-aggregate functions. */
+  public final boolean containsOver() {
+    return RexOver.containsOver(getProjects(), null);
+  }
+
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!super.isValid(litmus, context)) {
       return litmus.fail(null);
     }
@@ -213,11 +222,11 @@ public abstract class Project extends SingleRel implements Hintable {
             checker.getFailureCount(), exp);
       }
     }
-    if (!Util.isDistinct(rowType.getFieldNames())) {
+    if (!Util.isDistinct(getRowType().getFieldNames())) {
       return litmus.fail("field names not distinct: {}", rowType);
     }
     //CHECKSTYLE: IGNORE 1
-    if (false && !Util.isDistinct(Lists.transform(exps, RexNode::toString))) {
+    if (false && !Util.isDistinct(Util.transform(exps, RexNode::toString))) {
       // Projecting the same expression twice is usually a bad idea,
       // because it may create expressions downstream which are equivalent
       // but which look different. We can't ban duplicate projects,
@@ -229,7 +238,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(getInput());
     double dCpu = dRows * exps.size();
@@ -255,13 +264,15 @@ public abstract class Project extends SingleRel implements Hintable {
     return refs.size();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     // Skip writing field names so the optimizer can reuse the projects that differ in
     // field names only
     if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
       final int firstNonTrivial = countTrivial(exps);
-      if (firstNonTrivial != 0) {
+      if (firstNonTrivial == 1) {
+        pw.item("inputs", "0");
+      } else if (firstNonTrivial != 0) {
         pw.item("inputs", "0.." + (firstNonTrivial - 1));
       }
       if (firstNonTrivial != exps.size()) {
@@ -271,10 +282,10 @@ public abstract class Project extends SingleRel implements Hintable {
     }
 
     if (pw.nest()) {
-      pw.item("fields", rowType.getFieldNames());
+      pw.item("fields", getRowType().getFieldNames());
       pw.item("exprs", exps);
     } else {
-      for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+      for (Ord<RelDataTypeField> field : Ord.zip(getRowType().getFieldList())) {
         String fieldName = field.e.getName();
         if (fieldName == null) {
           fieldName = "field#" + field.i;
@@ -286,12 +297,34 @@ public abstract class Project extends SingleRel implements Hintable {
     return pw;
   }
 
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  protected boolean deepEquals0(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Project o = (Project) obj;
+    return traitSet.equals(o.traitSet)
+        && input.deepEquals(o.input)
+        && exps.equals(o.exps)
+        && hints.equals(o.hints)
+        && getRowType().equalsSansFieldNames(o.getRowType());
+  }
+
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  protected int deepHashCode0() {
+    return Objects.hash(traitSet, input.deepHashCode(), exps, hints);
+  }
+
   /**
    * Returns a mapping, or null if this projection is not a mapping.
    *
    * @return Mapping, or null if this projection is not a mapping
    */
-  public Mappings.TargetMapping getMapping() {
+  public Mappings.@Nullable TargetMapping getMapping() {
     return getMapping(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -309,7 +342,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Mapping of a set of project expressions, or null if projection is
    * not a mapping
    */
-  public static Mappings.TargetMapping getMapping(int inputFieldCount,
+  public static Mappings.@Nullable TargetMapping getMapping(int inputFieldCount,
       List<? extends RexNode> projects) {
     if (inputFieldCount < projects.size()) {
       return null; // surjection is not possible
@@ -364,7 +397,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Permutation, if this projection is merely a permutation of its
    *   input fields; otherwise null
    */
-  public Permutation getPermutation() {
+  public @Nullable Permutation getPermutation() {
     return getPermutation(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -372,7 +405,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * Returns a permutation, if this projection is merely a permutation of its
    * input fields; otherwise null.
    */
-  public static Permutation getPermutation(int inputFieldCount,
+  public static @Nullable Permutation getPermutation(int inputFieldCount,
       List<? extends RexNode> projects) {
     final int fieldCount = projects.size();
     if (fieldCount != inputFieldCount) {

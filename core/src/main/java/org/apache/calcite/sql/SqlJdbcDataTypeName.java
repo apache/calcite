@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Defines the name of the types which can occur as a type argument
  * in a JDBC <code>{fn CONVERT(value, type)}</code> function.
@@ -29,7 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  *
  * @see SqlJdbcFunctionCall
  */
-public enum SqlJdbcDataTypeName {
+public enum SqlJdbcDataTypeName implements Symbolizable {
   SQL_CHAR(SqlTypeName.CHAR),
   SQL_VARCHAR(SqlTypeName.VARCHAR),
   SQL_DATE(SqlTypeName.DATE),
@@ -63,8 +65,8 @@ public enum SqlJdbcDataTypeName {
   SQL_INTERVAL_MINUTE_TO_SECOND(TimeUnitRange.MINUTE_TO_SECOND),
   SQL_INTERVAL_SECOND(TimeUnitRange.SECOND);
 
-  private final TimeUnitRange range;
-  private final SqlTypeName typeName;
+  private final @Nullable TimeUnitRange range;
+  private final @Nullable SqlTypeName typeName;
 
   SqlJdbcDataTypeName(SqlTypeName typeName) {
     this(typeName, null);
@@ -74,18 +76,10 @@ public enum SqlJdbcDataTypeName {
     this(null, range);
   }
 
-  SqlJdbcDataTypeName(SqlTypeName typeName, TimeUnitRange range) {
+  SqlJdbcDataTypeName(@Nullable SqlTypeName typeName, @Nullable TimeUnitRange range) {
     assert (typeName == null) != (range == null);
     this.typeName = typeName;
     this.range = range;
-  }
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this keyword
-   * at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
   }
 
   /** Creates a parse tree node for a type identifier of this name. */

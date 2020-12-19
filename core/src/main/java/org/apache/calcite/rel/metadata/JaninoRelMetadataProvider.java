@@ -63,6 +63,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.ICompilerFactory;
@@ -171,7 +172,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return builder;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof JaninoRelMetadataProvider
         && ((JaninoRelMetadataProvider) obj).provider.equals(provider);
@@ -181,12 +182,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return 109 + provider.hashCode();
   }
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     throw new UnsupportedOperationException();
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
       handlers(MetadataDef<M> def) {
     return provider.handlers(def);
   }
@@ -400,13 +401,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   /** Returns e.g. ", ignoreNulls". */
   private static StringBuilder safeArgList(StringBuilder buff, Method method) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
-      if (Primitive.is(t.e)) {
+      if (Primitive.is(t.e) || RexNode.class.isAssignableFrom(t.e)) {
         buff.append(", a").append(t.i);
-      } else if (RexNode.class.isAssignableFrom(t.e)) {
-        // For RexNode, convert to string, because equals does not look deep.
-        //   a1 == null ? "" : a1.toString()
-        buff.append(", a").append(t.i).append(" == null ? \"\" : a")
-            .append(t.i).append(".toString()");
       } else {
         buff.append(", ") .append(NullSentinel.class.getName())
             .append(".mask(a").append(t.i).append(")");
@@ -473,8 +469,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       //noinspection unchecked
       return (H) HANDLERS.get(key);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 
@@ -539,7 +534,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           + relClasses.hashCode();
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof Key
           && ((Key) obj).def.equals(def)

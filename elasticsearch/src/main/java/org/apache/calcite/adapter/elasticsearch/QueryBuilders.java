@@ -187,6 +187,16 @@ class QueryBuilders {
   }
 
   /**
+   * A query that wraps another query and simply returns a dismax score equal to the
+   * query boost for every document in the query.
+   *
+   * @param queryBuilder The query to wrap in a constant score query
+   */
+  static DisMaxQueryBuilder disMaxQueryBuilder(QueryBuilder queryBuilder) {
+    return new DisMaxQueryBuilder(queryBuilder);
+  }
+
+  /**
    * A filter to filter only documents where a field exists in them.
    *
    * @param name The name of the field
@@ -203,12 +213,13 @@ class QueryBuilders {
   }
 
   /**
-   * Base class to build ES queries
+   * Base class to build Elasticsearch queries.
    */
   abstract static class QueryBuilder {
 
     /**
-     * Convert existing query to JSON format using jackson API.
+     * Converts an existing query to JSON format using jackson API.
+     *
      * @param generator used to generate JSON elements
      * @throws IOException if IO error occurred
      */
@@ -216,7 +227,7 @@ class QueryBuilders {
   }
 
   /**
-   * Query for boolean logic
+   * Query for boolean logic.
    */
   static class BoolQueryBuilder extends QueryBuilder {
     private final List<QueryBuilder> mustClauses = new ArrayList<>();
@@ -260,7 +271,7 @@ class QueryBuilders {
       gen.writeEndObject();
     }
 
-    private void writeJsonArray(String field, List<QueryBuilder> clauses, JsonGenerator gen)
+    private static void writeJsonArray(String field, List<QueryBuilder> clauses, JsonGenerator gen)
         throws IOException {
       if (clauses.isEmpty()) {
         return;
@@ -481,7 +492,9 @@ class QueryBuilders {
    * A Query that does fuzzy matching for a specific value.
    */
   static class RegexpQueryBuilder extends QueryBuilder {
+    @SuppressWarnings("unused")
     private final String fieldName;
+    @SuppressWarnings("unused")
     private final String value;
 
     RegexpQueryBuilder(final String fieldName, final String value) {
@@ -536,6 +549,33 @@ class QueryBuilders {
       generator.writeEndObject();
     }
   }
+
+  /**
+   * A query that wraps a filter and simply returns a dismax score equal to the
+   * query boost for every document in the filter.
+   */
+  static class DisMaxQueryBuilder extends QueryBuilder {
+
+    private final QueryBuilder builder;
+
+    private DisMaxQueryBuilder(final QueryBuilder builder) {
+      this.builder = Objects.requireNonNull(builder, "builder");
+    }
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeFieldName("dis_max");
+      generator.writeStartObject();
+      generator.writeFieldName("queries");
+      generator.writeStartArray();
+      builder.writeJson(generator);
+      generator.writeEndArray();
+      generator.writeEndObject();
+      generator.writeEndObject();
+    }
+  }
+
+
 
   /**
    * A query that matches on all documents.

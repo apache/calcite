@@ -21,6 +21,7 @@ val sqllineClasspath by configurations.creating {
 
 dependencies {
     api(project(":core"))
+    api(project(":file"))
     api(project(":linq4j"))
 
     implementation("com.fasterxml.jackson.core:jackson-core")
@@ -41,11 +42,14 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
     archiveFileName.set("sqllineClasspath.jar")
     manifest {
-        manifest {
-            attributes(
-                "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
-            )
-        }
+        attributes(
+            "Main-Class" to "sqlline.SqlLine",
+            "Class-Path" to provider {
+                // Class-Path is a list of URLs
+                sqllineClasspath.joinToString(" ") {
+                    it.toURI().toURL().toString()
+                }
+            }
+        )
     }
 }

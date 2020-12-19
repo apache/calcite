@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.splunk.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,7 +50,7 @@ public class StringUtils {
   }
 
   public static List<String> decodeList(CharSequence encoded, char delim) {
-    List<String> list = new LinkedList<>();
+    List<String> list = new ArrayList<>();
     int len = encoded.length();
     int start = 0;
     int end = 0;
@@ -132,7 +132,7 @@ public class StringUtils {
 
 
   public static void main(String[] args) {
-    List<String> list = new LinkedList<>();
+    List<String> list = new ArrayList<>();
     list.add("test");
     list.add("test,with,comma");
     list.add("");

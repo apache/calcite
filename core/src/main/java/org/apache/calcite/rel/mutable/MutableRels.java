@@ -60,12 +60,16 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.Lists;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {
@@ -78,8 +82,8 @@ public abstract class MutableRels {
     }
     try {
       new MutableRelVisitor() {
-        @Override public void visit(MutableRel node) {
-          if (node.equals(target)) {
+        @Override public void visit(@Nullable MutableRel node) {
+          if (Objects.equals(node, target)) {
             throw Util.FoundOne.NULL;
           }
           super.visit(node);
@@ -92,7 +96,7 @@ public abstract class MutableRels {
     }
   }
 
-  public static MutableRel preOrderTraverseNext(MutableRel node) {
+  public static @Nullable MutableRel preOrderTraverseNext(MutableRel node) {
     MutableRel parent = node.getParent();
     int ordinal = node.ordinalInParent + 1;
     while (parent != null) {
@@ -154,11 +158,11 @@ public abstract class MutableRels {
         RelOptUtil.permute(child.cluster.getTypeFactory(), rowType, mapping),
         child,
         new AbstractList<RexNode>() {
-          public int size() {
+          @Override public int size() {
             return posList.size();
           }
 
-          public RexNode get(int index) {
+          @Override public RexNode get(int index) {
             final int pos = posList.get(index);
             return RexInputRef.of(pos, rowType);
           }
@@ -179,7 +183,7 @@ public abstract class MutableRels {
    */
   public static List<RexNode> createProjects(final MutableRel child,
       final List<RexNode> projs) {
-    List<RexNode> rexNodeList = new ArrayList<>();
+    List<RexNode> rexNodeList = new ArrayList<>(projs.size());
     for (int i = 0; i < projs.size(); i++) {
       if (projs.get(i) instanceof RexInputRef) {
         RexInputRef rexInputRef = (RexInputRef) projs.get(i);
@@ -254,7 +258,8 @@ public abstract class MutableRels {
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;
       final RelNode child = fromMutable(uncollect.getInput(), relBuilder);
-      return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality);
+      return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality,
+          Collections.emptyList());
     }
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;
@@ -317,7 +322,7 @@ public abstract class MutableRels {
 
   private static List<RelNode> fromMutables(List<MutableRel> nodes,
       final RelBuilder relBuilder) {
-    return Lists.transform(nodes,
+    return Util.transform(nodes,
         mutableRel -> fromMutable(mutableRel, relBuilder));
   }
 
@@ -326,8 +331,13 @@ public abstract class MutableRels {
       return toMutable(((HepRelVertex) rel).getCurrentRel());
     }
     if (rel instanceof RelSubset) {
-      return toMutable(
-          Util.first(((RelSubset) rel).getBest(), ((RelSubset) rel).getOriginal()));
+      RelSubset subset = (RelSubset) rel;
+      RelNode best = subset.getBest();
+      if (best == null) {
+        best = requireNonNull(subset.getOriginal(),
+            () -> "subset.getOriginal() is null for " + subset);
+      }
+      return toMutable(best);
     }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);

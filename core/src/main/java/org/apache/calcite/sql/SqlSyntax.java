@@ -19,6 +19,9 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
  */
@@ -27,13 +30,13 @@ public enum SqlSyntax {
    * Function syntax, as in "Foo(x, y)".
    */
   FUNCTION {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
     }
   },
 
@@ -42,13 +45,23 @@ public enum SqlSyntax {
    * for example "COUNT(*)".
    */
   FUNCTION_STAR {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
+    }
+  },
+
+  /**
+   * Function syntax with optional ORDER BY, as in "STRING_AGG(x, y ORDER BY z)".
+   */
+  ORDERED_FUNCTION(FUNCTION) {
+    @Override public void unparse(SqlWriter writer, SqlOperator operator,
+        SqlCall call, int leftPrec, int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, true);
     }
   },
 
@@ -56,7 +69,7 @@ public enum SqlSyntax {
    * Binary operator syntax, as in "x + y".
    */
   BINARY {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -70,7 +83,7 @@ public enum SqlSyntax {
    * Prefix unary operator syntax, as in "- x".
    */
   PREFIX {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -87,7 +100,7 @@ public enum SqlSyntax {
    * Postfix unary operator syntax, as in "x ++".
    */
   POSTFIX {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -105,7 +118,7 @@ public enum SqlSyntax {
    * THEN 2 ELSE 3 END".
    */
   SPECIAL {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -124,13 +137,13 @@ public enum SqlSyntax {
    * @see SqlConformance#allowNiladicParentheses()
    */
   FUNCTION_ID {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call);
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
     }
   },
 
@@ -138,7 +151,7 @@ public enum SqlSyntax {
    * Syntax of an internal operator, which does not appear in the SQL.
    */
   INTERNAL {
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,
         SqlCall call,
@@ -148,6 +161,18 @@ public enum SqlSyntax {
           + operator + "' " + "cannot be un-parsed");
     }
   };
+
+  /** Syntax to treat this syntax as equivalent to when resolving operators. */
+  @NotOnlyInitialized
+  public final SqlSyntax family;
+
+  SqlSyntax() {
+    this(null);
+  }
+
+  SqlSyntax(@Nullable SqlSyntax family) {
+    this.family = family == null ? this : family;
+  }
 
   /**
    * Converts a call to an operator of this syntax into a string.

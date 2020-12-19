@@ -42,7 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link org.apache.calcite.runtime.Enumerables}.
  */
-public class EnumerablesTest {
+class EnumerablesTest {
   private static final Enumerable<Emp> EMPS = Linq4j.asEnumerable(
       Arrays.asList(
           new Emp(10, "Fred"),
@@ -67,35 +67,35 @@ public class EnumerablesTest {
   private static final Predicate2<Dept, Emp> DEPT_EMP_EQUAL_DEPTNO =
       (d, e) -> d.deptno == e.deptno;
 
-  @Test public void testSemiJoinEmp() {
+  @Test void testSemiJoinEmp() {
     assertThat(
         EnumerableDefaults.semiJoin(EMPS, DEPTS, e -> e.deptno, d -> d.deptno,
             Functions.identityComparer()).toList().toString(),
         equalTo("[Emp(20, Theodore), Emp(20, Sebastian)]"));
   }
 
-  @Test public void testSemiJoinDept() {
+  @Test void testSemiJoinDept() {
     assertThat(
         EnumerableDefaults.semiJoin(DEPTS, EMPS, d -> d.deptno, e -> e.deptno,
             Functions.identityComparer()).toList().toString(),
         equalTo("[Dept(20, Sales)]"));
   }
 
-  @Test public void testAntiJoinEmp() {
+  @Test void testAntiJoinEmp() {
     assertThat(
         EnumerableDefaults.antiJoin(EMPS, DEPTS, e -> e.deptno, d -> d.deptno,
             Functions.identityComparer()).toList().toString(),
         equalTo("[Emp(10, Fred), Emp(30, Joe)]"));
   }
 
-  @Test public void testAntiJoinDept() {
+  @Test void testAntiJoinDept() {
     assertThat(
         EnumerableDefaults.antiJoin(DEPTS, EMPS, d -> d.deptno, e -> e.deptno,
             Functions.identityComparer()).toList().toString(),
         equalTo("[Dept(15, Marketing)]"));
   }
 
-  @Test public void testMergeJoin() {
+  @Test void testMergeJoin() {
     assertThat(
         EnumerableDefaults.mergeJoin(
             Linq4j.asEnumerable(
@@ -113,7 +113,7 @@ public class EnumerablesTest {
                     new Dept(30, "Development"))),
             e -> e.deptno,
             d -> d.deptno,
-            (v0, v1) -> v0 + ", " + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + ", " + v1, JoinType.INNER, null).toList().toString(),
         equalTo("[Emp(20, Theodore), Dept(20, Sales),"
             + " Emp(20, Sebastian), Dept(20, Sales),"
             + " Emp(30, Joe), Dept(30, Research),"
@@ -122,69 +122,620 @@ public class EnumerablesTest {
             + " Emp(30, Greg), Dept(30, Development)]"));
   }
 
-  @Test public void testMergeJoin2() {
+  @Test void testMergeJoinWithNullKeys() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(30, "Fred"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Theodore"),
+                    new Emp(20, "Theodore"),
+                    new Emp(40, null),
+                    new Emp(30, null))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Theodore"),
+                    new Dept(40, null))),
+            e -> e.name,
+            d -> d.name,
+            (v0, v1) -> v0 + ", " + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("[Emp(30, Theodore), Dept(30, Theodore),"
+            + " Emp(20, Theodore), Dept(30, Theodore)]"));
+  }
+
+  @Test void testMergeJoin2() {
+    final JoinType[] joinTypes = {JoinType.INNER, JoinType.SEMI};
+    for (JoinType joinType : joinTypes) {
+      // Matching keys at start
+      testIntersect(
+          newArrayList(1, 3, 4),
+          newArrayList(1, 4),
+          equalTo("[1, 4]"),
+          joinType);
+      // Matching key at start and end of right, not of left
+      testIntersect(
+          newArrayList(0, 1, 3, 4, 5),
+          newArrayList(1, 4),
+          equalTo("[1, 4]"),
+          joinType);
+      // Matching key at start and end of left, not right
+      testIntersect(
+          newArrayList(1, 3, 4),
+          newArrayList(0, 1, 4, 5),
+          equalTo("[1, 4]"),
+          joinType);
+      // Matching key not at start or end of left or right
+      testIntersect(
+          newArrayList(0, 2, 3, 4, 5),
+          newArrayList(1, 3, 4, 6),
+          equalTo("[3, 4]"),
+          joinType);
+      // Matching duplicated keys
+      testIntersect(
+          newArrayList(1, 3, 4),
+          newArrayList(1, 1, 4, 4),
+          equalTo(joinType == JoinType.INNER ? "[1, 1, 4, 4]" : "[1, 4]"),
+          joinType);
+    }
+
+    // ANTI join tests:
     // Matching keys at start
-    assertThat(
-        intersect(Lists.newArrayList(1, 3, 4),
-            Lists.newArrayList(1, 4)).toList().toString(),
-        equalTo("[1, 4]"));
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(1, 4),
+        equalTo("[3]"),
+        JoinType.ANTI);
     // Matching key at start and end of right, not of left
-    assertThat(
-        intersect(Lists.newArrayList(0, 1, 3, 4, 5),
-            Lists.newArrayList(1, 4)).toList().toString(),
-        equalTo("[1, 4]"));
+    testIntersect(
+        newArrayList(0, 1, 3, 4, 5),
+        newArrayList(1, 4),
+        equalTo("[0, 3, 5]"),
+        JoinType.ANTI);
     // Matching key at start and end of left, not right
-    assertThat(
-        intersect(Lists.newArrayList(1, 3, 4),
-            Lists.newArrayList(0, 1, 4, 5)).toList().toString(),
-        equalTo("[1, 4]"));
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(0, 1, 4, 5),
+        equalTo("[3]"),
+        JoinType.ANTI);
     // Matching key not at start or end of left or right
-    assertThat(
-        intersect(Lists.newArrayList(0, 2, 3, 4, 5),
-            Lists.newArrayList(1, 3, 4, 6)).toList().toString(),
-        equalTo("[3, 4]"));
+    testIntersect(
+        newArrayList(0, 2, 3, 4, 5),
+        newArrayList(1, 3, 4, 6),
+        equalTo("[0, 2, 5]"),
+        JoinType.ANTI);
+    // Matching duplicated keys
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(1, 1, 4, 4),
+        equalTo("[3]"),
+        JoinType.ANTI);
+
+    // LEFT join tests:
+    // Matching keys at start
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(1, 4),
+        equalTo("[1-1, 3-null, 4-4]"),
+        equalTo("[1-1, 3-null, 4-4, null-null]"),
+        JoinType.LEFT);
+    // Matching key at start and end of right, not of left
+    testIntersect(
+        newArrayList(0, 1, 3, 4, 5),
+        newArrayList(1, 4),
+        equalTo("[0-null, 1-1, 3-null, 4-4, 5-null]"),
+        equalTo("[0-null, 1-1, 3-null, 4-4, 5-null, null-null]"),
+        JoinType.LEFT);
+    // Matching key at start and end of left, not right
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(0, 1, 4, 5),
+        equalTo("[1-1, 3-null, 4-4]"),
+        equalTo("[1-1, 3-null, 4-4, null-null]"),
+        JoinType.LEFT);
+    // Matching key not at start or end of left or right
+    testIntersect(
+        newArrayList(0, 2, 3, 4, 5),
+        newArrayList(1, 3, 4, 6),
+        equalTo("[0-null, 2-null, 3-3, 4-4, 5-null]"),
+        equalTo("[0-null, 2-null, 3-3, 4-4, 5-null, null-null]"),
+        JoinType.LEFT);
+    // Matching duplicated keys
+    testIntersect(
+        newArrayList(1, 3, 4),
+        newArrayList(1, 1, 4, 4),
+        equalTo("[1-1, 1-1, 3-null, 4-4, 4-4]"),
+        equalTo("[1-1, 1-1, 3-null, 4-4, 4-4, null-null]"),
+        JoinType.LEFT);
   }
 
-  @Test public void testMergeJoin3() {
+  @Test void testMergeJoin3() {
+    final JoinType[] joinTypes = {JoinType.INNER, JoinType.SEMI};
+    for (JoinType joinType : joinTypes) {
+      // No overlap
+      testIntersect(
+          Lists.newArrayList(0, 2, 4),
+          Lists.newArrayList(1, 3, 5),
+          equalTo("[]"),
+          joinType);
+      // Left empty
+      testIntersect(
+          new ArrayList<>(),
+          newArrayList(1, 3, 4, 6),
+          equalTo("[]"),
+          joinType);
+      // Right empty
+      testIntersect(
+          newArrayList(3, 7),
+          new ArrayList<>(),
+          equalTo("[]"),
+          joinType);
+      // Both empty
+      testIntersect(
+          new ArrayList<Integer>(),
+          new ArrayList<>(),
+          equalTo("[]"),
+          joinType);
+    }
+
+    // ANTI join tests:
     // No overlap
-    assertThat(
-        intersect(Lists.newArrayList(0, 2, 4),
-            Lists.newArrayList(1, 3, 5)).toList().toString(),
-        equalTo("[]"));
+    testIntersect(
+        newArrayList(0, 2, 4),
+        newArrayList(1, 3, 5),
+        equalTo("[0, 2, 4]"),
+        JoinType.ANTI);
     // Left empty
-    assertThat(
-        intersect(new ArrayList<>(),
-            newArrayList(1, 3, 4, 6)).toList().toString(),
-        equalTo("[]"));
+    testIntersect(
+        new ArrayList<>(),
+        newArrayList(1, 3, 4, 6),
+        equalTo("[]"),
+        JoinType.ANTI);
     // Right empty
-    assertThat(
-        intersect(newArrayList(3, 7),
-            new ArrayList<>()).toList().toString(),
-        equalTo("[]"));
+    testIntersect(
+        newArrayList(3, 7),
+        new ArrayList<>(),
+        equalTo("[3, 7]"),
+        JoinType.ANTI);
     // Both empty
-    assertThat(
-        intersect(new ArrayList<Integer>(),
-            new ArrayList<>()).toList().toString(),
-        equalTo("[]"));
+    testIntersect(
+        new ArrayList<Integer>(),
+        new ArrayList<>(),
+        equalTo("[]"),
+        JoinType.ANTI);
+
+    // LEFT join tests:
+    // No overlap
+    testIntersect(
+        newArrayList(0, 2, 4),
+        newArrayList(1, 3, 5),
+        equalTo("[0-null, 2-null, 4-null]"),
+        equalTo("[0-null, 2-null, 4-null, null-null]"),
+        JoinType.LEFT);
+    // Left empty
+    testIntersect(
+        new ArrayList<>(),
+        newArrayList(1, 3, 4, 6),
+        equalTo("[]"),
+        equalTo("[null-null]"),
+        JoinType.LEFT);
+    // Right empty
+    testIntersect(
+        newArrayList(3, 7),
+        new ArrayList<>(),
+        equalTo("[3-null, 7-null]"),
+        equalTo("[3-null, 7-null, null-null]"),
+        JoinType.LEFT);
+    // Both empty
+    testIntersect(
+        new ArrayList<Integer>(),
+        new ArrayList<>(),
+        equalTo("[]"),
+        equalTo("[null-null]"),
+        JoinType.LEFT);
   }
 
-  private static <T extends Comparable<T>> Enumerable<T> intersect(
-      List<T> list0, List<T> list1) {
+  private static <T extends Comparable<T>> void testIntersect(
+      List<T> list0, List<T> list1, org.hamcrest.Matcher<String> matcher, JoinType joinType) {
+    testIntersect(list0, list1, matcher, matcher, joinType);
+  }
+
+  private static <T extends Comparable<T>> void testIntersect(
+      List<T> list0, List<T> list1, org.hamcrest.Matcher<String> matcher,
+      org.hamcrest.Matcher<String> matcherNullLeft, JoinType joinType) {
+    assertThat(
+        intersect(list0, list1, joinType).toList().toString(),
+        matcher);
+
+    // Repeat test with nulls at the end of left / right
+
+    // Null at the end of left
+    list0.add(null);
+    assertThat(
+        intersect(list0, list1, joinType).toList().toString(),
+        matcherNullLeft);
+
+    // Null at the end of right
+    list0.remove(list0.size() - 1);
+    list1.add(null);
+    assertThat(
+        intersect(list0, list1, joinType).toList().toString(),
+        matcher);
+
+    // Null at the end of left and right
+    list0.add(null);
+    assertThat(
+        intersect(list0, list1, joinType).toList().toString(),
+        matcherNullLeft);
+  }
+
+  private static <T extends Comparable<T>> Enumerable<String> intersect(
+      List<T> list0, List<T> list1, JoinType joinType) {
+    if (joinType == JoinType.LEFT) {
+      return EnumerableDefaults.mergeJoin(
+          Linq4j.asEnumerable(list0),
+          Linq4j.asEnumerable(list1),
+          Functions.identitySelector(),
+          Functions.identitySelector(),
+          (v0, v1) -> String.valueOf(v0) + "-" + String.valueOf(v1),
+          JoinType.LEFT,
+          null);
+    }
     return EnumerableDefaults.mergeJoin(
         Linq4j.asEnumerable(list0),
         Linq4j.asEnumerable(list1),
         Functions.identitySelector(),
-        Functions.identitySelector(), (v0, v1) -> v0, false, false);
+        Functions.identitySelector(),
+        (v0, v1) -> String.valueOf(v0),
+        joinType,
+        null);
   }
 
-  @Test public void testNestedLoopJoin() {
+  @Test void testMergeJoinWithPredicate() {
+    final List<Emp> listEmp1 = Arrays.asList(
+        new Emp(1, "Fred"),
+        new Emp(2, "Fred"),
+        new Emp(3, "Joe"),
+        new Emp(4, "Joe"),
+        new Emp(5, "Peter"));
+    final List<Emp> listEmp2 = Arrays.asList(
+        new Emp(2, "Fred"),
+        new Emp(3, "Fred"),
+        new Emp(3, "Joe"),
+        new Emp(5, "Joe"),
+        new Emp(6, "Peter"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp1),
+            Linq4j.asEnumerable(listEmp2),
+            e1 -> e1.name,
+            e2 -> e2.name,
+            (e1, e2) -> e1.deptno < e2.deptno,
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("["
+            + "Emp(1, Fred)-Emp(2, Fred), "
+            + "Emp(1, Fred)-Emp(3, Fred), "
+            + "Emp(2, Fred)-Emp(3, Fred), "
+            + "Emp(3, Joe)-Emp(5, Joe), "
+            + "Emp(4, Joe)-Emp(5, Joe), "
+            + "Emp(5, Peter)-Emp(6, Peter)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno > e1.deptno,
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("["
+            + "Emp(2, Fred)-Emp(1, Fred), "
+            + "Emp(3, Fred)-Emp(1, Fred), "
+            + "Emp(3, Fred)-Emp(2, Fred), "
+            + "Emp(5, Joe)-Emp(3, Joe), "
+            + "Emp(5, Joe)-Emp(4, Joe), "
+            + "Emp(6, Peter)-Emp(5, Peter)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp1),
+            Linq4j.asEnumerable(listEmp2),
+            e1 -> e1.name,
+            e2 -> e2.name,
+            (e1, e2) -> e1.deptno == e2.deptno * 2,
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("[]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno == e1.deptno * 2,
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("[Emp(2, Fred)-Emp(1, Fred)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno == e1.deptno + 2,
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList().toString(),
+        equalTo("[Emp(3, Fred)-Emp(1, Fred), Emp(5, Joe)-Emp(3, Joe)]"));
+  }
+
+  @Test void testMergeSemiJoin() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(10, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(25, "HR"),
+                    new Dept(30, "Research"),
+                    new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"),
+                    new Emp(50, "Mary"))),
+            d -> d.deptno,
+            e -> e.deptno,
+            null,
+            (v0, v1) -> v0,
+            JoinType.SEMI,
+            null).toList().toString(), equalTo("[Dept(10, Marketing),"
+            + " Dept(20, Sales)," + " Dept(30, Research)]"));
+  }
+
+  @Test void testMergeSemiJoinWithPredicate() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(10, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(25, "HR"),
+                    new Dept(30, "Research"),
+                    new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"),
+                    new Emp(50, "Mary"))),
+            d -> d.deptno,
+            e -> e.deptno,
+            (d, e) -> e.name.contains("a"),
+            (v0, v1) -> v0,
+            JoinType.SEMI,
+            null).toList().toString(), equalTo("[Dept(20, Sales)]"));
+  }
+
+  @Test void testMergeSemiJoinWithNullKeys() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(30, "Fred"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Theodore"),
+                    new Emp(20, "Zoey"),
+                    new Emp(40, null),
+                    new Emp(30, null))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Theodore"),
+                    new Dept(25, "Theodore"),
+                    new Dept(33, "Zoey"),
+                    new Dept(40, null))),
+            e -> e.name,
+            d -> d.name,
+            (e, d) -> e.name.startsWith("T"),
+            (v0, v1) -> v0,
+            JoinType.SEMI,
+            null).toList().toString(), equalTo("[Emp(30, Theodore)]"));
+  }
+
+
+  @Test void testMergeAntiJoin() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Dept(10, "Marketing"),
+                new Dept(20, "Sales"),
+                new Dept(25, "HR"),
+                new Dept(30, "Research"),
+                new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Emp(10, "Fred"),
+                new Emp(20, "Theodore"),
+                new Emp(20, "Sebastian"),
+                new Emp(30, "Joe"),
+                new Emp(30, "Greg"),
+                new Emp(50, "Mary"))),
+            d -> Integer.valueOf(d.deptno),
+            e -> Integer.valueOf(e.deptno),
+            null,
+            (v0, v1) -> v0,
+            JoinType.ANTI,
+            null).toList().toString(),
+        equalTo("[Dept(25, HR), Dept(40, Development)]"));
+  }
+
+  @Test void testMergeAntiJoinWithPredicate() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Dept(10, "Marketing"),
+                new Dept(20, "Sales"),
+                new Dept(25, "HR"),
+                new Dept(30, "Research"),
+                new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Emp(10, "Fred"),
+                new Emp(20, "Theodore"),
+                new Emp(20, "Sebastian"),
+                new Emp(30, "Joe"),
+                new Emp(30, "Greg"),
+                new Emp(50, "Mary"))),
+            d -> Integer.valueOf(d.deptno),
+            e -> Integer.valueOf(e.deptno),
+            (d, e) -> e.name.startsWith("F") || e.name.startsWith("S"),
+            (v0, v1) -> v0,
+            JoinType.ANTI,
+            null).toList().toString(),
+        equalTo("[Dept(25, HR), Dept(30, Research), Dept(40, Development)]"));
+  }
+
+  @Test void testMergeAntiJoinWithNullKeys() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Emp(30, "Fred"),
+                new Emp(20, "Sebastian"),
+                new Emp(30, "Theodore"),
+                new Emp(20, "Zoey"),
+                new Emp(40, null),
+                new Emp(30, null))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                new Dept(15, "Marketing"),
+                new Dept(20, "Sales"),
+                new Dept(30, "Theodore"),
+                new Dept(25, "Theodore"),
+                new Dept(33, "Zoey"),
+                new Dept(40, null))),
+            e -> e.name,
+            d -> d.name,
+            (e, d) -> d.deptno < 30,
+            (v0, v1) -> v0,
+            JoinType.ANTI,
+            null).toList().toString(),
+        equalTo("[Emp(30, Fred), Emp(20, Sebastian), Emp(20, Zoey)]"));
+  }
+
+  @Test void testMergeLeftJoin() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(10, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(25, "HR"),
+                    new Dept(30, "Research"),
+                    new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"),
+                    new Emp(50, "Mary"))),
+            d -> d.deptno,
+            e -> e.deptno,
+            null,
+            (v0, v1) -> String.valueOf(v0) + "-" + String.valueOf(v1),
+            JoinType.LEFT,
+            null).toList().toString(), equalTo("[Dept(10, Marketing)-Emp(10, Fred),"
+            + " Dept(20, Sales)-Emp(20, Theodore),"
+            + " Dept(20, Sales)-Emp(20, Sebastian),"
+            + " Dept(25, HR)-null,"
+            + " Dept(30, Research)-Emp(30, Joe),"
+            + " Dept(30, Research)-Emp(30, Greg),"
+            + " Dept(40, Development)-null]"));
+  }
+
+  @Test void testMergeLeftJoinWithPredicate() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(10, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(25, "HR"),
+                    new Dept(30, "Research"),
+                    new Dept(40, "Development"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"),
+                    new Emp(50, "Mary"))),
+            d -> d.deptno,
+            e -> e.deptno,
+            (d, e) -> e.name.contains("a"),
+            (v0, v1) -> String.valueOf(v0) + "-" + String.valueOf(v1),
+            JoinType.LEFT,
+            null).toList().toString(), equalTo("[Dept(10, Marketing)-null,"
+            + " Dept(20, Sales)-Emp(20, Sebastian),"
+            + " Dept(25, HR)-null,"
+            + " Dept(30, Research)-null,"
+            + " Dept(40, Development)-null]"));
+  }
+
+  @Test void testMergeLeftJoinWithNullKeys() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(30, "Fred"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Theodore"),
+                    new Emp(20, "Zoey"),
+                    new Emp(40, null),
+                    new Emp(30, null))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Theodore"),
+                    new Dept(25, "Theodore"),
+                    new Dept(33, "Zoey"),
+                    new Dept(40, null))),
+            e -> e.name,
+            d -> d.name,
+            (e, d) -> e.name.startsWith("T"),
+            (v0, v1) -> String.valueOf(v0) + "-" + String.valueOf(v1),
+            JoinType.LEFT,
+            null).toList().toString(), equalTo("[Emp(30, Fred)-null,"
+            + " Emp(20, Sebastian)-null,"
+            + " Emp(30, Theodore)-Dept(30, Theodore),"
+            + " Emp(30, Theodore)-Dept(25, Theodore),"
+            + " Emp(20, Zoey)-null,"
+            + " Emp(40, null)-null,"
+            + " Emp(30, null)-null]"));
+  }
+
+  @Test void testNestedLoopJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.INNER).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
   }
 
-  @Test public void testNestedLoopLeftJoin() {
+  @Test void testNestedLoopLeftJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.LEFT).toList().toString(),
@@ -192,7 +743,7 @@ public class EnumerablesTest {
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
   }
 
-  @Test public void testNestedLoopRightJoin() {
+  @Test void testNestedLoopRightJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.RIGHT).toList().toString(),
@@ -200,7 +751,7 @@ public class EnumerablesTest {
             + "{null, null, 15, Marketing}]"));
   }
 
-  @Test public void testNestedLoopFullJoin() {
+  @Test void testNestedLoopFullJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
@@ -209,7 +760,7 @@ public class EnumerablesTest {
             + "{null, null, 15, Marketing}]"));
   }
 
-  @Test public void testNestedLoopFullJoinLeftEmpty() {
+  @Test void testNestedLoopFullJoinLeftEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.FULL)
@@ -217,7 +768,7 @@ public class EnumerablesTest {
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
   }
 
-  @Test public void testNestedLoopFullJoinRightEmpty() {
+  @Test void testNestedLoopFullJoinRightEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS.take(0), EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
@@ -225,35 +776,35 @@ public class EnumerablesTest {
             + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
   }
 
-  @Test public void testNestedLoopFullJoinBothEmpty() {
+  @Test void testNestedLoopFullJoinBothEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS.take(0), EMP_DEPT_EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[]"));
   }
 
-  @Test public void testNestedLoopSemiJoinEmp() {
+  @Test void testNestedLoopSemiJoinEmp() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             (e, d) -> e.toString(), JoinType.SEMI).toList().toString(),
         equalTo("[Emp(20, Theodore), Emp(20, Sebastian)]"));
   }
 
-  @Test public void testNestedLoopSemiJoinDept() {
+  @Test void testNestedLoopSemiJoinDept() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(DEPTS, EMPS, DEPT_EMP_EQUAL_DEPTNO,
             (d, e) -> d.toString(), JoinType.SEMI).toList().toString(),
         equalTo("[Dept(20, Sales)]"));
   }
 
-  @Test public void testNestedLoopAntiJoinEmp() {
+  @Test void testNestedLoopAntiJoinEmp() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EMP_DEPT_EQUAL_DEPTNO,
             (e, d) -> e.toString(), JoinType.ANTI).toList().toString(),
         equalTo("[Emp(10, Fred), Emp(30, Joe)]"));
   }
 
-  @Test public void testNestedLoopAntiJoinDept() {
+  @Test void testNestedLoopAntiJoinDept() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(DEPTS, EMPS, DEPT_EMP_EQUAL_DEPTNO,
             (d, e) -> d.toString(), JoinType.ANTI).toList().toString(),
@@ -302,7 +853,7 @@ public class EnumerablesTest {
             + "[Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
   }
 
-  @Test public void testInnerHashJoin() {
+  @Test void testInnerHashJoin() {
     assertThat(
         EnumerableDefaults.hashJoin(
             Linq4j.asEnumerable(
@@ -328,7 +879,7 @@ public class EnumerablesTest {
             + " Emp(30, Greg), Dept(30, Development)]"));
   }
 
-  @Test public void testLeftHashJoinWithNonEquiConditions() {
+  @Test void testLeftHashJoinWithNonEquiConditions() {
     assertThat(
         EnumerableDefaults.hashJoin(
             Linq4j.asEnumerable(
@@ -357,7 +908,7 @@ public class EnumerablesTest {
             + " Emp(30, Greg), null]"));
   }
 
-  @Test public void testRightHashJoinWithNonEquiConditions() {
+  @Test void testRightHashJoinWithNonEquiConditions() {
     assertThat(
         EnumerableDefaults.hashJoin(
             Linq4j.asEnumerable(
@@ -385,7 +936,7 @@ public class EnumerablesTest {
             + " null, Dept(30, Development)]"));
   }
 
-  @Test public void testFullHashJoinWithNonEquiConditions() {
+  @Test void testFullHashJoinWithNonEquiConditions() {
     assertThat(
         EnumerableDefaults.hashJoin(
             Linq4j.asEnumerable(

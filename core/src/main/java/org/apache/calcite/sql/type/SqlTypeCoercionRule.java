@@ -19,8 +19,11 @@ package org.apache.calcite.sql.type;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -62,8 +65,9 @@ import java.util.Set;
  *     SqlTypeCoercionRules typeCoercionRules = SqlTypeCoercionRules.instance(builder.map);
  *
  *     // Set the SqlTypeCoercionRules instance into the SqlValidator.
- *     SqlValidator validator ...;
- *     validator.setSqlTypeCoercionRules(typeCoercionRules);
+ *     SqlValidator.Config validatorConf ...;
+ *     validatorConf.withTypeCoercionRules(typeCoercionRules);
+ *     // Use this conf to initialize the SqlValidator.
  * </pre>
  */
 public class SqlTypeCoercionRule implements SqlTypeMappingRule {
@@ -71,7 +75,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   private static final SqlTypeCoercionRule INSTANCE;
 
-  public static final ThreadLocal<SqlTypeCoercionRule> THREAD_PROVIDERS =
+  public static final ThreadLocal<@Nullable SqlTypeCoercionRule> THREAD_PROVIDERS =
       ThreadLocal.withInitial(() -> SqlTypeCoercionRule.INSTANCE);
 
   //~ Instance fields --------------------------------------------------------
@@ -269,7 +273,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   /** Returns an instance. */
   public static SqlTypeCoercionRule instance() {
-    return THREAD_PROVIDERS.get();
+    return Objects.requireNonNull(THREAD_PROVIDERS.get(), "threadProviders");
   }
 
   /** Returns an instance with specified type mappings. */

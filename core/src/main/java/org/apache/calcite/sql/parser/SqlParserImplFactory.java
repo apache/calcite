@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.parser;
 
+import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.server.DdlExecutor;
+
 import java.io.Reader;
 
 /**
@@ -26,6 +29,7 @@ import java.io.Reader;
  * {@link org.apache.calcite.tools.Planner} created through
  * {@link org.apache.calcite.tools.Frameworks}.</p>
  */
+@FunctionalInterface
 public interface SqlParserImplFactory {
 
   /**
@@ -34,4 +38,23 @@ public interface SqlParserImplFactory {
    * @return {@link SqlAbstractParserImpl} object.
    */
   SqlAbstractParserImpl getParser(Reader stream);
+
+  /**
+   * Returns a DDL executor.
+   *
+   * <p>The default implementation returns {@link DdlExecutor#USELESS},
+   * which cannot handle any DDL commands.
+   *
+   * <p>DDL execution is related to parsing but it is admittedly a stretch to
+   * control them in the same factory. Therefore this is marked 'experimental'.
+   * We are bundling them because they are often overridden at the same time. In
+   * particular, we want a way to refine the behavior of the "server" module,
+   * which supports DDL parsing and execution, and we're not yet ready to define
+   * a new {@link java.sql.Driver} or
+   * {@link org.apache.calcite.server.CalciteServer}.
+   */
+  @Experimental
+  default DdlExecutor getDdlExecutor() {
+    return DdlExecutor.USELESS;
+  }
 }

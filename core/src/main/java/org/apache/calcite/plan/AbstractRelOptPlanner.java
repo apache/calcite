@@ -22,15 +22,29 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+import org.slf4j.Logger;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -43,8 +57,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** Regular expression for integer. */
-  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
+  /** Logger for rule attempts information. */
+  private static final Logger RULE_ATTEMPTS_LOGGER = CalciteTrace.getRuleAttemptsTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -52,24 +66,26 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Maps rule description to rule, just to ensure that rules' descriptions
    * are unique.
    */
-  private final Map<String, RelOptRule> mapDescToRule = new HashMap<>();
+  protected final Map<String, RelOptRule> mapDescToRule = new LinkedHashMap<>();
 
   protected final RelOptCostFactory costFactory;
 
-  private MulticastRelOptListener listener;
+  private @MonotonicNonNull MulticastRelOptListener listener;
 
-  private Pattern ruleDescExclusionFilter;
+  private @MonotonicNonNull RuleAttemptsListener ruleAttemptsListener;
 
-  private final AtomicBoolean cancelFlag;
+  private @Nullable Pattern ruleDescExclusionFilter;
+
+  protected final AtomicBoolean cancelFlag;
 
   private final Set<Class<? extends RelNode>> classes = new HashSet<>();
 
-  private final Set<RelTrait> traits = new HashSet<>();
+  private final Set<Convention> conventions = new HashSet<>();
 
   /** External context. Never null. */
   protected final Context context;
 
-  private RexExecutor executor;
+  private @Nullable RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -77,38 +93,43 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Creates an AbstractRelOptPlanner.
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
-      Context context) {
-    assert costFactory != null;
-    this.costFactory = costFactory;
+      @Nullable Context context) {
+    this.costFactory = Objects.requireNonNull(costFactory);
     if (context == null) {
       context = Contexts.empty();
     }
     this.context = context;
 
-    final CancelFlag cancelFlag = context.unwrap(CancelFlag.class);
-    this.cancelFlag = cancelFlag != null ? cancelFlag.atomicBoolean
-        : new AtomicBoolean();
+    this.cancelFlag =
+        context.maybeUnwrap(CancelFlag.class)
+            .map(flag -> flag.atomicBoolean)
+            .orElseGet(AtomicBoolean::new);
 
     // Add abstract RelNode classes. No RelNodes will ever be registered with
     // these types, but some operands may use them.
     classes.add(RelNode.class);
     classes.add(RelSubset.class);
+
+    if (RULE_ATTEMPTS_LOGGER.isDebugEnabled()) {
+      this.ruleAttemptsListener = new RuleAttemptsListener();
+      addListener(this.ruleAttemptsListener);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void clear() {}
+  @Override public void clear() {}
 
-  public Context getContext() {
+  @Override public Context getContext() {
     return context;
   }
 
-  public RelOptCostFactory getCostFactory() {
+  @Override public RelOptCostFactory getCostFactory() {
     return costFactory;
   }
 
   @SuppressWarnings("deprecation")
-  public void setCancelFlag(CancelFlag cancelFlag) {
+  @Override public void setCancelFlag(CancelFlag cancelFlag) {
     // ignored
   }
 
@@ -122,29 +143,19 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  /**
-   * Registers a rule's description.
-   *
-   * @param rule Rule
-   */
-  protected void mapRuleDescription(RelOptRule rule) {
-    // Check that there isn't a rule with the same description,
-    // also validating description string.
+  @Override public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(mapDescToRule.values());
+  }
 
+  @Override public boolean addRule(RelOptRule rule) {
+    // Check that there isn't a rule with the same description
     final String description = rule.toString();
     assert description != null;
-    assert !description.contains("$")
-        : "Rule's description should not contain '$': "
-        + description;
-    assert !INTEGER_PATTERN.matcher(description).matches()
-        : "Rule's description should not be an integer: "
-        + rule.getClass().getName() + ", " + description;
 
     RelOptRule existingRule = mapDescToRule.put(description, rule);
     if (existingRule != null) {
-      if (existingRule == rule) {
-        throw new AssertionError(
-            "Rule should not already be registered");
+      if (existingRule.equals(rule)) {
+        return false;
       } else {
         // This rule has the same description as one previously
         // registered, yet it is not equal. You may need to fix the
@@ -153,29 +164,26 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
             + "existing rule=" + existingRule + "; new rule=" + rule);
       }
     }
+    return true;
   }
 
-  /**
-   * Removes the mapping between a rule and its description.
-   *
-   * @param rule Rule
-   */
-  protected void unmapRuleDescription(RelOptRule rule) {
+  @Override public boolean removeRule(RelOptRule rule) {
     String description = rule.toString();
-    mapDescToRule.remove(description);
+    RelOptRule removed = mapDescToRule.remove(description);
+    return removed != null;
   }
 
   /**
-   * Returns the rule with a given description
+   * Returns the rule with a given description.
    *
    * @param description Description
    * @return Rule with given description, or null if not found
    */
-  protected RelOptRule getRuleByDescription(String description) {
+  protected @Nullable RelOptRule getRuleByDescription(String description) {
     return mapDescToRule.get(description);
   }
 
-  public void setRuleDescExclusionFilter(Pattern exclusionFilter) {
+  @Override public void setRuleDescExclusionFilter(@Nullable Pattern exclusionFilter) {
     ruleDescExclusionFilter = exclusionFilter;
   }
 
@@ -190,46 +198,45 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
         && ruleDescExclusionFilter.matcher(rule.toString()).matches();
   }
 
-  public RelOptPlanner chooseDelegate() {
+  @Override public RelOptPlanner chooseDelegate() {
     return this;
   }
 
-  public void addMaterialization(RelOptMaterialization materialization) {
+  @Override public void addMaterialization(RelOptMaterialization materialization) {
     // ignore - this planner does not support materializations
   }
 
-  public List<RelOptMaterialization> getMaterializations() {
+  @Override public List<RelOptMaterialization> getMaterializations() {
     return ImmutableList.of();
   }
 
-  public void addLattice(RelOptLattice lattice) {
+  @Override public void addLattice(RelOptLattice lattice) {
     // ignore - this planner does not support lattices
   }
 
-  public RelOptLattice getLattice(RelOptTable table) {
+  @Override public @Nullable RelOptLattice getLattice(RelOptTable table) {
     // this planner does not support lattices
     return null;
   }
 
-  public void registerSchema(RelOptSchema schema) {
+  @Override public void registerSchema(RelOptSchema schema) {
   }
 
-  public long getRelMetadataTimestamp(RelNode rel) {
+  @Override public long getRelMetadataTimestamp(RelNode rel) {
     return 0;
   }
 
-  public void setImportance(RelNode rel, double importance) {
+  @Override public void prune(RelNode rel) {
   }
 
-  public void registerClass(RelNode node) {
+  @Override public void registerClass(RelNode node) {
     final Class<? extends RelNode> clazz = node.getClass();
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    for (RelTrait trait : node.getTraitSet()) {
-      if (traits.add(trait)) {
-        trait.register(this);
-      }
+    Convention convention = node.getConvention();
+    if (convention != null && conventions.add(convention)) {
+      convention.register(this);
     }
   }
 
@@ -238,50 +245,59 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     node.register(this);
   }
 
-  public RelTraitSet emptyTraitSet() {
+  @Override public RelTraitSet emptyTraitSet() {
     return RelTraitSet.createEmpty();
   }
 
-  public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     return mq.getCumulativeCost(rel);
   }
 
   @SuppressWarnings("deprecation")
-  public RelOptCost getCost(RelNode rel) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
 
-  public void addListener(RelOptListener newListener) {
+  @Override public void addListener(
+      @UnknownInitialization AbstractRelOptPlanner this,
+      RelOptListener newListener) {
     if (listener == null) {
       listener = new MulticastRelOptListener();
     }
     listener.addListener(newListener);
   }
 
-  public void registerMetadataProviders(List<RelMetadataProvider> list) {
+  @Override public void registerMetadataProviders(List<RelMetadataProvider> list) {
   }
 
-  public boolean addRelTraitDef(RelTraitDef relTraitDef) {
+  @Override public boolean addRelTraitDef(RelTraitDef relTraitDef) {
     return false;
   }
 
-  public void clearRelTraitDefs() {}
+  @Override public void clearRelTraitDefs() {}
 
-  public List<RelTraitDef> getRelTraitDefs() {
+  @Override public List<RelTraitDef> getRelTraitDefs() {
     return ImmutableList.of();
   }
 
-  public void setExecutor(RexExecutor executor) {
+  @Override public void setExecutor(@Nullable RexExecutor executor) {
     this.executor = executor;
   }
 
-  public RexExecutor getExecutor() {
+  @Override public @Nullable RexExecutor getExecutor() {
     return executor;
   }
 
-  public void onCopy(RelNode rel, RelNode newRel) {
+  @Override public void onCopy(RelNode rel, RelNode newRel) {
     // do nothing
+  }
+
+  protected void dumpRuleAttemptsInfo() {
+    if (this.ruleAttemptsListener != null) {
+      RULE_ATTEMPTS_LOGGER.debug("Rule Attempts Info for " + this.getClass().getSimpleName());
+      RULE_ATTEMPTS_LOGGER.debug(this.ruleAttemptsListener.dump());
+    }
   }
 
   /**
@@ -296,6 +312,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     assert ruleCall.getRule().matches(ruleCall);
     if (isRuleExcluded(ruleCall.getRule())) {
       LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion filter",
+          ruleCall.id, ruleCall.getRule());
+      return;
+    }
+
+    if (ruleCall.isRuleExcluded()) {
+      LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion hint",
           ruleCall.id, ruleCall.getRule());
       return;
     }
@@ -397,12 +419,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   /**
-   * Takes care of tracing and listener notification when a rel is discarded
+   * Takes care of tracing and listener notification when a rel is discarded.
    *
-   * @param rel discarded rel
+   * @param rel Discarded rel
    */
-  protected void notifyDiscard(
-      RelNode rel) {
+  protected void notifyDiscard(RelNode rel) {
     if (listener != null) {
       RelOptListener.RelDiscardedEvent event =
           new RelOptListener.RelDiscardedEvent(
@@ -412,7 +433,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  protected MulticastRelOptListener getListener() {
+  @Pure
+  public @Nullable RelOptListener getListener() {
     return listener;
   }
 
@@ -426,5 +448,84 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       }
       return clazz.isAssignableFrom(c);
     });
+  }
+
+  /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
+  private static class RuleAttemptsListener implements RelOptListener {
+    private long beforeTimestamp;
+    private Map<String, Pair<Long, Long>> ruleAttempts;
+
+    RuleAttemptsListener() {
+      ruleAttempts = new HashMap<>();
+    }
+
+    @Override public void relEquivalenceFound(RelEquivalenceEvent event) {
+    }
+
+    @Override public void ruleAttempted(RuleAttemptedEvent event) {
+      if (event.isBefore()) {
+        this.beforeTimestamp = System.nanoTime();
+      } else {
+        long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
+        String rule = event.getRuleCall().getRule().toString();
+        if (ruleAttempts.containsKey(rule)) {
+          Pair<Long, Long> p = ruleAttempts.get(rule);
+          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
+        } else {
+          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
+        }
+      }
+    }
+
+    @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
+    }
+
+    @Override public void relDiscarded(RelDiscardedEvent event) {
+    }
+
+    @Override public void relChosen(RelChosenEvent event) {
+    }
+
+    public String dump() {
+      // Sort rules by number of attempts descending, then by rule elapsed time descending,
+      // then by rule name ascending.
+      List<Map.Entry<String, Pair<Long, Long>>> list =
+          new ArrayList<>(this.ruleAttempts.entrySet());
+      Collections.sort(list,
+          (left, right) -> {
+            int res = right.getValue().left.compareTo(left.getValue().left);
+            if (res == 0) {
+              res = right.getValue().right.compareTo(left.getValue().right);
+            }
+            if (res == 0) {
+              res = left.getKey().compareTo(right.getKey());
+            }
+            return res;
+          });
+
+      // Print out rule attempts and time
+      StringBuilder sb = new StringBuilder();
+      sb.append(String
+          .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
+      NumberFormat usFormat = NumberFormat.getNumberInstance(Locale.US);
+      long totalAttempts = 0;
+      long totalTime = 0;
+      for (Map.Entry<String, Pair<Long, Long>> entry : list) {
+        sb.append(
+            String.format(Locale.ROOT, "%-60s%20s%20s%n",
+                entry.getKey(),
+                usFormat.format(entry.getValue().left),
+                usFormat.format(entry.getValue().right)));
+        totalAttempts += entry.getValue().left;
+        totalTime += entry.getValue().right;
+      }
+      sb.append(
+          String.format(Locale.ROOT, "%-60s%20s%20s%n",
+              "* Total",
+              usFormat.format(totalAttempts),
+              usFormat.format(totalTime)));
+
+      return sb.toString();
+    }
   }
 }

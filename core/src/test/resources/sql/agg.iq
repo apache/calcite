@@ -159,6 +159,28 @@ select stddev_samp(deptno) as s from emp;
 
 !ok
 
+# [CALCITE-3815] Add missing SQL standard aggregate
+# functions: EVERY, SOME, INTERSECTION
+select some(deptno = 100), every(deptno > 0), intersection(multiset[1, 2]) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+| false  | true   | [1, 2] |
++--------+--------+--------+
+(1 row)
+
+!ok
+
+select some(deptno > 100), every(deptno > 0) from emp where deptno > 1000;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+
 # stddev_pop
 select stddev_pop(deptno) as s from emp;
 +----+
@@ -326,6 +348,21 @@ select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno +
 |        | 5 |
 +--------+---+
 (4 rows)
+
+!ok
+
+# GROUPING SETS on single-row relation returns multiple rows
+select 1 as c
+from (values ('a', 'b')) as t (a, b)
+group by grouping sets ((a), (b), (b, a));
++---+
+| C |
++---+
+| 1 |
+| 1 |
+| 1 |
++---+
+(3 rows)
 
 !ok
 
@@ -1213,7 +1250,7 @@ select deptno,
 from "scott".emp
 group by deptno;
 DEPTNO TINYINT(3)
-SAL_10 DECIMAL(7, 2)
+SAL_10 DECIMAL(19, 2)
 !type
 +--------+---------+
 | DEPTNO | SAL_10  |
@@ -1339,6 +1376,23 @@ from (values 0, null, 0, 1) as t(x);
 +---+
 | 1 |
 +---+
+(1 row)
+
+!ok
+
+# Composite COUNT and FILTER
+select count(*) as c,
+  count(*) filter (where z > 1) as cf,
+  count(x) as cx,
+  count(x) filter (where z > 1) as cxf,
+  count(x, y) as cxy,
+  count(x, y) filter (where z > 1) as cxyf
+from (values (1, 1, 1), (2, 2, 2), (3, null, 3), (null, 4, 4)) as t(x, y, z);
++---+----+----+-----+-----+------+
+| C | CF | CX | CXF | CXY | CXYF |
++---+----+----+-----+-----+------+
+| 4 |  3 |  3 |   2 |   2 |    1 |
++---+----+----+-----+-----+------+
 (1 row)
 
 !ok
@@ -2185,11 +2239,61 @@ from (values (1,2),(3,4));
 EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
   EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
-        EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
+      EnumerableValues(tuples=[[{ '1' }, { '1' }]])
 !plan
 
 !use scott
+
+# [CALCITE-4345] SUM(CASE WHEN b THEN 1) etc.
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp;
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL  | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| 29025.00 |                    3 |     8750.00 |    10875.00 |         6 |         0 |           |           |              |           14 |         5 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+
+# Check that SUM produces NULL on empty set, COUNT produces 0.
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp
+where false;
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+|         |                    0 |             |             |           |         0 |           |           |              |              |         0 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
 
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
@@ -2671,25 +2775,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0])], EXPR$2=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0 DESC])])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
 !plan
 
 # [CALCITE-2787] Json aggregate calls with different null clause get incorrectly merged
@@ -2708,25 +2794,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($0)])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
 !plan
 
 select gender,
@@ -2743,25 +2811,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select listagg(ename) as combined_name from emp;
@@ -2784,26 +2834,8 @@ select listagg(ename) within group(order by gender, ename) as combined_name from
 
 !ok
 
-EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([2, 0])])
+  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select
@@ -2817,6 +2849,62 @@ from emp group by gender;
 | Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
 +----------------------------------+---------------------------------------+
 (2 rows)
+
+!ok
+
+# STRING_AGG (BigQuery and PostgreSQL) is very similar to LISTAGG.
+!use post-big-query
+select
+  string_agg(ename order by deptno, ename) as default_string_agg_sep,
+  string_agg(ename, '; ' order by deptno, ename desc) as custom_string_agg_sep
+from emp group by gender;
++----------------------------------+---------------------------------------+
+| DEFAULT_STRING_AGG_SEP           | CUSTOM_STRING_AGG_SEP                 |
++----------------------------------+---------------------------------------+
+| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
+| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
++----------------------------------+---------------------------------------+
+(2 rows)
+
+!ok
+
+# COUNTIF(b) (BigQuery) is equivalent to COUNT(*) FILTER (WHERE b)
+select deptno, countif(gender = 'F') as f
+from emp
+group by deptno;
++--------+---+
+| DEPTNO | F |
++--------+---+
+|     10 | 1 |
+|     20 | 0 |
+|     30 | 2 |
+|     50 | 1 |
+|     60 | 1 |
+|        | 1 |
++--------+---+
+(6 rows)
+
+!ok
+
+select countif(gender = 'F') filter (where deptno = 30) as f
+from emp;
++---+
+| F |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+select countif(a > 0) + countif(a > 1) + countif(c > 1) as c
+from (select 1 as a, 2 as b, 3 as c);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
 
 !ok
 

@@ -28,10 +28,14 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
@@ -55,9 +59,9 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlKind kind,
       int prec,
       boolean leftAssoc,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -70,11 +74,11 @@ public class SqlBinaryOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.BINARY;
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
 
     // op0 opname op1
@@ -95,35 +99,39 @@ public class SqlBinaryOperator extends SqlOperator {
     return !getName().equals(".");
   }
 
-  protected RelDataType adjustType(
+  @Override protected RelDataType adjustType(
       SqlValidator validator,
       final SqlCall call,
       RelDataType type) {
-    RelDataType operandType1 =
+    return convertType(validator, call, type);
+  }
+
+  private RelDataType convertType(SqlValidator validator, SqlCall call, RelDataType type) {
+    RelDataType operandType0 =
         validator.getValidatedNodeType(call.operand(0));
-    RelDataType operandType2 =
+    RelDataType operandType1 =
         validator.getValidatedNodeType(call.operand(1));
-    if (SqlTypeUtil.inCharFamily(operandType1)
-        && SqlTypeUtil.inCharFamily(operandType2)) {
+    if (SqlTypeUtil.inCharFamily(operandType0)
+        && SqlTypeUtil.inCharFamily(operandType1)) {
+      Charset cs0 = operandType0.getCharset();
       Charset cs1 = operandType1.getCharset();
-      Charset cs2 = operandType2.getCharset();
-      assert (null != cs1) && (null != cs2)
+      assert (null != cs0) && (null != cs1)
           : "An implicit or explicit charset should have been set";
-      if (!cs1.equals(cs2)) {
+      if (!cs0.equals(cs1)) {
         throw validator.newValidationError(call,
-            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
+            RESOURCE.incompatibleCharset(getName(), cs0.name(), cs1.name()));
       }
 
-      SqlCollation col1 = operandType1.getCollation();
-      SqlCollation col2 = operandType2.getCollation();
-      assert (null != col1) && (null != col2)
+      SqlCollation collation0 = operandType0.getCollation();
+      SqlCollation collation1 = operandType1.getCollation();
+      assert (null != collation0) && (null != collation1)
           : "An implicit or explicit collation should have been set";
 
-      // validation will occur inside getCoercibilityDyadicOperator...
+      // Validation will occur inside getCoercibilityDyadicOperator...
       SqlCollation resultCol =
           SqlCollation.getCoercibilityDyadicOperator(
-              col1,
-              col2);
+              collation0,
+              collation1);
 
       if (SqlTypeUtil.inCharFamily(type)) {
         type =
@@ -131,63 +139,37 @@ public class SqlBinaryOperator extends SqlOperator {
                 .createTypeWithCharsetAndCollation(
                     type,
                     type.getCharset(),
-                    resultCol);
+                    requireNonNull(resultCol));
       }
     }
     return type;
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
     RelDataType type = super.deriveType(validator, scope, call);
-
-    RelDataType operandType1 =
-        validator.getValidatedNodeType(call.operand(0));
-    RelDataType operandType2 =
-        validator.getValidatedNodeType(call.operand(1));
-    if (SqlTypeUtil.inCharFamily(operandType1)
-        && SqlTypeUtil.inCharFamily(operandType2)) {
-      Charset cs1 = operandType1.getCharset();
-      Charset cs2 = operandType2.getCharset();
-      assert (null != cs1) && (null != cs2)
-          : "An implicit or explicit charset should have been set";
-      if (!cs1.equals(cs2)) {
-        throw validator.newValidationError(call,
-            RESOURCE.incompatibleCharset(getName(), cs1.name(), cs2.name()));
-      }
-
-      SqlCollation col1 = operandType1.getCollation();
-      SqlCollation col2 = operandType2.getCollation();
-      assert (null != col1) && (null != col2)
-          : "An implicit or explicit collation should have been set";
-
-      // validation will occur inside getCoercibilityDyadicOperator...
-      SqlCollation resultCol =
-          SqlCollation.getCoercibilityDyadicOperator(
-              col1,
-              col2);
-
-      if (SqlTypeUtil.inCharFamily(type)) {
-        type =
-            validator.getTypeFactory()
-                .createTypeWithCharsetAndCollation(
-                    type,
-                    type.getCharset(),
-                    resultCol);
-      }
-    }
-    return type;
+    return convertType(validator, call, type);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("/")) {
+      if (call.isOperandNull(0, true)
+          || call.isOperandNull(1, true)) {
+        // null result => CONSTANT monotonicity
+        return SqlMonotonicity.CONSTANT;
+      }
+
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
       if (mono1 == SqlMonotonicity.CONSTANT) {
         if (call.isOperandLiteral(1, false)) {
-          switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
+          BigDecimal value = call.getOperandLiteralValue(1, BigDecimal.class);
+          if (value == null) {
+            return SqlMonotonicity.CONSTANT;
+          }
+          switch (value.signum()) {
           case -1:
 
             // mono / -ve constant --> reverse mono, unstrict

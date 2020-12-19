@@ -36,7 +36,7 @@ public class MongoSchemaFactory implements SchemaFactory {
   public MongoSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String host = (String) operand.get("host");
     final String database = (String) operand.get("database");
@@ -54,7 +54,7 @@ public class MongoSchemaFactory implements SchemaFactory {
     return new MongoSchema(host, database, credential, options.build());
   }
 
-  private MongoCredential createCredential(Map<String, Object> map) {
+  private static MongoCredential createCredential(Map<String, Object> map) {
     final String authMechanismName = (String) map.get("authMechanism");
     final AuthenticationMechanism authenticationMechanism =
         AuthenticationMechanism.fromMechanismName(authMechanismName);
@@ -76,6 +76,8 @@ public class MongoSchemaFactory implements SchemaFactory {
       return MongoCredential.createGSSAPICredential(username);
     case MONGODB_X509:
       return MongoCredential.createMongoX509Credential(username);
+    default:
+      break;
     }
     throw new IllegalArgumentException("Unsupported authentication mechanism "
         + authMechanismName);

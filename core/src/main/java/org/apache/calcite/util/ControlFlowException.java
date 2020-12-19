@@ -24,7 +24,7 @@ package org.apache.calcite.util;
  * makes instantiating one of these (or a sub-class) more efficient.</p>
  */
 public class ControlFlowException extends RuntimeException {
-  @Override public Throwable fillInStackTrace() {
+  @Override public synchronized Throwable fillInStackTrace() {
     return this;
   }
 }

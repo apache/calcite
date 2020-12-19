@@ -27,9 +27,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests for {@link org.apache.calcite.rex.RexUtil#isLosslessCast(RexNode)} and related cases.
  */
-public class RexLosslessCastTest extends RexProgramTestBase {
+class RexLosslessCastTest extends RexProgramTestBase {
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#isLosslessCast(RexNode)}. */
-  @Test public void testLosslessCast() {
+  @Test void testLosslessCast() {
     final RelDataType tinyIntType = typeFactory.createSqlType(SqlTypeName.TINYINT);
     final RelDataType smallIntType = typeFactory.createSqlType(SqlTypeName.SMALLINT);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -127,7 +127,7 @@ public class RexLosslessCastTest extends RexProgramTestBase {
                 varCharType11, rexBuilder.makeInputRef(varCharType10, 0))), is(true));
   }
 
-  @Test public void removeRedundantCast() {
+  @Test void removeRedundantCast() {
     checkSimplify(cast(vInt(), nullable(tInt())), "?0.int0");
     checkSimplifyUnchanged(cast(vInt(), tInt()));
     checkSimplify(cast(vIntNotNull(), nullable(tInt())), "?0.notNullInt0");
@@ -139,7 +139,7 @@ public class RexLosslessCastTest extends RexProgramTestBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
-  @Test public void removeLosslesssCastInt() {
+  @Test void removeLosslesssCastInt() {
     checkSimplifyUnchanged(cast(vInt(), tBigInt()));
     // A.1
     checkSimplify(cast(cast(vInt(), tBigInt()), tInt()), "CAST(?0.int0):INTEGER NOT NULL");
@@ -153,7 +153,7 @@ public class RexLosslessCastTest extends RexProgramTestBase {
         "?0.notNullInt0");
   }
 
-  @Test public void removeLosslesssCastChar() {
+  @Test void removeLosslesssCastChar() {
     checkSimplifyUnchanged(cast(vVarchar(), tChar(3)));
     checkSimplifyUnchanged(cast(cast(vVarchar(), tChar(3)), tVarchar(5)));
 

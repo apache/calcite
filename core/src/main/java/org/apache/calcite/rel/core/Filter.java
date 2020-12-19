@@ -29,14 +29,20 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexChecker;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.collect.ImmutableList;
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that iterates over its input
@@ -64,15 +70,15 @@ public abstract class Filter extends SingleRel {
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
       RexNode condition) {
     super(cluster, traits, child);
-    assert condition != null;
-    assert RexUtil.isFlat(condition) : condition;
-    this.condition = condition;
+    this.condition = requireNonNull(condition, "condition");
+    assert RexUtil.isFlat(condition) : "RexUtil.isFlat should be true for condition " + condition;
     // Too expensive for everyday use:
     assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }
@@ -82,7 +88,7 @@ public abstract class Filter extends SingleRel {
    */
   protected Filter(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getExpression("condition"));
+        requireNonNull(input.getExpression("condition"), "condition"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -95,11 +101,7 @@ public abstract class Filter extends SingleRel {
   public abstract Filter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition);
 
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(condition);
-  }
-
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);
     if (this.condition == condition) {
       return this;
@@ -111,7 +113,12 @@ public abstract class Filter extends SingleRel {
     return condition;
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  /** Returns whether this Filter contains any windowed-aggregate functions. */
+  public final boolean containsOver() {
+    return RexOver.containsOver(condition);
+  }
+
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
       return litmus.fail("Cast for just nullability not allowed");
     }
@@ -124,7 +131,7 @@ public abstract class Filter extends SingleRel {
     return litmus.succeed();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
     double dCpu = mq.getRowCount(getInput());
@@ -148,8 +155,29 @@ public abstract class Filter extends SingleRel {
     return RelMdUtil.estimateFilteredRows(child, condition, mq);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("condition", condition);
+  }
+
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  protected boolean deepEquals0(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    Filter o = (Filter) obj;
+    return traitSet.equals(o.traitSet)
+        && input.deepEquals(o.input)
+        && condition.equals(o.condition)
+        && getRowType().equalsSansFieldNames(o.getRowType());
+  }
+
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  protected int deepHashCode0() {
+    return Objects.hash(traitSet, input.deepHashCode(), condition);
   }
 }

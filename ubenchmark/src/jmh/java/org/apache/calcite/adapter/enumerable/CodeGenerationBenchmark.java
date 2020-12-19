@@ -26,8 +26,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -119,8 +118,8 @@ public class CodeGenerationBenchmark {
       planInfos = new PlanInfo[queries];
       VolcanoPlanner planner = new VolcanoPlanner();
       planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-      planner.addRule(FilterToCalcRule.INSTANCE);
-      planner.addRule(ProjectToCalcRule.INSTANCE);
+      planner.addRule(CoreRules.FILTER_TO_CALC);
+      planner.addRule(CoreRules.PROJECT_TO_CALC);
       planner.addRule(EnumerableRules.ENUMERABLE_CALC_RULE);
       planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
       planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
@@ -134,10 +133,10 @@ public class CodeGenerationBenchmark {
       RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
       // Generates queries of the following form depending on the configuration parameters.
       // SELECT `t`.`name`
-      // FROM (VALUES  (1, 'Value0')) AS `t` (`id`, `name`)
-      // INNER JOIN (VALUES  (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
-      // INNER JOIN (VALUES  (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
-      // INNER JOIN (VALUES  (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
+      // FROM (VALUES (1, 'Value0')) AS `t` (`id`, `name`)
+      // INNER JOIN (VALUES (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
+      // INNER JOIN (VALUES (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
+      // INNER JOIN (VALUES (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
       // INNER JOIN ...
       // WHERE
       //  `t`.`name` = 'name0' OR
@@ -212,7 +211,7 @@ public class CodeGenerationBenchmark {
     }
   }
 
-  /***/
+  /** Plan information. */
   private static class PlanInfo {
     ClassDeclaration classExpr;
     IClassBodyEvaluator cbe;

@@ -28,9 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The base implementation of strict aggregate function.
@@ -50,14 +48,14 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return stateSize;
   }
 
-  protected final void accAdvance(AggAddContext add, Expression acc,
+  protected static void accAdvance(AggAddContext add, Expression acc,
       Expression next) {
     add.currentBlock().add(
         Expressions.statement(
             Expressions.assign(acc, EnumUtils.convert(next, acc.type))));
   }
 
-  public final List<Type> getStateType(AggContext info) {
+  @Override public final List<Type> getStateType(AggContext info) {
     List<Type> subState = getNotNullState(info);
     stateSize = subState.size();
     needTrackEmptySet = nonDefaultOnEmptySet(info);
@@ -73,7 +71,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return res;
   }
 
-  private boolean anyNullable(List<? extends RelDataType> types) {
+  private static boolean anyNullable(List<? extends RelDataType> types) {
     for (RelDataType type : types) {
       if (type.isNullable()) {
         return true;
@@ -89,7 +87,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return Collections.singletonList(type);
   }
 
-  public final void implementReset(AggContext info, AggResetContext reset) {
+  @Override public final void implementReset(AggContext info, AggResetContext reset) {
     if (trackNullsPerRow) {
       List<Expression> acc = reset.accumulator();
       Expression flag = acc.get(acc.size() - 1);
@@ -115,15 +113,16 @@ public abstract class StrictAggImplementor implements AggImplementor {
     }
   }
 
-  public final void implementAdd(AggContext info, final AggAddContext add) {
+  @Override public final void implementAdd(AggContext info, final AggAddContext add) {
     final List<RexNode> args = add.rexArguments();
     final RexToLixTranslator translator = add.rowTranslator();
     final List<Expression> conditions = new ArrayList<>();
     conditions.addAll(
         translator.translateList(args, RexImpTable.NullAs.IS_NOT_NULL));
-    if (add.rexFilterArgument() != null) {
+    RexNode filterArgument = add.rexFilterArgument();
+    if (filterArgument != null) {
       conditions.add(
-          translator.translate(add.rexFilterArgument(),
+          translator.translate(filterArgument,
               RexImpTable.NullAs.FALSE));
     }
     Expression condition = Expressions.foldAnd(conditions);
@@ -148,13 +147,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
       return;
     }
 
-    final Map<RexNode, Boolean> nullables = new HashMap<>();
-    for (RexNode arg : args) {
-      if (translator.isNullable(arg)) {
-        nullables.put(arg, false);
-      }
-    }
-    add.nestBlock(thenBlock, nullables);
+    add.nestBlock(thenBlock);
     implementNotNullAdd(info, add);
     add.exitBlock();
     add.currentBlock().add(Expressions.ifThen(condition, thenBlock.toBlock()));
@@ -163,7 +156,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
   protected abstract void implementNotNullAdd(AggContext info,
       AggAddContext add);
 
-  public final Expression implementResult(AggContext info,
+  @Override public final Expression implementResult(AggContext info,
       final AggResultContext result) {
     if (!needTrackEmptySet) {
       return EnumUtils.convert(

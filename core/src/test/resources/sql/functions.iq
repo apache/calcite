@@ -31,6 +31,17 @@ select cbrt(-8);
 
 !ok
 
+# STRCMP
+select strcmp('mytesttext', 'mytesttext');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
 # XML Functions
 
 SELECT ExtractValue('<a>c</a>', '//a');
@@ -42,6 +53,32 @@ SELECT ExtractValue('<a>c</a>', '//a');
 (1 row)
 
 !ok
+
+# STRING Functions
+
+#CONCAT
+SELECT CONCAT('c', 'h', 'a', 'r');
++--------+
+| EXPR$0 |
++--------+
+| char   |
++--------+
+(1 row)
+
+!ok
+
+# Compression Functions
+
+SELECT COMPRESS('sample');
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 06000000789c2b4ecc2dc849050008de0283 |
++--------------------------------------+
+(1 row)
+
+!ok
+
 
 !use oraclefunc
 
@@ -63,6 +100,28 @@ select tanh(1);
 +--------------------+
 | 0.7615941559557649 |
 +--------------------+
+(1 row)
+
+!ok
+
+# SINH
+select sinh(1);
++--------------------+
+| EXPR$0             |
++--------------------+
+| 1.1752011936438014 |
++--------------------+
+(1 row)
+
+!ok
+
+#CONCAT
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
 (1 row)
 
 !ok

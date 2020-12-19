@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.math.BigDecimal;
@@ -60,6 +61,8 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullInt;
   protected RexLiteral nullSmallInt;
   protected RexLiteral nullVarchar;
+  protected RexLiteral nullDecimal;
+  protected RexLiteral nullVarbinary;
 
   private RelDataType nullableBool;
   private RelDataType nonNullableBool;
@@ -72,6 +75,12 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableVarchar;
   private RelDataType nonNullableVarchar;
+
+  private RelDataType nullableDecimal;
+  private RelDataType nonNullableDecimal;
+
+  private RelDataType nullableVarbinary;
+  private RelDataType nonNullableVarbinary;
 
   // Note: JUnit 4 creates new instance for each test method,
   // so we initialize these structures on demand
@@ -95,15 +104,15 @@ public abstract class RexProgramBuilderBase {
       return null;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    public @Nullable JavaTypeFactory getTypeFactory() {
       return null;
     }
 
-    public QueryProvider getQueryProvider() {
+    public @Nullable QueryProvider getQueryProvider() {
       return null;
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       return map.get(name);
     }
   }
@@ -134,6 +143,14 @@ public abstract class RexProgramBuilderBase {
     nonNullableVarchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
     nullableVarchar = typeFactory.createTypeWithNullability(nonNullableVarchar, true);
     nullVarchar = rexBuilder.makeNullLiteral(nullableVarchar);
+
+    nonNullableDecimal = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    nullableDecimal = typeFactory.createTypeWithNullability(nonNullableDecimal, true);
+    nullDecimal = rexBuilder.makeNullLiteral(nullableDecimal);
+
+    nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
+    nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
+    nullVarbinary = rexBuilder.makeNullLiteral(nullableVarbinary);
   }
 
   private RexDynamicParam getDynamicParam(RelDataType type, String fieldNamePrefix) {
@@ -290,6 +307,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, n1, n2);
   }
 
+  protected RexNode like(RexNode ref, RexNode pattern) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern);
+  }
+
+  protected RexNode like(RexNode ref, RexNode pattern, RexNode escape) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern, escape);
+  }
+
   protected RexNode plus(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
@@ -327,14 +352,15 @@ public abstract class RexProgramBuilderBase {
   }
 
   /**
-   * Generates {@code x IN (y, z)} expression when called as {@code in(x, y, z)}.
+   * Generates {@code x IN (y, z)} expression when called as
+   * {@code in(x, y, z)}.
+   *
    * @param node left side of the IN expression
    * @param nodes nodes in the right side of IN expression
    * @return IN expression
    */
   protected RexNode in(RexNode node, RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.IN,
-        ImmutableList.<RexNode>builder().add(node).add(nodes).build());
+    return rexBuilder.makeIn(node, ImmutableList.copyOf(nodes));
   }
 
   // Types
@@ -402,6 +428,14 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableSmallInt : nonNullableSmallInt;
   }
 
+  protected RelDataType tDecimal() {
+    return nonNullableDecimal;
+  }
+
+  protected RelDataType tDecimal(boolean nullable) {
+    return nullable ? nullableDecimal : nonNullableDecimal;
+  }
+
   protected RelDataType tBigInt() {
     return tBigInt(false);
   }
@@ -413,6 +447,15 @@ public abstract class RexProgramBuilderBase {
     }
     return type;
   }
+
+  protected RelDataType tVarbinary() {
+    return nonNullableVarbinary;
+  }
+
+  protected RelDataType tVarbinary(boolean nullable) {
+    return nullable ? nullableVarbinary : nonNullableVarbinary;
+  }
+
 
   protected RelDataType tArray(RelDataType elemType) {
     return typeFactory.createArrayType(elemType, -1);
@@ -430,41 +473,41 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeNullLiteral(nullable(type));
   }
 
-  protected RexNode literal(boolean value) {
-    return rexBuilder.makeLiteral(value, nonNullableBool, false);
+  protected RexLiteral literal(boolean value) {
+    return rexBuilder.makeLiteral(value, nonNullableBool);
   }
 
-  protected RexNode literal(Boolean value) {
+  protected RexLiteral literal(Boolean value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableBool);
     }
     return literal(value.booleanValue());
   }
 
-  protected RexNode literal(int value) {
-    return rexBuilder.makeLiteral(value, nonNullableInt, false);
+  protected RexLiteral literal(int value) {
+    return rexBuilder.makeLiteral(value, nonNullableInt);
   }
 
-  protected RexNode literal(BigDecimal value) {
+  protected RexLiteral literal(BigDecimal value) {
     return rexBuilder.makeExactLiteral(value);
   }
 
-  protected RexNode literal(BigDecimal value, RelDataType type) {
+  protected RexLiteral literal(BigDecimal value, RelDataType type) {
     return rexBuilder.makeExactLiteral(value, type);
   }
 
-  protected RexNode literal(Integer value) {
+  protected RexLiteral literal(Integer value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableInt);
     }
     return literal(value.intValue());
   }
 
-  protected RexNode literal(String value) {
+  protected RexLiteral literal(String value) {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableVarchar);
     }
-    return rexBuilder.makeLiteral(value, nonNullableVarchar, false);
+    return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
   // Variables
@@ -663,6 +706,50 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vVarcharNotNull(int arg) {
     return vParamNotNull("varchar", arg, nonNullableVarchar);
+  }
+
+  /**
+   * Creates {@code nullable decimal variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDecimal(int)}.
+   * The resulting node would look like {@code ?0.notNullDecimal0}
+   *
+   * @return nullable decimal with index of 0
+   */
+  protected RexNode vDecimal() {
+    return vDecimal(0);
+  }
+
+  /**
+   * Creates {@code nullable decimal variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.decimal3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return nullable decimal variable with given index (0-based)
+   */
+  protected RexNode vDecimal(int arg) {
+    return vParam("decimal", arg, nonNullableDecimal);
+  }
+
+  /**
+   * Creates {@code non-nullable decimal variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDecimalNotNull(int)}.
+   * The resulting node would look like {@code ?0.notNullDecimal0}
+   *
+   * @return non-nullable decimal variable with index of 0
+   */
+  protected RexNode vDecimalNotNull() {
+    return vDecimalNotNull(0);
+  }
+
+  /**
+   * Creates {@code non-nullable decimal variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.notNullDecimal3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return non-nullable decimal variable with given index (0-based)
+   */
+  protected RexNode vDecimalNotNull(int arg) {
+    return vParamNotNull("decimal", arg, nonNullableDecimal);
   }
 
   /**

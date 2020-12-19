@@ -31,6 +31,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
@@ -75,18 +77,19 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         } else if (
             SqlOperator.class.isAssignableFrom(field.getType())) {
           SqlOperator op = (SqlOperator) field.get(this);
-          register(op);
+          if (op != null) {
+            register(op);
+          }
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
-        Util.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
+        throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
   }
 
   // implement SqlOperatorTable
-  public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category, SqlSyntax syntax,
+  @Override public void lookupOperatorOverloads(SqlIdentifier opName,
+      @Nullable SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     // NOTE jvs 3-Mar-2005:  ignore category until someone cares
 
@@ -132,6 +135,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         }
       }
       break;
+    default:
+      break;
     }
   }
 
@@ -160,7 +165,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     caseInsensitiveOperators.put(new CaseInsensitiveKey(op.getName(), op.getSyntax()), op);
   }
 
-  public List<SqlOperator> getOperatorList() {
+  @Override public List<SqlOperator> getOperatorList() {
     return ImmutableList.copyOf(caseSensitiveOperators.values());
   }
 

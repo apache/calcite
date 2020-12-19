@@ -25,7 +25,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
@@ -46,20 +45,20 @@ public class RexAnalyzer {
     this.e = e;
     final VariableCollector variableCollector = new VariableCollector();
     e.accept(variableCollector);
-    predicates.pulledUpPredicates.forEach(p -> p.accept(variableCollector));
+    variableCollector.visitEach(predicates.pulledUpPredicates);
     variables = ImmutableList.copyOf(variableCollector.builder);
     unsupportedCount = variableCollector.unsupportedCount;
   }
 
   /** Generates a map of variables and lists of values that could be assigned
    * to them. */
+  @SuppressWarnings("BetaApi")
   public Iterable<Map<RexNode, Comparable>> assignments() {
     final List<List<Comparable>> generators =
         variables.stream().map(RexAnalyzer::getComparables)
             .collect(Util.toImmutableList());
     final Iterable<List<Comparable>> product = Linq4j.product(generators);
-    //noinspection StaticPseudoFunctionalStyleMethod
-    return Iterables.transform(product,
+    return Util.transform(product,
         values -> ImmutableMap.copyOf(Pair.zip(variables, values)));
   }
 
@@ -75,6 +74,10 @@ public class RexAnalyzer {
       values.add(BigDecimal.valueOf(0L));
       values.add(BigDecimal.valueOf(1L));
       values.add(BigDecimal.valueOf(1_000_000L));
+      break;
+    case DECIMAL:
+      values.add(BigDecimal.valueOf(-100L));
+      values.add(BigDecimal.valueOf(100L));
       break;
     case VARCHAR:
       values.add(new NlsString("", null, null));
@@ -128,13 +131,11 @@ public class RexAnalyzer {
     }
 
     @Override public Void visitCall(RexCall call) {
-      switch (call.getKind()) {
-      case CAST:
+      if (!RexInterpreter.SUPPORTED_SQL_KIND.contains(call.getKind())) {
         ++unsupportedCount;
         return null;
-      default:
-        return super.visitCall(call);
       }
+      return super.visitCall(call);
     }
   }
 }

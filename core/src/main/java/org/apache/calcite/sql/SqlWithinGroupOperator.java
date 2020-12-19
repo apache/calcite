@@ -38,7 +38,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
 
   public SqlWithinGroupOperator() {
     super("WITHIN GROUP", SqlKind.WITHIN_GROUP, 100, true, ReturnTypes.ARG0,
-        null, OperandTypes.ANY_ANY);
+        null, OperandTypes.ANY_IGNORE);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -48,11 +48,11 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     final SqlWriter.Frame orderFrame =
         writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
     writer.keyword("ORDER BY");
-    ((SqlNodeList) call.operand(1)).unparse(writer, 0, 0);
+    call.operand(1).unparse(writer, 0, 0);
     writer.endList(orderFrame);
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -73,7 +73,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     validator.validateAggregateParams(aggCall, null, orderList, scope);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

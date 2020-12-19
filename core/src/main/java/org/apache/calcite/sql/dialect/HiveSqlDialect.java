@@ -38,8 +38,12 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
+import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.ToNumberUtils;
@@ -107,12 +111,16 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -157,7 +165,7 @@ public class HiveSqlDialect extends SqlDialect {
       SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
       break;
     case TRIM:
-      unparseTrim(writer, call, leftPrec, rightPrec);
+      RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
     case CHAR_LENGTH:
     case CHARACTER_LENGTH:
@@ -354,13 +362,15 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public SqlNode getCastSpec(final RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
       case INTEGER:
         SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
             "INT", type.getSqlTypeName(), SqlParserPos.ZERO);
         return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      default:
+        break;
       }
     }
     return super.getCastSpec(type);

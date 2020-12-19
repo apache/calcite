@@ -29,6 +29,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.sql.Types;
 import java.util.Arrays;
@@ -120,7 +122,10 @@ public enum SqlTypeName {
       SqlTypeFamily.COLUMN_LIST),
   DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
       Types.JAVA_OBJECT, SqlTypeFamily.ANY),
-  GEOMETRY(PrecScale.NO_NO, true, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO);
+  /** Spatial type. Though not standard, it is common to several DBs, so we
+   * do not flag it 'special' (internal). */
+  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
+  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -260,10 +265,10 @@ public enum SqlTypeName {
    */
   private final boolean special;
   private final int jdbcOrdinal;
-  private final SqlTypeFamily family;
+  private final @Nullable SqlTypeFamily family;
 
   SqlTypeName(int signatures, boolean special, int jdbcType,
-      SqlTypeFamily family) {
+      @Nullable SqlTypeFamily family) {
     this.signatures = signatures;
     this.special = special;
     this.jdbcOrdinal = jdbcType;
@@ -275,7 +280,7 @@ public enum SqlTypeName {
    *
    * @return Type name, or null if not found
    */
-  public static SqlTypeName get(String name) {
+  public static @Nullable SqlTypeName get(String name) {
     if (false) {
       // The following code works OK, but the spurious exceptions are
       // annoying.
@@ -338,10 +343,8 @@ public enum SqlTypeName {
     return special;
   }
 
-  /**
-   * @return the ordinal from {@link java.sql.Types} corresponding to this
-   * SqlTypeName
-   */
+  /** Returns the ordinal from {@link java.sql.Types} corresponding to this
+   * SqlTypeName. */
   public int getJdbcOrdinal() {
     return jdbcOrdinal;
   }
@@ -355,10 +358,8 @@ public enum SqlTypeName {
         .build();
   }
 
-  /**
-   * @return default scale for this type if supported, otherwise -1 if scale
-   * is either unsupported or must be specified explicitly
-   */
+  /** Returns the default scale for this type if supported, otherwise -1 if
+   * scale is either unsupported or must be specified explicitly. */
   public int getDefaultScale() {
     switch (this) {
     case DECIMAL:
@@ -385,9 +386,9 @@ public enum SqlTypeName {
   /**
    * Gets the SqlTypeFamily containing this SqlTypeName.
    *
-   * @return containing family, or null for none
+   * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
    */
-  public SqlTypeFamily getFamily() {
+  public @Nullable SqlTypeFamily getFamily() {
     return family;
   }
 
@@ -397,7 +398,7 @@ public enum SqlTypeName {
    * @param jdbcType the JDBC type of interest
    * @return corresponding SqlTypeName, or null if the type is not known
    */
-  public static SqlTypeName getNameForJdbcType(int jdbcType) {
+  public static @Nullable SqlTypeName getNameForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_NAME.get(jdbcType);
   }
 
@@ -471,7 +472,7 @@ public enum SqlTypeName {
    * @param scale     Scale, or -1 if not applicable
    * @return Limit value
    */
-  public Object getLimit(
+  public @Nullable Object getLimit(
       boolean sign,
       Limit limit,
       boolean beyond,
@@ -528,9 +529,12 @@ public enum SqlTypeName {
       case OVERFLOW:
         final BigDecimal other =
             (BigDecimal) BIGINT.getLimit(sign, limit, beyond, -1, -1);
-        if (decimal.compareTo(other) == (sign ? 1 : -1)) {
+        if (other != null && decimal.compareTo(other) == (sign ? 1 : -1)) {
           decimal = other;
         }
+        break;
+      default:
+        break;
       }
 
       // Apply scale.
@@ -568,6 +572,8 @@ public enum SqlTypeName {
           buf.append("Z");
         }
         break;
+      default:
+        break;
       }
       return buf.toString();
 
@@ -602,7 +608,6 @@ public enum SqlTypeName {
       calendar = Util.calendar();
       switch (limit) {
       case ZERO:
-
         // The epoch.
         calendar.set(Calendar.YEAR, 1970);
         calendar.set(Calendar.MONTH, 0);
@@ -633,6 +638,8 @@ public enum SqlTypeName {
           calendar.set(Calendar.MONTH, 0);
           calendar.set(Calendar.DAY_OF_MONTH, 1);
         }
+        break;
+      default:
         break;
       }
       calendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -668,6 +675,8 @@ public enum SqlTypeName {
                 : ((precision == 2) ? 990 : ((precision == 1) ? 900 : 0));
         calendar.set(Calendar.MILLISECOND, millis);
         break;
+      default:
+        break;
       }
       return calendar;
 
@@ -675,7 +684,6 @@ public enum SqlTypeName {
       calendar = Util.calendar();
       switch (limit) {
       case ZERO:
-
         // The epoch.
         calendar.set(Calendar.YEAR, 1970);
         calendar.set(Calendar.MONTH, 0);
@@ -722,6 +730,8 @@ public enum SqlTypeName {
           calendar.set(Calendar.SECOND, 0);
           calendar.set(Calendar.MILLISECOND, 0);
         }
+        break;
+      default:
         break;
       }
       return calendar;
@@ -869,7 +879,7 @@ public enum SqlTypeName {
     ZERO, UNDERFLOW, OVERFLOW
   }
 
-  private BigDecimal getNumericLimit(
+  private static @Nullable BigDecimal getNumericLimit(
       int radix,
       int exponent,
       boolean sign,
@@ -938,9 +948,7 @@ public enum SqlTypeName {
     }
   }
 
-  /**
-   * @return name of this type
-   */
+  /** Returns the name of this type. */
   public String getName() {
     return toString();
   }

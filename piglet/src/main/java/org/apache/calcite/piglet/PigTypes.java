@@ -72,7 +72,7 @@ class PigTypes {
       return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);
     }
 
-    public RelDataType toSql(RelDataType type) {
+    @Override public RelDataType toSql(RelDataType type) {
       if (type instanceof JavaType
           && ((JavaType) type).getJavaClass() == DataBag.class) {
         // We don't know the structure of each tuple inside the bag until the runtime.

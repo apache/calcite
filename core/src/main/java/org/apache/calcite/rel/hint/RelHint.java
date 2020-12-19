@@ -16,23 +16,43 @@
  */
 package org.apache.calcite.rel.hint;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
- * Represents hint within a relation expression.
+ * Hint attached to a relation expression.
  *
- * <p>Every hint has a {@code inheritPath} (integers list) which records its propagate path
- * from the root node,
- * number `0` represents the hint is propagated from the first(left) child,
- * number `1` represents the hint is propagated from the second(right) child.
+ * <p>A hint can be used to:
  *
- * <p>Given a relational expression tree with initial attached hints:
+ * <ul>
+ *   <li>Enforce planner: there's no perfect planner, so it makes sense to implement hints to
+ *   allow user better control the execution. For instance, "never merge this subquery with others",
+ *   "treat those tables as leading ones" in the join ordering, etc.</li>
+ *   <li>Append meta data/statistics: Some statistics like “table index for scan” and
+ *   “skew info of some shuffle keys” are somewhat dynamic for the query, it would be very
+ *   convenient to config them with hints because our planning metadata from the planner is very
+ *   often not that accurate.</li>
+ *   <li>Operator resource constraints: For many cases, we would give a default resource
+ *   configuration for the execution operators, i.e. min parallelism or
+ *   managed memory (resource consuming UDF) or special resource requirement (GPU or SSD disk)
+ *   and so on, it would be very flexible to profile the resource with hints per query
+ *   (instead of the Job).</li>
+ * </ul>
+ *
+ * <p>In order to support hint override, each hint has a {@code inheritPath} (integers list) to
+ * record its propagate path from the root node, number `0` represents the hint was propagated
+ * along the first(left) child, number `1` represents the hint was propagated along the
+ * second(right) child. Given a relational expression tree with initial attached hints:
  *
  * <blockquote><pre>
  *            Filter (Hint1)
@@ -44,20 +64,21 @@ import javax.annotation.Nullable;
  *                    Scan2
  * </pre></blockquote>
  *
- * <p>The plan would have hints path as follows
- * (assumes each hint can be propagated to all child nodes):
- * <ul>
- *   <li>Filter would have hints {Hint1[]}</li>
- *   <li>Join would have hints {Hint1[0]}</li>
- *   <li>Scan would have hints {Hint1[0, 0]}</li>
- *   <li>Project would have hints {Hint1[0,1], Hint2[]}</li>
- *   <li>Scan2 would have hints {[Hint1[0, 1, 0], Hint2[0]}</li>
- * </ul>
+ * <p>The plan would have hints path as follows (assumes each hint can be propagated to all
+ * child nodes):
  *
- * <p>The {@code listOptions} and {@code kvOptions} are supposed to contain the same information,
+ * <blockquote><ul>
+ *   <li>Filter &#8594; {Hint1[]}</li>
+ *   <li>Join &#8594; {Hint1[0]}</li>
+ *   <li>Scan &#8594; {Hint1[0, 0]}</li>
+ *   <li>Project &#8594; {Hint1[0,1], Hint2[]}</li>
+ *   <li>Scan2 &#8594; {[Hint1[0, 1, 0], Hint2[0]}</li>
+ * </ul></blockquote>
+ *
+ * <p>{@code listOptions} and {@code kvOptions} are supposed to contain the same information,
  * they are mutually exclusive, that means, they can not both be non-empty.
  *
- * <p>The <code>RelHint</code> is immutable.
+ * <p>RelHint is immutable.
  */
 public class RelHint {
   //~ Instance fields --------------------------------------------------------
@@ -92,46 +113,13 @@ public class RelHint {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * Creates a {@link RelHint} with {@code inheritPath} and hint name.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @return The {@link RelHint} instance with empty options
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName) {
-    return new RelHint(inheritPath, hintName, null, null);
+  /** Creates a hint builder with specified hint name. */
+  public static Builder builder(String hintName) {
+    return new Builder(hintName);
   }
 
   /**
-   * Creates a {@link RelHint} with {@code inheritPath}, hint name and list of string options.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @param listOption  Hint options as a string list
-   * @return The {@link RelHint} instance with options as string list
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
-      List<String> listOption) {
-    return new RelHint(inheritPath, hintName, Objects.requireNonNull(listOption), null);
-  }
-
-  /**
-   * Creates a {@link RelHint} with {@code inheritPath}, hint name
-   * and options as string key-values.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @param kvOptions   Hint options as string key value pairs
-   * @return The {@link RelHint} instance with options as string key value pairs
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
-      Map<String, String> kvOptions) {
-    return new RelHint(inheritPath, hintName, null, Objects.requireNonNull(kvOptions));
-  }
-
-  /**
-   * Represents a copy of this hint that has a specified inherit path.
+   * Returns a copy of this hint with specified inherit path.
    *
    * @param inheritPath Hint path
    * @return the new {@code RelHint}
@@ -141,15 +129,18 @@ public class RelHint {
     return new RelHint(inheritPath, hintName, listOptions, kvOptions);
   }
 
-  @Override public boolean equals(Object obj) {
-    if (!(obj instanceof RelHint)) {
+  @Override public boolean equals(@Nullable Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final RelHint that = (RelHint) obj;
-    return this.hintName.equals(that.hintName)
-        && this.inheritPath.equals(that.inheritPath)
-        && Objects.equals(this.listOptions, that.listOptions)
-        && Objects.equals(this.kvOptions, that.kvOptions);
+    RelHint hint = (RelHint) o;
+    return inheritPath.equals(hint.inheritPath)
+        && hintName.equals(hint.hintName)
+        && Objects.equals(listOptions, hint.listOptions)
+        && Objects.equals(kvOptions, hint.kvOptions);
   }
 
   @Override public int hashCode() {
@@ -173,5 +164,76 @@ public class RelHint {
     }
     builder.append("]");
     return builder.toString();
+  }
+
+  //~ Inner Class ------------------------------------------------------------
+
+  /** Builder for {@link RelHint}. */
+  public static class Builder {
+    private String hintName;
+    private List<Integer> inheritPath;
+
+    private List<String> listOptions;
+    private Map<String, String> kvOptions;
+
+    private Builder(String hintName) {
+      this.listOptions = new ArrayList<>();
+      this.kvOptions = new LinkedHashMap<>();
+      this.hintName = hintName;
+      this.inheritPath = ImmutableList.of();
+    }
+
+    /** Sets up the inherit path with given integer list. */
+    public Builder inheritPath(Iterable<Integer> inheritPath) {
+      this.inheritPath = ImmutableList.copyOf(Objects.requireNonNull(inheritPath));
+      return this;
+    }
+
+    /** Sets up the inherit path with given integer array. */
+    public Builder inheritPath(Integer... inheritPath) {
+      this.inheritPath = Arrays.asList(inheritPath);
+      return this;
+    }
+
+    /** Add a hint option as string. */
+    public Builder hintOption(String hintOption) {
+      Objects.requireNonNull(hintOption);
+      Preconditions.checkState(this.kvOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.listOptions.add(hintOption);
+      return this;
+    }
+
+    /** Add multiple string hint options. */
+    public Builder hintOptions(Iterable<String> hintOptions) {
+      Objects.requireNonNull(hintOptions);
+      Preconditions.checkState(this.kvOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.listOptions = ImmutableList.copyOf(hintOptions);
+      return this;
+    }
+
+    /** Add a hint option as string key-value pair. */
+    public Builder hintOption(String optionKey, String optionValue) {
+      Objects.requireNonNull(optionKey);
+      Objects.requireNonNull(optionValue);
+      Preconditions.checkState(this.listOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.kvOptions.put(optionKey, optionValue);
+      return this;
+    }
+
+    /** Add multiple string key-value pair hint options. */
+    public Builder hintOptions(Map<String, String> kvOptions) {
+      Objects.requireNonNull(kvOptions);
+      Preconditions.checkState(this.listOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.kvOptions = kvOptions;
+      return this;
+    }
+
+    public RelHint build() {
+      return new RelHint(this.inheritPath, this.hintName, this.listOptions, this.kvOptions);
+    }
   }
 }

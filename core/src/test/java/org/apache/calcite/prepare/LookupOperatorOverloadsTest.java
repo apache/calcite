@@ -61,7 +61,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for lookupOperatorOverloads() in {@link CalciteCatalogReader}.
  */
-public class LookupOperatorOverloadsTest {
+class LookupOperatorOverloadsTest {
 
   private void checkFunctionType(int size, String name,
       List<SqlOperator> operatorList) {
@@ -78,7 +78,7 @@ public class LookupOperatorOverloadsTest {
     assertThat(actuals, is(Arrays.asList(expecteds)));
   }
 
-  @Test public void testIsUserDefined() throws SQLException {
+  @Test void testIsUserDefined() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isUserDefined()) {
@@ -90,7 +90,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsTableFunction() throws SQLException {
+  @Test void testIsTableFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isTableFunction()) {
@@ -101,7 +101,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION, MATCH_RECOGNIZE);
   }
 
-  @Test public void testIsSpecific() throws SQLException {
+  @Test void testIsSpecific() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isSpecific()) {
@@ -112,7 +112,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsUserDefinedNotSpecificFunction() throws SQLException {
+  @Test void testIsUserDefinedNotSpecificFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
       if (sqlFunctionCategory.isUserDefinedNotSpecificFunction()) {
@@ -122,11 +122,11 @@ public class LookupOperatorOverloadsTest {
     check(cats, USER_DEFINED_FUNCTION, USER_DEFINED_TABLE_FUNCTION);
   }
 
-  @Test public void testLookupCaseSensitively() throws SQLException {
+  @Test void testLookupCaseSensitively() throws SQLException {
     checkInternal(true);
   }
 
-  @Test public void testLookupCaseInSensitively() throws SQLException {
+  @Test void testLookupCaseInSensitively() throws SQLException {
     checkInternal(false);
   }
 

@@ -23,11 +23,9 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Utilities for connecting to REST services such as Splunk via HTTP.
@@ -37,20 +35,7 @@ public class HttpUtils {
 
   public static HttpURLConnection getURLConnection(String url)
       throws IOException {
-    URLConnection conn = new URL(url).openConnection();
-    final HttpURLConnection httpConn = (HttpURLConnection) conn;
-
-    // take care of https stuff - most of the time it's only needed to
-    // secure client/server comm
-    // not to establish the identity of the server
-    if (httpConn instanceof HttpsURLConnection) {
-      HttpsURLConnection httpsConn = (HttpsURLConnection) httpConn;
-      httpsConn.setSSLSocketFactory(
-          TrustAllSslSocketFactory.createSSLSocketFactory());
-      httpsConn.setHostnameVerifier((arg0, arg1) -> true);
-    }
-
-    return httpConn;
+    return (HttpURLConnection) new URL(url).openConnection();
   }
 
   public static void appendURLEncodedArgs(

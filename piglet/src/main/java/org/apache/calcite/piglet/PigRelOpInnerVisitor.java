@@ -58,6 +58,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
   private final Deque<CorrelationId> corStack = new ArrayDeque<>();
 
   /**
+   * Creates a PigRelOpInnerVisitor.
    *
    * @param plan Pig inner logical plan
    * @param walker The walker over Pig logical plan

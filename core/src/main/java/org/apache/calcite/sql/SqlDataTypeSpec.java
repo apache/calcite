@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -63,14 +65,14 @@ public class SqlDataTypeSpec extends SqlNode {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlTypeNameSpec typeNameSpec;
-  private final TimeZone timeZone;
+  private final @Nullable TimeZone timeZone;
 
   /** Whether data type allows nulls.
    *
    * <p>Nullable is nullable! Null means "not specified". E.g.
    * {@code CAST(x AS INTEGER)} preserves the same nullability as {@code x}.
    */
-  private Boolean nullable;
+  private final @Nullable Boolean nullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -95,7 +97,7 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public SqlDataTypeSpec(
       final SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
+      @Nullable TimeZone timeZone,
       SqlParserPos pos) {
     this(typeNameSpec, timeZone, null, pos);
   }
@@ -111,8 +113,8 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public SqlDataTypeSpec(
       SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
-      Boolean nullable,
+      @Nullable TimeZone timeZone,
+      @Nullable Boolean nullable,
       SqlParserPos pos) {
     super(pos);
     this.typeNameSpec = typeNameSpec;
@@ -122,15 +124,15 @@ public class SqlDataTypeSpec extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlNode clone(SqlParserPos pos) {
     return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
-  public SqlIdentifier getCollectionsTypeName() {
+  public @Nullable SqlIdentifier getCollectionsTypeName() {
     if (typeNameSpec instanceof SqlCollectionTypeNameSpec) {
       return typeNameSpec.getTypeName();
     }
@@ -145,21 +147,30 @@ public class SqlDataTypeSpec extends SqlNode {
     return typeNameSpec;
   }
 
-  public TimeZone getTimeZone() {
+  public @Nullable TimeZone getTimeZone() {
     return timeZone;
   }
 
-  public Boolean getNullable() {
+  public @Nullable Boolean getNullable() {
     return nullable;
   }
 
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (Objects.equals(nullable, this.nullable)) {
+    return withNullable(nullable, SqlParserPos.ZERO);
+  }
+
+  /** Returns a copy of this data type specification with a given
+   * nullability, extending the parser position. */
+  public SqlDataTypeSpec withNullable(Boolean nullable, SqlParserPos pos) {
+    final SqlParserPos newPos = pos == SqlParserPos.ZERO ? this.pos
+        : this.pos.plus(pos);
+    if (Objects.equals(nullable, this.nullable)
+        && newPos.equals(this.pos)) {
       return this;
     }
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, getParserPosition());
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, newPos);
   }
 
   /**
@@ -174,19 +185,19 @@ public class SqlDataTypeSpec extends SqlNode {
     return new SqlDataTypeSpec(elementTypeName, timeZone, getParserPosition());
   }
 
-  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDataType(this);
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDataTypeSpec)) {
       return litmus.fail("{} != {}", this, node);
     }

@@ -23,6 +23,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -39,7 +41,7 @@ public class RedisTableFactory implements TableFactory {
 
   // name that is also the same name as a complex metric
   @Override public Table create(SchemaPlus schema, String tableName, Map operand,
-      RelDataType rowType) {
+      @Nullable RelDataType rowType) {
     final RedisSchema redisSchema = schema.unwrap(RedisSchema.class);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;

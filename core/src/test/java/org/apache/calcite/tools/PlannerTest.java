@@ -34,6 +34,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -46,16 +47,10 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
-import org.apache.calcite.rel.rules.SortJoinTransposeRule;
-import org.apache.calcite.rel.rules.SortProjectTransposeRule;
-import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
-import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -76,8 +71,8 @@ import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -98,7 +93,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.apache.calcite.test.RelMetadataTest.sortsAs;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -113,7 +107,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit tests for {@link Planner}.
  */
-public class PlannerTest {
+class PlannerTest {
   private void checkParseAndConvert(String query,
       String queryFromParseTree, String expectedRelExpr) throws Exception {
     Planner planner = getPlanner(null);
@@ -125,7 +119,7 @@ public class PlannerTest {
     assertThat(toString(rel), equalTo(expectedRelExpr));
   }
 
-  @Test public void testParseAndConvert() throws Exception {
+  @Test void testParseAndConvert() throws Exception {
     checkParseAndConvert(
         "select * from \"emps\" where \"name\" like '%e%'",
 
@@ -135,27 +129,27 @@ public class PlannerTest {
 
         "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
         + "  LogicalFilter(condition=[LIKE($2, '%e%')])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    LogicalTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test public void testParseIdentiferMaxLengthWithDefault() {
+  @Test void testParseIdentifierMaxLengthWithDefault() {
     Assertions.assertThrows(SqlParseException.class, () -> {
-      Planner planner = getPlanner(null, SqlParser.configBuilder().build());
+      Planner planner = getPlanner(null, SqlParser.config());
       planner.parse("select name as "
           + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
     });
   }
 
-  @Test public void testParseIdentiferMaxLengthWithIncreased() throws Exception {
+  @Test void testParseIdentifierMaxLengthWithIncreased() throws Exception {
     Planner planner = getPlanner(null,
-        SqlParser.configBuilder().setIdentifierMaxLength(512).build());
+        SqlParser.config().withIdentifierMaxLength(512));
     planner.parse("select name as "
         + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
   }
 
   /** Unit test that parses, validates and converts the query using
    * order by and offset. */
-  @Test public void testParseAndConvertWithOrderByAndOffset() throws Exception {
+  @Test void testParseAndConvertWithOrderByAndOffset() throws Exception {
     checkParseAndConvert(
         "select * from \"emps\" "
             + "order by \"emps\".\"deptno\" offset 10",
@@ -167,7 +161,7 @@ public class PlannerTest {
 
         "LogicalSort(sort0=[$1], dir0=[ASC], offset=[10])\n"
         + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    LogicalTableScan(table=[[hr, emps]])\n");
   }
 
   private String toString(RelNode rel) {
@@ -176,7 +170,7 @@ public class PlannerTest {
             SqlExplainLevel.EXPPLAN_ATTRIBUTES));
   }
 
-  @Test public void testParseFails() throws SqlParseException {
+  @Test void testParseFails() {
     Planner planner = getPlanner(null);
     try {
       SqlNode parse =
@@ -188,7 +182,7 @@ public class PlannerTest {
     }
   }
 
-  @Test public void testValidateFails() throws SqlParseException {
+  @Test void testValidateFails() throws SqlParseException {
     Planner planner = getPlanner(null);
     SqlNode parse =
         planner.parse("select * from \"emps\" where \"Xname\" like '%e%'");
@@ -207,10 +201,10 @@ public class PlannerTest {
     }
   }
 
-  @Test public void testValidateUserDefinedAggregate() throws Exception {
+  @Test void testValidateUserDefinedAggregate() throws Exception {
     final SqlStdOperatorTable stdOpTab = SqlStdOperatorTable.instance();
     SqlOperatorTable opTab =
-        ChainedSqlOperatorTable.of(stdOpTab,
+        SqlOperatorTables.chain(stdOpTab,
             new ListSqlOperatorTable(
                 ImmutableList.of(new MyCountAggFunction())));
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -250,7 +244,7 @@ public class PlannerTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3547">[CALCITE-3547]
    * SqlValidatorException because Planner cannot find UDFs added to schema</a>. */
-  @Test public void testValidateUserDefinedFunctionInSchema() throws Exception {
+  @Test void testValidateUserDefinedFunctionInSchema() throws Exception {
     SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     rootSchema.add("my_plus",
         ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
@@ -290,7 +284,7 @@ public class PlannerTest {
    * {@link Planner#rel(org.apache.calcite.sql.SqlNode)}
    * a {@link org.apache.calcite.sql.SqlNode} that has been parsed but not
    * validated. */
-  @Test public void testConvertWithoutValidateFails() throws Exception {
+  @Test void testConvertWithoutValidateFails() throws Exception {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse("select * from \"emps\"");
     try {
@@ -317,7 +311,7 @@ public class PlannerTest {
   }
 
   /** Tests predicates that can be pulled-up from a UNION. */
-  @Test public void testMetadataUnionPredicates() throws Exception {
+  @Test void testMetadataUnionPredicates() throws Exception {
     checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
@@ -328,7 +322,7 @@ public class PlannerTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
-  @Test public void testMetadataUnionPredicates2() throws Exception {
+  @Test void testMetadataUnionPredicates2() throws Exception {
     checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
@@ -336,7 +330,7 @@ public class PlannerTest {
         "[]");
   }
 
-  @Test public void testMetadataUnionPredicates3() throws Exception {
+  @Test void testMetadataUnionPredicates3() throws Exception {
     checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
@@ -344,7 +338,7 @@ public class PlannerTest {
         "[<($1, 10)]");
   }
 
-  @Test public void testMetadataUnionPredicates4() throws Exception {
+  @Test void testMetadataUnionPredicates4() throws Exception {
     checkMetadataPredicates(
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
@@ -352,7 +346,7 @@ public class PlannerTest {
         "[OR(<($1, 10), >($0, 1))]");
   }
 
-  @Test public void testMetadataUnionPredicates5() throws Exception {
+  @Test void testMetadataUnionPredicates5() throws Exception {
     final String sql = "select * from \"emps\" where \"deptno\" < 10\n"
         + "union all\n"
         + "select * from \"emps\" where \"deptno\" < 10 and false";
@@ -363,7 +357,7 @@ public class PlannerTest {
    * {@code GROUP BY ()}. This form of Aggregate can convert an empty relation
    * to a single-row relation, so it is not valid to pull up the predicate
    * {@code false}. */
-  @Test public void testMetadataAggregatePredicates() throws Exception {
+  @Test void testMetadataAggregatePredicates() throws Exception {
     checkMetadataPredicates("select count(*) from \"emps\" where false",
         "[]");
   }
@@ -371,14 +365,14 @@ public class PlannerTest {
   /** Tests predicates that can be pulled-up from an Aggregate with a non-empty
    * group key. The {@code false} predicate effectively means that the relation
    * is empty, because no row can satisfy {@code false}. */
-  @Test public void testMetadataAggregatePredicates2() throws Exception {
+  @Test void testMetadataAggregatePredicates2() throws Exception {
     final String sql = "select \"deptno\", count(\"deptno\")\n"
         + "from \"emps\" where false\n"
         + "group by \"deptno\"";
     checkMetadataPredicates(sql, "[false]");
   }
 
-  @Test public void testMetadataAggregatePredicates3() throws Exception {
+  @Test void testMetadataAggregatePredicates3() throws Exception {
     final String sql = "select \"deptno\", count(\"deptno\")\n"
         + "from \"emps\" where \"deptno\" > 10\n"
         + "group by \"deptno\"";
@@ -386,10 +380,11 @@ public class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and plans. */
-  @Test public void testPlan() throws Exception {
+  @Test void testPlan() throws Exception {
     Program program =
         Programs.ofRules(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     Planner planner = getPlanner(null, program);
@@ -406,7 +401,7 @@ public class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and plans. */
-  @Test public void trimEmptyUnion2() throws Exception {
+  @Test void trimEmptyUnion2() throws Exception {
     checkUnionPruning("values(1) union all select * from (values(2)) where false",
         "EnumerableValues(tuples=[[{ 1 }]])\n");
 
@@ -414,12 +409,12 @@ public class PlannerTest {
         "EnumerableValues(tuples=[[{ 1 }]])\n");
   }
 
-  @Test public void trimEmptyUnion31() throws Exception {
+  @Test void trimEmptyUnion31() throws Exception {
     emptyUnions31();
   }
 
-  @Test public void trimEmptyUnion31withUnionMerge() throws Exception {
-    emptyUnions31(UnionMergeRule.INSTANCE);
+  @Test void trimEmptyUnion31withUnionMerge() throws Exception {
+    emptyUnions31(CoreRules.UNION_MERGE);
   }
 
   private void emptyUnions31(UnionMergeRule... extraRules)
@@ -445,12 +440,12 @@ public class PlannerTest {
       + " [rel#69:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#78,input#1=RelSubset#71,all=true)]"
       + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io} than best cost {5.0 rows, 5.0 cpu, 0.0 io}"
       + " of subset [rel#67:Subset#6.ENUMERABLE.[]]")
-  @Test public void trimEmptyUnion32() throws Exception {
+  @Test void trimEmptyUnion32() throws Exception {
     emptyUnions32();
   }
 
-  @Test public void trimEmptyUnion32withUnionMerge() throws Exception {
-    emptyUnions32(UnionMergeRule.INSTANCE);
+  @Test void trimEmptyUnion32withUnionMerge() throws Exception {
+    emptyUnions32(CoreRules.UNION_MERGE);
   }
 
   private void emptyUnions32(UnionMergeRule... extraRules)
@@ -479,7 +474,7 @@ public class PlannerTest {
       throws SqlParseException, ValidationException, RelConversionException {
     ImmutableList.Builder<RelOptRule> rules = ImmutableList.<RelOptRule>builder().add(
         PruneEmptyRules.UNION_INSTANCE,
-        ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+        CoreRules.PROJECT_FILTER_VALUES_MERGE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,
         EnumerableRules.ENUMERABLE_VALUES_RULE,
@@ -501,7 +496,7 @@ public class PlannerTest {
       + " [rel#17:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#26,input#1=RelSubset#19,all=true)]"
       + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io}"
       + " than best cost {5.0 rows, 5.0 cpu, 0.0 io} of subset [rel#15:Subset#5.ENUMERABLE.[]]")
-  @Test public void trimEmptyUnion32viaRelBuidler() throws Exception {
+  @Test void trimEmptyUnion32viaRelBuidler() {
     RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
 
     // This somehow blows up (see trimEmptyUnion32, the second case)
@@ -522,7 +517,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             PruneEmptyRules.UNION_INSTANCE,
-            ValuesReduceRule.FILTER_INSTANCE,
+            CoreRules.FILTER_VALUES_MERGE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_VALUES_RULE,
@@ -547,11 +542,12 @@ public class PlannerTest {
   }
 
   /** Unit test that parses, validates, converts and
-   * plans for query using order by */
-  @Test public void testSortPlan() throws Exception {
+   * plans for query using ORDER BY. */
+  @Test void testSortPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -576,12 +572,13 @@ public class PlannerTest {
    * <p>Since the left input to the join is sorted, and this join preserves
    * order, there shouldn't be any sort operator above the join.
    */
-  @Test public void testRedundantSortOnJoinPlan() throws Exception {
+  @Test void testRedundantSortOnJoinPlan() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
-            SortJoinTransposeRule.INSTANCE,
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
+            CoreRules.SORT_JOIN_TRANSPOSE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
@@ -612,7 +609,7 @@ public class PlannerTest {
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.
    * The duplicate order by should be removed by SqlToRelConverter. */
-  @Test public void testDuplicateSortPlan() throws Exception {
+  @Test void testDuplicateSortPlan() throws Exception {
     runDuplicateSortCheck(
         "select empid from ( "
         + "select * "
@@ -627,7 +624,7 @@ public class PlannerTest {
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.
    * The duplicate order by should be removed by SqlToRelConverter. */
-  @Test public void testDuplicateSortPlanWithExpr() throws Exception {
+  @Test void testDuplicateSortPlanWithExpr() throws Exception {
     runDuplicateSortCheck("select empid+deptno from ( "
         + "select empid, deptno "
         + "from emps "
@@ -638,7 +635,7 @@ public class PlannerTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test public void testTwoSortRemoveInnerSort() throws Exception {
+  @Test void testTwoSortRemoveInnerSort() throws Exception {
     runDuplicateSortCheck("select empid+deptno from ( "
         + "select empid, deptno "
         + "from emps "
@@ -650,8 +647,8 @@ public class PlannerTest {
   }
 
   /** Tests that outer order by is not removed since window function
-   * might reorder the rows in-between */
-  @Test public void testDuplicateSortPlanWithOver() throws Exception {
+   * might reorder the rows in-between. */
+  @Test void testDuplicateSortPlanWithOver() throws Exception {
     runDuplicateSortCheck("select emp_cnt, empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
         + "  select empid, deptno "
@@ -661,11 +658,11 @@ public class PlannerTest {
         + "order by deptno",
         "EnumerableSort(sort0=[$2], dir0=[ASC])\n"
         + "  EnumerableProject(emp_cnt=[$5], EXPR$1=[+($0, $1)], deptno=[$1])\n"
-        + "    EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "    EnumerableWindow(window#0=[window(partition {1} aggs [COUNT()])])\n"
         + "      EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test public void testDuplicateSortPlanWithRemovedOver() throws Exception {
+  @Test void testDuplicateSortPlanWithRemovedOver() throws Exception {
     runDuplicateSortCheck("select empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
         + "  select empid, deptno "
@@ -685,13 +682,13 @@ public class PlannerTest {
   private void runDuplicateSortCheck(String sql, String plan) throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            SortRemoveRule.INSTANCE,
+            CoreRules.SORT_REMOVE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_WINDOW_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
-            ProjectToWindowRule.PROJECT);
-    Planner planner = getPlanner(null,
-        SqlParser.configBuilder().setLex(Lex.JAVA).build(),
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    Planner planner = getPlanner(null, SqlParser.config().withLex(Lex.JAVA),
         Programs.of(ruleSet));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
@@ -708,9 +705,10 @@ public class PlannerTest {
 
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.*/
-  @Test public void testDuplicateSortPlanWORemoveSortRule() throws Exception {
+  @Test void testDuplicateSortPlanWORemoveSortRule() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -735,7 +733,7 @@ public class PlannerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3029">[CALCITE-3029]
    * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
    * SQL-oriented</a>. */
-  @Test public void testInsertSourceRelTypeWithNullValues() throws Exception {
+  @Test void testInsertSourceRelTypeWithNullValues() throws Exception {
     Planner planner = getPlanner(null, Programs.standard());
     SqlNode parse = planner.parse(
         "insert into \"emps\" values(1, 1, null, 1, 1)");
@@ -750,10 +748,11 @@ public class PlannerTest {
 
   /** Unit test that parses, validates, converts and plans. Planner is
    * provided with a list of RelTraitDefs to register. */
-  @Test public void testPlanWithExplicitTraitDefs() throws Exception {
+  @Test void testPlanWithExplicitTraitDefs() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     final List<RelTraitDef> traitDefs = new ArrayList<>();
@@ -775,10 +774,11 @@ public class PlannerTest {
   }
 
   /** Unit test that calls {@link Planner#transform} twice. */
-  @Test public void testPlanTransformTwice() throws Exception {
+  @Test void testPlanTransformTwice() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -796,37 +796,16 @@ public class PlannerTest {
   }
 
   /** Unit test that calls {@link Planner#transform} twice with
-   *  rule name conflicts */
-  @Test public void testPlanTransformWithRuleNameConflicts() throws Exception {
+   * rule name conflicts. */
+  @Test void testPlanTransformWithRuleNameConflicts() throws Exception {
     // Create two dummy rules with identical rules.
-    RelOptRule rule1 = new RelOptRule(
-        operand(LogicalProject.class,
-            operand(LogicalFilter.class, RelOptRule.any())),
-        "MYRULE") {
-      @Override public boolean matches(RelOptRuleCall call) {
-        return false;
-      }
-
-      public void onMatch(RelOptRuleCall call) {
-      }
-    };
-
-    RelOptRule rule2 = new RelOptRule(
-        operand(LogicalFilter.class,
-            operand(LogicalProject.class, RelOptRule.any())),
-        "MYRULE") {
-
-      @Override public boolean matches(RelOptRuleCall call) {
-        return false;
-      }
-
-      public void onMatch(RelOptRuleCall call) {
-      }
-    };
+    RelOptRule rule1 = MyProjectFilterRule.config("MYRULE").toRule();
+    RelOptRule rule2 = MyFilterProjectRule.config("MYRULE").toRule();
 
     RuleSet ruleSet1 =
         RuleSets.ofList(
             rule1,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
 
@@ -850,7 +829,7 @@ public class PlannerTest {
   }
 
   /** Tests that Hive dialect does not generate "AS". */
-  @Test public void testHiveDialect() throws SqlParseException {
+  @Test void testHiveDialect() throws SqlParseException {
     Planner planner = getPlanner(null);
     SqlNode parse = planner.parse(
         "select * from (select * from \"emps\") as t\n"
@@ -871,17 +850,18 @@ public class PlannerTest {
    * from the typical convention in that it is not a singleton. Switching to
    * a different instance causes problems unless planner state is wiped clean
    * between calls to {@link Planner#transform}. */
-  @Test public void testPlanTransformWithDiffRuleSetAndConvention()
+  @Test void testPlanTransformWithDiffRuleSetAndConvention()
       throws Exception {
     Program program0 =
         Programs.ofRules(
-            FilterMergeRule.INSTANCE,
+            CoreRules.FILTER_MERGE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
 
     JdbcConvention out = new JdbcConvention(null, null, "myjdbc");
     Program program1 = Programs.ofRules(
-        new MockJdbcProjectRule(out), new MockJdbcTableRule(out));
+        MockJdbcProjectRule.create(out), MockJdbcTableRule.create(out));
 
     Planner planner = getPlanner(null, program0, program1);
     SqlNode parse = planner.parse("select T1.\"name\" from \"emps\" as T1 ");
@@ -902,24 +882,20 @@ public class PlannerTest {
             + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
   }
 
-  @Test public void testPlan5WayJoin()
-      throws Exception {
+  @Test void testPlan5WayJoin() throws Exception {
     checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
   }
 
-  @Test public void testPlan9WayJoin()
-      throws Exception {
+  @Test void testPlan9WayJoin() throws Exception {
     checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
   }
 
-  @Test public void testPlan35WayJoin()
-      throws Exception {
+  @Test void testPlan35WayJoin() throws Exception {
     checkJoinNWay(35); // takes about 2s
   }
 
   @Tag("slow")
-  @Test public void testPlan60WayJoin()
-      throws Exception {
+  @Test void testPlan60WayJoin() throws Exception {
     checkJoinNWay(60); // takes about 15s
   }
 
@@ -974,7 +950,7 @@ public class PlannerTest {
    * <p>Specifically, tests that a relation (dependents) in an inner join
    * cannot be pushed into an outer join (emps left join depts).
    */
-  @Test public void testHeuristicLeftJoin() throws Exception {
+  @Test void testHeuristicLeftJoin() throws Exception {
     final String sql = "select * from \"emps\" as e\n"
         + "left join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
@@ -995,7 +971,7 @@ public class PlannerTest {
    * {@code (emps  join dependents) right join depts}
    * but we do not currently allow it.
    */
-  @Test public void testHeuristicPushInnerJoin() throws Exception {
+  @Test void testHeuristicPushInnerJoin() throws Exception {
     final String sql = "select * from \"emps\" as e\n"
         + "right join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
@@ -1013,7 +989,7 @@ public class PlannerTest {
 
   /** Tests that a relation (dependents) that is on the null-generating side of
    * an outer join cannot be pushed into an inner join (emps join depts). */
-  @Test public void testHeuristicRightJoin() throws Exception {
+  @Test void testHeuristicRightJoin() throws Exception {
     final String sql = "select * from \"emps\" as e\n"
         + "join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "right join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
@@ -1042,7 +1018,7 @@ public class PlannerTest {
 
   /** Plans a 3-table join query on the FoodMart schema. The ideal plan is not
    * bushy, but nevertheless exercises the bushy-join heuristic optimizer. */
-  @Test public void testAlmostBushy() throws Exception {
+  @Test void testAlmostBushy() throws Exception {
     final String sql = "select *\n"
         + "from \"sales_fact_1997\" as s\n"
         + "join \"customer\" as c\n"
@@ -1071,7 +1047,7 @@ public class PlannerTest {
    * which would be written
    *   (customer x ((product_class x product) x sales))
    * if you don't assume 'x' is left-associative. */
-  @Test public void testBushy() throws Exception {
+  @Test void testBushy() throws Exception {
     final String sql = "select *\n"
         + "from \"sales_fact_1997\" as s\n"
         + "join \"customer\" as c\n"
@@ -1099,7 +1075,7 @@ public class PlannerTest {
 
   /** Plans a 5-table join query on the FoodMart schema. The ideal plan is
    * bushy: store x (customer x (product_class x product x sales)). */
-  @Test public void testBushy5() throws Exception {
+  @Test void testBushy5() throws Exception {
     final String sql = "select *\n"
         + "from \"sales_fact_1997\" as s\n"
         + "join \"customer\" as c\n"
@@ -1129,7 +1105,7 @@ public class PlannerTest {
 
   /** Tests the bushy join algorithm where one table does not join to
    * anything. */
-  @Test public void testBushyCrossJoin() throws Exception {
+  @Test void testBushyCrossJoin() throws Exception {
     final String sql = "select * from \"sales_fact_1997\" as s\n"
         + "join \"customer\" as c\n"
         + "  on s.\"customer_id\" = c.\"customer_id\"\n"
@@ -1147,7 +1123,7 @@ public class PlannerTest {
 
   /** Tests the bushy join algorithm against a query where not all tables have a
    * join condition to the others. */
-  @Test public void testBushyCrossJoin2() throws Exception {
+  @Test void testBushyCrossJoin2() throws Exception {
     final String sql = "select * from \"sales_fact_1997\" as s\n"
         + "join \"customer\" as c\n"
         + "  on s.\"customer_id\" = c.\"customer_id\"\n"
@@ -1190,18 +1166,88 @@ public class PlannerTest {
     assertThat(toString(transform), containsString(expected));
   }
 
+  /** Rule that matches a Project on a Filter. */
+  public static class MyProjectFilterRule
+      extends RelRule<MyProjectFilterRule.Config> {
+    static Config config(String description) {
+      return Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalProject.class).oneInput(b1 ->
+                  b1.operand(LogicalFilter.class).anyInputs()))
+          .withDescription(description)
+          .as(Config.class);
+    }
+
+    protected MyProjectFilterRule(Config config) {
+      super(config);
+    }
+
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      return false;
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default MyProjectFilterRule toRule() {
+        return new MyProjectFilterRule(this);
+      }
+    }
+  }
+
+  /** Rule that matches a Filter on a Project. */
+  public static class MyFilterProjectRule
+      extends RelRule<MyFilterProjectRule.Config> {
+    static Config config(String description) {
+      return Config.EMPTY
+          .withOperandSupplier(b0 ->
+              b0.operand(LogicalFilter.class).oneInput(b1 ->
+                  b1.operand(LogicalProject.class).anyInputs()))
+          .withDescription(description)
+          .as(Config.class);
+    }
+
+    protected MyFilterProjectRule(Config config) {
+      super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      return false;
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default MyFilterProjectRule toRule() {
+        return new MyFilterProjectRule(this);
+      }
+    }
+  }
+
   /**
    * Rule to convert a
    * {@link org.apache.calcite.adapter.enumerable.EnumerableProject} to an
    * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcProject}.
    */
-  private class MockJdbcProjectRule extends ConverterRule {
-    private MockJdbcProjectRule(JdbcConvention out) {
-      super(EnumerableProject.class, EnumerableConvention.INSTANCE, out,
-          "MockJdbcProjectRule");
+  private static class MockJdbcProjectRule extends ConverterRule {
+    static MockJdbcProjectRule create(JdbcConvention out) {
+      return Config.INSTANCE
+          .withConversion(EnumerableProject.class,
+              EnumerableConvention.INSTANCE, out, "MockJdbcProjectRule")
+          .withRuleFactory(MockJdbcProjectRule::new)
+          .toRule(MockJdbcProjectRule.class);
     }
 
-    public RelNode convert(RelNode rel) {
+    MockJdbcProjectRule(Config config) {
+      super(config);
+    }
+
+    @Override public RelNode convert(RelNode rel) {
       final EnumerableProject project = (EnumerableProject) rel;
 
       return new JdbcRules.JdbcProject(
@@ -1219,13 +1265,20 @@ public class PlannerTest {
    * {@link org.apache.calcite.adapter.enumerable.EnumerableTableScan} to an
    * {@link MockJdbcTableScan}.
    */
-  private class MockJdbcTableRule extends ConverterRule {
-    private MockJdbcTableRule(JdbcConvention out) {
-      super(EnumerableTableScan.class,
-          EnumerableConvention.INSTANCE, out, "MockJdbcTableRule");
+  private static class MockJdbcTableRule extends ConverterRule {
+    static MockJdbcTableRule create(JdbcConvention out) {
+      return Config.INSTANCE
+          .withConversion(EnumerableTableScan.class,
+              EnumerableConvention.INSTANCE, out, "MockJdbcTableRule")
+          .withRuleFactory(MockJdbcTableRule::new)
+          .toRule(MockJdbcTableRule.class);
     }
 
-    public RelNode convert(RelNode rel) {
+    private MockJdbcTableRule(Config config) {
+      super(config);
+    }
+
+    @Override public RelNode convert(RelNode rel) {
       final EnumerableTableScan scan =
           (EnumerableTableScan) rel;
       return new MockJdbcTableScan(scan.getCluster(),
@@ -1238,7 +1291,7 @@ public class PlannerTest {
    * Relational expression representing a "mock" scan of a table in a
    * JDBC data source.
    */
-  private class MockJdbcTableScan extends TableScan
+  private static class MockJdbcTableScan extends TableScan
       implements JdbcRel {
 
     MockJdbcTableScan(RelOptCluster cluster, RelOptTable table,
@@ -1266,7 +1319,7 @@ public class PlannerTest {
   /**
    * Test to determine whether de-correlation correctly removes Correlator.
    */
-  @Test public void testOldJoinStyleDeCorrelation() throws Exception {
+  @Test void testOldJoinStyleDeCorrelation() throws Exception {
     assertFalse(
         checkTpchQuery("select\n p.`pPartkey`\n"
             + "from\n"
@@ -1291,7 +1344,7 @@ public class PlannerTest {
             new ReflectiveSchema(new TpchSchema()));
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.configBuilder().setLex(Lex.MYSQL).build())
+        .parserConfig(SqlParser.config().withLex(Lex.MYSQL))
         .defaultSchema(schema)
         .programs(Programs.ofRules(Programs.RULE_SET))
         .build();
@@ -1307,7 +1360,7 @@ public class PlannerTest {
 
   /** User-defined aggregate function. */
   public static class MyCountAggFunction extends SqlAggFunction {
-    public MyCountAggFunction() {
+    MyCountAggFunction() {
       super("MY_COUNT", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
           OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false,
           Optionality.FORBIDDEN);
@@ -1337,7 +1390,7 @@ public class PlannerTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-569">[CALCITE-569]
    * ArrayIndexOutOfBoundsException when deducing collation</a>. */
-  @Test public void testOrderByNonSelectColumn() throws Exception {
+  @Test void testOrderByNonSelectColumn() throws Exception {
     final SchemaPlus schema = Frameworks.createRootSchema(true)
         .add("tpch", new ReflectiveSchema(new TpchSchema()));
 
@@ -1349,8 +1402,7 @@ public class PlannerTest {
     List<RelTraitDef> traitDefs = new ArrayList<>();
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelCollationTraitDef.INSTANCE);
-    final SqlParser.Config parserConfig =
-        SqlParser.configBuilder().setLex(Lex.MYSQL).build();
+    final SqlParser.Config parserConfig = SqlParser.config().withLex(Lex.MYSQL);
     FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
@@ -1368,17 +1420,20 @@ public class PlannerTest {
     assertThat(plan,
         equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(psPartkey=[$0])\n"
-        + "    EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+        + "    LogicalTableScan(table=[[tpch, partsupp]])\n"));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-648">[CALCITE-648]
    * Update ProjectMergeRule description for new naming convention</a>. */
-  @Test public void testMergeProjectForceMode() throws Exception {
+  @Test void testMergeProjectForceMode() {
     RuleSet ruleSet =
         RuleSets.ofList(
-            new ProjectMergeRule(true,
-                RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
+            CoreRules.PROJECT_MERGE.config
+                .withRelBuilderFactory(
+                    RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY))
+                .as(ProjectMergeRule.Config.class)
+                .toRule());
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
   }
@@ -1387,11 +1442,10 @@ public class PlannerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3376">[CALCITE-3376]
    * VolcanoPlanner CannotPlanException: best rel is null even though there is
    * an option with non-infinite cost</a>. */
-  @Test public void testCorrelatedJoinWithIdenticalInputs() throws Exception {
+  @Test void testCorrelatedJoinWithIdenticalInputs() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
     final RuleSet ruleSet =
-        RuleSets.ofList(
-            JoinToCorrelateRule.INSTANCE,
+        RuleSets.ofList(CoreRules.JOIN_TO_CORRELATE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -1434,7 +1488,7 @@ public class PlannerTest {
             + "      EnumerableTableScan(table=[[scott, EMP]])\n"));
   }
 
-  @Test public void testView() throws Exception {
+  @Test void testView() throws Exception {
     final String sql = "select * FROM dept";
     final String expected = "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
         + "  LogicalValues("
@@ -1445,7 +1499,7 @@ public class PlannerTest {
     checkView(sql, is(expected));
   }
 
-  @Test public void testViewOnView() throws Exception {
+  @Test void testViewOnView() throws Exception {
     final String sql = "select * FROM dept30";
     final String expected = "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
         + "  LogicalFilter(condition=[=($0, 30)])\n"

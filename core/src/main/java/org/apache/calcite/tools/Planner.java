@@ -90,6 +90,7 @@ public interface Planner extends AutoCloseable {
    */
   RelRoot rel(SqlNode sql) throws RelConversionException;
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #rel}. */
   @Deprecated // to removed before 2.0
   RelNode convert(SqlNode sql) throws RelConversionException;
@@ -126,7 +127,7 @@ public interface Planner extends AutoCloseable {
    * Releases all internal resources utilized while this {@code Planner}
    * exists.  Once called, this Planner object is no longer valid.
    */
-  void close();
+  @Override void close();
 
   RelTraitSet getEmptyTraitSet();
 }

@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -50,9 +51,15 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.calcite.linq4j.tree.Types.toClass;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.TableScan} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -73,6 +80,27 @@ public class EnumerableTableScan
         : "EnumerableTableScan can't implement " + table + ", see EnumerableTableScan#canHandle";
   }
 
+  /**
+   * Code snippet to demonstrate how to generate IndexScan on demand
+   * by passing required collation through TableScan.
+   *
+   * @return IndexScan if there is index available on collation keys
+   */
+  @Override public @Nullable RelNode passThrough(final RelTraitSet required) {
+/*
+    keys = required.getCollation().getKeys();
+    if (table has index on keys) {
+      direction = forward or backward;
+      return new IndexScan(table, indexInfo, direction);
+    }
+*/
+    return null;
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    return DeriveMode.PROHIBITED;
+  }
+
   /** Creates an EnumerableTableScan. */
   public static EnumerableTableScan create(RelOptCluster cluster,
       RelOptTable relOptTable) {
@@ -91,7 +119,7 @@ public class EnumerableTableScan
 
   /** Returns whether EnumerableTableScan can generate code to handle a
    * particular variant of the Table SPI.
-   * @deprecated
+   * @deprecated remove before Calcite 2.0
    **/
   @Deprecated
   public static boolean canHandle(Table table) {
@@ -143,7 +171,7 @@ public class EnumerableTableScan
     return true;
   }
 
-  public static Class deduceElementType(Table table) {
+  public static Class deduceElementType(@Nullable Table table) {
     if (table instanceof QueryableTable) {
       final QueryableTable queryableTable = (QueryableTable) table;
       final Type type = queryableTable.getElementType();
@@ -163,7 +191,7 @@ public class EnumerableTableScan
   }
 
   public static JavaRowFormat deduceFormat(RelOptTable table) {
-    final Class elementType = deduceElementType(table.unwrap(Table.class));
+    final Class elementType = deduceElementType(table.unwrapOrThrow(Table.class));
     return elementType == Object[].class
         ? JavaRowFormat.ARRAY
         : JavaRowFormat.CUSTOM;
@@ -181,10 +209,10 @@ public class EnumerableTableScan
     return toRows(physType, expression2);
   }
 
-  private Expression toEnumerable(Expression expression) {
+  private static Expression toEnumerable(Expression expression) {
     final Type type = expression.getType();
     if (Types.isArray(type)) {
-      if (Types.toClass(type).getComponentType().isPrimitive()) {
+      if (requireNonNull(toClass(type).getComponentType()).isPrimitive()) {
         expression =
             Expressions.call(BuiltInMethod.AS_LIST.method, expression);
       }
@@ -213,7 +241,7 @@ public class EnumerableTableScan
       return Expressions.call(BuiltInMethod.SLICE0.method, expression);
     }
     JavaRowFormat oldFormat = format();
-    if (physType.getFormat() == oldFormat && !hasCollectionField(rowType)) {
+    if (physType.getFormat() == oldFormat && !hasCollectionField(getRowType())) {
       return expression;
     }
     final ParameterExpression row_ =
@@ -238,18 +266,24 @@ public class EnumerableTableScan
     switch (relFieldType.getSqlTypeName()) {
     case ARRAY:
     case MULTISET:
-      // We can't represent a multiset or array as a List<Employee>, because
-      // the consumer does not know the element type.
-      // The standard element type is List.
-      // We need to convert to a List<List>.
-      final JavaTypeFactory typeFactory =
-          (JavaTypeFactory) getCluster().getTypeFactory();
-      final PhysType elementPhysType = PhysTypeImpl.of(
-          typeFactory, relFieldType.getComponentType(), JavaRowFormat.CUSTOM);
-      final MethodCallExpression e2 =
-          Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
-      final Expression e3 = elementPhysType.convertTo(e2, JavaRowFormat.LIST);
-      return Expressions.call(e3, BuiltInMethod.ENUMERABLE_TO_LIST.method);
+      final RelDataType fieldType = requireNonNull(relFieldType.getComponentType(),
+          () -> "relFieldType.getComponentType() for " + relFieldType);
+      if (fieldType.isStruct()) {
+        // We can't represent a multiset or array as a List<Employee>, because
+        // the consumer does not know the element type.
+        // The standard element type is List.
+        // We need to convert to a List<List>.
+        final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) getCluster().getTypeFactory();
+        final PhysType elementPhysType = PhysTypeImpl.of(
+                typeFactory, fieldType, JavaRowFormat.CUSTOM);
+        final MethodCallExpression e2 =
+                Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
+        final Expression e3 = elementPhysType.convertTo(e2, JavaRowFormat.LIST);
+        return Expressions.call(e3, BuiltInMethod.ENUMERABLE_TO_LIST.method);
+      } else {
+        return e;
+      }
     default:
       return e;
     }
@@ -275,12 +309,14 @@ public class EnumerableTableScan
     return JavaRowFormat.CUSTOM;
   }
 
-  private boolean hasCollectionField(RelDataType rowType) {
+  private static boolean hasCollectionField(RelDataType rowType) {
     for (RelDataTypeField field : rowType.getFieldList()) {
       switch (field.getType().getSqlTypeName()) {
       case ARRAY:
       case MULTISET:
         return true;
+      default:
+        break;
       }
     }
     return false;
@@ -290,7 +326,7 @@ public class EnumerableTableScan
     return new EnumerableTableScan(getCluster(), traitSet, table, elementType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Note that representation is ARRAY. This assumes that the table
     // returns a Object[] for each record. Actually a Table<T> can
     // return any type T. And, if it is a JdbcTable, we'd like to be

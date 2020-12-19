@@ -16,20 +16,26 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TupleValue;
 
+import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /** Enumerator that reads from a Cassandra column family. */
 class CassandraEnumerator implements Enumerator<Object> {
@@ -51,19 +57,19 @@ class CassandraEnumerator implements Enumerator<Object> {
     this.fieldTypes = protoRowType.apply(typeFactory).getFieldList();
   }
 
-  /** Produce the next row from the results
+  /** Produces the next row from the results.
    *
    * @return A new row from the results
    */
-  public Object current() {
+  @Override public Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
-      return currentRowField(0, fieldTypes.get(0).getType().getSqlTypeName());
+      return currentRowField(0);
     } else {
       // Build an array with all fields in this row
       Object[] row = new Object[fieldTypes.size()];
       for (int i = 0; i < fieldTypes.size(); i++) {
-        row[i] = currentRowField(i, fieldTypes.get(i).getType().getSqlTypeName());
+        row[i] = currentRowField(i);
       }
 
       return row;
@@ -73,28 +79,53 @@ class CassandraEnumerator implements Enumerator<Object> {
   /** Get a field for the current row from the underlying object.
    *
    * @param index Index of the field within the Row object
-   * @param typeName Type of the field in this row
    */
-  private Object currentRowField(int index, SqlTypeName typeName) {
-    DataType type = current.getColumnDefinitions().getType(index);
-    if (type == DataType.ascii() || type == DataType.text() || type == DataType.varchar()) {
-      return current.getString(index);
-    } else if (type == DataType.cint() || type == DataType.varint()) {
-      return current.getInt(index);
-    } else if (type == DataType.bigint()) {
-      return current.getLong(index);
-    } else if (type == DataType.cdouble()) {
-      return current.getDouble(index);
-    } else if (type == DataType.cfloat()) {
-      return current.getFloat(index);
-    } else if (type == DataType.uuid() || type == DataType.timeuuid()) {
-      return current.getUUID(index).toString();
-    } else {
-      return null;
-    }
+  private Object currentRowField(int index) {
+    final Object o =  current.get(index,
+        CassandraSchema.CODEC_REGISTRY.codecFor(
+            current.getColumnDefinitions().getType(index)));
+
+    return convertToEnumeratorObject(o);
   }
 
-  public boolean moveNext() {
+  /** Convert an object into the expected internal representation.
+   *
+   * @param obj Object to convert, if needed
+   */
+  private Object convertToEnumeratorObject(Object obj) {
+    if (obj instanceof ByteBuffer) {
+      ByteBuffer buf = (ByteBuffer) obj;
+      byte [] bytes = new byte[buf.remaining()];
+      buf.get(bytes, 0, bytes.length);
+      return new ByteString(bytes);
+    } else if (obj instanceof LocalDate) {
+      // converts dates to the expected numeric format
+      return ((LocalDate) obj).getMillisSinceEpoch()
+          / DateTimeUtils.MILLIS_PER_DAY;
+    } else if (obj instanceof Date) {
+      @SuppressWarnings("JdkObsolete")
+      long milli = ((Date) obj).toInstant().toEpochMilli();
+      return milli;
+    } else if (obj instanceof LinkedHashSet) {
+      // MULTISET is handled as an array
+      return ((LinkedHashSet) obj).toArray();
+    } else if (obj instanceof TupleValue) {
+      // STRUCT can be handled as an array
+      final TupleValue tupleValue = (TupleValue) obj;
+      int numComponents = tupleValue.getType().getComponentTypes().size();
+      return IntStream.range(0, numComponents)
+          .mapToObj(i ->
+              tupleValue.get(i,
+                  CassandraSchema.CODEC_REGISTRY.codecFor(
+                      tupleValue.getType().getComponentTypes().get(i)))
+          ).map(this::convertToEnumeratorObject)
+          .toArray();
+    }
+
+    return obj;
+  }
+
+  @Override public boolean moveNext() {
     if (iterator.hasNext()) {
       current = iterator.next();
       return true;
@@ -103,11 +134,11 @@ class CassandraEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     // Nothing to do here
   }
 }

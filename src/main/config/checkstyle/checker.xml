@@ -32,21 +32,22 @@
 <module name="Checker">
   <property name="localeLanguage" value="en"/>
 
-  <property name="cacheFile" value="${cache_file}"/>
+  <!-- config_loc here is to workaround https://github.com/gradle/gradle/issues/13927 -->
+  <property name="cacheFile" value="${config_loc}/${cache_file}"/>
 
   <!-- Checks for headers -->
   <!-- See http://checkstyle.sf.net/config_header.html -->
     <!-- Verify that EVERY source file has the appropriate license -->
   <module name="Header">
-    <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.java.txt"/>
+    <property name="headerFile" value="${config_loc}/header.java.txt"/>
     <property name="fileExtensions" value="cql,jj,json"/>
   </module>
   <module name="Header">
-    <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.properties.txt"/>
+    <property name="headerFile" value="${config_loc}/header.properties.txt"/>
     <property name="fileExtensions" value="properties"/>
   </module>
   <module name="Header">
-    <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.xml.txt"/>
+    <property name="headerFile" value="${config_loc}/header.xml.txt"/>
     <property name="fileExtensions" value="xml"/>
   </module>
 
@@ -77,6 +78,21 @@
   </module>
 
   <module name="TreeWalker">
+
+    <!-- Packages must have javadoc. -->
+    <module name="MissingJavadocPackage"/>
+
+    <!-- Classes, interfaces, enums (even private ones) must have javadoc. -->
+    <module name="MissingJavadocType">
+      <property name="scope" value="private"/>
+    </module>
+
+    <!-- Javadoc must not have empty @param, @return etc. -->
+    <module name="NonEmptyAtclauseDescription"/>
+
+   <!-- Javadoc must have at least one sentence. -->
+    <module name="SummaryJavadocCheck"/>
+
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
       <!-- No empty blocks (i.e. catch); must contain at least a comment -->
@@ -138,6 +154,7 @@
       <property name="processJavadoc" value="true"/>
     </module>
     <module name="IllegalImport" />
+    <module name="AvoidStarImport" />
 
     <!-- Checks for Javadoc comments (tree walker).       -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
@@ -288,6 +305,6 @@
   </module>
 
   <module name="SuppressionFilter">
-    <property name="file" value="${base_dir}/src/main/config/checkstyle/suppressions.xml"/>
+    <property name="file" value="${config_loc}/suppressions.xml"/>
   </module>
 </module>

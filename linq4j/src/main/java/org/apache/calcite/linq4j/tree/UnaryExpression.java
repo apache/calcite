@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Objects;
 
@@ -37,11 +39,11 @@ public class UnaryExpression extends Expression {
     return shuttle.visit(this, expression);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     switch (nodeType) {
     case Convert:
       if (!writer.requireParentheses(this, lprec, rprec)) {
@@ -49,6 +51,8 @@ public class UnaryExpression extends Expression {
         expression.accept(writer, nodeType.rprec, rprec);
       }
       return;
+    default:
+      break;
     }
     if (nodeType.postfix) {
       expression.accept(writer, lprec, nodeType.rprec);
@@ -59,7 +63,7 @@ public class UnaryExpression extends Expression {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -19,16 +19,16 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
-
-import com.google.common.collect.Lists;
+import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Base Class for relations with three or more inputs */
+/** Base Class for relations with three or more inputs. */
 abstract class MutableMultiRel extends MutableRel {
   protected final List<MutableRel> inputs;
 
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
   protected MutableMultiRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type, List<MutableRel> inputs) {
     super(cluster, rowType, type);
@@ -58,6 +58,6 @@ abstract class MutableMultiRel extends MutableRel {
   }
 
   protected List<MutableRel> cloneChildren() {
-    return Lists.transform(inputs, MutableRel::clone);
+    return Util.transform(inputs, MutableRel::clone);
   }
 }

@@ -22,11 +22,11 @@ import java.util.Locale;
  * Flag to indicate if the json value is missing or an error is thrown where
  * EmptyOrErrorBehavior is invoked.
  */
-public enum SqlJsonEmptyOrError {
+public enum SqlJsonEmptyOrError implements Symbolizable {
   EMPTY,
   ERROR;
 
   @Override public String toString() {
-    return String.format(Locale.ROOT, "SqlJsonEmptyOrError[%s]", name());
+    return String.format(Locale.ROOT, "ON %s", name());
   }
 }

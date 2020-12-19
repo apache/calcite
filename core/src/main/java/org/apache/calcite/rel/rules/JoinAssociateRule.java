@@ -17,13 +17,12 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -45,30 +44,26 @@ import java.util.List;
  * {@link JoinCommuteRule}.
  *
  * @see JoinCommuteRule
+ * @see CoreRules#JOIN_ASSOCIATE
  */
-public class JoinAssociateRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+public class JoinAssociateRule
+    extends RelRule<JoinAssociateRule.Config>
+    implements TransformationRule {
 
-  /** The singleton. */
-  public static final JoinAssociateRule INSTANCE =
-      new JoinAssociateRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a JoinAssociateRule. */
+  protected JoinAssociateRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a JoinAssociateRule.
-   */
+  @Deprecated // to be removed before 2.0
   public JoinAssociateRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(Join.class,
-            operand(Join.class, any()),
-            operand(RelSubset.class, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(final RelOptRuleCall call) {
+  @Override public void onMatch(final RelOptRuleCall call) {
     final Join topJoin = call.rel(0);
     final Join bottomJoin = call.rel(1);
     final RelNode relA = bottomJoin.getLeft();
@@ -93,6 +88,7 @@ public class JoinAssociateRule extends RelOptRule {
     final int bCount = relB.getRowType().getFieldCount();
     final int cCount = relC.getRowType().getFieldCount();
     final ImmutableBitSet aBitSet = ImmutableBitSet.range(0, aCount);
+    @SuppressWarnings("unused")
     final ImmutableBitSet bBitSet =
         ImmutableBitSet.range(aCount, aCount + bCount);
 
@@ -133,9 +129,9 @@ public class JoinAssociateRule extends RelOptRule {
             aCount + bCount + cCount,
             0, aCount, bCount,
             bCount, aCount + bCount, cCount);
-    final List<RexNode> newBottomList = new ArrayList<>();
-    new RexPermuteInputsShuttle(bottomMapping, relB, relC)
-        .visitList(bottom, newBottomList);
+    final List<RexNode> newBottomList =
+        new RexPermuteInputsShuttle(bottomMapping, relB, relC)
+            .visitList(bottom);
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList);
 
@@ -152,5 +148,25 @@ public class JoinAssociateRule extends RelOptRule {
             newBottomJoin, JoinRelType.INNER, false);
 
     call.transformTo(newTopJoin);
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Join.class, RelSubset.class);
+
+    @Override default JoinAssociateRule toRule() {
+      return new JoinAssociateRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass,
+        Class<? extends RelSubset> relSubsetClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(joinClass).inputs(
+              b1 -> b1.operand(joinClass).anyInputs(),
+              b2 -> b2.operand(relSubsetClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

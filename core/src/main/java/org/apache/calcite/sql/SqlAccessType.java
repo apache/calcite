@@ -20,7 +20,9 @@ import java.util.EnumSet;
 import java.util.Locale;
 
 /**
- * SqlAccessType is represented by a set of allowed access types
+ * SqlAccessType is represented by a set of allowed access types.
+ *
+ * @see SqlAccessEnum
  */
 public class SqlAccessType {
   //~ Static fields/initializers ---------------------------------------------
@@ -48,7 +50,7 @@ public class SqlAccessType {
     return accessEnums.contains(access);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return accessEnums.toString();
   }
 

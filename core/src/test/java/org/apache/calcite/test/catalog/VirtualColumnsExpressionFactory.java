@@ -17,7 +17,11 @@
 package org.apache.calcite.test.catalog;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 
 /** Define column strategies for the "VIRTUALCOLUMNS" table. */
@@ -30,6 +34,20 @@ public class VirtualColumnsExpressionFactory extends NullInitializerExpressionFa
       return ColumnStrategy.VIRTUAL;
     default:
       return super.generationStrategy(table, iColumn);
+    }
+  }
+
+  @Override public RexNode newColumnDefaultValue(
+      RelOptTable table, int iColumn, InitializerContext context) {
+    if (iColumn == 4) {
+      final SqlNode node = context.parseExpression(SqlParser.Config.DEFAULT, "A + 1");
+      // Actually we should validate the node with physical schema,
+      // here full table schema(includes the virtual columns) also works
+      // because the expression "A + 1" does not reference any virtual column.
+      final SqlNode validated = context.validateExpression(table.getRowType(), node);
+      return context.convertExpression(validated);
+    } else {
+      return super.newColumnDefaultValue(table, iColumn, context);
     }
   }
 }

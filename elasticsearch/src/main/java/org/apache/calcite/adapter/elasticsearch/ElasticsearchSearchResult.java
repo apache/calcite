@@ -117,7 +117,8 @@ public class ElasticsearchSearchResult {
     }
 
     /**
-     * Returns id of this hit (usually document id)
+     * Returns the id of this hit (usually document id).
+     *
      * @return unique id
      */
     public String id() {
@@ -125,7 +126,8 @@ public class ElasticsearchSearchResult {
     }
 
     /**
-     * Finds specific attribute from ES search result
+     * Finds a specific attribute from ES search result.
+     *
      * @param name attribute name
      * @return value from result (_source or fields)
      */

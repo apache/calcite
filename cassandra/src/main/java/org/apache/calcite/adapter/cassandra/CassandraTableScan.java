@@ -65,13 +65,13 @@ public class CassandraTableScan extends TableScan implements CassandraRel {
   }
 
   @Override public void register(RelOptPlanner planner) {
-    planner.addRule(CassandraToEnumerableConverterRule.INSTANCE);
+    planner.addRule(CassandraRules.TO_ENUMERABLE);
     for (RelOptRule rule : CassandraRules.RULES) {
       planner.addRule(rule);
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.cassandraTable = cassandraTable;
     implementor.table = table;
   }

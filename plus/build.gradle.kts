@@ -20,7 +20,7 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("com.teradata.tpcds:tpcds")
-    implementation("io.airlift.tpch:tpch")
+    implementation("io.prestosql.tpch:tpch")
     implementation("net.hydromatic:chinook-data-hsqldb")
     implementation("net.hydromatic:quidem")
     implementation("net.hydromatic:tpcds")

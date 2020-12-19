@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * Represents a length field of a RecordType
+ * Length field of a RecordType.
  */
 public class ArrayLengthRecordField implements Types.RecordField {
   private final String fieldName;
@@ -34,31 +38,31 @@ public class ArrayLengthRecordField implements Types.RecordField {
     this.clazz = clazz;
   }
 
-  public boolean nullable() {
+  @Override public boolean nullable() {
     return false;
   }
 
-  public String getName() {
+  @Override public String getName() {
     return fieldName;
   }
 
-  public Type getType() {
+  @Override public Type getType() {
     return int.class;
   }
 
-  public int getModifiers() {
+  @Override public int getModifiers() {
     return 0;
   }
 
-  public Object get(Object o) throws IllegalAccessException {
-    return Array.getLength(o);
+  @Override public Object get(@Nullable Object o) throws IllegalAccessException {
+    return Array.getLength(requireNonNull(o));
   }
 
-  public Type getDeclaringClass() {
+  @Override public Type getDeclaringClass() {
     return clazz;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

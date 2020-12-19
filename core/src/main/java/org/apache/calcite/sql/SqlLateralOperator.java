@@ -48,7 +48,7 @@ public class SqlLateralOperator extends SqlSpecialOperator {
       writer.keyword(getName());
       call.operand(0).unparse(writer, 0, 0);
     } else {
-      SqlUtil.unparseFunctionSyntax(this, writer, call);
+      SqlUtil.unparseFunctionSyntax(this, writer, call, false);
     }
   }
 }

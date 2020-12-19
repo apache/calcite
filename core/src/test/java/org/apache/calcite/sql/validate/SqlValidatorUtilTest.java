@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Tests for {@link SqlValidatorUtil}.
  */
-public class SqlValidatorUtilTest {
+class SqlValidatorUtilTest {
 
   private static void checkChangedFieldList(
       List<String> nameList, List<String> resultList, boolean caseSensitive) {
@@ -74,14 +74,14 @@ public class SqlValidatorUtilTest {
     assertThat(copyResultList.size(), is(0));
   }
 
-  @Test public void testUniquifyCaseSensitive() {
+  @Test void testUniquifyCaseSensitive() {
     List<String> nameList = Lists.newArrayList("col1", "COL1", "col_ABC", "col_abC");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
     assertThat(nameList, sameInstance(resultList));
   }
 
-  @Test public void testUniquifyNotCaseSensitive() {
+  @Test void testUniquifyNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("col1", "COL1", "col_ABC", "col_abC");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
@@ -89,14 +89,14 @@ public class SqlValidatorUtilTest {
     checkChangedFieldList(nameList, resultList, false);
   }
 
-  @Test public void testUniquifyOrderingCaseSensitive() {
+  @Test void testUniquifyOrderingCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "abc", "123");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
     assertThat(nameList, sameInstance(resultList));
   }
 
-  @Test public void testUniquifyOrderingRepeatedCaseSensitive() {
+  @Test void testUniquifyOrderingRepeatedCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "def", "123");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
@@ -104,7 +104,7 @@ public class SqlValidatorUtilTest {
     checkChangedFieldList(nameList, resultList, true);
   }
 
-  @Test public void testUniquifyOrderingNotCaseSensitive() {
+  @Test void testUniquifyOrderingNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "abc", "123");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
@@ -112,7 +112,7 @@ public class SqlValidatorUtilTest {
     checkChangedFieldList(nameList, resultList, false);
   }
 
-  @Test public void testUniquifyOrderingRepeatedNotCaseSensitive() {
+  @Test void testUniquifyOrderingRepeatedNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "def", "123");
     List<String> resultList = SqlValidatorUtil.uniquify(
         nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
@@ -121,7 +121,7 @@ public class SqlValidatorUtilTest {
   }
 
   @SuppressWarnings("resource")
-  @Test public void testCheckingDuplicatesWithCompoundIdentifiers() {
+  @Test void testCheckingDuplicatesWithCompoundIdentifiers() {
     final List<SqlNode> newList = new ArrayList<>(2);
     newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
     newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
@@ -141,17 +141,23 @@ public class SqlValidatorUtilTest {
     SqlValidatorUtil.checkIdentifierListForDuplicates(newList, null);
   }
 
-  @Test public void testNameMatcher() {
+  @Test void testNameMatcher() {
     final ImmutableList<String> beatles =
         ImmutableList.of("john", "paul", "ringo", "rinGo");
     final SqlNameMatcher insensitiveMatcher =
         SqlNameMatchers.withCaseSensitive(false);
     assertThat(insensitiveMatcher.frequency(beatles, "ringo"), is(2));
     assertThat(insensitiveMatcher.frequency(beatles, "rinGo"), is(2));
+    assertThat(insensitiveMatcher.indexOf(beatles, "rinGo"), is(2));
+    assertThat(insensitiveMatcher.indexOf(beatles, "stuart"), is(-1));
     final SqlNameMatcher sensitiveMatcher =
         SqlNameMatchers.withCaseSensitive(true);
     assertThat(sensitiveMatcher.frequency(beatles, "ringo"), is(1));
     assertThat(sensitiveMatcher.frequency(beatles, "rinGo"), is(1));
     assertThat(sensitiveMatcher.frequency(beatles, "Ringo"), is(0));
+    assertThat(sensitiveMatcher.indexOf(beatles, "ringo"), is(2));
+    assertThat(sensitiveMatcher.indexOf(beatles, "rinGo"), is(3));
+    assertThat(sensitiveMatcher.indexOf(beatles, "Ringo"), is(-1));
+
   }
 }

@@ -17,6 +17,7 @@
 import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
+import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
@@ -24,18 +25,24 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
+    // java-base is needed for platform(...) resolution,
+    // see https://github.com/gradle/gradle/issues/14822
+    `java-base`
     publishing
     // Verification
     checkstyle
     calcite.buildext
+    id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
+    id("net.ltgt.errorprone") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -59,14 +66,30 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
+val enableCheckerframework by props()
+val enableErrorprone by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
+val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
-val slowSuiteLogThreshold by props(0L)
-val slowTestLogThreshold by props(2000L)
+// Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
+
+// Java versions prior to 1.8.0u202 have known issues that cause invalid bytecode in certain patterns
+// of annotation usage.
+// So we require at least 1.8.0u202
+System.getProperty("java.version").let { version ->
+    version.takeIf { it.startsWith("1.8.0_") }
+        ?.removePrefix("1.8.0_")
+        ?.toIntOrNull()
+        ?.let {
+            require(it >= 141) {
+                "Apache Calcite requires Java 1.8.0u202 or later. The current Java version is $version"
+            }
+        }
+}
 
 ide {
     copyrightToAsf()
@@ -86,6 +109,7 @@ val gitProps by tasks.registering(FindGitAttributes::class) {
 
 val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
     gitignore(gitProps)
+    verbose.set(true)
     // Note: patterns are in non-standard syntax for RAT, so we use exclude(..) instead of excludeFile
     exclude(rootDir.resolve(".ratignore").readLines())
 }
@@ -108,8 +132,8 @@ releaseArtifacts {
 releaseParams {
     tlp.set("Calcite")
     componentName.set("Apache Calcite")
-    releaseTag.set("rel/v$buildVersion")
-    rcTag.set(rc.map { "v$buildVersion-rc$it" })
+    releaseTag.set("calcite-$buildVersion")
+    rcTag.set(rc.map { "calcite-$buildVersion-rc$it" })
     sitePreviewEnabled.set(false)
     nexus {
         // https://github.com/marcphilipp/nexus-publish-plugin/issues/35
@@ -134,7 +158,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
 
-    val sourceSets = allprojects
+    val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .map { it.named("main") }
 
@@ -148,7 +172,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
 
-    val sourceSets = allprojects
+    val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
@@ -158,9 +182,9 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 }
 
 val adaptersForSqlline = listOf(
-    ":babel", ":cassandra", ":druid", ":elasticsearch", ":file", ":geode", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk"
-)
+    ":babel", ":cassandra", ":druid", ":elasticsearch",
+    ":file", ":geode", ":innodb", ":kafka", ":mongodb",
+    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
@@ -170,6 +194,12 @@ val dataSetsForSqlline = listOf(
 
 val sqllineClasspath by configurations.creating {
     isCanBeConsumed = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.CLASSES_AND_RESOURCES))
+        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, JavaVersion.current().majorVersion.toInt())
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
 }
 
 dependencies {
@@ -189,12 +219,15 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
     archiveFileName.set("sqllineClasspath.jar")
     manifest {
-        manifest {
-            attributes(
-                "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
-            )
-        }
+        attributes(
+            "Main-Class" to "sqlline.SqlLine",
+            "Class-Path" to provider {
+                // Class-Path is a list of URLs
+                sqllineClasspath.joinToString(" ") {
+                    it.toURI().toURL().toString()
+                }
+            }
+        )
     }
 }
 
@@ -229,6 +262,8 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
+
+    apply(plugin = "com.github.vlsi.gradle-extensions")
 
     repositories {
         // RAT and Autostyle dependencies
@@ -309,25 +344,36 @@ allprojects {
     }
     if (!skipCheckstyle) {
         apply<CheckstylePlugin>()
+        // This will be config_loc in Checkstyle (checker.xml)
+        val configLoc = File(rootDir, "src/main/config/checkstyle")
         checkstyle {
             toolVersion = "checkstyle".v
             isShowViolations = true
-            configDirectory.set(File(rootDir, "src/main/config/checkstyle"))
+            configDirectory.set(configLoc)
             configFile = configDirectory.get().file("checker.xml").asFile
-            configProperties = mapOf(
-                "base_dir" to rootDir.toString(),
-                "cache_file" to buildDir.resolve("checkstyle/cacheFile")
-            )
         }
         tasks.register("checkstyleAll") {
             dependsOn(tasks.withType<Checkstyle>())
         }
-        tasks.withType<Checkstyle>().configureEach {
+        tasks.configureEach<Checkstyle> {
             // Excludes here are faster than in suppressions.xml
             // Since here we can completely remove file from the analysis.
             // On the other hand, supporessions.xml still analyzes the file, and
             // then it recognizes it should suppress all the output.
             excludeJavaCcGenerated()
+            // Workaround for https://github.com/gradle/gradle/issues/13927
+            // Absolute paths must not be used as they defeat Gradle build cache
+            // Unfortunately, Gradle passes only config_loc variable by default, so we make
+            // all the paths relative to config_loc
+            configProperties!!["cache_file"] =
+                buildDir.resolve("checkstyle/cacheFile").relativeTo(configLoc)
+        }
+        // afterEvaluate is to support late sourceSet addition (e.g. jmh sourceset)
+        afterEvaluate {
+            tasks.configureEach<Checkstyle> {
+                // Checkstyle 8.26 does not need classpath, see https://github.com/gradle/gradle/issues/14227
+                classpath = files()
+            }
         }
     }
     if (!skipAutostyle || !skipCheckstyle) {
@@ -343,7 +389,7 @@ allprojects {
         }
     }
 
-    tasks.withType<AbstractArchiveTask>().configureEach {
+    tasks.configureEach<AbstractArchiveTask> {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
@@ -352,7 +398,7 @@ allprojects {
     }
 
     tasks {
-        withType<Javadoc>().configureEach {
+        configureEach<Javadoc> {
             excludeJavaCcGenerated()
             (options as StandardJavadocDocletOptions).apply {
                 // Please refrain from using non-ASCII chars below since the options are passed as
@@ -425,6 +471,8 @@ allprojects {
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
                     replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
+                    replaceRegex("jsr305 nullable -> checkerframework", "javax\\.annotation\\.Nullable", "org.checkerframework.checker.nullness.qual.Nullable")
+                    replaceRegex("jsr305 nonnull -> checkerframework", "javax\\.annotation\\.Nonnull", "org.checkerframework.checker.nullness.qual.NonNull")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -445,6 +493,8 @@ allprojects {
                         "static "
                     )
                     removeUnusedImports()
+                    replaceRegex("Avoid 2+ blank lines after package", "^package\\s+([^;]+)\\s*;\\n{3,}", "package \$1;\n\n")
+                    replaceRegex("Avoid 2+ blank lines after import", "^import\\s+([^;]+)\\s*;\\n{3,}", "import \$1;\n\n")
                     indentWithSpaces(2)
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
@@ -496,8 +546,76 @@ allprojects {
             signaturesFiles = files("$rootDir/src/main/config/forbidden-apis/signatures.txt")
         }
 
+        if (enableErrorprone) {
+            apply(plugin = "net.ltgt.errorprone")
+            dependencies {
+                "errorprone"("com.google.errorprone:error_prone_core:${"errorprone".v}")
+                "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
+            }
+            tasks.withType<JavaCompile>().configureEach {
+                options.errorprone {
+                    disableWarningsInGeneratedCode.set(true)
+                    errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
+                    enable(
+                        "MethodCanBeStatic"
+                    )
+                    disable(
+                        "ComplexBooleanConstant",
+                        "EqualsGetClass",
+                        "OperatorPrecedence",
+                        "MutableConstantField",
+                        "ReferenceEquality",
+                        "SameNameButDifferent",
+                        "TypeParameterUnusedInFormals"
+                    )
+                    // Analyze issues, and enable the check
+                    disable(
+                        "BigDecimalEquals",
+                        "StringSplitter"
+                    )
+                }
+            }
+        }
+        if (enableCheckerframework) {
+            apply(plugin = "org.checkerframework")
+            dependencies {
+                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
+                // CheckerFramework annotations might be used in the code as follows:
+                // dependencies {
+                //     "compileOnly"("org.checkerframework:checker-qual")
+                //     "testCompileOnly"("org.checkerframework:checker-qual")
+                // }
+                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+                    // only needed for JDK 8
+                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
+                }
+            }
+            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
+                skipVersionCheck = true
+                // See https://checkerframework.org/manual/#introduction
+                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
+                // Below checkers take significant time and they do not provide much value :-/
+                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
+                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
+                // https://checkerframework.org/manual/#creating-debugging-options-progress
+                // extraJavacArgs.add("-Afilenames")
+                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
+                // Consider Java assert statements for nullness and other checks
+                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
+                // https://checkerframework.org/manual/#stub-using
+                extraJavacArgs.add("-Astubs=" +
+                        fileTree("$rootDir/src/main/config/checkerframework") {
+                            include("**/*.astub")
+                        }.asPath
+                )
+                if (project.path == ":core") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
+                }
+            }
+        }
+
         tasks {
-            withType<Jar>().configureEach {
+            configureEach<Jar> {
                 manifest {
                     attributes["Bundle-License"] = "Apache-2.0"
                     attributes["Implementation-Title"] = "Apache Calcite"
@@ -510,7 +628,7 @@ allprojects {
                 }
             }
 
-            withType<CheckForbiddenApis>().configureEach {
+            configureEach<CheckForbiddenApis> {
                 excludeJavaCcGenerated()
                 exclude(
                     "**/org/apache/calcite/adapter/os/Processes${'$'}ProcessFactory.class",
@@ -522,10 +640,22 @@ allprojects {
                 )
             }
 
-            withType<JavaCompile>().configureEach {
+            configureEach<JavaCompile> {
+                inputs.property("java.version", System.getProperty("java.version"))
+                inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
+                options.compilerArgs.add("-Xlint:deprecation")
+                if (werror) {
+                    options.compilerArgs.add("-Werror")
+                }
+                if (enableCheckerframework) {
+                    options.forkOptions.memoryMaximumSize = "2g"
+                }
             }
-            withType<Test>().configureEach {
+            configureEach<Test> {
+                outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
+                    false
+                }
                 useJUnitPlatform {
                     excludeTags("slow")
                 }
@@ -553,52 +683,6 @@ allprojects {
                         passProperty(e)
                     }
                 }
-                // https://github.com/junit-team/junit5/issues/2041
-                // Gradle does not print parameterized test names yet :(
-                // Hopefully it will be fixed in Gradle 6.1
-                fun String?.withDisplayName(displayName: String?, separator: String = ", "): String? = when {
-                    displayName == null -> this
-                    this == null -> displayName
-                    endsWith(displayName) -> this
-                    else -> "$this$separator$displayName"
-                }
-                fun printResult(descriptor: TestDescriptor, result: TestResult) {
-                    val test = descriptor as org.gradle.api.internal.tasks.testing.TestDescriptorInternal
-                    val classDisplayName = test.className.withDisplayName(test.classDisplayName)
-                    val testDisplayName = test.name.withDisplayName(test.displayName)
-                    val duration = "%5.1fsec".format((result.endTime - result.startTime) / 1000f)
-                    val displayName = classDisplayName.withDisplayName(testDisplayName, " > ")
-                    // Hide SUCCESS from output log, so FAILURE/SKIPPED are easier to spot
-                    val resultType = result.resultType
-                        .takeUnless { it == TestResult.ResultType.SUCCESS }
-                        ?.toString()
-                        ?: (if (result.skippedTestCount > 0 || result.testCount == 0L) "WARNING" else "       ")
-                    if (!descriptor.isComposite) {
-                        println("$resultType $duration, $displayName")
-                    } else {
-                        val completed = result.testCount.toString().padStart(4)
-                        val failed = result.failedTestCount.toString().padStart(3)
-                        val skipped = result.skippedTestCount.toString().padStart(3)
-                        println("$resultType $duration, $completed completed, $failed failed, $skipped skipped, $displayName")
-                    }
-                }
-                afterTest(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
-                    // There are lots of skipped tests, so it is not clear how to log them
-                    // without making build logs too verbose
-                    if (result.resultType == TestResult.ResultType.FAILURE ||
-                        result.endTime - result.startTime >= slowTestLogThreshold) {
-                        printResult(descriptor, result)
-                    }
-                }))
-                afterSuite(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
-                    if (descriptor.name.startsWith("Gradle Test Executor")) {
-                        return@KotlinClosure2
-                    }
-                    if (result.resultType == TestResult.ResultType.FAILURE ||
-                        result.endTime - result.startTime >= slowSuiteLogThreshold) {
-                        printResult(descriptor, result)
-                    }
-                }))
             }
             // Cannot be moved above otherwise configure each will override
             // also the specific configurations below.
@@ -610,7 +694,7 @@ allprojects {
                 }
                 jvmArgs("-Xmx6g")
             }
-            withType<SpotBugsTask>().configureEach {
+            configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
                 if (enableSpotBugs) {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
@@ -624,7 +708,7 @@ allprojects {
 
             afterEvaluate {
                 // Add default license/notice when missing
-                withType<Jar>().configureEach {
+                configureEach<Jar> {
                     CrLfSpec(LineEndings.LF).run {
                         into("META-INF") {
                             filteringCharset = "UTF-8"

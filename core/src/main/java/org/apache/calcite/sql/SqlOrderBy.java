@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -31,8 +33,9 @@ import java.util.List;
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
-    @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+    @SuppressWarnings("argument.type.incompatible")
+    @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos, @Nullable SqlNode... operands) {
       return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
           operands[2], operands[3]);
     }
@@ -40,13 +43,13 @@ public class SqlOrderBy extends SqlCall {
 
   public final SqlNode query;
   public final SqlNodeList orderList;
-  public final SqlNode offset;
-  public final SqlNode fetch;
+  public final @Nullable SqlNode offset;
+  public final @Nullable SqlNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlOrderBy(SqlParserPos pos, SqlNode query, SqlNodeList orderList,
-      SqlNode offset, SqlNode fetch) {
+      @Nullable SqlNode offset, @Nullable SqlNode fetch) {
     super(pos);
     this.query = query;
     this.orderList = orderList;
@@ -60,11 +63,12 @@ public class SqlOrderBy extends SqlCall {
     return SqlKind.ORDER_BY;
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @SuppressWarnings("nullness")
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
@@ -75,11 +79,11 @@ public class SqlOrderBy extends SqlCall {
       super("ORDER BY", SqlKind.ORDER_BY, 0);
     }
 
-    public SqlSyntax getSyntax() {
+    @Override public SqlSyntax getSyntax() {
       return SqlSyntax.POSTFIX;
     }
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,

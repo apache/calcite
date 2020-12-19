@@ -52,6 +52,7 @@ public class CalciteException extends RuntimeException {
    * @param message error message
    * @param cause   underlying cause
    */
+  @SuppressWarnings({"argument.type.incompatible", "method.invocation.invalid"})
   public CalciteException(
       String message,
       Throwable cause) {

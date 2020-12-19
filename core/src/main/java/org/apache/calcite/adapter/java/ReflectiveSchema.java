@@ -53,6 +53,9 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -62,6 +65,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.schema.Schema} that exposes the
  * public fields and methods in a Java object.
@@ -69,9 +74,9 @@ import java.util.Map;
 public class ReflectiveSchema
     extends AbstractSchema {
   private final Class clazz;
-  private Object target;
-  private Map<String, Table> tableMap;
-  private Multimap<String, Function> functionMap;
+  private final Object target;
+  private @MonotonicNonNull Map<String, Table> tableMap;
+  private @MonotonicNonNull Multimap<String, Function> functionMap;
 
   /**
    * Creates a ReflectiveSchema.
@@ -126,13 +131,20 @@ public class ReflectiveSchema
           throw new RuntimeException(
               "Error while accessing field " + field, e);
         }
+        requireNonNull(rc, () -> "field must not be null: " + field);
         FieldTable table =
             (FieldTable) tableMap.get(Util.last(rc.getSourceQualifiedName()));
         assert table != null;
+        List<RelReferentialConstraint> referentialConstraints =
+            table.getStatistic().getReferentialConstraints();
+        if (referentialConstraints == null) {
+          // This enables to keep the same Statistics.of below
+          referentialConstraints = ImmutableList.of();
+        }
         table.statistic = Statistics.of(
             ImmutableList.copyOf(
                 Iterables.concat(
-                    table.getStatistic().getReferentialConstraints(),
+                    referentialConstraints,
                     Collections.singleton(rc))));
       }
     }
@@ -166,7 +178,7 @@ public class ReflectiveSchema
 
   /** Returns an expression for the object wrapped by this schema (not the
    * schema itself). */
-  Expression getTargetExpression(SchemaPlus parentSchema, String name) {
+  Expression getTargetExpression(@Nullable SchemaPlus parentSchema, String name) {
     return EnumUtils.convert(
         Expressions.call(
             Schemas.unwrap(
@@ -178,7 +190,7 @@ public class ReflectiveSchema
 
   /** Returns a table based on a particular field of this schema. If the
    * field is not of the right type to be a relation, returns null. */
-  private <T> Table fieldRelation(final Field field) {
+  private <T> @Nullable Table fieldRelation(final Field field) {
     final Type elementType = getElementType(field.getType());
     if (elementType == null) {
       return null;
@@ -190,14 +202,15 @@ public class ReflectiveSchema
       throw new RuntimeException(
           "Error while accessing field " + field, e);
     }
+    requireNonNull(o, () -> "field " + field + " is null for " + target);
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
     return new FieldTable<>(field, elementType, enumerable);
   }
 
   /** Deduces the element type of a collection;
-   * same logic as {@link #toEnumerable} */
-  private static Type getElementType(Class clazz) {
+   * same logic as {@link #toEnumerable}. */
+  private static @Nullable Type getElementType(Class clazz) {
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
@@ -226,24 +239,22 @@ public class ReflectiveSchema
   private static class ReflectiveTable
       extends AbstractQueryableTable
       implements Table, ScannableTable {
-    private final Type elementType;
     private final Enumerable enumerable;
 
     ReflectiveTable(Type elementType, Enumerable enumerable) {
       super(elementType);
-      this.elementType = elementType;
       this.enumerable = enumerable;
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return ((JavaTypeFactory) typeFactory).createType(elementType);
     }
 
-    public Statistic getStatistic() {
+    @Override public Statistic getStatistic() {
       return Statistics.UNKNOWN;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
       if (elementType == Object[].class) {
         //noinspection unchecked
         return enumerable;
@@ -253,12 +264,12 @@ public class ReflectiveSchema
       }
     }
 
-    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
         SchemaPlus schema, String tableName) {
       return new AbstractTableQueryable<T>(queryProvider, schema, this,
           tableName) {
         @SuppressWarnings("unchecked")
-        public Enumerator<T> enumerator() {
+        @Override public Enumerator<T> enumerator() {
           return (Enumerator<T>) enumerable.enumerator();
         }
       };
@@ -295,7 +306,7 @@ public class ReflectiveSchema
    * }</pre></blockquote>
    */
   public static class Factory implements SchemaFactory {
-    public Schema create(SchemaPlus parentSchema, String name,
+    @Override public Schema create(SchemaPlus parentSchema, String name,
         Map<String, Object> operand) {
       Class<?> clazz;
       Object target;
@@ -315,6 +326,7 @@ public class ReflectiveSchema
           //noinspection unchecked
           Method method = clazz.getMethod((String) methodName);
           target = method.invoke(null);
+          requireNonNull(target, () -> "method " + method + " returns null");
         } catch (Exception e) {
           throw new RuntimeException("Error invoking method " + methodName, e);
         }
@@ -344,13 +356,15 @@ public class ReflectiveSchema
           + "expanded";
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Member {method=" + method + "}";
     }
 
-    public TranslatableTable apply(final List<Object> arguments) {
+    @Override public TranslatableTable apply(final List<? extends @Nullable Object> arguments) {
       try {
-        final Object o = method.invoke(schema.getTarget(), arguments.toArray());
+        final Object o = requireNonNull(
+            method.invoke(schema.getTarget(), arguments.toArray()),
+            () -> "method " + method + " returned null for arguments " + arguments);
         return (TranslatableTable) o;
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
@@ -376,7 +390,7 @@ public class ReflectiveSchema
       this.statistic = statistic;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "Relation {field=" + field.getName() + "}";
     }
 
@@ -386,23 +400,26 @@ public class ReflectiveSchema
 
     @Override public Expression getExpression(SchemaPlus schema,
         String tableName, Class clazz) {
+      ReflectiveSchema reflectiveSchema = requireNonNull(
+          schema.unwrap(ReflectiveSchema.class),
+          () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
       return Expressions.field(
-          schema.unwrap(ReflectiveSchema.class).getTargetExpression(
+          reflectiveSchema.getTargetExpression(
               schema.getParentSchema(), schema.getName()), field);
     }
   }
 
   /** Function that returns an array of a given object's field values. */
-  private static class FieldSelector implements Function1<Object, Object[]> {
+  private static class FieldSelector implements Function1<Object, @Nullable Object[]> {
     private final Field[] fields;
 
     FieldSelector(Class elementType) {
       this.fields = elementType.getFields();
     }
 
-    public Object[] apply(Object o) {
+    @Override public @Nullable Object[] apply(Object o) {
       try {
-        final Object[] objects = new Object[fields.length];
+        final @Nullable Object[] objects = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
           objects[i] = fields[i].get(o);
         }

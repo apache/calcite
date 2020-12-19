@@ -23,14 +23,14 @@ import org.apache.calcite.test.SqlValidatorTestCase;
  * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
  * a {@link SqlValidator}. Tests that involve execution trivially succeed.
  */
-public class SqlOperatorTest extends SqlOperatorBaseTest {
+class SqlOperatorTest extends SqlOperatorBaseTest {
   private static final SqlTester DEFAULT_TESTER =
       (SqlTester) new SqlValidatorTestCase().getTester();
 
   /**
    * Creates a SqlOperatorTest.
    */
-  public SqlOperatorTest() {
+  SqlOperatorTest() {
     super(false, DEFAULT_TESTER);
   }
 }

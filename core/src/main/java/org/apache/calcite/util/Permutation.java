@@ -21,6 +21,10 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -42,6 +46,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * @param size Number of elements in the permutation
    */
+  @SuppressWarnings("method.invocation.invalid")
   public Permutation(int size) {
     targets = new int[size];
     sources = new int[size];
@@ -89,7 +94,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Object clone() {
+  @Override public Object clone() {
     return new Permutation(
         targets.clone(),
         sources.clone());
@@ -107,11 +112,11 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Returns the number of elements in this permutation.
    */
-  public final int size() {
+  @Override public final int size() {
     return targets.length;
   }
 
-  public void clear() {
+  @Override public void clear() {
     throw new UnsupportedOperationException(
         "Cannot clear: permutation must always contain one mapping per element");
   }
@@ -147,7 +152,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * <p>is represented by the string "[2, 0, 1, 3]".
    */
-  public String toString() {
+  @Override public String toString() {
     StringBuilder buf = new StringBuilder();
     buf.append("[");
     for (int i = 0; i < targets.length; i++) {
@@ -192,7 +197,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *                                        greater than or equal to the size of
    *                                        the permuation
    */
-  public void set(int source, int target) {
+  @Override public void set(int source, int target) {
     set(source, target, false);
   }
 
@@ -360,7 +365,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     }
   }
 
-  private void shuffleUp(final int[] zz, int x) {
+  private static void shuffleUp(final int[] zz, int x) {
     final int size = zz.length;
     int t = zz[size - 1];
     System.arraycopy(zz, x, zz, x + 1, size - 1 - x);
@@ -393,7 +398,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Returns the inverse permutation.
    */
-  public Permutation inverse() {
+  @Override public Permutation inverse() {
     return new Permutation(
         sources.clone(),
         targets.clone());
@@ -402,7 +407,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Returns whether this is the identity permutation.
    */
-  public boolean isIdentity() {
+  @Override public boolean isIdentity() {
     for (int i = 0; i < targets.length; i++) {
       if (targets[i] != i) {
         return false;
@@ -414,23 +419,15 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Returns the position that <code>source</code> is mapped to.
    */
-  public int getTarget(int source) {
-    try {
-      return targets[source];
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new Mappings.NoElementException("invalid source " + source);
-    }
+  @Override public int getTarget(int source) {
+    return targets[source];
   }
 
   /**
    * Returns the position which maps to <code>target</code>.
    */
-  public int getSource(int target) {
-    try {
-      return sources[target];
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new Mappings.NoElementException("invalid target " + target);
-    }
+  @Override public int getSource(int target) {
+    return sources[target];
   }
 
   /**
@@ -441,7 +438,8 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * @param fail Whether to assert if invalid
    * @return Whether valid
    */
-  private boolean isValid(boolean fail) {
+  @RequiresNonNull({"sources", "targets"})
+  private boolean isValid(@UnknownInitialization Permutation this, boolean fail) {
     final int size = targets.length;
     if (sources.length != size) {
       assert !fail : "different lengths";
@@ -476,55 +474,55 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     return true;
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     // not very efficient
     return toString().hashCode();
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     // not very efficient
     return (obj instanceof Permutation)
         && toString().equals(obj.toString());
   }
 
   // implement Mapping
-  public Iterator<IntPair> iterator() {
+  @Override public Iterator<IntPair> iterator() {
     return new Iterator<IntPair>() {
       private int i = 0;
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return i < targets.length;
       }
 
-      public IntPair next() {
+      @Override public IntPair next() {
         final IntPair pair = new IntPair(i, targets[i]);
         ++i;
         return pair;
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     };
   }
 
-  public int getSourceCount() {
+  @Override public int getSourceCount() {
     return targets.length;
   }
 
-  public int getTargetCount() {
+  @Override public int getTargetCount() {
     return targets.length;
   }
 
-  public MappingType getMappingType() {
+  @Override public MappingType getMappingType() {
     return MappingType.BIJECTION;
   }
 
-  public int getTargetOpt(int source) {
+  @Override public int getTargetOpt(int source) {
     return getTarget(source);
   }
 
-  public int getSourceOpt(int target) {
+  @Override public int getSourceOpt(int target) {
     return getSource(target);
   }
 

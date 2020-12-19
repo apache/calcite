@@ -73,11 +73,11 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     }
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
-  public String getAllowedSignatures(String opName) {
+  @Override public String getAllowedSignatures(String opName) {
     final String d = "DATETIME";
     final String i = "INTERVAL";
     String[] typeNames = {
@@ -99,7 +99,7 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     return ret.toString();
   }
 
-  public boolean checkOperandTypes(SqlCallBinding callBinding,
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (!OperandTypes.PERIOD.checkSingleOperandType(callBinding,
         callBinding.operand(0), 0, throwOnFailure)) {

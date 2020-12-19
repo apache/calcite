@@ -25,9 +25,12 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -76,14 +79,26 @@ public class EnumerableProject extends Project implements EnumerableRel {
     return new EnumerableProject(cluster, traitSet, input, projects, rowType);
   }
 
-  public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
+  @Override public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType) {
     return new EnumerableProject(getCluster(), traitSet, input,
         projects, rowType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalcRel is always better
     throw new UnsupportedOperationException();
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      RelTraitSet required) {
+    return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 }

@@ -18,13 +18,11 @@ package org.apache.calcite.adapter.tpch;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -34,15 +32,13 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *
  * <p>Because the TPC-H data generator takes time and memory to instantiate,
  * tests only run as part of slow tests.</p>
  */
-@Tag("slow")
-public class TpchTest {
+class TpchTest {
   public static final boolean ENABLE = TestUtil.getJavaMajorVersion() >= 7;
 
   private static String schema(String name, String scaleFactor) {
@@ -51,7 +47,7 @@ public class TpchTest {
         + "       name: '" + name + "',\n"
         + "       factory: 'org.apache.calcite.adapter.tpch.TpchSchemaFactory',\n"
         + "       operand: {\n"
-        + "         columnPrefix: true,\n"
+        + "         columnPrefix: false,\n"
         + "         scale: " + scaleFactor + "\n"
         + "       }\n"
         + "     }";
@@ -755,7 +751,8 @@ public class TpchTest {
           + "order by\n"
           + "  cntrycode");
 
-  @Test public void testRegion() {
+  @Disabled("it's wasting time")
+  @Test void testRegion() {
     with()
         .query("select * from tpch.region")
         .returnsUnordered(
@@ -766,13 +763,15 @@ public class TpchTest {
             "R_REGIONKEY=4; R_NAME=MIDDLE EAST; R_COMMENT=uickly special accounts cajole carefully blithely close requests. carefully final asymptotes haggle furiousl");
   }
 
-  @Test public void testLineItem() {
+  @Disabled("it's wasting time")
+  @Test void testLineItem() {
     with()
         .query("select * from tpch.lineitem")
         .returnsCount(6001215);
   }
 
-  @Test public void testOrders() {
+  @Disabled("it's wasting time")
+  @Test void testOrders() {
     with()
         .query("select * from tpch.orders")
         .returnsCount(1500000);
@@ -783,7 +782,7 @@ public class TpchTest {
    * Correlated scalar sub-query with multiple aggregates gives
    * AssertionError</a>. */
   @Disabled("planning succeeds, but gives OutOfMemoryError during execution")
-  @Test public void testDecorrelateScalarAggregate() {
+  @Test void testDecorrelateScalarAggregate() {
     final String sql = "select sum(l_extendedprice)\n"
         + "from lineitem, part\n"
         + "where\n"
@@ -796,7 +795,8 @@ public class TpchTest {
     with().query(sql).runs();
   }
 
-  @Test public void testCustomer() {
+  @Disabled("it's wasting time")
+  @Test void testCustomer() {
     with()
         .query("select * from tpch.customer")
         .returnsCount(150000);
@@ -808,23 +808,22 @@ public class TpchTest {
   }
 
   /** Tests the customer table with scale factor 5. */
-  @Test public void testCustomer5() {
+  @Disabled("it's wasting time")
+  @Test void testCustomer5() {
     with()
         .query("select * from tpch_5.customer")
         .returnsCount(750000);
   }
 
-  @Test public void testQuery01() {
+  @Test void testQuery01() {
     checkQuery(1);
   }
 
-  @Disabled("Infinite planning")
-  @Test public void testQuery02() {
+  @Test void testQuery02() {
     checkQuery(2);
   }
 
-  @Disabled("Infinite planning")
-  @Test public void testQuery02Conversion() {
+  @Test void testQuery02Conversion() {
     query(2)
         .convertMatches(relNode -> {
           String s = RelOptUtil.toString(relNode);
@@ -833,94 +832,86 @@ public class TpchTest {
         });
   }
 
-  @Test public void testQuery03() {
+  @Test void testQuery03() {
     checkQuery(3);
   }
 
-  @Disabled("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
-  @Test public void testQuery04() {
+  @Test void testQuery04() {
     checkQuery(4);
   }
 
-  @Disabled("OutOfMemoryError")
-  @Test public void testQuery05() {
+  @Test void testQuery05() {
     checkQuery(5);
   }
 
-  @Test public void testQuery06() {
+  @Test void testQuery06() {
     checkQuery(6);
   }
 
-  @Test public void testQuery07() {
-    assumeTrue(Bug.CALCITE_2223_FIXED);
+  @Test void testQuery07() {
     checkQuery(7);
   }
 
-  @Test public void testQuery08() {
+  @Test void testQuery08() {
     checkQuery(8);
   }
 
-  @Disabled("no method found")
-  @Test public void testQuery09() {
+  @Test void testQuery09() {
     checkQuery(9);
   }
 
-  @Test public void testQuery10() {
+  @Test void testQuery10() {
     checkQuery(10);
   }
 
-  @Disabled("CannotPlanException")
-  @Test public void testQuery11() {
+  @Test void testQuery11() {
     checkQuery(11);
   }
 
-  @Disabled("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
-  @Test public void testQuery12() {
+  @Test void testQuery12() {
     checkQuery(12);
   }
 
-  @Disabled("CannotPlanException")
-  @Test public void testQuery13() {
+  @Test void testQuery13() {
     checkQuery(13);
   }
 
-  @Test public void testQuery14() {
+  @Test void testQuery14() {
     checkQuery(14);
   }
 
-  @Disabled("AssertionError")
-  @Test public void testQuery15() {
+  @Test void testQuery15() {
     checkQuery(15);
   }
 
-  @Test public void testQuery16() {
+  @Test void testQuery16() {
     checkQuery(16);
   }
 
-  @Test public void testQuery17() {
+  @Test void testQuery17() {
     checkQuery(17);
   }
 
-  @Test public void testQuery18() {
+  @Test void testQuery18() {
     checkQuery(18);
   }
 
   // a bit slow
   @Timeout(value = 10, unit = TimeUnit.MINUTES)
-  @Test public void testQuery19() {
+  @Disabled("Too slow, more than 5 min")
+  @Test void testQuery19() {
     checkQuery(19);
   }
 
-  @Test public void testQuery20() {
+  @Test void testQuery20() {
     checkQuery(20);
   }
 
-  @Test public void testQuery21() {
+  @Test void testQuery21() {
     checkQuery(21);
   }
 
-  @Disabled("IllegalArgumentException during decorrelation")
-  @Test public void testQuery22() {
+  @Test void testQuery22() {
     checkQuery(22);
   }
 
@@ -933,6 +924,6 @@ public class TpchTest {
    * @param i Ordinal of query, per the benchmark, 1-based */
   private CalciteAssert.AssertQuery query(int i) {
     return with()
-        .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
+        .query(QUERIES.get(i - 1).replace("tpch.", "tpch_01."));
   }
 }

@@ -94,7 +94,7 @@ public abstract class SqlSampleSpec {
       return name;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "SUBSTITUTE("
           + CalciteSqlDialect.DEFAULT.quoteStringLiteral(name)
           + ")";
@@ -153,7 +153,7 @@ public abstract class SqlSampleSpec {
       return repeatableSeed;
     }
 
-    public String toString() {
+    @Override public String toString() {
       StringBuilder b = new StringBuilder();
       b.append(isBernoulli ? "BERNOULLI" : "SYSTEM");
       b.append('(');

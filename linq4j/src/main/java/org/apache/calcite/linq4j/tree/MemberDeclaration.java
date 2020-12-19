@@ -20,5 +20,5 @@ package org.apache.calcite.linq4j.tree;
  * Declaration of a member of a class.
  */
 public abstract class MemberDeclaration implements Node {
-  public abstract MemberDeclaration accept(Shuttle shuttle);
+  @Override public abstract MemberDeclaration accept(Shuttle shuttle);
 }

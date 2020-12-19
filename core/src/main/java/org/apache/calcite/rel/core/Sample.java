@@ -62,11 +62,11 @@ public class Sample extends SingleRel {
     Object repeatableSeed = input.get("repeatableSeed");
     boolean repeatable = repeatableSeed instanceof Number;
     return new RelOptSamplingParameters(
-        mode.equals("bernoulli"), percentage, repeatable,
-        repeatable ? ((Number) repeatableSeed).intValue() : 0);
+        "bernoulli".equals(mode), percentage, repeatable,
+        repeatable && repeatableSeed != null ? ((Number) repeatableSeed).intValue() : 0);
   }
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new Sample(getCluster(), sole(inputs), params);
   }

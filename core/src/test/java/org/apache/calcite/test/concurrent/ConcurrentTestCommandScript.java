@@ -343,7 +343,7 @@ public class ConcurrentTestCommandScript
 
   /**
    * Gets ready to execute: loads script FILENAME applying external variable
-   * BINDINGS
+   * BINDINGS.
    */
   private void prepare(String filename, List<String> bindings)
       throws IOException {
@@ -367,7 +367,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Executes the script
+   * Executes the script.
    */
   public void execute() throws Exception {
     scriptStartTime = System.currentTimeMillis();
@@ -497,7 +497,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Identifies the start of a comment line; same rules as sqlline
+   * Identifies the start of a comment line; same rules as sqlline.
    */
   private boolean isComment(String line) {
     return line.startsWith("--") || line.startsWith("#");

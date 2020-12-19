@@ -27,6 +27,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -44,7 +46,7 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
     assert getConvention() == input.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // We do this so we get the limit for free
     return planner.getCostFactory().makeZeroCost();
@@ -54,7 +56,7 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
     return new CassandraLimit(getCluster(), traitSet, sole(newInputs), offset, fetch);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     if (offset != null) {
       implementor.offset = RexLiteral.intValue(offset);
@@ -64,7 +66,7 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
     }
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     pw.itemIf("offset", offset, offset != null);
     pw.itemIf("fetch", fetch, fetch != null);

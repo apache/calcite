@@ -26,9 +26,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -63,43 +66,84 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new DedupFunction());
     opTab.addOperator(new MyFunction());
     opTab.addOperator(new MyAvgAggFunction());
+    opTab.addOperator(new RowFunction());
+    opTab.addOperator(new NotATableFunction());
+    opTab.addOperator(new BadTableFunction());
+    opTab.addOperator(new StructuredFunction());
+    opTab.addOperator(new CompositeFunction());
   }
 
-  /** "RAMP" user-defined function. */
-  public static class RampFunction extends SqlFunction {
+  /** "RAMP" user-defined table function. */
+  public static class RampFunction extends SqlFunction
+      implements SqlTableFunction {
     public RampFunction() {
       super("RAMP",
           SqlKind.OTHER_FUNCTION,
-          null,
+          ReturnTypes.CURSOR,
           null,
           OperandTypes.NUMERIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-      final RelDataTypeFactory typeFactory =
-          opBinding.getTypeFactory();
-      return typeFactory.builder()
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
           .add("I", SqlTypeName.INTEGER)
           .build();
     }
   }
 
-  /** "DEDUP" user-defined function. */
-  public static class DedupFunction extends SqlFunction {
-    public DedupFunction() {
-      super("DEDUP",
+  /** Not valid as a table function, even though it returns CURSOR, because
+   * it does not implement {@link SqlTableFunction}. */
+  public static class NotATableFunction extends SqlFunction {
+    public NotATableFunction() {
+      super("BAD_RAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+  }
+
+  /** Another bad table function: declares itself as a table function but does
+   * not return CURSOR. */
+  public static class BadTableFunction extends SqlFunction
+      implements SqlTableFunction {
+    public BadTableFunction() {
+      super("BAD_TABLE_FUNCTION",
           SqlKind.OTHER_FUNCTION,
           null,
           null,
-          OperandTypes.VARIADIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
     public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-      final RelDataTypeFactory typeFactory =
-          opBinding.getTypeFactory();
-      return typeFactory.builder()
+      // This is wrong. A table function should return CURSOR.
+      return opBinding.getTypeFactory().builder()
+          .add("I", SqlTypeName.INTEGER)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return this::inferReturnType;
+    }
+  }
+
+  /** "DEDUP" user-defined table function. */
+  public static class DedupFunction extends SqlFunction
+      implements SqlTableFunction {
+    public DedupFunction() {
+      super("DEDUP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
           .add("NAME", SqlTypeName.VARCHAR, 1024)
           .build();
     }
@@ -114,7 +158,6 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           null,
           null,
           OperandTypes.NUMERIC,
-          null,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
@@ -123,6 +166,37 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
+  }
+
+  /** "MYAGGFUNC" user-defined aggregate function. This agg function accept one or more arguments
+   * in order to reproduce the throws of CALCITE-3929. */
+  public static class MyAggFunc extends SqlAggFunction {
+    public MyAggFunc() {
+      super("myAggFunc", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
+          OperandTypes.ONE_OR_MORE, SqlFunctionCategory.USER_DEFINED_FUNCTION, false, false,
+          Optionality.FORBIDDEN);
+    }
+  }
+
+  /**
+   * "SPLIT" user-defined function. This function return array type
+   * in order to reproduce the throws of CALCITE-4062.
+   */
+  public static class SplitFunction extends SqlFunction {
+
+    public SplitFunction() {
+      super("SPLIT", new SqlIdentifier("SPLIT", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.VARCHAR), -1);
+    }
+
   }
 
   /** "MYAGG" user-defined aggregate function. This agg function accept two numeric arguments
@@ -136,6 +210,73 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
     @Override public boolean isDeterministic() {
       return false;
+    }
+  }
+
+  /** "ROW_FUNC" user-defined table function whose return type is
+   * row type with nullable and non-nullable fields. */
+  public static class RowFunction extends SqlFunction
+      implements SqlTableFunction {
+    RowFunction() {
+      super("ROW_FUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR, null,
+          OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      return typeFactory.builder()
+          .add("NOT_NULL_FIELD", bigintType)
+          .add("NULLABLE_FIELD", bigintType).nullable(true)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return RowFunction::inferRowType;
+    }
+  }
+
+  /** "STRUCTURED_FUNC" user-defined function whose return type is structured type. */
+  public static class StructuredFunction extends SqlFunction {
+    StructuredFunction() {
+      super("STRUCTURED_FUNC",
+          new SqlIdentifier("STRUCTURED_FUNC", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null, OperandTypes.NILADIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      final RelDataType varcharType =
+          typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+      return typeFactory.builder()
+          .add("F0", bigintType)
+          .add("F1", varcharType)
+          .build();
+    }
+  }
+
+  /** "COMPOSITE" user-defined scalar function. **/
+  public static class CompositeFunction extends SqlFunction {
+    public CompositeFunction() {
+      super("COMPOSITE",
+          new SqlIdentifier("COMPOSITE", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.or(
+              OperandTypes.variadic(SqlOperandCountRanges.from(1)),
+              OperandTypes.variadic(SqlOperandCountRanges.from(2))),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
   }
 }

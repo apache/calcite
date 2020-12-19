@@ -23,6 +23,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
 /**
@@ -36,10 +39,10 @@ public class SqlMerge extends SqlCall {
   SqlNode targetTable;
   SqlNode condition;
   SqlNode source;
-  SqlUpdate updateCall;
-  SqlInsert insertCall;
-  SqlSelect sourceSelect;
-  SqlIdentifier alias;
+  @Nullable SqlUpdate updateCall;
+  @Nullable SqlInsert insertCall;
+  @Nullable SqlSelect sourceSelect;
+  @Nullable SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -47,10 +50,10 @@ public class SqlMerge extends SqlCall {
       SqlNode targetTable,
       SqlNode condition,
       SqlNode source,
-      SqlUpdate updateCall,
-      SqlInsert insertCall,
-      SqlSelect sourceSelect,
-      SqlIdentifier alias) {
+      @Nullable SqlUpdate updateCall,
+      @Nullable SqlInsert insertCall,
+      @Nullable SqlSelect sourceSelect,
+      @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
@@ -63,7 +66,7 @@ public class SqlMerge extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -71,12 +74,14 @@ public class SqlMerge extends SqlCall {
     return SqlKind.MERGE;
   }
 
-  public List<SqlNode> getOperandList() {
+  @SuppressWarnings("nullness")
+  @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
         insertCall, sourceSelect, alias);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       assert operand instanceof SqlIdentifier;
@@ -89,13 +94,13 @@ public class SqlMerge extends SqlCall {
       source = operand;
       break;
     case 3:
-      updateCall = (SqlUpdate) operand;
+      updateCall = (@Nullable SqlUpdate) operand;
       break;
     case 4:
-      insertCall = (SqlInsert) operand;
+      insertCall = (@Nullable SqlInsert) operand;
       break;
     case 5:
-      sourceSelect = (SqlSelect) operand;
+      sourceSelect = (@Nullable SqlSelect) operand;
       break;
     case 6:
       alias = (SqlIdentifier) operand;
@@ -105,23 +110,18 @@ public class SqlMerge extends SqlCall {
     }
   }
 
-  /**
-   * @return the identifier for the target table of the merge
-   */
+  /** Return the identifier for the target table of this MERGE. */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
-  /**
-   * @return the alias for the target table of the merge
-   */
-  public SqlIdentifier getAlias() {
+  /** Returns the alias for the target table of this MERGE. */
+  @Pure
+  public @Nullable SqlIdentifier getAlias() {
     return alias;
   }
 
-  /**
-   * @return the source for the merge
-   */
+  /** Returns the source query of this MERGE. */
   public SqlNode getSourceTableRef() {
     return source;
   }
@@ -130,23 +130,18 @@ public class SqlMerge extends SqlCall {
     this.source = tableRef;
   }
 
-  /**
-   * @return the update statement for the merge
-   */
-  public SqlUpdate getUpdateCall() {
+  /** Returns the UPDATE statement for this MERGE. */
+  public @Nullable SqlUpdate getUpdateCall() {
     return updateCall;
   }
 
-  /**
-   * @return the insert statement for the merge
-   */
-  public SqlInsert getInsertCall() {
+  /** Returns the INSERT statement for this MERGE. */
+  public @Nullable SqlInsert getInsertCall() {
     return insertCall;
   }
 
-  /**
-   * @return the condition expression to determine whether to update or insert
-   */
+  /** Returns the condition expression to determine whether to UPDATE or
+   * INSERT. */
   public SqlNode getCondition() {
     return condition;
   }
@@ -158,7 +153,7 @@ public class SqlMerge extends SqlCall {
    *
    * @return the source SELECT for the data to be updated
    */
-  public SqlSelect getSourceSelect() {
+  public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;
   }
 
@@ -172,6 +167,7 @@ public class SqlMerge extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
@@ -185,6 +181,7 @@ public class SqlMerge extends SqlCall {
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
 
+    SqlUpdate updateCall = this.updateCall;
     if (updateCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN MATCHED THEN UPDATE");
@@ -206,11 +203,13 @@ public class SqlMerge extends SqlCall {
       writer.endList(setFrame);
     }
 
+    SqlInsert insertCall = this.insertCall;
     if (insertCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN NOT MATCHED THEN INSERT");
-      if (insertCall.getTargetColumnList() != null) {
-        insertCall.getTargetColumnList().unparse(writer, opLeft, opRight);
+      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
+      if (targetColumnList != null) {
+        targetColumnList.unparse(writer, opLeft, opRight);
       }
       insertCall.getSource().unparse(writer, opLeft, opRight);
 
@@ -218,7 +217,7 @@ public class SqlMerge extends SqlCall {
     }
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateMerge(this);
   }
 }

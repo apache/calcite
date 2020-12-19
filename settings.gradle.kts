@@ -19,6 +19,7 @@ pluginManagement {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
+        idv("org.checkerframework")
         idv("com.github.autostyle")
         idv("com.github.johnrengelman.shadow")
         idv("com.github.spotbugs")
@@ -30,11 +31,16 @@ pluginManagement {
         idv("com.google.protobuf")
         idv("de.thetaphi.forbiddenapis")
         idv("me.champeau.gradle.jmh")
+        idv("net.ltgt.errorprone")
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.nosphere.apache.rat")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
+}
+
+plugins {
+    `gradle-enterprise`
 }
 
 // This is the name of a current project
@@ -53,6 +59,7 @@ include(
     "example:function",
     "file",
     "geode",
+    "innodb",
     "kafka",
     "linq4j",
     "mongodb",
@@ -77,6 +84,25 @@ fun property(name: String) =
         true -> extra.get(name) as? String
         else -> null
     }
+
+val isCiServer = System.getenv().containsKey("CI")
+
+if (isCiServer) {
+    gradleEnterprise {
+        buildScan {
+            termsOfServiceUrl = "https://gradle.com/terms-of-service"
+            termsOfServiceAgree = "yes"
+            tag("CI")
+        }
+    }
+}
+
+// Cache build artifacts, so expensive operations do not need to be re-computed
+buildCache {
+    local {
+        isEnabled = !isCiServer
+    }
+}
 
 // This enables to use local clone of vlsi-release-plugins for debugging purposes
 property("localReleasePlugins")?.ifBlank { "../vlsi-release-plugins" }?.let {

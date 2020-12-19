@@ -62,16 +62,16 @@ public class SqlDatePartFunction extends SqlFunction {
         operands.get(0));
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(1);
   }
 
-  public String getSignatureTemplate(int operandsCount) {
+  @Override public String getSignatureTemplate(int operandsCount) {
     assert 1 == operandsCount;
     return "{0}({1})";
   }
 
-  public boolean checkOperandTypes(SqlCallBinding callBinding,
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // Use #checkOperandTypes instead of #checkSingleOperandType to enable implicit
     // type coercion. REVIEW Danny 2019-09-10, because we declare that the operand

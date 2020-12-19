@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -43,8 +44,7 @@ public abstract class InferTypes {
             callBinding.getValidator().getUnknownType();
         RelDataType knownType = unknownType;
         for (SqlNode operand : callBinding.operands()) {
-          knownType = callBinding.getValidator().deriveType(
-              callBinding.getScope(), operand);
+          knownType = SqlTypeUtil.deriveType(callBinding, operand);
           if (!knownType.equals(unknownType)) {
             break;
           }
@@ -55,9 +55,7 @@ public abstract class InferTypes {
         // unknown types for incomplete expressions.
         // Maybe we need to distinguish the two kinds of unknown.
         //assert !knownType.equals(unknownType);
-        for (int i = 0; i < operandTypes.length; ++i) {
-          operandTypes[i] = knownType;
-        }
+        Arrays.fill(operandTypes, knownType);
       };
 
   /**

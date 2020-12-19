@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Comparator;
 
 /**
@@ -31,29 +33,29 @@ import java.util.Comparator;
 class EnumerableOrderedQueryable<T> extends EnumerableQueryable<T>
     implements OrderedQueryable<T> {
   EnumerableOrderedQueryable(Enumerable<T> enumerable, Class<T> rowType,
-      QueryProvider provider, Expression expression) {
+      QueryProvider provider, @Nullable Expression expression) {
     super(provider, rowType, expression, enumerable);
   }
 
-  public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+  @Override public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
       FunctionExpression<Function1<T, TKey>> keySelector) {
     return QueryableDefaults.thenBy(asOrderedQueryable(), keySelector);
   }
 
-  public <TKey> OrderedQueryable<T> thenBy(
+  @Override public <TKey> OrderedQueryable<T> thenBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator) {
     return QueryableDefaults.thenBy(asOrderedQueryable(), keySelector,
         comparator);
   }
 
-  public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+  @Override public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
       FunctionExpression<Function1<T, TKey>> keySelector) {
     return QueryableDefaults.thenByDescending(asOrderedQueryable(),
         keySelector);
   }
 
-  public <TKey> OrderedQueryable<T> thenByDescending(
+  @Override public <TKey> OrderedQueryable<T> thenByDescending(
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator) {
     return QueryableDefaults.thenByDescending(asOrderedQueryable(), keySelector,

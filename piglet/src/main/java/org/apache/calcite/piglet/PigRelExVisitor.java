@@ -77,8 +77,8 @@ import java.util.List;
  * Visits pig expression plans and converts them into corresponding RexNodes.
  */
 class PigRelExVisitor extends LogicalExpressionVisitor {
-  /** Stack used during post order walking process when processing a Pig
-   * expression plan */
+  /** Stack used during post-order walking process when processing a Pig
+   * expression plan. */
   private final Deque<RexNode> stack = new ArrayDeque<>();
 
   /** The relational algebra builder customized for Pig. */
@@ -87,10 +87,10 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
   // inputCount and inputOrdinal are used to select which relation in the builder
   // stack to build the projection
 
-  /** Number of inputs */
+  /** Number of inputs. */
   private final int inputCount;
 
-  /** Input ordinal */
+  /** Input ordinal. */
   private final int inputOrdinal;
 
   /**
@@ -295,7 +295,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @param rexNode The string literal
    * @return New string literal with Pig regular expressions replaced by SQL regular expressions
    */
-  private RexNode replacePatternIfPossible(RexNode rexNode) {
+  private static RexNode replacePatternIfPossible(RexNode rexNode) {
     // Until
     //   [CALCITE-3194] Convert Pig string patterns into SQL string patterns
     // is fixed, return the pattern unchanged.
@@ -366,7 +366,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     builder.registerPigUDF(className, op.getFuncSpec());
   }
 
-  private int optSize(List<Operator> list) {
+  private static int optSize(List<Operator> list) {
     return list != null ? list.size() : 0;
   }
 

@@ -26,6 +26,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
@@ -72,7 +74,10 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   ANY,
   CURSOR,
   COLUMN_LIST,
-  GEO;
+  GEO,
+  /** Like ANY, but do not even validate the operand. It may not be an
+   * expression. */
+  IGNORE;
 
   private static final Map<Integer, SqlTypeFamily> JDBC_TYPE_TO_FAMILY =
       ImmutableMap.<Integer, SqlTypeFamily>builder()
@@ -119,13 +124,11 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
    * @param jdbcType the JDBC type of interest
    * @return containing family
    */
-  public static SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
+  public static @Nullable SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_FAMILY.get(jdbcType);
   }
 
-  /**
-   * @return collection of {@link SqlTypeName}s included in this family
-   */
+  /** Returns the collection of {@link SqlTypeName}s included in this family. */
   public Collection<SqlTypeName> getTypeNames() {
     switch (this) {
     case CHARACTER:
@@ -181,10 +184,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     }
   }
 
-  /**
-   * @return Default {@link RelDataType} belongs to this family.
-   */
-  public RelDataType getDefaultConcreteType(RelDataTypeFactory factory) {
+  /** Return the default {@link RelDataType} that belongs to this family. */
+  public @Nullable RelDataType getDefaultConcreteType(RelDataTypeFactory factory) {
     switch (this) {
     case CHARACTER:
       return factory.createSqlType(SqlTypeName.VARCHAR);

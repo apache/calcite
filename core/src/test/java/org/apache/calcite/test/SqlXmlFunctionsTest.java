@@ -34,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement Xml processing functions.
  */
-public class SqlXmlFunctionsTest {
+class SqlXmlFunctionsTest {
 
-  @Test public void testExtractValue() {
+  @Test void testExtractValue() {
     assertExtractValue("<a>ccc<b>ddd</b></a>", "/a", is("ccc"));
 
     String input = "<a>ccc<b>ddd</b></a>";
@@ -46,7 +46,7 @@ public class SqlXmlFunctionsTest {
   }
 
 
-  @Test public void testXmlTransform() {
+  @Test void testXmlTransform() {
     assertXmlTransform(null, "", nullValue());
     assertXmlTransform("", null, nullValue());
 
@@ -56,7 +56,7 @@ public class SqlXmlFunctionsTest {
     assertXmlTransformFailed("", xslt, Matchers.expectThrowable(expected));
   }
 
-  @Test public void testExtractXml() {
+  @Test void testExtractXml() {
     assertExtractXml(null, "", null, nullValue());
     assertExtractXml("", null, null, nullValue());
 
@@ -69,7 +69,7 @@ public class SqlXmlFunctionsTest {
   }
 
 
-  @Test public void testExistsNode() {
+  @Test void testExistsNode() {
     assertExistsNode(null, "", null, nullValue());
     assertExistsNode("", null, null, nullValue());
 

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Objects;
 
@@ -52,7 +54,7 @@ public abstract class AbstractNode implements Node {
     return writer.toString();
   }
 
-  public void accept(ExpressionWriter writer) {
+  @Override public void accept(ExpressionWriter writer) {
     accept(writer, 0, 0);
   }
 
@@ -65,17 +67,17 @@ public abstract class AbstractNode implements Node {
         "un-parse not supported: " + getClass() + ":" + nodeType);
   }
 
-  public Node accept(Shuttle shuttle) {
+  @Override public Node accept(Shuttle shuttle) {
     throw new RuntimeException(
         "visit not supported: " + getClass() + ":" + nodeType);
   }
 
-  public Object evaluate(Evaluator evaluator) {
+  public @Nullable Object evaluate(Evaluator evaluator) {
     throw new RuntimeException(
         "evaluation not supported: " + getClass() + ":" + nodeType);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

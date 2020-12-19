@@ -102,7 +102,7 @@ import java.util.Map;
  *
  * <li>Function types that accept primitive types in LINQ.NET have become
  * boxed types in LINQ4J. For example, a predicate function
- * {@code Func&lt;T, bool&gt;} becomes {@code Func1&lt;T, Boolean&gt;}.
+ * {@code Func<T, bool>} becomes {@code Func1<T, Boolean>}.
  * It would be wrong to infer that the function is allowed to return null.</li>
  *
  * </ul>

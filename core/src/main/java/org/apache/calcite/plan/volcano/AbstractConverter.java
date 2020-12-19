@@ -19,17 +19,18 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.convert.ConverterImpl;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -52,7 +53,7 @@ public class AbstractConverter extends ConverterImpl {
   public AbstractConverter(
       RelOptCluster cluster,
       RelSubset rel,
-      RelTraitDef traitDef,
+      @Nullable RelTraitDef traitDef,
       RelTraitSet traits) {
     super(cluster, traitDef, traits, rel);
     assert traits.allSimple();
@@ -61,7 +62,7 @@ public class AbstractConverter extends ConverterImpl {
   //~ Methods ----------------------------------------------------------------
 
 
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new AbstractConverter(
         getCluster(),
         (RelSubset) sole(inputs),
@@ -69,11 +70,12 @@ public class AbstractConverter extends ConverterImpl {
         traitSet);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return planner.getCostFactory().makeInfiniteCost();
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (RelTrait trait : traitSet) {
       pw.item(trait.getTraitDef().getSimpleName(), trait);
@@ -81,39 +83,46 @@ public class AbstractConverter extends ConverterImpl {
     return pw;
   }
 
+  @Override public boolean isEnforcer() {
+    return true;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Rule which converts an {@link AbstractConverter} into a chain of
+   * Rule that converts an {@link AbstractConverter} into a chain of
    * converters from the source relation to the target traits.
    *
    * <p>The chain produced is minimal: we have previously built the transitive
-   * closure of the graph of conversions, so we choose the shortest chain.</p>
+   * closure of the graph of conversions, so we choose the shortest chain.
    *
    * <p>Unlike the {@link AbstractConverter} they are replacing, these
    * converters are guaranteed to be able to convert any relation of their
    * calling convention. Furthermore, because they introduce subsets of other
    * calling conventions along the way, these subsets may spawn more efficient
-   * conversions which are not generally applicable.</p>
+   * conversions which are not generally applicable.
    *
    * <p>AbstractConverters can be messy, so they restrain themselves: they
    * don't fire if the target subset already has an implementation (with less
-   * than infinite cost).</p>
+   * than infinite cost).
    */
-  public static class ExpandConversionRule extends RelOptRule {
+  public static class ExpandConversionRule
+      extends RelRule<ExpandConversionRule.Config> {
     public static final ExpandConversionRule INSTANCE =
-        new ExpandConversionRule(RelFactories.LOGICAL_BUILDER);
+        Config.DEFAULT.toRule();
 
-    /**
-     * Creates an ExpandConversionRule.
-     *
-     * @param relBuilderFactory Builder for relational expressions
-     */
-    public ExpandConversionRule(RelBuilderFactory relBuilderFactory) {
-      super(operand(AbstractConverter.class, any()), relBuilderFactory, null);
+    /** Creates an ExpandConversionRule. */
+    protected ExpandConversionRule(Config config) {
+      super(config);
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Deprecated // to be removed before 2.0
+    public ExpandConversionRule(RelBuilderFactory relBuilderFactory) {
+      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(Config.class));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
       final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
       AbstractConverter converter = call.rel(0);
       final RelNode child = converter.getInput();
@@ -123,6 +132,18 @@ public class AbstractConverter extends ConverterImpl {
               converter.traitSet);
       if (converted != null) {
         call.transformTo(converted);
+      }
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      Config DEFAULT = EMPTY
+          .withOperandSupplier(b ->
+              b.operand(AbstractConverter.class).anyInputs())
+          .as(Config.class);
+
+      @Override default ExpandConversionRule toRule() {
+        return new ExpandConversionRule(this);
       }
     }
   }

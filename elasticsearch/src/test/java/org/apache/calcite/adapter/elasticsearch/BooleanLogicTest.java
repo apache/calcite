@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -41,15 +42,17 @@ import java.util.Map;
 /**
  * Test of different boolean expressions (some more complex than others).
  */
+@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class BooleanLogicTest {
+class BooleanLogicTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "booleanlogic";
 
   /**
-   * Used to create {@code zips} index and insert some data
+   * Creates {@code zips} index and inserts some data.
+   *
    * @throws Exception when ES node setup failed
    */
   @BeforeAll
@@ -90,7 +93,7 @@ public class BooleanLogicTest {
     };
   }
 
-  @Test public void expressions() {
+  @Test void expressions() {
     assertSingle("select * from view");
     assertSingle("select * from view where a = 'a'");
     assertEmpty("select * from view where a <> 'a'");
@@ -138,7 +141,7 @@ public class BooleanLogicTest {
   /**
    * Tests negations ({@code NOT} operator).
    */
-  @Test public void notExpression() {
+  @Test void notExpression() {
     assertEmpty("select * from view where not a = 'a'");
     assertSingle("select * from view where not not a = 'a'");
     assertEmpty("select * from view where not not not a = 'a'");

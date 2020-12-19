@@ -20,11 +20,15 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Strategy interface to check for allowed operand types of an operator call.
  *
  * <p>This interface is an example of the
  * {@link org.apache.calcite.util.Glossary#STRATEGY_PATTERN strategy pattern}.
+ *
+ * @see OperandTypes
  */
 public interface SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
@@ -41,9 +45,7 @@ public interface SqlOperandTypeChecker {
       SqlCallBinding callBinding,
       boolean throwOnFailure);
 
-  /**
-   * @return range of operand counts allowed in a call
-   */
+  /** Returns the range of operand counts allowed in a call. */
   SqlOperandCountRange getOperandCountRange();
 
   /**
@@ -61,6 +63,21 @@ public interface SqlOperandTypeChecker {
 
   /** Returns whether the {@code i}th operand is optional. */
   boolean isOptional(int i);
+
+  /** Returns whether the list of parameters is fixed-length. In standard SQL,
+   * user-defined functions are fixed-length.
+   *
+   * <p>If true, the validator should expand calls, supplying a {@code DEFAULT}
+   * value for each parameter for which an argument is not supplied. */
+  default boolean isFixedParameters() {
+    return false;
+  }
+
+  /** Converts this type checker to a type inference; returns null if not
+   * possible. */
+  default @Nullable SqlOperandTypeInference typeInference() {
+    return null;
+  }
 
   /** Strategy used to make arguments consistent. */
   enum Consistency {

@@ -488,7 +488,7 @@ If `methodName` is "*", Calcite creates a function for every method
 in the class.
 
 If `methodName` is not specified, Calcite looks for a method called "eval", and
-if found, creates a a table macro or scalar function.
+if found, creates a table macro or scalar function.
 It also looks for methods "init", "add", "merge", "result", and
 if found, creates an aggregate function.
 

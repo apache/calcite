@@ -19,6 +19,9 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +39,7 @@ import java.util.Objects;
 public class LoptJoinTree {
   //~ Instance fields --------------------------------------------------------
 
+  @NotOnlyInitialized
   private final BinaryTree factorTree;
   private final RelNode joinTree;
   private final boolean removableSelfJoin;
@@ -48,6 +52,7 @@ public class LoptJoinTree {
    * @param joinTree RelNode corresponding to the single node
    * @param factorId factor id of the node
    */
+  @SuppressWarnings("argument.type.incompatible")
   public LoptJoinTree(RelNode joinTree, int factorId) {
     this.joinTree = joinTree;
     this.factorTree = new Leaf(factorId, this);
@@ -153,10 +158,11 @@ public class LoptJoinTree {
    * track of the parent LoptJoinTree object associated with the binary tree.
    */
   protected abstract static class BinaryTree {
+    @NotOnlyInitialized
     private final LoptJoinTree parent;
 
-    protected BinaryTree(LoptJoinTree parent) {
-      this.parent = Objects.requireNonNull(parent);
+    protected BinaryTree(@UnderInitialization LoptJoinTree parent) {
+      this.parent = parent;
     }
 
     public LoptJoinTree getParent() {
@@ -170,19 +176,17 @@ public class LoptJoinTree {
   protected static class Leaf extends BinaryTree {
     private final int id;
 
-    public Leaf(int rootId, LoptJoinTree parent) {
+    public Leaf(int rootId, @UnderInitialization LoptJoinTree parent) {
       super(parent);
       this.id = rootId;
     }
 
-    /**
-     * @return the id associated with a leaf node in a binary tree
-     */
+    /** Returns the id associated with a leaf node in a binary tree. */
     public int getId() {
       return id;
     }
 
-    public void getTreeOrder(List<Integer> treeOrder) {
+    @Override public void getTreeOrder(List<Integer> treeOrder) {
       treeOrder.add(id);
     }
   }
@@ -192,7 +196,7 @@ public class LoptJoinTree {
     private final BinaryTree left;
     private final BinaryTree right;
 
-    public Node(BinaryTree left, BinaryTree right, LoptJoinTree parent) {
+    public Node(BinaryTree left, BinaryTree right, @UnderInitialization LoptJoinTree parent) {
       super(parent);
       this.left = Objects.requireNonNull(left);
       this.right = Objects.requireNonNull(right);
@@ -206,7 +210,7 @@ public class LoptJoinTree {
       return right;
     }
 
-    public void getTreeOrder(List<Integer> treeOrder) {
+    @Override public void getTreeOrder(List<Integer> treeOrder) {
       left.getTreeOrder(treeOrder);
       right.getTreeOrder(treeOrder);
     }

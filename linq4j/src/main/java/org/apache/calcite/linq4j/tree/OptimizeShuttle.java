@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -149,6 +151,9 @@ public class OptimizeShuttle extends Shuttle {
           return expr;
         }
       }
+      break;
+    default:
+      break;
     }
     return super.visit(ternary, expression0, expression1, expression2);
   }
@@ -165,6 +170,9 @@ public class OptimizeShuttle extends Shuttle {
       if (eq(expression0, expression1)) {
         return expression0;
       }
+      break;
+    default:
+      break;
     }
     switch (binary.getNodeType()) {
     case Equal:
@@ -211,11 +219,14 @@ public class OptimizeShuttle extends Shuttle {
       if (result != null) {
         return result;
       }
+      break;
+    default:
+      break;
     }
     return super.visit(binary, expression0, expression1);
   }
 
-  private Expression visit0(
+  private @Nullable Expression visit0(
       BinaryExpression binary,
       Expression expression0,
       Expression expression1) {
@@ -263,6 +274,8 @@ public class OptimizeShuttle extends Shuttle {
         return always ? Expressions.not(expression1) : expression1;
       }
       break;
+    default:
+      break;
     }
     return null;
   }
@@ -297,6 +310,9 @@ public class OptimizeShuttle extends Shuttle {
           return Expressions.makeBinary(comp, bin.expression0, bin.expression1);
         }
       }
+      break;
+    default:
+      break;
     }
     return super.visit(unaryExpression, expression);
   }
@@ -361,7 +377,7 @@ public class OptimizeShuttle extends Shuttle {
   }
 
   @Override public Expression visit(MethodCallExpression methodCallExpression,
-      Expression targetExpression,
+      @Nullable Expression targetExpression,
       List<Expression> expressions) {
     if (BOOLEAN_VALUEOF_BOOL.equals(methodCallExpression.method)) {
       Boolean always = always(expressions.get(0));
@@ -372,7 +388,7 @@ public class OptimizeShuttle extends Shuttle {
     return super.visit(methodCallExpression, targetExpression, expressions);
   }
 
-  private boolean isConstantNull(Expression expression) {
+  private static boolean isConstantNull(Expression expression) {
     return expression instanceof ConstantExpression
         && ((ConstantExpression) expression).value == null;
   }
@@ -381,7 +397,7 @@ public class OptimizeShuttle extends Shuttle {
    * Returns whether an expression always evaluates to true or false.
    * Assumes that expression has already been optimized.
    */
-  private static Boolean always(Expression x) {
+  private static @Nullable Boolean always(Expression x) {
     if (x.equals(FALSE_EXPR) || x.equals(BOXED_FALSE_EXPR)) {
       return Boolean.FALSE;
     }
@@ -406,9 +422,8 @@ public class OptimizeShuttle extends Shuttle {
                 ((MethodCallExpression) expression).method));
   }
 
-  /**
-   * Treats two expressions equal even if they represent different null types
-   */
+  /** Compares two expressions for equality, treating them as equal even if they
+   * represent different null types. */
   private static boolean eq(Expression a, Expression b) {
     return a.equals(b)
         || (a instanceof ConstantExpression

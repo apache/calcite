@@ -19,11 +19,13 @@ package org.apache.calcite.test;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.RangeSet;
 
 import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
@@ -43,12 +45,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 /**
  * Matchers for testing SQL queries.
  */
 public class Matchers {
+
+  private static final Pattern PATTERN = Pattern.compile(", id = [0-9]+");
+
   private Matchers() {}
 
   /** Allows passing the actual result from the {@code matchesSafely} method to
@@ -206,6 +212,18 @@ public class Matchers {
   }
 
   /**
+   * Creates a Matcher that matches a {@link RexNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
+   * to Unix-style line endings ("\n"), is equal to the given {@code value}.
+   */
+  public static Matcher<RexNode> hasRex(final String value) {
+    return compose(Is.is(value), input -> {
+      // Convert RexNode to a string with Linux line-endings
+      return Util.toLinux(input.toString());
+    });
+  }
+
+  /**
    * Creates a Matcher that matches a {@link RelNode} if its hints string
    * representation is equal to the given {@code value}.
    */
@@ -214,6 +232,22 @@ public class Matchers {
         input -> input instanceof Hintable
             ? ((Hintable) input).getHints().toString()
             : "[]");
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RangeSet} if its string
+   * representation, after changing "&#2025;" to "..",
+   * is equal to the given {@code value}.
+   *
+   * <p>This method is necessary because {@link RangeSet#toString()} changed
+   * behavior. Guava 19 - 28 used a unicode symbol;Guava 29 onwards uses "..".
+   */
+  public static Matcher<RangeSet> isRangeSet(final String value) {
+    return compose(Is.is(value), input -> {
+      // Change all '\u2025' (a unicode symbol denoting a range) to '..',
+      // consistent with Guava 29+.
+      return input.toString().replace("\u2025", "..");
+    });
   }
 
   /**
@@ -248,7 +282,7 @@ public class Matchers {
   }
 
   public static String trimNodeIds(String s) {
-    return s.replaceAll(", id = [0-9]+", "");
+    return PATTERN.matcher(s).replaceAll("");
   }
 
   /**
@@ -274,8 +308,8 @@ public class Matchers {
     };
   }
 
-  /**
-   * Is the numeric value within a given difference another value?
+  /** Matcher that tests whether the numeric value is within a given difference
+   * another value.
    *
    * @param <T> Value type
    */

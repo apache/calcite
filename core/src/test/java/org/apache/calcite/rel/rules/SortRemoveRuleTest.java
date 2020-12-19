@@ -65,7 +65,7 @@ public final class SortRemoveRuleTest {
         .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
         .programs(
             Programs.of(prepareRules),
-            Programs.ofRules(SortRemoveRule.INSTANCE))
+            Programs.ofRules(CoreRules.SORT_REMOVE))
         .build();
     Planner planner = Frameworks.getPlanner(config);
     SqlNode parse = planner.parse(sql);
@@ -85,10 +85,10 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableHashJoin() throws Exception {
+  @Test void removeSortOverEnumerableHashJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -116,10 +116,10 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableNestedLoopJoin() throws Exception {
+  @Test void removeSortOverEnumerableNestedLoopJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -150,11 +150,11 @@ public final class SortRemoveRuleTest {
    *
    * <p>Until CALCITE-2018 is fixed we can add back EnumerableRules.ENUMERABLE_SORT_RULE
    */
-  @Test public void removeSortOverEnumerableCorrelate() throws Exception {
+  @Test void removeSortOverEnumerableCorrelate() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
-            JoinToCorrelateRule.INSTANCE,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_TO_CORRELATE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -181,12 +181,12 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableSemiJoin() throws Exception {
+  @Test void removeSortOverEnumerableSemiJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
-            SortProjectTransposeRule.INSTANCE,
-            SemiJoinRule.PROJECT,
-            SemiJoinRule.JOIN,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.PROJECT_TO_SEMI_JOIN,
+            CoreRules.JOIN_TO_SEMI_JOIN,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,

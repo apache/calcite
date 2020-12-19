@@ -33,12 +33,19 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.Arrays;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
- * array or map. For example, {@code myArray[3]} or {@code "myMap['foo']"}.
+ * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
+ * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
 class SqlItemOperator extends SqlSpecialOperator {
 
@@ -60,8 +67,8 @@ class SqlItemOperator extends SqlSpecialOperator {
         ordinal + 2,
         createCall(
             SqlParserPos.sum(
-                Arrays.asList(left.getParserPosition(),
-                    right.getParserPosition(),
+                Arrays.asList(requireNonNull(left, "left").getParserPosition(),
+                    requireNonNull(right, "right").getParserPosition(),
                     list.pos(ordinal))),
             left,
             right));
@@ -93,16 +100,19 @@ class SqlItemOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  private SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
+  private static SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
     final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
+      RelDataType keyType = requireNonNull(operandType.getKeyType(),
+          "operandType.getKeyType()");
+      SqlTypeName sqlTypeName = keyType.getSqlTypeName();
       return OperandTypes.family(
-          operandType.getKeyType().getSqlTypeName().getFamily());
+          requireNonNull(sqlTypeName.getFamily(),
+              () -> "keyType.getSqlTypeName().getFamily() null, type is " + sqlTypeName));
     case ROW:
-      return OperandTypes.CHARACTER;
     case ANY:
     case DYNAMIC_STAR:
       return OperandTypes.or(
@@ -115,7 +125,8 @@ class SqlItemOperator extends SqlSpecialOperator {
 
   @Override public String getAllowedSignatures(String name) {
     return "<ARRAY>[<INTEGER>]\n"
-        + "<MAP>[<VALUE>]";
+        + "<MAP>[<ANY>]\n"
+        + "<ROW>[<CHARACTER>|<INTEGER>]";
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
@@ -124,19 +135,41 @@ class SqlItemOperator extends SqlSpecialOperator {
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return typeFactory.createTypeWithNullability(
-          operandType.getComponentType(), true);
+          getComponentTypeOrThrow(operandType), true);
     case MAP:
-      return typeFactory.createTypeWithNullability(operandType.getValueType(),
+      return typeFactory.createTypeWithNullability(
+          requireNonNull(operandType.getValueType(),
+              () -> "operandType.getValueType() is null for " + operandType),
           true);
     case ROW:
-      String fieldName = opBinding.getOperandLiteralValue(1, String.class);
-      RelDataTypeField field = operandType.getField(fieldName, false, false);
-      if (field == null) {
-        throw new AssertionError("Cannot infer type of field '"
-            + fieldName + "' within ROW type: " + operandType);
+      RelDataType fieldType;
+      RelDataType indexType = opBinding.getOperandType(1);
+
+      if (SqlTypeUtil.isString(indexType)) {
+        final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
+        RelDataTypeField field = operandType.getField(fieldName, false, false);
+        if (field == null) {
+          throw new AssertionError("Cannot infer type of field '"
+              + fieldName + "' within ROW type: " + operandType);
+        } else {
+          fieldType = field.getType();
+        }
+      } else if (SqlTypeUtil.isIntType(indexType)) {
+        Integer index = opBinding.getOperandLiteralValue(1, Integer.class);
+        if (index == null || index < 1 || index > operandType.getFieldCount()) {
+          throw new AssertionError("Cannot infer type of field at position "
+              + index + " within ROW type: " + operandType);
+        } else {
+          fieldType = operandType.getFieldList().get(index - 1).getType(); // 1 indexed
+        }
       } else {
-        return field.getType();
+        throw new AssertionError("Unsupported field identifier type: '"
+            + indexType + "'");
       }
+      if (fieldType != null && operandType.isNullable()) {
+        fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+      }
+      return fieldType;
     case ANY:
     case DYNAMIC_STAR:
       return typeFactory.createTypeWithNullability(

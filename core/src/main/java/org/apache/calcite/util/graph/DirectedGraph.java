@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -41,14 +43,16 @@ public interface DirectedGraph<V, E> {
    * @return New edge, if added, otherwise null
    * @throws IllegalArgumentException if either vertex is not already in graph
    */
-  E addEdge(V vertex, V targetVertex);
+  @Nullable E addEdge(V vertex, V targetVertex);
 
-  E getEdge(V source, V target);
+  @Nullable E getEdge(V source, V target);
 
   boolean removeEdge(V vertex, V targetVertex);
 
-  Set<V> vertexSet();
+  Set<? extends V> vertexSet();
 
+  /** Removes from this graph all vertices that are in {@code collection},
+   * and the edges into and out of those vertices. */
   void removeAllVertices(Collection<V> collection);
 
   List<E> getOutwardEdges(V source);

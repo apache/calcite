@@ -21,8 +21,8 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -30,6 +30,7 @@ import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -44,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link org.apache.calcite.rel.RelDistributionTraitDef}.
  */
-public class TraitConversionTest {
+class TraitConversionTest {
 
   private static final ConvertRelDistributionTraitDef NEW_TRAIT_DEF_INSTANCE =
       new ConvertRelDistributionTraitDef();
@@ -55,14 +56,15 @@ public class TraitConversionTest {
   private static final SimpleDistribution SIMPLE_DISTRIBUTION_SINGLETON =
       new SimpleDistribution("SINGLETON");
 
-  @Test public void testTraitConversion() {
+  @Test void testTraitConversion() {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(NEW_TRAIT_DEF_INSTANCE);
 
-    planner.addRule(new RandomSingleTraitRule());
-    planner.addRule(new SingleLeafTraitRule());
+    planner.addRule(RandomSingleTraitRule.INSTANCE);
+    planner.addRule(SingleLeafTraitRule.INSTANCE);
     planner.addRule(ExpandConversionRule.INSTANCE);
+    planner.setTopDownOpt(false);
 
     final RelOptCluster cluster = newCluster(planner);
     final NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
@@ -90,16 +92,23 @@ public class TraitConversionTest {
 
   /** Converts a {@link NoneSingleRel} (none convention, distribution any)
    * to {@link RandomSingleRel} (physical convention, distribution random). */
-  private static class RandomSingleTraitRule extends RelOptRule {
-    RandomSingleTraitRule() {
-      super(operand(NoneSingleRel.class, any()));
+  public static class RandomSingleTraitRule
+      extends RelRule<RandomSingleTraitRule.Config> {
+    static final RandomSingleTraitRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b ->
+            b.operand(NoneSingleRel.class).anyInputs())
+        .as(Config.class)
+        .toRule();
+
+    RandomSingleTraitRule(Config config) {
+      super(config);
     }
 
     @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
@@ -112,6 +121,13 @@ public class TraitConversionTest {
               single.getCluster(),
               physInput));
     }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default RandomSingleTraitRule toRule() {
+        return new RandomSingleTraitRule(this);
+      }
+    }
   }
 
   /** Rel with physical convention and random distribution. */
@@ -122,7 +138,7 @@ public class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_RANDOM), input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -134,19 +150,33 @@ public class TraitConversionTest {
 
   /** Converts {@link NoneLeafRel} (none convention, any distribution) to
    * {@link SingletonLeafRel} (physical convention, singleton distribution). */
-  private static class SingleLeafTraitRule extends RelOptRule {
-    SingleLeafTraitRule() {
-      super(operand(NoneLeafRel.class, any()));
+  public static class SingleLeafTraitRule
+      extends RelRule<SingleLeafTraitRule.Config> {
+    static final SingleLeafTraitRule INSTANCE = Config.EMPTY
+        .withOperandSupplier(b ->
+            b.operand(NoneLeafRel.class).anyInputs())
+        .as(Config.class)
+        .toRule();
+
+    SingleLeafTraitRule(Config config) {
+      super(config);
     }
 
     @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneLeafRel leafRel = call.rel(0);
       call.transformTo(
           new SingletonLeafRel(leafRel.getCluster(), leafRel.label));
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      @Override default SingleLeafTraitRule toRule() {
+        return new SingleLeafTraitRule(this);
+      }
     }
   }
 
@@ -158,7 +188,7 @@ public class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_SINGLETON), label);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -177,7 +207,7 @@ public class TraitConversionTest {
               .plus(SIMPLE_DISTRIBUTION_RANDOM), input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -211,9 +241,8 @@ public class TraitConversionTest {
     @Override public void register(RelOptPlanner planner) {}
   }
 
-  /**
-   * Dummy distribution trait def for test (handles conversion of SimpleDistribution)
-   */
+  /** Dummy distribution trait def for test (handles conversion of
+   * SimpleDistribution). */
   private static class ConvertRelDistributionTraitDef
       extends RelTraitDef<SimpleDistribution> {
 
@@ -229,7 +258,7 @@ public class TraitConversionTest {
       return "ConvertRelDistributionTraitDef";
     }
 
-    @Override public RelNode convert(RelOptPlanner planner, RelNode rel,
+    @Override public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
         SimpleDistribution toTrait, boolean allowInfiniteCostConverters) {
       if (toTrait == SIMPLE_DISTRIBUTION_ANY) {
         return rel;

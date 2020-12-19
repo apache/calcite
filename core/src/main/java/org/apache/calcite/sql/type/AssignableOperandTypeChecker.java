@@ -26,6 +26,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -37,7 +39,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelDataType> paramTypes;
-  private final ImmutableList<String> paramNames;
+  private final @Nullable ImmutableList<String> paramNames;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +51,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
    * @param paramNames parameter names, or null
    */
   public AssignableOperandTypeChecker(List<RelDataType> paramTypes,
-      List<String> paramNames) {
+      @Nullable List<String> paramNames) {
     this.paramTypes = ImmutableList.copyOf(paramTypes);
     this.paramNames =
         paramNames == null ? null : ImmutableList.copyOf(paramNames);
@@ -57,25 +59,22 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(paramTypes.size());
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // Do not use callBinding.operands(). We have not resolved to a function
     // yet, therefore we do not know the ordered parameter names.
     final List<SqlNode> operands = callBinding.getCall().getOperandList();
     for (Pair<RelDataType, SqlNode> pair : Pair.zip(paramTypes, operands)) {
-      RelDataType argType =
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(),
-              pair.right);
+      RelDataType argType = SqlTypeUtil.deriveType(callBinding, pair.right);
       if (!SqlTypeUtil.canAssignFrom(pair.left, argType)) {
         // TODO: add in unresolved function type cast.
         if (throwOnFailure) {
@@ -88,7 +87,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     return true;
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     StringBuilder sb = new StringBuilder();
     sb.append(opName);
     sb.append("(");
@@ -108,7 +107,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     return sb.toString();
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }

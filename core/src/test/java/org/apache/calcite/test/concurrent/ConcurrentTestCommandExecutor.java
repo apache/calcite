@@ -80,7 +80,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   private final PrintStream debugPrintStream;
 
   /**
-   * Command throwing error *
+   * Command throwing error.
    */
   private ConcurrentTestCommand errorCommand;
 

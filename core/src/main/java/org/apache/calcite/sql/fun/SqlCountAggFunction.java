@@ -35,6 +35,8 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -65,18 +67,18 @@ public class SqlCountAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.ANY), true));
   }
 
   @SuppressWarnings("deprecation")
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createSqlType(SqlTypeName.BIGINT);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -89,7 +91,7 @@ public class SqlCountAggFunction extends SqlAggFunction {
     return super.deriveType(validator, scope, call);
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.CountSplitter.INSTANCE);
     }

@@ -17,6 +17,9 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Calling convention trait.
@@ -38,13 +41,30 @@ public interface Convention extends RelTrait {
   String getName();
 
   /**
+   * Given an input and required traits, returns the corresponding
+   * enforcer rel nodes, like physical Sort, Exchange etc.
+   *
+   * @param input The input RelNode
+   * @param required The required traits
+   * @return Physical enforcer that satisfies the required traitSet,
+   * or {@code null} if trait enforcement is not allowed or the
+   * required traitSet can't be satisfied.
+   */
+  default @Nullable RelNode enforce(RelNode input, RelTraitSet required) {
+    throw new RuntimeException(getClass().getName()
+        + "#enforce() is not implemented.");
+  }
+
+  /**
    * Returns whether we should convert from this convention to
    * {@code toConvention}. Used by {@link ConventionTraitDef}.
    *
    * @param toConvention Desired convention to convert to
    * @return Whether we should convert from this convention to toConvention
    */
-  boolean canConvertConvention(Convention toConvention);
+  default boolean canConvertConvention(Convention toConvention) {
+    return false;
+  }
 
   /**
    * Returns whether we should convert from this trait set to the other trait
@@ -59,8 +79,16 @@ public interface Convention extends RelTrait {
    * @param toTraits Target traits
    * @return Whether we should add converters
    */
-  boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
-      RelTraitSet toTraits);
+  default boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+      RelTraitSet toTraits) {
+    return false;
+  }
+
+  /** Return RelFactories struct for this convention. It can can be used to
+   * build RelNode. */
+  default RelFactories.Struct getRelFactories() {
+    return RelFactories.DEFAULT_STRUCT;
+  }
 
   /**
    * Default implementation.
@@ -78,29 +106,34 @@ public interface Convention extends RelTrait {
       return getName();
     }
 
-    public void register(RelOptPlanner planner) {}
+    @Override public void register(RelOptPlanner planner) {}
 
-    public boolean satisfies(RelTrait trait) {
+    @Override public boolean satisfies(RelTrait trait) {
       return this == trait;
     }
 
-    public Class getInterface() {
+    @Override public Class getInterface() {
       return relClass;
     }
 
-    public String getName() {
+    @Override public String getName() {
       return name;
     }
 
-    public RelTraitDef getTraitDef() {
+    @Override public RelTraitDef getTraitDef() {
       return ConventionTraitDef.INSTANCE;
     }
 
-    public boolean canConvertConvention(Convention toConvention) {
+    @Override public @Nullable RelNode enforce(final RelNode input,
+        final RelTraitSet required) {
+      return null;
+    }
+
+    @Override public boolean canConvertConvention(Convention toConvention) {
       return false;
     }
 
-    public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+    @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
         RelTraitSet toTraits) {
       return false;
     }

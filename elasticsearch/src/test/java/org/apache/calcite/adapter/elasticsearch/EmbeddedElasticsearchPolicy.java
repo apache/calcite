@@ -68,6 +68,7 @@ class EmbeddedElasticsearchPolicy {
   private final Closer closer;
   private RestClient client;
 
+  /** Holds the singleton policy instance. */
   static class Singleton {
     static final EmbeddedElasticsearchPolicy INSTANCE =
         new EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode.create());

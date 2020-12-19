@@ -170,7 +170,8 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   /** Creates an immutable list of 8 or more elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
       E... others) {
-    Object[] array = new Object[8 + others.length];
+    @SuppressWarnings("unchecked")
+    E[] array = (E[]) new Object[8 + others.length];
     array[0] = e1;
     array[1] = e2;
     array[2] = e3;
@@ -180,8 +181,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     array[6] = e7;
     array[7] = e8;
     System.arraycopy(others, 0, array, 8, others.length);
-    //noinspection unchecked
-    return new ImmutableNullableList<>((E[]) array);
+    return new ImmutableNullableList<>(array);
   }
 
   @Override public E get(int index) {

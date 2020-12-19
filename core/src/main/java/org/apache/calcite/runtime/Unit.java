@@ -27,11 +27,11 @@ public class Unit implements Comparable<Unit> {
   private Unit() {
   }
 
-  public int compareTo(Unit that) {
+  @Override public int compareTo(Unit that) {
     return 0;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "{}";
   }
 }

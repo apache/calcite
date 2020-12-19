@@ -29,23 +29,23 @@ public abstract class QueryProviderImpl implements QueryProvider {
   /**
    * Creates a QueryProviderImpl.
    */
-  public QueryProviderImpl() {
+  protected QueryProviderImpl() {
     super();
   }
 
-  public <T> Queryable<T> createQuery(Expression expression, Class<T> rowType) {
+  @Override public <T> Queryable<T> createQuery(Expression expression, Class<T> rowType) {
     return new QueryableImpl<>(this, rowType, expression);
   }
 
-  public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
+  @Override public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
     return new QueryableImpl<>(this, rowType, expression);
   }
 
-  public <T> T execute(Expression expression, Class<T> type) {
+  @Override public <T> T execute(Expression expression, Class<T> type) {
     throw new UnsupportedOperationException();
   }
 
-  public <T> T execute(Expression expression, Type type) {
+  @Override public <T> T execute(Expression expression, Type type) {
     throw new UnsupportedOperationException();
   }
 

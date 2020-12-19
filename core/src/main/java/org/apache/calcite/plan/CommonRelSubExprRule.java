@@ -16,21 +16,29 @@
  */
 package org.apache.calcite.plan;
 
-
 /**
  * A <code>CommonRelSubExprRule</code> is an abstract base class for rules
  * that are fired only on relational expressions that appear more than once
  * in a query tree.
  */
-public abstract class CommonRelSubExprRule extends RelOptRule {
+
+// TODO: obsolete this?
+public abstract class CommonRelSubExprRule
+    extends RelRule<CommonRelSubExprRule.Config> {
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a <code>CommonRelSubExprRule</code>.
-   *
-   * @param operand root operand, must not be null
-   */
-  public CommonRelSubExprRule(RelOptRuleOperand operand) {
-    super(operand);
+  /** Creates a CommonRelSubExprRule. */
+  protected CommonRelSubExprRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected CommonRelSubExprRule(RelOptRuleOperand operand) {
+    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
+        .as(Config.class));
+  }
+
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
   }
 }

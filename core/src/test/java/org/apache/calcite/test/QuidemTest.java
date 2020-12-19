@@ -33,7 +33,6 @@ import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
 import com.google.common.io.PatternFilenameFilter;
 
 import net.hydromatic.quidem.CommandHandler;
@@ -55,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -62,6 +62,9 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Test that runs every Quidem file as a test.
  */
 public abstract class QuidemTest {
+
+  private static final Pattern PATTERN = Pattern.compile("\\.iq$");
+
   private static Object getEnv(String varName) {
     switch (varName) {
     case "jdk18":
@@ -84,9 +87,9 @@ public abstract class QuidemTest {
 
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
-    String methodName =
-        AvaticaUtils.toCamelCase(
-            "test_" + path.replace(File.separatorChar, '_').replaceAll("\\.iq$", ""));
+    final String path1 = path.replace(File.separatorChar, '_');
+    final String path2 = PATTERN.matcher(path1).replaceAll("");
+    String methodName = AvaticaUtils.toCamelCase("test_" + path2);
     Method m;
     try {
       m = getClass().getMethod(methodName, String.class);
@@ -107,7 +110,7 @@ public abstract class QuidemTest {
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       paths.add(f.getAbsolutePath().substring(commonPrefixLength));
     }
-    return Lists.transform(paths, path -> new Object[] {path});
+    return Util.transform(paths, path -> new Object[] {path});
   }
 
   protected void checkRun(String path) throws Exception {
@@ -249,6 +252,12 @@ public abstract class QuidemTest {
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
             .connect();
+      case "post-big-query":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+            .with(CalciteAssert.Config.REGULAR)
+            .with(CalciteAssert.SchemaSpec.POST)
+            .connect();
       case "mysqlfunc":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "mysql")
@@ -270,8 +279,7 @@ public abstract class QuidemTest {
       case "blank":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.PARSER_FACTORY,
-                "org.apache.calcite.sql.parser.parserextensiontesting"
-                    + ".ExtensionSqlParserImpl#FACTORY")
+                ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
             .with(CalciteAssert.SchemaSpec.BLANK)
             .connect();
       case "seq":
@@ -293,6 +301,10 @@ public abstract class QuidemTest {
                   }
                 });
         return connection;
+      case "bookstore":
+        return CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+            .connect();
       default:
         throw new RuntimeException("unknown connection '" + name + "'");
       }

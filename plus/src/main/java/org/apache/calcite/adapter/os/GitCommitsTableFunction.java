@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.NoSuchElementException;
 
 /**
@@ -53,24 +55,24 @@ public class GitCommitsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         final Enumerable<String> enumerable =
             Processes.processLines("git", "log", "--pretty=raw");
-        return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
-            return new Enumerator<Object[]>() {
-              private Object[] objects;
+            return new Enumerator<@Nullable Object[]>() {
+              private @Nullable Object @Nullable [] objects;
               private final StringBuilder b = new StringBuilder();
 
-              public Object[] current() {
+              @Override public @Nullable Object[] current() {
                 if (objects == null) {
                   throw new NoSuchElementException();
                 }
                 return objects;
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 if (!e.moveNext()) {
                   objects = null;
                   return false;
@@ -127,11 +129,11 @@ public class GitCommitsTableFunction {
                 }
               }
 
-              public void reset() {
+              @Override public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              public void close() {
+              @Override public void close() {
                 e.close();
               }
             };
@@ -139,7 +141,7 @@ public class GitCommitsTableFunction {
         };
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("commit", SqlTypeName.CHAR, 40)
             .add("tree", SqlTypeName.CHAR, 40)
@@ -153,20 +155,20 @@ public class GitCommitsTableFunction {
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(0)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };

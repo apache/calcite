@@ -16,79 +16,81 @@
  */
 package org.apache.calcite.rel.hint;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * {@code HintStrategy} collection indicates which kind of
- * {@link org.apache.calcite.rel.RelNode} a hint can apply to.
+ * A collection of {@link HintStrategy}s.
  *
- * <p>Typically, every supported hint should register a {@code HintStrategy}
- * into this collection. For example, {@link HintStrategies#JOIN} implies that this hint
- * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
- * relational expressions.
+ * <p>Every hint must register a {@link HintStrategy} into the collection.
+ * With a hint strategies mapping, the hint strategy table is used as a tool
+ * to decide i) if the given hint was registered; ii) which hints are suitable for the rel with
+ * a given hints collection; iii) if the hint options are valid.
  *
- * <p>A {@code HintStrategy} can be used independently or cascaded with other strategies
- * with method {@link HintStrategies#and}.
+ * <p>The hint strategy table is immutable. To create one, use
+ * {@link #builder()}.
  *
- * <p>The matching for hint name is case in-sensitive.
+ * <p>Match of hint name is case insensitive.
  *
- * @see HintStrategy
+ * @see HintPredicate
  */
 public class HintStrategyTable {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Empty strategies. */
-  // Need to replace the EMPTY with DEFAULT if we have any hint implementations.
-  public static final HintStrategyTable EMPTY = new HintStrategyTable(
-      Collections.emptyMap(), Collections.emptyMap(), HintErrorLogger.INSTANCE);
+  public static final HintStrategyTable EMPTY =
+      new HintStrategyTable(ImmutableMap.of(), HintErrorLogger.INSTANCE);
 
   //~ Instance fields --------------------------------------------------------
 
-  /** Mapping from hint name to strategy. */
-  private final Map<Key, HintStrategy> hintStrategyMap;
-
-  /** Mapping from hint name to option checker. */
-  private final Map<Key, HintOptionChecker> hintOptionCheckerMap;
+  /** Mapping from hint name to {@link HintStrategy}. */
+  private final Map<Key, HintStrategy> strategies;
 
   /** Handler for the hint error. */
   private final Litmus errorHandler;
 
-  private HintStrategyTable(Map<Key, HintStrategy> strategies,
-      Map<Key, HintOptionChecker> optionCheckers,
-      Litmus litmus) {
-    this.hintStrategyMap = ImmutableMap.copyOf(strategies);
-    this.hintOptionCheckerMap = ImmutableMap.copyOf(optionCheckers);
+  private HintStrategyTable(Map<Key, HintStrategy> strategies, Litmus litmus) {
+    this.strategies = ImmutableMap.copyOf(strategies);
     this.errorHandler = litmus;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Apply this {@link HintStrategyTable} to the given relational
-   * expression for the {@code hints}.
+   * Applies this {@link HintStrategyTable} hint strategies to the given relational
+   * expression and the {@code hints}.
    *
    * @param hints Hints that may attach to the {@code rel}
    * @param rel   Relational expression
-   * @return A hints list that can be attached to the {@code rel}
+   * @return A hint list that can be attached to the {@code rel}
    */
   public List<RelHint> apply(List<RelHint> hints, RelNode rel) {
     return hints.stream()
         .filter(relHint -> canApply(relHint, rel))
         .collect(Collectors.toList());
+  }
+
+  private boolean canApply(RelHint hint, RelNode rel) {
+    final Key key = Key.of(hint.hintName);
+    assert this.strategies.containsKey(key) : "hint " + hint.hintName + " must be present";
+    return this.strategies.get(key).predicate.apply(hint, rel);
   }
 
   /**
@@ -99,27 +101,53 @@ public class HintStrategyTable {
   public boolean validateHint(RelHint hint) {
     final Key key = Key.of(hint.hintName);
     boolean hintExists = this.errorHandler.check(
-        this.hintStrategyMap.containsKey(key),
+        this.strategies.containsKey(key),
         "Hint: {} should be registered in the {}",
         hint.hintName,
         this.getClass().getSimpleName());
     if (!hintExists) {
       return false;
     }
-    if (this.hintOptionCheckerMap.containsKey(key)) {
-      return this.hintOptionCheckerMap.get(key).checkOptions(hint, this.errorHandler);
+    final HintStrategy strategy = strategies.get(key);
+    if (strategy != null && strategy.hintOptionChecker != null) {
+      return strategy.hintOptionChecker.checkOptions(hint, this.errorHandler);
     }
     return true;
   }
 
-  private boolean canApply(RelHint hint, RelNode rel) {
-    final Key key = Key.of(hint.hintName);
-    assert this.hintStrategyMap.containsKey(key);
-    return this.hintStrategyMap.get(key).canApply(hint, rel);
+  /** Returns whether the {@code hintable} has hints that imply
+   * the given {@code rule} should be excluded. */
+  public boolean isRuleExcluded(Hintable hintable, RelOptRule rule) {
+    final List<RelHint> hints = hintable.getHints();
+    if (hints.size() == 0) {
+      return false;
+    }
+
+    for (RelHint hint : hints) {
+      final Key key = Key.of(hint.hintName);
+      assert this.strategies.containsKey(key) : "hint " + hint.hintName + " must be present";
+      final HintStrategy strategy = strategies.get(key);
+      if (strategy.excludedRules.contains(rule)) {
+        return isDesiredConversionPossible(strategy.converterRules, hintable);
+      }
+    }
+
+    return false;
+  }
+
+  /** Returns whether the {@code hintable} has hints that imply
+   * the given {@code hintable} can make conversion successfully. */
+  private static boolean isDesiredConversionPossible(
+      Set<ConverterRule> converterRules,
+      Hintable hintable) {
+    // If no converter rules are specified, we assume the conversion is possible.
+    return converterRules.size() == 0
+        || converterRules.stream()
+            .anyMatch(converterRule -> converterRule.convert((RelNode) hintable) != null);
   }
 
   /**
-   * @return A strategies builder
+   * Returns a {@code HintStrategyTable} builder.
    */
   public static Builder builder() {
     return new Builder();
@@ -131,7 +159,8 @@ public class HintStrategyTable {
    * Key used to keep the strategies which ignores the case sensitivity.
    */
   private static class Key {
-    private String name;
+    private final String name;
+
     private Key(String name) {
       this.name = name;
     }
@@ -140,11 +169,15 @@ public class HintStrategyTable {
       return new Key(name.toLowerCase(Locale.ROOT));
     }
 
-    @Override public boolean equals(Object obj) {
-      if (!(obj instanceof Key)) {
+    @Override public boolean equals(@Nullable Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      return Objects.equals(this.name, ((Key) obj).name);
+      Key key = (Key) o;
+      return name.equals(key.name);
     }
 
     @Override public int hashCode() {
@@ -156,27 +189,17 @@ public class HintStrategyTable {
    * Builder for {@code HintStrategyTable}.
    */
   public static class Builder {
-    private Map<Key, HintStrategy> hintStrategyMap;
-    private Map<Key, HintOptionChecker> hintOptionCheckerMap;
-    private Litmus errorHandler;
+    private final Map<Key, HintStrategy> strategies = new HashMap<>();
+    private Litmus errorHandler = HintErrorLogger.INSTANCE;
 
-    private Builder() {
-      this.hintStrategyMap = new HashMap<>();
-      this.hintOptionCheckerMap = new HashMap<>();
-      this.errorHandler = HintErrorLogger.INSTANCE;
-    }
-
-    public Builder addHintStrategy(String hintName, HintStrategy strategy) {
-      this.hintStrategyMap.put(Key.of(hintName), Objects.requireNonNull(strategy));
+    public Builder hintStrategy(String hintName, HintPredicate strategy) {
+      this.strategies.put(Key.of(hintName),
+          HintStrategy.builder(requireNonNull(strategy, "HintPredicate")).build());
       return this;
     }
 
-    public Builder addHintStrategy(
-        String hintName,
-        HintStrategy strategy,
-        HintOptionChecker optionChecker) {
-      this.hintStrategyMap.put(Key.of(hintName), Objects.requireNonNull(strategy));
-      this.hintOptionCheckerMap.put(Key.of(hintName), Objects.requireNonNull(optionChecker));
+    public Builder hintStrategy(String hintName, HintStrategy entry) {
+      this.strategies.put(Key.of(hintName), requireNonNull(entry, "HintStrategy"));
       return this;
     }
 
@@ -194,8 +217,7 @@ public class HintStrategyTable {
 
     public HintStrategyTable build() {
       return new HintStrategyTable(
-          this.hintStrategyMap,
-          this.hintOptionCheckerMap,
+          this.strategies,
           this.errorHandler);
     }
   }
@@ -207,16 +229,17 @@ public class HintStrategyTable {
 
     public static final HintErrorLogger INSTANCE = new HintErrorLogger();
 
-    public boolean fail(String message, Object... args) {
-      LOGGER.warn(message, args);
+    @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
+      LOGGER.warn(requireNonNull(message, "message"), args);
       return false;
     }
 
-    public boolean succeed() {
+    @Override public boolean succeed() {
       return true;
     }
 
-    public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, @Nullable String message,
+        @Nullable Object... args) {
       if (condition) {
         return succeed();
       } else {

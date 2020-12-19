@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +38,8 @@ public class PigTableFactory implements TableFactory<PigTable> {
   }
 
   @SuppressWarnings("unchecked")
-  public PigTable create(SchemaPlus schema, String name,
-      Map<String, Object> operand, RelDataType rowType) {
+  @Override public PigTable create(SchemaPlus schema, String name,
+      Map<String, Object> operand, @Nullable RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);
     final File base =

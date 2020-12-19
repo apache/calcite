@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -27,11 +29,11 @@ import java.util.List;
  */
 public class SqlWithItem extends SqlCall {
   public SqlIdentifier name;
-  public SqlNodeList columnList; // may be null
+  public @Nullable SqlNodeList columnList; // may be null
   public SqlNode query;
 
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
-      SqlNodeList columnList, SqlNode query) {
+      @Nullable SqlNodeList columnList, SqlNode query) {
     super(pos);
     this.name = name;
     this.columnList = columnList;
@@ -44,17 +46,19 @@ public class SqlWithItem extends SqlCall {
     return SqlKind.WITH_ITEM;
   }
 
-  public List<SqlNode> getOperandList() {
+  @SuppressWarnings("nullness")
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       name = (SqlIdentifier) operand;
       break;
     case 1:
-      columnList = (SqlNodeList) operand;
+      columnList = (@Nullable SqlNodeList) operand;
       break;
     case 2:
       query = operand;
@@ -64,7 +68,7 @@ public class SqlWithItem extends SqlCall {
     }
   }
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlWithItemOperator.INSTANCE;
   }
 
@@ -82,7 +86,7 @@ public class SqlWithItem extends SqlCall {
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,
@@ -96,8 +100,9 @@ public class SqlWithItem extends SqlCall {
       withItem.query.unparse(writer, 10, 10);
     }
 
-    @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+    @SuppressWarnings("argument.type.incompatible")
+    @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos, @Nullable SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 3;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],

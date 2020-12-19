@@ -46,7 +46,7 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -56,7 +56,7 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
     return super.deriveType(validator, scope, call);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -68,7 +68,7 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public boolean argumentMustBeScalar(int ordinal) {
+  @Override public boolean argumentMustBeScalar(int ordinal) {
     return false;
   }
 }

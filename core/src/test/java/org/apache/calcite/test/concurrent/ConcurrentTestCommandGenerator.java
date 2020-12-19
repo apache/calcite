@@ -83,14 +83,14 @@ public class ConcurrentTestCommandGenerator {
   private TreeMap<Integer, String> threadNameMap;
 
   /**
-   * Describes a thread that failed
+   * Describes a thread that failed.
    */
-  public static class FailedThread {
+  static class FailedThread {
     public final String name;
     public final String location;
     public final Throwable failure;
 
-    public FailedThread(String name, String location, Throwable failure) {
+    FailedThread(String name, String location, Throwable failure) {
       this.name = name;
       this.location = location;
       this.failure = failure;
@@ -466,9 +466,7 @@ public class ConcurrentTestCommandGenerator {
     return !failedThreads.isEmpty();
   }
 
-  /**
-   * @return the list of failed threads (unmodifiable)
-   */
+  /** Returns the list of failed threads (unmodifiable). */
   public List<FailedThread> getFailedThreads() {
     return ImmutableList.copyOf(failedThreads);
   }
@@ -627,9 +625,7 @@ public class ConcurrentTestCommandGenerator {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /**
-   * abstract base to handle SQLExceptions
-   */
+  /** Abstract base to handle {@link SQLException}s. */
   protected abstract static class AbstractCommand
       implements ConcurrentTestCommand {
     private boolean shouldFail = false;

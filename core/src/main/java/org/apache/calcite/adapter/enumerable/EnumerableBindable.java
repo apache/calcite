@@ -30,15 +30,16 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
-import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
-import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that converts an enumerable input to interpretable
@@ -58,11 +59,11 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return new EnumerableBindable(getCluster(), sole(inputs));
   }
 
-  public Class<Object[]> getElementType() {
+  @Override public Class<Object[]> getElementType() {
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     final ImmutableMap<String, Object> map = ImmutableMap.of();
     final Bindable bindable = EnumerableInterpretable.toBindable(map, null,
         (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
@@ -70,12 +71,13 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return arrayBindable.bind(dataContext);
   }
 
-  public Node implement(final InterpreterImplementor implementor) {
+  @Override public Node implement(final InterpreterImplementor implementor) {
     return () -> {
       final Sink sink =
-          implementor.relSinks.get(EnumerableBindable.this).get(0);
-      final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
-      final Enumerator<Object[]> enumerator = enumerable.enumerator();
+          requireNonNull(implementor.relSinks.get(EnumerableBindable.this),
+              () -> "relSinks.get is null for " + EnumerableBindable.this).get(0);
+      final Enumerable<@Nullable Object[]> enumerable = bind(implementor.dataContext);
+      final Enumerator<@Nullable Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
         sink.send(Row.asCopy(enumerator.current()));
       }
@@ -84,21 +86,19 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
 
   /**
    * Rule that converts any enumerable relational expression to bindable.
+   *
+   * @see EnumerableRules#TO_BINDABLE
    */
   public static class EnumerableToBindableConverterRule extends ConverterRule {
-    public static final EnumerableToBindableConverterRule INSTANCE =
-        new EnumerableToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+    /** Default configuration. */
+    public static final Config DEFAULT_CONFIG = Config.INSTANCE
+        .withConversion(EnumerableRel.class,
+            EnumerableConvention.INSTANCE, BindableConvention.INSTANCE,
+            "EnumerableToBindableConverterRule")
+        .withRuleFactory(EnumerableToBindableConverterRule::new);
 
-    /**
-     * Creates an EnumerableToBindableConverterRule.
-     *
-     * @param relBuilderFactory Builder for relational expressions
-     */
-    public EnumerableToBindableConverterRule(
-        RelBuilderFactory relBuilderFactory) {
-      super(EnumerableRel.class, (Predicate<RelNode>) r -> true,
-          EnumerableConvention.INSTANCE, BindableConvention.INSTANCE,
-          relBuilderFactory, "EnumerableToBindableConverterRule");
+    protected EnumerableToBindableConverterRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode rel) {

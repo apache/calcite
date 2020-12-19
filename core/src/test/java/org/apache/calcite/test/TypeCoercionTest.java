@@ -45,7 +45,7 @@ import java.util.Map;
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
  */
-public class TypeCoercionTest extends SqlValidatorTestCase {
+class TypeCoercionTest extends SqlValidatorTestCase {
   private TypeCoercion typeCoercion;
   private RelDataTypeFactory dataTypeFactory;
   private SqlTestFactory.MockCatalogReaderFactory catalogReaderFactory;
@@ -77,7 +77,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   private RelDataType varcharType;
   private RelDataType varchar20Type;
 
-  public TypeCoercionTest() {
+  TypeCoercionTest() {
     // tool tester impl.
     SqlTester tester1 = new SqlValidatorTester(SqlTestFactory.INSTANCE);
     this.typeCoercion = tester1.getValidator().getTypeCoercion();
@@ -352,7 +352,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   /**
    * Test case for {@link TypeCoercion#getTightestCommonType}.
    */
-  @Test public void testGetTightestCommonType() {
+  @Test void testGetTightestCommonType() {
     // NULL
     checkCommonType(nullType, nullType, nullType, true);
     // BOOLEAN
@@ -414,7 +414,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
 
   /** Test case for {@link TypeCoercion#getWiderTypeForTwo}
    * and {@link TypeCoercion#getWiderTypeFor}. */
-  @Test public void testWiderTypeFor() {
+  @Test void testWiderTypeFor() {
     // DECIMAL please see details in SqlTypeFactoryImpl#leastRestrictiveSqlType.
     checkWiderType(decimalType(5, 4), decimalType(7, 1), decimalType(10, 4), true, true);
     checkWiderType(decimalType(5, 4), doubleType, doubleType, true, true);
@@ -442,7 +442,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test set operations: UNION, INTERSECT, EXCEPT type coercion. */
-  @Test public void testSetOperations() {
+  @Test void testSetOperations() {
     // union
     sql("select 1 from (values(true)) union select '2' from (values(true))")
         .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
@@ -483,6 +483,12 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
         + "union select t1_int from t1")
         .columnType("VARCHAR NOT NULL");
 
+    // date union timestamp
+    sql("select t1_date, t1_timestamp from t1\n"
+        + "union select t2_timestamp, t2_date from t2")
+        .type("RecordType(TIMESTAMP(0) NOT NULL T1_DATE,"
+            + " TIMESTAMP(0) NOT NULL T1_TIMESTAMP) NOT NULL");
+
     // intersect
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
         + "intersect select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 ")
@@ -500,7 +506,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test arithmetic expressions with string type arguments. */
-  @Test public void testArithmeticExpressionsWithStrings() {
+  @Test void testArithmeticExpressionsWithStrings() {
     // for null type in binary arithmetic.
     expr("1 + null").ok();
     expr("1 - null").ok();
@@ -514,7 +520,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
             + "INTEGER NOT NULL EXPR$1, "
             + "INTEGER NOT NULL EXPR$2, "
             + "INTEGER NOT NULL EXPR$3, "
-            + "DECIMAL(19, 19) "
+            + "DECIMAL(19, 9) "
             + "NOT NULL EXPR$4) NOT NULL");
     expr("select abs(t1_varchar20) from t1").ok();
     expr("select sum(t1_varchar20) from t1").ok();
@@ -539,22 +545,22 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     expr("'12.3'/cast(5 as double)")
         .columnType("DOUBLE NOT NULL");
     expr("'12.3'/5.1")
-        .columnType("DECIMAL(19, 18) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     expr("12.3/'5.1'")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 8) NOT NULL");
     // test binary arithmetic with two strings.
     expr("'12.3' + '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 9) NOT NULL");
     expr("'12.3' - '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 9) NOT NULL");
     expr("'12.3' * '5'")
-        .columnType("DECIMAL(19, 19) NOT NULL");
+        .columnType("DECIMAL(19, 18) NOT NULL");
     expr("'12.3' / '5'")
         .columnType("DECIMAL(19, 0) NOT NULL");
   }
 
   /** Test cases for binary comparison expressions. */
-  @Test public void testBinaryComparisonCoercion() {
+  @Test void testBinaryComparisonCoercion() {
     expr("'2' = 3").columnType("BOOLEAN NOT NULL");
     expr("'2' > 3").columnType("BOOLEAN NOT NULL");
     expr("'2' >= 3").columnType("BOOLEAN NOT NULL");
@@ -584,7 +590,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test case for case when expression and COALESCE operator. */
-  @Test public void testCaseWhen() {
+  @Test void testCaseWhen() {
     // coalesce
     // double int float
     sql("select COALESCE(t1_double, t1_int, t1_float) from t1")
@@ -610,6 +616,15 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     // timestamp int varchar
     sql("select COALESCE(t1_timestamp, t1_int, t1_varchar20) from t1")
         .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // timestamp date
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // date timestamp
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // null date timestamp
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
 
     // case when
     // smallint int char
@@ -630,10 +645,13 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     // bigint decimal
     sql("select case when 1 > 0 then t2_bigint else t2_decimal end from t2")
         .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
+    // date timestamp
+    sql("select case when 1 > 0 then t2_date else t2_timestamp end from t2")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
   }
 
-  /** Test case for {@link AbstractTypeCoercion#implicitCast} */
-  @Test public void testImplicitCasts() {
+  /** Test for {@link AbstractTypeCoercion#implicitCast}. */
+  @Test void testImplicitCasts() {
     // TINYINT
     RelDataType checkedType1 = dataTypeFactory.createSqlType(SqlTypeName.TINYINT);
     checkShouldCast(checkedType1, combine(numericTypes, charTypes));
@@ -780,7 +798,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test case for {@link TypeCoercion#builtinFunctionCoercion}. */
-  @Test public void testBuiltinFunctionCoercion() {
+  @Test void testBuiltinFunctionCoercion() {
     // concat
     expr("'ab'||'cde'")
         .columnType("CHAR(5) NOT NULL");
@@ -805,7 +823,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test case for {@link TypeCoercion#querySourceCoercion}. */
-  @Test public void testQuerySourceCoercion() {
+  @Test void testQuerySourceCoercion() {
     final String expectRowType = "RecordType("
         + "VARCHAR(20) NOT NULL t1_varchar20, "
         + "SMALLINT NOT NULL t1_smallint, "

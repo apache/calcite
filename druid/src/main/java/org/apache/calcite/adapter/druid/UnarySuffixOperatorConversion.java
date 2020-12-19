@@ -26,7 +26,8 @@ import com.google.common.collect.Iterables;
 import java.util.List;
 
 /**
- * Unary suffix operator conversion, used to convert function like: expression Unary_Operator
+ * Unary suffix operator conversion; used to convert function likes expression
+ * Unary_Operator.
  */
 public class UnarySuffixOperatorConversion implements DruidSqlOperatorConverter {
   private final SqlOperator operator;

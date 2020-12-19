@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -49,15 +51,15 @@ public class ParameterScope extends EmptyScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     return SqlQualified.create(this, 1, null, identifier);
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     return this;
   }
 
-  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     return nameToTypeMap.get(name);
   }
 }

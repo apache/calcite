@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Experimental;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,7 +56,7 @@ public class NameMultimap<V> {
     return map.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof NameMultimap
         && map.equals(((NameMultimap) obj).map);

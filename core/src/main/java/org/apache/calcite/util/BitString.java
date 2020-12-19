@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +51,7 @@ public class BitString {
   protected BitString(
       String bits,
       int bitCount) {
-    assert bits.replaceAll("1", "").replaceAll("0", "").length() == 0
+    assert bits.replace("1", "").replace("0", "").length() == 0
         : "bit string '" + bits + "' contains digits other than {0, 1}";
     this.bits = bits;
     this.bitCount = bitCount;
@@ -87,7 +89,7 @@ public class BitString {
     return new BitString(s, n);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return toBitString();
   }
 
@@ -95,7 +97,7 @@ public class BitString {
     return bits.hashCode() + bitCount;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof BitString
         && bits.equals(((BitString) o).bits)
@@ -134,6 +136,8 @@ public class BitString {
     case 7: // B'1000000' -> X'40'
     case 0: // B'10000000' -> X'80', and B'' -> X''
       return s;
+    default:
+      break;
     }
     if ((bitCount % 8) == 4) {
       return s.substring(1);

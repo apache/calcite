@@ -22,12 +22,29 @@ dependencies {
     // Make jmhCompileClasspath resolvable
     @Suppress("DEPRECATION")
     jmhCompileClasspath(platform(project(":bom")))
-    jmh(project(":core"))
-    jmh(project(":linq4j"))
-    jmh("com.google.guava:guava")
-    jmh("org.codehaus.janino:commons-compiler")
-    jmh("org.openjdk.jmh:jmh-core")
-    jmh("org.openjdk.jmh:jmh-generator-annprocess")
+    jmhImplementation(project(":core"))
+    jmhImplementation(project(":linq4j"))
+    jmhImplementation("com.google.guava:guava")
+    jmhImplementation("org.codehaus.janino:commons-compiler")
+    jmhImplementation("org.openjdk.jmh:jmh-core")
+    jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess")
 }
 
 // See https://github.com/melix/jmh-gradle-plugin
+// Unfortunately, current jmh-gradle-plugin does not allow to cusomize jmh parameters from the
+// command line, so the workarounds are:
+// a) Build and execute the jar itself: ./gradlew jmhJar && java -jar build/libs/calcite-...jar JMH_OPTIONS
+// b) Execute benchmarks via .main() methods from IDE (you might want to activate "power save mode"
+//    in the IDE to minimize the impact of the IDE itself on the benchmark results)
+
+tasks.withType<JavaExec>().configureEach {
+    // Execution of .main methods from IDEA should re-generate benchmark classes if required
+    dependsOn("jmhCompileGeneratedClasses")
+    doFirst {
+        // At best jmh plugin should add the generated directories to the Gradle model, however,
+        // currently it builds the jar only :-/
+        // IntelliJ IDEA "execute main method" adds a JavaExec task, so we configure it
+        classpath(File(buildDir, "jmh-generated-classes"))
+        classpath(File(buildDir, "jmh-generated-resources"))
+    }
+}

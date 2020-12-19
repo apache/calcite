@@ -22,6 +22,8 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -52,21 +54,21 @@ public class Enumerables {
 
   /** Converts an {@link Enumerable} over object arrays into an
    * {@link Enumerable} over {@link Row} objects. */
-  public static Enumerable<Row> toRow(final Enumerable<Object[]> enumerable) {
-    return enumerable.select((Function1<Object[], Row>) Row::asCopy);
+  public static Enumerable<Row> toRow(final Enumerable<@Nullable Object[]> enumerable) {
+    return enumerable.select((Function1<@Nullable Object[], Row>) Row::asCopy);
   }
 
   /** Converts a supplier of an {@link Enumerable} over object arrays into a
    * supplier of an {@link Enumerable} over {@link Row} objects. */
   public static Supplier<Enumerable<Row>> toRow(
-      final Supplier<Enumerable<Object[]>> supplier) {
+      final Supplier<Enumerable<@Nullable Object[]>> supplier) {
     return () -> toRow(supplier.get());
   }
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static com.google.common.base.Supplier<Enumerable<Row>> toRow(
-      final com.google.common.base.Supplier<Enumerable<Object[]>> supplier) {
+      final com.google.common.base.Supplier<Enumerable<@Nullable Object[]>> supplier) {
     return () -> toRow(supplier.get());
   }
 
@@ -76,7 +78,7 @@ public class Enumerables {
       Matcher<E> matcher,
       Emitter<E, TResult> emitter, int history, int future) {
     return new AbstractEnumerable<TResult>() {
-      public Enumerator<TResult> enumerator() {
+      @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           final Enumerator<E> inputEnumerator = enumerable.enumerator();
 
@@ -89,17 +91,17 @@ public class Enumerables {
           final Deque<TResult> emitRows = new ArrayDeque<>();
 
           /** Current result row. Null if no row is ready. */
-          TResult resultRow;
+          @Nullable TResult resultRow;
 
-          /** Match counter is 1 based in Oracle */
+          /** Match counter is 1-based in Oracle. */
           final AtomicInteger matchCounter = new AtomicInteger(1);
 
-          public TResult current() {
+          @Override public TResult current() {
             Objects.requireNonNull(resultRow);
             return resultRow;
           }
 
-          public boolean moveNext() {
+          @Override public boolean moveNext() {
             for (;;) {
               resultRow = emitRows.pollFirst();
               if (resultRow != null) {
@@ -170,11 +172,11 @@ public class Enumerables {
             }
           }
 
-          public void reset() {
+          @Override public void reset() {
             throw new UnsupportedOperationException();
           }
 
-          public void close() {
+          @Override public void close() {
             inputEnumerator.close();
           }
         };
@@ -188,7 +190,7 @@ public class Enumerables {
    * @param <E> element type
    * @param <TResult> result type */
   public interface Emitter<E, TResult> {
-    void emit(List<E> rows, List<Integer> rowStates, List<String> rowSymbols, int match,
+    void emit(List<E> rows, @Nullable List<Integer> rowStates, List<String> rowSymbols, int match,
         Consumer<TResult> consumer);
   }
 }

@@ -17,7 +17,14 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockStatement;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.DeriveMode;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.PhysicalNode;
+import org.apache.calcite.util.Pair;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * A relational expression of one of the
@@ -25,9 +32,23 @@ import org.apache.calcite.rel.RelNode;
  * conventions.
  */
 public interface EnumerableRel
-    extends RelNode {
+    extends PhysicalNode {
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override default @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      RelTraitSet required) {
+    return null;
+  }
+
+  @Override default @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      RelTraitSet childTraits, int childId) {
+    return null;
+  }
+
+  @Override default DeriveMode getDeriveMode() {
+    return DeriveMode.LEFT_FIRST;
+  }
 
   /**
    * Creates a plan for this expression according to a calling convention.

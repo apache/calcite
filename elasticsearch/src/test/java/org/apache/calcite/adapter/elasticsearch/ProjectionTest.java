@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -39,10 +40,11 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Checks renaming of fields (also upper, lower cases) during projections
+ * Checks renaming of fields (also upper, lower cases) during projections.
  */
+@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class ProjectionTest {
+class ProjectionTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
@@ -85,7 +87,7 @@ public class ProjectionTest {
     };
   }
 
-  @Test public void projection() {
+  @Test void projection() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select * from view")

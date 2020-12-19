@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Definition of the SQL:2003 standard ARRAY constructor, <code>ARRAY
  * [&lt;expr&gt;, ...]</code>.
@@ -35,9 +37,7 @@ public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
+    requireNonNull(type, "inferred array element type");
     return SqlTypeUtil.createArrayType(
         opBinding.getTypeFactory(), type, false);
   }

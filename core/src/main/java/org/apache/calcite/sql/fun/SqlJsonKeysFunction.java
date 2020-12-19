@@ -30,10 +30,10 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 public class SqlJsonKeysFunction extends SqlFunction {
   public SqlJsonKeysFunction() {
     super("JSON_KEYS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
-          null,
-          OperandTypes.or(OperandTypes.ANY,
-              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
-          SqlFunctionCategory.SYSTEM);
+        ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        null,
+        OperandTypes.or(OperandTypes.ANY,
+            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
+        SqlFunctionCategory.SYSTEM);
   }
 }

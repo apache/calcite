@@ -224,7 +224,7 @@ public class DiffRepository {
 
   //~ Methods ----------------------------------------------------------------
 
-  private static URL findFile(Class clazz, final String suffix) {
+  private static URL findFile(Class<?> clazz, final String suffix) {
     // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"
     String rest = "/" + clazz.getName().replace('.', File.separatorChar)
         + suffix;
@@ -235,7 +235,7 @@ public class DiffRepository {
    * Expands a string containing one or more variables. (Currently only works
    * if there is one variable.)
    */
-  public synchronized String expand(String tag, String text) {
+  public String expand(String tag, String text) {
     if (text == null) {
       return null;
     } else if (text.startsWith("${")
@@ -715,7 +715,7 @@ public class DiffRepository {
    * @param clazz Test case class
    * @return The diff repository shared between test cases in this class.
    */
-  public static DiffRepository lookup(Class clazz) {
+  public static DiffRepository lookup(Class<?> clazz) {
     return lookup(clazz, null);
   }
 
@@ -728,7 +728,7 @@ public class DiffRepository {
    * @return The diff repository shared between test cases in this class.
    */
   public static DiffRepository lookup(
-      Class clazz,
+      Class<?> clazz,
       DiffRepository baseRepository) {
     return lookup(clazz, baseRepository, null);
   }
@@ -758,7 +758,7 @@ public class DiffRepository {
    * @param filter    Filters each string returned by the repository
    * @return The diff repository shared between test cases in this class.
    */
-  public static DiffRepository lookup(Class clazz,
+  public static DiffRepository lookup(Class<?> clazz,
       DiffRepository baseRepository,
       Filter filter) {
     final Key key = new Key(clazz, baseRepository, filter);
@@ -789,11 +789,11 @@ public class DiffRepository {
 
   /** Cache key. */
   private static class Key {
-    private final Class clazz;
+    private final Class<?> clazz;
     private final DiffRepository baseRepository;
     private final Filter filter;
 
-    Key(Class clazz, DiffRepository baseRepository, Filter filter) {
+    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter) {
       this.clazz = Objects.requireNonNull(clazz);
       this.baseRepository = baseRepository;
       this.filter = filter;

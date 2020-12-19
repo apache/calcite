@@ -24,22 +24,23 @@ import org.apache.calcite.sql.SqlOperator;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Parameter type-checking strategy types must be [nullable] Multiset,
- * [nullable] Multiset and the two types must have the same element type
+ * Parameter type-checking strategy where types must be ([nullable] Multiset,
+ * [nullable] Multiset), and the two types must have the same element type.
  *
  * @see MultisetSqlType#getComponentType
  */
 public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode op0 = callBinding.operand(0);
@@ -65,12 +66,8 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(
-                callBinding.getValidator()
-                    .deriveType(callBinding.getScope(), op0)
-                    .getComponentType(),
-                callBinding.getValidator()
-                    .deriveType(callBinding.getScope(), op1)
-                    .getComponentType()));
+                getComponentTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0)),
+                getComponentTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op1))));
     if (null == biggest) {
       if (throwOnFailure) {
         throw callBinding.newError(
@@ -84,15 +81,15 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     return true;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<MULTISET> " + opName + " <MULTISET>";
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }

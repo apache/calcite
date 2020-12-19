@@ -35,7 +35,7 @@ final class Fixture extends AbstractFixture {
   final RelDataType bigintType = sqlType(SqlTypeName.BIGINT);
   final RelDataType decimalType = sqlType(SqlTypeName.DECIMAL);
   final RelDataType varcharType = sqlType(SqlTypeName.VARCHAR);
-  final RelDataType varcharTypeNull = sqlType(SqlTypeName.VARCHAR);
+  final RelDataType varcharTypeNull = nullable(varcharType);
   final RelDataType varchar5Type = sqlType(SqlTypeName.VARCHAR, 5);
   final RelDataType varchar10Type = sqlType(SqlTypeName.VARCHAR, 10);
   final RelDataType varchar10TypeNull = nullable(varchar10Type);
@@ -56,6 +56,8 @@ final class Fixture extends AbstractFixture {
       .add("unit", varchar20Type)
       .kind(StructKind.PEEK_FIELDS)
       .build();
+  final RelDataType rectilinearPeekCoordMultisetType =
+      typeFactory.createMultisetType(rectilinearPeekCoordType, -1);
   final RelDataType rectilinearPeekNoExpandCoordType = typeFactory.builder()
       .add("M", intType)
       .add("SUB",
@@ -69,7 +71,7 @@ final class Fixture extends AbstractFixture {
   final RelDataType abRecordType = typeFactory.builder()
       .add("A", varchar10Type)
       .add("B", varchar10Type)
-      .build();;
+      .build();
   final RelDataType skillRecordType = typeFactory.builder()
       .add("TYPE", varchar10Type)
       .add("DESC", varchar20Type)
@@ -79,7 +81,8 @@ final class Fixture extends AbstractFixture {
       .add("EMPNO", intType)
       .add("ENAME", varchar10Type)
       .add("DETAIL", typeFactory.builder()
-          .add("SKILLS", array(skillRecordType)).build())
+      .add("SKILLS", array(skillRecordType)).build())
+      .kind(StructKind.PEEK_FIELDS)
       .build();
   final RelDataType empListType = array(empRecordType);
   final ObjectSqlType addressType = new ObjectSqlType(SqlTypeName.STRUCTURED,
@@ -154,7 +157,7 @@ final class Fixture extends AbstractFixture {
 }
 
 /**
- * Just a little trick to store factory ref before field init in fixture
+ * Just a little trick to store factory ref before field init in fixture.
  */
 abstract class AbstractFixture {
   final RelDataTypeFactory typeFactory;

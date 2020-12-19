@@ -16,10 +16,6 @@
  */
 
 /**
- * The Redis adapter contains various table functions that let you query data
- * sources in your operating system and environment.
+ * Redis adapter.
  */
-@PackageMarker
 package org.apache.calcite.adapter.redis;
-
-import org.apache.calcite.avatica.util.PackageMarker;

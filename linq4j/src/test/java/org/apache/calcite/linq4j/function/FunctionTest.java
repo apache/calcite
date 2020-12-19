@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,9 +32,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Test for {@link Functions}.
  */
-public class FunctionTest {
+class FunctionTest {
   /** Unit test for {@link Functions#filter}. */
-  @Test public void testFilter() {
+  @Test void testFilter() {
     final List<String> abc = Arrays.asList("A", "B", "C", "D");
     // a miss, then a hit
     assertEquals("[A, C, D]",
@@ -51,7 +52,7 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#exists}. */
-  @Test public void testExists() {
+  @Test void testExists() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
     assertFalse(
@@ -63,7 +64,7 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#all}. */
-  @Test public void testAll() {
+  @Test void testAll() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
     assertFalse(
@@ -79,10 +80,10 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#generate}. */
-  @Test public void testGenerate() {
-    final Function1<Integer, String> xx =
-        new Function1<Integer, String>() {
-          public String apply(Integer a0) {
+  @Test void testGenerate() {
+    final IntFunction<String> xx =
+        new IntFunction<String>() {
+          public String apply(int a0) {
             return a0 == 0 ? "0" : "x" + apply(a0 - 1);
           }
         };

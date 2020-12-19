@@ -28,8 +28,11 @@ import java.util.List;
  * {@link RelOptRule#some},
  * {@link RelOptRule#none},
  * {@link RelOptRule#any},
- * {@link RelOptRule#unordered},</p>
+ * {@link RelOptRule#unordered}.
+ *
+ * @deprecated Use {@link RelRule.OperandBuilder}
  */
+@Deprecated // to be removed before 2.0
 public class RelOptRuleOperandChildren {
   static final RelOptRuleOperandChildren ANY_CHILDREN =
       new RelOptRuleOperandChildren(

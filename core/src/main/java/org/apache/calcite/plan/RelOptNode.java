@@ -35,7 +35,7 @@ public interface RelOptNode {
   /**
    * Returns a string which concisely describes the definition of this
    * relational expression. Two relational expressions are equivalent if
-   * their digests and {@link #getRowType()} are the same.
+   * their digests and {@link #getRowType()} (except the field names) are the same.
    *
    * <p>The digest does not contain the relational expression's identity --
    * that would prevent similar relational expressions from ever comparing
@@ -45,7 +45,7 @@ public interface RelOptNode {
    * <p>If you want a descriptive string which contains the identity, call
    * {@link Object#toString()}, which always returns "rel#{id}:{digest}".
    *
-   * @return Digest of this {@code RelNode}
+   * @return Digest string of this {@code RelNode}
    */
   String getDigest();
 

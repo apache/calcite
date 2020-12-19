@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -28,14 +29,17 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static java.lang.Integer.toHexString;
 import static java.lang.System.identityHashCode;
 
 /**
- * Test to verify {@link RelCompositeTrait}.
+ * Test to verify {@link RelCompositeTrait} and {@link RelTraitSet}.
  */
-public class RelTraitTest {
+class RelTraitTest {
   private static final RelCollationTraitDef COLLATION = RelCollationTraitDef.INSTANCE;
 
   private void assertCanonical(String message, Supplier<List<RelCollation>> collation) {
@@ -48,17 +52,48 @@ public class RelTraitTest {
         () -> "RelCompositeTrait.of should return the same instance for " + message);
   }
 
-  @Test public void compositeEmpty() {
+  @Test void compositeEmpty() {
     assertCanonical("empty composite", ImmutableList::of);
   }
 
-  @Test public void compositeOne() {
+  @Test void compositeOne() {
     assertCanonical("composite with one element",
         () -> ImmutableList.of(RelCollations.of(ImmutableList.of())));
   }
 
-  @Test public void compositeTwo() {
+  @Test void compositeTwo() {
     assertCanonical("composite with two elements",
         () -> ImmutableList.of(RelCollations.of(0), RelCollations.of(1)));
+  }
+
+  @Test void testTraitSetDefault() {
+    RelTraitSet traits = RelTraitSet.createEmpty();
+    traits = traits.plus(Convention.NONE).plus(RelCollations.EMPTY);
+    assertEquals(traits.size(), 2);
+    assertTrue(traits.isDefault());
+    traits = traits.replace(EnumerableConvention.INSTANCE);
+    assertFalse(traits.isDefault());
+    assertTrue(traits.isDefaultSansConvention());
+    traits = traits.replace(RelCollations.of(0));
+    assertFalse(traits.isDefault());
+    assertFalse(traits.replace(Convention.NONE).isDefaultSansConvention());
+    assertTrue(traits.getDefault().isDefault());
+    traits = traits.getDefaultSansConvention();
+    assertFalse(traits.isDefault());
+    assertEquals(traits.getConvention(), EnumerableConvention.INSTANCE);
+    assertTrue(traits.isDefaultSansConvention());
+    assertEquals(traits.toString(), "ENUMERABLE.[]");
+  }
+
+  @Test void testTraitSetEqual() {
+    RelTraitSet traits = RelTraitSet.createEmpty();
+    RelTraitSet traits1 = traits.plus(Convention.NONE).plus(RelCollations.of(0));
+    assertEquals(traits1.size(), 2);
+    RelTraitSet traits2 = traits1.replace(EnumerableConvention.INSTANCE);
+    assertEquals(traits2.size(), 2);
+    assertNotEquals(traits1, traits2);
+    assertTrue(traits1.equalsSansConvention(traits2));
+    RelTraitSet traits3 = traits2.replace(RelCollations.of(1));
+    assertFalse(traits3.equalsSansConvention(traits2));
   }
 }
