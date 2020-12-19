@@ -50,6 +50,11 @@ here to appease testAllFunctionsAreDocumented:
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
 | TO_NUMBER()    | Converts string_expr to a NUMBER data type
+| CONV()         | Converts the given number n from one base to another base
+| LPAD()         | Append paddingString to the beginning of the string
+| RPAD()         | Append paddingString to the end of the string
+| FORMAT         | Format the value as per the pattern defined
+| TO_VARCHAR     | Derives the value as per the pattern defined
 {% endcomment %}
 -->
 
@@ -2482,6 +2487,7 @@ The 'C' (compatibility) column contains value:
 * 'o' for Oracle ('fun=oracle' in the connect string),
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
+'sf' for Snowflake ('fun=snowflake' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2549,6 +2555,7 @@ semantics.
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
+| sf  | TO_VARCHAR(value, format)                    | Returns formatted value based on the format operand to the value operand
 
 Note:
 

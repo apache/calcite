@@ -18,12 +18,14 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -38,17 +40,55 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
-import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.util.RelToSqlConverterUtil;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.CastCallBuilder;
+import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
+import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.ToNumberUtils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IF;
@@ -66,6 +106,37 @@ public class HiveSqlDialect extends SqlDialect {
 
   private final boolean emulateNullDirection;
   private final boolean isHiveLowerVersion;
+
+  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
+      new HashMap<SqlDateTimeFormat, String>() {{
+        put(DAYOFMONTH, "dd");
+        put(DAYOFYEAR, "ddd");
+        put(NUMERICMONTH, "MM");
+        put(ABBREVIATEDMONTH, "MMM");
+        put(MONTHNAME, "MMMM");
+        put(TWODIGITYEAR, "yy");
+        put(FOURDIGITYEAR, "yyyy");
+        put(DDMMYYYY, "ddMMyyyy");
+        put(DDMMYY, "ddMMyy");
+        put(MMDDYYYY, "MMddyyyy");
+        put(MMDDYY, "MMddyy");
+        put(YYYYMMDD, "yyyyMMdd");
+        put(YYMMDD, "yyMMdd");
+        put(DAYOFWEEK, "EEEE");
+        put(ABBREVIATEDDAYOFWEEK, "EEE");
+        put(TWENTYFOURHOUR, "HH");
+        put(HOUR, "hh");
+        put(MINUTE, "mm");
+        put(SECOND, "ss");
+        put(FRACTIONONE, "s");
+        put(FRACTIONTWO, "ss");
+        put(FRACTIONTHREE, "sss");
+        put(FRACTIONFOUR, "ssss");
+        put(FRACTIONFIVE, "sssss");
+        put(FRACTIONSIX, "ssssss");
+        put(AMPM, "aa");
+        put(TIMEZONE, "z");
+      }};
 
   /**
    * Creates a HiveSqlDialect.
@@ -111,10 +182,6 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsAliasedValues() {
-    return false;
-  }
-
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
@@ -146,6 +213,26 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public SqlNode getCastCall(
+      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
+      return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
+          castTo.getPrecision());
+    } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
+      if (castFrom.getSqlTypeName() == SqlTypeName.TIMESTAMP) {
+        return new CastCallBuilder(this)
+            .makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
+      }
+      return operandToCast;
+    }
+    return super.getCastCall(operandToCast, castFrom, castTo);
+  }
+
+  @Override public SqlNode getTimeLiteral(
+      TimeString timeString, int precision, SqlParserPos pos) {
+    return SqlLiteral.createCharString(timeString.toString(), SqlParserPos.ZERO);
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
@@ -168,7 +255,6 @@ public class HiveSqlDialect extends SqlDialect {
       RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
     case CHAR_LENGTH:
-    case CHARACTER_LENGTH:
       final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
@@ -210,7 +296,12 @@ public class HiveSqlDialect extends SqlDialect {
       unparseFormat(writer, call, leftPrec, rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+      if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
+              .toString())) {
+        ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+        break;
+      }
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     case NULLIF:
       unparseNullIf(writer, call, leftPrec, rightPrec);
@@ -222,37 +313,6 @@ public class HiveSqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
-
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
-        unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-      break;
-    case "CURRENT_USER":
-      final SqlWriter.Frame currUserFrame = writer.startFunCall(CURRENT_USER.getName());
-      writer.endFunCall(currUserFrame);
-      break;
-
-    case "SUBSTRING":
-      final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",", true);
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        writer.sep(",", true);
-        call.operand(2).unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(funCallFrame);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
 
   /**
    * For usage of TRIM, LTRIM and RTRIM in Hive, see
@@ -587,11 +647,74 @@ public class HiveSqlDialect extends SqlDialect {
     unparseCall(writer, ifCall, leftPrec, rightPrec);
   }
 
-  private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call,
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
-    SqlCall dateFormatCall = timestampHandler.makeDateFormatCall(call);
-    SqlCall castCall = timestampHandler.makeCastCall(dateFormatCall);
-    unparseCall(writer, castCall, leftPrec, rightPrec);
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+      if (((SqlBasicCall) call).getOperands().length > 0) {
+        new CurrentTimestampHandler(this)
+            .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case "CURRENT_USER":
+      final SqlWriter.Frame currUserFrame = writer.startFunCall(CURRENT_USER.getName());
+      writer.endFunCall(currUserFrame);
+      break;
+    case "SUBSTRING":
+      final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+         writer.sep(",", true);
+         call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(funCallFrame);
+      break;
+    case "STRING_SPLIT":
+      SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
+      unparseCall(writer, splitCall, leftPrec, rightPrec);
+      break;
+    case "FORMAT_TIMESTAMP":
+    case "FORMAT_TIME":
+    case "FORMAT_DATE":
+      SqlCall dateFormatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1),
+          creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
+      unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
+      break;
+    case "STR_TO_DATE":
+      unparseStrToDate(writer, call, leftPrec, rightPrec);
+      break;
+    case "RPAD":
+    case "LPAD":
+      PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
+
+  private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall unixTimestampCall = UNIX_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(0),
+        creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+    SqlCall fromUnixTimeCall = FROM_UNIXTIME.createCall(SqlParserPos.ZERO, unixTimestampCall,
+        SqlLiteral.createCharString("yyyy-MM-dd", SqlParserPos.ZERO));
+    SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall,
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
+    unparseCall(writer, castToDateCall, leftPrec, rightPrec);
+  }
+
+  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        DATE_TIME_FORMAT_MAP);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
+  }
+
+  @Override protected String getDateTimeFormatString(
+      String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
+    return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+  }
+
 }

@@ -380,7 +380,7 @@ public abstract class SqlOperatorBaseTest {
   protected SqlTester bigQueryTester() {
     return tester.withOperatorTable(
             SqlLibraryOperatorTableFactory.INSTANCE
-                    .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.BIGQUERY))
+                    .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.BIG_QUERY))
             .withConnectionFactory(
                     CalciteAssert.EMPTY_CONNECTION_FACTORY
                             .with(new CalciteAssert

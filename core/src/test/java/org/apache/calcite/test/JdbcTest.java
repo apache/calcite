@@ -7647,6 +7647,20 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
+  @Test public void testFormat() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select FORMAT('%4d', 12) as \"result\"")
+        .returns("result=  12\n");
+  }
+
+  @Test public void testToVarchar() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "snowflake")
+        .query("select TO_VARCHAR(12, '999') as \"result\"")
+        .returns("result= 12\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
@@ -7727,6 +7741,36 @@ public class JdbcTest {
         + "union\n"
         + "select \"id\" from (VALUES(TIMESTAMP '2008-03-31 12:23:34')) \"foo\"(\"id\"))";
     assertThat.query(query).returns("id=2008-03-31 12:23:34\nid=2018-02-03 00:00:00\n");
+  }
+
+  @Test public void testLPAD() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+  }
+
+  @Test public void testRPAD() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
   }
 
   private static String sums(int n, boolean c) {

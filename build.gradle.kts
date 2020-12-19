@@ -18,8 +18,6 @@ import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.git.FindGitAttributes
-import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
@@ -101,22 +99,22 @@ ide {
 // This task scans the project for gitignore / gitattributes, and that is reused for building
 // source/binary artifacts with the appropriate eol/executable file flags
 // It enables to automatically exclude patterns from .gitignore
-val gitProps by tasks.registering(FindGitAttributes::class) {
+// val gitProps by tasks.registering(FindGitAttributes::class) {
     // Scanning for .gitignore and .gitattributes files in a task avoids doing that
     // when distribution build is not required (e.g. code is just compiled)
-    root.set(rootDir)
-}
+//    root.set(rootDir)
+// }
 
-val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
-    gitignore(gitProps)
-    verbose.set(true)
-    // Note: patterns are in non-standard syntax for RAT, so we use exclude(..) instead of excludeFile
-    exclude(rootDir.resolve(".ratignore").readLines())
-}
-
-tasks.validateBeforeBuildingReleaseArtifacts {
-    dependsOn(rat)
-}
+// val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
+// //    gitignore(gitProps)
+//    verbose.set(true)
+//    // Note: patterns are in non-standard syntax for RAT, so we use exclude(..) instead of excludeFile
+//    exclude(rootDir.resolve(".ratignore").readLines())
+// }
+//
+// tasks.validateBeforeBuildingReleaseArtifacts {
+//    dependsOn(rat)
+// }
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 

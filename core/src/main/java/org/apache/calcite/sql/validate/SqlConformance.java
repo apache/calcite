@@ -467,6 +467,12 @@ public interface SqlConformance {
   boolean allowExtendedTrim();
 
   /**
+   * Whether the Is True is allowed in
+   * the parser.
+   */
+  boolean allowIsTrue();
+
+  /**
    * Whether interval literals should allow plural time units
    * such as "YEARS" and "DAYS" in interval literals.
    *
