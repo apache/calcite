@@ -34,7 +34,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 
 /**
- * This class is specific to Hive, Spark and bigQuery to unparse CURRENT_TIMESTAMP function
+ * This class is specific to Hive, Spark and bigQuery to unparse CURRENT_TIMESTAMP function.
  */
 public class CurrentTimestampHandler {
 

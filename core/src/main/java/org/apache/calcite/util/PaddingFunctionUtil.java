@@ -30,7 +30,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 
 /**
- * Handle rpad and ldap formatting
+ * Handle rpad and ldap formatting.
  */
 public class PaddingFunctionUtil {
 

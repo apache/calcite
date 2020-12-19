@@ -35,7 +35,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 
 /**
- * Used to build cast call based cast type
+ * Used to build cast call based cast type.
  */
 
 public class CastCallBuilder {

@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class RelToSqlConverterUtil {
 
   /**
-   * For usage of TRIM, LTRIM and RTRIM in Hive, see
+   * For usage of TRIM, LTRIM and RTRIM in Hive, see,
    * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
   public static void unparseHiveTrim(
@@ -63,7 +63,7 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
-   * This method will make regex pattern based on the TRIM flag
+   * This method will make regex pattern based on the TRIM flag.
    *
    * @param call     SqlCall contains the values that needs to be trimmed
    * @param trimFlag It will contain the trimFlag either BOTH,LEADING or TRAILING
@@ -73,16 +73,16 @@ public abstract class RelToSqlConverterUtil {
     String regexPattern = ((SqlCharStringLiteral) call).toValue();
     regexPattern = escapeSpecialChar(regexPattern);
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-      case LEADING:
-        regexPattern = "^(".concat(regexPattern).concat(")*");
-        break;
-      case TRAILING:
-        regexPattern = "(".concat(regexPattern).concat(")*$");
-        break;
-      default:
-        regexPattern = "^(".concat(regexPattern).concat(")*|(")
-          .concat(regexPattern).concat(")*$");
-        break;
+    case LEADING:
+      regexPattern = "^(".concat(regexPattern).concat(")*");
+      break;
+    case TRAILING:
+      regexPattern = "(".concat(regexPattern).concat(")*$");
+      break;
+    default:
+      regexPattern = "^(".concat(regexPattern).concat(")*|(")
+        .concat(regexPattern).concat(")*$");
+      break;
     }
     return SqlLiteral.createCharString(regexPattern,
       call.getParserPosition());
