@@ -668,8 +668,8 @@ public class HiveSqlDialect extends SqlDialect {
       writer.sep(",", true);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       if (3 == call.operandCount()) {
-          writer.sep(",", true);
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",", true);
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(funCallFrame);
       break;

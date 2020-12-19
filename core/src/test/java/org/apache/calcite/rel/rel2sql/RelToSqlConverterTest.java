@@ -694,9 +694,9 @@ class RelToSqlConverterTest {
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "LIMIT 5";
     final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
-      + "FROM foodmart.product\n"
-      + "GROUP BY product_class_id WITH ROLLUP\n"
-      + "LIMIT 5";
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id WITH ROLLUP\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -1215,7 +1215,6 @@ class RelToSqlConverterTest {
     relFn(relFn).withMysql().ok(expectedSql);
   }
 
-  /**  */
   @Test public void testTableFunctionScanWithUnnest() {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
@@ -2349,7 +2348,7 @@ class RelToSqlConverterTest {
   @Test public void testCharacterLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
     final String query = "select character_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
-      + "FROM foodmart.product";
+        + "FROM foodmart.product";
     final String expectedSnowFlake = "SELECT LENGTH('xyz')\n"
             + "FROM \"foodmart\".\"product\"";
     sql(query)
@@ -5224,9 +5223,9 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 a, 'yy' b)";
     final String expectedSpark = "SELECT a\n"
-      + "FROM (SELECT 1 a, 'x ' b\n"
-      + "UNION ALL\n"
-      + "SELECT 2 a, 'yy' b)";
+        + "FROM (SELECT 1 a, 'x ' b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 a, 'yy' b)";
     final String expectedBigQuery = "SELECT a\n"
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
@@ -7090,11 +7089,11 @@ class RelToSqlConverterTest {
 
   @Test public void testToNumberFunctionHandlingCaseWhenThen() {
     final String query = "select case when TO_NUMBER('12.77') is not null then "
-      + "'is_numeric' else 'is not numeric' end";
+        + "'is_numeric' else 'is not numeric' end";
     final String expected = "SELECT CASE WHEN CAST('12.77' AS FLOAT) IS NOT NULL THEN "
-      + "'is_numeric    ' ELSE 'is not numeric' END";
+        + "'is_numeric    ' ELSE 'is not numeric' END";
     final String expectedSnowFlake = "SELECT CASE WHEN TO_NUMBER('12.77', 38, 2) IS NOT NULL THEN"
-      + " 'is_numeric    ' ELSE 'is not numeric' END";
+        + " 'is_numeric    ' ELSE 'is not numeric' END";
     sql(query)
       .withBigQuery()
       .ok(expected)

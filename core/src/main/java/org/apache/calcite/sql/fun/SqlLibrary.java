@@ -79,7 +79,7 @@ public enum SqlLibrary {
     this.abbrev = Objects.requireNonNull(abbrev);
     this.fun = Objects.requireNonNull(fun);
     Preconditions.checkArgument(
-      fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
+        fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
 
   /** Looks up a value.
@@ -94,7 +94,7 @@ public enum SqlLibrary {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
     for (String libraryName : libraryNameList.split(",")) {
       SqlLibrary library = Objects.requireNonNull(
-        SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
+          SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
       list.add(library);
     }
     return list.build();
@@ -104,7 +104,7 @@ public enum SqlLibrary {
 
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
-      ImmutableMap.builder();
+        ImmutableMap.builder();
     for (SqlLibrary value : values()) {
       builder.put(value.name(), value);
       builder.put(value.fun, value);

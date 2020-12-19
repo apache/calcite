@@ -1079,7 +1079,7 @@ public enum SqlKind {
   OTHER_DDL,
 
   /**
-   * CONCAT Function
+   * CONCAT Function.
    */
   CONCAT,
 
