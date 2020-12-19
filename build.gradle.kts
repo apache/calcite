@@ -37,7 +37,7 @@ plugins {
     calcite.buildext
     id("org.checkerframework") apply false
     id("com.github.autostyle")
-    id("org.nosphere.apache.rat")
+    // id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false

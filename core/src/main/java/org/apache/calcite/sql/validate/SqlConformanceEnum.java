@@ -373,10 +373,10 @@ public enum SqlConformanceEnum implements SqlConformance {
   @Override public boolean allowIsTrue() {
 
     switch (this) {
-    case BIG_QUERY:
-      return false;
-    default:
-      return true;
+      case BIG_QUERY:
+        return false;
+      default:
+        return true;
     }
   }
 
