@@ -84,7 +84,7 @@ public class SqlDialect {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final Logger LOGGER =
-    LoggerFactory.getLogger(SqlDialect.class);
+      LoggerFactory.getLogger(SqlDialect.class);
 
   /**
    * Empty context.
@@ -1235,7 +1235,7 @@ public class SqlDialect {
 
   @Deprecated // to be removed before 2.0
   public SqlParser.ConfigBuilder configureParser(
-    SqlParser.ConfigBuilder configBuilder) {
+      SqlParser.ConfigBuilder configBuilder) {
     return SqlParser.configBuilder(
       configureParser(configBuilder.build()));
   }
@@ -1520,7 +1520,7 @@ public class SqlDialect {
     Context withLiteralQuoteString(String literalQuoteString);
     String literalEscapedQuoteString();
     Context withLiteralEscapedQuoteString(
-      String literalEscapedQuoteString);
+        String literalEscapedQuoteString);
     @Nullable String identifierQuoteString();
     Context withIdentifierQuoteString(@Nullable String identifierQuoteString);
     Casing unquotedCasing();
