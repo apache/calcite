@@ -139,14 +139,13 @@ public class ToNumberUtils {
     }
   }
 
-  private static void handleCasting(
-    SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
-    SqlTypeName sqlTypeName) {
+  private static void handleCasting(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlTypeName sqlTypeName) {
     SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), new SqlDataTypeSpec(new
-      SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
-      SqlParserPos.ZERO)};
+        SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
+        SqlParserPos.ZERO)};
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-      extractNodeOperands, SqlParserPos.ZERO);
+        extractNodeOperands, SqlParserPos.ZERO);
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
   }
   private static void modifyOperand(SqlCall call) {
@@ -165,7 +164,7 @@ public class ToNumberUtils {
     call.setOperand(0, sqlNode[0]);
   }
 
- private static String removeSignFromLastOfStringAndAddInBeginning(SqlCall call,
+  private static String removeSignFromLastOfStringAndAddInBeginning(SqlCall call,
                                                                     String firstOperand) {
     if (call.operand(1).toString().contains("MI") || call.operand(1).toString().contains("S")) {
       if (call.operand(0).toString().contains("-")) {
@@ -178,8 +177,7 @@ public class ToNumberUtils {
     return firstOperand;
   }
 
-  private static boolean handleNullOperand(
-    SqlWriter writer, int leftPrec, int rightPrec) {
+  private static boolean handleNullOperand(SqlWriter writer, int leftPrec, int rightPrec) {
     SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
       SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
       SqlParserPos.ZERO), new SqlDataTypeSpec(new
@@ -187,7 +185,7 @@ public class ToNumberUtils {
       SqlParserPos.ZERO)};
 
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-      extractNodeOperands, SqlParserPos.ZERO);
+        extractNodeOperands, SqlParserPos.ZERO);
 
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
     return true;

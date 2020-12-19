@@ -179,16 +179,12 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MMYY, "%m%y");
       }};
 
-  /**
-   * An unquoted BigQuery identifier must start with a letter and be followed
-   * by zero or more letters, digits or _.
-   */
+  /** An unquoted BigQuery identifier must start with a letter and be followed
+   * by zero or more letters, digits or _. */
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
-  /**
-   * Creates a BigQuerySqlDialect.
-   */
+  /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
@@ -540,9 +536,9 @@ public class BigQuerySqlDialect extends SqlDialect {
    * Input: select date + Store_id * INTERVAL 2 DAY
    * It will write output query as: select DATE_ADD(date , INTERVAL Store_id * 2 DAY)
    *
-   * @param writer    Target SqlWriter to write the call
-   * @param call      SqlCall : date + Store_id * INTERVAL 2 DAY
-   * @param leftPrec  Indicate left precision
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall : date + Store_id * INTERVAL 2 DAY
+   * @param leftPrec Indicate left precision
    * @param rightPrec Indicate left precision
    */
   @Override public void unparseIntervalOperandsBasedFunctions(
@@ -590,9 +586,9 @@ public class BigQuerySqlDialect extends SqlDialect {
    * Input: 10 * INTERVAL 2 DAY
    * It will write this as: INTERVAL 10 * 2 DAY
    *
-   * @param call      SqlCall : store_id * INTERVAL 1 DAY
-   * @param writer    Target SqlWriter to write the call
-   * @param leftPrec  Indicate left precision
+   * @param call SqlCall : store_id * INTERVAL 1 DAY
+   * @param writer Target SqlWriter to write the call
+   * @param leftPrec Indicate left precision
    * @param rightPrec Indicate right precision
    */
   private void unparseExpressionIntervalCall(
@@ -696,7 +692,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     literal = updateSqlIntervalLiteral(literal);
     SqlIntervalLiteral.IntervalValue interval =
-      literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     writer.keyword("INTERVAL");
     if (interval.getSign() == -1) {
       writer.print("-");
@@ -708,7 +704,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
-      RelDataTypeSystem.DEFAULT);
+        RelDataTypeSystem.DEFAULT);
   }
 
   @Override public void unparseSqlIntervalQualifier(
@@ -732,15 +728,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlLiteral trimFlag = call.operand(0);
     SqlLiteral valueToTrim = call.operand(1);
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-      case LEADING:
-        operatorName = "LTRIM";
-        break;
-      case TRAILING:
-        operatorName = "RTRIM";
-        break;
-      default:
-        operatorName = call.getOperator().getName();
-        break;
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
     }
     final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
@@ -758,20 +754,20 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
-      case MICROSECOND:
-      case MILLISECOND:
-      case SECOND:
-      case MINUTE:
-      case HOUR:
-      case DAY:
-      case WEEK:
-      case MONTH:
-      case QUARTER:
-      case YEAR:
-      case ISOYEAR:
-        return timeUnit;
-      default:
-        throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
+    case MICROSECOND:
+    case MILLISECOND:
+    case SECOND:
+    case MINUTE:
+    case HOUR:
+    case DAY:
+    case WEEK:
+    case MONTH:
+    case QUARTER:
+    case YEAR:
+    case ISOYEAR:
+      return timeUnit;
+    default:
+      throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
   }
 
@@ -785,34 +781,34 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
-        // BigQuery only supports INT64 for integer types.
-        case TINYINT:
-        case SMALLINT:
-        case INTEGER:
-        case BIGINT:
-          return createSqlDataTypeSpecByName("INT64", typeName);
-        // BigQuery only supports FLOAT64(aka. Double) for floating point types.
-        case FLOAT:
-        case DOUBLE:
-          return createSqlDataTypeSpecByName("FLOAT64", typeName);
-        case DECIMAL:
-          return createSqlDataTypeSpecByName("NUMERIC", typeName);
-        case BOOLEAN:
-          return createSqlDataTypeSpecByName("BOOL", typeName);
-        case CHAR:
-        case VARCHAR:
-          return createSqlDataTypeSpecByName("STRING", typeName);
-        case BINARY:
-        case VARBINARY:
-          return createSqlDataTypeSpecByName("BYTES", typeName);
-        case DATE:
-          return createSqlDataTypeSpecByName("DATE", typeName);
-        case TIME:
-          return createSqlDataTypeSpecByName("TIME", typeName);
-        case TIMESTAMP:
-          return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
-        default:
-          break;
+      // BigQuery only supports INT64 for integer types.
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+        return createSqlDataTypeSpecByName("INT64", typeName);
+      // BigQuery only supports FLOAT64(aka. Double) for floating point types.
+      case FLOAT:
+      case DOUBLE:
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case DECIMAL:
+        return createSqlDataTypeSpecByName("NUMERIC", typeName);
+      case BOOLEAN:
+        return createSqlDataTypeSpecByName("BOOL", typeName);
+      case CHAR:
+      case VARCHAR:
+        return createSqlDataTypeSpecByName("STRING", typeName);
+      case BINARY:
+      case VARBINARY:
+        return createSqlDataTypeSpecByName("BYTES", typeName);
+      case DATE:
+        return createSqlDataTypeSpecByName("DATE", typeName);
+      case TIME:
+        return createSqlDataTypeSpecByName("TIME", typeName);
+      case TIMESTAMP:
+        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+      default:
+        break;
       }
     }
     return super.getCastSpec(type);

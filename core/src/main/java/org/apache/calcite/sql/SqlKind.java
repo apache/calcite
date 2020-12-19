@@ -134,17 +134,17 @@ public enum SqlKind {
   POSITION,
 
   /**
-   * CHAR_LENGTH Function
+   * CHAR_LENGTH Function.
    * */
   CHAR_LENGTH,
 
   /**
-   * CHARACTER_LENGTH Function
+   * CHARACTER_LENGTH Function.
    * */
   CHARACTER_LENGTH,
 
   /**
-   * SUBSTRING Function
+   * SUBSTRING Function.
    * */
   SUBSTRING,
 
