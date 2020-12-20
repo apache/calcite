@@ -2654,8 +2654,7 @@ public class RexSimplify {
       case IS_NULL:
       case IS_NOT_NULL:
         final RexNode arg = ((RexCall) e).operands.get(0);
-        return accept1(arg, e.getKind(),
-            rexBuilder.makeNullLiteral(arg.getType()), newTerms);
+        return accept1(arg, e.getKind(), newTerms);
       default:
         return false;
       }
@@ -2668,7 +2667,7 @@ public class RexSimplify {
       case FIELD_ACCESS:
         switch (right.getKind()) {
         case LITERAL:
-          return accept1(left, kind, (RexLiteral) right, newTerms);
+          return accept2b(left, kind, (RexLiteral) right, newTerms);
         default:
           break;
         }
@@ -2677,7 +2676,7 @@ public class RexSimplify {
         switch (right.getKind()) {
         case INPUT_REF:
         case FIELD_ACCESS:
-          return accept1(right, kind.reverse(), (RexLiteral) left, newTerms);
+          return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
         default:
           break;
         }
@@ -2693,16 +2692,46 @@ public class RexSimplify {
       return e;
     }
 
-    private boolean accept1(RexNode e, SqlKind kind,
+    // always returns true
+    private boolean accept1(RexNode e, SqlKind kind, List<RexNode> newTerms) {
+      final RexSargBuilder b =
+          map.computeIfAbsent(e, e2 ->
+              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
+      switch (kind) {
+      case IS_NULL:
+        if (negate) {
+          ++b.nullTermCount;
+          b.addAll();
+        } else {
+          ++b.nullTermCount;
+        }
+        return true;
+      case IS_NOT_NULL:
+        if (negate) {
+          ++b.notNullTermCount;
+        } else {
+          ++b.notNullTermCount;
+          b.addAll();
+        }
+        return true;
+      default:
+        throw new AssertionError("unexpected " + kind);
+      }
+    }
+
+    private boolean accept2b(RexNode e, SqlKind kind,
         RexLiteral literal, List<RexNode> newTerms) {
       if (literal.getValue() == null) {
+        // Cannot include expressions 'x > NULL' in a Sarg. Comparing to a NULL
+        // literal is a daft thing to do, because it always returns UNKNOWN. It
+        // is better handled by other simplifications.
         return false;
       }
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
       if (negate) {
-        kind = kind.negateNullSafe2();
+        kind = kind.negateNullSafe();
       }
       final Comparable value =
           requireNonNull(literal.getValueAs(Comparable.class), "value");
@@ -2726,24 +2755,9 @@ public class RexSimplify {
         b.addRange(Range.lessThan(value), literal.getType());
         b.addRange(Range.greaterThan(value), literal.getType());
         return true;
-      case IS_NULL:
-        if (negate) {
-          ++b.notNullTermCount;
-        } else {
-          ++b.nullTermCount;
-        }
-        return true;
-      case IS_NOT_NULL:
-        if (negate) {
-          ++b.nullTermCount;
-        } else {
-          ++b.notNullTermCount;
-        }
-        b.addAll();
-        return true;
       case SEARCH:
-        final Sarg sarg = literal.getValueAs(Sarg.class);
-        b.addSarg(requireNonNull(sarg, "sarg"), negate, literal.getType());
+        final Sarg sarg = (Sarg) value;
+        b.addSarg(sarg, negate, literal.getType());
         return true;
       default:
         throw new AssertionError("unexpected " + kind);

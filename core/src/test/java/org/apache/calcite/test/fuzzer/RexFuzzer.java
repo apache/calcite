@@ -332,7 +332,9 @@ public class RexFuzzer extends RexProgramBuilderBase {
     return BigDecimal.valueOf(r.nextInt(16) - 5);
   }
 
-  /** Generates values of a particular type, given a random-number generator. */
+  /** Generates values of a particular type, given a random-number generator.
+   *
+   * @param <T> Value type */
   interface Generator<T> {
     T generate(Random r);
   }

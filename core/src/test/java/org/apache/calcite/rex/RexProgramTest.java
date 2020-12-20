@@ -1285,6 +1285,17 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  @Test void testSimplifyOrNotEqualsNull() {
+    checkSimplify3(
+        or(
+            ne(vInt(0), literal(1)),
+            eq(vInt(1), nullInt),
+            ne(vInt(0), literal(2))),
+        "OR(IS NOT NULL(?0.int0), null)",
+        "IS NOT NULL(?0.int0)",
+        "true");
+  }
+
   @Test void testSimplifyAndPush() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
