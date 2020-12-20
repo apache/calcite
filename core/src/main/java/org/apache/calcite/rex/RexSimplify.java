@@ -1965,6 +1965,12 @@ public class RexSimplify {
     if (call.getOperands().get(1) instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
+      if (sarg.isAll()
+          && (sarg.containsNull || !a.getType().isNullable())) {
+        // SEARCH(x, [TRUE])  -> TRUE
+        // SEARCH(x, [NOT NULL])  -> TRUE if x's type is NOT NULL
+        return rexBuilder.makeLiteral(true);
+      }
       // Remove null from sarg if the left-hand side is never null
       if (sarg.containsNull) {
         final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
@@ -2648,8 +2654,7 @@ public class RexSimplify {
       case IS_NULL:
       case IS_NOT_NULL:
         final RexNode arg = ((RexCall) e).operands.get(0);
-        return accept1(arg, e.getKind(),
-            rexBuilder.makeNullLiteral(arg.getType()), newTerms);
+        return accept1(arg, e.getKind(), newTerms);
       default:
         return false;
       }
@@ -2662,7 +2667,7 @@ public class RexSimplify {
       case FIELD_ACCESS:
         switch (right.getKind()) {
         case LITERAL:
-          return accept1(left, kind, (RexLiteral) right, newTerms);
+          return accept2b(left, kind, (RexLiteral) right, newTerms);
         default:
           break;
         }
@@ -2671,7 +2676,7 @@ public class RexSimplify {
         switch (right.getKind()) {
         case INPUT_REF:
         case FIELD_ACCESS:
-          return accept1(right, kind.reverse(), (RexLiteral) left, newTerms);
+          return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
         default:
           break;
         }
@@ -2688,53 +2693,71 @@ public class RexSimplify {
     }
 
     // always returns true
-    private boolean accept1(RexNode e, SqlKind kind,
-        @Nullable RexLiteral literal, List<RexNode> newTerms) {
+    private boolean accept1(RexNode e, SqlKind kind, List<RexNode> newTerms) {
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
-      if (negate) {
-        kind = kind.negateNullSafe2();
-      }
-      final Comparable value = requireNonNull(literal, "literal").getValueAs(Comparable.class);
       switch (kind) {
-      case LESS_THAN:
-        b.addRange(Range.lessThan(requireNonNull(value, "value")), literal.getType());
-        return true;
-      case LESS_THAN_OR_EQUAL:
-        b.addRange(Range.atMost(requireNonNull(value, "value")), literal.getType());
-        return true;
-      case GREATER_THAN:
-        b.addRange(Range.greaterThan(requireNonNull(value, "value")), literal.getType());
-        return true;
-      case GREATER_THAN_OR_EQUAL:
-        b.addRange(Range.atLeast(requireNonNull(value, "value")), literal.getType());
-        return true;
-      case EQUALS:
-        b.addRange(Range.singleton(requireNonNull(value, "value")), literal.getType());
-        return true;
-      case NOT_EQUALS:
-        b.addRange(Range.lessThan(requireNonNull(value, "value")), literal.getType());
-        b.addRange(Range.greaterThan(requireNonNull(value, "value")), literal.getType());
-        return true;
       case IS_NULL:
         if (negate) {
-          ++b.notNullTermCount;
+          ++b.nullTermCount;
+          b.addAll();
         } else {
           ++b.nullTermCount;
         }
         return true;
       case IS_NOT_NULL:
         if (negate) {
-          ++b.nullTermCount;
+          ++b.notNullTermCount;
         } else {
           ++b.notNullTermCount;
+          b.addAll();
         }
-        b.addAll();
+        return true;
+      default:
+        throw new AssertionError("unexpected " + kind);
+      }
+    }
+
+    private boolean accept2b(RexNode e, SqlKind kind,
+        RexLiteral literal, List<RexNode> newTerms) {
+      if (literal.getValue() == null) {
+        // Cannot include expressions 'x > NULL' in a Sarg. Comparing to a NULL
+        // literal is a daft thing to do, because it always returns UNKNOWN. It
+        // is better handled by other simplifications.
+        return false;
+      }
+      final RexSargBuilder b =
+          map.computeIfAbsent(e, e2 ->
+              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
+      if (negate) {
+        kind = kind.negateNullSafe();
+      }
+      final Comparable value =
+          requireNonNull(literal.getValueAs(Comparable.class), "value");
+      switch (kind) {
+      case LESS_THAN:
+        b.addRange(Range.lessThan(value), literal.getType());
+        return true;
+      case LESS_THAN_OR_EQUAL:
+        b.addRange(Range.atMost(value), literal.getType());
+        return true;
+      case GREATER_THAN:
+        b.addRange(Range.greaterThan(value), literal.getType());
+        return true;
+      case GREATER_THAN_OR_EQUAL:
+        b.addRange(Range.atLeast(value), literal.getType());
+        return true;
+      case EQUALS:
+        b.addRange(Range.singleton(value), literal.getType());
+        return true;
+      case NOT_EQUALS:
+        b.addRange(Range.lessThan(value), literal.getType());
+        b.addRange(Range.greaterThan(value), literal.getType());
         return true;
       case SEARCH:
-        final Sarg sarg = literal.getValueAs(Sarg.class);
-        b.addSarg(requireNonNull(sarg, "sarg"), negate, literal.getType());
+        final Sarg sarg = (Sarg) value;
+        b.addSarg(sarg, negate, literal.getType());
         return true;
       default:
         throw new AssertionError("unexpected " + kind);
