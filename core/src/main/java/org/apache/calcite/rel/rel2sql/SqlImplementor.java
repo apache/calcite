@@ -739,7 +739,7 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        return SqlImplementor.toSql(program, (RexLiteral) rex);
+        return SqlImplementor.toSql(program, (RexLiteral) rex, dialect);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;
@@ -886,13 +886,14 @@ public abstract class SqlImplementor {
           SqlNode fieldOperand = field(ordinal);
           return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
         }
+        assert nodeList.size() == 1;
         if (ignoreCast) {
-          assert nodeList.size() == 1;
           return nodeList.get(0);
         } else {
-          nodeList.add(castNonNull(dialect.getCastSpec(call.getType())));
+          RelDataType castFrom = call.operands.get(0).getType();
+          RelDataType castTo = call.getType();
+          return dialect.getCastCall(nodeList.get(0), castFrom, castTo);
         }
-        break;
       case PLUS:
       case MINUS:
         op = dialect.getTargetFunc(call);
@@ -1375,7 +1376,8 @@ public abstract class SqlImplementor {
 
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
-  public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal) {
+  public static SqlNode toSql(
+    @Nullable RexProgram program, RexLiteral literal, SqlDialect dialect) {
     switch (literal.getTypeName()) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();
@@ -1385,7 +1387,7 @@ public abstract class SqlImplementor {
       //noinspection unchecked
       final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
-          list.stream().map(e -> toSql(program, e))
+          list.stream().map(e -> toSql(program, e, dialect))
               .collect(Util.toImmutableList()));
 
     case SARG:
@@ -1394,12 +1396,12 @@ public abstract class SqlImplementor {
           + "] should be handled as part of predicates, not as literals");
 
     default:
-      return toSql(literal);
+      return toSql(literal, dialect);
     }
   }
 
   /** Converts a {@link RexLiteral} to a {@link SqlLiteral}. */
-  public static SqlNode toSql(RexLiteral literal) {
+  public static SqlNode toSql(RexLiteral literal, SqlDialect dialect) {
     SqlTypeName typeName = literal.getTypeName();
     switch (typeName) {
     case SYMBOL:
@@ -1410,7 +1412,7 @@ public abstract class SqlImplementor {
       //noinspection unchecked
       final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
-          list.stream().map(e -> toSql(e))
+          list.stream().map(e -> toSql(e, dialect))
               .collect(Util.toImmutableList()));
 
     case SARG:
@@ -1445,8 +1447,8 @@ public abstract class SqlImplementor {
       return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
           POS);
     case TIME:
-      return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
-          literal.getType().getPrecision(), POS);
+      return dialect.getTimeLiteral(castNonNull(literal.getValueAs(TimeString.class)),
+        literal.getType().getPrecision(), POS);
     case TIMESTAMP:
       return SqlLiteral.createTimestamp(
           castNonNull(literal.getValueAs(TimestampString.class)),

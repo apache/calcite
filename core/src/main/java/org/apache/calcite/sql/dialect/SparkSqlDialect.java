@@ -22,9 +22,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -492,20 +494,6 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   /**
-   * For usage of TRIM, LTRIM and RTRIM in Spark.
-   */
-  private void unparseTrim(
-      SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    SqlLiteral valueToBeTrim = call.operand(1);
-    if (valueToBeTrim.toValue().matches("\\s+")) {
-      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
-    } else {
-      handleTrimWithChar(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  /**
    * This method will handle the TRIM function if the value to be trimmed is space.
    * Below is an example :
    * INPUT : SELECT TRIM(both ' ' from "ABC")
@@ -610,5 +598,27 @@ public class SparkSqlDialect extends SqlDialect {
   @Override protected String getDateTimeFormatString(
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+  }
+
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      switch (typeName) {
+      case INTEGER:
+        return createSqlDataTypeSpecByName("INT", typeName);
+      case TIMESTAMP:
+        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+      default:
+        break;
+      }
+    }
+    return super.getCastSpec(type);
+  }
+
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(
+    String typeAlias, SqlTypeName typeName) {
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+      typeAlias, typeName, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 }

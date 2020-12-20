@@ -1165,7 +1165,7 @@ class RelToSqlConverterTest {
         + "ELSE NULL END";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT rnk\n"
-        + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "FROM (SELECT CASE WHEN CAST(salary AS NUMERIC) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END AS rnk\n"
         + "FROM foodmart.employee) AS t\n"
@@ -3888,7 +3888,7 @@ class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect0 = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE (hire_date - INTERVAL 19800 SECOND)"
+        + "WHERE TIMESTAMP_SUB(hire_date, INTERVAL 19800 SECOND)"
         + " > TIMESTAMP '2005-10-17 00:00:00'";
     sql(sql0).withBigQuery().ok(expect0);
 
@@ -3896,7 +3896,7 @@ class RelToSqlConverterTest {
         + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect1 = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE (hire_date + INTERVAL 10 HOUR)"
+        + "WHERE TIMESTAMP_ADD(hire_date, INTERVAL 10 HOUR)"
         + " > TIMESTAMP '2005-10-17 00:00:00'";
     sql(sql1).withBigQuery().ok(expect1);
 
@@ -5772,10 +5772,10 @@ class RelToSqlConverterTest {
         + "CURRENT_TIMESTAMP) AS TIMESTAMP) AS CT\n"
         + "FROM scott.EMP";
     final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
-        + ".ssssss') AS TIMESTAMP(0)) CT\n"
+        + ".ssssss') AS TIMESTAMP) CT\n"
         + "FROM scott.EMP";
     final String expectedHive = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
-        + ".ssssss') AS TIMESTAMP(0)) CT\n"
+        + ".ssssss') AS TIMESTAMP) CT\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -7449,7 +7449,7 @@ class RelToSqlConverterTest {
   @Test public void testCastToTimestamp() {
     String query = "SELECT cast(\"birth_date\" as TIMESTAMP) "
         + "FROM \"foodmart\".\"employee\"";
-    final String expected = "SELECT CAST(birth_date AS TIMESTAMP(0))\n"
+    final String expected = "SELECT CAST(birth_date AS TIMESTAMP)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -7463,12 +7463,12 @@ class RelToSqlConverterTest {
   @Test public void testCastToTimestampWithPrecision() {
     String query = "SELECT cast(\"birth_date\" as TIMESTAMP(3)) "
         + "FROM \"foodmart\".\"employee\"";
-    final String expectedHive = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP(0)), "
-        + "'yyyy-MM-dd HH:mm:ss.sss') AS TIMESTAMP(0))\n"
+    final String expectedHive = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP), "
+        + "'yyyy-MM-dd HH:mm:ss.sss') AS TIMESTAMP)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
-        + "(birth_date AS TIMESTAMP(0))) AS TIMESTAMP(0))\n"
+        + "(birth_date AS TIMESTAMP)) AS TIMESTAMP)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -7484,7 +7484,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     final String expected = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss'), ' ')[1]\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT CAST(hire_date AS TIME(0))\n"
+    final String expectedBigQuery = "SELECT CAST(hire_date AS TIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -7502,8 +7502,8 @@ class RelToSqlConverterTest {
         + "' ')[1]\n"
         + "FROM foodmart.employee";
     final String expectedSpark = expectedHive;
-    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME"
-        + "(0))) AS TIME(0))\n"
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME))"
+        + " AS TIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -7521,7 +7521,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
-        + "':05') AS TIME(0))) AS TIME(0))\n"
+        + "':05') AS TIME)) AS TIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()

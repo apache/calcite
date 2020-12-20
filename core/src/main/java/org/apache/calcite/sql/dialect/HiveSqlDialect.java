@@ -107,40 +107,7 @@ public class HiveSqlDialect extends SqlDialect {
   private final boolean emulateNullDirection;
   private final boolean isHiveLowerVersion;
 
-  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
-      new HashMap<SqlDateTimeFormat, String>() {{
-        put(DAYOFMONTH, "dd");
-        put(DAYOFYEAR, "ddd");
-        put(NUMERICMONTH, "MM");
-        put(ABBREVIATEDMONTH, "MMM");
-        put(MONTHNAME, "MMMM");
-        put(TWODIGITYEAR, "yy");
-        put(FOURDIGITYEAR, "yyyy");
-        put(DDMMYYYY, "ddMMyyyy");
-        put(DDMMYY, "ddMMyy");
-        put(MMDDYYYY, "MMddyyyy");
-        put(MMDDYY, "MMddyy");
-        put(YYYYMMDD, "yyyyMMdd");
-        put(YYMMDD, "yyMMdd");
-        put(DAYOFWEEK, "EEEE");
-        put(ABBREVIATEDDAYOFWEEK, "EEE");
-        put(TWENTYFOURHOUR, "HH");
-        put(HOUR, "hh");
-        put(MINUTE, "mm");
-        put(SECOND, "ss");
-        put(FRACTIONONE, "s");
-        put(FRACTIONTWO, "ss");
-        put(FRACTIONTHREE, "sss");
-        put(FRACTIONFOUR, "ssss");
-        put(FRACTIONFIVE, "sssss");
-        put(FRACTIONSIX, "ssssss");
-        put(AMPM, "aa");
-        put(TIMEZONE, "z");
-      }};
-
-  /**
-   * Creates a HiveSqlDialect.
-   */
+  /** Creates a HiveSqlDialect. */
   public HiveSqlDialect(Context context) {
     super(context);
     // Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
@@ -154,11 +121,38 @@ public class HiveSqlDialect extends SqlDialect {
         && context.databaseMinorVersion() < 1);
   }
 
-  @Override protected boolean allowsAs() {
-    return false;
-  }
+  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
+    new HashMap<SqlDateTimeFormat, String>() {{
+      put(DAYOFMONTH, "dd");
+      put(DAYOFYEAR, "ddd");
+      put(NUMERICMONTH, "MM");
+      put(ABBREVIATEDMONTH, "MMM");
+      put(MONTHNAME, "MMMM");
+      put(TWODIGITYEAR, "yy");
+      put(FOURDIGITYEAR, "yyyy");
+      put(DDMMYYYY, "ddMMyyyy");
+      put(DDMMYY, "ddMMyy");
+      put(MMDDYYYY, "MMddyyyy");
+      put(MMDDYY, "MMddyy");
+      put(YYYYMMDD, "yyyyMMdd");
+      put(YYMMDD, "yyMMdd");
+      put(DAYOFWEEK, "EEEE");
+      put(ABBREVIATEDDAYOFWEEK, "EEE");
+      put(TWENTYFOURHOUR, "HH");
+      put(HOUR, "hh");
+      put(MINUTE, "mm");
+      put(SECOND, "ss");
+      put(FRACTIONONE, "s");
+      put(FRACTIONTWO, "ss");
+      put(FRACTIONTHREE, "sss");
+      put(FRACTIONFOUR, "ssss");
+      put(FRACTIONFIVE, "sssss");
+      put(FRACTIONSIX, "ssssss");
+      put(AMPM, "aa");
+      put(TIMEZONE, "z");
+    }};
 
-  @Override public boolean supportsNestedAggregations() {
+  @Override protected boolean allowsAs() {
     return false;
   }
 
@@ -168,10 +162,6 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAliasedValues() {
     return false;
-  }
-
-  @Override public boolean supportsGroupByWithRollup() {
-    return true;
   }
 
   @Override public boolean supportsAnalyticalFunctionInAggregate() {
@@ -418,22 +408,38 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsGroupByWithRollup() {
+    return true;
+  }
+
   @Override public boolean supportsGroupByWithCube() {
     return true;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
-      switch (type.getSqlTypeName()) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      switch (typeName) {
       case INTEGER:
-        SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-            "INT", type.getSqlTypeName(), SqlParserPos.ZERO);
-        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+        return createSqlDataTypeSpecByName("INT", typeName);
+      case TIMESTAMP:
+        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       default:
         break;
       }
     }
     return super.getCastSpec(type);
+  }
+
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(
+    String typeAlias, SqlTypeName typeName) {
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+      typeAlias, typeName, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
   @Override public void unparseSqlDatetimeArithmetic(
