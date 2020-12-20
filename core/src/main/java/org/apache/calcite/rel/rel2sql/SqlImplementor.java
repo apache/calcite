@@ -1377,7 +1377,7 @@ public abstract class SqlImplementor {
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
   public static SqlNode toSql(
-    @Nullable RexProgram program, RexLiteral literal, SqlDialect dialect) {
+      @Nullable RexProgram program, RexLiteral literal, SqlDialect dialect) {
     switch (literal.getTypeName()) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();

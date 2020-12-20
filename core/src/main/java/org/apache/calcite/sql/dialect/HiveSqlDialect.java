@@ -38,7 +38,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -86,7 +85,6 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IF;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -122,34 +120,34 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
-    new HashMap<SqlDateTimeFormat, String>() {{
-      put(DAYOFMONTH, "dd");
-      put(DAYOFYEAR, "ddd");
-      put(NUMERICMONTH, "MM");
-      put(ABBREVIATEDMONTH, "MMM");
-      put(MONTHNAME, "MMMM");
-      put(TWODIGITYEAR, "yy");
-      put(FOURDIGITYEAR, "yyyy");
-      put(DDMMYYYY, "ddMMyyyy");
-      put(DDMMYY, "ddMMyy");
-      put(MMDDYYYY, "MMddyyyy");
-      put(MMDDYY, "MMddyy");
-      put(YYYYMMDD, "yyyyMMdd");
-      put(YYMMDD, "yyMMdd");
-      put(DAYOFWEEK, "EEEE");
-      put(ABBREVIATEDDAYOFWEEK, "EEE");
-      put(TWENTYFOURHOUR, "HH");
-      put(HOUR, "hh");
-      put(MINUTE, "mm");
-      put(SECOND, "ss");
-      put(FRACTIONONE, "s");
-      put(FRACTIONTWO, "ss");
-      put(FRACTIONTHREE, "sss");
-      put(FRACTIONFOUR, "ssss");
-      put(FRACTIONFIVE, "sssss");
-      put(FRACTIONSIX, "ssssss");
-      put(AMPM, "aa");
-      put(TIMEZONE, "z");
+      new HashMap<SqlDateTimeFormat, String>() {{
+        put(DAYOFMONTH, "dd");
+        put(DAYOFYEAR, "ddd");
+        put(NUMERICMONTH, "MM");
+        put(ABBREVIATEDMONTH, "MMM");
+        put(MONTHNAME, "MMMM");
+        put(TWODIGITYEAR, "yy");
+        put(FOURDIGITYEAR, "yyyy");
+        put(DDMMYYYY, "ddMMyyyy");
+        put(DDMMYY, "ddMMyy");
+        put(MMDDYYYY, "MMddyyyy");
+        put(MMDDYY, "MMddyy");
+        put(YYYYMMDD, "yyyyMMdd");
+        put(YYMMDD, "yyMMdd");
+        put(DAYOFWEEK, "EEEE");
+        put(ABBREVIATEDDAYOFWEEK, "EEE");
+        put(TWENTYFOURHOUR, "HH");
+        put(HOUR, "hh");
+        put(MINUTE, "mm");
+        put(SECOND, "ss");
+        put(FRACTIONONE, "s");
+        put(FRACTIONTWO, "ss");
+        put(FRACTIONTHREE, "sss");
+        put(FRACTIONFOUR, "ssss");
+        put(FRACTIONFIVE, "sssss");
+        put(FRACTIONSIX, "ssssss");
+        put(AMPM, "aa");
+        put(TIMEZONE, "z");
     }};
 
   @Override protected boolean allowsAs() {
@@ -288,10 +286,10 @@ public class HiveSqlDialect extends SqlDialect {
     case TO_NUMBER:
       if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
               .toString())) {
-        ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+        ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec, this);
         break;
       }
-      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
       break;
     case NULLIF:
       unparseNullIf(writer, call, leftPrec, rightPrec);
@@ -302,106 +300,6 @@ public class HiveSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  /**
-   * For usage of TRIM, LTRIM and RTRIM in Hive, see
-   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
-   */
-  private void unparseTrim(
-      SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    SqlLiteral valueToBeTrim = call.operand(1);
-    if (valueToBeTrim.toValue().matches("\\s+")) {
-      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
-    } else {
-      handleTrimWithChar(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  /**
-   * This method will handle the TRIM function if the value to be trimmed is space.
-   * Below is an example :
-   * INPUT : SELECT TRIM(both ' ' from "ABC")
-   * OUPUT : SELECT TRIM(ABC)
-   * @param writer Target SqlWriter to write the call
-   * @param call SqlCall
-   * @param leftPrec Indicate left precision
-   * @param rightPrec Indicate Right precision
-   */
-  private void handleTrimWithSpace(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final String operatorName;
-    SqlLiteral trimFlag = call.operand(0);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
-    }
-    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(trimFrame);
-  }
-
-  /**
-   * This method will handle the TRIM function if the value to be trimmed is not space.
-   * Below is an example :
-   * INPUT : SELECT TRIM(both 'A' from "ABC")
-   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
-   * @param writer Target SqlWriter to write the call
-   * @param call SqlCall
-   * @param leftPrec Indicate left precision
-   * @param rightPrec Indicate Right precision
-   */
-  private void handleTrimWithChar(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlLiteral trimFlag = call.operand(0);
-    SqlCharStringLiteral regexNode =
-        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
-    SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
-        call.getParserPosition());
-    SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
-    SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
-    REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
-  }
-
-  private SqlCharStringLiteral makeRegexNodeFromCall(SqlNode call, SqlLiteral trimFlag) {
-    String regexPattern = ((SqlCharStringLiteral) call).toValue();
-    regexPattern = escapeSpecialChar(regexPattern);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      regexPattern = "^(".concat(regexPattern).concat(")*");
-      break;
-    case TRAILING:
-      regexPattern = "(".concat(regexPattern).concat(")*$");
-      break;
-    default:
-      regexPattern = "^(".concat(regexPattern).concat(")*|(")
-          .concat(regexPattern).concat(")*$");
-      break;
-    }
-    return SqlLiteral.createCharString(regexPattern,
-        call.getParserPosition());
-  }
-
-  private String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {
-        "\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"
-    };
-
-    for (int i = 0; i < specialCharacters.length; i++) {
-      if (inputString.contains(specialCharacters[i])) {
-        inputString = inputString.replace(specialCharacters[i], "\\" + specialCharacters[i]);
-      }
-    }
-    return inputString;
   }
 
   @Override public boolean supportsCharSet() {
@@ -436,9 +334,9 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(
-    String typeAlias, SqlTypeName typeName) {
+      String typeAlias, SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-      typeAlias, typeName, SqlParserPos.ZERO);
+        typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
@@ -527,7 +425,6 @@ public class HiveSqlDialect extends SqlDialect {
     writer.sep(")");
   }
 
-
   /**
    * Modify the SqlNode to expected output form.
    * If SqlNode Kind is Literal then it will return the literal value and for
@@ -598,10 +495,8 @@ public class HiveSqlDialect extends SqlDialect {
     }
     SqlNode intervalValue = new SqlIdentifier(literalValue.toString(),
         intervalOperand.getParserPosition());
-    SqlNode[] sqlNodes = new SqlNode[]{
-        identifier,
-        intervalValue
-    };
+    SqlNode[] sqlNodes = new SqlNode[]{identifier,
+        intervalValue};
     return new SqlBasicCall(SqlStdOperatorTable.MULTIPLY, sqlNodes, SqlParserPos.ZERO);
   }
 

@@ -16,16 +16,19 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.regex.Pattern;
@@ -40,12 +43,13 @@ public class ToNumberUtils {
 
   private static String regExRemove = "[',$A-Za-z]+";
 
-  public static void unparseToNumber(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  public static void unparseToNumber(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlDialect dialect) {
     switch (call.getOperandList().size()) {
     case 1:
     case 3:
       if (isOperandLiteral(call) && isOperandNull(call)) {
-        handleNullOperand(writer, leftPrec, rightPrec);
+        handleNullOperand(writer, leftPrec, rightPrec, dialect);
       } else {
         if (call.operand(0) instanceof SqlCharStringLiteral) {
           String firstOperand = call.operand(0).toString().replaceAll(regExRemove, "");
@@ -56,12 +60,12 @@ public class ToNumberUtils {
 
         SqlTypeName sqlTypeName = call.operand(0).toString().contains(".")
                 ? SqlTypeName.FLOAT : SqlTypeName.BIGINT;
-        handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName);
+        handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName, dialect);
       }
       break;
     case 2:
       if (isOperandLiteral(call) && isOperandNull(call)) {
-        handleNullOperand(writer, leftPrec, rightPrec);
+        handleNullOperand(writer, leftPrec, rightPrec, dialect);
       } else {
         if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
           SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
@@ -69,7 +73,7 @@ public class ToNumberUtils {
           SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
                   SqlParserPos.ZERO);
           call.setOperand(0, extractCall);
-          handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT);
+          handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT, dialect);
 
         } else {
           SqlTypeName sqlType;
@@ -81,7 +85,7 @@ public class ToNumberUtils {
                     ? SqlTypeName.DECIMAL : SqlTypeName.BIGINT;
           }
           modifyOperand(call);
-          handleCasting(writer, call, leftPrec, rightPrec, sqlType);
+          handleCasting(writer, call, leftPrec, rightPrec, sqlType, dialect);
         }
       }
       break;
@@ -140,13 +144,12 @@ public class ToNumberUtils {
   }
 
   private static void handleCasting(
-          SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
-          SqlTypeName sqlTypeName) {
-    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), new SqlDataTypeSpec(new
-            SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
-            SqlParserPos.ZERO)};
-    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-            extractNodeOperands, SqlParserPos.ZERO);
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlTypeName sqlTypeName, SqlDialect dialect) {
+    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0),
+      dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, sqlTypeName))};
+    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands,
+        SqlParserPos.ZERO);
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
   }
 
@@ -178,15 +181,15 @@ public class ToNumberUtils {
   }
 
   private static boolean handleNullOperand(
-        SqlWriter writer, int leftPrec, int rightPrec) {
-    SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
-            SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
-            SqlParserPos.ZERO), new SqlDataTypeSpec(new
-            SqlBasicTypeNameSpec(SqlTypeName.INTEGER, SqlParserPos.ZERO),
-            SqlParserPos.ZERO)};
+      SqlWriter writer, int leftPrec, int rightPrec, SqlDialect dialect) {
+    SqlNode[] extractNodeOperands =
+      new SqlNode[]{new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.NULL,
+        SqlParserPos.ZERO), SqlParserPos.ZERO),
+        dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER))};
 
-    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-            extractNodeOperands, SqlParserPos.ZERO);
+    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands,
+        SqlParserPos.ZERO);
 
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
     return true;
@@ -203,15 +206,14 @@ public class ToNumberUtils {
   }
 
   public static void unparseToNumbertoConv(
-        SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlNode[] sqlNode = new SqlNode[]{call.getOperandList().get(0), SqlLiteral.createExactNumeric
-        ("16",
-                      SqlParserPos.ZERO), SqlLiteral.createExactNumeric("10",
-              SqlParserPos.ZERO)};
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlDialect dialect) {
+    SqlNode[] sqlNode = new SqlNode[]{call.getOperandList().get(0),
+        SqlLiteral.createExactNumeric("16", SqlParserPos.ZERO),
+        SqlLiteral.createExactNumeric("10", SqlParserPos.ZERO)};
     SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONV, sqlNode,
-            SqlParserPos.ZERO);
+        SqlParserPos.ZERO);
     call.setOperand(0, extractCall);
-    handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT);
+    handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT, dialect);
   }
 
   private static boolean isOperandLiteral(SqlCall call) {

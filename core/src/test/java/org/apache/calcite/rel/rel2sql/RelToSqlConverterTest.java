@@ -6600,16 +6600,16 @@ class RelToSqlConverterTest {
 
   @Test public void testToNumberFunctionHandlingHexaToInt() {
     String query = "select TO_NUMBER('03ea02653f6938ba','XXXXXXXXXXXXXXXX')";
-    final String expectedBigQuery = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS BIGINT)";
     final String expected = "SELECT CAST(CONV('03ea02653f6938ba', 16, 10) AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('03ea02653f6938ba', 'XXXXXXXXXXXXXXXX')";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBigQuery)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6617,14 +6617,15 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingFloatingPoint() {
     String query = "select TO_NUMBER('-1.7892','9.9999')";
     final String expected = "SELECT CAST('-1.7892' AS FLOAT)";
+    final String expectedBigQuery = "SELECT CAST('-1.7892' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-1.7892', 38, 4)";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6632,15 +6633,15 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingFloatingPointWithD() {
     String query = "select TO_NUMBER('1.789','9D999')";
     final String expected = "SELECT CAST('1.789' AS FLOAT)";
-    final String expectedBq = "SELECT CAST('1.789' AS FLOAT64)";
+    final String expectedBigQuery = "SELECT CAST('1.789' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1.789', 38, 3)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6648,133 +6649,127 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingWithSingleFloatingPoint() {
     String query = "select TO_NUMBER('1.789')";
     final String expected = "SELECT CAST('1.789' AS FLOAT)";
+    final String expectedBigQuery = "SELECT CAST('1.789' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1.789', 38, 3)";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithComma() {
     String query = "SELECT TO_NUMBER ('1,789', '9,999')";
-    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expected = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1789' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1,789', '9,999')";
-    final String expectedBq = "SELECT CAST('1789' AS INT64)";
-    final String expectedHive = "SELECT CAST('1789' AS INT)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrency() {
     String query = "SELECT TO_NUMBER ('$1789', '$9999')";
-    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expected = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1789' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('$1789', '$9999')";
-    final String expectedHive = "SELECT CAST('1789' AS INT)";
-    final String expectedBq = "SELECT CAST('1789' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrencyAndL() {
     String query = "SELECT TO_NUMBER ('$1789', 'L9999')";
-    final String expectedSpark = "SELECT CAST('1789' AS BIGINT)";
+    final String expected = "SELECT CAST('1789' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1789' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('$1789', '$9999')";
-    final String expectedHive = "SELECT CAST('1789' AS INT)";
-    final String expectedBq = "SELECT CAST('1789' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMinus() {
     String query = "SELECT TO_NUMBER ('-12334', 'S99999')";
-    final String expectedBq = "SELECT CAST('-12334' AS INT64)";
-    final String expectedHive = "SELECT CAST('-12334' AS INT)";
-    final String expectedSpark = "SELECT CAST('-12334' AS BIGINT)";
+    final String expected = "SELECT CAST('-12334' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('-12334' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-12334', 'S99999')";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMinusLast() {
     String query = "SELECT TO_NUMBER ('12334-', '99999S')";
-    final String expectedHive = "SELECT CAST('-12334' AS INT)";
-    final String expectedSpark = "SELECT CAST('-12334' AS BIGINT)";
+    final String expected = "SELECT CAST('-12334' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('-12334' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('12334-', '99999S')";
-    final String expectedBq = "SELECT CAST('-12334' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithE() {
     String query = "SELECT TO_NUMBER ('12E3', '99EEEE')";
-    final String expectedBq = "SELECT CAST('12E3' AS NUMERIC)";
     final String expected = "SELECT CAST('12E3' AS DECIMAL(19, 0))";
-    //final String expected = "SELECT CAST('12E3' AS DECIMAL(19, 0))";
+    final String expectedBigQuery = "SELECT CAST('12E3' AS NUMERIC)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('12E3', '99EEEE')";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrencyName() {
     String query = "SELECT TO_NUMBER('dollar1234','L9999','NLS_CURRENCY=''dollar''')";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6782,29 +6777,31 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingWithCurrencyNameFloat() {
     String query = "SELECT TO_NUMBER('dollar12.34','L99D99','NLS_CURRENCY=''dollar''')";
     final String expected = "SELECT CAST('12.34' AS FLOAT)";
+    final String expectedBigQuery = "SELECT CAST('12.34' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('12.34', 38, 2)";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithCurrencyNameNull() {
     String query = "SELECT TO_NUMBER('dollar12.34','L99D99',null)";
-    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expected = "SELECT CAST(NULL AS INT)";
+    final String expectedBigQuery = "SELECT CAST(NULL AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6812,82 +6809,79 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingWithCurrencyNameMinus() {
     String query = "SELECT TO_NUMBER('-dollar1234','L9999','NLS_CURRENCY=''dollar''')";
     final String expected = "SELECT CAST('-1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('-1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-1234')";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithG() {
     String query = "SELECT TO_NUMBER ('1,2345', '9G9999')";
-    final String expectedSpark = "SELECT CAST('12345' AS BIGINT)";
+    final String expected = "SELECT CAST('12345' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('12345' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1,2345', '9G9999')";
-    final String expectedHive = "SELECT CAST('12345' AS INT)";
-    final String expectedBq = "SELECT CAST('12345' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithU() {
     String query = "SELECT TO_NUMBER ('$1234', 'U9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('$1234', '$9999')";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithPR() {
     String query = "SELECT TO_NUMBER (' 123 ', '999PR')";
-    final String expectedSpark = "SELECT CAST('123' AS BIGINT)";
+    final String expected = "SELECT CAST('123' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('123' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('123')";
-    final String expectedHive = "SELECT CAST('123' AS INT)";
-    final String expectedBq = "SELECT CAST('123' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithMI() {
     String query = "SELECT TO_NUMBER ('1234-', '9999MI')";
-    final String expectedSpark = "SELECT CAST('-1234' AS BIGINT)";
+    final String expected = "SELECT CAST('-1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('-1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234-', '9999MI')";
-    final String expectedHive = "SELECT CAST('-1234' AS INT)";
-    final String expectedBq = "SELECT CAST('-1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -6895,163 +6889,159 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingWithMIDecimal() {
     String query = "SELECT TO_NUMBER ('1.234-', '9.999MI')";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)";
-    final String expectedBq = "SELECT CAST('-1.234' AS FLOAT64)";
+    final String expectedBigQuery = "SELECT CAST('-1.234' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-1.234', 38, 3)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithZero() {
     String query = "select TO_NUMBER('01234','09999')";
-    final String expectedSpark = "SELECT CAST('01234' AS BIGINT)";
+    final String expected = "SELECT CAST('01234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('01234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('01234', '09999')";
-    final String expectedHive = "SELECT CAST('01234' AS INT)";
-    final String expectedBq = "SELECT CAST('01234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithB() {
     String query = "select TO_NUMBER('1234','B9999')";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234', 'B9999')";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithC() {
     String query = "select TO_NUMBER('USD1234','C9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandling() {
     final String query = "SELECT TO_NUMBER ('1234', '9999')";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234', '9999')";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSingleArgumentInt() {
     final String query = "SELECT TO_NUMBER ('1234')";
-    final String expectedBq = "SELECT CAST('1234' AS INT64)";
-    final String expectedHive = "SELECT CAST('1234' AS INT)";
-    final String expectedSpark = "SELECT CAST('1234' AS BIGINT)";
+    final String expected = "SELECT CAST('1234' AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST('1234' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('1234')";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSingleArgumentFloat() {
     final String query = "SELECT TO_NUMBER ('-1.234')";
-    final String expectedBq = "SELECT CAST('-1.234' AS FLOAT64)";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)";
+    final String expectedBigQuery = "SELECT CAST('-1.234' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-1.234', 38, 3)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingNull() {
     final String query = "SELECT TO_NUMBER ('-1.234',null)";
-    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expected = "SELECT CAST(NULL AS INT)";
+    final String expectedBigQuery = "SELECT CAST(NULL AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
-      .withBigQuery()
-      .ok(expected)
-      .withHive()
-      .ok(expected)
-      .withSpark()
-      .ok(expected)
-      .withSnowflake()
-      .ok(expectedSnowFlake);
-  }
-
-  @Test public void testToNumberFunctionHandlingNullOperand() {
-    final String query = "SELECT TO_NUMBER (null)";
-    final String expected = "SELECT CAST(NULL AS INTEGER)";
-    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
-    sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test public void testToNumberFunctionHandlingNullOperand() {
+    final String query = "SELECT TO_NUMBER (null)";
+    final String expected = "SELECT CAST(NULL AS INT)";
+    final String expectedBigQuery = "SELECT CAST(NULL AS INT64)";
+    final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingSecoNull() {
     final String query = "SELECT TO_NUMBER(null,'9D99')";
-    final String expectedBq = "SELECT CAST(NULL AS INT64)";
-    final String expectedHive = "SELECT CAST(NULL AS INT)";
-    final String expectedSpark = "SELECT CAST(NULL AS INTEGER)";
+    final String expected = "SELECT CAST(NULL AS INT)";
+    final String expectedBigQuery = "SELECT CAST(NULL AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
-        .withBigQuery()
-        .ok(expectedBq)
         .withHive()
-        .ok(expectedHive)
+        .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }
@@ -7060,62 +7050,67 @@ class RelToSqlConverterTest {
     final String query = "SELECT TO_NUMBER(SUBSTRING('12345',2))";
     final String expected = "SELECT CAST(SUBSTR('12345', 2) AS BIGINT)";
     final String expectedSpark = "SELECT CAST(SUBSTRING('12345', 2) AS BIGINT)";
+    final String expectedBigQuery = "SELECT CAST(SUBSTR('12345', 2) AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(SUBSTR('12345', 2))";
     sql(query)
-      .withBigQuery()
-      .ok(expected)
-      .withHive()
-      .ok(expected)
-      .withSpark()
-      .ok(expectedSpark)
-      .withSnowflake()
-      .ok(expectedSnowFlake);
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithNullArgument() {
     final String query = "SELECT TO_NUMBER (null)";
-    final String expected = "SELECT CAST(NULL AS INTEGER)";
+    final String expected = "SELECT CAST(NULL AS INT)";
+    final String expectedBigQuery = "SELECT CAST(NULL AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(NULL)";
     sql(query)
-      .withBigQuery()
-      .ok(expected)
-      .withHive()
-      .ok(expected)
-      .withSpark()
-      .ok(expected)
-      .withSnowflake()
-      .ok(expectedSnowFlake);
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingCaseWhenThen() {
     final String query = "select case when TO_NUMBER('12.77') is not null then "
-        + "'is_numeric' else 'is not numeric' end";
+            + "'is_numeric' else 'is not numeric' end";
     final String expected = "SELECT CASE WHEN CAST('12.77' AS FLOAT) IS NOT NULL THEN "
-        + "'is_numeric    ' ELSE 'is not numeric' END";
+            + "'is_numeric    ' ELSE 'is not numeric' END";
+    final String expectedBigQuery = "SELECT CASE WHEN CAST('12.77' AS FLOAT64) IS NOT NULL THEN "
+            + "'is_numeric    ' ELSE 'is not numeric' END";
     final String expectedSnowFlake = "SELECT CASE WHEN TO_NUMBER('12.77', 38, 2) IS NOT NULL THEN"
-        + " 'is_numeric    ' ELSE 'is not numeric' END";
+            + " 'is_numeric    ' ELSE 'is not numeric' END";
     sql(query)
-      .withBigQuery()
-      .ok(expected)
-      .withHive()
-      .ok(expected)
-      .withSpark()
-      .ok(expected)
-      .withSnowflake()
-      .ok(expectedSnowFlake);
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
   }
 
   @Test public void testToNumberFunctionHandlingWithGDS() {
     String query = "SELECT TO_NUMBER ('12,454.8-', '99G999D9S')";
     final String expected = "SELECT CAST('-12454.8' AS FLOAT)";
+    final String expectedBigQuery = "SELECT CAST('-12454.8' AS FLOAT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('-12454.8', 38, 1)";
     sql(query)
-        .withBigQuery()
-        .ok(expected)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowFlake);
   }

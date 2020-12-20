@@ -44,7 +44,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -52,7 +51,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.PaddingFunctionUtil;
-import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.ToNumberUtils;
 
@@ -91,7 +89,6 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -111,6 +108,13 @@ public class SparkSqlDialect extends SqlDialect {
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
+
+  /**
+   * Creates a SparkSqlDialect.
+   */
+  public SparkSqlDialect(SqlDialect.Context context) {
+    super(context);
+  }
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -143,20 +147,11 @@ public class SparkSqlDialect extends SqlDialect {
         put(TIMEZONE, "z");
       }};
 
-  /**
-   * Creates a SparkSqlDialect.
-   */
-  public SparkSqlDialect(SqlDialect.Context context) {
-    super(context);
-  }
 
   @Override protected boolean allowsAs() {
     return false;
   }
 
-  @Override public boolean supportsNestedAggregations() {
-    return false;
-  }
 
   @Override public boolean supportsAnalyticalFunctionInAggregate() {
     return false;
@@ -180,6 +175,10 @@ public class SparkSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByWithRollup() {
     return true;
+  }
+
+  @Override public boolean supportsNestedAggregations() {
+    return false;
   }
 
   @Override public boolean supportsGroupByWithCube() {
@@ -310,14 +309,11 @@ public class SparkSqlDialect extends SqlDialect {
       case TO_NUMBER:
         if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
                 .toString())) {
-          ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+          ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec, this);
           break;
         }
-        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
         break;
-      /*case TRIM:
-        unparseTrim(writer, call, leftPrec, rightPrec);
-        break;*/
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
@@ -493,58 +489,6 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
-  /**
-   * This method will handle the TRIM function if the value to be trimmed is space.
-   * Below is an example :
-   * INPUT : SELECT TRIM(both ' ' from "ABC")
-   * OUPUT : SELECT TRIM(ABC)
-   * @param writer Target SqlWriter to write the call
-   * @param call SqlCall
-   * @param leftPrec Indicate left precision
-   * @param rightPrec Indicate Right precision
-   */
-  private void handleTrimWithSpace(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final String operatorName;
-    SqlLiteral trimFlag = call.operand(0);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
-    }
-    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(trimFrame);
-  }
-
-  /**
-   * This method will handle the TRIM function if the value to be trimmed is not space.
-   * Below is an example :
-   * INPUT : SELECT TRIM(both 'A' from "ABC")
-   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
-   * @param writer Target SqlWriter to write the call
-   * @param call SqlCall
-   * @param leftPrec Indicate left precision
-   * @param rightPrec Indicate Right precision
-   */
-  private void handleTrimWithChar(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlLiteral trimFlag = call.operand(0);
-    SqlCharStringLiteral regexNode =
-        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
-    SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
-        call.getParserPosition());
-    SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
-    SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
-    REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
-  }
-
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "CURRENT_TIMESTAMP":
@@ -616,9 +560,9 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(
-    String typeAlias, SqlTypeName typeName) {
+      String typeAlias, SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-      typeAlias, typeName, SqlParserPos.ZERO);
+        typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 }

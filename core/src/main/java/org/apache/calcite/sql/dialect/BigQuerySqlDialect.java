@@ -146,6 +146,16 @@ public class BigQuerySqlDialect extends SqlDialect {
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
 
+  /** An unquoted BigQuery identifier must start with a letter and be followed
+   * by zero or more letters, digits or _. */
+  private static final Pattern IDENTIFIER_REGEX =
+      Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
+
+  /** Creates a BigQuerySqlDialect. */
+  public BigQuerySqlDialect(SqlDialect.Context context) {
+    super(context);
+  }
+
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
         put(DAYOFMONTH, "%d");
@@ -179,16 +189,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MMYY, "%m%y");
       }};
 
-  /** An unquoted BigQuery identifier must start with a letter and be followed
-   * by zero or more letters, digits or _. */
-  private static final Pattern IDENTIFIER_REGEX =
-      Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
-
-  /** Creates a BigQuerySqlDialect. */
-  public BigQuerySqlDialect(SqlDialect.Context context) {
-    super(context);
-  }
-
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
   }
@@ -217,6 +217,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         && !SqlTypeUtil.isNumeric(call.type);
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsAggregateFunctionFilter() {
     return false;
   }
@@ -233,10 +237,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsAliasedValues() {
-    return false;
-  }
-
-  @Override public boolean supportsNestedAggregations() {
     return false;
   }
 
@@ -419,7 +419,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexSubstr(writer, call, leftPrec, rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
       break;
     case ASCII:
       SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
@@ -459,6 +459,22 @@ public class BigQuerySqlDialect extends SqlDialect {
     return ((SqlBasicCall) aggCall).operand(0);
   }
 
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
+      SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
+    switch (sqlKind) {
+    case MINUS:
+      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      writer.literal("DAY");
+      writer.endFunCall(dateDiffFrame);
+      break;
+    }
+  }
+
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall;
     switch (call.operandCount()) {
@@ -475,14 +491,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
-    SqlCall formatTimestampCall = timestampHandler.makeFormatTimestampCall(call);
-    SqlCall castCall = timestampHandler.makeCastCall(formatTimestampCall);
-    unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
   private void writeOffset(SqlWriter writer, SqlCall call) {
@@ -546,23 +554,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
     writer.endFunCall(frame);
-  }
-
-  private SqlIntervalLiteral updateSqlIntervalLiteral(SqlIntervalLiteral literal) {
-    SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
-    switch (literal.getTypeName()) {
-    case INTERVAL_HOUR_SECOND:
-      long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
-          interval.getIntervalQualifier()) / 1000;
-      SqlIntervalQualifier qualifier = new SqlIntervalQualifier(TimeUnit.SECOND,
-          RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
-          RelDataType.PRECISION_NOT_SPECIFIED, SqlParserPos.ZERO);
-      return SqlLiteral.createInterval(interval.getSign(), Long.toString(equivalentSecondValue),
-          qualifier, literal.getParserPosition());
-    default:
-      return literal;
-    }
   }
 
   /**
@@ -692,11 +683,28 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
-        RelDataTypeSystem.DEFAULT);
+            RelDataTypeSystem.DEFAULT);
+  }
+
+  private SqlIntervalLiteral updateSqlIntervalLiteral(SqlIntervalLiteral literal) {
+    SqlIntervalLiteral.IntervalValue interval =
+        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+    switch (literal.getTypeName()) {
+    case INTERVAL_HOUR_SECOND:
+      long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
+          interval.getIntervalQualifier()) / 1000;
+      SqlIntervalQualifier qualifier = new SqlIntervalQualifier(TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
+          RelDataType.PRECISION_NOT_SPECIFIED, SqlParserPos.ZERO);
+      return SqlLiteral.createInterval(interval.getSign(), Long.toString(equivalentSecondValue),
+          qualifier, literal.getParserPosition());
+    default:
+      return literal;
+    }
   }
 
   @Override public void unparseSqlIntervalQualifier(
-    SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+          SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     final String start = validate(qualifier.timeUnitRange.startUnit).name();
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
