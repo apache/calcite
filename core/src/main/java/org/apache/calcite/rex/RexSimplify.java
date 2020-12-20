@@ -1965,6 +1965,12 @@ public class RexSimplify {
     if (call.getOperands().get(1) instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
+      if (sarg.isAll()
+          && (sarg.containsNull || !a.getType().isNullable())) {
+        // SEARCH(x, [TRUE])  -> TRUE
+        // SEARCH(x, [NOT NULL])  -> TRUE if x's type is NOT NULL
+        return rexBuilder.makeLiteral(true);
+      }
       // Remove null from sarg if the left-hand side is never null
       if (sarg.containsNull) {
         final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
@@ -2687,35 +2693,38 @@ public class RexSimplify {
       return e;
     }
 
-    // always returns true
     private boolean accept1(RexNode e, SqlKind kind,
-        @Nullable RexLiteral literal, List<RexNode> newTerms) {
+        RexLiteral literal, List<RexNode> newTerms) {
+      if (literal.getValue() == null) {
+        return false;
+      }
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
       if (negate) {
         kind = kind.negateNullSafe2();
       }
-      final Comparable value = requireNonNull(literal, "literal").getValueAs(Comparable.class);
+      final Comparable value =
+          requireNonNull(literal.getValueAs(Comparable.class), "value");
       switch (kind) {
       case LESS_THAN:
-        b.addRange(Range.lessThan(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.lessThan(value), literal.getType());
         return true;
       case LESS_THAN_OR_EQUAL:
-        b.addRange(Range.atMost(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.atMost(value), literal.getType());
         return true;
       case GREATER_THAN:
-        b.addRange(Range.greaterThan(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.greaterThan(value), literal.getType());
         return true;
       case GREATER_THAN_OR_EQUAL:
-        b.addRange(Range.atLeast(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.atLeast(value), literal.getType());
         return true;
       case EQUALS:
-        b.addRange(Range.singleton(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.singleton(value), literal.getType());
         return true;
       case NOT_EQUALS:
-        b.addRange(Range.lessThan(requireNonNull(value, "value")), literal.getType());
-        b.addRange(Range.greaterThan(requireNonNull(value, "value")), literal.getType());
+        b.addRange(Range.lessThan(value), literal.getType());
+        b.addRange(Range.greaterThan(value), literal.getType());
         return true;
       case IS_NULL:
         if (negate) {
