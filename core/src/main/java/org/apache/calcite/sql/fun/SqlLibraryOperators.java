@@ -202,7 +202,7 @@ public abstract class SqlLibraryOperators {
    *       "length(string) + position + 1".
    * </ul>
    */
-  @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction SUBSTR_ORACLE =
       new SqlFunction("SUBSTR", SqlKind.SUBSTR_ORACLE,
           ReturnTypes.ARG0_NULLABLE_VARYING, null,

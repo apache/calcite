@@ -634,7 +634,8 @@ allprojects {
                     "**/org/apache/calcite/runtime/Resources${'$'}Inst.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript${'$'}ShellCommand.class",
-                    "**/org/apache/calcite/util/Unsafe.class"
+                    "**/org/apache/calcite/util/*.class",
+                    "**/org/apache/calcite/core/*.class"
                 )
             }
 
