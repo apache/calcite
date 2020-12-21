@@ -5907,10 +5907,15 @@ public class RelToSqlConverterTest {
         + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
         + "FROM scott.EMP";
     final String expectedSpark = expectedHive;
+    final String expectedSnowflake =
+        "SELECT TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
+        + "TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
+        + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
   @Test
@@ -6265,6 +6270,30 @@ public class RelToSqlConverterTest {
     sql(query)
         .withSnowflake()
         .ok(expectedSnowFlake);
+  }
+
+  @Test public void testDivideIntegerSnowflake() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intdivideRexNode = builder.call(SqlStdOperatorTable.DIVIDE_INTEGER,
+            builder.scan("EMP").field(0), builder.scan("EMP").field(3));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(intdivideRexNode, "a"))
+            .build();
+    final String expectedSql = "SELECT \"EMPNO\" /INT \"MGR\" AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String expectedSF = "SELECT FLOOR(\"EMPNO\" / \"MGR\") AS \"a\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test public void testRegexpInstr() {
+    final String query = "SELECT POSITION('choose a chocolate chip cookie' IN 'ch')";
+    final String expectedSnowFlake = "SELECT REGEXP_INSTR('choose a chocolate chip cookie', 'ch')";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
   }
   @Test
   public void testRoundFunctionWithColumnPlaceHandling() {
