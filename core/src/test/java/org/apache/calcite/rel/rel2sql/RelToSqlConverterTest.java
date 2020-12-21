@@ -6287,6 +6287,17 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
+
+  @Test public void testToTimestamp() {
+    final String query = "SSELECT TO_TIMESTAMP(FORMAT('%11d', 242525), 'YYYY-MM-DD HH24:MI:SS.FF6')\n" +
+            "FROM `foodmart`.`trimmed_employee`\n" +
+            "WHERE `employee_id` = 2";
+    final String expectedSnowFlake = "SELECT LOG(10, \"product_id\") AS \"DD\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
 }
 
 // End RelToSqlConverterTest.java
