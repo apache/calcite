@@ -237,6 +237,7 @@ data: {
       "HOUR"
       "IDENTITY"
 #     "IF" # not a keyword in Calcite
+      "ILIKE"
       "IMMEDIATE"
       "IMMEDIATELY"
       "IMPORT"

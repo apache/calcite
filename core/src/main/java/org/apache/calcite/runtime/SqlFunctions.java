@@ -607,6 +607,18 @@ public class SqlFunctions {
     return Pattern.matches(regex, s);
   }
 
+  /** SQL {@code ILIKE} function. */
+  public static boolean ilike(String s, String pattern) {
+    final String regex = Like.sqlToRegexLike(pattern, null);
+    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
+  }
+
+  /** SQL {@code ILIKE} function with escape. */
+  public static boolean ilike(String s, String pattern, String escape) {
+    final String regex = Like.sqlToRegexLike(pattern, escape);
+    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
+  }
+
   /** SQL {@code SIMILAR} function. */
   public static boolean similar(String s, String pattern) {
     final String regex = Like.sqlToRegexSimilar(pattern, null);

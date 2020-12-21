@@ -172,6 +172,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 SqlStdOperatorTable.LIKE.createCall(SqlParserPos.ZERO,
                     call.getOperandList()))));
 
+    // Expand "x NOT ILIKE y" into "NOT (x ILIKE y)"
+    registerOp(SqlLibraryOperators.NOT_ILIKE,
+        (cx, call) -> cx.convertExpression(
+            SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
+                SqlLibraryOperators.ILIKE.createCall(SqlParserPos.ZERO,
+                    call.getOperandList()))));
+
     // Expand "x NOT SIMILAR y" into "NOT (x SIMILAR y)"
     registerOp(SqlStdOperatorTable.NOT_SIMILAR_TO,
         (cx, call) -> cx.convertExpression(

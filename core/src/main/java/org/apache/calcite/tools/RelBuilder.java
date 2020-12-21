@@ -640,13 +640,11 @@ public class RelBuilder {
   private RexCall call(SqlOperator operator, List<RexNode> operandList) {
     switch (operator.getKind()) {
     case LIKE:
-      if (((SqlLikeOperator) operator).isNegated()) {
-        return (RexCall) not(call(SqlStdOperatorTable.LIKE, operandList));
-      }
-      break;
     case SIMILAR:
-      if (((SqlLikeOperator) operator).isNegated()) {
-        return (RexCall) not(call(SqlStdOperatorTable.SIMILAR_TO, operandList));
+      final SqlLikeOperator likeOperator = (SqlLikeOperator) operator;
+      if (likeOperator.isNegated()) {
+        final SqlOperator notLikeOperator = likeOperator.not();
+        return (RexCall) not(call(notLikeOperator, operandList));
       }
       break;
     case BETWEEN:

@@ -653,7 +653,7 @@ public final class SqlParserUtil {
    *                    we encounter a token of this kind.
    * @return the root node of the tree which the list condenses into
    */
-  public static @Nullable SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
+  public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
     PrecedenceClimbingParser parser = list.parser(start,
         token -> {
@@ -676,10 +676,10 @@ public final class SqlParserUtil {
     return node;
   }
 
-  private static @Nullable SqlNode convert(PrecedenceClimbingParser.Token token) {
+  private static SqlNode convert(PrecedenceClimbingParser.Token token) {
     switch (token.type) {
     case ATOM:
-      return (SqlNode) token.o;
+      return requireNonNull((SqlNode) token.o);
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
@@ -865,11 +865,11 @@ public final class SqlParserUtil {
       return list.get(i).o instanceof ToTreeListItem;
     }
 
-    @Override public @Nullable SqlNode node(int i) {
+    @Override public SqlNode node(int i) {
       return convert(list.get(i));
     }
 
-    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
+    @Override public void replaceSublist(int start, int end, SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, parser.atom(e));
     }
   }
@@ -918,7 +918,7 @@ public final class SqlParserUtil {
             throw new AssertionError();
           }
         } else {
-          builder.atom(o);
+          builder.atom(requireNonNull(o));
         }
       }
       return builder.build();
@@ -946,11 +946,11 @@ public final class SqlParserUtil {
       return list.get(i) instanceof ToTreeListItem;
     }
 
-    @Override public @Nullable SqlNode node(int i) {
-      return (@Nullable SqlNode) list.get(i);
+    @Override public SqlNode node(int i) {
+      return requireNonNull((SqlNode) list.get(i));
     }
 
-    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
+    @Override public void replaceSublist(int start, int end, SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, e);
     }
   }

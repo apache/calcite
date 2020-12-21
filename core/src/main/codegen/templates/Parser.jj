@@ -3588,10 +3588,14 @@ List<Object> Expression2(ExprContext exprContext) :
                         (
                             <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
                         |
+                            <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
+                        |
                             <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                         )
                     |
                         <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                    |
+                        <ILIKE> { op = SqlLibraryOperators.ILIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )
@@ -7447,6 +7451,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HOURS: "HOURS" >
 |   < IDENTITY: "IDENTITY" >
 |   < IGNORE: "IGNORE" >
+|   < ILIKE: "ILIKE" >
 |   < IMMEDIATE: "IMMEDIATE" >
 |   < IMMEDIATELY: "IMMEDIATELY" >
 |   < IMPLEMENTATION: "IMPLEMENTATION" >

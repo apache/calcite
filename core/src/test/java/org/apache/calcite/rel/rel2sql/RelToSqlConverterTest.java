@@ -54,10 +54,13 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -77,11 +80,14 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -103,7 +109,7 @@ class RelToSqlConverterTest {
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
@@ -114,9 +120,13 @@ class RelToSqlConverterTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
-      SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+      SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
+      Program... programs) {
     final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+        new MockSqlOperatorTable(
+            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
+                SqlLibraryOperatorTableFactory.INSTANCE
+                    .getOperatorTable(librarySet)));
     MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -3599,6 +3609,24 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testIlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" ilike 'abC'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" ILIKE 'abC'";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
+  }
+
+  @Test void testNotIlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" not ilike 'abC'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT ILIKE 'abC'";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
+  }
+
   @Test void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
@@ -5592,13 +5620,14 @@ class RelToSqlConverterTest {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
+    private final Set<SqlLibrary> librarySet;
     private final Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
@@ -5606,6 +5635,7 @@ class RelToSqlConverterTest {
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -5613,13 +5643,14 @@ class RelToSqlConverterTest {
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -5627,13 +5658,13 @@ class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql withCalcite() {
@@ -5755,18 +5786,27 @@ class RelToSqlConverterTest {
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
+    }
+
+    final Sql withLibrary(SqlLibrary library) {
+      return withLibrarySet(ImmutableSet.of(library));
+    }
+
+    Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
+      return new Sql(schema, sql, dialect, parserConfig,
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          FlatLists.append(transforms, r -> {
+      final List<Function<RelNode, RelNode>> transforms =
+          FlatLists.append(this.transforms, r -> {
             Program program = Programs.of(ruleSet);
             final RelOptPlanner p =
                 Util.first(relOptPlanner,
@@ -5775,7 +5815,9 @@ class RelToSqlConverterTest {
                             .build()));
             return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
-          }));
+          });
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql ok(String expectedQuery) {
@@ -5803,7 +5845,7 @@ class RelToSqlConverterTest {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
           final Planner planner =
-              getPlanner(null, parserConfig, schema, config);
+              getPlanner(null, parserConfig, schema, config, librarySet);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).rel;
@@ -5818,8 +5860,8 @@ class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
   }
 }

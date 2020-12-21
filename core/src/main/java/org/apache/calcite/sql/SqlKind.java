@@ -1385,6 +1385,14 @@ public enum SqlKind {
       return GREATER_THAN;
     case GREATER_THAN_OR_EQUAL:
       return LESS_THAN;
+    case IN:
+      return NOT_IN;
+    case NOT_IN:
+      return IN;
+    case DRUID_IN:
+      return DRUID_NOT_IN;
+    case DRUID_NOT_IN:
+      return DRUID_IN;
     case IS_TRUE:
       return IS_FALSE;
     case IS_FALSE:

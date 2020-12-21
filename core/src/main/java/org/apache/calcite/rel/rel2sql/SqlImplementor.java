@@ -141,16 +141,6 @@ public abstract class SqlImplementor {
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
-  /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
-   * applied to that kind. */
-  private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
-      ImmutableMap.<SqlKind, SqlOperator>builder()
-          .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
-          .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
-          .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
-          .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
-          .build();
-
   protected SqlImplementor(SqlDialect dialect) {
     this.dialect = requireNonNull(dialect);
   }
@@ -798,7 +788,7 @@ public abstract class SqlImplementor {
       case NOT:
         RexNode operand = ((RexCall) rex).operands.get(0);
         final SqlNode node = toSql(program, operand);
-        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
+        final SqlOperator inverseOperator = getInverseOperator(operand);
         if (inverseOperator != null) {
           switch (operand.getKind()) {
           case IN:
@@ -832,7 +822,7 @@ public abstract class SqlImplementor {
         break;
       case NOT:
         RexNode operand = call.operands.get(0);
-        if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
+        if (getInverseOperator(operand) != null) {
           return callToSql(program, (RexCall) operand, !not);
         }
         break;
@@ -840,9 +830,8 @@ public abstract class SqlImplementor {
         break;
       }
       if (not) {
-        SqlKind kind = op.getKind();
-        op = requireNonNull(NOT_KIND_OPERATORS.get(kind),
-            () -> "unable to negate " + kind);
+        op = requireNonNull(getInverseOperator(call),
+            () -> "unable to negate " + call.getKind());
       }
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
@@ -868,6 +857,18 @@ public abstract class SqlImplementor {
         break;
       }
       return SqlUtil.createCall(op, POS, nodeList);
+    }
+
+    /** If {@code node} is a {@link RexCall}, extracts the operator and
+     * finds the corresponding inverse operator using {@link SqlOperator#not()}.
+     * Returns null if {@code node} is not a {@link RexCall},
+     * or if the operator has no logical inverse. */
+    private static @Nullable SqlOperator getInverseOperator(RexNode node) {
+      if (node instanceof RexCall) {
+        return ((RexCall) node).getOperator().not();
+      } else {
+        return null;
+      }
     }
 
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -459,6 +460,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The case-insensitive variant of the LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlSpecialOperator ILIKE =
+      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
+
+  /** The case-insensitive variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlSpecialOperator NOT_ILIKE =
+      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */

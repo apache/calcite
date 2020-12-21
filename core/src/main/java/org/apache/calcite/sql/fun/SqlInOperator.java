@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -78,6 +79,25 @@ public class SqlInOperator extends SqlBinaryOperator {
   @Deprecated // to be removed before 2.0
   public boolean isNotIn() {
     return kind == SqlKind.NOT_IN;
+  }
+
+  @Override public SqlOperator not() {
+    return of(kind.negateNullSafe());
+  }
+
+  private static SqlBinaryOperator of(SqlKind kind) {
+    switch (kind) {
+    case IN:
+      return SqlStdOperatorTable.IN;
+    case NOT_IN:
+      return SqlStdOperatorTable.NOT_IN;
+    case DRUID_IN:
+      return SqlInternalOperators.DRUID_IN;
+    case DRUID_NOT_IN:
+      return SqlInternalOperators.DRUID_NOT_IN;
+    default:
+      throw new AssertionError("unexpected " + kind);
+    }
   }
 
   @Override public boolean validRexOperands(int count, Litmus litmus) {

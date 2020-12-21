@@ -130,6 +130,7 @@ parser: {
     "HOP"
     "HOURS"
     "IGNORE"
+    "ILIKE"
     "IMMEDIATE"
     "IMMEDIATELY"
     "IMPLEMENTATION"
