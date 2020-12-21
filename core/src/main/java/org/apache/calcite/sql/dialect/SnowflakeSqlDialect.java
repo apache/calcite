@@ -86,14 +86,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final
   int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
-    case SUBSTRING:
-      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(substringFrame);
-      break;
     case TO_NUMBER:
       if (ToNumberUtils.needsCustomUnparsing(call)) {
         ToNumberUtils.unparseToNumberSnowFlake(writer, call, leftPrec, rightPrec);
@@ -153,6 +145,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
       SqlCall parseDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    case "SUBSTRING":
+      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(substringFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

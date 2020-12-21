@@ -384,14 +384,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
-    case SUBSTRING:
-      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(substringFrame);
-      break;
     case TRUNCATE:
       final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
       for (SqlNode operand : call.getOperandList()) {
@@ -644,6 +636,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    case "SUBSTRING":
+      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(substringFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
