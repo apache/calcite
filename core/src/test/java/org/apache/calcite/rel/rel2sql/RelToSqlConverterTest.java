@@ -6288,7 +6288,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
-  @Test public void testInstr() {
+  @Test public void testRegexpInstr() {
     final String query = "SELECT POSITION('choose a chocolate chip cookie' IN 'ch')";
     final String expectedSnowFlake = "SELECT REGEXP_INSTR('choose a chocolate chip cookie', 'ch')";
     sql(query)
