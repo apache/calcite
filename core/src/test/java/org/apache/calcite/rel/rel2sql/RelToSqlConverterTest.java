@@ -1909,7 +1909,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT TRIM(SUBSTR(full_name, 2, 3))\n"
         + "FROM foodmart.reserve_employee";
     final String expectedHS =
-        "SELECT TRIM(SUBSTR(full_name, 2, 3))\n"
+        "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
     final String expectedSpark =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
@@ -4011,7 +4011,7 @@ class RelToSqlConverterTest {
     final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedHive = "SELECT SUBSTR(brand_name, 2)\n"
+    final String expectedHive = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
     final String expectedSpark = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
@@ -4061,7 +4061,7 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
-    final String expectedHive = "SELECT SUBSTR(brand_name, 2, 3)\n"
+    final String expectedHive = "SELECT SUBSTRING(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
     final String expectedSpark = "SELECT SUBSTRING(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
@@ -7048,7 +7048,7 @@ class RelToSqlConverterTest {
 
   @Test public void testToNumberFunctionHandlingFunctionAsArgument() {
     final String query = "SELECT TO_NUMBER(SUBSTRING('12345',2))";
-    final String expected = "SELECT CAST(SUBSTR('12345', 2) AS BIGINT)";
+    final String expected = "SELECT CAST(SUBSTRING('12345', 2) AS BIGINT)";
     final String expectedSpark = "SELECT CAST(SUBSTRING('12345', 2) AS BIGINT)";
     final String expectedBigQuery = "SELECT CAST(SUBSTR('12345', 2) AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER(SUBSTR('12345', 2))";
@@ -7130,7 +7130,7 @@ class RelToSqlConverterTest {
 
   @Test public void testAsciiMethodArgument() {
     String query = "SELECT ASCII (SUBSTRING('ABC',1,1))";
-    final String expected = "SELECT ASCII(SUBSTR('ABC', 1, 1))";
+    final String expected = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
     final String expectedSpark = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
     final String expectedBigQuery = "SELECT TO_CODE_POINTS(SUBSTR('ABC', 1, 1)) [OFFSET(0)]";
     sql(query)

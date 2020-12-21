@@ -143,11 +143,6 @@ public enum SqlKind {
    * */
   CHARACTER_LENGTH,
 
-  /**
-   * SUBSTRING Function.
-   * */
-  SUBSTRING,
-
   /** EXPLAIN statement. */
   EXPLAIN,
 
@@ -1199,7 +1194,7 @@ public enum SqlKind {
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
-                  CHARACTER_LENGTH, SUBSTRING, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
+                  CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
@@ -1222,7 +1217,7 @@ public enum SqlKind {
    */
   public static final Set<SqlKind> FUNCTION =
       EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST,
-                 JDBC_FN, POSITION, REVERSE, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
+                 JDBC_FN, POSITION, REVERSE, CHAR_LENGTH, CHARACTER_LENGTH, TRUNCATE);
 
   /**
    * Category of SqlAvgAggFunction.

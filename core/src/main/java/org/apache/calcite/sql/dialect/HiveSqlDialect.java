@@ -247,14 +247,6 @@ public class HiveSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
       break;
-    case SUBSTRING:
-      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(substringFrame);
-      break;
     case EXTRACT:
       final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
       call.operand(1).unparse(writer, leftPrec, rightPrec);
