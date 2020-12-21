@@ -1005,6 +1005,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("'a' similar to 'b' escape 'c'").ok();
   }
 
+  @Test void testIlike() {
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
+    s.expr("'a' ilike 'b'").columnType("BOOLEAN NOT NULL");
+    s.expr("'a' ilike cast(null as varchar(99))").columnType("BOOLEAN");
+    s.expr("cast(null as varchar(99)) not ilike 'b'").columnType("BOOLEAN");
+    s.expr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN NOT NULL");
+
+    // ILIKE is only available in the PostgreSQL function library
+    expr("^'a' ilike 'b'^")
+        .fails("No match found for function signature ILIKE");
+  }
+
   public void _testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"

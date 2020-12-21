@@ -31,9 +31,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -56,20 +56,23 @@ public class SqlLikeOperator extends SqlSpecialOperator {
   //~ Instance fields --------------------------------------------------------
 
   private final boolean negated;
+  private final boolean caseSensitive;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SqlLikeOperator.
    *
-   * @param name    Operator name
-   * @param kind    Kind
-   * @param negated Whether this is 'NOT LIKE'
+   * @param name        Operator name
+   * @param kind        Kind
+   * @param negated     Whether this is 'NOT LIKE'
+   * @param caseSensitive Whether this operator ignores the case of its operands
    */
   SqlLikeOperator(
       String name,
       SqlKind kind,
-      boolean negated) {
+      boolean negated,
+      boolean caseSensitive) {
     // LIKE is right-associative, because that makes it easier to capture
     // dangling ESCAPE clauses: "a like b like c escape d" becomes
     // "a like (b like c escape d)".
@@ -81,7 +84,13 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
         OperandTypes.STRING_SAME_SAME_SAME);
+    if (!caseSensitive && kind != SqlKind.LIKE) {
+      throw new IllegalArgumentException("Only (possibly negated) "
+          + SqlKind.LIKE + " can be made case-insensitive, not " + kind);
+    }
+
     this.negated = negated;
+    this.caseSensitive = caseSensitive;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -90,9 +99,47 @@ public class SqlLikeOperator extends SqlSpecialOperator {
    * Returns whether this is the 'NOT LIKE' operator.
    *
    * @return whether this is 'NOT LIKE'
+   *
+   * @see #not()
    */
   public boolean isNegated() {
     return negated;
+  }
+
+  /**
+   * Returns whether this operator matches the case of its operands.
+   * For example, returns true for {@code LIKE} and false for {@code ILIKE}.
+   *
+   * @return whether this operator matches the case of its operands
+   */
+  public boolean isCaseSensitive() {
+    return caseSensitive;
+  }
+
+  @Override public SqlOperator not() {
+    return of(kind, !negated, caseSensitive);
+  }
+
+  private static SqlOperator of(SqlKind kind, boolean negated,
+      boolean caseSensitive) {
+    switch (kind) {
+    case SIMILAR:
+      return negated
+          ? SqlStdOperatorTable.NOT_SIMILAR_TO
+          : SqlStdOperatorTable.SIMILAR_TO;
+    case LIKE:
+      if (caseSensitive) {
+        return negated
+            ? SqlStdOperatorTable.NOT_LIKE
+            : SqlStdOperatorTable.LIKE;
+      } else {
+        return negated
+            ? SqlLibraryOperators.NOT_ILIKE
+            : SqlLibraryOperators.ILIKE;
+      }
+    default:
+      throw new AssertionError("unexpected " + kind);
+    }
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
@@ -129,6 +176,11 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         callBinding,
         callBinding.operands(),
         throwOnFailure);
+  }
+
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
   }
 
   @Override public boolean validRexOperands(int count, Litmus litmus) {
@@ -185,8 +237,8 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         }
       }
     }
-    final @Nullable SqlNode[] operands;
-    int end;
+    final SqlNode[] operands;
+    final int end;
     if (exp2 != null) {
       operands = new SqlNode[]{exp0, exp1, exp2};
       end = opOrdinal + 4;
@@ -194,7 +246,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       operands = new SqlNode[]{exp0, exp1};
       end = opOrdinal + 2;
     }
-    SqlCall call = createCall(SqlParserPos.ZERO, operands);
+    SqlCall call = createCall(SqlParserPos.sum(operands), operands);
     return new ReduceResult(opOrdinal - 1, end, call);
   }
 }
