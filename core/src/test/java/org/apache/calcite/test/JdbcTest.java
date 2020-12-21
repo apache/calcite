@@ -6737,6 +6737,44 @@ public class JdbcTest {
         .with(CalciteConnectionProperty.FUN, "spark")
         .query("select if(1 = 1,1,2) as r")
         .returnsUnordered("R=1");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "snowflake")
+      .query("select if(\"commission\" = -99, -99, 0) as r from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=0");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "snowflake")
+      .query("SELECT if('ABC'='' or 'ABC' is null, null, ASCII('ABC')) as r\n"
+        + "from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=65");
+  }
+
+  @Test public void testIfWithNullCheck() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "bigquery")
+      .query("SELECT if('ABC'='' or 'ABC' is null, null, ASCII('ABC')) as r\n"
+        + "from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=65");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "hive")
+      .query("SELECT if('ABC'='' or 'ABC' is null, null, ASCII('ABC')) as r\n"
+        + "from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=65");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "spark")
+      .query("SELECT if('ABC'='' or 'ABC' is null, null, ASCII('ABC')) as r\n"
+        + "from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=65");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+      .with(CalciteConnectionProperty.FUN, "snowflake")
+      .query("SELECT if('ABC'='' or 'ABC' is null, null, ASCII('ABC')) as r\n"
+        + "from \"hr\".\"emps\"\n"
+        + "where \"commission\" = 1000")
+      .returnsUnordered("R=65");
   }
 
   @Test public void testIfWithExpression() {

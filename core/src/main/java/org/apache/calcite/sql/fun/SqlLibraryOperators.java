@@ -109,7 +109,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "IF(condition, thenValue, elseValue)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
   public static final SqlFunction IF =
       new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
           null,

@@ -5724,7 +5724,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate chip "
         + "cookies', 4), 'c+.{2}') [OFFSET(1)]\n"
         + "FROM foodmart.product\n"
-        + "WHERE product_id = 1 OR (product_id = 2 OR product_id = 3)";
+        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3";
     sql(query)
         .withBigQuery()
         .ok(expected);
@@ -5738,7 +5738,7 @@ class RelToSqlConverterTest {
         + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
         + "(1)]\n"
         + "FROM foodmart.product\n"
-        + "WHERE product_id = 1 OR product_id = 2 OR (product_id = 3 OR product_id = 4)";
+        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
         .withBigQuery()
         .ok(expected);
@@ -7155,20 +7155,6 @@ class RelToSqlConverterTest {
         .ok(hiveExpected);
   }
 
-  @Test public void testIf() {
-    String query = "SELECT if ('ABC'='' or 'ABC' is null, null, ASCII('ABC'))";
-    final String expectedHiveQuery = "SELECT CAST(ASCII('ABC') AS INT)";
-    final String expectedSparkQuery = "SELECT CAST(ASCII('ABC') AS INTEGER)";
-    final String expectedBigQuery = "SELECT CAST(TO_CODE_POINTS('ABC') [OFFSET(0)] AS INT64)";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBigQuery)
-        .withHive()
-        .ok(expectedHiveQuery)
-        .withSpark()
-        .ok(expectedSparkQuery);
-  }
-
   @Test public void testIfMethodArgument() {
     String query = "SELECT if (SUBSTRING('ABC',1,1)='' or SUBSTRING('ABC',1,1) is null, null, "
         + "ASCII(SUBSTRING('ABC',1,1)))";
@@ -7980,18 +7966,6 @@ class RelToSqlConverterTest {
             .ok(expectedSpark)
             .withBigQuery()
             .ok(bigQueryExpected);
-  }
-
-  @Test public void testIff() {
-    final String query = "SELECT \n"
-            + "IF(\"first_name\" IS NULL OR \"first_name\" = '', NULL, \"first_name\")\n"
-            + " from \"employee\"";
-    final String snowFlakeExpected = "SELECT IFF(\"first_name\" IS NULL OR \"first_name\" = '', "
-            + "NULL, \"first_name\")\n"
-            + "FROM \"foodmart\".\"employee\"";
-    sql(query)
-            .withSnowflake()
-            .ok(snowFlakeExpected);
   }
 
   @Test public void testLog10Function() {
