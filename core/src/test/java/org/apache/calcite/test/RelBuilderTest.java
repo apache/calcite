@@ -53,6 +53,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -3970,6 +3971,22 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalFilter(condition=[NOT(LIKE($1, 'a%b%c'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testNotIlike() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(
+                    SqlLibraryOperators.NOT_ILIKE,
+                    builder.field("ENAME"),
+                    builder.literal("a%b%c")))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[NOT(ILIKE($1, 'a%b%c'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }

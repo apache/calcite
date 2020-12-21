@@ -285,6 +285,7 @@ public class SqlParserTest {
       "HOURS",                                             "2011",
       "IDENTITY",                      "92", "99", "2003", "2011", "2014", "c",
       "IF",                            "92", "99", "2003",
+      "ILIKE",
       "IMMEDIATE",                     "92", "99", "2003",
       "IMMEDIATELY",
       "IMPORT",                                                            "c",
@@ -1796,6 +1797,25 @@ public class SqlParserTest {
         .ok("VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
             + "FROM `T`\n"
             + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`)))");
+  }
+
+  @Test void testIlike() {
+    conformance = SqlConformanceEnum.LENIENT;
+
+    sql("select * from t where x not ilike '%abc%'")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`X` NOT ILIKE '%abc%')");
+
+    sql("select * from t where x ilike '%abc%'")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`X` ILIKE '%abc%')");
+
+    conformance = SqlConformanceEnum.DEFAULT;
+
+    sql("select * from t where x ^ilike^ '%abc%'")
+        .fails("The 'ILIKE' operator is not allowed under the current SQL conformance level");
   }
 
   @Test void testFoo() {

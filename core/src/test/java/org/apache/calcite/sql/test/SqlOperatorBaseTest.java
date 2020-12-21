@@ -338,14 +338,20 @@ public abstract class SqlOperatorBaseTest {
   }
 
   protected SqlTester libraryTester(SqlLibrary library) {
+    return libraryTester(library, SqlConformanceEnum.DEFAULT);
+  }
+
+  protected SqlTester libraryTester(SqlLibrary library, SqlConformanceEnum conformance) {
     return tester.withOperatorTable(
         SqlLibraryOperatorTableFactory.INSTANCE
             .getOperatorTable(SqlLibrary.STANDARD, library))
+        .withConformance(conformance)
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
-                .with(CalciteConnectionProperty.FUN, library.fun));
+                .with(CalciteConnectionProperty.FUN, library.fun)
+                .with(CalciteConnectionProperty.CONFORMANCE, conformance));
   }
 
   protected SqlTester oracleTester(SqlConformance conformance) {
@@ -3864,6 +3870,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abbc' like 'a\\%c' escape '\\'", Boolean.FALSE);
   }
 
+  @Test void testIlikeEscape() {
+    tester.setFor(SqlLibraryOperators.ILIKE);
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    tester1.checkBoolean("'a_c' ilike 'a#_C' escape '#'", Boolean.TRUE);
+    tester1.checkBoolean("'axc' ilike 'a#_C' escape '#'", Boolean.FALSE);
+    tester1.checkBoolean("'a_c' ilike 'a\\_C' escape '\\'", Boolean.TRUE);
+    tester1.checkBoolean("'axc' ilike 'a\\_C' escape '\\'", Boolean.FALSE);
+    tester1.checkBoolean("'a%c' ilike 'a\\%C' escape '\\'", Boolean.TRUE);
+    tester1.checkBoolean("'a%cde' ilike 'a\\%C_e' escape '\\'", Boolean.TRUE);
+    tester1.checkBoolean("'abbc' ilike 'a%C' escape '\\'", Boolean.TRUE);
+    tester1.checkBoolean("'abbc' ilike 'a\\%C' escape '\\'", Boolean.FALSE);
+  }
+
   @Disabled("[CALCITE-525] Exception-handling in built-in functions")
   @Test void testLikeEscape2() {
     tester.checkBoolean("'x' not like 'x' escape 'x'", Boolean.TRUE);
@@ -3894,6 +3913,47 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab\ncd\nef' like '%cde%'", Boolean.FALSE);
   }
 
+  @Test void testIlikeOperator() {
+    tester.setFor(SqlLibraryOperators.ILIKE);
+    tester.checkFails(
+        "'a'  ^ilike^ 'b'",
+        "The 'ILIKE' operator is not allowed under the current SQL conformance level",
+        false
+    );
+
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    tester1.checkBoolean("''  ilike ''", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike 'a'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike 'b'", Boolean.FALSE);
+    tester1.checkBoolean("'a' ilike 'A'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike 'a_'", Boolean.FALSE);
+    tester1.checkBoolean("'a' ilike '_a'", Boolean.FALSE);
+    tester1.checkBoolean("'a' ilike '%a'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike '%A'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike '%a%'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike '%A%'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike 'a%'", Boolean.TRUE);
+    tester1.checkBoolean("'a' ilike 'A%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab'   ilike 'a_'", Boolean.TRUE);
+    tester1.checkBoolean("'ab'   ilike 'A_'", Boolean.TRUE);
+    tester1.checkBoolean("'abc'  ilike 'a_'", Boolean.FALSE);
+    tester1.checkBoolean("'abcd' ilike 'a%'", Boolean.TRUE);
+    tester1.checkBoolean("'abcd' ilike 'A%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab'   ilike '_b'", Boolean.TRUE);
+    tester1.checkBoolean("'ab'   ilike '_B'", Boolean.TRUE);
+    tester1.checkBoolean("'abcd' ilike '_d'", Boolean.FALSE);
+    tester1.checkBoolean("'abcd' ilike '%d'", Boolean.TRUE);
+    tester1.checkBoolean("'abcd' ilike '%D'", Boolean.TRUE);
+    tester1.checkBoolean("'ab\ncd' ilike 'ab%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab\ncd' ilike 'aB%'", Boolean.TRUE);
+    tester1.checkBoolean("'abc\ncd' ilike 'ab%'", Boolean.TRUE);
+    tester1.checkBoolean("'abc\ncd' ilike 'Ab%'", Boolean.TRUE);
+    tester1.checkBoolean("'123\n\n45\n' ilike '%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab\ncd\nef' ilike '%cd%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab\ncd\nef' ilike '%CD%'", Boolean.TRUE);
+    tester1.checkBoolean("'ab\ncd\nef' ilike '%cde%'", Boolean.FALSE);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1898">[CALCITE-1898]
    * LIKE must match '.' (period) literally</a>. */
@@ -3901,6 +3961,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abc' like 'a.c'", Boolean.FALSE);
     tester.checkBoolean("'abcde' like '%c.e'", Boolean.FALSE);
     tester.checkBoolean("'abc.e' like '%c.e'", Boolean.TRUE);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1898">[CALCITE-1898]
+   * ILIKE must match '.' (period) literally</a>. */
+  @Test void testIlikeDot() {
+    tester.setFor(SqlLibraryOperators.ILIKE);
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    tester1.checkBoolean("'abc' ilike 'a.c'", Boolean.FALSE);
+    tester1.checkBoolean("'abcde' ilike '%c.e'", Boolean.FALSE);
+    tester1.checkBoolean("'abc.e' ilike '%c.e'", Boolean.TRUE);
+    tester1.checkBoolean("'abc.e' ilike '%c.E'", Boolean.TRUE);
   }
 
   @Test void testNotSimilarToOperator() {

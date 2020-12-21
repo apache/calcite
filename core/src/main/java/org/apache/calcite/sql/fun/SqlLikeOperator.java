@@ -56,20 +56,23 @@ public class SqlLikeOperator extends SqlSpecialOperator {
   //~ Instance fields --------------------------------------------------------
 
   private final boolean negated;
+  private final boolean ignoreCase;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SqlLikeOperator.
    *
-   * @param name    Operator name
-   * @param kind    Kind
-   * @param negated Whether this is 'NOT LIKE'
+   * @param name        Operator name
+   * @param kind        Kind
+   * @param negated     Whether this is 'NOT LIKE'
+   * @param ignoreCase  Whether it should actually by 'ILIKE'
    */
   SqlLikeOperator(
       String name,
       SqlKind kind,
-      boolean negated) {
+      boolean negated,
+      boolean ignoreCase) {
     // LIKE is right-associative, because that makes it easier to capture
     // dangling ESCAPE clauses: "a like b like c escape d" becomes
     // "a like (b like c escape d)".
@@ -81,7 +84,14 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
         OperandTypes.STRING_SAME_SAME_SAME);
+    if (ignoreCase && kind != SqlKind.LIKE) {
+      throw new IllegalArgumentException(
+          "Only (possibly negated) " + SqlKind.LIKE + " can be made case-insensitive, not " + kind
+      );
+    }
+
     this.negated = negated;
+    this.ignoreCase = ignoreCase;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -93,6 +103,15 @@ public class SqlLikeOperator extends SqlSpecialOperator {
    */
   public boolean isNegated() {
     return negated;
+  }
+
+  /**
+   * Returns whether this is the 'ILIKE' operator.
+   *
+   * @return whether this is 'ILIKE'
+   */
+  public boolean isIgnoreCase() {
+    return ignoreCase;
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {

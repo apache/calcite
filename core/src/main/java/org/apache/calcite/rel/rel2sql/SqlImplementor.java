@@ -70,6 +70,8 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -139,14 +141,15 @@ public abstract class SqlImplementor {
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
-  /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
-   * applied to that kind. */
-  private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
-      ImmutableMap.<SqlKind, SqlOperator>builder()
-          .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
-          .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
-          .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
-          .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
+  /** Maps a {@link SqlKind} and indication of case-insensitivity to a {@link SqlOperator}
+   * that implements NOT applied to that kind. */
+  private static final Map<Pair<SqlKind, Boolean>, SqlOperator> NOT_KIND_OPERATORS =
+      ImmutableMap.<Pair<SqlKind, Boolean>, SqlOperator>builder()
+          .put(Pair.of(SqlKind.IN, false), SqlStdOperatorTable.NOT_IN)
+          .put(Pair.of(SqlKind.NOT_IN, false), SqlStdOperatorTable.IN)
+          .put(Pair.of(SqlKind.LIKE, false), SqlStdOperatorTable.NOT_LIKE)
+          .put(Pair.of(SqlKind.LIKE, true), SqlLibraryOperators.NOT_ILIKE)
+          .put(Pair.of(SqlKind.SIMILAR, false), SqlStdOperatorTable.NOT_SIMILAR_TO)
           .build();
 
   protected SqlImplementor(SqlDialect dialect) {
@@ -796,7 +799,7 @@ public abstract class SqlImplementor {
       case NOT:
         RexNode operand = ((RexCall) rex).operands.get(0);
         final SqlNode node = toSql(program, operand);
-        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
+        final SqlOperator inverseOperator = getInverseOperator(operand);
         if (inverseOperator != null) {
           switch (operand.getKind()) {
           case IN:
@@ -830,7 +833,7 @@ public abstract class SqlImplementor {
         break;
       case NOT:
         RexNode operand = call.operands.get(0);
-        if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
+        if (getInverseOperator(operand) != null) {
           return callToSql(program, (RexCall) operand, !not);
         }
         break;
@@ -838,9 +841,8 @@ public abstract class SqlImplementor {
         break;
       }
       if (not) {
-        SqlKind kind = op.getKind();
-        op = requireNonNull(NOT_KIND_OPERATORS.get(kind),
-            () -> "unable to negate " + kind);
+        op = requireNonNull(getInverseOperator(call),
+            () -> "unable to negate " + call.getKind());
       }
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
@@ -866,6 +868,25 @@ public abstract class SqlImplementor {
         break;
       }
       return SqlUtil.createCall(op, POS, nodeList);
+    }
+
+    /** If the passed {@link RexNode} is actually a {@link RexCall},
+     * the method extracts the operator and finds the corresponding inverse operator
+     * using {@see NOT_KIND_OPERATORS}. If the {@link RexNode} is not a {@link RexCall},
+     * or if no inverse operator is found, null is returned. */
+    private @Nullable SqlOperator getInverseOperator(final RexNode rexNode) {
+      if (rexNode instanceof RexCall) {
+        final RexCall rexCall = (RexCall) rexNode;
+        if (rexCall.getKind() == SqlKind.LIKE) {
+          final Boolean ignoresCase = ((SqlLikeOperator) rexCall.getOperator()).isIgnoreCase();
+          return NOT_KIND_OPERATORS.get(Pair.of(SqlKind.LIKE, ignoresCase));
+        } else {
+          // operators other than LIKE do not have case-insensitive variant
+          return NOT_KIND_OPERATORS.get(Pair.of(rexCall.getKind(), false));
+        }
+      } else {
+        return null;
+      }
     }
 
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the

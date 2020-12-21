@@ -165,7 +165,7 @@ class RelToSqlConverterStructsTest {
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        UnaryOperator.identity(), null, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of(), null);
   }
 
   @Test void testNestedSchemaSelectStar() {

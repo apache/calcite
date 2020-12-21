@@ -1005,6 +1005,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("'a' similar to 'b' escape 'c'").ok();
   }
 
+  @Test void testIlike() {
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .withConformance(SqlConformanceEnum.LENIENT);
+    s.expr("'a' ilike 'b'").ok();
+    s.expr("'a' not ilike 'b'").ok();
+  }
+
+  @Test void testIlikeOnDefaultConformance() {
+    expr("'a' ^ilike^ 'b'")
+        .fails("The 'ILIKE' operator is not allowed under the current SQL conformance level");
+  }
+
   public void _testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"

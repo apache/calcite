@@ -82,6 +82,7 @@ import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -641,7 +642,13 @@ public class RelBuilder {
     switch (operator.getKind()) {
     case LIKE:
       if (((SqlLikeOperator) operator).isNegated()) {
-        return (RexCall) not(call(SqlStdOperatorTable.LIKE, operandList));
+        final SqlOperator sqlOperator;
+        if (((SqlLikeOperator) operator).isIgnoreCase()) {
+          sqlOperator = SqlLibraryOperators.ILIKE;
+        } else {
+          sqlOperator = SqlStdOperatorTable.LIKE;
+        }
+        return (RexCall) not(call(sqlOperator, operandList));
       }
       break;
     case SIMILAR:
