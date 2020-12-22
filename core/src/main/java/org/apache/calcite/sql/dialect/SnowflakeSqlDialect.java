@@ -174,6 +174,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
   }
 
+  /**
+   * unparse function for math functions
+   * SF can support precision and scale within specific range
+   * handled precision range using 'case', 'when', 'then'
+   */
   private void handleMathFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame mathFun = writer.startFunCall(call.getOperator().getName());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
