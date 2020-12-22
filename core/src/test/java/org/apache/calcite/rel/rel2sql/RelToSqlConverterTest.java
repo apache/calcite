@@ -5077,6 +5077,58 @@ public class RelToSqlConverterTest {
   }
 
   @Test
+  public void testOver() {
+    String query = "SELECT distinct \"product_id\", MAX(\"product_id\") \n"
+        + "OVER(PARTITION BY \"product_id\") AS abc\n"
+        + "FROM \"product\"";
+    final String expected = "SELECT product_id, MAX(product_id) OVER "
+        + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABC\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id, MAX(product_id) OVER (PARTITION BY product_id "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
+    final String expectedBQ = "SELECT product_id, ABC\n"
+        + "FROM (SELECT product_id, MAX(product_id) OVER "
+        + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
+        + "FROM foodmart.product) AS t\n"
+        + "GROUP BY product_id, ABC";
+    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") "
+        +  "OVER(PARTITION BY \"product_id\") AS \"ABC\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER(PARTITION BY \"product_id\")";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBQ)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testCountWithWindowFunction() {
+    String query = "Select count(*) over() from \"product\"";
+    String expected = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
+        + "AND UNBOUNDED FOLLOWING)\n"
+        + "FROM foodmart.product";
+    String expectedBQ = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
+        + "AND UNBOUNDED FOLLOWING)\n"
+        + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT COUNT(*) OVER()\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBQ)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
   public void testToNumberFunctionHandlingFloatingPoint() {
     String query = "select TO_NUMBER('-1.7892','9.9999')";
     final String expected = "SELECT CAST('-1.7892' AS FLOAT)";

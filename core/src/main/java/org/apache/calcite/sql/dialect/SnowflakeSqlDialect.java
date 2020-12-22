@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -119,9 +120,44 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
+    case OVER:
+      handleOverCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void handleOverCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if ("SUM".equals(((SqlBasicCall) call.operand(0)).getOperator().getName())) {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    } else {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      unparseSqlWindow(call.operand(1), writer);
+    }
+  }
+
+  private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
+    final SqlWindow window = call;
+    writer.print("OVER");
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
+    if (window.getRefName() != null) {
+      window.getRefName().unparse(writer, 0, 0);
+    }
+    if (window.getPartitionList().size() > 0) {
+      writer.sep("PARTITION BY");
+      final SqlWriter.Frame partitionFrame = writer.startList("", "");
+      window.getPartitionList().unparse(writer, 0, 0);
+      writer.endList(partitionFrame);
+    }
+    if (window.getOrderList().size() > 0) {
+      writer.sep("ORDER BY");
+      final SqlWriter.Frame orderFrame = writer.startList("", "");
+      window.getOrderList().unparse(writer, 0, 0);
+      writer.endList(orderFrame);
+    }
+    writer.endList(frame);
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
