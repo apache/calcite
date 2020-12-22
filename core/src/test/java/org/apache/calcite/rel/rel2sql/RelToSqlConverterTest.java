@@ -6302,8 +6302,9 @@ public class RelToSqlConverterTest {
     final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
     final String expected = "SELECT ROUND(123.41445, product_id) a\n"
             + "FROM foodmart.product";
-    final String expectedSnowFlake = "SELECT ROUND(123.41445, CASE WHEN \"product_id\" ELSE \"product_id\" END)" +
-            " AS \"a\"\nFROM \"foodmart\".\"product\"";
+    final String expectedSnowFlake = "SELECT ROUND(123.41445, CASE WHEN \"product_id\" > 38"
+            + " THEN 38 WHEN \"product_id\" < -12 THEN -12 ELSE \"product_id\" END) AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
             .withBigQuery()
             .ok(expectedBq)
@@ -6311,6 +6312,21 @@ public class RelToSqlConverterTest {
             .ok(expected)
             .withSpark()
             .ok(expected)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testTruncateFunctionWithColumnPlaceHandling() {
+    String query = "select truncate(2.30259, \"employee_id\") from \"employee\"";
+    final String expectedBigQuery = "SELECT TRUNC(2.30259, employee_id)\n"
+            + "FROM foodmart.employee";
+    final String expectedSnowFlake = "SELECT TRUNCATE(2.30259, CASE WHEN \"employee_id\" > 38"
+            + " THEN 38 WHEN \"employee_id\" < -12 THEN -12 ELSE \"employee_id\" END)\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery)
             .withSnowflake()
             .ok(expectedSnowFlake);
   }
