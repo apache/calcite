@@ -652,7 +652,7 @@ public abstract class SqlLibraryOperators {
                   SqlKind.OTHER_FUNCTION,
                   ReturnTypes.DATE_NULLABLE,
                   null,
-                  OperandTypes.NUMERIC_INTEGER, SqlFunctionCategory.TIMEDATE);
+                  OperandTypes.NUMERIC, SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIGQUERY, SPARK})
   public static final SqlFunction FORMAT_DATETIME = new SqlFunction(
