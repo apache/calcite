@@ -139,7 +139,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
     final SqlWindow window = call;
-    writer.print("OVER");
+    writer.print("OVER ");
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
