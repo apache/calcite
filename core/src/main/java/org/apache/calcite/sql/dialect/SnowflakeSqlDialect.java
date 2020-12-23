@@ -197,12 +197,23 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "DATE_DIFF":
+      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
+      int size = call.getOperandList().size();
+      for (int index = size - 1; index >= 0; index--) {
+        writer.sep(",");
+        call.operand(index).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(dateDiffFrame);
+      break;
     case "WEEKNUMBER_OF_YEAR":
     case "YEARNUMBER_OF_CALENDAR":
     case "MONTHNUMBER_OF_YEAR":
     case "QUARTERNUMBER_OF_YEAR":
     case "MONTHNUMBER_OF_QUARTER":
     case "WEEKNUMBER_OF_MONTH":
+    case "WEEKNUMBER_OF_CALENDAR":
+    case "DAYOCCURRENCE_OF_MONTH":
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;

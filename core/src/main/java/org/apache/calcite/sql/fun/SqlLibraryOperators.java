@@ -703,7 +703,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction DATE_DIFF =
+      new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
 
 }
 // End SqlLibraryOperators.java
