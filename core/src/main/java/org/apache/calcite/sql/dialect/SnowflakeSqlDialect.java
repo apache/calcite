@@ -119,21 +119,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
-    case POSITION:
-      unparsePosition(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparsePosition(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame regexp_instr = writer.startFunCall("REGEXP_INSTR");
-    for (SqlNode operand : call.getOperandList()) {
-      writer.sep(",");
-      operand.unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(regexp_instr);
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -163,6 +151,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
       SqlCall parseDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    case "INSTR":
+      final SqlWriter.Frame regexpInstr = writer.startFunCall("REGEXP_INSTR");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(regexpInstr);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

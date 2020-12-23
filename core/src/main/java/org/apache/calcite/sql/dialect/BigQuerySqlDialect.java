@@ -689,6 +689,14 @@ public class BigQuerySqlDialect extends SqlDialect {
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "INSTR":
+      final SqlWriter.Frame regexpInstr = writer.startFunCall("STRPOS");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(regexpInstr);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

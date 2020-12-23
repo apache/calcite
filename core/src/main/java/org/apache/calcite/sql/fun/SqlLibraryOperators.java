@@ -654,5 +654,14 @@ public abstract class SqlLibraryOperators {
       null,
       OperandTypes.ANY_ANY,
       SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction INSTR = new SqlFunction(
+          "INSTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
 }
 // End SqlLibraryOperators.java
