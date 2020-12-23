@@ -5077,6 +5077,58 @@ public class RelToSqlConverterTest {
   }
 
   @Test
+  public void testOver() {
+    String query = "SELECT distinct \"product_id\", MAX(\"product_id\") \n"
+        + "OVER(PARTITION BY \"product_id\") AS abc\n"
+        + "FROM \"product\"";
+    final String expected = "SELECT product_id, MAX(product_id) OVER "
+        + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABC\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id, MAX(product_id) OVER (PARTITION BY product_id "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
+    final String expectedBQ = "SELECT product_id, ABC\n"
+        + "FROM (SELECT product_id, MAX(product_id) OVER "
+        + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
+        + "FROM foodmart.product) AS t\n"
+        + "GROUP BY product_id, ABC";
+    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") "
+        +  "OVER (PARTITION BY \"product_id\") AS \"ABC\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\")";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBQ)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testCountWithWindowFunction() {
+    String query = "Select count(*) over() from \"product\"";
+    String expected = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
+        + "AND UNBOUNDED FOLLOWING)\n"
+        + "FROM foodmart.product";
+    String expectedBQ = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
+        + "AND UNBOUNDED FOLLOWING)\n"
+        + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT COUNT(*) OVER ()\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBQ)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
   public void testToNumberFunctionHandlingFloatingPoint() {
     String query = "select TO_NUMBER('-1.7892','9.9999')";
     final String expected = "SELECT CAST('-1.7892' AS FLOAT)";
@@ -6288,16 +6340,49 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
-  @Test public void testToTimestamp() {
-    final String query = "SSELECT TO_TIMESTAMP(FORMAT('%11d', 242525),"
-            + " 'YYYY-MM-DD HH24:MI:SS.FF6')\nFROM `foodmart`.`trimmed_employee`\n"
-            + "WHERE `employee_id` = 2";
-    final String expectedSnowFlake = "SELECT LOG(10, \"product_id\") AS \"DD\"\n"
-            + "FROM \"foodmart\".\"product\"";
+  @Test public void testRegexpInstr() {
+    final String query = "SELECT POSITION('choose a chocolate chip cookie' IN 'ch')";
+    final String expectedSnowFlake = "SELECT REGEXP_INSTR('choose a chocolate chip cookie', 'ch')";
     sql(query)
             .withSnowflake()
             .ok(expectedSnowFlake);
   }
+  @Test
+  public void testRoundFunctionWithColumnPlaceHandling() {
+    final String query = "SELECT ROUND(123.41445, \"product_id\") AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
+    final String expected = "SELECT ROUND(123.41445, product_id) a\n"
+            + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT ROUND(123.41445, CASE WHEN \"product_id\" > 38"
+            + " THEN 38 WHEN \"product_id\" < -12 THEN -12 ELSE \"product_id\" END) AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBq)
+            .withHive()
+            .ok(expected)
+            .withSpark()
+            .ok(expected)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testTruncateFunctionWithColumnPlaceHandling() {
+    String query = "select truncate(2.30259, \"employee_id\") from \"employee\"";
+    final String expectedBigQuery = "SELECT TRUNC(2.30259, employee_id)\n"
+            + "FROM foodmart.employee";
+    final String expectedSnowFlake = "SELECT TRUNCATE(2.30259, CASE WHEN \"employee_id\" > 38"
+            + " THEN 38 WHEN \"employee_id\" < -12 THEN -12 ELSE \"employee_id\" END)\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
 }
 
 // End RelToSqlConverterTest.java

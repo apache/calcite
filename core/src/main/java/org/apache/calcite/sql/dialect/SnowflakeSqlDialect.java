@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -112,6 +113,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case TRUNCATE:
     case IF:
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -119,13 +121,64 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
+    case OVER:
+      handleOverCall(writer, call, leftPrec, rightPrec);
+      break;
+    case POSITION:
+      unparsePosition(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
+  private void handleOverCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if ("SUM".equals(((SqlBasicCall) call.operand(0)).getOperator().getName())) {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    } else {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      unparseSqlWindow(call.operand(1), writer);
+    }
+  }
+
+  private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
+    final SqlWindow window = call;
+    writer.print("OVER ");
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
+    if (window.getRefName() != null) {
+      window.getRefName().unparse(writer, 0, 0);
+    }
+    if (window.getPartitionList().size() > 0) {
+      writer.sep("PARTITION BY");
+      final SqlWriter.Frame partitionFrame = writer.startList("", "");
+      window.getPartitionList().unparse(writer, 0, 0);
+      writer.endList(partitionFrame);
+    }
+    if (window.getOrderList().size() > 0) {
+      writer.sep("ORDER BY");
+      final SqlWriter.Frame orderFrame = writer.startList("", "");
+      window.getOrderList().unparse(writer, 0, 0);
+      writer.endList(orderFrame);
+    }
+    writer.endList(frame);
+  }
+
+  private void unparsePosition(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame regexp_instr = writer.startFunCall("REGEXP_INSTR");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(regexp_instr);
+  }
+
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "TRUNCATE":
+    case "ROUND":
+      handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -155,6 +208,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * unparse function for math functions
+   * SF can support precision and scale within specific range
+   * handled precision range using 'case', 'when', 'then'
+   */
+  private void handleMathFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame mathFun = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.getOperandList().size() > 1) {
+      writer.print(",");
+      if (call.operand(1) instanceof SqlNumericLiteral) {
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+      } else {
+        writer.print("CASE WHEN ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("> 38 THEN 38 ");
+        writer.print("WHEN ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("< -12 THEN -12 ");
+        writer.print("ELSE ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("END");
+      }
+    }
+    writer.endFunCall(mathFun);
   }
 
   /**
