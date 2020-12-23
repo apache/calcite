@@ -693,6 +693,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "YEARNUMBER_OF_CALENDAR":
     case "MONTHNUMBER_OF_YEAR":
     case "QUARTERNUMBER_OF_YEAR":
+    case "WEEKNUMBER_OF_MONTH":
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
