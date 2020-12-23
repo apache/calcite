@@ -113,6 +113,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case TRUNCATE:
     case IF:
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -166,6 +167,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "TRUNCATE":
+    case "ROUND":
+      handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -195,6 +200,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * unparse function for math functions
+   * SF can support precision and scale within specific range
+   * handled precision range using 'case', 'when', 'then'
+   */
+  private void handleMathFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame mathFun = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.getOperandList().size() > 1) {
+      writer.print(",");
+      if (call.operand(1) instanceof SqlNumericLiteral) {
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+      } else {
+        writer.print("CASE WHEN ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("> 38 THEN 38 ");
+        writer.print("WHEN ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("< -12 THEN -12 ");
+        writer.print("ELSE ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print("END");
+      }
+    }
+    writer.endFunCall(mathFun);
   }
 
   /**
