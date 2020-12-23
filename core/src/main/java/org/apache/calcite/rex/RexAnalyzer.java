@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -87,9 +88,15 @@ public class RexAnalyzer {
       values.add(0L); // 1970-01-01 00:00:00
       break;
     case DATE:
-      values.add(0); // 1970-01-01
-      values.add(365); // 1971-01-01
-      values.add(-365); // 1969-01-01
+      if (true) {
+        values.add(0); // 1970-01-01
+        values.add(365); // 1971-01-01
+        values.add(-365); // 1969-01-01
+      } else {
+        values.add(new DateString(1970, 1, 1));
+        values.add(new DateString(1971, 1, 1));
+        values.add(new DateString(1969, 1, 1));
+      }
       break;
     case TIME:
       values.add(0); // 00:00:00.000
@@ -131,11 +138,14 @@ public class RexAnalyzer {
     }
 
     @Override public Void visitCall(RexCall call) {
-      if (!RexInterpreter.SUPPORTED_SQL_KIND.contains(call.getKind())) {
+      switch (call.getKind()) {
+      case CAST:
+      case OTHER_FUNCTION:
         ++unsupportedCount;
         return null;
+      default:
+        return super.visitCall(call);
       }
-      return super.visitCall(call);
     }
   }
 }

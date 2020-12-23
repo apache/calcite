@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.ImmutableRangeSet;
@@ -66,19 +67,29 @@ import java.util.function.BiConsumer;
 @SuppressWarnings({"BetaApi", "type.argument.type.incompatible"})
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
+  public final RexUnknownAs unknownAs;
+  @Deprecated // to be removed before 1.28
   public final boolean containsNull;
   public final int pointCount;
 
-  private Sarg(ImmutableRangeSet<C> rangeSet, boolean containsNull) {
+  private Sarg(ImmutableRangeSet<C> rangeSet, RexUnknownAs unknownAs) {
     this.rangeSet = Objects.requireNonNull(rangeSet, "rangeSet");
-    this.containsNull = containsNull;
+    this.unknownAs = unknownAs;
+    this.containsNull = unknownAs == RexUnknownAs.TRUE;
     this.pointCount = RangeSets.countPoints(rangeSet);
   }
 
-  /** Creates a search argument. */
+  @Deprecated // to be removed before 2.0
   public static <C extends Comparable<C>> Sarg<C> of(boolean containsNull,
       RangeSet<C> rangeSet) {
-    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), containsNull);
+    return of(containsNull ? RexUnknownAs.TRUE : RexUnknownAs.UNKNOWN,
+        rangeSet);
+  }
+
+  /** Creates a search argument. */
+  public static <C extends Comparable<C>> Sarg<C> of(RexUnknownAs unknownAs,
+      RangeSet<C> rangeSet) {
+    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), unknownAs);
   }
 
   /**
@@ -206,6 +217,6 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
 
   /** Returns a Sarg that matches a value if and only this Sarg does not. */
   public Sarg negate() {
-    return Sarg.of(!containsNull, rangeSet.complement());
+    return Sarg.of(unknownAs.negate(), rangeSet.complement());
   }
 }

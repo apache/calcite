@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
@@ -892,7 +893,7 @@ public abstract class SqlImplementor {
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
-      if (sarg.containsNull) {
+      if (sarg.unknownAs == RexUnknownAs.TRUE) {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {

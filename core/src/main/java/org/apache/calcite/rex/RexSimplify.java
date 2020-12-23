@@ -336,7 +336,12 @@ public class RexSimplify {
     if (e.operands.get(1) instanceof RexLiteral) {
       final RexLiteral literal = (RexLiteral) e.operands.get(1);
       if ("%".equals(literal.getValueAs(String.class))) {
-        return rexBuilder.makeLiteral(true);
+        RexNode x = e.operands.get(0);
+        // "x LIKE '%'" simplifies to "UNKNOWN OR x IS NOT NULL"
+        return simplify(
+            rexBuilder.makeCall(SqlStdOperatorTable.OR,
+                rexBuilder.makeNullLiteral(e.getType()),
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x)));
       }
     }
     return simplifyGenericNode(e);
@@ -1254,7 +1259,7 @@ public class RexSimplify {
 
     // prepare all condition/branches for boolean interpretation
     // It's done here make these interpretation changes available to case2or simplifications
-    // but not interfere with the normal simplifcation recursion
+    // but not interfere with the normal simplification recursion
     List<CaseBranch> branches = new ArrayList<>();
     for (CaseBranch branch : inputBranches) {
       if ((branches.size() > 0 && !isSafeExpression(branch.cond))
@@ -1340,9 +1345,10 @@ public class RexSimplify {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
 
-    final SargCollector sargCollector = new SargCollector(rexBuilder, true);
+    final SargCollector sargCollector =
+        new SargCollector(rexBuilder, true, unknownAs);
     operands.forEach(t -> sargCollector.accept(t, terms));
-    if (sargCollector.needToFix(unknownAs)) {
+    if (sargCollector.needToFix()) {
       operands.clear();
       terms.forEach(t -> operands.add(sargCollector.fix(rexBuilder, t)));
     }
@@ -1813,12 +1819,13 @@ public class RexSimplify {
   /** Simplifies a list of terms and combines them into an OR.
    * Modifies the list in place. */
   private RexNode simplifyOrs(List<RexNode> terms, RexUnknownAs unknownAs) {
-    final SargCollector sargCollector = new SargCollector(rexBuilder, false);
+    final SargCollector sargCollector =
+        new SargCollector(rexBuilder, false, unknownAs);
     final List<RexNode> newTerms = new ArrayList<>();
     terms.forEach(t -> sargCollector.accept(t, newTerms));
-    if (sargCollector.needToFix(unknownAs)) {
+    if (sargCollector.needToFix()) {
       terms.clear();
-      newTerms.forEach(t -> terms.add(sargCollector.fix(rexBuilder, t)));
+      newTerms.forEach(t -> terms.add(SargCollector.fix(rexBuilder, t)));
     }
 
     // CALCITE-3198 Auxiliary map to simplify cases like:
@@ -1966,21 +1973,21 @@ public class RexSimplify {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
       if (sarg.isAll()
-          && (sarg.containsNull || !a.getType().isNullable())) {
+          && (sarg.unknownAs == TRUE || !a.getType().isNullable())) {
         // SEARCH(x, [TRUE])  -> TRUE
         // SEARCH(x, [NOT NULL])  -> TRUE if x's type is NOT NULL
         return rexBuilder.makeLiteral(true);
       }
       // Remove null from sarg if the left-hand side is never null
-      if (sarg.containsNull) {
+      if (sarg.unknownAs != UNKNOWN) {
         final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
         if (simplified != null
             && simplified.isAlwaysFalse()) {
-          final Sarg sarg2 = Sarg.of(false, sarg.rangeSet);
+          final Sarg sarg2 = Sarg.of(UNKNOWN, sarg.rangeSet);
           final RexLiteral literal2 =
               rexBuilder.makeLiteral(sarg2, literal.getType(),
                   literal.getTypeName());
-          // Now we've strengthened containsNull to false, try to simplify again
+          // Now we've strengthened the Sarg, try to simplify again
           return simplifySearch(
               call.clone(call.type, ImmutableList.of(a, literal2)),
               unknownAs);
@@ -2621,6 +2628,7 @@ public class RexSimplify {
     final Map<RexNode, RexSargBuilder> map = new HashMap<>();
     private final RexBuilder rexBuilder;
     private final boolean negate;
+    private RexUnknownAs unknownAs;
     /**
      * Count of the new terms after converting all the operands to
      * {@code SEARCH} on a {@link Sarg}. It is used to decide whether
@@ -2628,9 +2636,11 @@ public class RexSimplify {
      */
     private int newTermsCount;
 
-    SargCollector(RexBuilder rexBuilder, boolean negate) {
+    SargCollector(RexBuilder rexBuilder, boolean negate,
+        RexUnknownAs unknownAs) {
       this.rexBuilder = rexBuilder;
       this.negate = negate;
+      this.unknownAs = unknownAs;
     }
 
     private void accept(RexNode term, List<RexNode> newTerms) {
@@ -2696,7 +2706,8 @@ public class RexSimplify {
     private boolean accept1(RexNode e, SqlKind kind, List<RexNode> newTerms) {
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
-              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
+              addFluent(newTerms,
+                  new RexSargBuilder(e2, rexBuilder, negate, unknownAs)));
       switch (kind) {
       case IS_NULL:
         if (negate) {
@@ -2729,7 +2740,8 @@ public class RexSimplify {
       }
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
-              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
+              addFluent(newTerms,
+                  new RexSargBuilder(e2, rexBuilder, negate, unknownAs)));
       if (negate) {
         kind = kind.negateNullSafe();
       }
@@ -2772,7 +2784,6 @@ public class RexSimplify {
      */
     private static boolean canMerge(Sarg sarg, RexUnknownAs unknownAs) {
       final boolean isAllOrNone = sarg.isAll() || sarg.isNone();
-      final boolean containsNull = sarg.containsNull;
       switch (unknownAs) {
       case UNKNOWN:
         // "unknown as unknown" can not be simplified to
@@ -2781,18 +2792,18 @@ public class RexSimplify {
       case TRUE:
         // "unknown as true" can not be simplified to
         // "false" or "IS NOT NULL"
-        return containsNull || !isAllOrNone;
+        return sarg.unknownAs == TRUE || !isAllOrNone;
       case FALSE:
         // "unknown as false" can not be simplified to
         // "true" or "IS NULL"
-        return !containsNull || !isAllOrNone;
+        return sarg.unknownAs == FALSE || !isAllOrNone;
       default:
         return true;
       }
     }
 
     /** Returns whether it is worth to fix and convert to {@code SEARCH} calls. */
-    boolean needToFix(RexUnknownAs unknownAs) {
+    boolean needToFix() {
       // Fix and converts to SEARCH if:
       // 1. A Sarg has complexity greater than 1;
       // 2. The terms are reduced as simpler Sarg points;
@@ -2850,15 +2861,18 @@ public class RexSimplify {
     final RexNode ref;
     final RexBuilder rexBuilder;
     final boolean negate;
+    final RexUnknownAs unknownAs;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
     int notNullTermCount;
     int nullTermCount;
 
-    RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate) {
+    RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate,
+        RexUnknownAs unknownAs) {
       this.ref = requireNonNull(ref, "ref");
       this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.negate = negate;
+      this.unknownAs = unknownAs;
     }
 
     @Override public String toString() {
@@ -2874,10 +2888,11 @@ public class RexSimplify {
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
       if (negate) {
-        return Sarg.of(notNullTermCount == 0,
+        return Sarg.of(notNullTermCount == 0 ? FALSE : unknownAs,
             (RangeSet) rangeSet.complement());
       } else {
-        return Sarg.of(nullTermCount > 0, (RangeSet) rangeSet);
+        return Sarg.of(nullTermCount > 0 ? TRUE : unknownAs,
+            (RangeSet) rangeSet);
       }
     }
 
@@ -2921,10 +2936,13 @@ public class RexSimplify {
     void addSarg(Sarg sarg, boolean negate, RelDataType type) {
       types.add(type);
       rangeSet.addAll(negate ? sarg.rangeSet.complement() : sarg.rangeSet);
-      if (sarg.containsNull) {
+      switch (sarg.unknownAs) {
+      case TRUE:
         ++nullTermCount;
-      } else {
+        break;
+      case FALSE:
         ++notNullTermCount;
+        break;
       }
     }
   }
