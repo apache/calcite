@@ -187,18 +187,22 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexNode isFalse(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, node);
   }
 
   protected RexNode isNotFalse(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_FALSE, node);
   }
 
   protected RexNode isTrue(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, node);
   }
 
   protected RexNode isNotTrue(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, node);
   }
 

@@ -1330,7 +1330,7 @@ public class RexBuilder {
    * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
   public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
     if (areAssignable(arg, ranges)) {
-      final Sarg sarg = toSarg(Comparable.class, ranges, false);
+      final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {
         final RexNode range0 = ranges.get(0);
         return makeCall(SqlStdOperatorTable.SEARCH,
@@ -1369,7 +1369,7 @@ public class RexBuilder {
         && upperValue != null
         && areAssignable(arg, Arrays.asList(lower, upper))) {
       final Sarg sarg =
-          Sarg.of(false,
+          Sarg.of(RexUnknownAs.UNKNOWN,
               ImmutableRangeSet.<Comparable>of(
                   Range.closed(lowerValue, upperValue)));
       return makeCall(SqlStdOperatorTable.SEARCH, arg,
@@ -1384,7 +1384,7 @@ public class RexBuilder {
    * not possible. */
   @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
   private static <C extends Comparable<C>> @Nullable Sarg<C> toSarg(Class<C> clazz,
-      List<? extends RexNode> ranges, boolean containsNull) {
+      List<? extends RexNode> ranges, RexUnknownAs unknownAs) {
     if (ranges.isEmpty()) {
       // Cannot convert an empty list to a Sarg (by this interface, at least)
       // because we use the type of the first element.
@@ -1398,7 +1398,7 @@ public class RexBuilder {
       }
       rangeSet.add(Range.singleton(value));
     }
-    return Sarg.of(containsNull, rangeSet);
+    return Sarg.of(unknownAs, rangeSet);
   }
 
   private static <C extends Comparable<C>> @Nullable C toComparable(Class<C> clazz,

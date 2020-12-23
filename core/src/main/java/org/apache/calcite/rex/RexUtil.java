@@ -597,17 +597,14 @@ public class RexUtil {
   }
 
   @SuppressWarnings("BetaApi")
-  public static <C extends Comparable<C>> RexNode sargRef(
-      RexBuilder rexBuilder, RexNode ref, Sarg<C> sarg, RelDataType type) {
-    if (sarg.isAll()) {
-      if (sarg.containsNull) {
-        return rexBuilder.makeLiteral(true);
-      } else {
-        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref);
-      }
+  public static <C extends Comparable<C>> RexNode sargRef(RexBuilder rexBuilder,
+      RexNode ref, Sarg<C> sarg, RelDataType type, RexUnknownAs unknownAs) {
+    if (sarg.isAll() || sarg.isNone()) {
+      return simpleSarg(rexBuilder, ref, sarg, unknownAs);
     }
     final List<RexNode> orList = new ArrayList<>();
-    if (sarg.containsNull) {
+    if (sarg.nullAs == RexUnknownAs.TRUE
+        && unknownAs == RexUnknownAs.UNKNOWN) {
       orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref));
     }
     if (sarg.isPoints()) {
@@ -631,7 +628,50 @@ public class RexUtil {
           new RangeToRex<>(ref, orList, rexBuilder, type);
       RangeSets.forEach(sarg.rangeSet, consumer);
     }
-    return composeDisjunction(rexBuilder, orList);
+    RexNode node = composeDisjunction(rexBuilder, orList);
+    if (sarg.nullAs == RexUnknownAs.FALSE
+        && unknownAs == RexUnknownAs.UNKNOWN) {
+      node =
+          rexBuilder.makeCall(SqlStdOperatorTable.AND,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref),
+              node);
+    }
+    return node;
+  }
+
+  /** Expands an 'all' or 'none' sarg. */
+  public static <C extends Comparable<C>> RexNode simpleSarg(RexBuilder rexBuilder,
+      RexNode ref, Sarg<C> sarg, RexUnknownAs unknownAs) {
+    assert sarg.isAll() || sarg.isNone();
+    final RexUnknownAs nullAs =
+        sarg.nullAs == RexUnknownAs.UNKNOWN ? unknownAs
+            : sarg.nullAs;
+    if (sarg.isAll()) {
+      switch (nullAs) {
+      case TRUE:
+        return rexBuilder.makeLiteral(true);
+      case FALSE:
+        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref);
+      case UNKNOWN:
+        // "x IS NOT NULL OR UNKNOWN"
+        return rexBuilder.makeCall(SqlStdOperatorTable.OR,
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref),
+            rexBuilder.makeNullLiteral(
+                rexBuilder.typeFactory.createSqlType(SqlTypeName.BOOLEAN)));
+      }
+    }
+    if (sarg.isNone()) {
+      switch (nullAs) {
+      case TRUE:
+        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref);
+      case FALSE:
+        return rexBuilder.makeLiteral(false);
+      case UNKNOWN:
+        // "CASE WHEN x IS NULL THEN UNKNOWN ELSE FALSE END", or "x <> x"
+        return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref, ref);
+      }
+    }
+    throw new AssertionError();
   }
 
   private static RexNode deref(@Nullable RexProgram program, RexNode node) {
@@ -3054,7 +3094,8 @@ public class RexUtil {
             (RexLiteral) deref(program, call.operands.get(1));
         final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
         if (maxComplexity < 0 || sarg.complexity() < maxComplexity) {
-          return sargRef(rexBuilder, ref, sarg, literal.getType());
+          return sargRef(rexBuilder, ref, sarg, literal.getType(),
+              RexUnknownAs.UNKNOWN);
         }
         // Sarg is complex (therefore useful); fall through
       default:

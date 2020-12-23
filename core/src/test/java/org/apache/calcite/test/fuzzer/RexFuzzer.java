@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilderBase;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -263,6 +264,8 @@ public class RexFuzzer extends RexProgramBuilderBase {
   public RexNode fuzzSearch(Random r, RexNode intExpression) {
     final RangeSet<BigDecimal> rangeSet = TreeRangeSet.create();
     final Generator<BigDecimal> integerGenerator = RexFuzzer::fuzzInt;
+    final Generator<RexUnknownAs> unknownGenerator =
+        enumGenerator(RexUnknownAs.class);
     int i = 0;
     for (;;) {
       rangeSet.add(fuzzRange(r, integerGenerator));
@@ -270,12 +273,16 @@ public class RexFuzzer extends RexProgramBuilderBase {
         break;
       }
     }
-    final boolean containsNull = r.nextInt(3) == 0;
-    final Sarg<BigDecimal> sarg = Sarg.of(containsNull, rangeSet);
-    final RexNode c = rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+    final Sarg<BigDecimal> sarg =
+        Sarg.of(unknownGenerator.generate(r), rangeSet);
+    return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
         rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
-    System.out.println(c);
-    return c;
+  }
+
+  private static <T extends Enum<T>> Generator<T> enumGenerator(
+      Class<T> enumClass) {
+    final T[] enumConstants = enumClass.getEnumConstants();
+    return r -> enumConstants[r.nextInt(enumConstants.length)];
   }
 
   <T extends Comparable<T>> Range<T> fuzzRange(Random r,

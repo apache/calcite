@@ -53,8 +53,8 @@ class DruidDateRangeRulesTest {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,
         f.and(
-            f.le(f.timestampLiteral(2011, Calendar.JANUARY, 1), f.t),
-            f.le(f.t, f.timestampLiteral(2012, Calendar.FEBRUARY, 2))),
+            f.le(f.timestampLiteral(2011, Calendar.JANUARY, 1), f.ts),
+            f.le(f.ts, f.timestampLiteral(2012, Calendar.FEBRUARY, 2))),
         is("[2011-01-01T00:00:00.000Z/2012-02-02T00:00:00.001Z]"));
   }
 
