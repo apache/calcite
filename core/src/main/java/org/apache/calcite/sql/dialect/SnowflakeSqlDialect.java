@@ -132,12 +132,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private void handleOverCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if ("SUM".equals(((SqlBasicCall) call.operand(0)).getOperator().getName())) {
+    if (checkWindowFunctionContainOrderBy(call)) {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       unparseSqlWindow(call.operand(1), writer);
     }
+  }
+
+  private boolean checkWindowFunctionContainOrderBy(SqlCall call) {
+    return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
   private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
