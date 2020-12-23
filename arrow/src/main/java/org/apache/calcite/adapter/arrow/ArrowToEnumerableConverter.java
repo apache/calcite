@@ -54,13 +54,15 @@ public class ArrowToEnumerableConverter extends ConverterImpl implements Enumera
             implementor.getTypeFactory(),
             getRowType(),
             pref.preferArray());
-    System.out.println(arrowImplementor.selectFields);
+
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(getTable().getExpression(ArrowTable.class),
+            Expressions.call(arrowImplementor.table.getExpression(ArrowTable.class),
                 ArrowMethod.ARROW_PROJECT.method, implementor.getRootExpression(),
-                Expressions.constant(arrowImplementor.selectFields), Expressions.constant(SqlKind.GREATER_THAN),
-                Expressions.constant(0), Expressions.constant(1))));
+                Expressions.constant(arrowImplementor.selectFields),
+                Expressions.constant(arrowImplementor.operator),
+                Expressions.constant(arrowImplementor.fieldToCompare),
+                Expressions.constant(arrowImplementor.valueToCompare))));
   }
 }

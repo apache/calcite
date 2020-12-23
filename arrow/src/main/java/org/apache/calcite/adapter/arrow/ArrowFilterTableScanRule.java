@@ -43,14 +43,6 @@ public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.C
 
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
-    final ArrowTableScan scan = call.rel(1);
-    int[] fields = {0, 1, 2};
-
-    final RexNode condition = filter.getCondition();
-    final SqlKind operator = condition.getKind();
-    final RexCall rexCall = (RexCall) condition;
-    RexNode left = rexCall.getOperands().get(0);
-    RexNode right = rexCall.getOperands().get(1);
 
     if (filter.getTraitSet().contains(Convention.NONE)) {
       final RelNode converted = convert(filter);

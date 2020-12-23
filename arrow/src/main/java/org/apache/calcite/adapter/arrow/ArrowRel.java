@@ -36,8 +36,10 @@ public interface ArrowRel extends RelNode {
   Convention CONVENTION = new Convention.Impl("ARROW", ArrowRel.class);
 
   class Implementor {
-    final List<Integer> selectFields = new ArrayList<>();
-    final List<String> whereClause = new ArrayList<>();
+    int[] selectFields;
+    int fieldToCompare;
+    Object valueToCompare;
+    String operator;
 
     RelOptTable table;
     ArrowTable arrowTable;
@@ -45,17 +47,19 @@ public interface ArrowRel extends RelNode {
     /** Adds newly projected fields and restricted predicates.
      *
      * @param fields New fields to be projected from a query
-     * @param predicates New predicates to be applied to the query
+     * @param field Field that needs to be compared
+     * @param value Value of the field that needs to be compared
      */
-    public void add(int[] fields, List<String> predicates) {
+    public void add(int[] fields, String condition, Integer field, Object value) {
       if (fields != null) {
-        for (int field : fields) {
-          selectFields.add(field);
+        selectFields = new int[fields.length];
+        for(int i = 0; i < fields.length; i++) {
+          selectFields[i] = fields[i];
         }
       }
-      if (predicates != null) {
-        whereClause.addAll(predicates);
-      }
+      operator = condition;
+      fieldToCompare = field;
+      valueToCompare = value;
     }
 
     public void visitChild(int ordinal, RelNode input) {
