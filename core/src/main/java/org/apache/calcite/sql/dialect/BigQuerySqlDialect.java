@@ -689,6 +689,13 @@ public class BigQuerySqlDialect extends SqlDialect {
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "WEEKNUMBER_OF_YEAR":
+    case "YEARNUMBER_OF_CALENDAR":
+    case "MONTHNUMBER_OF_YEAR":
+    case "QUARTERNUMBER_OF_YEAR":
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

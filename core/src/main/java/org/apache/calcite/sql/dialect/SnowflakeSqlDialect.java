@@ -197,10 +197,35 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "WEEKNUMBER_OF_YEAR":
+    case "YEARNUMBER_OF_CALENDAR":
+    case "MONTHNUMBER_OF_YEAR":
+    case "QUARTERNUMBER_OF_YEAR":
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    /*case "MONTHNUMBER_OF_QUARTER":
+      unparseMonthNumberQuarter(call, "MONTH", writer, leftPrec, rightPrec);
+      break;*/
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
+
+  /*private void unparseMonthNumberQuarter(SqlCall call, String value, SqlWriter writer,
+      int leftPrec, int rightPrec) {
+    final SqlWriter.Frame ifFrame = writer.startFunCall(SqlStdOperatorTable.IF.getName());
+    writer.endFunCall(ifFrame);
+    final SqlWriter.Frame modFrame = writer.startFunCall(SqlStdOperatorTable.MOD.getName());
+    unparseWeekNumber(call.operand(0), value, writer, leftPrec, rightPrec);
+    writer.print(", 3");
+    writer.endFunCall(modFrame);
+    writer.print(" = 0");
+    SqlNode[] operands = new SqlNode[]{call.operand(0),
+        SqlNumericLiteral.createExactNumeric("0", SqlParserPos.ZERO)};
+    //SqlCall equalCall = new SqlBasicCall(SqlStdOperatorTable.EQUALS, operands, SqlParserPos.ZERO);
+    System.out.println(call);
+  }*/
 
   /**
    * unparse function for math functions
