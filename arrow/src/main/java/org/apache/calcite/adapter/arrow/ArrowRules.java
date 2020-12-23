@@ -39,8 +39,8 @@ public class ArrowRules {
           .toRule(ArrowToEnumerableConverterRule.class);
 
   public static final RelOptRule[] RULES = {
-      FILTER_SCAN,
-      PROJECT_SCAN
+      PROJECT_SCAN,
+      FILTER_SCAN
   };
 
   static List<String> arrowFieldNames(final RelDataType rowType) {

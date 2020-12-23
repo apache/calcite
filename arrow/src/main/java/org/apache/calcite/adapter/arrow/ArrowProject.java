@@ -30,11 +30,9 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Pair;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+
 
 public class ArrowProject extends Project implements ArrowRel {
 
@@ -58,7 +56,7 @@ public class ArrowProject extends Project implements ArrowRel {
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    implementor.add(getProjectFields(getProjects()), null);
+    implementor.add(getProjectFields(getProjects()), null, null, null);
   }
 
   private int[] getProjectFields(List<RexNode> exps) {

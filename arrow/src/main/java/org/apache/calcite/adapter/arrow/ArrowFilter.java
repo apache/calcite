@@ -22,14 +22,19 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.sql.SqlKind;
 
 import java.util.*;
 
 public class ArrowFilter extends Filter implements ArrowRel {
 
-  private String match;
+  Integer field;
+  Object value;
+  String operator;
 
   public ArrowFilter(
       RelOptCluster cluster,
@@ -38,10 +43,15 @@ public class ArrowFilter extends Filter implements ArrowRel {
       RexNode condition) {
     super(cluster, traitSet, child, condition);
 
-//    Translator translator = new Translator(getRowType());
-//    this.match = translator.translateMatch(condition);
-//    assert getConvention() == ArrowRel.CONVENTION;
-//    assert getConvention() == child.getConvention();
+    Translator translator = new Translator(getRowType());
+    final SqlKind operator = condition.getKind();
+
+    final RexCall rexCall = (RexCall) condition;
+    RexNode left = rexCall.getOperands().get(0);
+    RexNode right = rexCall.getOperands().get(1);
+    this.field = ((RexInputRef) left).getIndex();
+    this.value = ((RexLiteral) right).getValue2();
+    this.operator = translator.matchCondition(operator);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
@@ -53,10 +63,9 @@ public class ArrowFilter extends Filter implements ArrowRel {
   }
 
   public void implement(Implementor implementor) {
-    System.out.println("1");
     implementor.visitChild(0, getInput());
-    int[] f = {1,2,3};
-    implementor.add(f, Collections.singletonList(match));
+    int[] fields = {0,1,2};
+    implementor.add(fields, operator, field, value);
   }
 
   static class Translator {
@@ -68,5 +77,17 @@ public class ArrowFilter extends Filter implements ArrowRel {
       this.fieldNames = ArrowRules.arrowFieldNames(rowType);
     }
 
+    String matchCondition(SqlKind condition) {
+      switch (condition) {
+      case EQUALS:
+        return "equal";
+      case LESS_THAN:
+        return "less_than";
+      case GREATER_THAN:
+        return "greater_than";
+      default:
+        throw new AssertionError("Operator not supported");
+      }
+    }
   }
 }

@@ -87,8 +87,9 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> project(DataContext root, final int[] fields, SqlKind condition,
+  public Enumerable<Object> project(DataContext root, final int[] fields, String condition,
                                     int fieldToCompare, Object valueToCompare) {
+    System.out.println(fields.length);
     List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
     List<TreeNode> treeNodes = new ArrayList<>(2);
 
@@ -100,7 +101,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
 
     treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
     treeNodes.add(makeLiteralNode(valueToCompare));
-    TreeNode treeNode = TreeBuilder.makeFunction(matchCondition(condition), treeNodes,
+    TreeNode treeNode = TreeBuilder.makeFunction(condition, treeNodes,
         new ArrowType.Bool());
     Condition filterCondition = TreeBuilder.makeCondition(treeNode);
 
@@ -152,19 +153,6 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       return new Pair<>(field.getName(), relDataType);
     }).collect(Collectors.toList());
     return typeFactory.createStructType(ret);
-  }
-
-  private String matchCondition(SqlKind condition) {
-    switch (condition) {
-    case EQUALS:
-      return "equal";
-    case LESS_THAN:
-      return "less_than";
-    case GREATER_THAN:
-      return "greater_than";
-    default:
-      throw new AssertionError("Operator not supported");
-    }
   }
 
   private TreeNode makeLiteralNode(Object literal) {

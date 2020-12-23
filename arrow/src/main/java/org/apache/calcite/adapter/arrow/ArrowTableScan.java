@@ -20,16 +20,13 @@ package org.apache.calcite.adapter.arrow;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.plan.RelOptPlanner;
 
 import java.util.List;
 
@@ -75,8 +72,9 @@ public class ArrowTableScan extends TableScan implements ArrowRel {
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(ArrowRules.TO_ENUMERABLE);
-    planner.addRule(ArrowRules.PROJECT_SCAN);
-    planner.addRule(ArrowRules.FILTER_SCAN);
+    for (RelOptRule rule : ArrowRules.RULES) {
+      planner.addRule(rule);
+    }
   }
 
   public void implement(ArrowRel.Implementor implementor) {
