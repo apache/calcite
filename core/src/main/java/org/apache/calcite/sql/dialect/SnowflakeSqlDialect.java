@@ -124,21 +124,22 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case OVER:
       handleOverCall(writer, call, leftPrec, rightPrec);
       break;
-    case POSITION:
-      unparsePosition(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
   private void handleOverCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if ("SUM".equals(((SqlBasicCall) call.operand(0)).getOperator().getName())) {
+    if (checkWindowFunctionContainOrderBy(call)) {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       unparseSqlWindow(call.operand(1), writer);
     }
+  }
+
+  private boolean checkWindowFunctionContainOrderBy(SqlCall call) {
+    return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
   private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
@@ -162,15 +163,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
       writer.endList(orderFrame);
     }
     writer.endList(frame);
-  }
-
-  private void unparsePosition(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame regexp_instr = writer.startFunCall("REGEXP_INSTR");
-    for (SqlNode operand : call.getOperandList()) {
-      writer.sep(",");
-      operand.unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(regexp_instr);
   }
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

@@ -5129,6 +5129,41 @@ public class RelToSqlConverterTest {
   }
 
   @Test
+  public void testOrderByInWindowFunction() {
+    String query = "select \"first_name\", COUNT(\"department_id\") as "
+        + "\"department_id_number\", ROW_NUMBER() OVER (ORDER BY "
+        + "\"department_id\" ASC), SUM(\"department_id\") OVER "
+        + "(ORDER BY \"department_id\" ASC) \n"
+        + "from \"foodmart\".\"employee\" \n"
+        + "GROUP by \"first_name\", \"department_id\"";
+    final String expected = "SELECT first_name, COUNT(*) department_id_number, ROW_NUMBER() OVER "
+        + "(ORDER BY department_id NULLS LAST), SUM(department_id) OVER (ORDER BY department_id NULLS "
+        + "LAST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name, department_id";
+    final String expectedBQ = "SELECT first_name, COUNT(*) AS department_id_number, "
+        + "ROW_NUMBER() OVER (ORDER BY department_id NULLS LAST), SUM(department_id) "
+        + "OVER (ORDER BY department_id NULLS LAST RANGE BETWEEN UNBOUNDED PRECEDING "
+        + "AND CURRENT ROW)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name, department_id";
+    final String expectedSnowFlake = "SELECT \"first_name\", COUNT(*) AS \"department_id_number\""
+        + ", ROW_NUMBER() OVER (ORDER BY \"department_id\"), SUM(\"department_id\") OVER (ORDER BY"
+        + " \"department_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY \"first_name\", \"department_id\"";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBQ)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
   public void testToNumberFunctionHandlingFloatingPoint() {
     String query = "select TO_NUMBER('-1.7892','9.9999')";
     final String expected = "SELECT CAST('-1.7892' AS FLOAT)";
@@ -6340,13 +6375,6 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
-  @Test public void testRegexpInstr() {
-    final String query = "SELECT POSITION('choose a chocolate chip cookie' IN 'ch')";
-    final String expectedSnowFlake = "SELECT REGEXP_INSTR('choose a chocolate chip cookie', 'ch')";
-    sql(query)
-            .withSnowflake()
-            .ok(expectedSnowFlake);
-  }
   @Test
   public void testRoundFunctionWithColumnPlaceHandling() {
     final String query = "SELECT ROUND(123.41445, \"product_id\") AS \"a\"\n"
