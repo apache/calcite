@@ -1012,6 +1012,7 @@ public class SqlFunctionsTest {
     assertThat(timestampToDate(new Timestamp(1607731932)).toString(), is("1970-01-19"));
   }
 
+  /** Test for {@link SqlFunctions#instr}. */
   @Test public void testInStr() {
     assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
     assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
