@@ -30,7 +30,9 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 
@@ -212,26 +214,23 @@ public class MssqlSqlDialect extends SqlDialect {
    * For usage of TRIM in MSSQL
    */
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    final String operatorName;
-    SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    switch (((SqlLiteral) call.operand(0)).getValueAs(SqlTrimFunction.Flag.class)) {
       case BOTH:
-        operatorName = " ";
+        final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep("FROM");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(frame);
+        break;
+      case LEADING:
+        unparseCall(writer, SqlLibraryOperators.LTRIM.createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+        break;
+      case TRAILING:
+        unparseCall(writer, SqlLibraryOperators.RTRIM.createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
         break;
       default:
-        operatorName = call.getOperator().getName();
-        break;
+        super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    if (!valueToTrim.toValue().matches("\\s+")) {
-      writer.literal(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(trimFrame);
   }
 }
-
 // End MssqlSqlDialect.java
