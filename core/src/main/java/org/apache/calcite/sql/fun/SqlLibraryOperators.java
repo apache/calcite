@@ -661,7 +661,10 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          OperandTypes.family(ImmutableList.of
+          (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
 }
 // End SqlLibraryOperators.java
