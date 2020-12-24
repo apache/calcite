@@ -134,7 +134,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      unparseSqlWindow(call.operand(1), writer);
+      unparseSqlWindow(call.operand(1), writer, call);
     }
   }
 
@@ -142,25 +142,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
-  private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
+  private void unparseSqlWindow(SqlWindow call, SqlWriter writer, SqlCall call1) {
     final SqlWindow window = call;
     writer.print("OVER ");
+    SqlCall call2 = call1.operand(0);
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
       window.getRefName().unparse(writer, 0, 0);
     }
-    if (window.getPartitionList().size() > 0) {
-      writer.sep("PARTITION BY");
-      final SqlWriter.Frame partitionFrame = writer.startList("", "");
-      window.getPartitionList().unparse(writer, 0, 0);
-      writer.endList(partitionFrame);
-    }
-    if (window.getOrderList().size() > 0) {
-      writer.sep("ORDER BY");
-      final SqlWriter.Frame orderFrame = writer.startList("", "");
-      window.getOrderList().unparse(writer, 0, 0);
-      writer.endList(orderFrame);
+    if (window.getOrderList().size() == 0) {
+      if (window.getPartitionList().size() > 0) {
+        writer.sep("PARTITION BY");
+        final SqlWriter.Frame partitionFrame = writer.startList("", "");
+        window.getPartitionList().unparse(writer, 0, 0);
+        writer.endList(partitionFrame);
+      }
+      writer.print("ORDER BY ");
+      if (call2.getOperandList().size() == 0) {
+        writer.print("0 ");
+      } else {
+        SqlNode operand1 = call2.operand(0);
+        operand1.unparse(writer, 0, 0);
+      }
+      writer.print("ROWS BETWEEN ");
+      writer.sep(window.getLowerBound().toString());
+      writer.sep("AND");
+      writer.sep(window.getUpperBound().toString());
     }
     writer.endList(frame);
   }
