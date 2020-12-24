@@ -71,12 +71,23 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
-    switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-    case INTERVAL_DAY:
-      if (call.op.kind == SqlKind.MINUS) {
-        return SqlLibraryOperators.DATE_SUB;
+    if (call.getOperator().toString().equals("TIMESTAMP_ADD")
+            || call.getOperator().toString().equals("TIMESTAMP_SUB")) {
+      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+      case INTERVAL_DAY:
+        if (call.op.kind == SqlKind.MINUS) {
+          return SqlLibraryOperators.TIMESTAMP_SUB;
+        }
+        return SqlLibraryOperators.TIMESTAMP_ADD;
       }
-      return SqlLibraryOperators.DATE_ADD;
+    } else {
+      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+      case INTERVAL_DAY:
+        if (call.op.kind == SqlKind.MINUS) {
+          return SqlLibraryOperators.DATE_SUB;
+        }
+        return SqlLibraryOperators.DATE_ADD;
+      }
     }
     return super.getTargetFunc(call);
   }
@@ -121,6 +132,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case POSITION:
       unparsePosition(writer, call, leftPrec, rightPrec);
+      break;
+    case MINUS:
+    case PLUS:
+      unparseTimestamp(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -323,6 +338,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
+  }
+
+  private void unparseTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperator().toString().equals("TIMESTAMP_ADD")
+            || call.getOperator().toString().equals("TIMESTAMP_SUB")) {
+      final SqlWriter.Frame formatTime = writer.startFunCall("TIMESTAMPADD");
+      String formatCall = ((SqlIntervalLiteral) call.operand(1))
+              .getTypeName().toString().split("_")[1];
+      writer.print(formatCall + ", ");
+      String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+      if (call.getOperator().equals("TIMESTAMP_SUB")) {
+        writer.print("-" + intCall + ", ");
+      } else {
+        writer.print(intCall + ", ");
+      }
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(formatTime);
+    }
   }
 
 }
