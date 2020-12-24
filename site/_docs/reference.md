@@ -55,6 +55,7 @@ here to appease testAllFunctionsAreDocumented:
 | RPAD()         | Append paddingString to the end of the string
 | FORMAT         | Format the value as per the pattern defined
 | TO_VARCHAR     | Derives the value as per the pattern defined
+| INSTR          | Finds substring position from Source string
 | WEEKNUMBER_OF_YEAR     | Get week number of the year
 | YEARNUMBER_OF_CALENDAR | Get year from the calendar value
 | MONTHNUMBER_OF_YEAR    | Get month of the year

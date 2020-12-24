@@ -655,6 +655,18 @@ public abstract class SqlLibraryOperators {
       OperandTypes.ANY_ANY,
       SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction INSTR = new SqlFunction(
+          "INSTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(ImmutableList.of
+          (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              number -> number == 2 || number == 3),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction WEEKNUMBER_OF_YEAR =
       new SqlFunction("WEEKNUMBER_OF_YEAR", SqlKind.OTHER_FUNCTION,

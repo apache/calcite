@@ -99,6 +99,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
@@ -350,6 +351,7 @@ public class RexImpTable {
     defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
         NullPolicy.ARG0);
     defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);

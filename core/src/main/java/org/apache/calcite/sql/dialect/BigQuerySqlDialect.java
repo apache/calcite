@@ -689,6 +689,14 @@ public class BigQuerySqlDialect extends SqlDialect {
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "INSTR":
+      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
+      break;
     case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
     case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
     case DateTimestampFormatUtil.MONTHNUMBER_OF_YEAR:
