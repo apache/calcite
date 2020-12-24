@@ -71,16 +71,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
-    if (call.getOperator().toString().equals("TIMESTAMP_ADD")
-            || call.getOperator().toString().equals("TIMESTAMP_SUB")) {
-      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-      case INTERVAL_DAY:
-        if (call.op.kind == SqlKind.MINUS) {
-          return SqlLibraryOperators.TIMESTAMP_SUB;
-        }
-        return SqlLibraryOperators.TIMESTAMP_ADD;
-      }
-    } else {
+    if (!(call.getOperator().toString().equals("TIMESTAMP_ADD")
+            || call.getOperator().toString().equals("TIMESTAMP_SUB"))) {
       switch (call.getOperands().get(1).getType().getSqlTypeName()) {
       case INTERVAL_DAY:
         if (call.op.kind == SqlKind.MINUS) {
@@ -348,7 +340,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
               .getTypeName().toString().split("_")[1];
       writer.print(formatCall + ", ");
       String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-      if (call.getOperator().equals("TIMESTAMP_SUB")) {
+      if (call.getOperator().toString().equals("TIMESTAMP_SUB")) {
         writer.print("-" + intCall + ", ");
       } else {
         writer.print(intCall + ", ");
