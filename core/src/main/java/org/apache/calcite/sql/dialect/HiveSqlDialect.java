@@ -620,10 +620,10 @@ public class HiveSqlDialect extends SqlDialect {
     case "LPAD":
       PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
-    case "MONTHNUMBER_OF_QUARTER":
-    case "WEEKNUMBER_OF_MONTH":
-    case "WEEKNUMBER_OF_CALENDAR":
-    case "DAYOCCURRENCE_OF_MONTH":
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_QUARTER:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_MONTH:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;

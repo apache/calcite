@@ -37,31 +37,43 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
  * Support unparse logic for DateTimestamp function
  */
 public class DateTimestampFormatUtil {
+
+  public static final String WEEKNUMBER_OF_YEAR = "WEEKNUMBER_OF_YEAR";
+  public static final String YEARNUMBER_OF_CALENDAR = "YEARNUMBER_OF_CALENDAR";
+  public static final String MONTHNUMBER_OF_YEAR = "MONTHNUMBER_OF_YEAR";
+  public static final String QUARTERNUMBER_OF_YEAR = "QUARTERNUMBER_OF_YEAR";
+  public static final String MONTHNUMBER_OF_QUARTER = "MONTHNUMBER_OF_QUARTER";
+  public static final String WEEKNUMBER_OF_MONTH = "WEEKNUMBER_OF_MONTH";
+  public static final String WEEKNUMBER_OF_CALENDAR = "WEEKNUMBER_OF_CALENDAR";
+  public static final String DAYOCCURRENCE_OF_MONTH = "DAYOCCURRENCE_OF_MONTH";
+
+  private static final String DEFAULT_DATE = "1900-01-01";
+
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall = null;
     switch (call.getOperator().getName()) {
-    case "WEEKNUMBER_OF_YEAR":
+    case WEEKNUMBER_OF_YEAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.WEEK);
       break;
-    case "YEARNUMBER_OF_CALENDAR":
+    case YEARNUMBER_OF_CALENDAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.YEAR);
       break;
-    case "MONTHNUMBER_OF_YEAR":
+    case MONTHNUMBER_OF_YEAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.MONTH);
       break;
-    case "QUARTERNUMBER_OF_YEAR":
+    case QUARTERNUMBER_OF_YEAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.QUARTER);
       break;
-    case "MONTHNUMBER_OF_QUARTER":
+    case MONTHNUMBER_OF_QUARTER:
       extractCall = unparseMonthNumberQuarter(call, DateTimeUnit.MONTH);
       break;
-    case "WEEKNUMBER_OF_MONTH":
+    case WEEKNUMBER_OF_MONTH:
       extractCall = unparseMonthNumber(call, DateTimeUnit.DAY);
       break;
-    case "WEEKNUMBER_OF_CALENDAR":
+    case WEEKNUMBER_OF_CALENDAR:
       extractCall = handleWeekNumberCalendar(call, DateTimeUnit.WEEK);
       break;
-    case "DAYOCCURRENCE_OF_MONTH":
+    case DAYOCCURRENCE_OF_MONTH:
       extractCall = handleDayOccurrenceMonth(call, DateTimeUnit.DAY);
       break;
     }
@@ -82,7 +94,7 @@ public class DateTimestampFormatUtil {
 
   private SqlCall handleWeekNumberCalendar(SqlCall call, DateTimeUnit dateTimeUnit) {
     SqlNode[] dateCastOperand = new SqlNode[] {
-        SqlLiteral.createDate(new DateString("1900-01-01"), SqlParserPos.ZERO)
+        SqlLiteral.createDate(new DateString(DEFAULT_DATE), SqlParserPos.ZERO)
     };
     SqlNode[] dateDiffOperands = new SqlNode[] { call.operand(0), dateCastOperand[0],
         SqlLiteral.createSymbol(dateTimeUnit, SqlParserPos.ZERO) };
