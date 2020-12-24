@@ -53,7 +53,20 @@ public enum SqlDateTimeFormat {
   FRACTIONFIVE("S(5)"),
   FRACTIONSIX("S(6)"),
   AMPM("T"),
-  TIMEZONE("Z");
+  TIMEZONE("Z"),
+  MONTH_NAME("MONTH"),
+  ABBREVIATED_MONTH("MON"),
+  NAME_OF_DAY("DAY"),
+  ABBREVIATED_NAME_OF_DAY("DY"),
+  HOUR_OF_DAY_12("HH12"),
+  MERIDIAN_INDICATOR1("PM"),
+  MERIDIAN_INDICATOR2("P.M."),
+  MERIDIAN_INDICATOR3("AM"),
+  MERIDIAN_INDICATOR4("A.M."),
+  MILISECONDSTERADATA("SS.sssss"),
+  MILISECONDS("SS.ssss"),
+  NAME_OF_DAY_1("E4"),
+  ABBREVIATED_NAME_OF_DAY_1("E3");
 
   public final String value;
 
@@ -72,7 +85,7 @@ public enum SqlDateTimeFormat {
 
   static SqlDateTimeFormat of(String value) {
     for (SqlDateTimeFormat dateTimeFormat : values()) {
-      if (dateTimeFormat.value.equals(value)) {
+      if (dateTimeFormat.value.equalsIgnoreCase(value)) {
         return dateTimeFormat;
       }
     }

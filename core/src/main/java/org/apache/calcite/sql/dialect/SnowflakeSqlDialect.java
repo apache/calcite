@@ -205,6 +205,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "TIMESTAMP_SECONDS":
+      final SqlWriter.Frame timestampSecond = writer.startFunCall("TO_TIMESTAMP");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampSecond);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

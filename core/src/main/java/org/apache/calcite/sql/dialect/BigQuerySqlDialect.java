@@ -63,6 +63,9 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY_1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
@@ -77,11 +80,21 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MERIDIAN_INDICATOR1;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MERIDIAN_INDICATOR2;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MERIDIAN_INDICATOR3;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MERIDIAN_INDICATOR4;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILISECONDS;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILISECONDSTERADATA;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY_1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
@@ -93,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
@@ -165,6 +179,19 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(TIMEZONE, "%Z");
         put(YYYYMM, "%Y%m");
         put(MMYY, "%m%y");
+        put(MONTH_NAME, "%B");
+        put(ABBREVIATED_MONTH, "%b");
+        put(NAME_OF_DAY, "%A");
+        put(ABBREVIATED_NAME_OF_DAY, "%a");
+        put(HOUR_OF_DAY_12, "%l");
+        put(MERIDIAN_INDICATOR1, "%p");
+        put(MERIDIAN_INDICATOR2, "%p");
+        put(MERIDIAN_INDICATOR3, "%p");
+        put(MERIDIAN_INDICATOR4, "%p");
+        put(MILISECONDSTERADATA, "%E*S");
+        put(MILISECONDS, "%E*S");
+        put(NAME_OF_DAY_1, "%A");
+        put(ABBREVIATED_NAME_OF_DAY_1, "%a");
       }};
 
   /** An unquoted BigQuery identifier must start with a letter and be followed
@@ -697,12 +724,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         unparseCall(writer, timestampSecondsCall, leftPrec, rightPrec);
         break;
       }
-      final SqlWriter.Frame toTimestampFunction = writer.startFunCall("PARSE_TIMESTAMP");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(toTimestampFunction);
+      SqlCall parseTimestampCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+      unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
