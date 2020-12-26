@@ -158,7 +158,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return true;
   }
 
-  @Override public List<RexNode> getChildExps() {
+  public List<RexNode> getChildExps() {
     return exps;
   }
 

@@ -6474,7 +6474,7 @@ class RelToSqlConverterTest {
         + "FROM (VALUES  (0))AS \"t\"\n"
         + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     final String expected = "SELECT COUNT(\"$f1\")\n"
-        + "FROM (VALUES  (NULL, NULL)) AS \"t\" (\"$f0\", \"$f1\")\n"
+        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"$f0\", \"$f1\")\n"
         + "GROUP BY \"$f0\"";
     sql(query).ok(expected);
     // validate
@@ -6508,7 +6508,7 @@ class RelToSqlConverterTest {
         + "\"EXPR$3\" AS \"account_rollup\","
         + " CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") "
         + "AS \"Custom_Members\"\n"
-        + "FROM (VALUES  (1, NULL, '123', '123')) "
+        + "FROM (VALUES (1, NULL, '123', '123')) "
         + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\"))";
     sql(query).ok(expected);
     // validate
