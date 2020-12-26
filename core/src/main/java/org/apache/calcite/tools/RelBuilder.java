@@ -422,14 +422,17 @@ public class RelBuilder {
     } else if (value instanceof Enum) {
       return rexBuilder.makeLiteral(value,
           getTypeFactory().createSqlType(SqlTypeName.SYMBOL));
-    } else if (value instanceof List) {
-      RelDataType arrayDataType = getTypeFactory().
-              createArrayType(getTypeFactory().createSqlType(SqlTypeName.ANY), -1);
-      return rexBuilder.makeLiteral(value, arrayDataType);
     } else {
       throw new IllegalArgumentException("cannot convert " + value
           + " (" + value.getClass() + ") to a constant");
     }
+  }
+
+  public RexNode makeArrayLiteral(Object value) {
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    RelDataType arrayDataType = getTypeFactory().
+        createArrayType(getTypeFactory().createSqlType(SqlTypeName.ANY), -1);
+    return rexBuilder.makeLiteral(value, arrayDataType, false);
   }
 
   /** Creates a correlation variable for the current input, and writes it into

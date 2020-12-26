@@ -1219,7 +1219,7 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
     RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
-            builder.literal(Arrays.asList(array))).project(builder.field(0)).build();
+            builder.makeArrayLiteral(Arrays.asList(array))).project(builder.field(0)).build();
     final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
     final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
@@ -1357,7 +1357,7 @@ class RelToSqlConverterTest {
     final String expectedMysql = "SELECT `D2` AS `emps.deptno`\n"
         + "FROM (SELECT `DEPTNO` AS `D2`, COUNT(*) AS `emps.count`\n"
         + "FROM `scott`.`EMP`\n"
-        + "GROUP BY `DEPTNO`\n"
+        + "GROUP BY `D2`\n"
         + "HAVING `emps.count` < 2) AS `t1`";
     final String expectedPostgresql = "SELECT \"DEPTNO\" AS \"emps.deptno\"\n"
         + "FROM \"scott\".\"EMP\"\n"
@@ -1366,7 +1366,7 @@ class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT D2 AS `emps.deptno`\n"
         + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS `emps.count`\n"
         + "FROM scott.EMP\n"
-        + "GROUP BY DEPTNO\n"
+        + "GROUP BY D2\n"
         + "HAVING `emps.count` < 2) AS t1";
     relFn(b -> root)
         .withMysql().ok(expectedMysql)
@@ -1500,7 +1500,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\" AS \"p\","
         + " \"net_weight\" AS \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY 1";
+        + "ORDER BY \"p\"";
     sql(query).ok(expected);
   }
 
@@ -1514,11 +1514,11 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"net_weight\" AS \"product_id\","
         + " \"product_id\" AS \"product_id0\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY 2";
+        + "ORDER BY \"product_id0\"";
     final String expectedMysql = "SELECT `net_weight` AS `product_id`,"
         + " `product_id` AS `product_id0`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id0` IS NULL, 2";
+        + "ORDER BY `product_id0` IS NULL, `product_id0`";
     sql(query).ok(expected)
         .withMysql().ok(expectedMysql);
   }

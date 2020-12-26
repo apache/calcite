@@ -834,15 +834,15 @@ public abstract class SqlImplementor {
       case IS_NOT_TRUE:
       case IS_TRUE:
         if (!dialect.getConformance().allowIsTrue()) {
-          operand = ((RexCall) rex).operands.get(0);
-          final SqlNode nodes = toSql(program, operand);
           SqlOperator op = dialect.getTargetFunc((RexCall) rex);
-          return op
-            .createCall(POS, ((SqlCall) nodes).getOperandList());
-        } else {
-          List<SqlNode> nodes = toSql(program, ((RexCall) rex).getOperands());
-          return ((RexCall) rex).getOperator().createCall(new SqlNodeList(nodes, POS));
+          if (op != ((RexCall) rex).op) {
+            operand = ((RexCall) rex).operands.get(0);
+            final SqlNode nodes = toSql(program, operand);
+            return op.createCall(POS, ((SqlCall) nodes).getOperandList());
+          }
         }
+        List<SqlNode> nodes = toSql(program, ((RexCall) rex).getOperands());
+        return ((RexCall) rex).getOperator().createCall(new SqlNodeList(nodes, POS));
       default:
         if (rex instanceof RexOver) {
           return toSql(program, (RexOver) rex);
