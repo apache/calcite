@@ -1682,7 +1682,7 @@ class RexProgramTest extends RexProgramTestBase {
         isNotNull(aRef),
         gt(aRef, literal(3)),
         lt(aRef, literal(10)));
-    final String simplified = "SEARCH($0, Sarg[(3..10)])";
+    final String simplified = "SEARCH($0, Sarg[(3..10) meh3])";
     final String expanded = "AND(>($0, 3), <($0, 10))";
     checkSimplify(expr, simplified)
         .expandedSearch(expanded);
@@ -2823,7 +2823,7 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testSargComplexity() {
     checkSarg("complexity of 'x is not null'",
         Sarg.of(RexUnknownAs.UNKNOWN, RangeSets.<Integer>rangeSetAll()),
-        is(1), is("Sarg[NOT NULL]"));
+        is(1), is("Sarg[meh1]"));
     checkSarg("complexity of 'x is null'",
         Sarg.of(RexUnknownAs.TRUE, ImmutableRangeSet.<Integer>of()),
         is(1), is("Sarg[NULL]"));

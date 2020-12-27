@@ -116,10 +116,14 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public StringBuilder printTo(StringBuilder sb,
       BiConsumer<StringBuilder, C> valuePrinter) {
     if (isAll()) {
-      return sb.append(containsNull ? "Sarg[TRUE]" : "Sarg[NOT NULL]");
+      return sb.append(unknownAs == RexUnknownAs.TRUE ? "Sarg[TRUE]"
+          : unknownAs == RexUnknownAs.UNKNOWN ? "Sarg[meh1]"
+          : "Sarg[NOT NULL]");
     }
     if (isNone()) {
-      return sb.append(containsNull ? "Sarg[NULL]" : "Sarg[FALSE]");
+      return sb.append(unknownAs == RexUnknownAs.TRUE ? "Sarg[NULL]"
+          : unknownAs == RexUnknownAs.UNKNOWN ? "Sarg[meh2]"
+          : "Sarg[FALSE]");
     }
     sb.append("Sarg[");
     final RangeSets.Consumer<C> printer = RangeSets.printer(sb, valuePrinter);
@@ -129,10 +133,9 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       }
       RangeSets.forEach(r, printer);
     });
-    if (containsNull) {
-      sb.append(" OR NULL");
-    }
-    return sb.append("]");
+    return sb.append(unknownAs == RexUnknownAs.TRUE ? " OR NULL]"
+        : unknownAs == RexUnknownAs.UNKNOWN ? "]"
+        : " meh3]");
   }
 
   @Override public int compareTo(Sarg<C> o) {
@@ -140,13 +143,13 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   @Override public int hashCode() {
-    return RangeSets.hashCode(rangeSet) * 31 + (containsNull ? 2 : 3);
+    return RangeSets.hashCode(rangeSet) * 31 + unknownAs.ordinal();
   }
 
   @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof Sarg
-        && containsNull == ((Sarg) o).containsNull
+        && unknownAs == ((Sarg) o).unknownAs
         && rangeSet.equals(((Sarg) o).rangeSet);
   }
 

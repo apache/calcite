@@ -2628,7 +2628,7 @@ public class RexSimplify {
     final Map<RexNode, RexSargBuilder> map = new HashMap<>();
     private final RexBuilder rexBuilder;
     private final boolean negate;
-    private RexUnknownAs unknownAs;
+    private final RexUnknownAs unknownAs;
     /**
      * Count of the new terms after converting all the operands to
      * {@code SEARCH} on a {@link Sarg}. It is used to decide whether
@@ -2711,7 +2711,7 @@ public class RexSimplify {
       switch (kind) {
       case IS_NULL:
         if (negate) {
-          ++b.nullTermCount;
+          ++b.notNullTermCount;
           b.addAll();
         } else {
           ++b.nullTermCount;
@@ -2719,7 +2719,7 @@ public class RexSimplify {
         return true;
       case IS_NOT_NULL:
         if (negate) {
-          ++b.notNullTermCount;
+          ++b.nullTermCount;
         } else {
           ++b.notNullTermCount;
           b.addAll();
@@ -2747,6 +2747,7 @@ public class RexSimplify {
       }
       final Comparable value =
           requireNonNull(literal.getValueAs(Comparable.class), "value");
+      ++b.termCount;
       switch (kind) {
       case LESS_THAN:
         b.addRange(Range.lessThan(value), literal.getType());
@@ -2817,6 +2818,7 @@ public class RexSimplify {
         return true;
       }
       if (builders.size() == 1
+          && Bug.remark("TODO: remove method canMerge, field unknownAs") == null
           && !canMerge(builders.iterator().next().build(), unknownAs)) {
         return false;
       }
@@ -2864,6 +2866,7 @@ public class RexSimplify {
     final RexUnknownAs unknownAs;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
+    int termCount;
     int notNullTermCount;
     int nullTermCount;
 
@@ -2887,12 +2890,14 @@ public class RexSimplify {
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
+      final RexUnknownAs unknownAs =
+          notNullTermCount > 0 ? FALSE
+              : nullTermCount > 0 ? TRUE
+                  : UNKNOWN;
       if (negate) {
-        return Sarg.of(notNullTermCount == 0 ? FALSE : unknownAs,
-            (RangeSet) rangeSet.complement());
+        return Sarg.of(unknownAs.negate(), (RangeSet) rangeSet.complement());
       } else {
-        return Sarg.of(nullTermCount > 0 ? TRUE : unknownAs,
-            (RangeSet) rangeSet);
+        return Sarg.of(unknownAs, (RangeSet) rangeSet);
       }
     }
 
@@ -2930,7 +2935,6 @@ public class RexSimplify {
     void addRange(Range<Comparable> range, RelDataType type) {
       types.add(type);
       rangeSet.add(range);
-      ++notNullTermCount;
     }
 
     void addSarg(Sarg sarg, boolean negate, RelDataType type) {
