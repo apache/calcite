@@ -17,7 +17,9 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.TableExpressionFactory;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSamplingParameters;
@@ -90,6 +92,7 @@ import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
@@ -2667,8 +2670,13 @@ public class SqlToRelConverter {
           (SqlUserDefinedTableMacro) operator;
       final TranslatableTable table = udf.getTable(callBinding);
       final RelDataType rowType = table.getRowType(typeFactory);
-      RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table,
-          udf.getNameAsId().names);
+      CalciteSchema schema = Schemas.subSchema(
+          catalogReader.getRootSchema(), udf.getNameAsId().skipLast(1).names);
+      TableExpressionFactory expressionFunction =
+          clazz -> Schemas.getTableExpression(Objects.requireNonNull(schema, "schema").plus(),
+              Util.last(udf.getNameAsId().names), table, clazz);
+      RelOptTable relOptTable = RelOptTableImpl.create(null, rowType,
+          udf.getNameAsId().names, table, expressionFunction);
       RelNode converted = toRel(relOptTable, ImmutableList.of());
       bb.setRoot(converted, true);
       return;
