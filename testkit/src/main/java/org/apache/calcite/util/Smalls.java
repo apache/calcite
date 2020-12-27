@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -29,21 +30,30 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
+import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
@@ -61,7 +71,10 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1311,6 +1324,124 @@ public class Smalls {
     public WideProductSale(int prodId, double sale) {
       this.prodId = prodId;
       this.sale0 = sale;
+    }
+  }
+
+  /**
+   * Implementation of {@link TableMacro} interface with
+   * {@link #apply} method that returns {@link Queryable} table.
+   */
+  public static class SimpleTableMacro implements TableMacro {
+
+    @Override public TranslatableTable apply(List<?> arguments) {
+      return new SimpleTable();
+    }
+
+    @Override public List<FunctionParameter> getParameters() {
+      return Collections.emptyList();
+    }
+  }
+
+  /** Table with columns (A, B). */
+  public static class SimpleTable extends AbstractQueryableTable
+      implements TranslatableTable {
+    private final String[] columnNames = { "A", "B" };
+    private final Class<?>[] columnTypes = { String.class, Integer.class };
+    private final Object[][] rows = new Object[3][];
+
+    public SimpleTable() {
+      super(Object[].class);
+
+      rows[0] = new Object[] { "foo", 5 };
+      rows[1] = new Object[] { "bar", 4 };
+      rows[2] = new Object[] { "foo", 3 };
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      int columnCount = columnNames.length;
+      final List<Pair<String, RelDataType>> columnDesc =
+          new ArrayList<>(columnCount);
+      for (int i = 0; i < columnCount; i++) {
+        final RelDataType colType = typeFactory
+            .createJavaType(columnTypes[i]);
+        columnDesc.add(Pair.of(columnNames[i], colType));
+      }
+      return typeFactory.createStructType(columnDesc);
+    }
+
+    public Iterator<Object[]> iterator() {
+      return Linq4j.enumeratorIterator(enumerator());
+    }
+
+    public Enumerator<Object[]> enumerator() {
+      return enumeratorImpl(null);
+    }
+
+    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      return new AbstractTableQueryable<T>(queryProvider, schema, this,
+          tableName) {
+        @Override public Enumerator<T> enumerator() {
+          //noinspection unchecked
+          return (Enumerator<T>) enumeratorImpl(null);
+        }
+      };
+    }
+
+    private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
+      return new Enumerator<Object[]>() {
+        private Object[] current;
+        private final Iterator<Object[]> iterator = Arrays.asList(rows)
+            .iterator();
+
+        @Override public Object[] current() {
+          return current;
+        }
+
+        @Override public boolean moveNext() {
+          if (iterator.hasNext()) {
+            Object[] full = iterator.next();
+            current = fields != null ? convertRow(full) : full;
+            return true;
+          } else {
+            current = null;
+            return false;
+          }
+        }
+
+        @Override public void reset() {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override public void close() {
+          // noop
+        }
+
+        private Object[] convertRow(Object[] full) {
+          final Object[] objects = new Object[fields.length];
+          for (int i = 0; i < fields.length; i++) {
+            objects[i] = full[fields[i]];
+          }
+          return objects;
+        }
+      };
+    }
+
+    @Override public RelNode toRel(
+        RelOptTable.ToRelContext context,
+        RelOptTable relOptTable) {
+      return EnumerableTableScan.create(context.getCluster(), relOptTable);
+    }
+
+    @Override public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
+      MethodCallExpression queryableExpression =
+          Expressions.call(Expressions.new_(SimpleTable.class),
+              BuiltInMethod.QUERYABLE_TABLE_AS_QUERYABLE.method,
+              Expressions.constant(null),
+              Schemas.expression(schema),
+              Expressions.constant(tableName));
+      return Expressions.call(queryableExpression,
+          BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
     }
   }
 }

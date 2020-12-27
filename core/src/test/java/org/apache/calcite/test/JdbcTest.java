@@ -7262,8 +7262,8 @@ public class JdbcTest {
     }
 
     // add tables and retrieve with various case sensitivities
-    final TableInRootSchemaTest.SimpleTable table =
-        new TableInRootSchemaTest.SimpleTable();
+    final Smalls.SimpleTable table =
+        new Smalls.SimpleTable();
     a2Schema.add("table1", table);
     a2Schema.add("TABLE1", table);
     a2Schema.add("tabLe1", table);
