@@ -705,6 +705,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case DateTimestampFormatUtil.WEEKNUMBER_OF_MONTH:
     case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
     case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
+    case DateTimestampFormatUtil.DAYNUMBER_OF_CALENDAR:
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
