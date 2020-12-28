@@ -901,6 +901,7 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
     }
 
+    @SuppressWarnings("BetaApi")
     private <C extends Comparable<C>> SqlNode toIn(SqlNode operandSql,
         SqlBinaryOperator eqOp, SqlBinaryOperator inOp,
         @Nullable RexProgram program, RelDataType type, RangeSet<C> rangeSet) {
