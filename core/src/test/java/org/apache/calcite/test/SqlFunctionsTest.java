@@ -35,6 +35,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
 import static org.apache.calcite.runtime.SqlFunctions.dayOccurrenceOfMonth;
 import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
@@ -1068,6 +1069,13 @@ public class SqlFunctionsTest {
     assertThat(weekNumberOfCalendar("2019-03-12"), is(6198));
     assertThat(weekNumberOfCalendar("1901-07-01"), is(78));
     assertThat(weekNumberOfCalendar("1900-09-01"), is(35));
+  }
+
+  /** Test for {@link SqlFunctions#dayNumberOfCalendar}. */
+  @Test public void testDayNumberOfCalendar() {
+    assertThat(dayNumberOfCalendar("2019-03-12"), is(43535));
+    assertThat(dayNumberOfCalendar("1901-07-01"), is(547));
+    assertThat(dayNumberOfCalendar("1900-09-01"), is(244));
   }
 
   /** Test for {@link SqlFunctions#timestampToDate}. */

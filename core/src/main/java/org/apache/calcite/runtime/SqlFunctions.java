@@ -57,6 +57,7 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -73,6 +74,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -2941,6 +2943,11 @@ public class SqlFunctions {
     calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
         Integer.parseInt(dateSplit[2]));
     return calendar.get(Calendar.DAY_OF_WEEK_IN_MONTH);
+  }
+
+  public static Object dayNumberOfCalendar(Object value) {
+    String inputDate = (String) value;
+    return (int) ChronoUnit.DAYS.between(LocalDate.parse("1899-12-31"), LocalDate.parse(inputDate));
   }
 
   public static Calendar calendar() {
