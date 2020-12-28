@@ -707,7 +707,8 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
    * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
   @Test void testSum0BecomesCoalesce() {
-    final Function<RelBuilder, RelNode> fn = b -> b.scan("EMP")
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
         .aggregate(b.groupKey(),
             b.aggregateCall(SqlStdOperatorTable.SUM0, b.field(3))
                 .as("s"))
@@ -716,7 +717,7 @@ class RelToSqlConverterTest {
         + "FROM `scott`.`EMP`";
     final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
         + "FROM \"scott\".\"EMP\"";
-    relFn(fn)
+    relFn(relFn)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withMysql()
@@ -877,7 +878,8 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
-   * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
+   * StackOverflowError while evaluating filter with large number of OR
+   * conditions</a>. */
   @Test void testBalancedBinaryCall() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -986,7 +988,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]
-   * Fail to convert Join RelNode with like condition to sql statement </a>.
+   * Fail to convert Join RelNode with like condition to sql statement</a>.
    */
   @Test void testJoinWithLikeConditionRel2Sql() {
     final Function<RelBuilder, RelNode> relFn = b -> b
@@ -1517,10 +1519,10 @@ class RelToSqlConverterTest {
    * replaces INs with ORs or sub-queries.
    */
   @Test void testUnparseIn1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(b.in(b.field("DEPTNO"), b.literal(21)))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("DEPTNO"), b.literal(21)))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" = 21";
@@ -1539,15 +1541,15 @@ class RelToSqlConverterTest {
   }
 
   @Test void testUnparseInStruct1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT"))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.in(
+                b.call(SqlStdOperatorTable.ROW,
+                    b.field("DEPTNO"), b.field("JOB")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(1),
+                    b.literal("PRESIDENT"))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
@@ -1555,17 +1557,17 @@ class RelToSqlConverterTest {
   }
 
   @Test void testUnparseInStruct2() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(2),
-                        b.literal("PRESIDENT"))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.in(
+                b.call(SqlStdOperatorTable.ROW,
+                    b.field("DEPTNO"), b.field("JOB")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(1),
+                    b.literal("PRESIDENT")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(2),
+                    b.literal("PRESIDENT"))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
@@ -2501,18 +2503,18 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4249">[CALCITE-4249]
    * JDBC adapter cannot translate NOT LIKE in join condition</a>. */
   @Test void testJoinOnNotLike() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .scan("DEPT")
-            .join(JoinRelType.LEFT,
-                b.and(
-                    b.equals(b.field(2, 0, "DEPTNO"),
-                        b.field(2, 1, "DEPTNO")),
-                    b.not(
-                        b.call(SqlStdOperatorTable.LIKE,
-                            b.field(2, 1, "DNAME"),
-                            b.literal("ACCOUNTING")))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.LEFT,
+            b.and(
+                b.equals(b.field(2, 0, "DEPTNO"),
+                    b.field(2, 1, "DEPTNO")),
+                b.not(
+                    b.call(SqlStdOperatorTable.LIKE,
+                        b.field(2, 1, "DNAME"),
+                        b.literal("ACCOUNTING")))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "LEFT JOIN \"scott\".\"DEPT\" "
