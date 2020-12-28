@@ -308,9 +308,20 @@ class RelToSqlConverterTest {
         .build();
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"COMM\" IS NULL "
-        + "OR (\"COMM\" < 1 OR \"COMM\" > 1) "
-        + "AND (\"COMM\" < 2 OR \"COMM\" > 2)";
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" NOT IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
+  @Test void testSelectWhereNotEquals() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.isNull(b.field("COMM")),
+                b.not(b.in(b.field("COMM"), b.literal(1)))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" <> 1";
     relFn(relFn).ok(expected);
   }
 
