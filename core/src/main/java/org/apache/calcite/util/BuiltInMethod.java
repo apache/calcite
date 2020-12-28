@@ -325,6 +325,7 @@ public enum BuiltInMethod {
   WEEKNUMBER_OF_MONTH(SqlFunctions.class, "weekNumberOfMonth", Object.class),
   WEEKNUMBER_OF_CALENDAR(SqlFunctions.class, "weekNumberOfCalendar", Object.class),
   DAYOCCURRENCE_OF_MONTH(SqlFunctions.class, "dayOccurrenceOfMonth", Object.class),
+  DAYNUMBER_OF_CALENDAR(SqlFunctions.class, "dayNumberOfCalendar", Object.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),

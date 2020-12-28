@@ -206,13 +206,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       writer.endFunCall(regexpInstr);
       break;
     case "DATE_DIFF":
-      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
-      int size = call.getOperandList().size();
-      for (int index = size - 1; index >= 0; index--) {
-        writer.sep(",");
-        call.operand(index).unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(dateDiffFrame);
+      unparseDateDiff(writer, call, leftPrec, rightPrec);
       break;
     case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
     case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
@@ -229,6 +223,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
+    int size = call.getOperandList().size();
+    for (int index = size - 1; index >= 0; index--) {
+      writer.sep(",");
+      call.operand(index).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(dateDiffFrame);
   }
 
   /**
