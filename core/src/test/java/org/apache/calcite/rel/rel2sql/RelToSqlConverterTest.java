@@ -6411,6 +6411,26 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testWindowFunctionWithOrderByWithoutcolumn(){
+    String query = "Select count(*) over() from \"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n" +
+            "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowflake);
+  }
+
+  @Test
+  public void testWindowFunctionWithOrderByWithcolumn(){
+    String query = "select count(\"employee_id\") over () as a from \"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(\"employee_id\") OVER (ORDER BY \"employee_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"A\"\n" +
+            "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowflake);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
