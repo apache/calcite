@@ -119,6 +119,7 @@ public class ImmutableBeans {
       if (property == null) {
         continue;
       }
+      final boolean hasNonnull = hasAnnotation(method, "javax.annotation.Nonnull");
       final Mode mode;
       final Object defaultValue = getDefault(method);
       final String methodName = method.getName();
@@ -142,9 +143,7 @@ public class ImmutableBeans {
             + "' has too many parameters");
       }
       final boolean required = propertyType.isPrimitive()
-          || !hasAnnotation(
-              method.getAnnotatedReturnType(),
-          "org.checkerframework.checker.nullness.qual.Nullable");
+          || hasNonnull;
       if (required) {
         requiredPropertyNames.add(propertyName);
       }

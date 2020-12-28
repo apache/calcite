@@ -238,7 +238,7 @@ public class Frameworks {
       programs = ImmutableList.of();
       context = Contexts.empty();
       parserConfig = SqlParser.Config.DEFAULT;
-      sqlValidatorConfig = SqlValidator.Config.DEFAULT;
+      // sqlValidatorConfig = SqlValidator.Config.DEFAULT;
       sqlToRelConverterConfig = SqlToRelConverter.config();
       typeSystem = RelDataTypeSystem.DEFAULT;
       evolveLattice = false;
