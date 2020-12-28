@@ -295,6 +295,36 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4449">[CALCITE-4449]
+   * Calcite generates incorrect SQL for Sarg 'x IS NULL OR x NOT IN
+   * (1, 2)'</a>. */
+  @Test void testSelectWhereNotIn() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.isNull(b.field("COMM")),
+                b.not(b.in(b.field("COMM"), b.literal(1), b.literal(2)))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" NOT IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
+  @Test void testSelectWhereNotEquals() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.isNull(b.field("COMM")),
+                b.not(b.in(b.field("COMM"), b.literal(1)))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" <> 1";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
     String query = "select * from \"product\" "
         + "where (\"product_id\" = 10 OR \"product_id\" <= 5) "

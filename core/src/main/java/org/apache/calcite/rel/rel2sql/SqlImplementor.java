@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -91,6 +92,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -879,21 +881,16 @@ public abstract class SqlImplementor {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {
-        final SqlNodeList list = sarg.rangeSet.asRanges().stream()
-            .map(range ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
-                        type, true, true)))
-            .collect(SqlNode.toList());
-        switch (list.size()) {
-        case 1:
-          orList.add(
-              SqlStdOperatorTable.EQUALS.createCall(POS, operandSql,
-                  list.get(0)));
-          break;
-        default:
-          orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
-        }
+        // generate 'x = 10' or 'x IN (10, 20, 30)'
+        orList.add(
+            toIn(operandSql, SqlStdOperatorTable.EQUALS,
+                SqlStdOperatorTable.IN, program, type, sarg.rangeSet));
+      } else if (sarg.isComplementedPoints()) {
+        // generate 'x <> 10' or 'x NOT IN (10, 20, 30)'
+        orList.add(
+            toIn(operandSql, SqlStdOperatorTable.NOT_EQUALS,
+                SqlStdOperatorTable.NOT_IN, program, type,
+                sarg.rangeSet.complement()));
       } else {
         final RangeSets.Consumer<C> consumer =
             new RangeToSql<>(operandSql, orList, v ->
@@ -902,6 +899,24 @@ public abstract class SqlImplementor {
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
+    }
+
+    @SuppressWarnings("BetaApi")
+    private <C extends Comparable<C>> SqlNode toIn(SqlNode operandSql,
+        SqlBinaryOperator eqOp, SqlBinaryOperator inOp,
+        @Nullable RexProgram program, RelDataType type, RangeSet<C> rangeSet) {
+      final SqlNodeList list = rangeSet.asRanges().stream()
+          .map(range ->
+              toSql(program,
+                  implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
+                      type, true, true)))
+          .collect(SqlNode.toList());
+      switch (list.size()) {
+      case 1:
+        return eqOp.createCall(POS, operandSql, list.get(0));
+      default:
+        return inOp.createCall(POS, operandSql, list);
+      }
     }
 
     /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}
