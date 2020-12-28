@@ -717,6 +717,13 @@ public class BigQuerySqlDialect extends SqlDialect {
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "TO_DATE":
+      SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+      final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
+      unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
+      writer.endFunCall(timestampSecond);
+      break;
     case "TO_TIMESTAMP":
       if (call.getOperandList().size() == 1) {
         SqlCall timestampSecondsCall = TIMESTAMP_SECONDS.createCall(SqlParserPos.ZERO,

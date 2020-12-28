@@ -117,6 +117,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TO_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
@@ -329,6 +330,7 @@ public class RexImpTable {
     defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
     defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
     defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+    defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);

@@ -55,6 +55,8 @@ import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -2878,6 +2880,13 @@ public class SqlFunctions {
       pattern.append("d");
     }
     return String.format(Locale.ENGLISH, pattern.toString(), value);
+  }
+
+  public static Timestamp timestampSeconds(Long value) {
+    if (null == value) {
+      return null;
+    }
+    return new Timestamp(value);
   }
 
   /** Return date value from Timestamp */

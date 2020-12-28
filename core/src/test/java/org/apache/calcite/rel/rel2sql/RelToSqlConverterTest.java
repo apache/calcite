@@ -6411,6 +6411,19 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testTimestamp() {
+    String query = "select TO_TIMESTAMP(23423412) from \"employee\"";
+    final String expectedBigQuery = "SELECT TRUNC(2.30259, employee_id)\n"
+            + "FROM foodmart.employee";
+    final String expectedSnowFlake = "SELECT TRUNCATE(2.30259, CASE WHEN \"employee_id\" > 38"
+            + " THEN 38 WHEN \"employee_id\" < -12 THEN -12 ELSE \"employee_id\" END)\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
