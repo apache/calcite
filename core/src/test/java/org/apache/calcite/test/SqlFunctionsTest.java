@@ -40,6 +40,7 @@ import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.instr;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.lpad;
@@ -1010,6 +1011,12 @@ public class SqlFunctionsTest {
   @Test public void testTimestampToDate() {
     assertThat(timestampToDate("2020-12-12 12:12:12").toString(), is("2020-12-12"));
     assertThat(timestampToDate(new Timestamp(1607731932)).toString(), is("1970-01-19"));
+  }
+
+  /** Test for {@link SqlFunctions#instr}. */
+  @Test public void testInStr() {
+    assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
+    assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
   }
 
   /** Test for {@link SqlFunctions#timestampSeconds(Long)}. */

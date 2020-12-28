@@ -2899,6 +2899,20 @@ public class SqlFunctions {
     }
     return new java.sql.Date(timestamp);
   }
+
+  /**Return match index value*/
+  public static Integer instr(String str, String substr, Integer start, Integer occurance) {
+    if (null == str || null == substr) {
+      return 0;
+    }
+    int next = start - 1;
+    while (occurance > 0) {
+      start = str.indexOf(substr, next);
+      next = start + 1;
+      occurance = occurance - 1;
+    }
+    return start + 1;
+  }
 }
 
 // End SqlFunctions.java
