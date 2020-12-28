@@ -7070,6 +7070,13 @@ public class JdbcTest {
         .returns("result= 12\n");
   }
 
+  @Test public void testInStr() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "snowflake")
+        .query("SELECT INSTR('Choose a chocolate chip cookie', 'ch', 12, 1) as \"result\"")
+        .returns("result=20\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

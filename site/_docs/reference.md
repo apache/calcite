@@ -55,6 +55,7 @@ here to appease testAllFunctionsAreDocumented:
 | RPAD()         | Append paddingString to the end of the string
 | FORMAT         | Format the value as per the pattern defined
 | TO_VARCHAR     | Derives the value as per the pattern defined
+| INSTR          | Finds substring position from Source string
 {% endcomment %}
 -->
 

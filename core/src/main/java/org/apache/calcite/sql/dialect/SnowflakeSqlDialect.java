@@ -205,6 +205,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "INSTR":
+      final SqlWriter.Frame regexpInstr = writer.startFunCall("REGEXP_INSTR");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(regexpInstr);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
