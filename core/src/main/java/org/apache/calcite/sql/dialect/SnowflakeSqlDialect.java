@@ -145,7 +145,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
     final SqlWindow window = sqlWindow;
     writer.print("OVER ");
-    SqlCall getCallOperand = call.operand(0);
+    SqlCall operand1 = call.operand(0);
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
@@ -159,11 +159,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
         writer.endList(partitionFrame);
       }
       writer.print("ORDER BY ");
-      if (getCallOperand.getOperandList().size() == 0) {
+      if (operand1.getOperandList().size() == 0) {
         writer.print("0 ");
       } else {
-        SqlNode operand1 = getCallOperand.operand(0);
-        operand1.unparse(writer, 0, 0);
+        SqlNode operand2 = operand1.operand(0);
+        operand2.unparse(writer, 0, 0);
       }
       writer.print("ROWS BETWEEN ");
       writer.sep(window.getLowerBound().toString());
