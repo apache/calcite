@@ -583,6 +583,17 @@ public class SparkSqlDialect extends SqlDialect {
     case "LPAD":
       PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "INSTR":
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
+      }
+      writer.endFunCall(frame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

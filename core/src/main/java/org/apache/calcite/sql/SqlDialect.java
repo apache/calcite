@@ -1164,6 +1164,8 @@ public class SqlDialect {
       return SqlConformanceEnum.HIVE;
     case BIG_QUERY:
       return SqlConformanceEnum.BIG_QUERY;
+    case SNOWFLAKE:
+      return SqlConformanceEnum.SNOWFLAKE;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
