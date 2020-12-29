@@ -295,7 +295,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_ADD",
           SqlKind.PLUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {
@@ -311,7 +311,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_SUB",
           SqlKind.MINUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {

@@ -71,15 +71,12 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
-    if (!(call.getOperator().toString().equals("TIMESTAMP_ADD")
-            || call.getOperator().toString().equals("TIMESTAMP_SUB"))) {
-      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-      case INTERVAL_DAY:
-        if (call.op.kind == SqlKind.MINUS) {
-          return SqlLibraryOperators.DATE_SUB;
-        }
-        return SqlLibraryOperators.DATE_ADD;
+    switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+    case INTERVAL_DAY:
+      if (call.op.kind == SqlKind.MINUS) {
+        return SqlLibraryOperators.DATE_SUB;
       }
+      return SqlLibraryOperators.DATE_ADD;
     }
     return super.getTargetFunc(call);
   }
@@ -347,6 +344,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
       }
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(formatTime);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
