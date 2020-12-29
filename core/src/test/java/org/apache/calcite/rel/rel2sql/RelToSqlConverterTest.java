@@ -5091,10 +5091,13 @@ public class RelToSqlConverterTest {
         + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
         + "FROM foodmart.product) AS t\n"
         + "GROUP BY product_id, ABC";
-    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") "
-        +  "OVER (PARTITION BY \"product_id\") AS \"ABC\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\")";
+    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") OVER "
+            + "(PARTITION BY \"product_id\" ORDER BY \"product_id\" ROWS "
+            + "BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"ABC\"\n"
+            + "FROM \"foodmart\".\"product\"\n" +
+            "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\" "
+            + "ORDER BY \"product_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND "
+            + "UNBOUNDED FOLLOWING)";
     sql(query)
         .withHive()
         .ok(expected)
@@ -5115,8 +5118,9 @@ public class RelToSqlConverterTest {
     String expectedBQ = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
         + "AND UNBOUNDED FOLLOWING)\n"
         + "FROM foodmart.product";
-    final String expectedSnowFlake = "SELECT COUNT(*) OVER ()\n"
-        + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowFlake = "SELECT COUNT(*) OVER (ORDER BY 0 "
+            + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withHive()
         .ok(expected)
@@ -6382,8 +6386,9 @@ public class RelToSqlConverterTest {
     final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
     final String expected = "SELECT ROUND(123.41445, product_id) a\n"
             + "FROM foodmart.product";
-    final String expectedSnowFlake = "SELECT ROUND(123.41445, CASE WHEN \"product_id\" > 38"
-            + " THEN 38 WHEN \"product_id\" < -12 THEN -12 ELSE \"product_id\" END) AS \"a\"\n"
+    final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, "
+            + "CASE WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 "
+            + "THEN -12 ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
             + "FROM \"foodmart\".\"product\"";
     sql(query)
             .withBigQuery()
