@@ -6412,23 +6412,38 @@ public class RelToSqlConverterTest {
   }
 
   @Test
-  public void testWindowFunctionWithOrderByWithoutcolumn(){
+  public void testWindowFunctionWithOrderByWithoutcolumn() {
     String query = "Select count(*) over() from \"employee\"";
-    final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n" +
-            "FROM \"foodmart\".\"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED "
+            + "PRECEDING AND UNBOUNDED FOLLOWING)\n"
+            + "FROM \"foodmart\".\"employee\"";
     sql(query)
             .withSnowflake()
             .ok(expectedSnowflake);
   }
 
   @Test
-  public void testWindowFunctionWithOrderByWithcolumn(){
+  public void testWindowFunctionWithOrderByWithcolumn() {
     String query = "select count(\"employee_id\") over () as a from \"employee\"";
-    final String expectedSnowflake = "SELECT COUNT(\"employee_id\") OVER (ORDER BY \"employee_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"A\"\n" +
-            "FROM \"foodmart\".\"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(\"employee_id\") OVER (ORDER BY \"employee_id\" "
+            + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"A\"\n"
+            + "FROM \"foodmart\".\"employee\"";
     sql(query)
             .withSnowflake()
             .ok(expectedSnowflake);
+  }
+
+  @Test
+  public void testRoundFunction() {
+    final String query = "SELECT ROUND(123.41445, \"product_id\") AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, CASE "
+            + "WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 THEN -12 "
+            + "ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
   }
 
 }

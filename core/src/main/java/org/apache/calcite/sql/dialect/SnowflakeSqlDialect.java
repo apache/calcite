@@ -176,8 +176,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "TRUNCATE":
-    case "ROUND":
       handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case "ROUND":
+      unparseRoundfunction(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
@@ -216,6 +218,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * unparse method for round function
+   */
+  private void unparseRoundfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame castFrame = writer.startFunCall("TO_DECIMAL");
+    handleMathFunction(writer, call, leftPrec, rightPrec);
+    writer.print(",38, 4");
+    writer.endFunCall(castFrame);
   }
 
   /**
