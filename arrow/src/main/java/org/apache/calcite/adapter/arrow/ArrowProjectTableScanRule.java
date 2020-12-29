@@ -42,7 +42,6 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    System.out.println("===================");
     final LogicalProject project = call.rel(0);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {

@@ -87,42 +87,52 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> project(DataContext root, final int[] fields, String condition,
+  public Enumerable<Object> query(DataContext root, int[] fields, String condition,
                                     int fieldToCompare, Object valueToCompare) {
-    System.out.println(fields.length);
-    List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
-    List<TreeNode> treeNodes = new ArrayList<>(2);
 
-    for (int i = 0; i < fields.length; i++) {
-      Field field = schema.getFields().get(i);
-      TreeNode node = TreeBuilder.makeField(field);
-      expressionTrees.add(TreeBuilder.makeExpression(node, field));
+    if (fields == null) {
+      fields = new int[schema.getFields().size()];
+      for (int i = 0; i < fields.length; i++) {
+        fields[i] = i;
+      }
     }
 
-    treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
-    treeNodes.add(makeLiteralNode(valueToCompare));
-    TreeNode treeNode = TreeBuilder.makeFunction(condition, treeNodes,
-        new ArrowType.Bool());
-    Condition filterCondition = TreeBuilder.makeCondition(treeNode);
+    Projector projector = null;
+    Filter filter = null;
 
-    Filter filter;
-    try {
-      filter = Filter.make(schema, filterCondition);
-    } catch (GandivaException e) {
-      throw new RuntimeException(e);
+    if (condition == null) {
+      List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
+      for (int i = 0; i < fields.length; i++) {
+        Field field = schema.getFields().get(i);
+        TreeNode node = TreeBuilder.makeField(field);
+        expressionTrees.add(TreeBuilder.makeExpression(node, field));
+      }
+      try {
+        projector = Projector.make(schema, expressionTrees);
+      } catch (GandivaException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    else {
+      List<TreeNode> treeNodes = new ArrayList<>(2);
+      treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
+      treeNodes.add(makeLiteralNode(valueToCompare));
+      TreeNode treeNode = TreeBuilder.makeFunction(condition, treeNodes, new ArrowType.Bool());
+      Condition filterCondition = TreeBuilder.makeCondition(treeNode);
+      try {
+        filter = Filter.make(schema, filterCondition);
+      } catch (GandivaException e) {
+        throw new RuntimeException(e);
+      }
     }
 
-    Projector projector;
-    try {
-      projector = Projector.make(schema, expressionTrees);
-    } catch (GandivaException e) {
-      throw new RuntimeException(e);
-    }
-
+    int[] finalFields = fields;
+    Projector finalProjector = projector;
+    Filter finalFilter = filter;
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         try {
-          return new ArrowEnumerator(projector, filter, fields, arrowFileReader);
+          return new ArrowEnumerator(finalProjector, finalFilter, finalFields, arrowFileReader);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
