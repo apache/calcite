@@ -6411,6 +6411,16 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testRandomFunction() {
+    String query = "select rand_integer(1,3) from \"employee\"";
+    final String expectedSnowFlake = "SELECT UNIFORM(1, 3, RANDOM())\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
