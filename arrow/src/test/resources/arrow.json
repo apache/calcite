@@ -16,14 +16,14 @@
  */
 {
   "version": "1.0",
-  "defaultSchema": "BUG",
+  "defaultSchema": "arrow",
   "schemas": [
     {
-      "name": "BUG",
+      "name": "arrow",
       "type": "custom",
       "factory": "org.apache.calcite.adapter.arrow.ArrowSchemaFactory",
       "operand": {
-        "directory": "bug"
+        "directory": "arrow"
       }
     }
   ]

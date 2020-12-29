@@ -57,9 +57,11 @@ public interface ArrowRel extends RelNode {
           selectFields[i] = fields[i];
         }
       }
-      operator = condition;
-      fieldToCompare = field;
-      valueToCompare = value;
+      if (condition != null) {
+        operator = condition;
+        fieldToCompare = field;
+        valueToCompare = value;
+      }
     }
 
     public void visitChild(int ordinal, RelNode input) {

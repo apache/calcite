@@ -59,7 +59,7 @@ public class ArrowToEnumerableConverter extends ConverterImpl implements Enumera
         physType,
         Blocks.toBlock(
             Expressions.call(arrowImplementor.table.getExpression(ArrowTable.class),
-                ArrowMethod.ARROW_PROJECT.method, implementor.getRootExpression(),
+                ArrowMethod.ARROW_QUERY.method, implementor.getRootExpression(),
                 Expressions.constant(arrowImplementor.selectFields),
                 Expressions.constant(arrowImplementor.operator),
                 Expressions.constant(arrowImplementor.fieldToCompare),

@@ -94,32 +94,53 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public boolean moveNext() {
-    if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
-      boolean hasNextBatch = false;
-      try {
-        hasNextBatch = arrowFileReader.loadNextBatch();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      if (hasNextBatch) {
-        selectionVectorIndex = 0;
-        this.valueVectors = new ArrayList<ValueVector>(numFields);
-        loadNextArrowBatch();
-        if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+    if (projector != null) {
+      if (rowIndex >= this.rowSize - 1) {
+        boolean hasNextBatch = false;
+        try {
+          hasNextBatch = arrowFileReader.loadNextBatch();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+        if (hasNextBatch) {
+          rowIndex = 0;
+          this.valueVectors = new ArrayList<ValueVector>(numFields);
+          loadNextArrowBatch();
+          return true;
+        } else {
           return false;
         }
+      } else {
+        rowIndex++;
+        return true;
+      }
+    }
+    else {
+      if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+        boolean hasNextBatch = false;
+        try {
+          hasNextBatch = arrowFileReader.loadNextBatch();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+        if (hasNextBatch) {
+          selectionVectorIndex = 0;
+          this.valueVectors = new ArrayList<ValueVector>(numFields);
+          loadNextArrowBatch();
+          if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+            return false;
+          }
+          rowIndex = selectionVector.getIndex(selectionVectorIndex++);
+          return true;
+        } else {
+          return false;
+        }
+      } else {
         rowIndex = selectionVector.getIndex(selectionVectorIndex++);
         return true;
-      } else {
-        return false;
       }
-    } else {
-      rowIndex = selectionVector.getIndex(selectionVectorIndex++);
-      return true;
     }
   }
-
-
 
   private void loadNextArrowBatch() {
     try {
@@ -133,9 +154,13 @@ public class ArrowEnumerator implements Enumerator<Object> {
       BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
       ArrowBuf buf = allocator.buffer(rowSize * 2);
       SelectionVectorInt16 selectionVector = new SelectionVectorInt16(buf);
-//      projector.evaluate(arrowRecordBatch, valueVectors);
-      filter.evaluate(arrowRecordBatch, selectionVector);
-      this.selectionVector = selectionVector;
+      if (projector != null) {
+        projector.evaluate(arrowRecordBatch, valueVectors);
+      }
+      if (filter != null) {
+        filter.evaluate(arrowRecordBatch, selectionVector);
+        this.selectionVector = selectionVector;
+      }
     } catch (IOException | GandivaException e) {
       e.printStackTrace();
     }

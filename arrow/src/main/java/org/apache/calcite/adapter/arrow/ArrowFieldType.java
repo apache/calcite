@@ -25,6 +25,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * ArrowFieldType.
+ */
 enum ArrowFieldType {
   INT(Primitive.LONG),
   BOOLEAN(Primitive.BOOLEAN),

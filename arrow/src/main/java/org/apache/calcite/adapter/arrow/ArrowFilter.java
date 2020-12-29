@@ -64,8 +64,7 @@ public class ArrowFilter extends Filter implements ArrowRel {
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    int[] fields = {0,1,2};
-    implementor.add(fields, operator, field, value);
+    implementor.add(null, operator, field, value);
   }
 
   static class Translator {
@@ -85,6 +84,10 @@ public class ArrowFilter extends Filter implements ArrowRel {
         return "less_than";
       case GREATER_THAN:
         return "greater_than";
+      case LESS_THAN_OR_EQUAL:
+        return "less_than_or_equal_to";
+      case GREATER_THAN_OR_EQUAL:
+        return "greater_than_or_equal_to";
       default:
         throw new AssertionError("Operator not supported");
       }

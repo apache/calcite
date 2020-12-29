@@ -17,258 +17,94 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import com.google.common.collect.Ordering;
-
-import org.apache.arrow.vector.VectorSchemaRoot;
+import com.google.common.collect.ImmutableMap;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Source;
 
 import org.apache.calcite.util.Sources;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.FileInputStream;
-import java.sql.*;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+/**
+ * ArrowTest
+ */
 public class ArrowTest {
 
   /**
-   * Test to read Arrow file and check it's field name
+   * Test to read Arrow file and check it's field name.
    */
-//  @Test void testArrowSchema() {
-//    Source source = Sources.of(ArrowTest.class.getResource("/bug"));
-//    ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
-//    Map<String, Table> tableMap = arrowSchema.getTableMap();
-//    RelDataType relDataType = tableMap.get("TEST").getRowType(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
-//
-//    Assertions.assertEquals(relDataType.getFieldNames().get(0), "fieldOne");
-//    Assertions.assertEquals(relDataType.getFieldNames().get(1), "fieldTwo");
-//    Assertions.assertEquals(relDataType.getFieldNames().get(2), "fieldThree");
-//  }
+  @Test void testArrowSchema() {
+    Source source = Sources.of(ArrowTest.class.getResource("/arrow"));
+    ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
+    Map<String, Table> tableMap = arrowSchema.getTableMap();
+    RelDataType relDataType = tableMap.get("TEST").getRowType(new
+    JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
 
-  private String resourcePath(String path) {
-    return Sources.of(ArrowTest.class.getResource("/" + path)).file().getAbsolutePath();
+    Assertions.assertEquals(relDataType.getFieldNames().get(0), "fieldOne");
+    Assertions.assertEquals(relDataType.getFieldNames().get(1), "fieldTwo");
+    Assertions.assertEquals(relDataType.getFieldNames().get(2), "fieldThree");
   }
 
-  /** Returns a function that checks the contents of a result set against an
-   * expected string. */
-  private static Consumer<ResultSet> expectUnordered(String... expected) {
-    final List<String> expectedLines =
-        Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
-    return resultSet -> {
-      try {
-        final List<String> lines = new ArrayList<>();
-        ArrowTest.collect(lines, resultSet);
-        Collections.sort(lines);
-        assertEquals(expectedLines, lines);
-      } catch (SQLException e) {
-        throw TestUtil.rethrow(e);
-      }
-    };
+  static ImmutableMap<String, String> getDataset(String resourcePath) {
+    return ImmutableMap.of("model",
+        Sources.of(ArrowTest.class.getResource(resourcePath))
+            .file().getAbsolutePath());
   }
 
-  private static void collect(List<String> result, ResultSet resultSet)
-      throws SQLException {
-    final StringBuilder buf = new StringBuilder();
-    while (resultSet.next()) {
-      buf.setLength(0);
-      int n = resultSet.getMetaData().getColumnCount();
-      String sep = "";
-      for (int i = 1; i <= n; i++) {
-        buf.append(sep)
-            .append(resultSet.getMetaData().getColumnLabel(i))
-            .append("=")
-            .append(resultSet.getString(i));
-        sep = "; ";
-      }
-      result.add(Util.toLinux(buf.toString()));
-    }
+  private static final ImmutableMap<String, String> ARROW =
+      ArrowTest.getDataset("/arrow.json");
+
+  @Test void testArrowProjectAllFields() {
+    CalciteAssert.that()
+        .with(ARROW)
+        .query("select * from test\n")
+        .limit(6)
+        .returns("fieldOne=1; fieldTwo=abc; fieldThree=1.2\nfieldOne=2; fieldTwo=def; " +
+            "fieldThree=3.4\nfieldOne=3; fieldTwo=xyz; fieldThree=5.6\n" +
+            "fieldOne=4; fieldTwo=abcd; fieldThree=1.22\nfieldOne=5; fieldTwo=defg; " +
+            "fieldThree=3.45\nfieldOne=6; fieldTwo=xyza; fieldThree=5.67\n")
+        .explainContains("PLAN=ArrowToEnumerableConverter\n"
+            + "  ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 
-  private void checkSql(String sql, String model, Consumer<ResultSet> fn)
-      throws SQLException {
-    Connection connection = null;
-    Statement statement = null;
-    try {
-      Properties info = new Properties();
-      info.put("model", jsonPath(model));
-      connection = DriverManager.getConnection("jdbc:calcite:", info);
-      statement = connection.createStatement();
-      final ResultSet resultSet = statement.executeQuery(sql);
-      fn.accept(resultSet);
-    } finally {
-      close(connection, statement);
-    }
+  @Test void testArrowProjectTwoFields() {
+    CalciteAssert.that()
+        .with(ARROW)
+        .query("select \"fieldOne\", \"fieldTwo\" from test\n")
+        .limit(6)
+        .returns("fieldOne=1; fieldTwo=abc\nfieldOne=2; fieldTwo=def\nfieldOne=3; fieldTwo=xyz\n" +
+            "fieldOne=4; fieldTwo=abcd\nfieldOne=5; fieldTwo=defg\nfieldOne=6; fieldTwo=xyza\n")
+        .explainContains("PLAN=ArrowToEnumerableConverter\n"
+            + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
+            + "    ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 
-  private String jsonPath(String model) {
-    return resourcePath(model + ".json");
+  @Test void testArrowProjectOneField() {
+    CalciteAssert.that()
+        .with(ARROW)
+        .query("select \"fieldOne\" from test\n")
+        .limit(6)
+        .returns("fieldOne=1\nfieldOne=2\nfieldOne=3\nfieldOne=4\nfieldOne=5\nfieldOne=6\n")
+        .explainContains("PLAN=ArrowToEnumerableConverter\n"
+            + "  ArrowProject(fieldOne=[$0])\n"
+            + "    ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 
-  private void close(Connection connection, Statement statement) {
-    if (statement != null) {
-      try {
-        statement.close();
-      } catch (SQLException e) {
-        // ignore
-      }
-    }
-    if (connection != null) {
-      try {
-        connection.close();
-      } catch (SQLException e) {
-        // ignore
-      }
-    }
-  }
-
-  private static Consumer<ResultSet> expect(final String... expected) {
-    return resultSet -> {
-      try {
-        final List<String> lines = new ArrayList<>();
-        ArrowTest.collect(lines, resultSet);
-        assertEquals(Arrays.asList(expected).toString(), lines.toString());
-      } catch (SQLException e) {
-        throw TestUtil.rethrow(e);
-      }
-    };
-  }
-
-  private Fluent sql(String model, String sql) {
-    return new Fluent(model, sql, this::output);
-  }
-
-  private Void output(ResultSet resultSet) {
-    try {
-      output(resultSet, System.out);
-    } catch (SQLException e) {
-      throw TestUtil.rethrow(e);
-    }
-    return null;
-  }
-
-  private void output(ResultSet resultSet, PrintStream out)
-      throws SQLException {
-    final ResultSetMetaData metaData = resultSet.getMetaData();
-    final int columnCount = metaData.getColumnCount();
-    while (resultSet.next()) {
-      for (int i = 1;; i++) {
-        out.print(resultSet.getString(i));
-        if (i < columnCount) {
-          out.print(", ");
-        } else {
-          out.println();
-          break;
-        }
-      }
-    }
-  }
-
-  @Test void testArrowProjectAllFieldsWithFilter() throws SQLException {
-//    final String sql = "select * from test where \"fieldTwo\"='def'";
-    final String sql = "select * from test where \"fieldOne\"=1";
-    final String[] lines = {"fieldOne=1; fieldTwo=abc; fieldThree=1.2"};
-    sql("bug", sql)
-        .returns(lines)
-        .ok();
-  }
-
-//  @Test void testArrowProjectAllFields() throws SQLException {
-//    final String sql = "select * from test\n";
-//    final String[] lines = {
-//        "fieldOne=1; fieldTwo=abc; fieldThree=1.2,"
-//            + " fieldOne=2; fieldTwo=def; fieldThree=3.4,"
-//            + " fieldOne=3; fieldTwo=xyz; fieldThree=5.6,"
-//            + " fieldOne=4; fieldTwo=abcd; fieldThree=1.22,"
-//            + " fieldOne=5; fieldTwo=defg; fieldThree=3.45,"
-//            + " fieldOne=6; fieldTwo=xyza; fieldThree=5.67"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
-//
-//  @Test void testArrowProjectTwoFields() throws SQLException {
-//    final String sql = "select \"fieldOne\", \"fieldTwo\" from test\n";
-//    final String[] lines = {
-//        "fieldOne=1; fieldTwo=abc,"
-//            + " fieldOne=2; fieldTwo=def,"
-//            + " fieldOne=3; fieldTwo=xyz,"
-//            + " fieldOne=4; fieldTwo=abcd,"
-//            + " fieldOne=5; fieldTwo=defg,"
-//            + " fieldOne=6; fieldTwo=xyza"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
-//
-//  @Test void testArrowProjectOneField() throws SQLException {
-//    final String sql = "select \"fieldOne\" from test\n";
-//    final String[] lines = {
-//        "fieldOne=1,"
-//        + " fieldOne=2,"
-//        + " fieldOne=3,"
-//        + " fieldOne=4,"
-//        + " fieldOne=5,"
-//        + " fieldOne=6"
-//    };
-//    sql("bug", sql)
-//        .returns(lines)
-//        .ok();
-//  }
-
-  /** Fluent API to perform test actions. */
-  private class Fluent {
-    private final String model;
-    private final String sql;
-    private final Consumer<ResultSet> expect;
-
-    Fluent(String model, String sql, Consumer<ResultSet> expect) {
-      this.model = model;
-      this.sql = sql;
-      this.expect = expect;
-    }
-
-    /** Runs the test. */
-    Fluent ok() {
-      try {
-        checkSql(sql, model, expect);
-        return this;
-      } catch (SQLException e) {
-        throw TestUtil.rethrow(e);
-      }
-    }
-
-    /** Assigns a function to call to test whether output is correct. */
-    Fluent checking(Consumer<ResultSet> expect) {
-      return new Fluent(model, sql, expect);
-    }
-
-    /** Sets the rows that are expected to be returned from the SQL query. */
-    Fluent returns(String... expectedLines) {
-      return checking(expect(expectedLines));
-    }
-
-    /** Sets the rows that are expected to be returned from the SQL query,
-     * in no particular order. */
-    Fluent returnsUnordered(String... expectedLines) {
-      return checking(expectUnordered(expectedLines));
-    }
+  @Test void testArrowProjectFieldsWithFilter() {
+    CalciteAssert.that()
+        .with(ARROW)
+        .query("select \"fieldOne\", \"fieldTwo\" from test where \"fieldOne\"<4")
+        .limit(3)
+        .returns("fieldOne=1; fieldTwo=abc\nfieldOne=2; fieldTwo=def\nfieldOne=3; fieldTwo=xyz\n")
+        .explainContains("PLAN=EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])\n  ArrowToEnumerableConverter\n"
+            + "    ArrowFilter(condition=[<($0, 4)])\n"
+            + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 }
