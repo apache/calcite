@@ -142,10 +142,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
-  private void unparseSqlWindow(SqlWindow call, SqlWriter writer, SqlCall call1) {
-    final SqlWindow window = call;
+  private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
+    final SqlWindow window = sqlWindow;
     writer.print("OVER ");
-    SqlCall call2 = call1.operand(0);
+    SqlCall getCallOperand = call.operand(0);
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
@@ -159,10 +159,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
         writer.endList(partitionFrame);
       }
       writer.print("ORDER BY ");
-      if (call2.getOperandList().size() == 0) {
+      if (getCallOperand.getOperandList().size() == 0) {
         writer.print("0 ");
       } else {
-        SqlNode operand1 = call2.operand(0);
+        SqlNode operand1 = getCallOperand.operand(0);
         operand1.unparse(writer, 0, 0);
       }
       writer.print("ROWS BETWEEN ");
