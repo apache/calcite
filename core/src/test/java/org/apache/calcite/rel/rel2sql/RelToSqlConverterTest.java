@@ -5092,12 +5092,12 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product) AS t\n"
         + "GROUP BY product_id, ABC";
     final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") OVER "
-            + "(PARTITION BY \"product_id\" ORDER BY \"product_id\" ROWS "
-            + "BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"ABC\"\n"
-            + "FROM \"foodmart\".\"product\"\n" +
-            "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\" "
-            + "ORDER BY \"product_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND "
-            + "UNBOUNDED FOLLOWING)";
+        + "(PARTITION BY \"product_id\" ORDER BY \"product_id\" ROWS "
+        + "BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"ABC\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\" "
+        + "ORDER BY \"product_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND "
+        + "UNBOUNDED FOLLOWING)";
     sql(query)
         .withHive()
         .ok(expected)
@@ -5119,8 +5119,8 @@ public class RelToSqlConverterTest {
         + "AND UNBOUNDED FOLLOWING)\n"
         + "FROM foodmart.product";
     final String expectedSnowFlake = "SELECT COUNT(*) OVER (ORDER BY 0 "
-            + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
-            + "FROM \"foodmart\".\"product\"";
+        + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withHive()
         .ok(expected)
@@ -5925,7 +5925,7 @@ public class RelToSqlConverterTest {
     final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd') FD\n"
         + "FROM scott.EMP";
     final String expectedSnowFlake = "SELECT TO_VARCHAR(\"HIREDATE\", 'YYYY-MM-DD') AS \"FD\"\n"
-            + "FROM \"scott\".\"EMP\"";
+        + "FROM \"scott\".\"EMP\"";
     final String expectedSpark = expectedHive;
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
