@@ -644,17 +644,21 @@ public class SparkSqlDialect extends SqlDialect {
   private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "TIMESTAMP_ADD":
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print("+ ");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      break;
     case "TIMESTAMP_SUB":
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print("- ");
+      checkSign(writer, call);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void checkSign(SqlWriter writer, SqlCall call) {
+    if (call.getKind() == SqlKind.PLUS) {
+      writer.print("+ ");
+    } else {
+      writer.print("- ");
     }
   }
 }

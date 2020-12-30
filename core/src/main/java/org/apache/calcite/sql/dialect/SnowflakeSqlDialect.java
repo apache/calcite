@@ -126,7 +126,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case MINUS:
     case PLUS:
-      unparseTimestamp(writer, call, leftPrec, rightPrec);
+      unparsePlusMinus(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -435,22 +435,23 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return ((SqlBasicCall) aggCall).operand(0);
   }
 
-  private void unparseTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.getOperator().toString().equals("TIMESTAMP_ADD")
-            || call.getOperator().toString().equals("TIMESTAMP_SUB")) {
+  private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().toString()) {
+    case "TIMESTAMP_ADD":
+    case "TIMESTAMP_SUB":
       final SqlWriter.Frame formatTime = writer.startFunCall("TIMESTAMPADD");
       String formatCall = ((SqlIntervalLiteral) call.operand(1))
               .getTypeName().toString().split("_")[1];
       writer.print(formatCall + ", ");
       String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
       if (call.getOperator().toString().equals("TIMESTAMP_SUB")) {
-        writer.print("-" + intCall + ", ");
-      } else {
-        writer.print(intCall + ", ");
+        writer.print("-");
       }
+      writer.print(intCall + ", ");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(formatTime);
-    } else {
+      break;
+    default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
