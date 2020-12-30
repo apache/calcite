@@ -703,7 +703,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "TIMESTAMPINTMUL":
       if (call.getOperandList().get(0).getClass().getName()
-              .equals("org.apache.calcite.sql.SqlIntervalLiteral.SqlBasicCall")) {
+              .equals("org.apache.calcite.sql.SqlBasicCall")) {
         handleSqlBasicCallForTimestampMulti(writer, call);
       } else {
         SqlIntervalLiteral intervalLiteralValue = (SqlIntervalLiteral) call.getOperandList().get(0);
@@ -711,19 +711,19 @@ public class BigQuerySqlDialect extends SqlDialect {
                 (SqlIntervalLiteral.IntervalValue) intervalLiteralValue.getValue();
         String secondOperand = "";
         if (call.getOperandList().get(1).getClass().getName()
-                .equals("org.apache.calcite.sql.SqlIntervalLiteral.SqlIdentifier")) {
+                .equals("org.apache.calcite.sql.SqlIdentifier")) {
           SqlIdentifier sqlIdentifier = (SqlIdentifier) call.getOperandList().get(1);
           secondOperand = sqlIdentifier.toString() + "*"
                   + (Integer.valueOf(literalValue.toString()) + "");
         } else if (call.getOperandList().get(1).getClass().getName()
-                .equals("org.apache.calcite.sql.SqlIntervalLiteral.SqlNumericLiteral")) {
+                .equals("org.apache.calcite.sql.SqlNumericLiteral")) {
           SqlNumericLiteral sqlNumericLiteral = (SqlNumericLiteral) call.getOperandList().get(1);
           secondOperand = Integer.parseInt(sqlNumericLiteral.toString())
                   * (Integer.parseInt(literalValue.toString())) + "";
         }
         writer.sep("INTERVAL");
         writer.sep(secondOperand);
-        writer.print(literalValue.toString());
+        writer.print(literalValue.getIntervalQualifier().toString());
       }
       break;
     default:
