@@ -6452,16 +6452,25 @@ public class RelToSqlConverterTest {
   }
 
   @Test
-  public void testTimestamp() {
-    String query = "select TO_TIMESTAMP(23423412) from \"employee\"";
-    final String expectedBigQuery = "SELECT TRUNC(2.30259, employee_id)\n"
-            + "FROM foodmart.employee";
-    final String expectedSnowFlake = "SELECT TRUNCATE(2.30259, CASE WHEN \"employee_id\" > 38"
-            + " THEN 38 WHEN \"employee_id\" < -12 THEN -12 ELSE \"employee_id\" END)\n"
+  public void testRandomFunction() {
+    String query = "select rand_integer(1,3) from \"employee\"";
+    final String expectedSnowFlake = "SELECT UNIFORM(1, 3, RANDOM())\n"
             + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
+    final String expectedBQ = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
     sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
             .withBigQuery()
-            .ok(expectedBigQuery);
+            .ok(expectedBQ)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
   }
 
 }
