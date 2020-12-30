@@ -191,12 +191,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseRoundfunction(writer, call, leftPrec, rightPrec);
       break;
     case "TIME_DIFF":
-      final SqlWriter.Frame toTimeFrame = writer.startFunCall("TO_TIME");
-      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       unparseTimeDiff(writer, call, leftPrec, rightPrec);
-      writer.print("AS VARCHAR(50)");
-      writer.endFunCall(castFrame);
-      writer.endFunCall(toTimeFrame);
       break;
     case "TIMESTAMP_ADD":
       SqlWriter.Frame timestampAdd = writer.startFunCall("DATEADD");
