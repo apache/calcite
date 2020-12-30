@@ -143,7 +143,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      unparseSqlWindow(call.operand(1), writer);
+      unparseSqlWindow(call.operand(1), writer, call);
     }
   }
 
@@ -151,25 +151,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
-  private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
-    final SqlWindow window = call;
+  private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
+    final SqlWindow window = sqlWindow;
     writer.print("OVER ");
+    SqlCall operand1 = call.operand(0);
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
       window.getRefName().unparse(writer, 0, 0);
     }
-    if (window.getPartitionList().size() > 0) {
-      writer.sep("PARTITION BY");
-      final SqlWriter.Frame partitionFrame = writer.startList("", "");
-      window.getPartitionList().unparse(writer, 0, 0);
-      writer.endList(partitionFrame);
-    }
-    if (window.getOrderList().size() > 0) {
-      writer.sep("ORDER BY");
-      final SqlWriter.Frame orderFrame = writer.startList("", "");
-      window.getOrderList().unparse(writer, 0, 0);
-      writer.endList(orderFrame);
+    if (window.getOrderList().size() == 0) {
+      if (window.getPartitionList().size() > 0) {
+        writer.sep("PARTITION BY");
+        final SqlWriter.Frame partitionFrame = writer.startList("", "");
+        window.getPartitionList().unparse(writer, 0, 0);
+        writer.endList(partitionFrame);
+      }
+      writer.print("ORDER BY ");
+      if (operand1.getOperandList().size() == 0) {
+        writer.print("0 ");
+      } else {
+        SqlNode operand2 = operand1.operand(0);
+        operand2.unparse(writer, 0, 0);
+      }
+      writer.print("ROWS BETWEEN ");
+      writer.sep(window.getLowerBound().toString());
+      writer.sep("AND");
+      writer.sep(window.getUpperBound().toString());
     }
     writer.endList(frame);
   }
@@ -177,8 +185,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "TRUNCATE":
-    case "ROUND":
       handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case "ROUND":
+      unparseRoundfunction(writer, call, leftPrec, rightPrec);
       break;
     case "TIME_DIFF":
       final SqlWriter.Frame timeDiff = writer.startFunCall("TIMEDIFF");
@@ -232,6 +242,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * unparse method for round function
+   */
+  private void unparseRoundfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame castFrame = writer.startFunCall("TO_DECIMAL");
+    handleMathFunction(writer, call, leftPrec, rightPrec);
+    writer.print(",38, 4");
+    writer.endFunCall(castFrame);
   }
 
   /**
