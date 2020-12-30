@@ -602,6 +602,16 @@ public class HiveSqlDialect extends SqlDialect {
       final SqlWriter.Frame currUserFrame = writer.startFunCall(CURRENT_USER.getName());
       writer.endFunCall(currUserFrame);
       break;
+    case "TIMESTAMP_ADD":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(call.getOperator().getName());
+      call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      writer.print("INTERVAL ");
+      call.getOperandList().get(call.getOperandList().size() - 1)
+              .unparse(writer, leftPrec, rightPrec);
+      writer.print("SECOND");
+      writer.endFunCall(timestampAdd);
+      break;
     case "STRING_SPLIT":
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
       unparseCall(writer, splitCall, leftPrec, rightPrec);

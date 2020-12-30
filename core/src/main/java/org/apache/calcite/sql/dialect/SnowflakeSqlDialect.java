@@ -191,14 +191,22 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseRoundfunction(writer, call, leftPrec, rightPrec);
       break;
     case "TIME_DIFF":
-      final SqlWriter.Frame timeDiff = writer.startFunCall("TIMEDIFF");
+      final SqlWriter.Frame toTimeFrame = writer.startFunCall("TO_TIME");
+      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      unparseTimeDiff(writer, call, leftPrec, rightPrec);
+      writer.print("AS VARCHAR(50)");
+      writer.endFunCall(castFrame);
+      writer.endFunCall(toTimeFrame);
+      break;
+    case "TIMESTAMP_ADD":
+      SqlWriter.Frame timestampAdd = writer.startFunCall("DATEADD");
       writer.sep(",");
-      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.print("SECOND");
       writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(timeDiff);
+      call.getOperandList().get(call.getOperandList().size() - 1)
+              .unparse(writer, leftPrec, rightPrec);
+      call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampAdd);
       break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
@@ -242,6 +250,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimeDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame timeDiff = writer.startFunCall("TIMEDIFF");
+    writer.sep(",");
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timeDiff);
   }
 
   /**

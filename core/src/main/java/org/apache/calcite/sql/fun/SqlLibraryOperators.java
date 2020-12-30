@@ -683,5 +683,19 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
               number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
+
+  public static final SqlFunction TIME_DIFF = new SqlFunction(
+          "TIME_DIFF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
+  public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMP_ADD",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
 }
 // End SqlLibraryOperators.java

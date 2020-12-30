@@ -704,6 +704,16 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
       writer.endFunCall(sessionUserFunc);
       break;
+    case "TIMESTAMP_ADD":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(call.getOperator().getName());
+      call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      writer.print("INTERVAL ");
+      call.getOperandList().get(call.getOperandList().size() - 1)
+              .unparse(writer, leftPrec, rightPrec);
+      writer.print("SECOND");
+      writer.endFunCall(timestampAdd);
+      break;
     case "FORMAT_TIMESTAMP":
     case "FORMAT_TIME":
     case "FORMAT_DATE":
