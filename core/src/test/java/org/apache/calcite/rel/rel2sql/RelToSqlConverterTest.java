@@ -6451,6 +6451,28 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testRandomFunction() {
+    String query = "select rand_integer(1,3) from \"employee\"";
+    final String expectedSnowFlake = "SELECT UNIFORM(1, 3, RANDOM())\n"
+            + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
+    final String expectedBQ = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT FLOOR(RAND() * (3 - 1 + 1)) + 1\n"
+            + "FROM foodmart.employee";
+    sql(query)
+            .withHive()
+            .ok(expectedHive)
+            .withSpark()
+            .ok(expectedSpark)
+            .withBigQuery()
+            .ok(expectedBQ)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
 }
 
 // End RelToSqlConverterTest.java

@@ -97,6 +97,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 
 
@@ -697,6 +702,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
       break;
+    case "RAND_INTEGER":
+      unparseRandomfunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -706,6 +714,19 @@ public class BigQuerySqlDialect extends SqlDialect {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
+  }
+
+  /**
+   * unparse method for Random function
+   */
+  private void unparseRandomfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall randCall = RAND.createCall(SqlParserPos.ZERO);
+    SqlCall upperLimitCall = PLUS.createCall(SqlParserPos.ZERO, MINUS.createCall
+            (SqlParserPos.ZERO, call.operand(1), call.operand(0)), call.operand(0));
+    SqlCall numberGenerator = MULTIPLY.createCall(SqlParserPos.ZERO, randCall, upperLimitCall);
+    SqlCall floorDoubleValue = FLOOR.createCall(SqlParserPos.ZERO, numberGenerator);
+    SqlCall plusNode = PLUS.createCall(SqlParserPos.ZERO, floorDoubleValue, call.operand(0));
+    unparseCall(writer, plusNode, leftPrec, rightPrec);
   }
 
   @Override protected String getDateTimeFormatString(

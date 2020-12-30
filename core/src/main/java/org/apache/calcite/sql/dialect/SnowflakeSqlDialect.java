@@ -215,6 +215,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
       }
       writer.endFunCall(regexpInstr);
       break;
+    case "RAND_INTEGER":
+      unparseRandom(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -228,6 +231,21 @@ public class SnowflakeSqlDialect extends SqlDialect {
     handleMathFunction(writer, call, leftPrec, rightPrec);
     writer.print(",38, 4");
     writer.endFunCall(castFrame);
+  }
+
+  /**
+   * unparse method for random funtion
+   * within the range of specific values
+   */
+  private void unparseRandom(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame randFrame = writer.startFunCall("UNIFORM");
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.print("RANDOM()");
+    writer.endFunCall(randFrame);
   }
 
   /**
