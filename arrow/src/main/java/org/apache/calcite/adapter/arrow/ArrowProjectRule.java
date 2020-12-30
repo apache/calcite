@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.plan.Convention;
@@ -48,8 +47,7 @@ public class ArrowProjectRule extends ArrowConverterRule {
     super(config);
   }
 
-  @Override
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     return null;
   }
 
