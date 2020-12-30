@@ -5091,10 +5091,13 @@ public class RelToSqlConverterTest {
         + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
         + "FROM foodmart.product) AS t\n"
         + "GROUP BY product_id, ABC";
-    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") "
-        +  "OVER (PARTITION BY \"product_id\") AS \"ABC\"\n"
+    final String expectedSnowFlake = "SELECT \"product_id\", MAX(\"product_id\") OVER "
+        + "(PARTITION BY \"product_id\" ORDER BY \"product_id\" ROWS "
+        + "BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"ABC\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\")";
+        + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\" "
+        + "ORDER BY \"product_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND "
+        + "UNBOUNDED FOLLOWING)";
     sql(query)
         .withHive()
         .ok(expected)
@@ -5115,7 +5118,8 @@ public class RelToSqlConverterTest {
     String expectedBQ = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
         + "AND UNBOUNDED FOLLOWING)\n"
         + "FROM foodmart.product";
-    final String expectedSnowFlake = "SELECT COUNT(*) OVER ()\n"
+    final String expectedSnowFlake = "SELECT COUNT(*) OVER (ORDER BY 0 "
+        + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withHive()
@@ -5921,7 +5925,7 @@ public class RelToSqlConverterTest {
     final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd') FD\n"
         + "FROM scott.EMP";
     final String expectedSnowFlake = "SELECT TO_VARCHAR(\"HIREDATE\", 'YYYY-MM-DD') AS \"FD\"\n"
-            + "FROM \"scott\".\"EMP\"";
+        + "FROM \"scott\".\"EMP\"";
     final String expectedSpark = expectedHive;
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -6382,8 +6386,9 @@ public class RelToSqlConverterTest {
     final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
     final String expected = "SELECT ROUND(123.41445, product_id) a\n"
             + "FROM foodmart.product";
-    final String expectedSnowFlake = "SELECT ROUND(123.41445, CASE WHEN \"product_id\" > 38"
-            + " THEN 38 WHEN \"product_id\" < -12 THEN -12 ELSE \"product_id\" END) AS \"a\"\n"
+    final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, "
+            + "CASE WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 "
+            + "THEN -12 ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
             + "FROM \"foodmart\".\"product\"";
     sql(query)
             .withBigQuery()
@@ -6407,6 +6412,41 @@ public class RelToSqlConverterTest {
     sql(query)
             .withBigQuery()
             .ok(expectedBigQuery)
+            .withSnowflake()
+            .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testWindowFunctionWithOrderByWithoutcolumn() {
+    String query = "Select count(*) over() from \"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED "
+            + "PRECEDING AND UNBOUNDED FOLLOWING)\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowflake);
+  }
+
+  @Test
+  public void testWindowFunctionWithOrderByWithcolumn() {
+    String query = "select count(\"employee_id\") over () as a from \"employee\"";
+    final String expectedSnowflake = "SELECT COUNT(\"employee_id\") OVER (ORDER BY \"employee_id\" "
+            + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"A\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withSnowflake()
+            .ok(expectedSnowflake);
+  }
+
+  @Test
+  public void testRoundFunction() {
+    final String query = "SELECT ROUND(123.41445, \"product_id\") AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, CASE "
+            + "WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 THEN -12 "
+            + "ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query)
             .withSnowflake()
             .ok(expectedSnowFlake);
   }
