@@ -91,6 +91,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -590,6 +595,9 @@ public class SparkSqlDialect extends SqlDialect {
       }
       writer.endFunCall(frame);
       break;
+    case "RAND_INTEGER":
+      unparseRandomfunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -603,6 +611,19 @@ public class SparkSqlDialect extends SqlDialect {
     SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall,
         getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
     unparseCall(writer, castToDateCall, leftPrec, rightPrec);
+  }
+
+  /**
+   * unparse method for Random function
+   */
+  private void unparseRandomfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall randCall = RAND.createCall(SqlParserPos.ZERO);
+    SqlCall upperLimitCall = PLUS.createCall(SqlParserPos.ZERO, MINUS.createCall
+            (SqlParserPos.ZERO, call.operand(1), call.operand(0)), call.operand(0));
+    SqlCall numberGenerator = MULTIPLY.createCall(SqlParserPos.ZERO, randCall, upperLimitCall);
+    SqlCall floorDoubleValue = FLOOR.createCall(SqlParserPos.ZERO, numberGenerator);
+    SqlCall plusNode = PLUS.createCall(SqlParserPos.ZERO, floorDoubleValue, call.operand(0));
+    unparseCall(writer, plusNode, leftPrec, rightPrec);
   }
 
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
