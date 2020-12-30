@@ -20,7 +20,6 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
-
 /**
  * Relational expression that uses Arrow calling convention.
  */

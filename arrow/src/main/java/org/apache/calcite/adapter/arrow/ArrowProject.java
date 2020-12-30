@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-
 public class ArrowProject extends Project implements ArrowRel {
 
   public ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,
