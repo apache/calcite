@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.calcite.linq4j.Enumerator;
+
 import org.apache.arrow.gandiva.evaluator.Filter;
+import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.gandiva.evaluator.SelectionVector;
 import org.apache.arrow.gandiva.evaluator.SelectionVectorInt16;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
@@ -27,12 +28,9 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
-
-import org.apache.calcite.linq4j.Enumerator;
 
 import java.io.IOException;
 import java.util.ArrayList;

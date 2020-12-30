@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -25,8 +22,10 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Source;
-
 import org.apache.calcite.util.Sources;
+
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

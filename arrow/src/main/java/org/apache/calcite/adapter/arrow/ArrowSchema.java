@@ -16,15 +16,13 @@
  */
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.UInt4Vector;
-import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.arrow.vector.ipc.SeekableReadChannel;
-
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-
 import org.apache.calcite.util.Sources;
+
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.SeekableReadChannel;
 
 import java.io.File;
 import java.io.FileInputStream;
