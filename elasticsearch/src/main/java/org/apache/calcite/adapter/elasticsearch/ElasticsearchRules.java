@@ -131,6 +131,10 @@ class ElasticsearchRules {
         ? s.substring(1, s.length() - 1) : s;
   }
 
+  private static String escapeSpecialSymbols(String s) {
+    return s.replace("\\", "\\\\").replace("\"", "\\\"");
+  }
+
   /**
    * Translator from {@link RexNode} to strings in Elasticsearch's expression
    * language.
@@ -149,10 +153,11 @@ class ElasticsearchRules {
       if (literal.getValue() == null) {
         return "null";
       }
-      return "\"literal\":\""
-        + RexToLixTranslator.translateLiteral(literal, literal.getType(),
-          typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)
-        + "\"";
+      return "\"literal\":"
+          + quote(
+          escapeSpecialSymbols(
+              RexToLixTranslator.translateLiteral(literal, literal.getType(),
+                  typeFactory, RexImpTable.NullAs.NOT_POSSIBLE).toString()));
     }
 
     @Override public String visitInputRef(RexInputRef inputRef) {
