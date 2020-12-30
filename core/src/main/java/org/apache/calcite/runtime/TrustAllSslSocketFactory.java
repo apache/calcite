@@ -107,7 +107,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     SSLSocketFactory sslsocketfactory = null;
     TrustManager[] trustAllCerts = {new DummyTrustManager()};
     try {
-      SSLContext sc = SSLContext.getInstance("SSL");
+      SSLContext sc = SSLContext.getInstance("TLSv1.2");
       sc.init(null, trustAllCerts, new java.security.SecureRandom());
       sslsocketfactory = sc.getSocketFactory();
     } catch (Exception e) {
