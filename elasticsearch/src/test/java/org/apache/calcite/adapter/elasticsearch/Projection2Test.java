@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -50,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Checks renaming of fields (also upper, lower cases) during projections.
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class Projection2Test {
 
@@ -211,6 +209,30 @@ class Projection2Test {
             "_source:['a', 'b.a']", "size:5196"))
         .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=1; EXPR$2=2"));
 
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4450">[CALCITE-4450]
+   * ElasticSearch query with varchar literal projection fails with JsonParseException</a>. */
+  @Test void projectionStringLiteral() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(
+            String.format(Locale.ROOT, "select 'foo' as \"lit\"\n"
+                + "from \"elastic\".\"%s\"", NAME))
+        .returns("lit=foo\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4450">[CALCITE-4450]
+   * ElasticSearch query with varchar literal projection fails with JsonParseException</a>. */
+  @Test void projectionStringLiteralAndColumn() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(
+            String.format(Locale.ROOT, "select 'foo\\\"bar\\\"' as \"lit\", _MAP['a'] as \"a\"\n"
+                + "from \"elastic\".\"%s\"", NAME))
+        .returns("lit=foo\\\"bar\\\"; a=1\n");
   }
 
   /**
