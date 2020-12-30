@@ -195,11 +195,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case "TIMESTAMP_ADD":
       SqlWriter.Frame timestampAdd = writer.startFunCall("DATEADD");
-      writer.sep(",");
-      writer.print("SECOND");
-      writer.sep(",");
+      writer.print("SECOND, ");
       call.getOperandList().get(call.getOperandList().size() - 1)
               .unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
       call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(timestampAdd);
       break;
