@@ -309,6 +309,10 @@ public class HiveSqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case PLUS:
+    case MINUS:
+      unparsePlusMinus(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -676,6 +680,27 @@ public class HiveSqlDialect extends SqlDialect {
   @Override protected String getDateTimeFormatString(
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+  }
+
+  private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "TIMESTAMP_ADD":
+    case "TIMESTAMP_SUB":
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      checkSign(writer, call);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void checkSign(SqlWriter writer, SqlCall call) {
+    if (SqlKind.PLUS == call.getKind()) {
+      writer.print("+ ");
+    } else {
+      writer.print("- ");
+    }
   }
 
 }
