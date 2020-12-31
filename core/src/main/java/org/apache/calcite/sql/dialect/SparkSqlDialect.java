@@ -569,8 +569,9 @@ public class SparkSqlDialect extends SqlDialect {
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
       unparseCall(writer, splitCall, leftPrec, rightPrec);
       break;
-    case "TIMESTAMP_ADD":
-      SqlWriter.Frame timestampAdd = writer.startFunCall(call.getOperator().getName());
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
       call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.print("INTERVAL ");
@@ -611,6 +612,13 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String getFunName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMP_ADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMP_SUB"
+            : operatorName;
   }
 
   private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

@@ -193,8 +193,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MERIDIAN_INDICATOR2, "%p");
         put(MERIDIAN_INDICATOR3, "%p");
         put(MERIDIAN_INDICATOR4, "%p");
-        put(MILISECONDSTERADATA, "%E*S");
-        put(MILISECONDS, "%E*S");
+        put(MILISECONDSTERADATA, "*S");
+        put(MILISECONDS, "*S");
         put(NAME_OF_DAY_1, "%A");
         put(ABBREVIATED_NAME_OF_DAY_1, "%a");
       }};
@@ -709,8 +709,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
       writer.endFunCall(sessionUserFunc);
       break;
-    case "TIMESTAMP_ADD":
-      SqlWriter.Frame timestampAdd = writer.startFunCall(call.getOperator().getName());
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
       call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.print("INTERVAL ");
@@ -764,6 +765,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String getFunName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMP_ADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMP_SUB"
+            : operatorName;
   }
 
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {

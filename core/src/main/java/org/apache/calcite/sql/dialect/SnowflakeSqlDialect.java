@@ -193,8 +193,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "TIME_DIFF":
       unparseTimeDiff(writer, call, leftPrec, rightPrec);
       break;
-    case "TIMESTAMP_ADD":
-      SqlWriter.Frame timestampAdd = writer.startFunCall("DATEADD");
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(fetchFunctionName(call));
       writer.print("SECOND, ");
       call.getOperandList().get(call.getOperandList().size() - 1)
               .unparse(writer, leftPrec, rightPrec);
@@ -247,6 +248,12 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String fetchFunctionName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "DATEADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "DATEDIFF" : operatorName;
   }
 
   private void unparseTimeDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

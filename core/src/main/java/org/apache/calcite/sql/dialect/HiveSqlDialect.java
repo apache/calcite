@@ -607,8 +607,9 @@ public class HiveSqlDialect extends SqlDialect {
       final SqlWriter.Frame currUserFrame = writer.startFunCall(CURRENT_USER.getName());
       writer.endFunCall(currUserFrame);
       break;
-    case "TIMESTAMP_ADD":
-      SqlWriter.Frame timestampAdd = writer.startFunCall(call.getOperator().getName());
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
       call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.print("INTERVAL ");
@@ -652,6 +653,13 @@ public class HiveSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String getFunName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMP_ADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMP_SUB"
+            : operatorName;
   }
 
   /**
