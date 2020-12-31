@@ -814,6 +814,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.BOOLEAN,
           null,
           OperandTypes.CHARACTER);
+  public static final SqlFunction DATE_TRUNC = SqlLibraryOperators.DATE_TRUNC;
 
   public static final SqlPostfixOperator JSON_VALUE_EXPRESSION =
       new SqlJsonValueExpressionOperator();

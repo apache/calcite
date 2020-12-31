@@ -525,6 +525,27 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NULL)),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction DATE_TRUNC =
+      new SqlFunction(
+          "DATE_TRUNC",
+          SqlKind.DATE_TRUNC,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATE),
+          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIMESTAMP)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIMESTAMP_TRUNC =
+      new SqlFunction(
+          "TIMESTAMP_TRUNC",
+          SqlKind.DATE_TRUNC,
+          ReturnTypes.ARG1,
+          null,
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction CONV =
           new SqlFunction(

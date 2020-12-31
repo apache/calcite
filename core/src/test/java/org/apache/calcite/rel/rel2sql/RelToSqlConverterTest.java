@@ -6473,6 +6473,49 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test public void testTruncWithDate() {
+    final String query = "SELECT DATE_TRUNC('day', DATE '2020-06-01')";
+    final String bigQueryExpected = "SELECT DATE_TRUNC(DATE '2020-06-01', DAY)";
+    sql(query)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testTruncWithTimestamp() {
+    final String query = "SELECT DATE_TRUNC('day', TIMESTAMP '2020-06-01 04:22:30')";
+    final String bigQueryExpected = "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2020-06-01 04:22:30', DAY)";
+    sql(query)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testTruncWithTimestampAndWeek() {
+    final String query = "SELECT DATE_TRUNC('week', TIMESTAMP '2020-06-05 04:22:30')";
+    final String bigQueryExpected = "SELECT TIMESTAMP_TRUNC("
+            + "TIMESTAMP '2020-06-05 04:22:30', WEEK (MONDAY))";
+    sql(query)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testTruncWithTimestampAndMicrosecond() {
+    final String query = "SELECT DATE_TRUNC('microsecond', TIMESTAMP '2020-06-05 04:22:30')";
+    final String bigQueryExpected = "SELECT TIMESTAMP_TRUNC("
+            + "TIMESTAMP '2020-06-05 04:22:30', SECOND)";
+    sql(query)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
+
+  @Test public void testTruncWithTimestampAndMillisecond() {
+    final String query = "SELECT DATE_TRUNC('millisecond',"
+            + " TIMESTAMP '2020-06-05 04:22:30.245')";
+    final String bigQueryExpected = "SELECT TIMESTAMP_TRUNC("
+            + "TIMESTAMP '2020-06-05 04:22:30.245', SECOND)";
+    sql(query)
+            .withBigQuery()
+            .ok(bigQueryExpected);
+  }
 }
 
 // End RelToSqlConverterTest.java

@@ -779,6 +779,10 @@ public enum SqlKind {
    * The "TO_NUMBER" function.
    */
   TO_NUMBER,
+  /**
+   * The "DATE_TRUNC" function.
+   */
+  DATE_TRUNC,
 
   /**
    * The "IF" function.
