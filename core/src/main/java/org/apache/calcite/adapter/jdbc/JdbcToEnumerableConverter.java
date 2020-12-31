@@ -180,44 +180,20 @@ public class JdbcToEnumerableConverter
 
     final Expression enumerable;
 
-    if (sqlString.getRexFieldAccessIndexMap() != null
-          && !sqlString.getRexFieldAccessIndexMap().isEmpty()) {
+    if (sqlString.getDynamicParameters() != null
+          && !sqlString.getDynamicParameters().isEmpty()) {
       Expression indexCorrelateMap =
           builder0.append(
               "indexCorrelateMap", Expressions.new_(HashMap.class), false);
       generateCorrelate(implementor, sqlString,
           builder0, indexCorrelateMap);
-      List<ConstantExpression> indexesTableExpression = new ArrayList<>();
-      if (sqlString.getDynamicParameters() != null
-          && !sqlString.getDynamicParameters().isEmpty()) {
-        indexesTableExpression = toIndexesTableExpression(sqlString);
-      }
-      final Expression preparedStatementConsumer_ =
-          builder0.append("preparedStatementConsumer",
-              Expressions.call(BuiltInMethod.CREATE_CORRELATE_ENRICHER.method,
-                  Expressions.newArrayInit(Integer.class, 1,
-                      indexesTableExpression),
-                  DataContext.ROOT,
-                  indexCorrelateMap,
-                  Expressions.newArrayInit(Pair.class, 1,
-                      toIndexCorrelateExpression(sqlString))));
-
-      enumerable = builder0.append("enumerable",
-          Expressions.call(
-              BuiltInMethod.RESULT_SET_ENUMERABLE_OF_PREPARED.method,
-              Schemas.unwrap(jdbcConvention.expression, DataSource.class),
-              sql_,
-              rowBuilderFactory_,
-              preparedStatementConsumer_));
-    } else if (sqlString.getDynamicParameters() != null
-        && !sqlString.getDynamicParameters().isEmpty()) {
       final Expression preparedStatementConsumer_ =
           builder0.append("preparedStatementConsumer",
               Expressions.call(BuiltInMethod.CREATE_ENRICHER.method,
-                  Expressions.newArrayInit(Integer.class, 1,
+                  Expressions.newArrayInit(Pair.class, 1,
                       toIndexesTableExpression(sqlString)),
+                  indexCorrelateMap,
                   DataContext.ROOT));
-
       enumerable = builder0.append("enumerable",
           Expressions.call(
               BuiltInMethod.RESULT_SET_ENUMERABLE_OF_PREPARED.method,
@@ -246,13 +222,6 @@ public class JdbcToEnumerableConverter
   private static List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
     return requireNonNull(sqlString.getDynamicParameters(),
         () -> "sqlString.getDynamicParameters() is null for " + sqlString).stream()
-        .map(Expressions::constant)
-        .collect(Collectors.toList());
-  }
-
-  private static List<ConstantExpression> toIndexCorrelateExpression(SqlString sqlString) {
-    return requireNonNull(sqlString.getDynamicTypeIndexes(),
-        () -> "sqlString.getDynamicTypeIndexes() is null for " + sqlString).stream()
         .map(Expressions::constant)
         .collect(Collectors.toList());
   }

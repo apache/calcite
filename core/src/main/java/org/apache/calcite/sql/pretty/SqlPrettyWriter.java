@@ -271,7 +271,6 @@ public class SqlPrettyWriter implements SqlWriter {
   private final SqlDialect dialect;
   private final StringBuilder buf;
   private final Deque<FrameImpl> listStack = new ArrayDeque<>();
-  private ImmutableList.@Nullable Builder<Integer> dynamicParameters;
   protected @Nullable FrameImpl frame;
   private boolean needWhitespace;
   protected @Nullable String nextWhitespace;
@@ -280,7 +279,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private int currentIndent;
   private @Nullable Map<RexFieldAccess, Integer> rexFieldAccessIndexMap;
   private int currentRexFieldAccessIndex;
-  private ImmutableList.@Nullable Builder<Pair<DynamicParamType, Integer>> dynamicTypeIndexes;
+  private ImmutableList.@Nullable Builder<Pair<DynamicParamType, Integer>> dynamicParameters;
   private int lineStart;
 
   //~ Constructors -----------------------------------------------------------
@@ -445,7 +444,6 @@ public class SqlPrettyWriter implements SqlWriter {
     buf.setLength(0);
     lineStart = 0;
     dynamicParameters = null;
-    dynamicTypeIndexes = null;
     rexFieldAccessIndexMap = null;
     setNeedWhitespace(false);
     nextWhitespace = " ";
@@ -922,16 +920,13 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   @Override public SqlString toSqlString() {
-    ImmutableList<Integer> dynamicParameters =
+    ImmutableList<Pair<SqlWriter.DynamicParamType, Integer>> dynamicParameters =
         this.dynamicParameters == null ? null : this.dynamicParameters.build();
-    ImmutableList<Pair<SqlWriter.DynamicParamType, Integer>> dynamicTypeIndexes =
-        this.dynamicTypeIndexes == null ? null : this.dynamicTypeIndexes.build();
     ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexImmutableMap =
         this.rexFieldAccessIndexMap == null
             ? null
             : ImmutableMap.copyOf(this.rexFieldAccessIndexMap);
-    return new SqlString(dialect, toString(), dynamicParameters,
-        rexFieldAccessIndexImmutableMap, dynamicTypeIndexes);
+    return new SqlString(dialect, toString(), rexFieldAccessIndexImmutableMap, dynamicParameters);
   }
 
   @Override public SqlDialect getDialect() {
@@ -1031,11 +1026,29 @@ public class SqlPrettyWriter implements SqlWriter {
     if (dynamicParameters == null) {
       dynamicParameters = ImmutableList.builder();
     }
-    dynamicParameters.add(index);
-    if (dynamicTypeIndexes == null) {
-      dynamicTypeIndexes = ImmutableList.builder();
+    if (rexFieldAccessIndexMap == null) {
+      rexFieldAccessIndexMap = new HashMap();
     }
-    dynamicTypeIndexes.add(Pair.of(DynamicParamType.DEFAULT, -1));
+    dynamicParameters.add(Pair.of(DynamicParamType.EXPLICIT, index));
+    print("?");
+    setNeedWhitespace(true);
+  }
+
+  @Override public void dynamicParam(RexFieldAccess fieldAccess) {
+    if (dynamicParameters == null) {
+      dynamicParameters = ImmutableList.builder();
+    }
+    if (rexFieldAccessIndexMap == null) {
+      rexFieldAccessIndexMap = new HashMap();
+    }
+    Integer index = rexFieldAccessIndexMap.get(fieldAccess);
+    // build implicit indices
+    if (index == null) {
+      index = currentRexFieldAccessIndex++;
+      rexFieldAccessIndexMap.put(fieldAccess, index);
+    }
+
+    dynamicParameters.add(Pair.of(DynamicParamType.IMPLICIT, index));
     print("?");
     setNeedWhitespace(true);
   }
@@ -1062,23 +1075,6 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public void endFunCall(Frame frame) {
     endList(this.frame);
-  }
-
-  @Override public void fieldAccessCorrelate(RexFieldAccess fieldAccess) {
-    if (rexFieldAccessIndexMap == null) {
-      rexFieldAccessIndexMap = new HashMap();
-    }
-    Integer index = rexFieldAccessIndexMap.get(fieldAccess);
-    if (index == null) {
-      index = currentRexFieldAccessIndex++;
-      rexFieldAccessIndexMap.put(fieldAccess, index);
-    }
-    if (dynamicTypeIndexes == null) {
-      dynamicTypeIndexes = ImmutableList.builder();
-    }
-    dynamicTypeIndexes.add(Pair.of(DynamicParamType.CORRELATE, index));
-    print("?");
-    setNeedWhitespace(true);
   }
 
   @Override public Frame startList(String open, String close) {

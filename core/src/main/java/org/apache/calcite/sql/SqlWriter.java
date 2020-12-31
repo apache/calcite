@@ -299,15 +299,15 @@ public interface SqlWriter {
    */
   enum DynamicParamType {
     /**
-     * default dynamic param type, identifies by sql.
+     * explicit dynamic parameters coming from the user.
      */
-    DEFAULT,
+    EXPLICIT,
 
     /**
-     * correlate dynamic param type, created by
+     * implicit dynamic parameters coming from the correlation
      * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
      */
-    CORRELATE
+    IMPLICIT
   }
 
   /** Comma operator.
@@ -395,6 +395,11 @@ public interface SqlWriter {
   void dynamicParam(int index);
 
   /**
+   * Prints a dynamic parameter (e.g. {@code ?} for default JDBC)
+   */
+  void dynamicParam(RexFieldAccess fieldAccess);
+
+  /**
    * Prints the OFFSET/FETCH clause.
    */
   void fetchOffset(@Nullable SqlNode fetch, @Nullable SqlNode offset);
@@ -459,12 +464,6 @@ public interface SqlWriter {
    */
   @Pure
   void endFunCall(Frame frame);
-
-  /**
-   * Prints a correlate dynamic parameter (e.g. {@code ?} for default JDBC).
-   * @param fieldAccess rexFieldAccess
-   */
-  void fieldAccessCorrelate(RexFieldAccess fieldAccess);
 
   /**
    * Starts a list.

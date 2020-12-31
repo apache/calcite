@@ -39,45 +39,30 @@ import org.checkerframework.dataflow.qual.Pure;
 public class SqlString {
   private final String sql;
   private SqlDialect dialect;
-  private @Nullable ImmutableList<Integer> dynamicParameters;
   private @Nullable ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexMap;
-  private @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicTypeIndexes;
+  private @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicParameters;
 
   /**
    * Creates a SqlString.
    */
   public SqlString(SqlDialect dialect, String sql) {
-    this(dialect, sql, ImmutableList.of());
+    this(dialect, sql, ImmutableMap.of(), ImmutableList.of());
   }
 
   /**
-   * Creates a SqlString. The SQL might contain dynamic parameters, dynamicParameters
-   * designate the order of the parameters.
-   *
-   * @param sql text
-   * @param dynamicParameters indices
-   */
-  public SqlString(SqlDialect dialect, String sql,
-      @Nullable ImmutableList<Integer> dynamicParameters) {
-    this(dialect, sql, dynamicParameters, ImmutableMap.of(), ImmutableList.of());
-  }
-
-  /**
-   * Creates a SqlString. The SQL might contain correlate dynamic parameters and default dynamic
+   * Creates a SqlString. The SQL might contain explicit dynamic parameters and implicit dynamic
    * parameters.
-   *
+   * @param sql text
    * @param rexFieldAccessIndexMap correlate field indices
-   * @param dynamicTypeIndexes dynamic parameters indices
+   * @param dynamicParameters dynamic parameters indices
    */
   public SqlString(SqlDialect dialect, String sql,
-      @Nullable ImmutableList<Integer> dynamicParameters,
       @Nullable ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexMap,
-      @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicTypeIndexes) {
+      @Nullable ImmutableList<Pair<DynamicParamType, Integer>> dynamicParameters) {
     this.sql = sql;
     this.dialect = dialect;
-    this.dynamicParameters = dynamicParameters;
     this.rexFieldAccessIndexMap = rexFieldAccessIndexMap;
-    this.dynamicTypeIndexes = dynamicTypeIndexes;
+    this.dynamicParameters = dynamicParameters;
     assert sql != null : "sql must be NOT null";
     assert dialect != null : "dialect must be NOT null";
   }
@@ -114,16 +99,6 @@ public class SqlString {
   }
 
   /**
-   * Returns indices of dynamic parameters.
-   *
-   * @return indices of dynamic parameters
-   */
-  @Pure
-  public @Nullable ImmutableList<Integer> getDynamicParameters() {
-    return dynamicParameters;
-  }
-
-  /**
    * Returns indices of correlate dynamic parameters.
    *
    * @return indices of correlate dynamic parameters
@@ -138,8 +113,8 @@ public class SqlString {
    * @return indices of default and correlate dynamic parameters
    */
   @Pure
-  public @Nullable ImmutableList<Pair<DynamicParamType, Integer>> getDynamicTypeIndexes() {
-    return dynamicTypeIndexes;
+  public @Nullable ImmutableList<Pair<DynamicParamType, Integer>> getDynamicParameters() {
+    return dynamicParameters;
   }
 
   /**

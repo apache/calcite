@@ -190,40 +190,21 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
 
   /** Called from generated code that proposes to create a
    * {@code ResultSetEnumerable} over a prepared statement. */
-  public static PreparedStatementEnricher createEnricher(Integer[] indexes,
+  public static PreparedStatementEnricher createEnricher(
+      Pair<SqlWriter.DynamicParamType, Integer>[] dynamicTypeIndexes,
+      Map<Integer, Object> indexCorrelMap,
       DataContext context) {
     return preparedStatement -> {
-      for (int i = 0; i < indexes.length; i++) {
-        final int index = indexes[i];
-        setDynamicParam(preparedStatement, i + 1,
-            context.get("?" + index));
-      }
-    };
-  }
-
-  /** Called from generated code that proposes to create a
-   * {@code ResultSetEnumerable} over a prepared statement with correlate param. */
-  public static PreparedStatementEnricher createCorrelateEnricher(Integer[] indexes,
-       DataContext context, Map<Integer, Object> indexCorrelMap,
-       Pair<SqlWriter.DynamicParamType, Integer>[] dynamicTypeIndexs) {
-    return preparedStatement -> {
-      int defaultDynamicIndex = 0;
-      for (int i = 0; i < dynamicTypeIndexs.length; i++) {
-        Pair<SqlWriter.DynamicParamType, Integer> dynamicTypeIndex = dynamicTypeIndexs[i];
-        // get type: default dynamicParam type 0 or correlate param type
-        SqlWriter.DynamicParamType type = dynamicTypeIndex.getKey();
-        if (SqlWriter.DynamicParamType.DEFAULT == type) {
-          // get default dynamic param
-          final int index = indexes[defaultDynamicIndex];
+      for (int i = 0; i < dynamicTypeIndexes.length; i++) {
+        Pair<SqlWriter.DynamicParamType, Integer> dynamicTypeIndex = dynamicTypeIndexes[i];
+        if (SqlWriter.DynamicParamType.EXPLICIT == dynamicTypeIndex.getKey()) {
+          // get explicit dynamic param from DataContext
           setDynamicParam(preparedStatement, i + 1,
-              context.get("?" + index));
-          // update index
-          ++defaultDynamicIndex;
+              context.get("?" + dynamicTypeIndex.getValue()));
         } else {
-          // get correlate param
-          Integer correlIndex = dynamicTypeIndex.getValue();
+          // get implicit dynamic param
           setDynamicParam(preparedStatement, i + 1,
-              indexCorrelMap.get(correlIndex));
+              indexCorrelMap.get(dynamicTypeIndex.getValue()));
         }
       }
     };
