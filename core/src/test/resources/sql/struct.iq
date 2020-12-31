@@ -83,4 +83,48 @@ where t.struct = ROW(2, ROW(3,4));
 
 !ok
 
+!use scott
+
+# [CALCITE-4434] Cannot implement 'CASE row WHEN row ...'
+SELECT deptno, job,
+  CASE (deptno, job)
+  WHEN (20, 'CLERK') THEN 1
+  WHEN (30, 'SALESMAN') THEN 2
+  ELSE 3
+  END AS x
+FROM "scott".emp
+WHERE empno < 7600;
++--------+----------+---+
+| DEPTNO | JOB      | X |
++--------+----------+---+
+|     20 | CLERK    | 1 |
+|     20 | MANAGER  | 3 |
+|     30 | SALESMAN | 2 |
+|     30 | SALESMAN | 2 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# Equivalent to previous
+SELECT deptno, job,
+  CASE
+  WHEN deptno = 20 AND job = 'CLERK' THEN 1
+  WHEN deptno = 30 AND job = 'SALESMAN' THEN 2
+  ELSE 3
+  END AS x
+FROM "scott".emp
+WHERE empno < 7600;
++--------+----------+---+
+| DEPTNO | JOB      | X |
++--------+----------+---+
+|     20 | CLERK    | 1 |
+|     20 | MANAGER  | 3 |
+|     30 | SALESMAN | 2 |
+|     30 | SALESMAN | 2 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
 # End struct.iq
