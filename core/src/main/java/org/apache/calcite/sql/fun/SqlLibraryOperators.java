@@ -684,6 +684,7 @@ public abstract class SqlLibraryOperators {
               number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction TIME_DIFF = new SqlFunction(
           "TIME_DIFF",
           SqlKind.OTHER_FUNCTION,
@@ -692,12 +693,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
 
+  @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction TIMESTAMPINTSUB = new SqlFunction("TIMESTAMPINTSUB",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
