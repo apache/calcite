@@ -310,16 +310,6 @@ public class HiveSqlDialect extends SqlDialect {
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     case PLUS:
-      if (call.getOperator().getName().equals("ADD_MONTHS") && isHiveLowerVersion) {
-        SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
-        writer.print("AS ");
-        writer.literal("DATE");
-        writer.endFunCall(castFrame);
-        break;
-      } else if (call.getOperator().getName().equals("ADD_MONTHS")) {
-        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
-      }
     case MINUS:
       unparsePlusMinus(writer, call, leftPrec, rightPrec);
       break;
@@ -699,6 +689,17 @@ public class HiveSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       checkSign(writer, call);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "ADD_MONTHS":
+      if (isHiveLowerVersion) {
+        SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
+        writer.print("AS ");
+        writer.literal("DATE");
+        writer.endFunCall(castFrame);
+      } else {
+        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

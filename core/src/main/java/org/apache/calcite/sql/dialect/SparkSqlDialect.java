@@ -318,14 +318,6 @@ public class SparkSqlDialect extends SqlDialect {
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case PLUS:
-        if (call.getOperator().getName().equals("ADD_MONTHS")) {
-          SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-          new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
-          writer.print("AS ");
-          writer.literal("DATE");
-          writer.endFunCall(castFrame);
-          break;
-        }
       case MINUS:
         unparsePlusMinus(writer, call, leftPrec, rightPrec);
         break;
@@ -656,6 +648,13 @@ public class SparkSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       checkSign(writer, call);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "ADD_MONTHS":
+      SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
+      writer.print("AS ");
+      writer.literal("DATE");
+      writer.endFunCall(castFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
