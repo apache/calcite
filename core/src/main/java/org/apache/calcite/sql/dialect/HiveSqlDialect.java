@@ -696,7 +696,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private void checkSign(SqlWriter writer, SqlCall call) {
-    if (call.getKind() == SqlKind.PLUS) {
+    if (SqlKind.PLUS == call.getKind()) {
       writer.print("+ ");
     } else {
       writer.print("- ");
