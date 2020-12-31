@@ -36,6 +36,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
 
+import org.apache.commons.lang3.StringUtils;
+
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 
 /**
@@ -205,9 +207,52 @@ public class SnowflakeSqlDialect extends SqlDialect {
       }
       writer.endFunCall(regexpInstr);
       break;
+    case "TO_CHAR":
+      if (call.operand(1) instanceof SqlLiteral) {
+        String val = ((SqlLiteral) call.operand(1)).getValueAs(String.class);
+        if (val.equalsIgnoreCase("day")) {
+          unparseToChar(writer, call, leftPrec, rightPrec, val);
+          break;
+        }
+      }
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String getDay(String day, String caseType) {
+    if (caseType.equals("DAY")) {
+      return StringUtils.upperCase(day);
+    } else if (caseType.equals("Day")) {
+      return day;
+    } else {
+      return StringUtils.lowerCase(day);
+    }
+  }
+
+  private void unparseToChar(SqlWriter writer, SqlCall call, int leftPrec,
+                             int rightPrec, String day) {
+    writer.print("CASE ");
+    SqlWriter.Frame dayNameFrame = writer.startFunCall("DAYNAME");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(dayNameFrame);
+    writer.print("WHEN 'Sun' THEN ");
+    writer.print(getDay("'Sunday ' ", day));
+    writer.print("WHEN 'Mon' THEN ");
+    writer.print(getDay("'Monday ' ", day));
+    writer.print("WHEN 'Tue' THEN ");
+    writer.print(getDay("'Tuesday ' ", day));
+    writer.print("WHEN 'Wed' THEN ");
+    writer.print(getDay("'Wednesday ' ", day));
+    writer.print("WHEN 'Thu' THEN ");
+    writer.print(getDay("'Thursday ' ", day));
+    writer.print("WHEN 'Fri' THEN ");
+    writer.print(getDay("'Friday ' ", day));
+    writer.print("WHEN 'Sat' THEN ");
+    writer.print(getDay("'Saturday ' ", day));
+    writer.print("END");
   }
 
   /**

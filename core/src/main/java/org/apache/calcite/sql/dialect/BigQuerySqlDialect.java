@@ -250,6 +250,20 @@ public class BigQuerySqlDialect extends SqlDialect {
       switch (call.type.getSqlTypeName()) {
       case DATE:
         switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTEGER:
+          RexNode rex2 = call.getOperands().get(1);
+          SqlTypeName op1Type = call.getOperands().get(0).getType().getSqlTypeName();
+          if (((RexLiteral) rex2).getValueAs(Integer.class) < 0) {
+            if (op1Type == SqlTypeName.DATE) {
+              return SqlLibraryOperators.DATE_SUB;
+            } else {
+              return SqlLibraryOperators.DATETIME_SUB;
+            }
+          }
+          if (op1Type == SqlTypeName.DATE) {
+            return SqlLibraryOperators.DATE_ADD;
+          }
+          return SqlLibraryOperators.DATETIME_ADD;
         case INTERVAL_DAY:
         case INTERVAL_MONTH:
           if (call.op.kind == SqlKind.MINUS) {
@@ -420,9 +434,47 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.sep("as " + operator.getAliasName());
       break;
+    case MINUS:
+    case PLUS:
+      unparseCallPlusMinus(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseCallPlusMinus(SqlWriter writer, SqlCall call, int left, int right) {
+    IntervalUtils utils = new IntervalUtils();
+    SqlNode op1 = call.operand(0);
+    SqlNode op2 = call.operand(1);
+    SqlIntervalLiteral intervalLiteral;
+    switch (call.getOperator().getName()) {
+    case "DATETIME_ADD":
+    case "DATETIME_SUB":
+      intervalLiteral = utils.buildInterval(op2, this);
+
+      op1 = createCast(op1, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+      SqlCall dateTimeCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          op1, intervalLiteral);
+      SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      super.unparseCall(writer, dateTimeCall, left, right);
+      writer.print("AS TIMESTAMP");
+      writer.endFunCall(castFrame);
+      break;
+    case "DATE_ADD":
+    case "DATE_SUB":
+      intervalLiteral = utils.buildInterval(op2, this);
+      SqlCall funCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          op1, intervalLiteral);
+      super.unparseCall(writer, funCall, left, right);
+      break;
+    default: super.unparseCall(writer, call, left, right);
+    }
+  }
+
+  private SqlCall createCast(SqlNode operand, SqlTypeName castTo) {
+    return CAST.createCall(SqlParserPos.ZERO, operand,
+      getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, castTo)));
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
@@ -696,6 +748,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
+      break;
+    case "DATETIME_ADD":
+    case "DATETIME_SUB":
+      unparseCallPlusMinus(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

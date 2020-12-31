@@ -4329,7 +4329,7 @@ public class RelToSqlConverterTest {
     String query = "select \"birth_date\" - INTERVAL -'1' MONTH from \"employee\"";
     final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, -1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -1)\n"
+    final String expectedSpark = "SELECT CAST(ADD_MONTHS(birth_date, -1) AS DATE)\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL -1 MONTH)\n"
         + "FROM foodmart.employee";
@@ -4344,11 +4344,11 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithArthOps() {
     String query = "select \"birth_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, -10) AS DATE)\n"
+    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, 1 * -10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -10)\n"
+    final String expectedSpark = "SELECT CAST(ADD_MONTHS(birth_date, 1 * -10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL -10 MONTH)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 * -10 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -4361,11 +4361,11 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithCol() {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, store_id * 10) AS DATE)\n"
+    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, 10 * store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
+    final String expectedSpark = "SELECT CAST(ADD_MONTHS(birth_date, 10 * store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 10 MONTH)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * STORE_ID MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -4378,11 +4378,11 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithArithOp() {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, 10 * 2) AS DATE)\n"
+    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, 2 * 10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, 10 * 2)\n"
+    final String expectedSpark = "SELECT CAST(ADD_MONTHS(birth_date, 2 * 10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 MONTH)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 2 * 10 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -4525,7 +4525,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, store_id)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 * STORE_ID DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4546,7 +4546,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, store_id)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 * STORE_ID DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4567,7 +4567,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, 10)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 * 10 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + 10)\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4588,7 +4588,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_SUB(birth_date, store_id)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 1 * STORE_ID DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4609,8 +4609,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(DATE '2018-01-01', store_id)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL store_id DAY)\n"
-        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', "
+        + "INTERVAL 1 * STORE_ID DAY)\nFROM foodmart.employee";
     final String expectedSnowflake = "SELECT (DATE '2018-01-01' + \"store_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
@@ -4630,8 +4630,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, store_id * 11)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
-        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, "
+        + "INTERVAL 1 * (STORE_ID * 11) DAY)\nFROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
@@ -4651,7 +4651,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, store_id * 11)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 11 * STORE_ID DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4672,7 +4672,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_SUB(birth_date, store_id * 11)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id * 11 DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 11 * STORE_ID DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\" * 11)\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -4693,7 +4693,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT DATE_ADD(birth_date, 10 * 2)\n"
         + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 DAY)\n"
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 2 * 10 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + 10 * 2)\n"
         + "FROM \"foodmart\".\"employee\"";
