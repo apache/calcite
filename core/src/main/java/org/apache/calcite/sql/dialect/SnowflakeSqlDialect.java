@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -31,12 +30,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 
@@ -130,252 +129,29 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseIntervalTimes(writer, call, leftPrec, rightPrec);
       break;
     case PLUS:
-      unparseTimestampAdd(writer, call, leftPrec, rightPrec);
-      //unparseDateMinus(writer, call, leftPrec, rightPrec, "");
+      SnowflakeDateTimestampInterval interval = new SnowflakeDateTimestampInterval();
+      if (!interval.handlePlus(writer, call, leftPrec, rightPrec)) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     case MINUS:
-      unparseDateMinus(writer, call, leftPrec, rightPrec, "-");
+      SnowflakeDateTimestampInterval interval1 = new SnowflakeDateTimestampInterval();
+      if (!interval1.handleMinus(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
-  private void unparseDateMinus(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec, String sign) {
-    if ("TIMESTAMP_SUB".equals(call.getOperator().getName())
-        || "TIMESTAMP_ADD".equals(call.getOperator().getName())) {
-      unparseTimestampInterval(writer, call, leftPrec, rightPrec, sign);
-    } else if ("DATE_SUB".equals(call.getOperator().getName())
-        || "DATE_ADD".equals(call.getOperator().getName())) {
-      unparseDateSubInterval(writer, call, leftPrec, rightPrec, sign);
-    } else {
-      unparseMinusIntervalOperand(writer, call, leftPrec, rightPrec, sign);
-    }
-  }
-
-  private void unparseMinusIntervalOperand(SqlWriter writer, SqlCall call,
-       int leftPrec, int rightPrec, String sign) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      switch (((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()) {
-      case "INTERVAL_DAY":
-      case "INTERVAL_MONTH":
-      case "INTERVAL_YEAR":
-        unparseDateTimeIntervalWithActualOperand(writer, call, leftPrec, rightPrec,
-            call.operand(0), sign);
-        break;
-      case "INTERVAL_YEAR_MONTH":
-        String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit = value.split("-");
-        unparseDateAddBasedonTimeUnit(writer, "YEAR", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MONTH", dayTimeSplit[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
-        break;
-      }
-    } else {
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseDateSubInterval(SqlWriter writer, SqlCall call,
-        int leftPrec, int rightPrec, String sign) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      switch (((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()) {
-      case "INTERVAL_YEAR_MONTH":
-        String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit = value.split("-");
-        unparseDateAddBasedonTimeUnit(writer, "YEAR", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MONTH", dayTimeSplit[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
-        break;
-      case "INTERVAL_MONTH":
-      case "INTERVAL_DAY":
-      case "INTERVAL_YEAR":
-        unparseDateTimeIntervalWithActualOperand(writer, call, leftPrec, rightPrec,
-            call.operand(0), sign);
-        break;
-      }
-    } else {
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseTimestampInterval(SqlWriter writer, SqlCall call,
-          int leftPrec, int rightPrec, String sign) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      switch (((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()) {
-      case "INTERVAL_DAY_SECOND":
-        String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit = value.split(" ");
-        String[] timeSplit = dayTimeSplit[1].split(":");
-        unparseDateAddBasedonTimeUnit(writer, "DAY", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", timeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", timeSplit[1], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", timeSplit[2], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))))");
-        break;
-      case "INTERVAL_MINUTE_SECOND":
-        String value1 = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit1 = value1.split(":");
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", dayTimeSplit1[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", dayTimeSplit1[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
-        break;
-      case "INTERVAL_SECOND":
-      case "INTERVAL_MINUTE":
-      case "INTERVAL_HOUR":
-      case "INTERVAL_DAY":
-      case "INTERVAL_MONTH":
-      case "INTERVAL_YEAR":
-        unparseDateTimeIntervalWithActualOperand(writer, call, leftPrec, rightPrec,
-            call.operand(0), sign);
-        break;
-      case "INTERVAL_HOUR_SECOND":
-        String hourToSecond = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] hourToSecondSplit = hourToSecond.split(":");
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", hourToSecondSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", hourToSecondSplit[1], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", hourToSecondSplit[2], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
-        break;
-      case "INTERVAL_DAY_HOUR":
-        String dayToHour = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayToHourSplit = dayToHour.split(" ");
-        unparseDateAddBasedonTimeUnit(writer, "DAY", dayToHourSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", dayToHourSplit[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
-        break;
-      }
-    } else if (call.operand(1) instanceof SqlBasicCall) {
-      SqlCall node1 = (SqlBasicCall) call.operand(1);
-      if (node1 instanceof SqlBasicCall) {
-        SqlCall intervalNode = node1;
-        if (node1.operand(0) instanceof SqlCall) {
-          intervalNode = node1.operand(0);
-        }
-        if (intervalNode.operand(0) instanceof SqlIntervalLiteral) {
-          unparseDateAddBasedonTimeUnit(writer,
-              ((SqlIntervalLiteral) intervalNode.operand(0)).getTypeName().toString(),
-              ((SqlIntervalLiteral) intervalNode.operand(0)).getValue().toString(), sign);
-        }
-        if (node1.operand(0) instanceof SqlCall
-            && intervalNode.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateAddBasedonTimeUnit(writer,
-              ((SqlIntervalLiteral) intervalNode.operand(1)).getTypeName().toString(),
-              ((SqlIntervalLiteral) intervalNode.operand(1)).getValue().toString(), sign);
-        }
-        if (node1.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateTimeIntervalWithActualOperand(writer, node1,
-              leftPrec, rightPrec, call.operand(0), sign);
-          writer.print(")");
-        }
-        if (node1.operand(0) instanceof SqlCall) {
-          writer.print(")");
-        }
-      } else {
-        if (call.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateTimeIntervalWithActualOperand(writer, call,
-              leftPrec, rightPrec, call.operand(0), sign);
-        }
-      }
-    } else {
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseDateTimeIntervalWithActualOperand(SqlWriter writer, SqlCall call,
-          int leftPrec, int rightPrec, SqlNode operand, String sign) {
-    final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATEADD");
-    writer.print(((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
-        .replace("INTERVAL_", ""));
-    String intervalSign = String.valueOf(((SqlIntervalLiteral.IntervalValue)
-        ((SqlIntervalLiteral) call.operand(1))
-        .getValue()).getSign()).replace("1", "");
-    if ("-".equals(intervalSign)) {
-      sign = intervalSign;
-    }
-    writer.print(", " + sign);
-    writer.print(((SqlIntervalLiteral) call.operand(1)).getValue().toString());
-    writer.print(", ");
-    operand.unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(dateAddFrame);
-  }
-
-  private void unparseDateAddBasedonTimeUnit(SqlWriter writer, String typeName, String value,
-           String sign) {
-    writer.print("DATEADD(");
-    writer.print(typeName.replace("INTERVAL_", ""));
-    writer.print(", " + sign);
-    writer.print(value);
-    writer.print(", ");
-  }
-
-  private void unparseTimestampAdd(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.operand(1) instanceof SqlBasicCall
-        && ((SqlBasicCall) call.operand(1)).getOperandList().get(0) instanceof SqlIntervalLiteral
-        && SqlKind.PLUS != ((SqlBasicCall) call.operand(1)).getOperator().getKind()) {
-      unparseDateAddForInterval(writer, call, leftPrec, rightPrec);
-    } else if ("DATE_ADD".equals(call.getOperator().toString())) {
-      unparseDateMinus(writer, call, leftPrec, rightPrec, "");
-//      super.unparseCall(writer, call, leftPrec, rightPrec);
-    } else {
-      unparseDateMinus(writer, call, leftPrec, rightPrec, "");
-    }
-  }
-
-  private void unparseDateAddForInterval(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
-    String timeUnit = ((SqlIntervalLiteral.IntervalValue)
-        ((SqlIntervalLiteral) ((SqlBasicCall) call.operand(1)).operand(0)).getValue()).
-        getIntervalQualifier().timeUnitRange.toString();
-    SqlCall multipleCall = unparseMultipleInterval(call);
-    SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createSymbol(TimeUnit.valueOf(timeUnit),
-        SqlParserPos.ZERO), multipleCall, call.operand(0)};
-    unparseDateAdd(writer, leftPrec, rightPrec, sqlNodes);
-  }
-
-  private void unparseDateAdd(SqlWriter writer, int leftPrec, int rightPrec, SqlNode[] sqlNodes) {
-    final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATEADD");
-    for (SqlNode operand : sqlNodes) {
-      writer.sep(",");
-      operand.unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(dateAddFrame);
-  }
-
   private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.operand(0) instanceof SqlIntervalLiteral) {
-      SqlCall multipleCall = unparseMultipleInterval(call);
+      SqlCall multipleCall = new SnowflakeDateTimestampInterval().unparseMultipleInterval(call);
       multipleCall.unparse(writer, leftPrec, rightPrec);
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private SqlCall unparseMultipleInterval(SqlCall call) {
-    SqlNode[] timesNodes = null;
-    if (call.operand(1) instanceof SqlBasicCall) {
-      timesNodes = new SqlNode[] {
-          SqlLiteral.createCharString(
-              ((SqlIntervalLiteral) ((SqlBasicCall) call.operand(1)).operand(0)).
-                  getValue().toString(), SqlParserPos.ZERO),
-          ((SqlBasicCall) call.operand(1)).operand(1)
-      };
-    } else if (call.operand(0) instanceof SqlIntervalLiteral) {
-      timesNodes = new SqlNode[] {
-          SqlLiteral.createCharString(
-              ((SqlIntervalLiteral) call.operand(0)).
-                  getValue().toString(), SqlParserPos.ZERO), call.operand(1)
-      };
-    }
-    return new SqlBasicCall(SqlStdOperatorTable.MULTIPLY, timesNodes,
-        SqlParserPos.ZERO);
   }
 
   private void handleOverCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
