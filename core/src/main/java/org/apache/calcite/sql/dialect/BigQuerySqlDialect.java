@@ -420,8 +420,25 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.sep("as " + operator.getAliasName());
       break;
+    case TIMES:
+      unparseIntervalTimes(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(0) instanceof SqlIntervalLiteral) {
+      String timeUnit = ((SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) call.operand(0)).
+          getValue()).getIntervalQualifier().timeUnitRange.toString();
+      writer.print("INTERVAL ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.print("*");
+      writer.print(((SqlIntervalLiteral) call.operand(0)).getValue().toString());
+      writer.print(" " + timeUnit);
+    } else {
+      unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
@@ -696,6 +713,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
+      break;
+    case "DATE_MOD":
+      unparseDateModule(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

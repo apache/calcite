@@ -295,7 +295,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_ADD",
           SqlKind.PLUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {
@@ -311,7 +311,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_SUB",
           SqlKind.MINUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {
@@ -666,5 +666,13 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
               number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
+
+  public static final SqlFunction DATE_MOD = new SqlFunction(
+      "DATE_MOD",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.INTEGER_NULLABLE,
+      null,
+      OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.INTEGER),
+      SqlFunctionCategory.STRING);
 }
 // End SqlLibraryOperators.java
