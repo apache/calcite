@@ -256,8 +256,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   private String fetchFunctionName(SqlCall call) {
     String operatorName = call.getOperator().getName();
-    return operatorName.equals("TIMESTAMPINTADD") ? "DATEADD"
-            : operatorName.equals("TIMESTAMPINTSUB") ? "DATEDIFF" : operatorName;
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMPADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMPDIFF" : operatorName;
   }
 
   private void unparseTimeDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

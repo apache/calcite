@@ -1018,13 +1018,6 @@ public class SqlFunctionsTest {
     assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
     assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
   }
-
-  /** Test for {@link SqlFunctions#timestampSeconds(Long)}. */
-  @Test public void testTimestampSeconds() {
-    assertThat(timestampSeconds(255590L).toString(), is("1970-01-01 05:34:15.59"));
-    assertThat(timestampSeconds(new Timestamp(1609137707583L).getTime()).toString(),
-            is("2020-12-28 12:11:47.583"));
-  }
 }
 
 // End SqlFunctionsTest.java
