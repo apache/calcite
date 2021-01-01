@@ -342,11 +342,16 @@ public abstract class SqlUtil {
     for (SqlNode operand : call.getOperandList()) {
       if (ordered && operand instanceof SqlNodeList) {
         writer.sep("ORDER BY");
+      } else if (ordered && operand.getKind() == SqlKind.SEPARATOR) {
+        writer.sep("SEPARATOR");
+        ((SqlCall) operand).operand(0).unparse(writer, 0, 0);
+        continue;
       } else {
         writer.sep(",");
       }
       operand.unparse(writer, 0, 0);
     }
+
     writer.endList(frame);
   }
 

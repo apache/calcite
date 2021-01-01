@@ -624,6 +624,7 @@ GRANTED,
 **GROUP**,
 **GROUPING**,
 **GROUPS**,
+GROUP_CONCAT,
 **HAVING**,
 HIERARCHY,
 **HOLD**,
@@ -889,6 +890,7 @@ SECURITY,
 **SELECT**,
 SELF,
 **SENSITIVE**,
+SEPARATOR,
 SEQUENCE,
 SERIALIZABLE,
 SERVER,
@@ -2579,6 +2581,7 @@ Dialect-specific aggregate functions.
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`
 | p | BOOL_OR(condition)                             | Synonym for `SOME`
 | b | COUNTIF(condition)                             | Returns the number of rows for which *condition* is TRUE; equivalent to `COUNT(*) FILTER (WHERE condition)`
+| m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`

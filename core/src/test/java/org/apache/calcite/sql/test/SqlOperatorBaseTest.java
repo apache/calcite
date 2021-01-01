@@ -7426,6 +7426,43 @@ public abstract class SqlOperatorBaseTest {
         false);
   }
 
+  @Test void testGroupConcatFunc() {
+    checkGroupConcatFunc(libraryTester(SqlLibrary.MYSQL));
+    checkGroupConcatFuncFails(libraryTester(SqlLibrary.BIG_QUERY));
+    checkGroupConcatFuncFails(libraryTester(SqlLibrary.POSTGRESQL));
+  }
+
+  private void checkGroupConcatFunc(SqlTester t) {
+    final String[] values = {"'x'", "null", "'yz'"};
+    t.checkAgg("group_concat(x)", values, "x,yz", 0);
+    t.checkAgg("group_concat(x,':')", values, "x:yz", 0);
+    t.checkAgg("group_concat(x,':' order by x)", values, "x:yz", 0);
+    t.checkAgg("group_concat(x order by x separator '|')", values, "x|yz", 0);
+    t.checkAgg("group_concat(x order by char_length(x) desc)", values,
+        "yz,x", 0);
+    t.checkAggFails("^group_concat(x respect nulls order by x desc)^", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
+        false);
+    t.checkAggFails("^group_concat(x order by x desc)^ respect nulls", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
+        false);
+  }
+
+  private void checkGroupConcatFuncFails(SqlTester t) {
+    final String[] values = {"'x'", "'y'"};
+    t.checkAggFails("^group_concat(x)^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^group_concat(x, ',')^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^group_concat(x, ',' order by x desc)^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+  }
+
   @Test void testArrayAggFunc() {
     checkArrayAggFunc(libraryTester(SqlLibrary.POSTGRESQL));
     checkArrayAggFunc(libraryTester(SqlLibrary.BIG_QUERY));
