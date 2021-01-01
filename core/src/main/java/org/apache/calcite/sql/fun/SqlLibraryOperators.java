@@ -355,6 +355,22 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
+  /** The "GROUP_CONCAT([DISTINCT] expr [ORDER BY ...] [SEPARATOR ...])" aggregate function,
+   * MySQL's equivalent of
+   * {@link SqlStdOperatorTable#LISTAGG}.
+   *
+   * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
+   * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlAggFunction GROUP_CONCAT =
+      SqlBasicAggFunction
+          .create(SqlKind.GROUP_CONCAT, ReturnTypes.ARG0,
+              OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withAllowsNullTreatment(false)
+          .withAllowsSeparator(true)
+          .withSyntax(SqlSyntax.ORDERED_SEPARATOR_FUNCTION);
+
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =

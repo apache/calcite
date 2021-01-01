@@ -8903,6 +8903,21 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testGroupConcat() {
+    final String sql = "select\n"
+        + "  group_concat(ename order by deptno, ename desc) as c2,\n"
+        + "  group_concat(ename) as c3,\n"
+        + "  group_concat(ename order by deptno, ename desc separator ',') as c4\n"
+        + "from emp group by gender";
+    final String expected = "SELECT"
+        + " GROUP_CONCAT(`ENAME` ORDER BY `DEPTNO`, `ENAME` DESC) AS `C2`,"
+        + " GROUP_CONCAT(`ENAME`) AS `C3`,"
+        + " GROUP_CONCAT(`ENAME` ORDER BY `DEPTNO`, `ENAME` DESC SEPARATOR ',') AS `C4`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `GENDER`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     expr("foo format json")
         .ok("`FOO` FORMAT JSON");

@@ -3902,11 +3902,13 @@ SqlCall StringAggFunctionCall() :
     final SqlLiteral qualifier;
     final SqlNodeList orderBy;
     final Pair<SqlParserPos, SqlOperator> nullTreatment;
+    final SqlNode separator;
 }
 {
     (
         <ARRAY_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_AGG; }
     |   <ARRAY_CONCAT_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_CONCAT_AGG; }
+    |   <GROUP_CONCAT> { s = span(); op = SqlLibraryOperators.GROUP_CONCAT; }
     |   <STRING_AGG> { s = span(); op = SqlLibraryOperators.STRING_AGG; }
     )
     <LPAREN>
@@ -3933,6 +3935,12 @@ SqlCall StringAggFunctionCall() :
             args.add(orderBy);
         }
     ]
+    [
+
+        separator = separator() {
+            args.add(separator);
+        }
+    ]
     <RPAREN>
     {
         SqlCall call = op.createCall(qualifier, s.end(this), args);
@@ -3941,6 +3949,22 @@ SqlCall StringAggFunctionCall() :
             call = nullTreatment.right.createCall(nullTreatment.left, call);
         }
         return call;
+    }
+}
+
+/**
+* Parses a separator clause
+*/
+SqlCall separator() : {
+    final SqlNode p;
+    final Span s;
+}
+{
+    <SEPARATOR> {
+        s = span();
+    }
+    p = StringLiteral() {
+        return SqlStdOperatorTable.SEPARATOR.createCall(s.end(this), p);
     }
 }
 
@@ -7437,6 +7461,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < GRANT: "GRANT" >
 |   < GRANTED: "GRANTED" >
 |   < GROUP: "GROUP" >
+|   < GROUP_CONCAT: "GROUP_CONCAT" >
 |   < GROUPING: "GROUPING" >
 |   < GROUPS: "GROUPS" >
 |   < HAVING: "HAVING" >
@@ -7702,6 +7727,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SELECT: "SELECT" > { afterTableName(); }
 |   < SELF: "SELF" >
 |   < SENSITIVE: "SENSITIVE" >
+|   < SEPARATOR: "SEPARATOR" >
 |   < SEQUENCE: "SEQUENCE" >
 |   < SERIALIZABLE: "SERIALIZABLE" >
 |   < SERVER: "SERVER" >

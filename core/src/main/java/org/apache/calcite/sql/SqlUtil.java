@@ -339,7 +339,14 @@ public abstract class SqlUtil {
         break;
       }
     }
-    for (SqlNode operand : call.getOperandList()) {
+    List<SqlNode> allArgs = call.getOperandList();
+    boolean hasSeparator = false;
+    if (call.getOperandList().size() > 0 && Util.last(allArgs).getKind() == SqlKind.SEPARATOR) {
+      hasSeparator = true;
+    }
+
+    List<SqlNode> operands = hasSeparator ? Util.skipLast(allArgs) : allArgs;
+    for (SqlNode operand : operands) {
       if (ordered && operand instanceof SqlNodeList) {
         writer.sep("ORDER BY");
       } else {
@@ -347,6 +354,13 @@ public abstract class SqlUtil {
       }
       operand.unparse(writer, 0, 0);
     }
+
+    if (hasSeparator) {
+      final SqlDialect dialect = writer.getDialect();
+      dialect.unparseCall(writer, (SqlCall) Util.last(allArgs), 0, 0);
+    }
+
+
     writer.endList(frame);
   }
 
