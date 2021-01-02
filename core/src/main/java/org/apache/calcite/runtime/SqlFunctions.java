@@ -2880,6 +2880,13 @@ public class SqlFunctions {
     return String.format(Locale.ENGLISH, pattern.toString(), value);
   }
 
+  public static Timestamp timestampSeconds(Long value) {
+    if (null == value) {
+      return null;
+    }
+    return new Timestamp(value);
+  }
+
   /** Return date value from Timestamp */
   public static java.sql.Date timestampToDate(Object obj) {
     long timestamp = 0;
@@ -2903,6 +2910,18 @@ public class SqlFunctions {
       occurance = occurance - 1;
     }
     return start + 1;
+  }
+
+  public static long timeDiff(java.sql.Date d1, java.sql.Date d2) {
+    return d2.getTime() - d1.getTime();
+  }
+
+  public static long timestampIntAdd(Timestamp t1, Integer t2) {
+    return t1.getTime() + t2;
+  }
+
+  public static long timestampIntSub(Timestamp t1, Integer t2) {
+    return t1.getTime() - t2;
   }
 }
 
