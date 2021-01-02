@@ -71,40 +71,32 @@ public class IntervalUtils {
   }
 
   //builds a SqlCall with operand and literal string
-  public SqlCall buildCallwithStringVal(String val, SqlBasicCall call, SqlNode operand) {
+  public SqlNode buildCallwithStringVal(String val, SqlBasicCall call, SqlNode operand) {
+    if (call.getKind() == SqlKind.TIMES && val.trim().equals("1")) {
+      return operand;
+    }
     return call.getOperator().createCall(SqlParserPos.ZERO,
-      SqlLiteral.createExactNumeric(val, SqlParserPos.ZERO), operand);
+      operand, SqlLiteral.createExactNumeric(val, SqlParserPos.ZERO));
   }
 
-
-  public SqlIntervalLiteral createInterval(TimeUnit timeUnit, String interval) {
-    return SqlLiteral.createInterval(1, interval,
-      new SqlIntervalQualifier(timeUnit, -1, TimeUnit.MONTH, -1,
-        SqlParserPos.ZERO), SqlParserPos.ZERO);
-  }
-
-  public SqlIntervalLiteral createInterval(SqlIntervalQualifier qualifier, String interval) {
-    return SqlLiteral.createInterval(1, interval, qualifier, SqlParserPos.ZERO);
-  }
-
-  //resolves given node to return suitable interval
-  public SqlIntervalLiteral buildInterval(SqlNode node, SqlDialect dialect) {
-    SqlIntervalLiteral intervalLiteral;
-
+  //resolves given internal expr to return suitable interval value
+  public String buildInterval(SqlNode node, SqlDialect dialect) {
+    String intervalLiteral = "";
+    boolean isBq = dialect instanceof BigQuerySqlDialect;
     if (node instanceof SqlIntervalLiteral) {
-      intervalLiteral = (SqlIntervalLiteral) node;
+      SqlIntervalLiteral literal = (SqlIntervalLiteral) node;
+      intervalLiteral = getIntervalValue(literal);
+      if (isBq) {
+        intervalLiteral = createInterval(intervalLiteral,
+          ((SqlIntervalLiteral.IntervalValue) literal.getValue())
+            .getIntervalQualifier().timeUnitRange.toString());
+      }
     } else if (node instanceof SqlNumericLiteral) {
       Long intervalValue = ((SqlLiteral) node).getValueAs(Long.class);
-      String interval = Long.toString(Math.abs(intervalValue));
-      intervalLiteral = createInterval(TimeUnit.MONTH, interval);
-    } else if (node instanceof SqlBasicCall) {
-      SqlIntervalLiteral sqlIntervalLiteral = getIntervalFromCall((SqlBasicCall) node);
-      SqlNode identifier = getNonIntervalOperand((SqlBasicCall) node);
-      String interval = getIntervalValue(sqlIntervalLiteral);
-      SqlCall opCall = buildCallwithStringVal(interval, (SqlBasicCall) node, identifier);
-      intervalLiteral = createInterval(
-        ((SqlIntervalLiteral.IntervalValue) sqlIntervalLiteral.getValue()).getIntervalQualifier(),
-        opCall.toSqlString(dialect).getSql());
+      intervalLiteral = Long.toString(Math.abs(intervalValue));
+      if (isBq) {
+        intervalLiteral = createInterval(intervalLiteral, "MONTH");
+      }
     } else {
       throw new UnsupportedOperationException("operand of type"
         + node.getClass().toString() + "not supported !");
@@ -113,15 +105,36 @@ public class IntervalUtils {
     return intervalLiteral;
   }
 
-  public void unparseAddMonths(SqlWriter writer, SqlCall call, int leftPrec,
-                               int rightPrec, SqlDialect dialect) {
-    SqlWriter.Frame frame = writer.startFunCall("ADD_MONTHS");
+  public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+                      int rightPrec, SqlDialect dialect) {
+    boolean isBq = dialect instanceof BigQuerySqlDialect;
+    SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(",", true);
-    SqlIntervalLiteral intervalLiteral = buildInterval(call.operand(1), dialect);
-    String val = getIntervalValue(intervalLiteral);
-    writer.print(val);
+    String val;
+    if (call.operand(1) instanceof SqlBasicCall) {
+      if (isBq) {
+        writer.print("INTERVAL ");
+      }
+      SqlBasicCall node = call.operand(1);
+      SqlIntervalLiteral sqlIntervalLiteral = getIntervalFromCall(node);
+      SqlNode identifier = getNonIntervalOperand(node);
+      String interval = getIntervalValue(sqlIntervalLiteral);
+      SqlNode opCall = buildCallwithStringVal(interval, node, identifier);
+      opCall.unparse(writer, leftPrec, rightPrec);
+      if (isBq) {
+        writer.literal(((SqlIntervalLiteral.IntervalValue) sqlIntervalLiteral.getValue())
+            .getIntervalQualifier().timeUnitRange.toString());
+      }
+    } else {
+      val = buildInterval(call.operand(1), dialect);
+      writer.print(val);
+    }
     writer.endFunCall(frame);
+  }
+
+  private String createInterval(String ip, String intervalType) {
+    return  "INTERVAL " + ip + " " + intervalType;
   }
 }
 

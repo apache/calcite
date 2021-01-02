@@ -691,15 +691,7 @@ public class HiveSqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       break;
     case "ADD_MONTHS":
-      if (isHiveLowerVersion) {
-        SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
-        writer.print("AS ");
-        writer.literal("DATE");
-        writer.endFunCall(castFrame);
-      } else {
-        new IntervalUtils().unparseAddMonths(writer, call, leftPrec, rightPrec, this);
-      }
+      new IntervalUtils().unparse(writer, call, leftPrec, rightPrec, this);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -451,36 +451,15 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseCallPlusMinus(SqlWriter writer, SqlCall call, int left, int right) {
     IntervalUtils utils = new IntervalUtils();
-    SqlNode op1 = call.operand(0);
-    SqlNode op2 = call.operand(1);
-    SqlIntervalLiteral intervalLiteral;
     switch (call.getOperator().getName()) {
     case "DATETIME_ADD":
     case "DATETIME_SUB":
-      intervalLiteral = utils.buildInterval(op2, this);
-
-      op1 = createCast(op1, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-      SqlCall dateTimeCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          op1, intervalLiteral);
-      SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-      super.unparseCall(writer, dateTimeCall, left, right);
-      writer.print("AS TIMESTAMP");
-      writer.endFunCall(castFrame);
-      break;
     case "DATE_ADD":
     case "DATE_SUB":
-      intervalLiteral = utils.buildInterval(op2, this);
-      SqlCall funCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          op1, intervalLiteral);
-      super.unparseCall(writer, funCall, left, right);
+      utils.unparse(writer, call, left, right, this);
       break;
     default: super.unparseCall(writer, call, left, right);
     }
-  }
-
-  private SqlCall createCast(SqlNode operand, SqlTypeName castTo) {
-    return CAST.createCall(SqlParserPos.ZERO, operand,
-      getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, castTo)));
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
@@ -639,7 +618,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (intervalValue.getSign() == -1) {
       writer.print("-");
     }
-    writer.sep(intervalValue.getIntervalLiteral());
+    writer.literal(intervalValue.getIntervalLiteral());
     unparseSqlIntervalQualifier(
         writer, intervalValue.getIntervalQualifier(), RelDataTypeSystem.DEFAULT);
   }

@@ -225,18 +225,26 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseRandom(writer, call, leftPrec, rightPrec);
       break;
     case "TO_CHAR":
-      if (call.operand(1) instanceof SqlLiteral) {
-        String val = ((SqlLiteral) call.operand(1)).getValueAs(String.class);
-        if (val.equalsIgnoreCase("day")) {
-          unparseToChar(writer, call, leftPrec, rightPrec, val);
-          break;
-        }
-      }
-      super.unparseCall(writer, call, leftPrec, rightPrec);
+      unparseToChar(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseToChar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operandCount() != 2) {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      return;
+    }
+    if (call.operand(1) instanceof SqlLiteral) {
+      String val = ((SqlLiteral) call.operand(1)).getValueAs(String.class);
+      if (val.equalsIgnoreCase("day")) {
+        unparseToCharDay(writer, call, leftPrec, rightPrec, val);
+        return;
+      }
+    }
+    super.unparseCall(writer, call, leftPrec, rightPrec);
   }
 
   /**
@@ -274,7 +282,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
   }
 
-  private void unparseToChar(SqlWriter writer, SqlCall call, int leftPrec,
+  // To_char with 'day' as 2nd operand returns weekday of the date(1st operand)
+  private void unparseToCharDay(SqlWriter writer, SqlCall call, int leftPrec,
                              int rightPrec, String day) {
     writer.print("CASE ");
     SqlWriter.Frame dayNameFrame = writer.startFunCall("DAYNAME");
