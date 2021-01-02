@@ -243,6 +243,21 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "RAND_INTEGER":
       unparseRandom(writer, call, leftPrec, rightPrec);
       break;
+    case "DATE_DIFF":
+      unparseDateDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.QUARTERNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_QUARTER:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_MONTH:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
+    case DateTimestampFormatUtil.DAYNUMBER_OF_CALENDAR:
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -298,6 +313,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     writer.sep(",");
     writer.print("RANDOM()");
     writer.endFunCall(randFrame);
+  }
+
+  private void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
+    int size = call.getOperandList().size();
+    for (int index = size - 1; index >= 0; index--) {
+      writer.sep(",");
+      call.operand(index).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(dateDiffFrame);
   }
 
   /**

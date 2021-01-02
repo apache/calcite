@@ -35,6 +35,8 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
+import static org.apache.calcite.runtime.SqlFunctions.dayOccurrenceOfMonth;
 import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -46,8 +48,11 @@ import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.lpad;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfQuarter;
+import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
+import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
@@ -59,6 +64,10 @@ import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfCalendar;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfMonth;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.yearNumberOfCalendar;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1004,6 +1013,69 @@ public class SqlFunctionsTest {
     assertThat(toVarchar(23, "99"), is("23"));
     assertThat(toVarchar(123, "999"), is("123"));
     assertThat(toVarchar(1.5, "9.99"), is("1.50"));
+  }
+
+  /** Test for {@link SqlFunctions#weekNumberOfYear}. */
+  @Test public void testWeekNumberofYear() {
+    assertThat(weekNumberOfYear("2019-03-12"), is(15));
+    assertThat(weekNumberOfYear("2019-07-12"), is(33));
+    assertThat(weekNumberOfYear("2019-09-12"), is(41));
+  }
+
+  /** Test for {@link SqlFunctions#yearNumberOfCalendar}. */
+  @Test public void testYearNumberOfCalendar() {
+    assertThat(yearNumberOfCalendar("2019-03-12"), is(2019));
+    assertThat(yearNumberOfCalendar("1901-07-01"), is(1901));
+    assertThat(yearNumberOfCalendar("1900-12-28"), is(1900));
+  }
+
+  /** Test for {@link SqlFunctions#monthNumberOfYear}. */
+  @Test public void testMonthNumberOfYear() {
+    assertThat(monthNumberOfYear("2019-03-12"), is(3));
+    assertThat(monthNumberOfYear("1901-07-01"), is(7));
+    assertThat(monthNumberOfYear("1900-12-28"), is(12));
+  }
+
+  /** Test for {@link SqlFunctions#quarterNumberOfYear}. */
+  @Test public void testQuarterNumberOfYear() {
+    assertThat(quarterNumberOfYear("2019-03-12"), is(1));
+    assertThat(quarterNumberOfYear("1901-07-01"), is(3));
+    assertThat(quarterNumberOfYear("1900-12-28"), is(4));
+  }
+
+  /** Test for {@link SqlFunctions#monthNumberOfQuarter}. */
+  @Test public void testMonthNumberOfQuarter() {
+    assertThat(monthNumberOfQuarter("2019-03-12"), is(3));
+    assertThat(monthNumberOfQuarter("1901-07-01"), is(1));
+    assertThat(monthNumberOfQuarter("1900-09-28"), is(3));
+  }
+
+  /** Test for {@link SqlFunctions#weekNumberOfMonth}. */
+  @Test public void testWeekNumberOfMonth() {
+    assertThat(weekNumberOfMonth("2019-03-12"), is(1));
+    assertThat(weekNumberOfMonth("1901-07-01"), is(0));
+    assertThat(weekNumberOfMonth("1900-09-28"), is(4));
+  }
+
+  /** Test for {@link SqlFunctions#dayOccurrenceOfMonth}. */
+  @Test public void testDayOccurrenceOfMonth() {
+    assertThat(dayOccurrenceOfMonth("2019-03-12"), is(2));
+    assertThat(dayOccurrenceOfMonth("2019-07-15"), is(3));
+    assertThat(dayOccurrenceOfMonth("2019-09-20"), is(3));
+  }
+
+  /** Test for {@link SqlFunctions#weekNumberOfCalendar}. */
+  @Test public void testWeekNumberOfCalendar() {
+    assertThat(weekNumberOfCalendar("2019-03-12"), is(6198));
+    assertThat(weekNumberOfCalendar("1901-07-01"), is(78));
+    assertThat(weekNumberOfCalendar("1900-09-01"), is(35));
+  }
+
+  /** Test for {@link SqlFunctions#dayNumberOfCalendar}. */
+  @Test public void testDayNumberOfCalendar() {
+    assertThat(dayNumberOfCalendar("2019-03-12"), is(43535));
+    assertThat(dayNumberOfCalendar("1901-07-01"), is(547));
+    assertThat(dayNumberOfCalendar("1900-09-01"), is(244));
   }
 
   /** Test for {@link SqlFunctions#timestampToDate}. */

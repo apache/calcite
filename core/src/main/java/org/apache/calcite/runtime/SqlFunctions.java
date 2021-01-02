@@ -57,9 +57,11 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -2885,6 +2887,77 @@ public class SqlFunctions {
       return null;
     }
     return new Timestamp(value);
+  }
+
+  public static Object weekNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.WEEK_OF_YEAR);
+  }
+
+  public static Object yearNumberOfCalendar(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    return Integer.parseInt(dateSplit[0]);
+  }
+
+  public static Object monthNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    return Integer.parseInt(dateSplit[1]);
+  }
+
+  public static Object quarterNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int monthValue = Integer.parseInt(dateSplit[1]);
+    if (monthValue <= 3) {
+      return 1;
+    } else if (monthValue <= 6) {
+      return 2;
+    } else if (monthValue <= 9) {
+      return 3;
+    }
+    return 4;
+  }
+
+  public static Object monthNumberOfQuarter(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int monthValue = Integer.parseInt(dateSplit[1]);
+    return monthValue % 3 == 0 ? 3 : monthValue % 3;
+  }
+
+  public static Object weekNumberOfMonth(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.WEEK_OF_MONTH) - 1;
+  }
+
+  public static Object weekNumberOfCalendar(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int year = Integer.parseInt(dateSplit[0]);
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return 52 * (year - 1900) + calendar.get(Calendar.WEEK_OF_YEAR) - 5;
+  }
+
+  public static Object dayOccurrenceOfMonth(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.DAY_OF_WEEK_IN_MONTH);
+  }
+
+  public static Object dayNumberOfCalendar(Object value) {
+    String inputDate = (String) value;
+    return (int) ChronoUnit.DAYS.between(LocalDate.parse("1899-12-31"), LocalDate.parse(inputDate));
+  }
+
+  public static Calendar calendar() {
+    return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
   }
 
   /** Return date value from Timestamp */
