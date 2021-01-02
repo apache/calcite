@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
-
-import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -30,12 +27,16 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression in Arrow.
  */
+
+
 public class ArrowProject extends Project implements ArrowRel {
 
   public ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,

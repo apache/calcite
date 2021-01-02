@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -25,8 +22,10 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Source;
-
 import org.apache.calcite.util.Sources;
+
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -66,12 +65,14 @@ public class ArrowTest {
         .with(ARROW)
         .query("select * from test\n")
         .limit(6)
-        .returns("fieldOne=1; fieldTwo=abc; fieldThree=1.2\nfieldOne=2; fieldTwo=def; " +
-            "fieldThree=3.4\nfieldOne=3; fieldTwo=xyz; fieldThree=5.6\n" +
-            "fieldOne=4; fieldTwo=abcd; fieldThree=1.22\nfieldOne=5; fieldTwo=defg; " +
-            "fieldThree=3.45\nfieldOne=6; fieldTwo=xyza; fieldThree=5.67\n")
+        .returns("fieldOne=1; fieldTwo=abc; fieldThree=1.2\n"
+               + "fieldOne=2; fieldTwo=def; fieldThree=3.4\n"
+               + "fieldOne=3; fieldTwo=xyz; fieldThree=5.6\n"
+               + "fieldOne=4; fieldTwo=abcd; fieldThree=1.22\n"
+               + "fieldOne=5; fieldTwo=defg; fieldThree=3.45\n"
+               + "fieldOne=6; fieldTwo=xyza; fieldThree=5.67\n")
         .explainContains("PLAN=ArrowToEnumerableConverter\n"
-            + "  ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
+                       + "  ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 
   @Test void testArrowProjectTwoFields() {
@@ -79,8 +80,12 @@ public class ArrowTest {
         .with(ARROW)
         .query("select \"fieldOne\", \"fieldTwo\" from test\n")
         .limit(6)
-        .returns("fieldOne=1; fieldTwo=abc\nfieldOne=2; fieldTwo=def\nfieldOne=3; fieldTwo=xyz\n" +
-            "fieldOne=4; fieldTwo=abcd\nfieldOne=5; fieldTwo=defg\nfieldOne=6; fieldTwo=xyza\n")
+        .returns("fieldOne=1; fieldTwo=abc\n"
+               + "fieldOne=2; fieldTwo=def\n"
+               + "fieldOne=3; fieldTwo=xyz\n"
+               + "fieldOne=4; fieldTwo=abcd\n"
+               + "fieldOne=5; fieldTwo=defg\n"
+               + "fieldOne=6; fieldTwo=xyza\n")
         .explainContains("PLAN=ArrowToEnumerableConverter\n"
             + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
             + "    ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
