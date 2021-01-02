@@ -103,7 +103,8 @@ public class ArrowTest {
         .query("select \"fieldOne\", \"fieldTwo\" from test where \"fieldOne\"<4")
         .limit(3)
         .returns("fieldOne=1; fieldTwo=abc\nfieldOne=2; fieldTwo=def\nfieldOne=3; fieldTwo=xyz\n")
-        .explainContains("PLAN=EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])\n  ArrowToEnumerableConverter\n"
+        .explainContains("PLAN=ArrowToEnumerableConverter\n"
+            + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
             + "    ArrowFilter(condition=[<($0, 4)])\n"
             + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }

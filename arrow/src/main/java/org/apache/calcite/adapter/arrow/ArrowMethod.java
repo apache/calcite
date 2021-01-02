@@ -19,11 +19,8 @@ package org.apache.calcite.adapter.arrow;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.arrow.gandiva.evaluator.Filter;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.sql.SqlKind;
 
 import java.lang.reflect.Method;
 
@@ -32,7 +29,7 @@ import java.lang.reflect.Method;
  */
 public enum ArrowMethod {
   ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class,
-      String.class, int.class, Object.class );
+      String.class, int.class, Object.class);
 
   public final Method method;
 

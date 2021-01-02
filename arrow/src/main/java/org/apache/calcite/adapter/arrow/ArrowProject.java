@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.arrow;
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -33,7 +32,10 @@ import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
-
+/**
+ * Implementation of {@link org.apache.calcite.rel.core.Project}
+ * relational expression in Arrow.
+ */
 public class ArrowProject extends Project implements ArrowRel {
 
   public ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,

@@ -17,9 +17,10 @@
 
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
@@ -34,11 +35,22 @@ import java.util.List;
  *
  * @see ArrowRules#PROJECT_SCAN
  */
-public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule.Config> {
+public class ArrowProjectRule extends ArrowConverterRule {
 
-  /** Creates a ArrowProjectTableScanRule. */
-  protected ArrowProjectTableScanRule(Config config) {
+  /** Default configuration. */
+  protected static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalProject.class, Convention.NONE,
+          ArrowRel.CONVENTION, "ArrowProjectRule")
+      .withRuleFactory(ArrowProjectRule::new);
+
+  /** Creates a ArrowProjectRule. */
+  protected ArrowProjectRule(Config config) {
     super(config);
+  }
+
+  @Override
+  public RelNode convert(RelNode rel) {
+    return null;
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -70,17 +82,12 @@ public class ArrowProjectTableScanRule extends RelRule<ArrowProjectTableScanRule
     }
     return fields;
   }
+}
 
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    ArrowProjectTableScanRule.Config DEFAULT = EMPTY
-        .withOperandSupplier(b0 ->
-            b0.operand(LogicalProject.class).oneInput(b1 ->
-                b1.operand(ArrowTableScan.class).noInputs()))
-        .as(ArrowProjectTableScanRule.Config.class);
-
-    @Override default ArrowProjectTableScanRule toRule() {
-      return new ArrowProjectTableScanRule(this);
-    }
+/** Base class for planner rules that convert a relational expression to
+ * Arrow calling convention. */
+abstract class ArrowConverterRule extends ConverterRule {
+  ArrowConverterRule(Config config) {
+    super(config);
   }
 }

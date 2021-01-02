@@ -23,14 +23,20 @@ import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
 
+/**
+ * Relational expression representing a scan of a table in a Arrow data source.
+ */
 public class ArrowToEnumerableConverter extends ConverterImpl implements EnumerableRel {
 
   protected ArrowToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits,
