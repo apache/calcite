@@ -51,8 +51,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
+
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -420,15 +422,27 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.sep("as " + operator.getAliasName());
       break;
-    case TIMES:
+    /*case TIMES:
       unparseIntervalTimes(writer, call, leftPrec, rightPrec);
+      break;*/
+    case PLUS:
+      BigQueryDateTimestampInterval plusInterval = new BigQueryDateTimestampInterval();
+      if (!plusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case MINUS:
+      BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
+      if (!minusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
-  private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  /*private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.operand(0) instanceof SqlIntervalLiteral) {
       String timeUnit = ((SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) call.operand(0)).
           getValue()).getIntervalQualifier().timeUnitRange.toString();
@@ -438,9 +452,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print(((SqlIntervalLiteral) call.operand(0)).getValue().toString());
       writer.print(" " + timeUnit);
     } else {
-      unparseCall(writer, call, leftPrec, rightPrec);
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
+  }*/
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);

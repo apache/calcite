@@ -176,6 +176,16 @@ public class SnowflakeDateTimestampInterval {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.print("))");
         break;
+      case "INTERVAL_DAY_MINUTE":
+        String value2 = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+        String[] dayTimeSplit2 = value2.split(" ");
+        String[] timeSplit2 = dayTimeSplit2[1].split(":");
+        unparseDateAddBasedonTimeUnit(writer, "DAY", dayTimeSplit2[0], sign);
+        unparseDateAddBasedonTimeUnit(writer, "HOUR", timeSplit2[0], sign);
+        unparseDateAddBasedonTimeUnit(writer, "MINUTE", timeSplit2[1], sign);
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.print(")))");
+        break;
       case "INTERVAL_SECOND":
       case "INTERVAL_MINUTE":
       case "INTERVAL_HOUR":
