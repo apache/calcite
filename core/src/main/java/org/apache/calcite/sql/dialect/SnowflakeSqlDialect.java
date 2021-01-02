@@ -118,6 +118,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case TRUNCATE:
     case IF:
     case OTHER_FUNCTION:
+    case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     case TIMESTAMP_DIFF:

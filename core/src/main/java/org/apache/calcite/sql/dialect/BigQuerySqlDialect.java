@@ -455,6 +455,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
+    case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     case COLLECTION_TABLE:
@@ -760,6 +761,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    case "DAYOFYEAR":
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     case "TO_DATE":
       SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
