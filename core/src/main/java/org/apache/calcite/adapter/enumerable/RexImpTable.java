@@ -341,19 +341,19 @@ public class RexImpTable {
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
     defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
     defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
-    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.ARG0);
+    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
     defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
-        NullPolicy.ARG0);
+        NullPolicy.NONE);
     defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
-        NullPolicy.ARG0);
-    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.ARG0);
+        NullPolicy.NONE);
+    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
     defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
-        NullPolicy.ARG0);
-    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.ARG0);
+        NullPolicy.NONE);
+    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
     defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
-        NullPolicy.ARG0);
+        NullPolicy.NONE);
     defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
-        NullPolicy.ARG0);
+        NullPolicy.NONE);
     defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
     defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
     defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
