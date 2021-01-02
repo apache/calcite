@@ -108,6 +108,7 @@ import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -317,6 +318,10 @@ public enum BuiltInMethod {
   RPAD(SqlFunctions.class, "rpad", String.class, Integer.class, String.class),
   FORMAT(SqlFunctions.class, "format", Object.class, Object.class),
   TO_VARCHAR(SqlFunctions.class, "toVarchar", Object.class, Object.class),
+  TIMESTAMPSECONDS(SqlFunctions.class, "timestampSeconds", Long.class),
+  TIME_DIFF(SqlFunctions.class, "timeDiff", Date.class, Date.class),
+  TIMESTAMPINTADD(SqlFunctions.class, "timestampIntAdd", Timestamp.class, Integer.class),
+  TIMESTAMPINTSUB(SqlFunctions.class, "timestampIntSub", Timestamp.class, Integer.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),

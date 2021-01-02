@@ -118,6 +118,15 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case TIMESTAMP_DIFF:
+      final SqlWriter.Frame timestampdiff = writer.startFunCall("TIMESTAMPDIFF");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampdiff);
+      break;
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
@@ -185,6 +194,13 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "ROUND":
       unparseRoundfunction(writer, call, leftPrec, rightPrec);
       break;
+    case "TIME_DIFF":
+      unparseTimeDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
+      break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -211,6 +227,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "TIMESTAMP_SECONDS":
+      final SqlWriter.Frame timestampSecond = writer.startFunCall("TO_TIMESTAMP");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampSecond);
+      break;
     case "INSTR":
       final SqlWriter.Frame regexpInstr = writer.startFunCall("REGEXP_INSTR");
       for (SqlNode operand : call.getOperandList()) {
@@ -225,6 +246,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame timestampAdd = writer.startFunCall(fetchFunctionName(call));
+    writer.print("SECOND, ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+    writer.print(", ");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timestampAdd);
+  }
+
+  private String fetchFunctionName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMPADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMPDIFF" : operatorName;
+  }
+
+  private void unparseTimeDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame timeDiff = writer.startFunCall("TIMEDIFF");
+    writer.sep(",");
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timeDiff);
   }
 
   /**
