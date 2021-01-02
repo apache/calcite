@@ -17,7 +17,10 @@
 
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -28,8 +31,12 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.sql.SqlKind;
 
-import java.util.*;
+import java.util.List;
 
+/**
+ * Implementation of a {@link org.apache.calcite.rel.core.Filter}
+ * relational expression in Arrow.
+ */
 public class ArrowFilter extends Filter implements ArrowRel {
 
   Integer field;
@@ -67,6 +74,9 @@ public class ArrowFilter extends Filter implements ArrowRel {
     implementor.add(null, operator, field, value);
   }
 
+  /**
+   * Translates SQL condition to string.
+   */
   static class Translator {
     private final RelDataType rowType;
     private final List<String> fieldNames;

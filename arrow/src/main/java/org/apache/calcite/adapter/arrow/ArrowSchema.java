@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.UInt4Vector;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 
@@ -87,7 +86,8 @@ class ArrowSchema extends AbstractSchema {
         } catch (FileNotFoundException e) {
           e.printStackTrace();
         }
-        SeekableReadChannel seekableReadChannel = new SeekableReadChannel(fileInputStream.getChannel());
+        SeekableReadChannel seekableReadChannel = new SeekableReadChannel(
+            fileInputStream.getChannel());
         RootAllocator allocator = new RootAllocator();
         ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
         tables.put(

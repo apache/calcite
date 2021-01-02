@@ -23,21 +23,13 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
- * ArrowFilterTableScanRule.
+ * ArrowFilterRule.
  */
-public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.Config> {
+public class ArrowFilterRule extends RelRule<ArrowFilterRule.Config> {
 
-  protected ArrowFilterTableScanRule(Config config) {
+  protected ArrowFilterRule(Config config) {
     super(config);
   }
 
@@ -63,14 +55,14 @@ public class ArrowFilterTableScanRule extends RelRule<ArrowFilterTableScanRule.C
 
   /** Rule configuration. */
   public interface Config extends RelRule.Config {
-    ArrowFilterTableScanRule.Config DEFAULT = EMPTY
+    ArrowFilterRule.Config DEFAULT = EMPTY
         .withOperandSupplier(b0 ->
             b0.operand(LogicalFilter.class).oneInput(b1 ->
                 b1.operand(ArrowTableScan.class).noInputs()))
-        .as(ArrowFilterTableScanRule.Config.class);
+        .as(ArrowFilterRule.Config.class);
 
-    @Override default ArrowFilterTableScanRule toRule() {
-      return new ArrowFilterTableScanRule(this);
+    @Override default ArrowFilterRule toRule() {
+      return new ArrowFilterRule(this);
     }
   }
 }

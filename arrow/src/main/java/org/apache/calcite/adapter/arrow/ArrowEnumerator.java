@@ -114,8 +114,7 @@ public class ArrowEnumerator implements Enumerator<Object> {
         rowIndex++;
         return true;
       }
-    }
-    else {
+    } else {
       if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
         boolean hasNextBatch = false;
         try {

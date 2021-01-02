@@ -21,11 +21,6 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Relational expression that uses Arrow calling convention.
  */
@@ -35,6 +30,8 @@ public interface ArrowRel extends RelNode {
   /** Calling convention for relational operations that occur in Arrow. */
   Convention CONVENTION = new Convention.Impl("ARROW", ArrowRel.class);
 
+  /** Callback for the implementation process that converts a tree of
+   * {@link ArrowRel} nodes into a SQL query. */
   class Implementor {
     int[] selectFields;
     int fieldToCompare;
@@ -53,7 +50,7 @@ public interface ArrowRel extends RelNode {
     public void add(int[] fields, String condition, Integer field, Object value) {
       if (fields != null) {
         selectFields = new int[fields.length];
-        for(int i = 0; i < fields.length; i++) {
+        for (int i = 0; i < fields.length; i++) {
           selectFields[i] = fields[i];
         }
       }

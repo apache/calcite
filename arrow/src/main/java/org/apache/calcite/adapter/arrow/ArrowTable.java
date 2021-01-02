@@ -48,7 +48,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
 import java.io.IOException;
@@ -112,8 +111,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       } catch (GandivaException e) {
         throw new RuntimeException(e);
       }
-    }
-    else {
+    } else {
       List<TreeNode> treeNodes = new ArrayList<>(2);
       treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
       treeNodes.add(makeLiteralNode(valueToCompare));

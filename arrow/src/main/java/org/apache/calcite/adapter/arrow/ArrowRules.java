@@ -29,10 +29,10 @@ public class ArrowRules {
 
   /** Rule that matches a {@link org.apache.calcite.rel.core.Project} on
    * a {@link ArrowTableScan} and pushes down projects if possible. */
-  public static final ArrowProjectTableScanRule PROJECT_SCAN =
-      ArrowProjectTableScanRule.Config.DEFAULT.toRule();
-  public static final ArrowFilterTableScanRule FILTER_SCAN =
-      ArrowFilterTableScanRule.Config.DEFAULT.toRule();
+  public static final ArrowProjectRule PROJECT_SCAN =
+      ArrowProjectRule.DEFAULT_CONFIG.toRule(ArrowProjectRule.class);
+  public static final ArrowFilterRule FILTER_SCAN =
+      ArrowFilterRule.Config.DEFAULT.toRule();
 
   public static final ArrowToEnumerableConverterRule TO_ENUMERABLE =
       ArrowToEnumerableConverterRule.DEFAULT_CONFIG
