@@ -60,6 +60,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -2922,6 +2923,56 @@ public class SqlFunctions {
 
   public static long timestampIntSub(Timestamp t1, Integer t2) {
     return t1.getTime() - t2;
+  }
+
+  public static Object datetimeAdd(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance();
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object datetimeSub(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance();
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
   }
 }
 

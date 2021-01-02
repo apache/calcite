@@ -35,6 +35,8 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
+import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
 import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -1016,6 +1018,18 @@ public class SqlFunctionsTest {
   @Test public void testInStr() {
     assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
     assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#datetimeAdd(Object, Object)}. */
+  @Test public void testdatetimeAdd() {
+    assertThat(datetimeAdd("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
+        is(Timestamp.valueOf("2000-12-13 12:12:12.0")));
+  }
+
+  /** Test for {@link SqlFunctions#datetimeSub(Object, Object)}. */
+  @Test public void testdatetimeSub() {
+    assertThat(datetimeSub("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
+        is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
   }
 }
 

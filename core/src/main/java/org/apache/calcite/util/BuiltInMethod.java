@@ -586,7 +586,9 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "singleGroupResultSelector", Function1.class),
   TIMESTAMP_TO_DATE(SqlFunctions.class, "timestampToDate", Object.class),
-  INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class);
+  INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class),
+  DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
+  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class);
 
   public final Method method;
   public final Constructor constructor;
