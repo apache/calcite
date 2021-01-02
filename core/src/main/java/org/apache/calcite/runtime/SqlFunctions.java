@@ -2911,6 +2911,18 @@ public class SqlFunctions {
     }
     return start + 1;
   }
+
+  public static long timeDiff(java.sql.Date d1, java.sql.Date d2) {
+    return d2.getTime() - d1.getTime();
+  }
+
+  public static long timestampIntAdd(Timestamp t1, Integer t2) {
+    return t1.getTime() + t2;
+  }
+
+  public static long timestampIntSub(Timestamp t1, Integer t2) {
+    return t1.getTime() - t2;
+  }
 }
 
 // End SqlFunctions.java

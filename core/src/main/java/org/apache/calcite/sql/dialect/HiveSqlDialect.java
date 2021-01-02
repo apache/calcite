@@ -613,14 +613,7 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case "TIMESTAMPINTADD":
     case "TIMESTAMPINTSUB":
-      SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
-      call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      writer.print("INTERVAL ");
-      call.getOperandList().get(call.getOperandList().size() - 1)
-              .unparse(writer, leftPrec, rightPrec);
-      writer.print("SECOND");
-      writer.endFunCall(timestampAdd);
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "STRING_SPLIT":
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
@@ -657,6 +650,17 @@ public class HiveSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    writer.print("INTERVAL ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+    writer.print("SECOND");
+    writer.endFunCall(timestampAdd);
   }
 
   private String getFunName(SqlCall call) {

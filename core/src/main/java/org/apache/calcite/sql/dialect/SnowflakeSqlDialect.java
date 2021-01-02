@@ -199,13 +199,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case "TIMESTAMPINTADD":
     case "TIMESTAMPINTSUB":
-      SqlWriter.Frame timestampAdd = writer.startFunCall(fetchFunctionName(call));
-      writer.print("SECOND, ");
-      call.getOperandList().get(call.getOperandList().size() - 1)
-              .unparse(writer, leftPrec, rightPrec);
-      writer.print(", ");
-      call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(timestampAdd);
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
@@ -252,6 +246,16 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame timestampAdd = writer.startFunCall(fetchFunctionName(call));
+    writer.print("SECOND, ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+    writer.print(", ");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timestampAdd);
   }
 
   private String fetchFunctionName(SqlCall call) {

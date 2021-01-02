@@ -118,8 +118,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMPINTADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMPINTSUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
@@ -333,6 +336,9 @@ public class RexImpTable {
     defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
     defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
     defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
+    defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
