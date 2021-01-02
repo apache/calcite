@@ -56,6 +56,14 @@ here to appease testAllFunctionsAreDocumented:
 | FORMAT         | Format the value as per the pattern defined
 | TO_VARCHAR     | Derives the value as per the pattern defined
 | INSTR          | Finds substring position from Source string
+| WEEKNUMBER_OF_YEAR     | Get week number of the year
+| YEARNUMBER_OF_CALENDAR | Get year from the calendar value
+| MONTHNUMBER_OF_YEAR    | Get month of the year
+| QUARTERNUMBER_OF_YEAR  | Get quarter value of the year
+| MONTHNUMBER_OF_QUARTER | Get month from the quarter of the year
+| WEEKNUMBER_OF_MONTH    | Get week number of the month
+| WEEKNUMBER_OF_CALENDAR | Get week number of the calendar
+| DAYOCCURRENCE_OF_MONTH | Get day occurrence of the month
 {% endcomment %}
 -->
 

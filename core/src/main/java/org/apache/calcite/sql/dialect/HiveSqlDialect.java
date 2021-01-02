@@ -647,6 +647,13 @@ public class HiveSqlDialect extends SqlDialect {
     case "RAND_INTEGER":
       unparseRandomfunction(writer, call, leftPrec, rightPrec);
       break;
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_QUARTER:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_MONTH:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
