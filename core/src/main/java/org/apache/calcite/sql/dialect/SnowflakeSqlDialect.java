@@ -118,11 +118,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case TIMESTAMP_DIFF:
+      final SqlWriter.Frame timestampdiff = writer.startFunCall("TIMESTAMPDIFF");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampdiff);
+      break;
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
     case OVER:
       handleOverCall(writer, call, leftPrec, rightPrec);
+      break;
+    case MINUS:
+    case PLUS:
+      unparsePlusMinus(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -134,7 +147,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      unparseSqlWindow(call.operand(1), writer);
+      unparseSqlWindow(call.operand(1), writer, call);
     }
   }
 
@@ -142,25 +155,33 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
-  private void unparseSqlWindow(SqlWindow call, SqlWriter writer) {
-    final SqlWindow window = call;
+  private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
+    final SqlWindow window = sqlWindow;
     writer.print("OVER ");
+    SqlCall operand1 = call.operand(0);
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
       window.getRefName().unparse(writer, 0, 0);
     }
-    if (window.getPartitionList().size() > 0) {
-      writer.sep("PARTITION BY");
-      final SqlWriter.Frame partitionFrame = writer.startList("", "");
-      window.getPartitionList().unparse(writer, 0, 0);
-      writer.endList(partitionFrame);
-    }
-    if (window.getOrderList().size() > 0) {
-      writer.sep("ORDER BY");
-      final SqlWriter.Frame orderFrame = writer.startList("", "");
-      window.getOrderList().unparse(writer, 0, 0);
-      writer.endList(orderFrame);
+    if (window.getOrderList().size() == 0) {
+      if (window.getPartitionList().size() > 0) {
+        writer.sep("PARTITION BY");
+        final SqlWriter.Frame partitionFrame = writer.startList("", "");
+        window.getPartitionList().unparse(writer, 0, 0);
+        writer.endList(partitionFrame);
+      }
+      writer.print("ORDER BY ");
+      if (operand1.getOperandList().size() == 0) {
+        writer.print("0 ");
+      } else {
+        SqlNode operand2 = operand1.operand(0);
+        operand2.unparse(writer, 0, 0);
+      }
+      writer.print("ROWS BETWEEN ");
+      writer.sep(window.getLowerBound().toString());
+      writer.sep("AND");
+      writer.sep(window.getUpperBound().toString());
     }
     writer.endList(frame);
   }
@@ -168,8 +189,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "TRUNCATE":
-    case "ROUND":
       handleMathFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case "ROUND":
+      unparseRoundfunction(writer, call, leftPrec, rightPrec);
+      break;
+    case "TIME_DIFF":
+      unparseTimeDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
       final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
@@ -197,6 +227,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
           call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
+    case "TIMESTAMP_SECONDS":
+      final SqlWriter.Frame timestampSecond = writer.startFunCall("TO_TIMESTAMP");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(timestampSecond);
+      break;
     case "INSTR":
       final SqlWriter.Frame regexpInstr = writer.startFunCall("REGEXP_INSTR");
       for (SqlNode operand : call.getOperandList()) {
@@ -204,6 +239,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(regexpInstr);
+      break;
+    case "RAND_INTEGER":
+      unparseRandom(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
@@ -223,6 +261,58 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame timestampAdd = writer.startFunCall(fetchFunctionName(call));
+    writer.print("SECOND, ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+    writer.print(", ");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timestampAdd);
+  }
+
+  private String fetchFunctionName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMPADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMPDIFF" : operatorName;
+  }
+
+  private void unparseTimeDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame timeDiff = writer.startFunCall("TIMEDIFF");
+    writer.sep(",");
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timeDiff);
+  }
+
+  /**
+   * unparse method for round function
+   */
+  private void unparseRoundfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame castFrame = writer.startFunCall("TO_DECIMAL");
+    handleMathFunction(writer, call, leftPrec, rightPrec);
+    writer.print(",38, 4");
+    writer.endFunCall(castFrame);
+  }
+
+  /**
+   * unparse method for random funtion
+   * within the range of specific values
+   */
+  private void unparseRandom(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame randFrame = writer.startFunCall("UNIFORM");
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.print("RANDOM()");
+    writer.endFunCall(randFrame);
   }
 
   private void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -416,6 +506,27 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
+  }
+
+  private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().toString()) {
+    case "TIMESTAMP_ADD":
+    case "TIMESTAMP_SUB":
+      final SqlWriter.Frame formatTime = writer.startFunCall("TIMESTAMPADD");
+      String formatCall = ((SqlIntervalLiteral) call.operand(1))
+              .getTypeName().toString().split("_")[1];
+      writer.print(formatCall + ", ");
+      String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+      if (call.getOperator().toString().equals("TIMESTAMP_SUB")) {
+        writer.print("-");
+      }
+      writer.print(intCall + ", ");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(formatTime);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
 }

@@ -295,7 +295,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_ADD",
           SqlKind.PLUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {
@@ -311,7 +311,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "TIMESTAMP_SUB",
           SqlKind.MINUS,
-          ReturnTypes.DATE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
           SqlFunctionCategory.TIMEDATE) {
@@ -457,7 +457,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SNOWFLAKE})
   public static final SqlFunction TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
@@ -586,6 +586,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction PARSE_TIMESTAMP =
+      new SqlFunction("PARSE_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction UNIX_TIMESTAMP =
       new SqlFunction(
@@ -646,6 +655,14 @@ public abstract class SqlLibraryOperators {
       OperandTypes.DATETIME,
       SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIMESTAMP_SECONDS =
+          new SqlFunction("TIMESTAMP_SECONDS",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.DATE_NULLABLE,
+                  null,
+                  OperandTypes.NUMERIC, SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIGQUERY, SPARK})
   public static final SqlFunction FORMAT_DATETIME = new SqlFunction(
       "FORMAT_DATETIME",
@@ -666,6 +683,29 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
               number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIME_DIFF = new SqlFunction(
+          "TIME_DIFF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIMESTAMPINTSUB = new SqlFunction("TIMESTAMPINTSUB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction WEEKNUMBER_OF_YEAR =

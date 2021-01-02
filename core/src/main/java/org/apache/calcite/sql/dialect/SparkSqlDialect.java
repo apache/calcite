@@ -91,6 +91,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -311,6 +316,10 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
+        break;
+      case PLUS:
+      case MINUS:
+        unparsePlusMinus(writer, call, leftPrec, rightPrec);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -564,6 +573,10 @@ public class SparkSqlDialect extends SqlDialect {
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
       unparseCall(writer, splitCall, leftPrec, rightPrec);
       break;
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
+      break;
     case "FORMAT_TIMESTAMP":
     case "FORMAT_TIME":
     case "FORMAT_DATE":
@@ -590,9 +603,30 @@ public class SparkSqlDialect extends SqlDialect {
       }
       writer.endFunCall(frame);
       break;
+    case "RAND_INTEGER":
+      unparseRandomfunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame timestampAdd = writer.startFunCall(getFunName(call));
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    writer.print("INTERVAL ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+    writer.print("SECOND");
+    writer.endFunCall(timestampAdd);
+  }
+
+  private String getFunName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "TIMESTAMP_ADD"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "TIMESTAMP_SUB"
+            : operatorName;
   }
 
   private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -605,6 +639,19 @@ public class SparkSqlDialect extends SqlDialect {
     unparseCall(writer, castToDateCall, leftPrec, rightPrec);
   }
 
+  /**
+   * unparse method for Random function
+   */
+  private void unparseRandomfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall randCall = RAND.createCall(SqlParserPos.ZERO);
+    SqlCall upperLimitCall = PLUS.createCall(SqlParserPos.ZERO, MINUS.createCall
+            (SqlParserPos.ZERO, call.operand(1), call.operand(0)), call.operand(0));
+    SqlCall numberGenerator = MULTIPLY.createCall(SqlParserPos.ZERO, randCall, upperLimitCall);
+    SqlCall floorDoubleValue = FLOOR.createCall(SqlParserPos.ZERO, numberGenerator);
+    SqlCall plusNode = PLUS.createCall(SqlParserPos.ZERO, floorDoubleValue, call.operand(0));
+    unparseCall(writer, plusNode, leftPrec, rightPrec);
+  }
+
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
@@ -614,6 +661,27 @@ public class SparkSqlDialect extends SqlDialect {
   @Override protected String getDateTimeFormatString(
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+  }
+
+  private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "TIMESTAMP_ADD":
+    case "TIMESTAMP_SUB":
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      checkSign(writer, call);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void checkSign(SqlWriter writer, SqlCall call) {
+    if (SqlKind.PLUS == call.getKind()) {
+      writer.print("+ ");
+    } else {
+      writer.print("- ");
+    }
   }
 }
 
