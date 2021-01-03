@@ -106,7 +106,8 @@ public class HiveDateTimestampInterval {
 
   private void handleIntervalYear(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
-    if ("-".equals(call.getOperator().toString())) {
+    if ("-".equals(call.getOperator().toString())
+        || "DATE_ADD".equals(call.getOperator().toString())) {
       writer.print("CAST(");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(sign);
