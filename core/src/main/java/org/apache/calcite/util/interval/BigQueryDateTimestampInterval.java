@@ -211,7 +211,7 @@ public class BigQueryDateTimestampInterval {
     writer.print("INTERVAL ");
     writer.print(value + " ");
     writer.print(timeUnit);
-    writer.print(")");
+    writer.print(") ");
   }
 }
 
