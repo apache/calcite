@@ -2996,6 +2996,58 @@ public class SqlFunctions {
   public static long timestampIntSub(Timestamp t1, Integer t2) {
     return t1.getTime() - t2;
   }
+
+  public static Object datetimeAdd(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object datetimeSub(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
+  }
 }
 
 // End SqlFunctions.java

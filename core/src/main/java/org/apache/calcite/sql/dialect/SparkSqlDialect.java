@@ -315,6 +315,7 @@ public class SparkSqlDialect extends SqlDialect {
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       case OTHER_FUNCTION:
+      case OTHER:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case PLUS:
@@ -606,6 +607,13 @@ public class SparkSqlDialect extends SqlDialect {
     case "RAND_INTEGER":
       unparseRandomfunction(writer, call, leftPrec, rightPrec);
       break;
+    case "DAYOFYEAR":
+      SqlCall formatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+          SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, formatCall,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+      unparseCall(writer, castCall, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -670,6 +678,9 @@ public class SparkSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       checkSign(writer, call);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "ADD_MONTHS":
+      new IntervalUtils().unparse(writer, call, leftPrec, rightPrec, this);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
