@@ -2908,4 +2908,34 @@ from (select 1 as a, 2 as b, 3 as c);
 
 !ok
 
+!use mysqlfunc
+
+select
+    group_concat(distinct ename order by ename) as combined_name,
+    group_concat(ename order by ename separator ';') as separated_name
+from emp;
++------------------------------------------------+------------------------------------------------+
+| COMBINED_NAME                                  | SEPARATED_NAME                                 |
++------------------------------------------------+------------------------------------------------+
+| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
++------------------------------------------------+------------------------------------------------+
+(1 row)
+
+!ok
+
+# group_concat(deptno, ename order by ename separator ';') as separated_name
+# not supported as list_agg doesn't support it either
+select
+    group_concat(deptno, ename order by ename) as combined_name
+
+from emp;
++-----------------------------------------------+
+| COMBINED_NAME                                 |
++-----------------------------------------------+
+| 50Alice30Bob10Eric20Eve50Grace60Jane10Susan30 |
++-----------------------------------------------+
+(1 row)
+
+!ok
+
 # End agg.iq

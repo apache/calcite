@@ -5593,6 +5593,35 @@ public class SqlToRelConverter {
                 call.getFunctionQuantifier(), pos, operands2);
         translateAgg(call2, filter, orderList, ignoreNulls, outerCall);
         return;
+      case GROUP_CONCAT:
+        // Translate "GROUP_CONCAT(s ORDER BY x, y SEP ',')"
+        // as if it were "LISTAGG(s, sep) WITHIN GROUP (ORDER BY x, y)";
+        if (!operands.isEmpty()) {
+          SqlNode separator = null;
+          List<SqlNode> args2 = operands;
+
+          ImmutableList.Builder<SqlNode> args3Builder = ImmutableList.builder();
+          if (Util.last(operands) instanceof SqlCall) {
+            SqlCall sepCall = (SqlCall) Util.last(operands);
+            separator = Util.last(sepCall.getOperandList());
+            args2 = Util.skipLast(operands);
+          }
+
+          if (Util.last(args2) instanceof SqlNodeList) {
+            orderList = (SqlNodeList) Util.last(args2);
+            args3Builder.addAll(Util.skipLast(args2));
+          }
+
+          if (Objects.nonNull(separator)) {
+            args3Builder.add(separator);
+          }
+
+          final SqlCall listAggCall =
+              SqlStdOperatorTable.LISTAGG.createCall(
+                  call.getFunctionQuantifier(), pos, args3Builder.build());
+          translateAgg(listAggCall, filter, orderList, ignoreNulls, outerCall);
+        }
+        return;
       case ARRAY_AGG:
       case ARRAY_CONCAT_AGG:
         // Translate "ARRAY_AGG(s ORDER BY x, y)"

@@ -568,6 +568,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlIntervalOperator();
 
   /**
+   * Separator expression, '<code>SEPARATOR ','</code>'.
+   */
+  public static final SqlPrefixOperator SEPARATOR =
+      new SqlPrefixOperator(
+          "SEPARATOR",
+          SqlKind.SEPARATOR,
+          20,
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ANY);
+
+  /**
    * Multiset {@code MEMBER OF}, which returns whether a element belongs to a
    * multiset.
    *

@@ -6720,6 +6720,11 @@ public abstract class SqlOperatorBaseTest {
         .check();
   }
 
+  @Test void testMysqlGroupConcatFunction() {
+    substrChecker(SqlLibrary.MYSQL, SqlLibraryOperators.GROUP_CONCAT)
+        .check();
+  }
+
   /** Tests the non-standard SUBSTR function, that has syntax
    * "SUBSTR(value, start [, length ])", as used in Oracle. */
   @Test void testOracleSubstrFunction() {

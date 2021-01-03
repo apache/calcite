@@ -126,6 +126,16 @@ public abstract class ReturnTypes {
     return operatorBinding;
   }
 
+  public static SqlCall stripSeparator(SqlCall call) {
+    if (!call.getOperandList().isEmpty()
+        && Util.last(call.getOperandList()) instanceof SqlCall) {
+      // Remove the last argument if it is "Separator".
+      return call.getOperator().createCall(call.getFunctionQuantifier(),
+          call.getParserPosition(), Util.skipLast(call.getOperandList()));
+    }
+    return call;
+  }
+
   public static SqlCall stripOrderBy(SqlCall call) {
     if (!call.getOperandList().isEmpty()
         && Util.last(call.getOperandList()) instanceof SqlNodeList) {

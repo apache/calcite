@@ -374,6 +374,9 @@ public enum SqlKind {
   /** {@code INTERVAL} expression. */
   INTERVAL,
 
+  /** {@code SEPARATOR} expression. */
+  SEPARATOR,
+
   /** {@code NULLIF} operator. */
   NULLIF,
 
@@ -832,6 +835,9 @@ public enum SqlKind {
   /** The {@code ARRAY_CONCAT_AGG} aggregate function. */
   ARRAY_CONCAT_AGG,
 
+  /** The {@code GROUP_CONCAT} aggregate function. */
+  GROUP_CONCAT,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
@@ -1061,7 +1067,7 @@ public enum SqlKind {
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, COUNTIF,
+          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
           INTERSECTION, ANY_VALUE);
 
   /**
