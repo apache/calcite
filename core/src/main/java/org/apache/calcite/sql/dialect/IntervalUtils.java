@@ -17,6 +17,7 @@
 
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -27,6 +28,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * util for resolving interval type operands
@@ -61,6 +64,14 @@ public class IntervalUtils {
   //Ex for INTERVAL '2' MONTH returns 2
   public String getIntervalValue(SqlIntervalLiteral sqlIntervalLiteral) {
     try {
+      if (sqlIntervalLiteral.getTypeName() == SqlTypeName.INTERVAL_HOUR_SECOND) {
+        SqlIntervalLiteral.IntervalValue interval =
+            (SqlIntervalLiteral.IntervalValue) sqlIntervalLiteral.getValue();
+        long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
+              interval.getIntervalQualifier()) / 1000;
+        return Long.toString(equivalentSecondValue);
+      }
+
       return sqlIntervalLiteral.getValueAs(Integer.class).toString();
     } catch (Throwable e) {
       return ((SqlIntervalLiteral.IntervalValue) sqlIntervalLiteral.getValue()).getSign() == -1
@@ -85,9 +96,12 @@ public class IntervalUtils {
       SqlIntervalLiteral literal = (SqlIntervalLiteral) node;
       intervalLiteral = getIntervalValue(literal);
       if (isBq) {
+        TimeUnitRange tr = ((SqlIntervalLiteral.IntervalValue) literal.getValue())
+            .getIntervalQualifier().timeUnitRange;
+        String timeUnit = tr == TimeUnitRange.HOUR_TO_SECOND
+            ? TimeUnitRange.SECOND.toString() : tr.toString();
         intervalLiteral = createInterval(intervalLiteral,
-          ((SqlIntervalLiteral.IntervalValue) literal.getValue())
-            .getIntervalQualifier().timeUnitRange.toString());
+          timeUnit);
       }
     } else if (node instanceof SqlNumericLiteral) {
       Long intervalValue = ((SqlLiteral) node).getValueAs(Long.class);

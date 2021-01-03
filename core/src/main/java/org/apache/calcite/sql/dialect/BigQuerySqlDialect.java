@@ -308,6 +308,13 @@ public class BigQuerySqlDialect extends SqlDialect {
           return super.getTargetFunc(call);
         }
       case TIMESTAMP:
+        if (call.getOperands().get(1).getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+          RexNode rex2 = call.getOperands().get(1);
+          if (((RexLiteral) rex2).getValueAs(Integer.class) < 0) {
+            return SqlLibraryOperators.DATETIME_SUB;
+          }
+          return SqlLibraryOperators.DATETIME_ADD;
+        }
         if (call.op.kind == SqlKind.MINUS) {
           return SqlLibraryOperators.TIMESTAMP_SUB;
         }
@@ -483,6 +490,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     switch (call.getOperator().getName()) {
     case "DATETIME_ADD":
     case "DATETIME_SUB":
+    case "TIMESTAMP_SUB":
+    case "TIMESTAMP_ADD":
     case "DATE_ADD":
     case "DATE_SUB":
       utils.unparse(writer, call, left, right, this);
@@ -762,10 +771,6 @@ public class BigQuerySqlDialect extends SqlDialect {
           creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
-    case "DAYOFYEAR":
-      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
-      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
-      break;
     case "TO_DATE":
       SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
               creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
@@ -811,6 +816,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
     case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
     case DateTimestampFormatUtil.DAYNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.DAY_OF_YEAR:
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
