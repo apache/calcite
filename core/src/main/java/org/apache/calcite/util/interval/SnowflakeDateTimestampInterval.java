@@ -27,6 +27,10 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import java.util.Queue;
+
+import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.generateQueueForInterval;
+
 /**
  * Handle Snowflake date timestamp interval
  */
@@ -116,8 +120,8 @@ public class SnowflakeDateTimestampInterval {
       case "INTERVAL_YEAR_MONTH":
         String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
         String[] dayTimeSplit = value.split("-");
-        unparseDateAddBasedonTimeUnit(writer, "YEAR", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MONTH", dayTimeSplit[1], sign);
+        unparseDateAddBasedonTimeUnit(writer, "YEAR", intValue(dayTimeSplit[0]), sign);
+        unparseDateAddBasedonTimeUnit(writer, "MONTH", intValue(dayTimeSplit[1]), sign);
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.print("))");
         break;
@@ -135,8 +139,8 @@ public class SnowflakeDateTimestampInterval {
       case "INTERVAL_YEAR_MONTH":
         String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
         String[] dayTimeSplit = value.split("-");
-        unparseDateAddBasedonTimeUnit(writer, "YEAR", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MONTH", dayTimeSplit[1], sign);
+        unparseDateAddBasedonTimeUnit(writer, "YEAR", intValue(dayTimeSplit[0]), sign);
+        unparseDateAddBasedonTimeUnit(writer, "MONTH", intValue(dayTimeSplit[1]), sign);
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.print("))");
         break;
@@ -156,35 +160,13 @@ public class SnowflakeDateTimestampInterval {
   private boolean handleTimestampInterval(SqlWriter writer, SqlCall call,
                                           int leftPrec, int rightPrec, String sign) {
     if (call.operand(1) instanceof SqlIntervalLiteral) {
-      switch (((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()) {
+      String typeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString();
+      switch (typeName) {
       case "INTERVAL_DAY_SECOND":
-        String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit = value.split(" ");
-        String[] timeSplit = dayTimeSplit[1].split(":");
-        unparseDateAddBasedonTimeUnit(writer, "DAY", dayTimeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", timeSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", timeSplit[1], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", timeSplit[2], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))))");
-        break;
-      case "INTERVAL_MINUTE_SECOND":
-        String value1 = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit1 = value1.split(":");
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", dayTimeSplit1[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", dayTimeSplit1[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
+        handleDaySecondInterval(writer, call, leftPrec, rightPrec, sign);
         break;
       case "INTERVAL_DAY_MINUTE":
-        String value2 = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayTimeSplit2 = value2.split(" ");
-        String[] timeSplit2 = dayTimeSplit2[1].split(":");
-        unparseDateAddBasedonTimeUnit(writer, "DAY", dayTimeSplit2[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", timeSplit2[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", timeSplit2[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print(")))");
+        handleDayMinuteInterval(writer, call, leftPrec, rightPrec, sign);
         break;
       case "INTERVAL_SECOND":
       case "INTERVAL_MINUTE":
@@ -195,60 +177,114 @@ public class SnowflakeDateTimestampInterval {
         unparseDateTimeIntervalWithActualOperand(writer, call, leftPrec, rightPrec,
             call.operand(0), sign);
         break;
+      case "INTERVAL_HOUR_MINUTE":
       case "INTERVAL_HOUR_SECOND":
-        String hourToSecond = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] hourToSecondSplit = hourToSecond.split(":");
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", hourToSecondSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "MINUTE", hourToSecondSplit[1], sign);
-        unparseDateAddBasedonTimeUnit(writer, "SECOND", hourToSecondSplit[2], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
+      case "INTERVAL_MINUTE_SECOND":
+        handleTimeInterval(writer, call, leftPrec, rightPrec, sign, typeName);
         break;
       case "INTERVAL_DAY_HOUR":
-        String dayToHour = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-        String[] dayToHourSplit = dayToHour.split(" ");
-        unparseDateAddBasedonTimeUnit(writer, "DAY", dayToHourSplit[0], sign);
-        unparseDateAddBasedonTimeUnit(writer, "HOUR", dayToHourSplit[1], sign);
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print("))");
+        handleDayHourInterval(writer, call, leftPrec, rightPrec, sign);
         break;
       }
     } else if (call.operand(1) instanceof SqlBasicCall) {
-      SqlCall node1 = (SqlBasicCall) call.operand(1);
-      if (node1 instanceof SqlBasicCall) {
-        SqlCall intervalNode = node1;
-        if (node1.operand(0) instanceof SqlCall) {
-          intervalNode = node1.operand(0);
-        }
-        if (intervalNode.operand(0) instanceof SqlIntervalLiteral) {
-          unparseDateAddBasedonTimeUnit(writer,
-              ((SqlIntervalLiteral) intervalNode.operand(0)).getTypeName().toString(),
-              ((SqlIntervalLiteral) intervalNode.operand(0)).getValue().toString(), sign);
-        }
-        if (node1.operand(0) instanceof SqlCall
-            && intervalNode.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateAddBasedonTimeUnit(writer,
-              ((SqlIntervalLiteral) intervalNode.operand(1)).getTypeName().toString(),
-              ((SqlIntervalLiteral) intervalNode.operand(1)).getValue().toString(), sign);
-        }
-        if (node1.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateTimeIntervalWithActualOperand(writer, node1,
-              leftPrec, rightPrec, call.operand(0), sign);
-          writer.print(")");
-        }
-        if (node1.operand(0) instanceof SqlCall) {
-          writer.print(")");
-        }
-      } else {
-        if (call.operand(1) instanceof SqlIntervalLiteral) {
-          unparseDateTimeIntervalWithActualOperand(writer, call,
-              leftPrec, rightPrec, call.operand(0), sign);
-        }
-      }
+      handleSqlBasicInterval(writer, call, leftPrec, rightPrec, sign);
     } else {
       return false;
     }
     return true;
+  }
+
+  private void handleDayHourInterval(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec, String sign) {
+    String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+    String[] dayTimeSplit = value.split(" ");
+    unparseDateAddBasedonTimeUnit(writer, "DAY", intValue(dayTimeSplit[0]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "HOUR", intValue(dayTimeSplit[1]), sign);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("))");
+  }
+
+  private void handleSqlBasicInterval(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec, String sign) {
+    SqlCall node1 = (SqlBasicCall) call.operand(1);
+    if (node1 instanceof SqlBasicCall) {
+      SqlCall intervalNode = node1;
+      if (node1.operand(0) instanceof SqlCall) {
+        intervalNode = node1.operand(0);
+      }
+      if (intervalNode.operand(0) instanceof SqlIntervalLiteral) {
+        unparseDateAddBasedonTimeUnit(writer,
+            ((SqlIntervalLiteral) intervalNode.operand(0)).getTypeName().toString(),
+            intValue(((SqlIntervalLiteral) intervalNode.operand(0)).getValue().toString()), sign);
+      }
+      if (node1.operand(0) instanceof SqlCall
+          && intervalNode.operand(1) instanceof SqlIntervalLiteral) {
+        unparseDateAddBasedonTimeUnit(writer,
+            ((SqlIntervalLiteral) intervalNode.operand(1)).getTypeName().toString(),
+            intValue(((SqlIntervalLiteral) intervalNode.operand(1)).getValue().toString()), sign);
+      }
+      if (node1.operand(1) instanceof SqlIntervalLiteral) {
+        unparseDateTimeIntervalWithActualOperand(writer, node1,
+            leftPrec, rightPrec, call.operand(0), sign);
+        writer.print(")");
+      }
+      if (node1.operand(0) instanceof SqlCall) {
+        writer.print(")");
+      }
+    } else {
+      if (call.operand(1) instanceof SqlIntervalLiteral) {
+        unparseDateTimeIntervalWithActualOperand(writer, call,
+            leftPrec, rightPrec, call.operand(0), sign);
+      }
+    }
+  }
+
+  private void handleDayMinuteInterval(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec, String sign) {
+    String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+    String[] dayMinuteSplit = value.split(" ");
+    String[] timeSplit = dayMinuteSplit[1].split(":");
+    unparseDateAddBasedonTimeUnit(writer, "DAY", intValue(dayMinuteSplit[0]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "HOUR", intValue(timeSplit[0]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "MINUTE", intValue(timeSplit[1]), sign);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(")))");
+  }
+
+  private void handleDaySecondInterval(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec, String sign) {
+    String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+    String[] dayTimeSplit = value.split(" ");
+    String[] timeSplit = dayTimeSplit[1].split(":");
+    unparseDateAddBasedonTimeUnit(writer, "DAY", intValue(dayTimeSplit[0]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "HOUR", intValue(timeSplit[0]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "MINUTE", intValue(timeSplit[1]), sign);
+    unparseDateAddBasedonTimeUnit(writer, "SECOND", intValue(timeSplit[2]), sign);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("))))");
+  }
+
+  private void handleTimeInterval(SqlWriter writer, SqlCall call,
+                                  int leftPrec, int rightPrec, String sign, String typeName) {
+    String hourToMinute = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
+    String[] timeSplit = hourToMinute.split(":");
+    Queue<String> queue = generateQueueForInterval(typeName);
+    int timeIndex = 0;
+    while (timeIndex < timeSplit.length) {
+      unparseDateAddBasedonTimeUnit(writer, queue.poll(),
+          intValue(timeSplit[timeIndex]), sign);
+      timeIndex++;
+    }
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    timeIndex = 0;
+    while (timeIndex < timeSplit.length) {
+      writer.print(")");
+      timeIndex++;
+    }
+  }
+
+  private static int intValue(String value) {
+    return Integer.valueOf(value);
   }
 
   private void unparseDateTimeIntervalWithActualOperand(SqlWriter writer, SqlCall call,
@@ -269,7 +305,7 @@ public class SnowflakeDateTimestampInterval {
     writer.endFunCall(dateAddFrame);
   }
 
-  private void unparseDateAddBasedonTimeUnit(SqlWriter writer, String typeName, String value,
+  private void unparseDateAddBasedonTimeUnit(SqlWriter writer, String typeName, int value,
                                              String sign) {
     writer.print("DATEADD(");
     writer.print(typeName.replace("INTERVAL_", ""));

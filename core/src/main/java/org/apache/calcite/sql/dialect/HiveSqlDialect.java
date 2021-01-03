@@ -47,6 +47,7 @@ import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.HiveDateTimestampInterval;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -303,6 +304,18 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case PLUS:
+      HiveDateTimestampInterval plusInterval = new HiveDateTimestampInterval();
+      if (!plusInterval.unparseDateTimeMinus(writer, call, leftPrec, rightPrec, "+")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case MINUS:
+      HiveDateTimestampInterval minusInterval = new HiveDateTimestampInterval();
+      if (!minusInterval.unparseDateTimeMinus(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
