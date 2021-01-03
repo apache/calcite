@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -81,8 +82,14 @@ public class IntervalUtils {
 
   //builds a SqlCall with operand and literal string
   public SqlNode buildCallwithStringVal(String val, SqlBasicCall call, SqlNode operand) {
-    if (call.getKind() == SqlKind.TIMES && val.trim().equals("1")) {
+    if ((call.getKind() == SqlKind.TIMES
+        || call.getOperator().getName().equals("TIMESTAMPINTMUL"))
+        && val.trim().equals("1")) {
       return operand;
+    }
+    if (call.getOperator().getName().equals("TIMESTAMPINTMUL")) {
+      return SqlStdOperatorTable.MULTIPLY.createCall(SqlParserPos.ZERO,
+        operand, SqlLiteral.createExactNumeric(val, SqlParserPos.ZERO));
     }
     return call.getOperator().createCall(SqlParserPos.ZERO,
       operand, SqlLiteral.createExactNumeric(val, SqlParserPos.ZERO));
@@ -121,7 +128,16 @@ public class IntervalUtils {
                       int rightPrec, SqlDialect dialect) {
     boolean isBq = dialect instanceof BigQuerySqlDialect;
     SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.getOperator().getName().equals("DATETIME_ADD")
+        || call.getOperator().getName().equals("DATETIME_SUB")) {
+      SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("AS", true);
+      writer.literal("DATETIME");
+      writer.endFunCall(castFrame);
+    } else {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+    }
     writer.sep(",", true);
     String val;
     if (call.operand(1) instanceof SqlBasicCall) {
