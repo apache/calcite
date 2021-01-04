@@ -140,6 +140,9 @@ public interface CalciteResource {
   @BaseMessage("Cast function cannot convert value of type {0} to type {1}")
   ExInst<SqlValidatorException> cannotCastValue(String a0, String a1);
 
+  @BaseMessage("Cast function does not support casting to type {0}")
+  ExInst<SqlValidatorException> cannotCastToType(String a0);
+
   @BaseMessage("Unknown datatype name ''{0}''")
   ExInst<SqlValidatorException> unknownDatatypeName(String a0);
 

@@ -1212,8 +1212,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testCastRegisteredType() {
-    expr("cast(123 as customBigInt)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: CUSTOMBIGINT");
+    wholeExpr("cast(123 as customBigInt)")
+        .fails("Cast function does not support casting to type `CUSTOMBIGINT`");
     expr("cast(123 as sales.customBigInt)")
         .columnType("BIGINT NOT NULL");
     expr("cast(123 as catalog.sales.customBigInt)")
@@ -1221,8 +1221,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testCastFails() {
-    expr("cast('foo' as ^bar^)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: BAR");
     wholeExpr("cast(multiset[1] as integer)")
         .fails("(?s).*Cast function cannot convert value of type "
             + "INTEGER MULTISET to type INTEGER");
@@ -1240,6 +1238,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testCastBinaryLiteral() {
     expr("cast(^x'0dd'^ as binary(5))")
         .fails("Binary literal string must contain an even number of hexits");
+  }
+
+  @Test void testCastToUnknownType() {
+    // Test validation of SQL expressions.
+    wholeExpr("cast(1 as SIGNED)")
+        .fails("Cast function does not support casting to type `SIGNED`");
+    wholeExpr("cast(1 as UNSIGNED)")
+        .fails("Cast function does not support casting to type `UNSIGNED`");
+    wholeExpr("cast('1' as SIGNED)")
+        .fails("Cast function does not support casting to type `SIGNED`");
+    wholeExpr("cast('foo' as bar)")
+        .fails("Cast function does not support casting to type `BAR`");
+    // Test validation of SQL queries.
+    sql("select ^cast(deptno as SIGNED)^ from emp")
+        .fails("Cast function does not support casting to type `SIGNED`");
   }
 
   /**
@@ -7968,9 +7981,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "VARCHAR(5) NOT NULL ARRAY NOT NULL F1) NOT NULL "
             + "ARRAY NOT NULL MULTISET NOT NULL");
     // test UDT collection type.
-    sql("select cast(a as MyUDT array multiset) from COMPLEXTYPES.CTC_T1")
+    sql("select ^cast(a as MyUDT array multiset)^ from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .fails("(?s).*class org\\.apache\\.calcite\\.sql\\.SqlIdentifier: MYUDT.*");
+        .fails("Cast function does not support casting to type `MYUDT` ARRAY MULTISET");
   }
 
   @Test void testCastAsRowType() {

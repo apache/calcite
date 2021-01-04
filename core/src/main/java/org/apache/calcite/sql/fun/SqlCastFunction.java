@@ -36,7 +36,9 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
@@ -92,6 +94,29 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public void validateCall(final SqlCall call, final SqlValidator validator,
+      final SqlValidatorScope scope,
+      final SqlValidatorScope operandScope) {
+    try {
+      super.validateCall(call, validator, scope, operandScope);
+    } catch (UnsupportedOperationException ex) {
+      assert call.operandCount() == 2;
+      throw validator.newValidationError(call,
+          RESOURCE.cannotCastToType(call.operand(1).toString()));
+    }
+  }
+
+  @Override public RelDataType deriveType(final SqlValidator validator,
+      final SqlValidatorScope scope, final SqlCall call) {
+    try {
+      return super.deriveType(validator, scope, call);
+    } catch (UnsupportedOperationException ex) {
+      assert call.operandCount() == 2;
+      throw validator.newValidationError(call,
+          RESOURCE.cannotCastToType(call.operand(1).toString()));
+    }
+  }
 
   @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
