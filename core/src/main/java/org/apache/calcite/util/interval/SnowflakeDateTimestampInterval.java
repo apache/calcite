@@ -45,13 +45,6 @@ public class SnowflakeDateTimestampInterval {
     } else {
       return handleMinus(writer, call, leftPrec, rightPrec, "");
     }
-    // 11:40 31 Dec comment
-    /*else if ("DATE_ADD".equals(call.getOperator().toString())) {
-      return handleMinus(writer, call, leftPrec, rightPrec, "");
-//      super.unparseCall(writer, call, leftPrec, rightPrec);
-    } else {
-      return handleMinus(writer, call, leftPrec, rightPrec, "");
-    }*/
   }
 
   private void unparseDateAddForInterval(SqlWriter writer, SqlCall call,

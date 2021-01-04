@@ -72,7 +72,7 @@ public class HiveDateTimestampInterval {
         handleIntervalDatetimeUnit(writer, call, leftPrec, rightPrec, sign);
         break;
       }
-    } else if ("ADD_MONTHS".equals(call.getOperator().toString())) {
+    } else if ("ADD_MONTHS".equals(call.getOperator().getName())) {
       unparseAddMonths(writer, call, leftPrec, rightPrec);
     } else {
       return false;
@@ -82,8 +82,8 @@ public class HiveDateTimestampInterval {
 
   private void handleIntervalDatetimeUnit(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
-    if ("DATE_ADD".equals(call.getOperator().toString())
-        || "DATE_SUB".equals(call.getOperator().toString())) {
+    if ("DATE_ADD".equals(call.getOperator().getName())
+        || "DATE_SUB".equals(call.getOperator().getName())) {
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       writer.print("-".equals(sign) ? "DATE_SUB(" : "DATE_ADD(");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -102,7 +102,7 @@ public class HiveDateTimestampInterval {
 
   private void handleIntervalMonth(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
-    if ("ADD_MONTHS".equals(call.getOperator().toString())) {
+    if ("ADD_MONTHS".equals(call.getOperator().getName())) {
       unparseAddMonths(writer, call, leftPrec, rightPrec);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
@@ -121,7 +121,7 @@ public class HiveDateTimestampInterval {
     } else if (call.operand(1) instanceof SqlBasicCall) {
       SqlBasicCall sqlBasicCall = call.operand(1);
       sqlBasicCall.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(sqlBasicCall.getOperator().toString());
+      writer.print(sqlBasicCall.getOperator().getName());
       String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue) (
           (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "" + " ");
@@ -132,8 +132,8 @@ public class HiveDateTimestampInterval {
 
   private void handleIntervalYear(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
-    if ("-".equals(call.getOperator().toString())
-        || "DATE_ADD".equals(call.getOperator().toString())) {
+    if ("-".equals(call.getOperator().getName())
+        || "DATE_ADD".equals(call.getOperator().getName())) {
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(sign);

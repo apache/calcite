@@ -34,7 +34,7 @@ import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.getType
 public class BigQueryDateTimestampInterval {
   public boolean unparseTimestampadd(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
-    String operator = call.getOperator().toString();
+    String operator = call.getOperator().getName();
     if (checkValidOperator(operator)) {
       return handleInterval(writer, call, leftPrec, rightPrec, sign, operator);
     } else if (SqlKind.MINUS == call.getOperator().getKind()) {
