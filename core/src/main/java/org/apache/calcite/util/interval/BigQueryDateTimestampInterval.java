@@ -18,9 +18,12 @@ package org.apache.calcite.util.interval;
 
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 
 import java.util.Queue;
@@ -32,13 +35,30 @@ import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.getType
  * Handle BigQuery date timestamp interval
  */
 public class BigQueryDateTimestampInterval {
-  public boolean unparseTimestampadd(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec, String sign) {
+  public boolean handlePlusMinus(SqlWriter writer, SqlCall call,
+                                 int leftPrec, int rightPrec, String sign) {
     String operator = call.getOperator().getName();
     if (checkValidOperator(operator)) {
       return handleInterval(writer, call, leftPrec, rightPrec, sign, operator);
     } else if (SqlKind.MINUS == call.getOperator().getKind()) {
       return handleMinusDateInterval(writer, call, leftPrec, rightPrec, operator);
+    }
+    return handleViaIntervalUtil(writer, call, leftPrec, rightPrec, operator);
+  }
+
+  private boolean handleViaIntervalUtil(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec, String operator) {
+    IntervalUtils utils = new IntervalUtils();
+    switch (operator) {
+    case "DATETIME_ADD":
+    case "DATETIME_SUB":
+    case "TIMESTAMP_SUB":
+    case "TIMESTAMP_ADD":
+    case "DATE_ADD":
+    case "DATE_SUB":
+      utils.unparse(writer, call, leftPrec, rightPrec,
+          new BigQuerySqlDialect(SqlDialect.EMPTY_CONTEXT));
+      return true;
     }
     return false;
   }
@@ -49,6 +69,8 @@ public class BigQueryDateTimestampInterval {
       return handleIntervalArithmeticCombination(writer, call, leftPrec, rightPrec, operator);
     } else if (call.operand(1) instanceof SqlIntervalLiteral) {
       return handleIntervalCombination(writer, call, leftPrec, rightPrec, operator, sign);
+    } else if (call.operand(1) instanceof SqlNumericLiteral) {
+      return handleViaIntervalUtil(writer, call, leftPrec, rightPrec, operator);
     }
     return false;
   }

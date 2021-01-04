@@ -360,7 +360,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
     writer.endFunCall(randFrame);
   }
 
-  private void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec,
+        int rightPrec) {
     final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
     int size = call.getOperandList().size();
     for (int index = size - 1; index >= 0; index--) {

@@ -53,6 +53,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
+import org.apache.calcite.util.interval.IntervalUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -479,13 +480,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case PLUS:
       BigQueryDateTimestampInterval plusInterval = new BigQueryDateTimestampInterval();
-      if (!plusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "")) {
+      if (!plusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "")) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     case MINUS:
       BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
-      if (!minusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "-")) {
+      if (!minusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "-")) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
@@ -812,6 +813,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     case DateTimestampFormatUtil.DAY_OF_YEAR:
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    case "DATETIME_ADD":
+    case "DATETIME_SUB":
+      new IntervalUtils().unparse(writer, call, leftPrec, rightPrec, this);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
