@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 /**
- * Tests for the Arrow adapter.
+ * Test of Calcite Arrow adapter reading from Arrow files.
  */
 public class ArrowTest {
 
@@ -44,7 +44,7 @@ public class ArrowTest {
     ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataType relDataType = tableMap.get("TEST").getRowType(new
-    JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+        JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
 
     Assertions.assertEquals(relDataType.getFieldNames().get(0), "fieldOne");
     Assertions.assertEquals(relDataType.getFieldNames().get(1), "fieldTwo");
