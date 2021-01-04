@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.interval;
 
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlWriter;
@@ -62,7 +63,8 @@ public class SparkDateTimestampInterval {
         handleIntervalYear(writer, call, leftPrec, rightPrec, sign);
         break;
       case "INTERVAL_MONTH":
-        return handleIntervalMonth(writer, call, leftPrec, rightPrec, sign);
+        handleIntervalMonth(writer, call, leftPrec, rightPrec, sign);
+        break;
       case "INTERVAL_DAY":
       case "INTERVAL_HOUR":
       case "INTERVAL_MINUTE":
@@ -70,6 +72,8 @@ public class SparkDateTimestampInterval {
         handleIntervalDatetimeUnit(writer, call, leftPrec, rightPrec, sign);
         break;
       }
+    } else if ("ADD_MONTHS".equals(call.getOperator().toString())) {
+      unparseAddMonths(writer, call, leftPrec, rightPrec);
     } else {
       return false;
     }
@@ -95,13 +99,34 @@ public class SparkDateTimestampInterval {
     }
   }
 
-  private boolean handleIntervalMonth(SqlWriter writer, SqlCall call,
+  private void handleIntervalMonth(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec, String sign) {
     if ("ADD_MONTHS".equals(call.getOperator().toString())) {
-      return false;
+      unparseAddMonths(writer, call, leftPrec, rightPrec);
+    } else {
+      handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
-    handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
-    return true;
+  }
+
+  private void unparseAddMonths(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame addMonthFrame = writer.startFunCall("ADD_MONTHS");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    if (call.operand(1) instanceof SqlIntervalLiteral) {
+      String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue) (
+          (SqlIntervalLiteral) call.operand(1)).getValue()).getSign()).replace("1", "");
+      writer.print("-".equals(valueSign) ? valueSign : "");
+      writer.print(((SqlIntervalLiteral) call.operand(1)).getValue().toString());
+    } else if (call.operand(1) instanceof SqlBasicCall) {
+      SqlBasicCall sqlBasicCall = call.operand(1);
+      sqlBasicCall.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(sqlBasicCall.getOperator().toString());
+      String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue) (
+          (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
+      writer.print("-".equals(valueSign) ? valueSign : "" + " ");
+      writer.print(((SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue().toString());
+    }
+    writer.endFunCall(addMonthFrame);
   }
 
   private void handleIntervalYear(SqlWriter writer, SqlCall call,
@@ -110,7 +135,7 @@ public class SparkDateTimestampInterval {
         || "DATE_ADD".equals(call.getOperator().toString())) {
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(sign);
+      writer.print(sign);
       String timeUnitTypeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
           .replaceAll("INTERVAL_", "");
       String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();

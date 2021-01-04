@@ -2958,7 +2958,7 @@ public class SqlFunctions {
 
   public static Object dateMod(Object dateValue, Object value) {
     String[] dateSplit = ((String) dateValue).split("-");
-    return (Integer.valueOf(dateSplit[0])-1900) * 10000 + Integer.valueOf(dateSplit[1]) * 100
+    return (Integer.valueOf(dateSplit[0]) - 1900) * 10000 + Integer.valueOf(dateSplit[1]) * 100
         + Integer.valueOf(dateSplit[2]) / (Integer) value;
   }
 
