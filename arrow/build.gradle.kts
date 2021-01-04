@@ -18,9 +18,9 @@ dependencies {
     api(project(":core"))
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.arrow:arrow-memory-netty:2.0.0")
-    implementation("org.apache.arrow:arrow-vector:2.0.0")
-    implementation("org.apache.arrow.gandiva:arrow-gandiva:2.0.0")
+    implementation("org.apache.arrow:arrow-memory-netty")
+    implementation("org.apache.arrow:arrow-vector")
+    implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
     testImplementation(project(":core", "testClasses"))
 }
