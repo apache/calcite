@@ -117,7 +117,7 @@ public class SnowflakeDateTimestampInterval {
         unparseDateAddBasedonTimeUnit(writer, "YEAR", intValue(dayTimeSplit[0]), sign);
         unparseDateAddBasedonTimeUnit(writer, "MONTH", intValue(dayTimeSplit[1]), sign);
         call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print(")) ");
+        writer.print("))");
         break;
       }
     } else {
@@ -136,7 +136,7 @@ public class SnowflakeDateTimestampInterval {
         unparseDateAddBasedonTimeUnit(writer, "YEAR", intValue(dayTimeSplit[0]), sign);
         unparseDateAddBasedonTimeUnit(writer, "MONTH", intValue(dayTimeSplit[1]), sign);
         call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print(")) ");
+        writer.print("))");
         break;
       case "INTERVAL_MONTH":
       case "INTERVAL_DAY":
@@ -195,7 +195,7 @@ public class SnowflakeDateTimestampInterval {
     unparseDateAddBasedonTimeUnit(writer, "DAY", intValue(dayTimeSplit[0]), sign);
     unparseDateAddBasedonTimeUnit(writer, "HOUR", intValue(dayTimeSplit[1]), sign);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(")) ");
+    writer.sep("))");
   }
 
   private void handleSqlBasicInterval(SqlWriter writer, SqlCall call, int leftPrec,
@@ -242,7 +242,7 @@ public class SnowflakeDateTimestampInterval {
     unparseDateAddBasedonTimeUnit(writer, "HOUR", intValue(timeSplit[0]), sign);
     unparseDateAddBasedonTimeUnit(writer, "MINUTE", intValue(timeSplit[1]), sign);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("))) ");
+    writer.sep(")))");
   }
 
   private void handleDaySecondInterval(SqlWriter writer, SqlCall call,
@@ -275,7 +275,6 @@ public class SnowflakeDateTimestampInterval {
       writer.print(")");
       timeIndex++;
     }
-    writer.print(" ");
   }
 
   private static int intValue(String value) {

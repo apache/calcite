@@ -80,16 +80,17 @@ public class HiveDateTimestampInterval {
       int leftPrec, int rightPrec, String sign) {
     if ("DATE_ADD".equals(call.getOperator().toString())
         || "DATE_SUB".equals(call.getOperator().toString())) {
-      writer.print("CAST(");
+      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       writer.print("-".equals(sign) ? "DATE_SUB(" : "DATE_ADD(");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
+      writer.print(",");
       String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue)
           ((SqlIntervalLiteral) call.operand(1)).
               getValue()).getSign()).replace("1", "");
       writer.print(valueSign);
       writer.print(intValue(((SqlIntervalLiteral) call.operand(1)).getValue().toString()));
-      writer.print(") AS DATE) ");
+      writer.print(") AS DATE");
+      writer.endFunCall(castFrame);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
@@ -108,14 +109,15 @@ public class HiveDateTimestampInterval {
       int leftPrec, int rightPrec, String sign) {
     if ("-".equals(call.getOperator().toString())
         || "DATE_ADD".equals(call.getOperator().toString())) {
-      writer.print("CAST(");
+      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(sign);
+      writer.print(sign);
       String timeUnitTypeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
           .replaceAll("INTERVAL_", "");
       String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-      writer.print("INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
-      writer.print(" AS DATE) ");
+      writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
+      writer.print(" AS DATE");
+      writer.endFunCall(castFrame);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
@@ -130,7 +132,7 @@ public class HiveDateTimestampInterval {
     writer.print(" (INTERVAL '" + intValue(timeSplit2[0]) + "' " + queue2.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit2[1]) + "' " + queue2.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit2[2]) + "' " + queue2.poll());
-    writer.print(") ");
+    writer.print(")");
   }
 
   private void handleDayMinute(SqlWriter writer, SqlCall call, int leftPrec,
@@ -143,7 +145,7 @@ public class HiveDateTimestampInterval {
     writer.print(" (INTERVAL '" + intValue(dayTimeSplit1[0]) + "' " + queue1.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit1[0]) + "' " + queue1.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit1[1]) + "' " + queue1.poll());
-    writer.print(") ");
+    writer.print(")");
   }
 
   private void handleIntervalDaySecond(SqlWriter writer, SqlCall call, int leftPrec,
@@ -157,7 +159,7 @@ public class HiveDateTimestampInterval {
     writer.print("INTERVAL '" + intValue(timeSplit[0]) + "' " + queue.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit[1]) + "' " + queue.poll() + " + ");
     writer.print("INTERVAL '" + intValue(timeSplit[2]) + "' " + queue.poll());
-    writer.print(") ");
+    writer.print(")");
   }
 
   private void handleTimeUnitInterval(SqlWriter writer, SqlCall call,
@@ -166,8 +168,7 @@ public class HiveDateTimestampInterval {
     String timeUnitTypeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
         .replaceAll("INTERVAL_", "");
     String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-    writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
-    writer.print(" ");
+    writer.sep(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
   }
 
   private void handleOperandArg0(SqlWriter writer, SqlCall call,
@@ -183,7 +184,7 @@ public class HiveDateTimestampInterval {
     Queue<String> queue = generateQueueForInterval(typeName);
     writer.print(" (INTERVAL '" + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
     writer.print("INTERVAL '" + intValue(dayTimeSplit[1]) + "' " + queue.poll());
-    writer.print(") ");
+    writer.print(")");
   }
 }
 
