@@ -35,6 +35,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.dateMod;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
 import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
@@ -1078,6 +1079,13 @@ public class SqlFunctionsTest {
     assertThat(dayNumberOfCalendar("2019-03-12"), is(43535));
     assertThat(dayNumberOfCalendar("1901-07-01"), is(547));
     assertThat(dayNumberOfCalendar("1900-09-01"), is(244));
+  }
+
+  /** Test for {@link SqlFunctions#dateMod}. */
+  @Test public void testDateMod() {
+    assertThat(dateMod("2019-03-12", 1023), is(1190300));
+    assertThat(dateMod("2008-07-15", 5794), is(1080700));
+    assertThat(dateMod("2014-01-27", 8907), is(1140100));
   }
 
   /** Test for {@link SqlFunctions#timestampToDate}. */

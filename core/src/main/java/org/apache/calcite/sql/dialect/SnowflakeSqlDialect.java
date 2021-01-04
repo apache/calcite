@@ -35,6 +35,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -136,11 +137,31 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case OVER:
       handleOverCall(writer, call, leftPrec, rightPrec);
       break;
-    case MINUS:
+    case TIMES:
+      unparseIntervalTimes(writer, call, leftPrec, rightPrec);
+      break;
     case PLUS:
-      unparsePlusMinus(writer, call, leftPrec, rightPrec);
+      SnowflakeDateTimestampInterval interval = new SnowflakeDateTimestampInterval();
+      if (!interval.handlePlus(writer, call, leftPrec, rightPrec)) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case MINUS:
+      SnowflakeDateTimestampInterval interval1 = new SnowflakeDateTimestampInterval();
+      if (!interval1.handleMinus(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(0) instanceof SqlIntervalLiteral) {
+      SqlCall multipleCall = new SnowflakeDateTimestampInterval().unparseMultipleInterval(call);
+      multipleCall.unparse(writer, leftPrec, rightPrec);
+    } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
@@ -242,6 +263,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(regexpInstr);
+      break;
+    case "DATE_MOD":
+      unparseDateModule(writer, call, leftPrec, rightPrec);
       break;
     case "RAND_INTEGER":
       unparseRandom(writer, call, leftPrec, rightPrec);
@@ -561,27 +585,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
-  }
-
-  private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().toString()) {
-    case "TIMESTAMP_ADD":
-    case "TIMESTAMP_SUB":
-      final SqlWriter.Frame formatTime = writer.startFunCall("TIMESTAMPADD");
-      String formatCall = ((SqlIntervalLiteral) call.operand(1))
-              .getTypeName().toString().split("_")[1];
-      writer.print(formatCall + ", ");
-      String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-      if (call.getOperator().toString().equals("TIMESTAMP_SUB")) {
-        writer.print("-");
-      }
-      writer.print(intCall + ", ");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(formatTime);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
   }
 
 }

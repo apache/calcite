@@ -563,6 +563,30 @@ public class SqlDialect {
         RelDataTypeSystem.DEFAULT);
   }
 
+  protected void unparseDateModule(SqlWriter writer, SqlCall call,
+                                 int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall("MOD");
+    writer.print("(");
+    unparseTimeUnitExtract(TimeUnit.YEAR, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print("- 1900) * 10000 + ");
+    unparseTimeUnitExtract(TimeUnit.MONTH, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print(" * 100 + ");
+    unparseTimeUnitExtract(TimeUnit.DAY, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print(", ");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
+  }
+
+  protected void unparseTimeUnitExtract(TimeUnit timeUnit, SqlNode operand,
+                                      SqlWriter writer, int leftPrec, int rightPrec) {
+    SqlNode[] operands = new SqlNode[] {
+        SqlLiteral.createSymbol(timeUnit, SqlParserPos.ZERO), operand
+    };
+    SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.EXTRACT, operands,
+        SqlParserPos.ZERO);
+    extractCall.unparse(writer, leftPrec, rightPrec);
+  }
+
   /**
    * Returns whether the string contains any characters outside the
    * comfortable 7-bit ASCII range (32 through 127, plus linefeed (10) and

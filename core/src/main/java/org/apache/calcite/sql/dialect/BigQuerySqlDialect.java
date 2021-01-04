@@ -52,6 +52,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
 
@@ -476,27 +477,20 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.sep("as " + operator.getAliasName());
       break;
-    case MINUS:
     case PLUS:
-      unparseCallPlusMinus(writer, call, leftPrec, rightPrec);
+      BigQueryDateTimestampInterval plusInterval = new BigQueryDateTimestampInterval();
+      if (!plusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case MINUS:
+      BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
+      if (!minusInterval.unparseTimestampadd(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseCallPlusMinus(SqlWriter writer, SqlCall call, int left, int right) {
-    IntervalUtils utils = new IntervalUtils();
-    switch (call.getOperator().getName()) {
-    case "DATETIME_ADD":
-    case "DATETIME_SUB":
-    case "TIMESTAMP_SUB":
-    case "TIMESTAMP_ADD":
-    case "DATE_ADD":
-    case "DATE_SUB":
-      utils.unparse(writer, call, left, right, this);
-      break;
-    default: super.unparseCall(writer, call, left, right);
     }
   }
 
@@ -656,7 +650,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (intervalValue.getSign() == -1) {
       writer.print("-");
     }
-    writer.literal(intervalValue.getIntervalLiteral());
+    writer.sep(intervalValue.getIntervalLiteral());
     unparseSqlIntervalQualifier(
         writer, intervalValue.getIntervalQualifier(), RelDataTypeSystem.DEFAULT);
   }
@@ -797,9 +791,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
       break;
-    case "DATETIME_ADD":
-    case "DATETIME_SUB":
-      unparseCallPlusMinus(writer, call, leftPrec, rightPrec);
+    case "DATE_MOD":
+      unparseDateModule(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMPINTMUL":
       unparseTimestampIntMul(writer, call, leftPrec, rightPrec);
