@@ -4327,7 +4327,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDateSubIntervalMonthFunction() {
     String query = "select \"birth_date\" - INTERVAL -'1' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, -1) AS DATE)\n"
+    final String expectedHive = "SELECT ADD_MONTHS(birth_date, -1)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -1)\n"
         + "FROM foodmart.employee";
@@ -4344,7 +4344,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithArthOps() {
     String query = "select \"birth_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, -10) AS DATE)\n"
+    final String expectedHive = "SELECT ADD_MONTHS(birth_date, -10)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -10)\n"
         + "FROM foodmart.employee";
@@ -4361,7 +4361,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithCol() {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, store_id * 10) AS DATE)\n"
+    final String expectedHive = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
         + "FROM foodmart.employee";
@@ -4378,7 +4378,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDatePlusIntervalMonthFunctionWithArithOp() {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' MONTH from \"employee\"";
-    final String expectedHive = "SELECT CAST(ADD_MONTHS(birth_date, 10 * 2) AS DATE)\n"
+    final String expectedHive = "SELECT ADD_MONTHS(birth_date, 10 * 2)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT ADD_MONTHS(birth_date, 10 * 2)\n"
         + "FROM foodmart.employee";

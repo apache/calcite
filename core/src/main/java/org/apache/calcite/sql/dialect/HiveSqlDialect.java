@@ -308,6 +308,7 @@ public class HiveSqlDialect extends SqlDialect {
       unparseNullIf(writer, call, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
+    case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     case PLUS:
@@ -322,10 +323,6 @@ public class HiveSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
-    /*case PLUS:
-    case MINUS:
-      unparsePlusMinus(writer, call, leftPrec, rightPrec);
-      break;*/
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -646,6 +643,13 @@ public class HiveSqlDialect extends SqlDialect {
     case "LPAD":
       PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "DAYOFYEAR":
+      SqlCall formatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+          SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, formatCall,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+      unparseCall(writer, castCall, leftPrec, rightPrec);
+      break;
     case "INSTR":
       final SqlWriter.Frame frame = writer.startFunCall("INSTR");
       writer.sep(",");
@@ -723,27 +727,5 @@ public class HiveSqlDialect extends SqlDialect {
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
   }
-
-  /*private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "TIMESTAMP_ADD":
-    case "TIMESTAMP_SUB":
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      checkSign(writer, call);
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void checkSign(SqlWriter writer, SqlCall call) {
-    if (SqlKind.PLUS == call.getKind()) {
-      writer.print("+ ");
-    } else {
-      writer.print("- ");
-    }
-  }*/
-
 }
 // End HiveSqlDialect.java

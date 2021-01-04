@@ -37,6 +37,8 @@ import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
+import org.apache.commons.lang3.StringUtils;
+
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 
 /**
@@ -117,6 +119,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case TRUNCATE:
     case IF:
     case OTHER_FUNCTION:
+    case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     case TIMESTAMP_DIFF:
@@ -149,10 +152,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
-    /*case MINUS:
-    case PLUS:
-      unparsePlusMinus(writer, call, leftPrec, rightPrec);
-      break;*/
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -271,6 +270,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "RAND_INTEGER":
       unparseRandom(writer, call, leftPrec, rightPrec);
       break;
+    case "TO_CHAR":
+      unparseToChar(writer, call, leftPrec, rightPrec);
+      break;
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
       break;
@@ -318,6 +320,21 @@ public class SnowflakeSqlDialect extends SqlDialect {
     writer.endFunCall(timeDiff);
   }
 
+  private void unparseToChar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operandCount() != 2) {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      return;
+    }
+    if (call.operand(1) instanceof SqlLiteral) {
+      String val = ((SqlLiteral) call.operand(1)).getValueAs(String.class);
+      if (val.equalsIgnoreCase("day")) {
+        unparseToCharDay(writer, call, leftPrec, rightPrec, val);
+        return;
+      }
+    }
+    super.unparseCall(writer, call, leftPrec, rightPrec);
+  }
+
   /**
    * unparse method for round function
    */
@@ -351,6 +368,40 @@ public class SnowflakeSqlDialect extends SqlDialect {
       call.operand(index).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(dateDiffFrame);
+  }
+
+  private String getDay(String day, String caseType) {
+    if (caseType.equals("DAY")) {
+      return StringUtils.upperCase(day);
+    } else if (caseType.equals("Day")) {
+      return day;
+    } else {
+      return StringUtils.lowerCase(day);
+    }
+  }
+
+  // To_char with 'day' as 2nd operand returns weekday of the date(1st operand)
+  private void unparseToCharDay(SqlWriter writer, SqlCall call, int leftPrec,
+                             int rightPrec, String day) {
+    writer.print("CASE ");
+    SqlWriter.Frame dayNameFrame = writer.startFunCall("DAYNAME");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(dayNameFrame);
+    writer.print("WHEN 'Sun' THEN ");
+    writer.print(getDay("'Sunday ' ", day));
+    writer.print("WHEN 'Mon' THEN ");
+    writer.print(getDay("'Monday ' ", day));
+    writer.print("WHEN 'Tue' THEN ");
+    writer.print(getDay("'Tuesday ' ", day));
+    writer.print("WHEN 'Wed' THEN ");
+    writer.print(getDay("'Wednesday ' ", day));
+    writer.print("WHEN 'Thu' THEN ");
+    writer.print(getDay("'Thursday ' ", day));
+    writer.print("WHEN 'Fri' THEN ");
+    writer.print(getDay("'Friday ' ", day));
+    writer.print("WHEN 'Sat' THEN ");
+    writer.print(getDay("'Saturday ' ", day));
+    writer.print("END");
   }
 
   /**
@@ -535,27 +586,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }
-
-  /*private void unparsePlusMinus(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().toString()) {
-    case "TIMESTAMP_ADD":
-    case "TIMESTAMP_SUB":
-      final SqlWriter.Frame formatTime = writer.startFunCall("TIMESTAMPADD");
-      String formatCall = ((SqlIntervalLiteral) call.operand(1))
-              .getTypeName().toString().split("_")[1];
-      writer.print(formatCall + ", ");
-      String intCall = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-      if (call.getOperator().toString().equals("TIMESTAMP_SUB")) {
-        writer.print("-");
-      }
-      writer.print(intCall + ", ");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(formatTime);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }*/
 
 }
 

@@ -258,6 +258,24 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction DATETIME_ADD =
+      new SqlFunction("DATETIME_ADD",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.ARG0_NULLABLE,
+      null,
+      OperandTypes.DATETIME,
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction DATETIME_SUB =
+      new SqlFunction("DATETIME_SUB",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.ARG0_NULLABLE,
+      null,
+      OperandTypes.DATETIME,
+      SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction DATE_ADD =
       new SqlFunction(
@@ -323,21 +341,15 @@ public abstract class SqlLibraryOperators {
       };
 
 
-  @LibraryOperator(libraries = {HIVE, SPARK})
+  @LibraryOperator(libraries = {HIVE, SPARK, SNOWFLAKE, TERADATA})
   public static final SqlFunction ADD_MONTHS =
       new SqlFunction(
         "ADD_MONTHS",
         SqlKind.PLUS,
-        ReturnTypes.DATE,
+        ReturnTypes.ARG0,
         null,
         OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-        SqlFunctionCategory.TIMEDATE) {
-
-        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-          writer.getDialect().unparseIntervalOperandsBasedFunctions(
-                writer, call, leftPrec, rightPrec);
-        }
-      };
+        SqlFunctionCategory.TIMEDATE);
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
