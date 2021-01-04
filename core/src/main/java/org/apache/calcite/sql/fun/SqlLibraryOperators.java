@@ -776,7 +776,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})

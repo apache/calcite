@@ -18,8 +18,10 @@ package org.apache.calcite.util.interval;
 
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
 
 import java.util.Queue;
 
@@ -73,7 +75,8 @@ public class HiveDateTimestampInterval {
         break;
       }
     } else if ("ADD_MONTHS".equals(call.getOperator().getName())) {
-      unparseAddMonths(writer, call, leftPrec, rightPrec);
+      new IntervalUtils().unparse(writer, call, leftPrec, rightPrec,
+          new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT));
     } else {
       return false;
     }
@@ -126,6 +129,8 @@ public class HiveDateTimestampInterval {
           (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "" + " ");
       writer.print(((SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue().toString());
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(addMonthFrame);
   }

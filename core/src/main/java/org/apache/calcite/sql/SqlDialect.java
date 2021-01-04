@@ -587,6 +587,34 @@ public class SqlDialect {
     extractCall.unparse(writer, leftPrec, rightPrec);
   }
 
+  protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(0) instanceof SqlDateLiteral
+        && call.operand(1) instanceof SqlDateLiteral) {
+      unparseDateOperandForDateDiff(writer, call.operand(0), leftPrec, rightPrec);
+      writer.print(" - ");
+      unparseDateOperandForDateDiff(writer, call.operand(1), leftPrec, rightPrec);
+    } else {
+      unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseDateOperandForDateDiff(SqlWriter writer, SqlDateLiteral sqlDateLiteral,
+                                             int leftPrec, int rightPrec) {
+    SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    writer.print("(YEAR(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") - 1900) * 10000");
+    writer.print(" + ");
+    writer.print("MONTH(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") * 100");
+    writer.print(" + ");
+    writer.print("DAY(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") AS INT");
+    writer.endFunCall(castFrame);
+  }
+
   /**
    * Returns whether the string contains any characters outside the
    * comfortable 7-bit ASCII range (32 through 127, plus linefeed (10) and
