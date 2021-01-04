@@ -76,8 +76,10 @@ public class RexExecutorImpl implements RexExecutor {
       programBuilder.addProject(
           node, "c" + programBuilder.getProjectList().size());
     }
-    final JavaTypeFactoryImpl javaTypeFactory =
-        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final JavaTypeFactory javaTypeFactory = typeFactory instanceof JavaTypeFactory
+        ? (JavaTypeFactory) typeFactory
+        : new JavaTypeFactoryImpl(typeFactory.getTypeSystem());
     final BlockBuilder blockBuilder = new BlockBuilder();
     final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");
