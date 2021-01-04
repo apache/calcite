@@ -779,7 +779,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction DATE_MOD = new SqlFunction(
       "DATE_MOD",
       SqlKind.OTHER_FUNCTION,
