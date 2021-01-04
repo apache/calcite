@@ -318,6 +318,7 @@ public enum BuiltInMethod {
   RPAD(SqlFunctions.class, "rpad", String.class, Integer.class, String.class),
   FORMAT(SqlFunctions.class, "format", Object.class, Object.class),
   TO_VARCHAR(SqlFunctions.class, "toVarchar", Object.class, Object.class),
+  DATE_MOD(SqlFunctions.class, "dateMod", Object.class, Object.class),
   TIMESTAMPSECONDS(SqlFunctions.class, "timestampSeconds", Long.class),
   TIME_DIFF(SqlFunctions.class, "timeDiff", Date.class, Date.class),
   TIMESTAMPINTADD(SqlFunctions.class, "timestampIntAdd", Timestamp.class, Integer.class),

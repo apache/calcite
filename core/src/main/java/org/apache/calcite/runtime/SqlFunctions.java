@@ -2956,6 +2956,12 @@ public class SqlFunctions {
     return (int) ChronoUnit.DAYS.between(LocalDate.parse("1899-12-31"), LocalDate.parse(inputDate));
   }
 
+  public static Object dateMod(Object dateValue, Object value) {
+    String[] dateSplit = ((String) dateValue).split("-");
+    return (Integer.valueOf(dateSplit[0])-1900) * 10000 + Integer.valueOf(dateSplit[1]) * 100
+        + Integer.valueOf(dateSplit[2]) / (Integer) value;
+  }
+
   public static Calendar calendar() {
     return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
   }
