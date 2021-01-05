@@ -615,6 +615,19 @@ public class SqlDialect {
     writer.endFunCall(castFrame);
   }
 
+  protected void unparseTimestampDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    unparseTimestampOperand(writer, call, leftPrec, rightPrec, 0);
+    writer.print(" - ");
+    unparseTimestampOperand(writer, call, leftPrec, rightPrec, 1);
+  }
+
+  private void unparseTimestampOperand(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec, int index) {
+    writer.print("(");
+    call.operand(index).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
+  }
+
   /**
    * Returns whether the string contains any characters outside the
    * comfortable 7-bit ASCII range (32 through 127, plus linefeed (10) and
