@@ -3718,7 +3718,7 @@ SqlNode Expression3(ExprContext exprContext) :
     <ROW> {
         s = span();
     }
-    list = ParenthesizedSimpleIdentifierList() {
+    list = ParenthesizedQueryOrCommaList(exprContext) {
         if (exprContext != ExprContext.ACCEPT_ALL
             && exprContext != ExprContext.ACCEPT_CURSOR
             && !this.conformance.allowExplicitRowValueConstructor())

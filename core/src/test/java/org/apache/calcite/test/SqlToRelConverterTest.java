@@ -101,6 +101,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testRowValueConstructorWithSubquery() {
+    final String sql = "select ROW("
+        + "(select deptno\n"
+        + "from dept\n"
+        + "where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test void testIntegerLiteral() {
     final String sql = "select 1 from emp";
     sql(sql).ok();
