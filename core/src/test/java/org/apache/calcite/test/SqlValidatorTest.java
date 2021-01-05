@@ -1641,6 +1641,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
         + "from (select ((1,2),(3,4,5)) r from dept) t")
         .columnType("INTEGER NOT NULL");
+    sql("select row(emp.empno, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row(emp.empno + 1, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row((select deptno from dept where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp")
+        .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
   }
 
   @Test void testRowWithValidDot() {

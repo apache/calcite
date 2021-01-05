@@ -1064,6 +1064,23 @@ LogicalProject(EXPR$0=[ROW(1, 2).EXPR$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testRowValueConstructorWithSubquery">
+        <Resource name="sql">
+            <![CDATA[select ROW((select deptno
+from dept
+where dept.deptno = emp.deptno), emp.ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW($9, $1)])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO9=[$9])
+    LogicalJoin(condition=[=($9, $7)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDynamicNestedColumn">
         <Resource name="sql">
             <![CDATA[select t3.fake_q1['fake_col2'] as fake2

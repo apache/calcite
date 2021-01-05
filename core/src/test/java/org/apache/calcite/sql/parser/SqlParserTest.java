@@ -1287,6 +1287,14 @@ public class SqlParserTest {
     sql(sql)
         .withDialect(MSSQL)
         .ok(expected3);
+
+    conformance = SqlConformanceEnum.DEFAULT;
+    expr("ROW(EMP.EMPNO, EMP.ENAME)").ok("(ROW(`EMP`.`EMPNO`, `EMP`.`ENAME`))");
+    expr("ROW(EMP.EMPNO + 1, EMP.ENAME)").ok("(ROW((`EMP`.`EMPNO` + 1), `EMP`.`ENAME`))");
+    expr("ROW((select deptno from dept where dept.deptno = emp.deptno), EMP.ENAME)")
+        .ok("(ROW((SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`)), `EMP`.`ENAME`))");
   }
 
   /** Whether this is a sub-class that tests un-parsing as well as parsing. */
