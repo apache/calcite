@@ -167,6 +167,14 @@ class BabelParserTest extends SqlParserTest {
     sql("select date(x) from t").ok(expected);
   }
 
+
+  @Test void testRLIKEExpression() {
+    final String expected = "SELECT `COLA`\n"
+        + "FROM `T`\n"
+        + "WHERE (MAX(`EMAIL`) RLIKE '.+@.+\\\\\\\\..+')";
+    sql("select cola from t where (MAX(email) RLIKE '.+@.+\\\\\\\\..+')").ok(expected);
+  }
+
   /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
    * ordinary function syntax except that its first argument is a time unit
    * (e.g. DAY). We must not parse that first argument as an identifier. */

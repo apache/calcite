@@ -549,6 +549,7 @@ data: {
     # Example: "InfixCast".
     extraBinaryExpressions: [
       "InfixCast"
+      "RLIKEExpression"
     ]
 
     # List of files in @includes directory that have parser method

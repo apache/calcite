@@ -1401,6 +1401,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator SIMILAR_TO =
       new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
 
+  public static final SqlSpecialOperator NOT_RLIKE =
+      new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, false);
+
+  public static final SqlSpecialOperator RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false);
+
   public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE = new SqlPosixRegexOperator(
       "POSIX REGEX CASE SENSITIVE", SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
 

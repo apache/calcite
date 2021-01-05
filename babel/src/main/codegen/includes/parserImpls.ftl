@@ -135,6 +135,7 @@ void ColumnWithType(List<SqlNode> list) :
     }
 }
 
+
 SqlCreate SqlCreateTable(Span s, boolean replace) :
 {
     final TableCollectionType tableCollectionType;
@@ -174,9 +175,12 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     < DATE_PART: "DATE_PART" >
 |   < DATEADD: "DATEADD" >
 |   < DATEDIFF: "DATEDIFF" >
+|   < RLIKE: "RLIKE" >
 |   < NEGATE: "!" >
 |   < TILDE: "~" >
 }
+
+
 
 /** Parses the infix "::" cast operator used in PostgreSQL. */
 void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
@@ -192,5 +196,23 @@ void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
             new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
                 s.pos()));
         list.add(dt);
+    }
+}
+
+/** Parses RLIKE expression in SPARK SQL. */
+void RLIKEExpression(List<Object> list, ExprContext exprContext, Span s) :
+{
+    final SqlOperator op;
+    List<Object> list2;
+}
+{
+    (
+            <NOT><RLIKE> { op = SqlStdOperatorTable.NOT_RLIKE; }
+        |
+            <RLIKE> { op = SqlStdOperatorTable.RLIKE; }
+    )
+    list2 = Expression2(ExprContext.ACCEPT_SUB_QUERY) {
+        list.add(new SqlParserUtil.ToTreeListItem(op, s.pos()));
+        list.addAll(list2);
     }
 }
