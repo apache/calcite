@@ -87,7 +87,7 @@ dependencies {
         apiv("net.sf.opencsv:opencsv")
         apiv("org.apache.arrow:arrow-memory-netty", "arrow")
         apiv("org.apache.arrow:arrow-vector", "arrow")
-        apiv("org.apache.arrow.gandiva:arrow-gandiva", "arrow")
+        apiv("org.apache.arrow.gandiva:arrow-gandiva", "arrow-gandiva")
         apiv("org.apache.calcite.avatica:avatica-core", "calcite.avatica")
         apiv("org.apache.calcite.avatica:avatica-server", "calcite.avatica")
         apiv("org.apache.cassandra:cassandra-all")
