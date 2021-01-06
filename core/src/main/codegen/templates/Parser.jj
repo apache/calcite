@@ -3588,24 +3588,14 @@ List<Object> Expression2(ExprContext exprContext) :
                         (
                             <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
                         |
-                            <ILIKE> {
-                                if (!this.conformance.isIlikeAllowed()) {
-                                    throw SqlUtil.newContextException(getPos(), RESOURCE.ilikeNotAllowed());
-                                }
-                                op = SqlLibraryOperators.NOT_ILIKE;
-                            }
+                            <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
                         |
                             <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                         )
                     |
                         <LIKE> { op = SqlStdOperatorTable.LIKE; }
                     |
-                        <ILIKE> {
-                            if (!this.conformance.isIlikeAllowed()) {
-                                throw SqlUtil.newContextException(getPos(), RESOURCE.ilikeNotAllowed());
-                            }
-                            op = SqlLibraryOperators.ILIKE;
-                        }
+                        <ILIKE> { op = SqlLibraryOperators.ILIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )

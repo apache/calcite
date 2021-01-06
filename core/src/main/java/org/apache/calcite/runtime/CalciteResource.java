@@ -63,9 +63,6 @@ public interface CalciteResource {
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
 
-  @BaseMessage("The ''ILIKE'' operator is not allowed under the current SQL conformance level")
-  ExInst<CalciteException> ilikeNotAllowed();
-
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
   ExInst<CalciteException> illegalIntervalLiteral(String a0, String a1);

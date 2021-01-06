@@ -226,16 +226,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-  @Override public boolean isIlikeAllowed() {
-    switch (this) {
-    case LENIENT:
-    case BABEL:
-      return true;
-    default:
-      return false;
-    }
-  }
-
   @Override public boolean isMinusAllowed() {
     switch (this) {
     case BABEL:

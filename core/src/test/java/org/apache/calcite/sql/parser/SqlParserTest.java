@@ -1800,25 +1800,19 @@ public class SqlParserTest {
   }
 
   @Test void testIlike() {
-    conformance = SqlConformanceEnum.LENIENT;
+    // The ILIKE operator is only valid when the PostgreSQL function library is
+    // enabled ('fun=postgresql'). But the parser can always parse it.
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` NOT ILIKE '%abc%')";
+    final String sql = "select * from t where x not ilike '%abc%'";
+    sql(sql).ok(expected);
 
-    sql("select * from t where x not ilike '%abc%'")
-        .ok("SELECT *\n"
-            + "FROM `T`\n"
-            + "WHERE (`X` NOT ILIKE '%abc%')");
-
-    sql("select * from t where x ilike '%abc%'")
-        .ok("SELECT *\n"
-            + "FROM `T`\n"
-            + "WHERE (`X` ILIKE '%abc%')");
-
-    conformance = SqlConformanceEnum.DEFAULT;
-
-    sql("select * from t where x ^ilike^ '%abc%'")
-        .fails("The 'ILIKE' operator is not allowed under the current SQL conformance level");
-  }
-
-  @Test void testFoo() {
+    final String sql1 = "select * from t where x ilike '%abc%'";
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` ILIKE '%abc%')";
+    sql(sql1).ok(expected1);
   }
 
   @Test void testArithmeticOperators() {

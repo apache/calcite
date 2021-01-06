@@ -240,7 +240,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       }
     }
     final @Nullable SqlNode[] operands;
-    int end;
+    final int end;
     if (exp2 != null) {
       operands = new SqlNode[]{exp0, exp1, exp2};
       end = opOrdinal + 4;
@@ -248,7 +248,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       operands = new SqlNode[]{exp0, exp1};
       end = opOrdinal + 2;
     }
-    SqlCall call = createCall(SqlParserPos.ZERO, operands);
+    SqlCall call = createCall(SqlParserPos.sum(operands), operands);
     return new ReduceResult(opOrdinal - 1, end, call);
   }
 }

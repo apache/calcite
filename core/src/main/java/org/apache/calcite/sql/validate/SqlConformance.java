@@ -226,16 +226,6 @@ public interface SqlConformance {
   boolean isBangEqualAllowed();
 
   /**
-   * Whether the "ILIKE" operator is allowed by the parser to provide case-insensitive LIKE.
-   *
-   * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#BABEL},
-   * {@link SqlConformanceEnum#LENIENT},
-   * false otherwise.
-   */
-  boolean isIlikeAllowed();
-
-  /**
    * Whether the "%" operator is allowed by the parser as an alternative to the
    * {@code mod} function.
    *

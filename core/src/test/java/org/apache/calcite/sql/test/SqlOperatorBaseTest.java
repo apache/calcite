@@ -338,20 +338,14 @@ public abstract class SqlOperatorBaseTest {
   }
 
   protected SqlTester libraryTester(SqlLibrary library) {
-    return libraryTester(library, SqlConformanceEnum.DEFAULT);
-  }
-
-  protected SqlTester libraryTester(SqlLibrary library, SqlConformanceEnum conformance) {
     return tester.withOperatorTable(
         SqlLibraryOperatorTableFactory.INSTANCE
             .getOperatorTable(SqlLibrary.STANDARD, library))
-        .withConformance(conformance)
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
-                .with(CalciteConnectionProperty.FUN, library.fun)
-                .with(CalciteConnectionProperty.CONFORMANCE, conformance));
+                .with(CalciteConnectionProperty.FUN, library.fun));
   }
 
   protected SqlTester oracleTester(SqlConformance conformance) {
@@ -3872,7 +3866,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testIlikeEscape() {
     tester.setFor(SqlLibraryOperators.ILIKE);
-    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL);
     tester1.checkBoolean("'a_c' ilike 'a#_C' escape '#'", Boolean.TRUE);
     tester1.checkBoolean("'axc' ilike 'a#_C' escape '#'", Boolean.FALSE);
     tester1.checkBoolean("'a_c' ilike 'a\\_C' escape '\\'", Boolean.TRUE);
@@ -3915,13 +3909,14 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testIlikeOperator() {
     tester.setFor(SqlLibraryOperators.ILIKE);
-    tester.checkFails(
-        "'a'  ^ilike^ 'b'",
-        "The 'ILIKE' operator is not allowed under the current SQL conformance level",
-        false
-    );
+    final String noLike = "No match found for function signature ILIKE";
+    tester.checkFails("^'a' ilike 'b'^", noLike, false);
+    tester.checkFails("^'a' ilike 'b' escape 'c'^", noLike, false);
+    final String noNotLike = "No match found for function signature NOT ILIKE";
+    tester.checkFails("^'a' not ilike 'b'^", noNotLike, false);
+    tester.checkFails("^'a' not ilike 'b' escape 'c'^", noNotLike, false);
 
-    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL);
     tester1.checkBoolean("''  ilike ''", Boolean.TRUE);
     tester1.checkBoolean("'a' ilike 'a'", Boolean.TRUE);
     tester1.checkBoolean("'a' ilike 'b'", Boolean.FALSE);
@@ -3965,7 +3960,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testIlikeDot() {
     tester.setFor(SqlLibraryOperators.ILIKE);
-    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);
+    final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL);
     tester1.checkBoolean("'abc' ilike 'a.c'", Boolean.FALSE);
     tester1.checkBoolean("'abcde' ilike '%c.e'", Boolean.FALSE);
     tester1.checkBoolean("'abc.e' ilike '%c.e'", Boolean.TRUE);

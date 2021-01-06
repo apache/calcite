@@ -1919,7 +1919,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public CalciteException handleUnresolvedFunction(SqlCall call,
-      SqlFunction unresolvedFunction, List<RelDataType> argTypes,
+      SqlOperator unresolvedFunction, List<RelDataType> argTypes,
       @Nullable List<String> argNames) {
     // For builtins, we can give a better error message
     final List<SqlOperator> overloads = new ArrayList<>();
@@ -1937,12 +1937,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    AssignableOperandTypeChecker typeChecking =
-        new AssignableOperandTypeChecker(argTypes, argNames);
-    String signature =
-        typeChecking.getAllowedSignatures(
-            unresolvedFunction,
-            unresolvedFunction.getName());
+    final String signature;
+    if (unresolvedFunction instanceof SqlFunction) {
+      final SqlOperandTypeChecker typeChecking =
+          new AssignableOperandTypeChecker(argTypes, argNames);
+      signature =
+          typeChecking.getAllowedSignatures(unresolvedFunction,
+              unresolvedFunction.getName());
+    } else {
+      signature = unresolvedFunction.getName();
+    }
     throw newValidationError(call,
         RESOURCE.validatorUnknownFunction(signature));
   }

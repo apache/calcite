@@ -595,6 +595,10 @@ public abstract class SqlOperator {
             argTypes, null, null, getSyntax(), getKind(),
             validator.getCatalogReader().nameMatcher(), false);
 
+    if (sqlOperator == null) {
+      throw validator.handleUnresolvedFunction(call, this, argTypes, null);
+    }
+
     ((SqlBasicCall) call).setOperator(castNonNull(sqlOperator));
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
