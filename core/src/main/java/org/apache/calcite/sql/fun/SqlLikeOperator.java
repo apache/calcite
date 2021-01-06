@@ -35,8 +35,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
  * operators.
