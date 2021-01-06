@@ -641,9 +641,10 @@ public class RelBuilder {
     switch (operator.getKind()) {
     case LIKE:
     case SIMILAR:
-      if (((SqlLikeOperator) operator).isNegated()) {
-        final SqlOperator sqlOperator = operator.not();
-        return (RexCall) not(call(sqlOperator, operandList));
+      final SqlLikeOperator likeOperator = (SqlLikeOperator) operator;
+      if (likeOperator.isNegated()) {
+        final SqlOperator notLikeOperator = likeOperator.not();
+        return (RexCall) not(call(notLikeOperator, operandList));
       }
       break;
     case BETWEEN:

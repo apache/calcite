@@ -239,7 +239,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         }
       }
     }
-    final @Nullable SqlNode[] operands;
+    final SqlNode[] operands;
     final int end;
     if (exp2 != null) {
       operands = new SqlNode[]{exp0, exp1, exp2};
