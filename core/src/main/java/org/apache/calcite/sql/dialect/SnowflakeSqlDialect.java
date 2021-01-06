@@ -226,11 +226,18 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
-      final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(formatDate);
+      if (call.operand(0).toString().equals("'EEEE'")
+              || call.operand(0).toString().equals("'E4'")) {
+        final SqlWriter.Frame dayNameFrame = writer.startFunCall("DAYNAME");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(dayNameFrame);
+      } else {
+        final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.print(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(formatDate);
+      }
       break;
     case "LOG10":
       if (call.operand(0) instanceof SqlLiteral && "1".equals(call.operand(0).toString())) {
@@ -288,7 +295,34 @@ public class SnowflakeSqlDialect extends SqlDialect {
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "LOWER":
+      getDayofWeek(writer, call, leftPrec, rightPrec);
+      break;
     default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void getDayofWeek(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(0).getKind() == SqlKind.LITERAL) {
+      switch (((SqlLiteral) call.operand(0)).getValueAs(String.class)) {
+      case "Sunday":
+      case "Monday":
+      case "Tuesday":
+      case "Wednesday":
+      case "Thursday ":
+      case "Friday":
+      case "Saturday":
+        SqlWriter.Frame dayNameFrame = writer.startFunCall("LOWER");
+        writer.print("'");
+        writer.print(((SqlLiteral) call.operand(0)).getValueAs(String.class).substring(0, 3));
+        writer.print("'");
+        writer.endFunCall(dayNameFrame);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+    } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
