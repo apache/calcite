@@ -955,6 +955,17 @@ public abstract class SqlOperator {
     return returnTypeInference;
   }
 
+  /** Returns the operator that is the logical inverse of this operator.
+   *
+   * <p>For example, {@code SqlStdOperatorTable.LIKE.not()} returns
+   * {@code SqlStdOperatorTable.NOT_LIKE}, and vice versa.
+   *
+   * <p>By default, returns {@code null}, which means there is no inverse
+   * operator. */
+  public @Nullable SqlOperator not() {
+    return null;
+  }
+
   /**
    * Returns the {@link Strong.Policy} strategy for this operator, or null if
    * there is no particular strategy, in which case this policy will be deducted

@@ -3963,9 +3963,6 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abc.e' like '%c.e'", Boolean.TRUE);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1898">[CALCITE-1898]
-   * ILIKE must match '.' (period) literally</a>. */
   @Test void testIlikeDot() {
     tester.setFor(SqlLibraryOperators.ILIKE);
     final SqlTester tester1 = libraryTester(SqlLibrary.POSTGRESQL, SqlConformanceEnum.LENIENT);

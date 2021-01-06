@@ -464,12 +464,12 @@ public abstract class SqlLibraryOperators {
   /** The case-insensitive variant of the LIKE operator. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlSpecialOperator ILIKE =
-      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, true);
+      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
 
   /** The case-insensitive variant of the NOT LIKE operator. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlSpecialOperator NOT_ILIKE =
-      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, true);
+      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */

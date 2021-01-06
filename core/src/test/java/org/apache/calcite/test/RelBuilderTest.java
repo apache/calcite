@@ -3964,8 +3964,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(
-                    SqlStdOperatorTable.NOT_LIKE,
+                builder.call(SqlStdOperatorTable.NOT_LIKE,
                     builder.field("ENAME"),
                     builder.literal("a%b%c")))
             .build();
@@ -3980,8 +3979,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(
-                    SqlLibraryOperators.NOT_ILIKE,
+                builder.call(SqlLibraryOperators.NOT_ILIKE,
                     builder.field("ENAME"),
                     builder.literal("a%b%c")))
             .build();
