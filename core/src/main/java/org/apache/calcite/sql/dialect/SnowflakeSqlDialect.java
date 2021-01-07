@@ -226,21 +226,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
-      final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      switch (((SqlLiteral) call.operand(0)).getValueAs(String.class)) {
-      case "EEEE":
-      case "E4":
-      case "EEE":
-      case "E3":
-        writer.print("'DY'");
-        break;
-      default:
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        break;
-      }
-      writer.endFunCall(formatDate);
+      formatDate(writer, call, leftPrec, rightPrec);
       break;
     case "LOG10":
       if (call.operand(0) instanceof SqlLiteral && "1".equals(call.operand(0).toString())) {
@@ -624,6 +610,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
+  }
+
+  private void formatDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    switch (((SqlLiteral) call.operand(0)).getValueAs(String.class)) {
+    case "EEEE":
+    case "E4":
+    case "EEE":
+    case "E3":
+      writer.print("'DY'");
+      break;
+    default:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      break;
+    }
+    writer.endFunCall(formatDate);
   }
 
 }
