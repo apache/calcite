@@ -302,7 +302,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "Monday":
     case "Tuesday":
     case "Wednesday":
-    case "Thursday ":
+    case "Thursday":
     case "Friday":
     case "Saturday":
       final SqlWriter.Frame operatorFrame = writer.startFunCall(call.getOperator().toString());
