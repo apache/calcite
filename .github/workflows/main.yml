@@ -52,7 +52,14 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: actions/checkout@v2
+      name: checkout burrunan/gradle-cache-action
+      with:
+        repository: burrunan/gradle-cache-action
+        path: ./build/.actions/burrunan/gradle-cache-action
+        ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+        fetch-depth: 1
+    - uses: ./build/.actions/burrunan/gradle-cache-action
       name: Test
       with:
         job-id: jdk${{ matrix.jdk }}
@@ -80,7 +87,14 @@ jobs:
     - name: 'Clone Avatica to Maven Local repository'
       run: |
         git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: actions/checkout@v2
+      name: checkout burrunan/gradle-cache-action
+      with:
+        repository: burrunan/gradle-cache-action
+        path: ./build/.actions/burrunan/gradle-cache-action
+        ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+        fetch-depth: 1
+    - uses: ./build/.actions/burrunan/gradle-cache-action
       name: Build Avatica
       with:
         job-id: avatica-jdk${{ matrix.jdk }}
@@ -92,7 +106,14 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 50
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: actions/checkout@v2
+      name: checkout burrunan/gradle-cache-action
+      with:
+        repository: burrunan/gradle-cache-action
+        path: ./build/.actions/burrunan/gradle-cache-action
+        ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+        fetch-depth: 1
+    - uses: ./build/.actions/burrunan/gradle-cache-action
       name: Test
       with:
         job-id: jdk${{ matrix.jdk }}
@@ -110,12 +131,26 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
-      - uses: AdoptOpenJDK/install-jdk@v1
+      - uses: actions/checkout@v2
+        name: checkout AdoptOpenJDK/install-jdk
+        with:
+          repository: AdoptOpenJDK/install-jdk
+          path: ./build/.actions/AdoptOpenJDK/install-jdk
+          ref: 2f15d3f82051aa50984186fc1184467d0d9f87d0 # v1.1.1
+          fetch-depth: 1
+      - uses: ./build/.actions/AdoptOpenJDK/install-jdk
         with:
           impl: openj9
           version: '8'
           architecture: x64
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: actions/checkout@v2
+        name: checkout burrunan/gradle-cache-action
+        with:
+          repository: burrunan/gradle-cache-action
+          path: ./build/.actions/burrunan/gradle-cache-action
+          ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+          fetch-depth: 1
+      - uses: ./build/.actions/burrunan/gradle-cache-action
         name: Test
         with:
           job-id: jdk8-openj9
@@ -142,7 +177,14 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 15
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: actions/checkout@v2
+        name: checkout burrunan/gradle-cache-action
+        with:
+          repository: burrunan/gradle-cache-action
+          path: ./build/.actions/burrunan/gradle-cache-action
+          ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+          fetch-depth: 1
+      - uses: ./build/.actions/burrunan/gradle-cache-action
         name: Test
         with:
           job-id: jdk15
@@ -169,7 +211,14 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: actions/checkout@v2
+        name: checkout burrunan/gradle-cache-action
+        with:
+          repository: burrunan/gradle-cache-action
+          path: ./build/.actions/burrunan/gradle-cache-action
+          ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+          fetch-depth: 1
+      - uses: ./build/.actions/burrunan/gradle-cache-action
         name: Test
         with:
           job-id: errprone
@@ -186,8 +235,15 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - uses: actions/checkout@v2
+        name: checkout burrunan/gradle-cache-action
+        with:
+          repository: burrunan/gradle-cache-action
+          path: ./build/.actions/burrunan/gradle-cache-action
+          ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+          fetch-depth: 1
       - name: 'Run CheckerFramework'
-        uses: burrunan/gradle-cache-action@v1
+        uses: ./build/.actions/burrunan/gradle-cache-action
         with:
           job-id: checkerframework-jdk11
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
@@ -206,7 +262,14 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: actions/checkout@v2
+        name: checkout burrunan/gradle-cache-action
+        with:
+          repository: burrunan/gradle-cache-action
+          path: ./build/.actions/burrunan/gradle-cache-action
+          ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+          fetch-depth: 1
+      - uses: ./build/.actions/burrunan/gradle-cache-action
         name: Test
         with:
           job-id: jdk8
@@ -246,7 +309,14 @@ jobs:
       with:
         fetch-depth: 1
         path: calcite
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: actions/checkout@v2
+      name: checkout burrunan/gradle-cache-action
+      with:
+        repository: burrunan/gradle-cache-action
+        path: ./build/.actions/burrunan/gradle-cache-action
+        ref: feb985ecf49f57f54f31920821a50d0394faf122 # v1.6
+        fetch-depth: 1
+    - uses: ./build/.actions/burrunan/gradle-cache-action
       name: 'Run Druid tests'
       with:
         build-root-directory: ./calcite
