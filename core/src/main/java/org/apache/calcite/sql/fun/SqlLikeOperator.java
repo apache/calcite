@@ -84,7 +84,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
         OperandTypes.STRING_SAME_SAME_SAME);
-    if (caseSensitive && kind != SqlKind.LIKE) {
+    if (!caseSensitive && kind != SqlKind.LIKE) {
       throw new IllegalArgumentException("Only (possibly negated) "
           + SqlKind.LIKE + " can be made case-insensitive, not " + kind);
     }

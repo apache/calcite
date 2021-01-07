@@ -1405,10 +1405,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlLikeOperator("LIKE", SqlKind.LIKE, false, true);
 
   public static final SqlSpecialOperator NOT_SIMILAR_TO =
-      new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true, false);
+      new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true, true);
 
   public static final SqlSpecialOperator SIMILAR_TO =
-      new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false, false);
+      new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false, true);
 
   public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE =
       new SqlPosixRegexOperator("POSIX REGEX CASE SENSITIVE",
