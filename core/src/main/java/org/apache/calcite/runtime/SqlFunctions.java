@@ -52,7 +52,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
@@ -3053,6 +3055,38 @@ public class SqlFunctions {
     cal.add(unit, additive);
     ts.setTime(cal.getTime().getTime());
     return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object toBinary(String value, String charSet) {
+    Charset charset = Charset.forName(charSet);
+    BigInteger bigInteger = new BigInteger(1, value.getBytes(charset));
+    return String.format("%x", bigInteger).toUpperCase();
+  }
+
+  public static Object timeSub(Object time, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "HOUR":
+      unit = Calendar.HOUR;
+      break;
+    case "MINUTE":
+      unit = Calendar.MINUTE;
+      break;
+    case "SECOND":
+      unit = Calendar.SECOND;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Time ts = Time.valueOf((String) time);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return ts;
   }
 }
 

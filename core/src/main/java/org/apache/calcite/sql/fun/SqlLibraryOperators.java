@@ -788,5 +788,33 @@ public abstract class SqlLibraryOperators {
       null,
       OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.INTEGER),
       SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction STRTOK = new SqlFunction(
+      "STRTOK",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE,
+      null,
+      OperandTypes.family(ImmutableList.of
+              (SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
+      SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIME_SUB =
+      new SqlFunction("TIME_SUB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME,
+          null,
+          OperandTypes.DATETIME_INTERVAL,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TO_BINARY =
+      new SqlFunction("TO_BINARY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BINARY,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+          SqlFunctionCategory.TIMEDATE);
 }
 // End SqlLibraryOperators.java

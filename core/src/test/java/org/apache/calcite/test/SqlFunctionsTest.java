@@ -25,6 +25,7 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,8 +63,10 @@ import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
+import static org.apache.calcite.runtime.SqlFunctions.timeSub;
 import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toBinary;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
@@ -1110,6 +1113,18 @@ public class SqlFunctionsTest {
   @Test public void testdatetimeSub() {
     assertThat(datetimeSub("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
         is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
+  }
+
+  /** Test for {@link SqlFunctions#toBinary(String, String)}. */
+  @Test public void testtoBinary() {
+    assertThat(toBinary("williams", "UTF-8"), is("77696C6C69616D73"));
+    assertThat(toBinary("david", "UTF-8"), is("6461766964"));
+  }
+
+  /** Test for {@link SqlFunctions#timeSub(Object, Object)}. */
+  @Test public void testTimeSub() {
+    assertThat(timeSub("15:30:00", "INTERVAL 10 MINUTE"), is(Time.valueOf("15:20:00")));
+    assertThat(timeSub("10:00:00", "INTERVAL 1 HOUR"), is(Time.valueOf("09:00:00")));
   }
 }
 

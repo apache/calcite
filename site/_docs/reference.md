@@ -65,6 +65,8 @@ here to appease testAllFunctionsAreDocumented:
 | WEEKNUMBER_OF_CALENDAR | Get week number of the calendar
 | DAYOCCURRENCE_OF_MONTH | Get day occurrence of the month
 | DATE_MOD       | Return division result between date and integer
+| TO_BINARY      | Return binary format based on charset
+| TIME_SUB       | Return time minus from interval
 {% endcomment %}
 -->
 

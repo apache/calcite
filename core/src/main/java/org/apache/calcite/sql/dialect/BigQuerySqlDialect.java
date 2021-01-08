@@ -819,6 +819,24 @@ public class BigQuerySqlDialect extends SqlDialect {
       new IntervalUtils().unparse(writer, call, leftPrec, rightPrec, this);
       break;
     default:
+      unparseMoreOtherFunction(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseMoreOtherFunction(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "STRTOK":
+      SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(splitFrame);
+      writer.print("[OFFSET (");
+      writer.print(Integer.valueOf(call.operand(2).toString()) - 1);
+      writer.print(") ]");
+      break;
+    default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }

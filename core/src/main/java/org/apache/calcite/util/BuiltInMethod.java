@@ -340,6 +340,8 @@ public enum BuiltInMethod {
   SHA1(SqlFunctions.class, "sha1", String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
+  TO_BINARY(JsonFunctions.class, "toBinary", String.class, String.class),
+  TIME_SUB(JsonFunctions.class, "toBinary", Object.class, Object.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",
