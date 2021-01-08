@@ -307,7 +307,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "Saturday":
       final SqlWriter.Frame operatorFrame = writer.startFunCall(call.getOperator().toString());
       final SqlWriter.Frame substrFrame = writer.startFunCall("SUBSTR");
-      writer.print(call.operand(0).toString());
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(", 0, 3");
       writer.endFunCall(substrFrame);
       writer.endFunCall(operatorFrame);
