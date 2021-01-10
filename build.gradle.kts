@@ -69,7 +69,7 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
-val skipJandex by props(true) // It will be enabled by default as Jandex issues are resolved
+val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
