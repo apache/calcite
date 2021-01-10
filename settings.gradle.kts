@@ -26,6 +26,7 @@ pluginManagement {
         idv("com.github.vlsi.crlf", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.gradle-extensions", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.ide", "com.github.vlsi.vlsi-release-plugins")
+        idv("com.github.vlsi.jandex", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
         idv("com.google.protobuf")
@@ -36,6 +37,12 @@ pluginManagement {
         idv("org.nosphere.apache.rat")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
+    }
+    if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
+        repositories {
+            mavenLocal()
+            gradlePluginPortal()
+        }
     }
 }
 

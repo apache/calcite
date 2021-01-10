@@ -43,6 +43,7 @@ plugins {
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false
+    id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -68,6 +69,7 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
+val skipJandex by props(true) // It will be enabled by default as Jandex issues are resolved
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -442,6 +444,15 @@ allprojects {
 
         apply(plugin = "de.thetaphi.forbiddenapis")
         apply(plugin = "maven-publish")
+
+        if (!skipJandex) {
+            apply(plugin = "com.github.vlsi.jandex")
+
+            project.configure<com.github.vlsi.jandex.JandexExtension> {
+                toolVersion.set("jandex".v)
+                skipIndexFileGeneration()
+            }
+        }
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
