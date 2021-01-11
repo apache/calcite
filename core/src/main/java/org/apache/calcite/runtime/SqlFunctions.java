@@ -3060,7 +3060,7 @@ public class SqlFunctions {
   public static Object toBinary(String value, String charSet) {
     Charset charset = Charset.forName(charSet);
     BigInteger bigInteger = new BigInteger(1, value.getBytes(charset));
-    return String.format("%x", bigInteger).toUpperCase();
+    return upper(String.format(Locale.ENGLISH, "%x", bigInteger));
   }
 
   public static Object timeSub(Object time, Object interval) {
