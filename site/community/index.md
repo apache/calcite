@@ -26,7 +26,21 @@ limitations under the License.
 
 # Upcoming talks
 
-There are no upcoming talks at the moment. Stay tuned!
+## An introduction to query processing & Apache Calcite
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
+
+## Event timestamp semantic based streaming SQL
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
+
+## Implementing spatial queries using algebra rewrites
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
+
+## Apache Calcite integration into Hazelcast distributed SQL engine
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
 
 # Project Members
 
