@@ -82,7 +82,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicAggFunction(name, null, kind, returnTypeInference, null,
-        operandTypeChecker, SqlFunctionCategory.SYSTEM, false, false, false,
+        operandTypeChecker, SqlFunctionCategory.NUMERIC, false, false, false,
         Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false);
   }
 
@@ -90,15 +90,23 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
+    SqlCall stripedCall = call;
     if (allowSeparator()) {
-      call = ReturnTypes.stripSeparator(call);
+      stripedCall = ReturnTypes.stripSeparator(stripedCall);
     }
 
     if (syntax == SqlSyntax.ORDERED_FUNCTION) {
-      call = ReturnTypes.stripOrderBy(call);
+      stripedCall = ReturnTypes.stripOrderBy(stripedCall);
     }
 
-    return super.deriveType(validator, scope, call);
+    RelDataType derivedType = super.deriveType(validator, scope, stripedCall);
+
+    //assigning back the operands that might have been casted by validator
+    for (int i = 0; i < stripedCall.getOperandList().size(); i += 1) {
+      call.setOperand(i, stripedCall.getOperandList().get(i));
+    }
+
+    return derivedType;
   }
 
   @Override public Optionality getDistinctOptionality() {
