@@ -9485,6 +9485,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "IGNORE NULLS -\n"
         + "OVER left\n"
         + "RESPECT NULLS -\n"
+        + "SEPARATOR pre\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"

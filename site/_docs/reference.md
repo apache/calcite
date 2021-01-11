@@ -889,7 +889,7 @@ SECURITY,
 **SELECT**,
 SELF,
 **SENSITIVE**,
-**SEPARATOR**,
+SEPARATOR,
 SEQUENCE,
 SERIALIZABLE,
 SERVER,
@@ -2581,7 +2581,7 @@ Dialect-specific aggregate functions.
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
-| m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] [SEPARATOR separator]) | Synonym for `LISTAGG`
+| m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] expr [, expr]* [ ORDER BY orderItem [, orderItem ]* ] [SEPARATOR str_val]) | mysql aggregate function, desugar to `LISTAGG`
 
 Usage Examples:
 

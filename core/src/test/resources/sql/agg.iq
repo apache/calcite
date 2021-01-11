@@ -2908,4 +2908,19 @@ from (select 1 as a, 2 as b, 3 as c);
 
 !ok
 
+!use mysqlfunc
+
+select
+    group_concat(distinct ename order by ename) as combined_name,
+    group_concat(ename order by ename separator ';') as separated_name
+from emp;
++------------------------------------------------+------------------------------------------------+
+| COMBINED_NAME                                  | SEPARATED_NAME                                 |
++------------------------------------------------+------------------------------------------------+
+| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
++------------------------------------------------+------------------------------------------------+
+(1 row)
+
+!ok
+
 # End agg.iq

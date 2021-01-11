@@ -66,16 +66,6 @@ public enum SqlSyntax {
   },
 
   /**
-   * Function syntax with optional ORDER BY, as in "GROUP_CONCAT(x, y ORDER BY z SPEARATOR ',')".
-   */
-  ORDERED_SEPARATOR_FUNCTION(FUNCTION) {
-    @Override public void unparse(SqlWriter writer, SqlOperator operator,
-        SqlCall call, int leftPrec, int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(operator, writer, call, true);
-    }
-  },
-
-  /**
    * Binary operator syntax, as in "x + y".
    */
   BINARY {

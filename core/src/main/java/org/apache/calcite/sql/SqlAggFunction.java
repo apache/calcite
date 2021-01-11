@@ -41,6 +41,7 @@ import java.util.Objects;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
+  private final boolean allowSeparator;
   private final Optionality requiresGroupOrder;
 
   //~ Constructors -----------------------------------------------------------
@@ -56,7 +57,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false,
+        operandTypeChecker, funcType, false, false, false,
         Optionality.FORBIDDEN);
   }
 
@@ -71,7 +72,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false,
+        operandTypeChecker, funcType, false, false, false,
         Optionality.FORBIDDEN);
   }
 
@@ -87,7 +88,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       boolean requiresOrder,
       boolean requiresOver) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, requiresOrder, requiresOver,
+        operandTypeChecker, funcType, requiresOrder, requiresOver, false,
         Optionality.FORBIDDEN);
   }
 
@@ -105,12 +106,30 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
+      boolean allowSeparator,
       Optionality requiresGroupOrder) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
+    this.allowSeparator = allowSeparator;
     this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder);
+  }
+
+  protected SqlAggFunction(
+      String name,
+      @Nullable SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType,
+      boolean requiresOrder,
+      boolean requiresOver,
+      Optionality requiresGroupOrder) {
+    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, funcType, requiresOrder,
+        requiresOver, false, requiresGroupOrder);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -169,6 +188,16 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   @Override public final boolean requiresOver() {
     return requiresOver;
+  }
+
+  /** Returns whether this is an aggregate function that allows SEPARATOR clause.
+   *
+   * <p>For example, returns true for {@code GROUP_CONCAT};
+   * returns false for {@code LIST_AGG}, {@code STRING_AGG},
+   */
+
+  public final boolean allowSeparator() {
+    return allowSeparator;
   }
 
   /** Returns whether this aggregate function allows the {@code DISTINCT}

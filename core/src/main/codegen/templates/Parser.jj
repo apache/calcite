@@ -3937,7 +3937,7 @@ SqlCall StringAggFunctionCall() :
     ]
     [
 
-        separator = separator() {
+        separator = separatorItem() {
             args.add(separator);
         }
     ]
@@ -3955,7 +3955,7 @@ SqlCall StringAggFunctionCall() :
 /**
 * Parses a separator clause
 */
-SqlCall separator() : {
+SqlCall separatorItem() : {
     final SqlNode p;
     final Span s;
 }
