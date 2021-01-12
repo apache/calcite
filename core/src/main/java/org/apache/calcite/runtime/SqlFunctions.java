@@ -3088,6 +3088,24 @@ public class SqlFunctions {
     ts.setTime(cal.getTime().getTime());
     return ts;
   }
+
+  public static Object toCharFunction(Object value, Object format) {
+    if (null == value || null == format) {
+      return null;
+    }
+    String[] formatStore = ((String) format).split("\\.");
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("%");
+    pattern.append(formatStore[0].length());
+    if (formatStore.length > 1) {
+      pattern.append(".");
+      pattern.append(formatStore[1].length());
+      pattern.append("f");
+    } else {
+      pattern.append("d");
+    }
+    return String.format(Locale.ENGLISH, pattern.toString(), value);
+  }
 }
 
 // End SqlFunctions.java

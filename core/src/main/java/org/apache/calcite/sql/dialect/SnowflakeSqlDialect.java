@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -44,10 +45,20 @@ import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
@@ -65,6 +76,13 @@ public class SnowflakeSqlDialect extends SqlDialect {
   public SnowflakeSqlDialect(Context context) {
     super(context);
   }
+
+  private Map<SqlDateTimeFormat, String> dateTimeFormatMap =
+      new HashMap() {{
+        put(E3, ABBREVIATED_NAME_OF_DAY.value);
+        put(ABBREVIATEDDAYOFWEEK, ABBREVIATED_NAME_OF_DAY.value);
+        put(ABBREVIATEDMONTH, ABBREVIATED_MONTH.value);
+      }};
 
   @Override public boolean supportsAliasedValues() {
     return false;
@@ -235,11 +253,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
-      final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      handleDayFormat(writer, call, leftPrec, rightPrec);
-      writer.endFunCall(formatDate);
+      SqlCall toVarcharCall = TO_VARCHAR.createCall(SqlParserPos.ZERO, call.operand(1),
+          createDateFormatLiteral(call.operand(0)));
+      super.unparseCall(writer, toVarcharCall, leftPrec, rightPrec);
       break;
     case "FORMAT_TIMESTAMP":
       unparseFormatTimestamp(writer, call, leftPrec, rightPrec);
@@ -361,40 +377,55 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private void unparseFormatTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame toCharFrame = writer.startFunCall("TO_CHAR");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.print(", ");
-    String[] secondSplit = ((NlsString) ((SqlCharStringLiteral) call.operand(0))
+    SqlCall toCharCall = TO_CHAR.createCall(SqlParserPos.ZERO, call.operand(1),
+        createDateFormatLiteral(call.operand(0)));
+    super.unparseCall(writer, toCharCall, leftPrec, rightPrec);
+  }
+
+  private SqlNode createDateFormatLiteral(SqlNode operand) {
+    String[] secondSplit = ((NlsString) ((SqlCharStringLiteral) operand)
         .getValue()).getValue().split("\\.");
+    SqlNode dayFormatNode = null;
     if (secondSplit.length > 1) {
       Matcher matcher = Pattern.compile("\\d+").matcher(secondSplit[1]);
       if (matcher.find()) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\'");
         sb.append(secondSplit[0]);
         sb.append(".");
         sb.append("FF" + matcher.group(0));
-        sb.append("\'");
-        writer.print(sb.toString());
+        dayFormatNode = SqlLiteral.createCharString(sb.toString(), SqlParserPos.ZERO);
       }
     } else {
-      handleDayFormat(writer, call, leftPrec, rightPrec);
+//      dayFormatNode = createDateFormatSqlNode(operand);
+      dayFormatNode = createDateTimeFormatSqlCharLiteral(unquoteStringLiteral(operand.toString()));
     }
-    writer.endFunCall(toCharFrame);
+    return dayFormatNode;
   }
 
-  private void handleDayFormat(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if ((call.operand(0) instanceof SqlCharStringLiteral)
-        && checkForDayFormat(((NlsString) ((SqlCharStringLiteral) call.operand(0)).getValue())
-        .getValue())) {
-      writer.print("'DY'");
-    } else {
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-    }
+  private SqlNode createDateFormatSqlNode(SqlNode operand) {
+    return checkDateFormatPresentInMap(operand)
+      ? createDateTimeFormatSqlCharLiteral(unquoteStringLiteral(operand.toString())) : operand;
   }
 
-  private boolean checkForDayFormat(String dayFormat) {
-    return "EEE".equals(dayFormat) || "EEEE".equals(dayFormat);
+  private boolean checkDateFormatPresentInMap(SqlNode operand) {
+    return (operand instanceof SqlCharStringLiteral)
+        && validEntryForDateFormat(unquoteStringLiteral(operand.toString()));
+  }
+
+  private boolean validEntryForDateFormat(String format) {
+    return dateTimeFormatMap.keySet().stream()
+        .filter(dateTimeFormat -> dateTimeFormat.value.equals(format))
+        .findAny()
+        .isPresent();
+  }
+
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
+    for (SqlDateTimeFormat dateTimeFormat : SqlDateTimeFormat.values()) {
+      dateTimeFormatMap.putIfAbsent(dateTimeFormat, dateTimeFormat.value);
+    }
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        dateTimeFormatMap);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

@@ -67,6 +67,7 @@ here to appease testAllFunctionsAreDocumented:
 | DATE_MOD       | Return division result between date and integer
 | TO_BINARY      | Return binary format based on charset
 | TIME_SUB       | Return time minus from interval
+| TO_CHAR        | Format date based on the format given
 {% endcomment %}
 -->
 

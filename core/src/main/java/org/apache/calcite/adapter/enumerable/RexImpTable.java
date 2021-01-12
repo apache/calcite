@@ -133,6 +133,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BINARY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
@@ -681,6 +682,7 @@ public class RexImpTable {
     defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
     defineMethod(TO_BINARY, BuiltInMethod.TO_BINARY.method, NullPolicy.NONE);
     defineMethod(TIME_SUB, BuiltInMethod.TIME_SUB.method, NullPolicy.NONE);
+    defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.ARG0);
     defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
     defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
     defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);

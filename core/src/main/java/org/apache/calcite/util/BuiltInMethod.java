@@ -342,6 +342,7 @@ public enum BuiltInMethod {
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   TO_BINARY(SqlFunctions.class, "toBinary", Object.class, Object.class),
   TIME_SUB(SqlFunctions.class, "timeSub", Object.class, Object.class),
+  TO_CHAR(SqlFunctions.class, "toCharFunction", Object.class, Object.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",

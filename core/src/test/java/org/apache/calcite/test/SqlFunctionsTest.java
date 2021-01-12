@@ -67,6 +67,7 @@ import static org.apache.calcite.runtime.SqlFunctions.timeSub;
 import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toBinary;
+import static org.apache.calcite.runtime.SqlFunctions.toCharFunction;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
@@ -1125,6 +1126,14 @@ public class SqlFunctionsTest {
   @Test public void testTimeSub() {
     assertThat(timeSub("15:30:00", "INTERVAL 10 MINUTE"), is(Time.valueOf("15:20:00")));
     assertThat(timeSub("10:00:00", "INTERVAL 1 HOUR"), is(Time.valueOf("09:00:00")));
+  }
+
+  /** Test for {@link SqlFunctions#toCharFunction}. */
+  @Test public void testToChar() {
+    assertThat(toCharFunction(null, null), nullValue());
+    assertThat(toCharFunction(23, "99"), is("23"));
+    assertThat(toCharFunction(123, "999"), is("123"));
+    assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
   }
 }
 
