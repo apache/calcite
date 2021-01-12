@@ -3106,6 +3106,10 @@ public class SqlFunctions {
     }
     return String.format(Locale.ENGLISH, pattern.toString(), value);
   }
+
+  public static Object strTok(Object value, Object delimiter, Object part) {
+    return ((String) value).split((String) delimiter) [(Integer) part - 1];
+  }
 }
 
 // End SqlFunctions.java

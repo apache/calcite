@@ -61,6 +61,7 @@ import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.strTok;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.timeSub;
@@ -1128,12 +1129,18 @@ public class SqlFunctionsTest {
     assertThat(timeSub("10:00:00", "INTERVAL 1 HOUR"), is(Time.valueOf("09:00:00")));
   }
 
-  /** Test for {@link SqlFunctions#toCharFunction}. */
+  /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
   @Test public void testToChar() {
     assertThat(toCharFunction(null, null), nullValue());
     assertThat(toCharFunction(23, "99"), is("23"));
     assertThat(toCharFunction(123, "999"), is("123"));
     assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
+  }
+
+  /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
+  @Test public void testStrtok() {
+    assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
+    assertThat(strTok("a.b.c.d", "\\.", 3), is("c"));
   }
 }
 

@@ -68,6 +68,7 @@ here to appease testAllFunctionsAreDocumented:
 | TO_BINARY      | Return binary format based on charset
 | TIME_SUB       | Return time minus from interval
 | TO_CHAR        | Format date based on the format given
+| STRTOK         | Tokenizes a given string and returns the requested part
 {% endcomment %}
 -->
 
