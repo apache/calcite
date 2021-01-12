@@ -3057,9 +3057,9 @@ public class SqlFunctions {
     return new Timestamp(cal.getTime().getTime());
   }
 
-  public static Object toBinary(String value, String charSet) {
-    Charset charset = Charset.forName(charSet);
-    BigInteger bigInteger = new BigInteger(1, value.getBytes(charset));
+  public static Object toBinary(Object value, Object charSet) {
+    Charset charset = Charset.forName((String) charSet);
+    BigInteger bigInteger = new BigInteger(1, ((String) value).getBytes(charset));
     return upper(String.format(Locale.ENGLISH, "%x", bigInteger));
   }
 
