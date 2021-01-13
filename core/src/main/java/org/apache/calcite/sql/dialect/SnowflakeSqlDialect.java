@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -77,12 +78,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
     super(context);
   }
 
-  private Map<SqlDateTimeFormat, String> dateTimeFormatMap =
+  private static Map<SqlDateTimeFormat, String> dateTimeFormatMap =
       new HashMap() {{
         put(E3, ABBREVIATED_NAME_OF_DAY.value);
         put(ABBREVIATEDDAYOFWEEK, ABBREVIATED_NAME_OF_DAY.value);
         put(ABBREVIATEDMONTH, ABBREVIATED_MONTH.value);
       }};
+
+  private static Map<String, String> timeUnitEquivalentMap = new HashMap<>();
+
+  static {
+    for (SqlDateTimeFormat dateTimeFormat : SqlDateTimeFormat.values()) {
+      dateTimeFormatMap.putIfAbsent(dateTimeFormat, dateTimeFormat.value);
+    }
+
+    for (TimeUnit timeUnit : TimeUnit.values()) {
+      timeUnitEquivalentMap.putIfAbsent(timeUnit.name(), timeUnit.name() + "S");
+    }
+  }
 
   @Override public boolean supportsAliasedValues() {
     return false;
@@ -358,7 +371,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private void unparseTimeSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame timeAddFrame = writer.startFunCall("TIMEADD");
     SqlBasicCall firstOperand = call.operand(1);
-    writer.print(firstOperand.getOperator().getName().replace("INTERVAL_", "") + "S");
+    String interval = timeUnitEquivalentMap.get(firstOperand.getOperator().getName()
+        .replace("INTERVAL_", ""));
+    writer.print(interval);
     writer.print(", -");
     firstOperand.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(",");
@@ -402,9 +417,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
-    for (SqlDateTimeFormat dateTimeFormat : SqlDateTimeFormat.values()) {
-      dateTimeFormatMap.putIfAbsent(dateTimeFormat, dateTimeFormat.value);
-    }
+
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         dateTimeFormatMap);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
