@@ -789,7 +789,7 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.INTEGER),
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {TERADATA})
+  @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
   public static final SqlFunction STRTOK = new SqlFunction(
       "STRTOK",
       SqlKind.OTHER_FUNCTION,

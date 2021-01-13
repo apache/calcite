@@ -3048,12 +3048,12 @@ public class SqlFunctions {
       break;
     default: throw new IllegalArgumentException(" unknown interval type");
     }
-    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Timestamp timestamp = Timestamp.valueOf((String) datetime);
     Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
         Locale.getDefault(Locale.Category.FORMAT));
-    cal.setTime(ts);
+    cal.setTime(timestamp);
     cal.add(unit, additive);
-    ts.setTime(cal.getTime().getTime());
+    timestamp.setTime(cal.getTime().getTime());
     return new Timestamp(cal.getTime().getTime());
   }
 
@@ -3063,9 +3063,9 @@ public class SqlFunctions {
     return upper(String.format(Locale.ENGLISH, "%x", bigInteger));
   }
 
-  public static Object timeSub(Object time, Object interval) {
+  public static Object timeSub(Object timeVal, Object interval) {
     String[] split = ((String) interval).split("\\s+");
-    Integer additive = -Integer.parseInt(split[1]);
+    Integer subtractValue = -Integer.parseInt(split[1]);
     String timeUnit = split[2];
     int unit;
     switch (StringUtils.upperCase(timeUnit)) {
@@ -3080,13 +3080,13 @@ public class SqlFunctions {
       break;
     default: throw new IllegalArgumentException(" unknown interval type");
     }
-    Time ts = Time.valueOf((String) time);
+    Time time = Time.valueOf((String) timeVal);
     Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
         Locale.getDefault(Locale.Category.FORMAT));
-    cal.setTime(ts);
-    cal.add(unit, additive);
-    ts.setTime(cal.getTime().getTime());
-    return ts;
+    cal.setTime(time);
+    cal.add(unit, subtractValue);
+    time.setTime(cal.getTime().getTime());
+    return time;
   }
 
   public static Object toCharFunction(Object value, Object format) {

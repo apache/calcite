@@ -1117,8 +1117,8 @@ public class SqlFunctionsTest {
         is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
   }
 
-  /** Test for {@link SqlFunctions#toBinary(String, String)}. */
-  @Test public void testtoBinary() {
+  /** Test for {@link SqlFunctions#toBinary(Object, Object)}. */
+  @Test public void testToBinary() {
     assertThat(toBinary("williams", "UTF-8"), is("77696C6C69616D73"));
     assertThat(toBinary("david", "UTF-8"), is("6461766964"));
   }

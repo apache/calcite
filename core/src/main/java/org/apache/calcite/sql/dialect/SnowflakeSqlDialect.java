@@ -357,10 +357,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   private void unparseTimeSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame timeAddFrame = writer.startFunCall("TIMEADD");
-    SqlBasicCall operand1 = call.operand(1);
-    writer.print(operand1.getOperator().getName().replace("INTERVAL_", "") + "S");
+    SqlBasicCall firstOperand = call.operand(1);
+    writer.print(firstOperand.getOperator().getName().replace("INTERVAL_", "") + "S");
     writer.print(", -");
-    operand1.operand(0).unparse(writer, leftPrec, rightPrec);
+    firstOperand.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(",");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(timeAddFrame);
@@ -396,27 +396,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
         dayFormatNode = SqlLiteral.createCharString(sb.toString(), SqlParserPos.ZERO);
       }
     } else {
-//      dayFormatNode = createDateFormatSqlNode(operand);
       dayFormatNode = createDateTimeFormatSqlCharLiteral(unquoteStringLiteral(operand.toString()));
     }
     return dayFormatNode;
-  }
-
-  private SqlNode createDateFormatSqlNode(SqlNode operand) {
-    return checkDateFormatPresentInMap(operand)
-      ? createDateTimeFormatSqlCharLiteral(unquoteStringLiteral(operand.toString())) : operand;
-  }
-
-  private boolean checkDateFormatPresentInMap(SqlNode operand) {
-    return (operand instanceof SqlCharStringLiteral)
-        && validEntryForDateFormat(unquoteStringLiteral(operand.toString()));
-  }
-
-  private boolean validEntryForDateFormat(String format) {
-    return dateTimeFormatMap.keySet().stream()
-        .filter(dateTimeFormat -> dateTimeFormat.value.equals(format))
-        .findAny()
-        .isPresent();
   }
 
   private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
