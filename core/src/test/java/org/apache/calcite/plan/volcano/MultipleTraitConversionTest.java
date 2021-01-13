@@ -62,7 +62,7 @@ public class MultipleTraitConversionTest {
         .plus(RelCollations.of(0))
         .plus(CustomTrait.TO);
 
-    CustomSingleRel rel = new CustomSingleRel(cluster, fromTraits);
+    CustomLeafRel rel = new CustomLeafRel(cluster, fromTraits);
     planner.setRoot(rel);
     planner.changeTraitsUsingConverters(rel, toTraits);
 
@@ -71,17 +71,20 @@ public class MultipleTraitConversionTest {
     // satisfies the "to" collation.
     List<RelNode> rels = planner.getSubset(rel).set.rels;
     assertEquals(2, rels.size());
-    assertTrue(rels.stream().anyMatch((r) -> r instanceof CustomSingleRel));
-    assertTrue(rels.stream().anyMatch((r) -> r instanceof CustomTraitEnforcer));
+    assertTrue(rels.stream().anyMatch(r -> r instanceof CustomLeafRel));
+    assertTrue(rels.stream().anyMatch(r -> r instanceof CustomTraitEnforcer));
   }
 
-  private static class CustomSingleRel extends PlannerTests.TestLeafRel {
-    CustomSingleRel(RelOptCluster cluster, RelTraitSet traits) {
-      super(cluster, traits, CustomSingleRel.class.getSimpleName());
+  /**
+   * Leaf rel.
+   */
+  private static class CustomLeafRel extends PlannerTests.TestLeafRel {
+    CustomLeafRel(RelOptCluster cluster, RelTraitSet traits) {
+      super(cluster, traits, CustomLeafRel.class.getSimpleName());
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new CustomSingleRel(getCluster(), traitSet);
+      return new CustomLeafRel(getCluster(), traitSet);
     }
 
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -90,8 +93,11 @@ public class MultipleTraitConversionTest {
     }
   }
 
+  /**
+   * An enforcer used by the custom trait def.
+   */
   private static class CustomTraitEnforcer extends SingleRel {
-    public CustomTraitEnforcer(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+    private CustomTraitEnforcer(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
       super(cluster, traits, input);
     }
 
@@ -100,6 +106,9 @@ public class MultipleTraitConversionTest {
     }
   }
 
+  /**
+   * Custom trait.
+   */
   private static class CustomTrait implements RelTrait {
 
     private static final CustomTrait FROM = new CustomTrait("FROM");
@@ -107,7 +116,7 @@ public class MultipleTraitConversionTest {
 
     private final String label;
 
-    public CustomTrait(String label) {
+    private CustomTrait(String label) {
       this.label = label;
     }
 
@@ -129,6 +138,9 @@ public class MultipleTraitConversionTest {
     }
   }
 
+  /**
+   * Custom trait definition.
+   */
   private static class CustomTraitDef extends RelTraitDef<CustomTrait> {
 
     private static final CustomTraitDef INSTANCE = new CustomTraitDef();
@@ -154,7 +166,8 @@ public class MultipleTraitConversionTest {
       );
     }
 
-    @Override public boolean canConvert(RelOptPlanner planner, CustomTrait fromTrait, CustomTrait toTrait) {
+    @Override public boolean canConvert(RelOptPlanner planner, CustomTrait fromTrait,
+        CustomTrait toTrait) {
       return true;
     }
 
