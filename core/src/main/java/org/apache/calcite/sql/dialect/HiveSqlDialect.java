@@ -147,12 +147,11 @@ public class HiveSqlDialect extends SqlDialect {
     // Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
     // See https://issues.apache.org/jira/browse/HIVE-12994.
     emulateNullDirection = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
-
+      || (context.databaseMajorVersion() == 2
+      && context.databaseMinorVersion() < 1);
     isHiveLowerVersion = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+      || (context.databaseMajorVersion() == 2
+      && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
@@ -193,7 +192,6 @@ public class HiveSqlDialect extends SqlDialect {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
-
     return null;
   }
 
