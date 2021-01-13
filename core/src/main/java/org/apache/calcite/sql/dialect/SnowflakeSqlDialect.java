@@ -68,6 +68,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public SqlOperator getTargetFunc(RexCall call) {
     switch (call.type.getSqlTypeName()) {
     case DATE:
+    case TIMESTAMP:
       return getTargetFunctionForDateOperations(call);
     default:
       return super.getTargetFunc(call);
@@ -77,10 +78,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
     switch (call.getOperands().get(1).getType().getSqlTypeName()) {
     case INTERVAL_DAY:
+    case INTERVAL_YEAR:
       if (call.op.kind == SqlKind.MINUS) {
         return SqlLibraryOperators.DATE_SUB;
       }
       return SqlLibraryOperators.DATE_ADD;
+
+    case INTERVAL_MONTH:
+      return SqlLibraryOperators.ADD_MONTHS;
     }
     return super.getTargetFunc(call);
   }
