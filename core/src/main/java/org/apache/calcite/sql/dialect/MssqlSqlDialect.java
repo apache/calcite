@@ -75,6 +75,14 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
+        case NVL:
+          final SqlWriter.Frame NVLFrame = writer.startFunCall("ISNULL");
+          for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+          }
+          writer.endFunCall(NVLFrame);
+          break;
 
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);

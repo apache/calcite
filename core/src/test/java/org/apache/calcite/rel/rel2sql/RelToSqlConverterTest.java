@@ -6475,6 +6475,22 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  /*@Test
+  public void testNVLFunctionTDToSynapse() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nullifRexNode = builder.call(SqlStdOperatorTable.NVL,
+            builder.scan("product").field("brand_name"), builder.literal("<NONE>"));
+    final RelNode root = builder
+            .scan("product")
+            .project(builder.alias(nullifRexNode, "test"))
+            .build();
+    String query = "select NVL(\"brand_name\", \'<NONE>\') AS \"test\" from \"product\"";
+    final String expectedSynapse = "";
+    sql(query)
+            .withMssql()
+            .ok(expectedSynapse);
+  }*/
+
 }
 
 // End RelToSqlConverterTest.java

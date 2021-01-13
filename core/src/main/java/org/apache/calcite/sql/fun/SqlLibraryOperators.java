@@ -39,15 +39,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
-import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
-import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
-import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
-import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
-import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
+import static org.apache.calcite.sql.fun.SqlLibrary.*;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
@@ -113,6 +105,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction IFNULL =
       new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+              SqlTypeTransforms.TO_NULLABLE_ALL),
+          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
+  /** The "ISNULL(value, value)" function. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ISNULL =
+      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
               SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
