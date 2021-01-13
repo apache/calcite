@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTests;
@@ -3163,6 +3164,54 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "ORDER BY `B`, `C`\n"
             + "OFFSET 1 ROWS");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4463">[CALCITE-4463]
+   * JDBC adapter for Spark generates incorrect ORDER BY syntax</a>.
+   *
+   * <p>Similar to {@link #testLimit}, but parses and unparses in the Spark
+   * dialect, which uses LIMIT and OFFSET rather than OFFSET and FETCH. */
+  @Test void testLimitSpark() {
+    final String sql1 = "select a from foo order by b, c limit 2 offset 1";
+    final String expected1 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "LIMIT 2\n"
+        + "OFFSET 1";
+    sql(sql1).withDialect(SparkSqlDialect.DEFAULT).ok(expected1);
+
+    final String sql2 = "select a from foo order by b, c limit 2";
+    final String expected2 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "LIMIT 2";
+    sql(sql2).withDialect(SparkSqlDialect.DEFAULT).ok(expected2);
+
+    final String sql3 = "select a from foo order by b, c offset 1";
+    final String expected3 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "OFFSET 1";
+    sql(sql3).withDialect(SparkSqlDialect.DEFAULT).ok(expected3);
+
+    final String sql4 = "select a from foo offset 10";
+    final String expected4 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "OFFSET 10";
+    sql(sql4).withDialect(SparkSqlDialect.DEFAULT).ok(expected4);
+
+    final String sql5 = "select a from foo\n"
+        + "union\n"
+        + "select b from baz\n"
+        + "limit 3";
+    final String expected5 = "(SELECT A\n"
+        + "FROM FOO\n"
+        + "UNION\n"
+        + "SELECT B\n"
+        + "FROM BAZ)\n"
+        + "LIMIT 3";
+    sql(sql5).withDialect(SparkSqlDialect.DEFAULT).ok(expected5);
   }
 
   /** Test case that does not reproduce but is related to
