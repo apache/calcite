@@ -97,26 +97,10 @@ public class SqlOrderBy extends SqlCall {
         writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
             orderBy.orderList);
       }
-      if (orderBy.offset != null) {
-        final SqlWriter.Frame frame2 =
-            writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
-        writer.newlineAndIndent();
-        writer.keyword("OFFSET");
-        orderBy.offset.unparse(writer, -1, -1);
-        writer.keyword("ROWS");
-        writer.endList(frame2);
+      if (orderBy.offset != null || orderBy.fetch != null) {
+        writer.getDialect().unparseOffsetFetch(writer, orderBy.offset, orderBy.fetch);
       }
-      if (orderBy.fetch != null) {
-        final SqlWriter.Frame frame3 =
-            writer.startList(SqlWriter.FrameTypeEnum.FETCH);
-        writer.newlineAndIndent();
-        writer.keyword("FETCH");
-        writer.keyword("NEXT");
-        orderBy.fetch.unparse(writer, -1, -1);
-        writer.keyword("ROWS");
-        writer.keyword("ONLY");
-        writer.endList(frame3);
-      }
+
       writer.endList(frame);
     }
   }
