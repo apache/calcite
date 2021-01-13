@@ -20,11 +20,11 @@ dependencies {
 
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("com.google.code.findbugs:jsr305")
     implementation("com.google.guava:guava")
     implementation("joda-time:joda-time")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
+    implementation("org.checkerframework:checker-qual")
     implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))

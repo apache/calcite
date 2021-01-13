@@ -175,7 +175,7 @@ public class RexNormalize {
     int b = 0;
     int c = 1;
     for (Object x : xs) {
-      int h = x.hashCode();
+      int h = Objects.hashCode(x);
       a += h;
       b ^= h;
       if (h != 0) {

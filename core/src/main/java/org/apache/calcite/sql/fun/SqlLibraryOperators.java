@@ -19,14 +19,15 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -35,12 +36,12 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +52,6 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.type.ReturnTypes.stripOrderBy;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -90,7 +90,7 @@ public abstract class SqlLibraryOperators {
         }
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         RelDataType type = typeFactory.leastRestrictive(list);
-        if (opBinding.getOperandCount() % 2 == 1) {
+        if (type != null && opBinding.getOperandCount() % 2 == 1) {
           type = typeFactory.createTypeWithNullability(type, true);
         }
         return type;
@@ -127,7 +127,7 @@ public abstract class SqlLibraryOperators {
   /** Infers the return type of {@code IF(b, x, y)},
    * namely the least restrictive of the types of x and y.
    * Similar to {@link ReturnTypes#LEAST_RESTRICTIVE}. */
-  private static RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
+  private static @Nullable RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
     return opBinding.getTypeFactory()
         .leastRestrictive(opBinding.collectOperandTypes().subList(1, 3));
   }
@@ -156,14 +156,49 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SUBSTR_BIG_QUERY =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_BIG_QUERY,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction SUBSTR_MYSQL =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_MYSQL,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
-   * <p>It has similar semantics to standard SQL's
-   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
+   * <p>It has different semantics to standard SQL's
+   * {@link SqlStdOperatorTable#SUBSTRING} function:
+   *
+   * <ul>
+   *   <li>If {@code substringLength} &le; 0, result is the empty string
+   *   (Oracle would return null, because it treats the empty string as null,
+   *   but Calcite does not have these semantics);
+   *   <li>If {@code position} = 0, treat {@code position} as 1;
+   *   <li>If {@code position} &lt; 0, treat {@code position} as
+   *       "length(string) + position + 1".
+   * </ul>
+   */
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction SUBSTR =
-      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+  public static final SqlFunction SUBSTR_ORACLE =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_ORACLE,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** PostgreSQL's "SUBSTR(string, position [, substringLength ])" function. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction SUBSTR_POSTGRESQL =
+      new SqlFunction("SUBSTR", SqlKind.SUBSTR_POSTGRESQL,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */
@@ -274,50 +309,52 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction LOGICAL_OR =
       new SqlMinMaxAggFunction("LOGICAL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
 
+  /** The "COUNTIF(condition) [OVER (...)]" function, in BigQuery,
+   * returns the count of TRUE values for expression.
+   *
+   * <p>{@code COUNTIF(b)} is equivalent to
+   * {@code COUNT(*) FILTER (WHERE b)}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction COUNTIF =
+      SqlBasicAggFunction
+          .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
+          .withDistinct(Optionality.FORBIDDEN);
+
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, gathers values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
   public static final SqlAggFunction ARRAY_AGG =
-      new SqlAggFunction("ARRAY_AGG", null, SqlKind.ARRAY_AGG,
-          ReturnTypes.andThen(ReturnTypes::stripOrderBy, ReturnTypes.TO_ARRAY),
-          null, OperandTypes.ANY, SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.OPTIONAL) {
-        @Override public SqlSyntax getSyntax() {
-          return SqlSyntax.ORDERED_FUNCTION;
-        }
-
-        @Override public boolean allowsNullTreatment() {
-          return true;
-        }
-
-        @Override public RelDataType deriveType(SqlValidator validator,
-            SqlValidatorScope scope, SqlCall call) {
-          return super.deriveType(validator, scope, stripOrderBy(call));
-        }
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.ARRAY_AGG,
+              ReturnTypes.andThen(ReturnTypes::stripOrderBy,
+                  ReturnTypes.TO_ARRAY), OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION)
+          .withAllowsNullTreatment(true);
 
   /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, concatenates array values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
   public static final SqlAggFunction ARRAY_CONCAT_AGG =
-      new SqlAggFunction("ARRAY_CONCAT_AGG", null, SqlKind.ARRAY_CONCAT_AGG,
-          ReturnTypes.ARG0, null, OperandTypes.ARRAY,
-          SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
-        @Override public SqlSyntax getSyntax() {
-          return SqlSyntax.ORDERED_FUNCTION;
-        }
-
-        @Override public RelDataType deriveType(SqlValidator validator,
-            SqlValidatorScope scope, SqlCall call) {
-          return super.deriveType(validator, scope, stripOrderBy(call));
-        }
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.ARRAY_CONCAT_AGG, ReturnTypes.ARG0,
+              OperandTypes.ARRAY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
   /** The "STRING_AGG(value [, separator ] [ ORDER BY ...])" aggregate function,
    * BigQuery and PostgreSQL's equivalent of
-   * {@link SqlStdOperatorTable#LISTAGG}. */
+   * {@link SqlStdOperatorTable#LISTAGG}.
+   *
+   * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
+   * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
-  public static final SqlAggFunction STRING_AGG = new SqlStringAggAggFunction();
+  public static final SqlAggFunction STRING_AGG =
+      SqlBasicAggFunction
+          .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -424,6 +461,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  /** The case-insensitive variant of the LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlSpecialOperator ILIKE =
+      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
+
+  /** The case-insensitive variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlSpecialOperator NOT_ILIKE =
+      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
+
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
@@ -431,19 +478,22 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("CONCAT",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          null,
+          InferTypes.RETURN_TYPE,
           OperandTypes.repeat(SqlOperandCountRanges.from(2),
               OperandTypes.STRING),
           SqlFunctionCategory.STRING);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
-   * For example, "CONCAT('a', 'bc')" returns "abc". */
+   * For example, "CONCAT('a', 'bc')" returns "abc".
+   *
+   * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
+   * {@link #CONCAT_FUNCTION}. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CONCAT2 =
       new SqlFunction("CONCAT",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CONCAT2,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          null,
+          InferTypes.RETURN_TYPE,
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING);
 

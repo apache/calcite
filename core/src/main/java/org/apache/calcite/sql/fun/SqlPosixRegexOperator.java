@@ -17,23 +17,18 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-
-import java.util.Arrays;
 
 /**
  * An operator describing the <code>~</code> operator.
@@ -45,6 +40,7 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
 
   private final boolean caseSensitive;
   private final boolean negated;
+  private final String operatorString;
 
   // ~ Constructors -----------------------------------------------------------
 
@@ -70,29 +66,44 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
         OperandTypes.STRING_SAME_SAME_SAME);
     this.caseSensitive = caseSensitive;
     this.negated = negated;
+    final StringBuilder sb = new StringBuilder(3);
+    if (this.negated) {
+      sb.append("!");
+    }
+    sb.append("~");
+    if (!this.caseSensitive) {
+      sb.append("*");
+    }
+    this.operatorString = sb.toString();
   }
 
   // ~ Methods ----------------------------------------------------------------
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(2, 3);
+  @Override public SqlOperator not() {
+    return of(!negated, caseSensitive);
   }
 
-  @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
-      SqlParserPos pos,
-      SqlNode... operands) {
-    pos = pos.plusAll(Arrays.asList(operands));
-    operands = Arrays.copyOf(operands, operands.length + 1);
-    operands[operands.length - 1] = SqlLiteral.createBoolean(caseSensitive, SqlParserPos.ZERO);
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
+  private static SqlOperator of(boolean negated, boolean ignoreCase) {
+    if (ignoreCase) {
+      return negated
+          ? SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE
+          : SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE;
+    } else {
+      return negated
+          ? SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE
+          : SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE;
+    }
+  }
+
+  @Override public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(2);
   }
 
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     int operandCount = callBinding.getOperandCount();
-    if (operandCount != 2 && operandCount != 3) {
+    if (operandCount != 2) {
       throw new AssertionError(
           "Unexpected number of args to " + callBinding.getCall() + ": " + operandCount);
     }
@@ -119,16 +130,28 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
     final SqlWriter.Frame frame = writer.startList("", "");
     call.operand(0).unparse(writer, getLeftPrec(), getRightPrec());
 
-    if (this.negated) {
-      writer.print("!");
-    }
-    writer.print("~");
-    if (!this.caseSensitive) {
-      writer.print("*");
-    }
+    writer.print(this.operatorString);
     writer.print(" ");
 
     call.operand(1).unparse(writer, getLeftPrec(), getRightPrec());
     writer.endList(frame);
+  }
+
+  /**
+   * Returns whether this operator matches the case of its operands.
+   *
+   * @return whether this operator matches the case of its operands
+   */
+  public boolean isCaseSensitive() {
+    return caseSensitive;
+  }
+
+  /**
+   * Returns whether this is 'NOT' variant of an operator.
+   *
+   * @see #not()
+   */
+  public boolean isNegated() {
+    return negated;
   }
 }

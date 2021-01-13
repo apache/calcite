@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -58,6 +59,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -91,7 +93,7 @@ public class PigRelBuilder extends RelBuilder {
   private static Context transform(Context context,
       UnaryOperator<RelBuilder.Config> transform) {
     final Config config =
-        Util.first(context.unwrap(Config.class), Config.DEFAULT);
+        context.maybeUnwrap(Config.class).orElse(Config.DEFAULT);
     return Contexts.of(transform.apply(config), context);
   }
 
@@ -231,6 +233,7 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder scan(RelOptTable userSchema, String... tableNames) {
     // First, look up the database schema to find the table schema with the given names
     final List<String> names = ImmutableList.copyOf(tableNames);
+    Objects.requireNonNull(relOptSchema, "relOptSchema");
     final RelOptTable systemSchema = relOptSchema.getTableForMember(names);
 
     // Now we may end up with two different schemas.
@@ -568,10 +571,10 @@ public class PigRelBuilder extends RelBuilder {
     return super.dot(node, (String) field);
   }
 
-  public RexNode literal(Object value, RelDataType type) {
+  public RexLiteral literal(Object value, RelDataType type) {
     if (value instanceof Tuple) {
       assert type.isStruct();
-      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type, false);
+      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type);
     }
 
     if (value instanceof DataBag) {
@@ -580,9 +583,9 @@ public class PigRelBuilder extends RelBuilder {
       for (Tuple tuple : (DataBag) value) {
         multisetObj.add(tuple.getAll());
       }
-      return getRexBuilder().makeLiteral(multisetObj, type, false);
+      return getRexBuilder().makeLiteral(multisetObj, type);
     }
-    return getRexBuilder().makeLiteral(value, type, false);
+    return getRexBuilder().makeLiteral(value, type);
   }
 
   /**

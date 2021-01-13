@@ -22,6 +22,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Comparator;
 import java.util.List;
@@ -95,7 +97,7 @@ public class IntPair {
     return source + "-" + target;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (obj instanceof IntPair) {
       IntPair that = (IntPair) obj;
       return (this.source == that.source) && (this.target == that.target);

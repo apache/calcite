@@ -16,12 +16,15 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.framework.qual.Covariant;
+
 /**
  * Represents a collection of objects that have a common key.
  *
  * @param <K> Key type
  * @param <V> Element type
  */
+@Covariant(0)
 public interface Grouping<K, V> extends Enumerable<V> {
   /**
    * Gets the key of this Grouping.

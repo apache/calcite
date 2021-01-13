@@ -35,12 +35,14 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
 public class EnumerableLimit extends SingleRel implements EnumerableRel {
-  public final RexNode offset;
-  public final RexNode fetch;
+  public final @Nullable RexNode offset;
+  public final @Nullable RexNode fetch;
 
   /** Creates an EnumerableLimit.
    *
@@ -49,8 +51,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode input,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     super(cluster, traitSet, input);
     this.offset = offset;
     this.fetch = fetch;
@@ -59,8 +61,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   }
 
   /** Creates an EnumerableLimit. */
-  public static EnumerableLimit create(final RelNode input, RexNode offset,
-      RexNode fetch) {
+  public static EnumerableLimit create(final RelNode input, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =

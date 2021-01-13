@@ -37,10 +37,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple
@@ -81,7 +83,7 @@ class RelToSqlConverterStructsTest {
       return ImmutableSet.of();
     }
 
-    @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
       return null;
     }
 
@@ -145,8 +147,8 @@ class RelToSqlConverterStructsTest {
     @Override public boolean rolledUpColumnValidInsideAgg(
         String column,
         SqlCall call,
-        SqlNode parent,
-        CalciteConnectionConfig config) {
+        @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   };
@@ -162,8 +164,8 @@ class RelToSqlConverterStructsTest {
 
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        RelToSqlConverterTest.DEFAULT_REL_CONFIG, null, ImmutableList.of());
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
+        UnaryOperator.identity(), null, ImmutableList.of());
   }
 
   @Test void testNestedSchemaSelectStar() {

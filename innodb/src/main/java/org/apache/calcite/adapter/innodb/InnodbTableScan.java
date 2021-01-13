@@ -35,10 +35,11 @@ import org.apache.commons.collections.CollectionUtils;
 import com.alibaba.innodb.java.reader.Constants;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of an InnoDB data source.

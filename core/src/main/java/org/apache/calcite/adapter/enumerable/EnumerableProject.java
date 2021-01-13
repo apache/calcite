@@ -30,8 +30,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -89,13 +90,13 @@ public class EnumerableProject extends Project implements EnumerableRel {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
     return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);

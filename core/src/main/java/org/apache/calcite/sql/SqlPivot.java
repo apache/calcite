@@ -26,13 +26,14 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 /**
  * Parse tree node that represents a PIVOT applied to a table reference
@@ -66,7 +67,7 @@ public class SqlPivot extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override @Nonnull public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -74,7 +75,8 @@ public class SqlPivot extends SqlCall {
     return ImmutableNullableList.of(query, aggList, axisList, inList);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("nullness")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     // Only 'query' is mutable. (It is required for validation.)
     switch (i) {
     case 0:
@@ -100,8 +102,8 @@ public class SqlPivot extends SqlCall {
     writer.endList(frame);
   }
 
-  private static SqlNodeList stripList(SqlNodeList list) {
-    return list.getList().stream().map(SqlPivot::strip)
+  static SqlNodeList stripList(SqlNodeList list) {
+    return list.stream().map(SqlPivot::strip)
         .collect(SqlNode.toList(list.pos));
   }
 
@@ -127,7 +129,7 @@ public class SqlPivot extends SqlCall {
 
   /** Returns the aggregate list as (alias, call) pairs.
    * If there is no 'AS', alias is null. */
-  public void forEachAgg(BiConsumer<String, SqlNode> consumer) {
+  public void forEachAgg(BiConsumer<@Nullable String, SqlNode> consumer) {
     for (SqlNode agg : aggList) {
       final SqlNode call = SqlUtil.stripAs(agg);
       final String alias = SqlValidatorUtil.getAlias(agg, -1);
@@ -150,16 +152,16 @@ public class SqlPivot extends SqlCall {
     }
   }
 
-  private static String pivotAlias(SqlNode node) {
+  static String pivotAlias(SqlNode node) {
     if (node instanceof SqlNodeList) {
-      return ((SqlNodeList) node).getList().stream()
+      return ((SqlNodeList) node).stream()
           .map(SqlPivot::pivotAlias).collect(Collectors.joining("_"));
     }
     return node.toString();
   }
 
   /** Converts a SqlNodeList to a list, and other nodes to a singleton list. */
-  private static SqlNodeList toNodes(SqlNode node) {
+  static SqlNodeList toNodes(SqlNode node) {
     if (node instanceof SqlNodeList) {
       return (SqlNodeList) node;
     } else {

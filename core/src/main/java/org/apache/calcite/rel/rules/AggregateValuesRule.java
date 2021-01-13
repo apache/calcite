@@ -82,8 +82,7 @@ public class AggregateValuesRule
       case COUNT:
       case SUM0:
         literals.add(
-            (RexLiteral) rexBuilder.makeLiteral(
-                BigDecimal.ZERO, aggregateCall.getType(), false));
+            rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType()));
         break;
 
       case MIN:

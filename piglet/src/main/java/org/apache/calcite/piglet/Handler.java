@@ -219,15 +219,15 @@ public class Handler {
     switch (node.op) {
     case LITERAL:
       final Ast.Literal literal = (Ast.Literal) node;
-      return (RexLiteral) rexBuilder.makeLiteral(literal.value, type, false);
+      return rexBuilder.makeLiteral(literal.value, type);
     case TUPLE:
       final Ast.Call tuple = (Ast.Call) node;
       final ImmutableList<RexLiteral> list = tuple(tuple.operands, type);
-      return (RexLiteral) rexBuilder.makeLiteral(list, type, false);
+      return rexBuilder.makeLiteral(list, type);
     case BAG:
       final Ast.Call bag = (Ast.Call) node;
       final ImmutableList<RexLiteral> list2 = bag(bag.operands, type);
-      return (RexLiteral) rexBuilder.makeLiteral(list2, type, false);
+      return rexBuilder.makeLiteral(list2, type);
     default:
       throw new IllegalArgumentException("not a literal: " + node);
     }

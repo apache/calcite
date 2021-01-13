@@ -32,13 +32,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -60,8 +61,7 @@ abstract class DruidJsonFilter implements DruidJson {
    *
    * @return Druid JSON filter, or null if it cannot translate
    */
-  @Nullable
-  private static DruidJsonFilter toEqualityKindDruidFilter(RexNode rexNode,
+  private static @Nullable DruidJsonFilter toEqualityKindDruidFilter(RexNode rexNode,
       RelDataType rowType, DruidQuery druidQuery) {
     if (rexNode.getKind() != SqlKind.EQUALS
         && rexNode.getKind() != SqlKind.NOT_EQUALS) {
@@ -132,8 +132,7 @@ abstract class DruidJsonFilter implements DruidJson {
    * @return valid Druid JSON Bound Filter, or null if it cannot translate the
    * RexNode
    */
-  @Nullable
-  private static DruidJsonFilter toBoundDruidFilter(RexNode rexNode, RelDataType rowType,
+  private static @Nullable DruidJsonFilter toBoundDruidFilter(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
     final RexCall rexCall = (RexCall) rexNode;
     final RexLiteral rexLiteral;
@@ -218,8 +217,7 @@ abstract class DruidJsonFilter implements DruidJson {
    * @return non null string, or null if it cannot translate to valid Druid
    * equivalent
    */
-  @Nullable
-  private static String toDruidLiteral(RexNode rexNode,
+  private static @Nullable String toDruidLiteral(RexNode rexNode,
       @SuppressWarnings("unused") RelDataType rowType,
       @SuppressWarnings("unused") DruidQuery druidQuery) {
     final String val;
@@ -245,9 +243,8 @@ abstract class DruidJsonFilter implements DruidJson {
     return val;
   }
 
-  @Nullable
-  private static DruidJsonFilter toIsNullKindDruidFilter(RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
+  private static @Nullable DruidJsonFilter toIsNullKindDruidFilter(RexNode rexNode,
+      RelDataType rowType, DruidQuery druidQuery) {
     if (rexNode.getKind() != SqlKind.IS_NULL && rexNode.getKind() != SqlKind.IS_NOT_NULL) {
       throw new AssertionError(
           DruidQuery.format("Expecting IS_NULL or IS_NOT_NULL but got [%s]", rexNode.getKind()));
@@ -267,8 +264,7 @@ abstract class DruidJsonFilter implements DruidJson {
     return new JsonSelector(columnName, null, extractionFunction);
   }
 
-  @Nullable
-  private static DruidJsonFilter toInKindDruidFilter(RexNode e, RelDataType rowType,
+  private static @Nullable DruidJsonFilter toInKindDruidFilter(RexNode e, RelDataType rowType,
       DruidQuery druidQuery) {
     switch (e.getKind()) {
     case DRUID_IN:
@@ -304,17 +300,15 @@ abstract class DruidJsonFilter implements DruidJson {
     }
   }
 
-  @Nullable
-  protected static DruidJsonFilter toNotDruidFilter(DruidJsonFilter druidJsonFilter) {
+  protected static @Nullable DruidJsonFilter toNotDruidFilter(DruidJsonFilter druidJsonFilter) {
     if (druidJsonFilter == null) {
       return null;
     }
     return new JsonCompositeFilter(Type.NOT, druidJsonFilter);
   }
 
-  @Nullable
-  private static DruidJsonFilter toBetweenDruidFilter(RexNode rexNode, RelDataType rowType,
-      DruidQuery query) {
+  private static @Nullable DruidJsonFilter toBetweenDruidFilter(RexNode rexNode,
+      RelDataType rowType, DruidQuery query) {
     if (rexNode.getKind() != SqlKind.BETWEEN) {
       return null;
     }
@@ -348,8 +342,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
   }
 
-  @Nullable
-  private static DruidJsonFilter toSimpleDruidFilter(RexNode e, RelDataType rowType,
+  private static @Nullable DruidJsonFilter toSimpleDruidFilter(RexNode e, RelDataType rowType,
       DruidQuery druidQuery) {
     switch (e.getKind()) {
     case EQUALS:
@@ -384,8 +377,7 @@ abstract class DruidJsonFilter implements DruidJson {
    * @return Druid Json filters, or null when cannot translate to valid Druid
    * filters
    */
-  @Nullable
-  static DruidJsonFilter toDruidFilters(RexNode rexNode, RelDataType rowType,
+  static @Nullable DruidJsonFilter toDruidFilters(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery, RexBuilder rexBuilder) {
     rexNode = RexUtil.expandSearch(rexBuilder, null, rexNode);
     if (rexNode.isAlwaysTrue()) {
@@ -433,9 +425,8 @@ abstract class DruidJsonFilter implements DruidJson {
         : simpleLeafFilter;
   }
 
-  @Nullable
-  private static DruidJsonFilter toDruidExpressionFilter(RexNode rexNode, RelDataType rowType,
-      DruidQuery query) {
+  private static @Nullable DruidJsonFilter toDruidExpressionFilter(RexNode rexNode,
+      RelDataType rowType, DruidQuery query) {
     final String expression = DruidExpressions.toDruidExpression(rexNode, rowType, query);
     return expression == null ? null : new JsonExpressionFilter(expression);
   }

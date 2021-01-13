@@ -1515,6 +1515,57 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         .ok();
   }
 
+  @Test void testQueryDistinctColumnInTargetGroupByList0() {
+    final String mv = ""
+        + "select \"name\", \"commission\", \"deptno\"\n"
+        + "from \"emps\" group by \"name\", \"commission\", \"deptno\"";
+    final String query = ""
+        + "select \"name\", \"commission\", count(distinct \"deptno\") as cnt\n"
+        + "from \"emps\" group by \"name\", \"commission\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testQueryDistinctColumnInTargetGroupByList1() {
+    final String mv = ""
+        + "select \"name\", \"deptno\" "
+        + "from \"emps\" group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"name\", count(distinct \"deptno\")\n"
+        + "from \"emps\" group by \"name\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testQueryDistinctColumnInTargetGroupByList2() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", \"empid\"\n"
+        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
+    final String query = ""
+        + "select \"name\", count(distinct \"deptno\"), count(distinct \"empid\")\n"
+        + "from \"emps\" group by \"name\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testQueryDistinctColumnInTargetGroupByList3() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", \"empid\", count(\"commission\")\n"
+        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
+    final String query = ""
+        + "select \"name\", count(distinct \"deptno\"), count(distinct \"empid\"), count"
+        + "(\"commission\")\n"
+        + "from \"emps\" group by \"name\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testQueryDistinctColumnInTargetGroupByList4() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", \"empid\"\n"
+        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
+    final String query = ""
+        + "select \"name\", count(distinct \"deptno\")\n"
+        + "from \"emps\" group by \"name\"";
+    sql(mv, query).ok();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);

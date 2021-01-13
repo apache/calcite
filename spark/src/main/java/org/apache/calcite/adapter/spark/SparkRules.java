@@ -66,6 +66,8 @@ import org.apache.spark.api.java.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import scala.Tuple2;
 
 import java.lang.reflect.Type;
@@ -306,7 +308,7 @@ public abstract class SparkRules {
       return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       double dRows = mq.getRowCount(this);
       double dCpu = mq.getRowCount(getInput())

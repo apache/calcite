@@ -29,13 +29,16 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Represents an INTERVAL qualifier.
@@ -101,7 +104,7 @@ public class SqlIntervalQualifier extends SqlNode {
   public SqlIntervalQualifier(
       TimeUnit startUnit,
       int startPrecision,
-      TimeUnit endUnit,
+      @Nullable TimeUnit endUnit,
       int fractionalSecondPrecision,
       SqlParserPos pos) {
     super(pos);
@@ -109,14 +112,14 @@ public class SqlIntervalQualifier extends SqlNode {
       endUnit = null;
     }
     this.timeUnitRange =
-        TimeUnitRange.of(Objects.requireNonNull(startUnit), endUnit);
+        TimeUnitRange.of(Objects.requireNonNull(startUnit, "startUnit"), endUnit);
     this.startPrecision = startPrecision;
     this.fractionalSecondPrecision = fractionalSecondPrecision;
   }
 
   public SqlIntervalQualifier(
       TimeUnit startUnit,
-      TimeUnit endUnit,
+      @Nullable TimeUnit endUnit,
       SqlParserPos pos) {
     this(
         startUnit,
@@ -128,7 +131,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Nonnull @Override public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.INTERVAL_QUALIFIER;
   }
 
@@ -188,7 +191,10 @@ public class SqlIntervalQualifier extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
+    if (node == null) {
+      return litmus.fail("other==null");
+    }
     final String thisString = this.toString();
     final String thatString = node.toString();
     if (!thisString.equals(thatString)) {
@@ -347,7 +353,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return sign;
   }
 
-  private String stripLeadingSign(String value) {
+  private static String stripLeadingSign(String value) {
     String unsignedValue = value;
 
     if (!Util.isNullOrEmpty(value)) {
@@ -392,7 +398,7 @@ public class SqlIntervalQualifier extends SqlNode {
     BigDecimal.valueOf(1000000000),
   };
 
-  private boolean isFractionalSecondFieldInRange(BigDecimal field) {
+  private static boolean isFractionalSecondFieldInRange(BigDecimal field) {
     // we should never get handed a negative field value
     assert field.compareTo(ZERO) >= 0;
 
@@ -402,7 +408,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return true;
   }
 
-  private boolean isSecondaryFieldInRange(BigDecimal field, TimeUnit unit) {
+  private static boolean isSecondaryFieldInRange(BigDecimal field, TimeUnit unit) {
     // we should never get handed a negative field value
     assert field.compareTo(ZERO) >= 0;
 
@@ -424,13 +430,13 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  private BigDecimal normalizeSecondFraction(String secondFracStr) {
+  private static BigDecimal normalizeSecondFraction(String secondFracStr) {
     // Decimal value can be more than 3 digits. So just get
     // the millisecond part.
     return new BigDecimal("0." + secondFracStr).multiply(THOUSAND);
   }
 
-  private int[] fillIntervalValueArray(
+  private static int[] fillIntervalValueArray(
       int sign,
       BigDecimal year,
       BigDecimal month) {
@@ -443,7 +449,7 @@ public class SqlIntervalQualifier extends SqlNode {
     return ret;
   }
 
-  private int[] fillIntervalValueArray(
+  private static int[] fillIntervalValueArray(
       int sign,
       BigDecimal day,
       BigDecimal hour,
@@ -739,7 +745,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(m.group(5));
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(5)));
       } else {
         secondFrac = ZERO;
       }
@@ -890,7 +896,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(m.group(4));
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(4)));
       } else {
         secondFrac = ZERO;
       }
@@ -996,7 +1002,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(m.group(3));
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(3)));
       } else {
         secondFrac = ZERO;
       }
@@ -1064,7 +1070,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(m.group(2));
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(2)));
       } else {
         secondFrac = ZERO;
       }
@@ -1161,8 +1167,8 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  private BigDecimal parseField(Matcher m, int i) {
-    return new BigDecimal(m.group(i));
+  private static BigDecimal parseField(Matcher m, int i) {
+    return new BigDecimal(castNonNull(m.group(i)));
   }
 
   private CalciteContextException invalidValueException(SqlParserPos pos,
@@ -1172,7 +1178,7 @@ public class SqlIntervalQualifier extends SqlNode {
             "'" + value + "'", "INTERVAL " + toString()));
   }
 
-  private CalciteContextException fieldExceedsPrecisionException(
+  private static CalciteContextException fieldExceedsPrecisionException(
       SqlParserPos pos, int sign, BigDecimal value, TimeUnit type,
       int precision) {
     if (sign == -1) {

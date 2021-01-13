@@ -26,6 +26,7 @@ import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.interpreter.Context;
@@ -112,6 +113,8 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -134,6 +137,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Built-in methods.
@@ -380,9 +385,10 @@ public enum BuiltInMethod {
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  OCTET_LENGTH(SqlFunctions.class, "octetLength", ByteString.class),
   CHAR_LENGTH(SqlFunctions.class, "charLength", String.class),
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),
-  MULTI_STRING_CONCAT(SqlFunctions.class, "concat", String[].class),
+  MULTI_STRING_CONCAT(SqlFunctions.class, "concatMulti", String[].class),
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(DateTimeUtils.class, "floorMod", long.class, long.class),
   ADD_MONTHS(SqlFunctions.class, "addMonths", long.class, int.class),
@@ -413,8 +419,9 @@ public enum BuiltInMethod {
   LTRIM(SqlFunctions.class, "ltrim", String.class),
   RTRIM(SqlFunctions.class, "rtrim", String.class),
   LIKE(SqlFunctions.class, "like", String.class, String.class),
+  ILIKE(SqlFunctions.class, "ilike", String.class, String.class),
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
-  POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, Boolean.class),
+  POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, boolean.class),
   REGEXP_REPLACE3(SqlFunctions.class, "regexpReplace", String.class,
       String.class, String.class),
   REGEXP_REPLACE4(SqlFunctions.class, "regexpReplace", String.class,
@@ -638,10 +645,11 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
-  BuiltInMethod(Method method, Constructor constructor, Field field) {
-    this.method = method;
-    this.constructor = constructor;
-    this.field = field;
+  BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {
+    // TODO: split enum in three different ones
+    this.method = castNonNull(method);
+    this.constructor = castNonNull(constructor);
+    this.field = castNonNull(field);
   }
 
   /** Defines a method. */
@@ -661,6 +669,6 @@ public enum BuiltInMethod {
   }
 
   public String getMethodName() {
-    return method.getName();
+    return castNonNull(method).getName();
   }
 }

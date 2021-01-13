@@ -17,13 +17,12 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
-import java.util.AbstractList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -89,7 +88,7 @@ public class SqlParserPos implements Serializable {
     return Objects.hash(lineNumber, columnNumber, endLineNumber, endColumnNumber);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof SqlParserPos
         && this.lineNumber == ((SqlParserPos) o).lineNumber
@@ -160,19 +159,27 @@ public class SqlParserPos implements Serializable {
    * position that spans from the first point in the first to the last point
    * in the other.
    */
-  public SqlParserPos plusAll(SqlNode[] nodes) {
-    return plusAll(Arrays.asList(nodes));
+  public SqlParserPos plusAll(@Nullable SqlNode[] nodes) {
+    final PosBuilder b = new PosBuilder(this);
+    for (SqlNode node : nodes) {
+      if (node != null) {
+        b.add(node.getParserPosition());
+      }
+    }
+    return b.build(this);
   }
 
   /**
    * Combines this parser position with a list of positions.
    */
-  public SqlParserPos plusAll(Collection<SqlNode> nodeList) {
-    int line = getLineNum();
-    int column = getColumnNum();
-    int endLine = getEndLineNum();
-    int endColumn = getEndColumnNum();
-    return sum(toPos(nodeList), line, column, endLine, endColumn);
+  public SqlParserPos plusAll(Collection<? extends @Nullable SqlNode> nodes) {
+    final PosBuilder b = new PosBuilder(this);
+    for (SqlNode node : nodes) {
+      if (node != null) {
+        b.add(node.getParserPosition());
+      }
+    }
+    return b.build(this);
   }
 
   /**
@@ -180,22 +187,18 @@ public class SqlParserPos implements Serializable {
    * which spans from the beginning of the first to the end of the last.
    */
   public static SqlParserPos sum(final SqlNode[] nodes) {
-    return sum(toPos(nodes));
-  }
-
-  private static List<SqlParserPos> toPos(final SqlNode[] nodes) {
-    return new AbstractList<SqlParserPos>() {
-      @Override public SqlParserPos get(int index) {
-        return nodes[index].getParserPosition();
-      }
-      @Override public int size() {
-        return nodes.length;
-      }
-    };
-  }
-
-  private static Iterable<SqlParserPos> toPos(Iterable<? extends SqlNode> nodes) {
-    return Util.transform(nodes, node -> node == null ? null : node.getParserPosition());
+    if (nodes.length == 0) {
+      throw new AssertionError();
+    }
+    final SqlParserPos pos0 = nodes[0].getParserPosition();
+    if (nodes.length == 1) {
+      return pos0;
+    }
+    final PosBuilder b = new PosBuilder(pos0);
+    for (int i = 1; i < nodes.length; i++) {
+      b.add(nodes[i].getParserPosition());
+    }
+    return b.build(pos0);
   }
 
   /**
@@ -203,85 +206,40 @@ public class SqlParserPos implements Serializable {
    * which spans from the beginning of the first to the end of the last.
    */
   public static SqlParserPos sum(final List<? extends SqlNode> nodes) {
-    return sum(Util.transform(nodes, SqlNode::getParserPosition));
+    if (nodes.size() == 0) {
+      throw new AssertionError();
+    }
+    SqlParserPos pos0 = nodes.get(0).getParserPosition();
+    if (nodes.size() == 1) {
+      return pos0;
+    }
+    final PosBuilder b = new PosBuilder(pos0);
+    for (int i = 1; i < nodes.size(); i++) {
+      b.add(nodes.get(i).getParserPosition());
+    }
+    return b.build(pos0);
   }
 
-  /**
-   * Combines an iterable of parser positions to create a position which spans
-   * from the beginning of the first to the end of the last.
-   */
+  /** Returns a position spanning the earliest position to the latest.
+   * Does not assume that the positions are sorted.
+   * Throws if the list is empty. */
   public static SqlParserPos sum(Iterable<SqlParserPos> poses) {
     final List<SqlParserPos> list =
         poses instanceof List
             ? (List<SqlParserPos>) poses
             : Lists.newArrayList(poses);
-    return sum_(list);
-  }
-
-  /**
-   * Combines a list of parser positions to create a position which spans
-   * from the beginning of the first to the end of the last.
-   */
-  private static SqlParserPos sum_(final List<SqlParserPos> positions) {
-    switch (positions.size()) {
-    case 0:
+    if (list.size() == 0) {
       throw new AssertionError();
-    case 1:
-      return positions.get(0);
-    default:
-      final List<SqlParserPos> poses = new AbstractList<SqlParserPos>() {
-        @Override public SqlParserPos get(int index) {
-          return positions.get(index + 1);
-        }
-        @Override public int size() {
-          return positions.size() - 1;
-        }
-      };
-      final SqlParserPos p = positions.get(0);
-      return sum(poses, p.lineNumber, p.columnNumber, p.endLineNumber,
-          p.endColumnNumber);
     }
-  }
-
-  /**
-   * Computes the parser position which is the sum of an array of parser
-   * positions and of a parser position represented by (line, column, endLine,
-   * endColumn).
-   *
-   * @param poses     Array of parser positions
-   * @param line      Start line
-   * @param column    Start column
-   * @param endLine   End line
-   * @param endColumn End column
-   * @return Sum of parser positions
-   */
-  private static SqlParserPos sum(
-      Iterable<SqlParserPos> poses,
-      int line,
-      int column,
-      int endLine,
-      int endColumn) {
-    int testLine;
-    int testColumn;
-    for (SqlParserPos pos : poses) {
-      if (pos == null || pos.equals(SqlParserPos.ZERO)) {
-        continue;
-      }
-      testLine = pos.getLineNum();
-      testColumn = pos.getColumnNum();
-      if (testLine < line || testLine == line && testColumn < column) {
-        line = testLine;
-        column = testColumn;
-      }
-
-      testLine = pos.getEndLineNum();
-      testColumn = pos.getEndColumnNum();
-      if (testLine > endLine || testLine == endLine && testColumn > endColumn) {
-        endLine = testLine;
-        endColumn = testColumn;
-      }
+    final SqlParserPos pos0 = list.get(0);
+    if (list.size() == 1) {
+      return pos0;
     }
-    return new SqlParserPos(line, column, endLine, endColumn);
+    final PosBuilder b = new PosBuilder(pos0);
+    for (int i = 1; i < list.size(); i++) {
+      b.add(list.get(i));
+    }
+    return b.build(pos0);
   }
 
   public boolean overlaps(SqlParserPos pos) {
@@ -316,6 +274,57 @@ public class SqlParserPos implements Serializable {
 
     @Override public boolean isQuoted() {
       return true;
+    }
+  }
+
+  /** Builds a parser position. */
+  private static class PosBuilder {
+    private int line;
+    private int column;
+    private int endLine;
+    private int endColumn;
+
+    PosBuilder(SqlParserPos p) {
+      this(p.lineNumber, p.columnNumber, p.endLineNumber, p.endColumnNumber);
+    }
+
+    PosBuilder(int line, int column, int endLine, int endColumn) {
+      this.line = line;
+      this.column = column;
+      this.endLine = endLine;
+      this.endColumn = endColumn;
+    }
+
+    void add(SqlParserPos pos) {
+      if (pos.equals(SqlParserPos.ZERO)) {
+        return;
+      }
+      int testLine = pos.getLineNum();
+      int testColumn = pos.getColumnNum();
+      if (testLine < line || testLine == line && testColumn < column) {
+        line = testLine;
+        column = testColumn;
+      }
+
+      testLine = pos.getEndLineNum();
+      testColumn = pos.getEndColumnNum();
+      if (testLine > endLine || testLine == endLine && testColumn > endColumn) {
+        endLine = testLine;
+        endColumn = testColumn;
+      }
+    }
+
+    SqlParserPos build(SqlParserPos p) {
+      return p.lineNumber == line
+          && p.columnNumber == column
+          && p.endLineNumber == endLine
+          && p.endColumnNumber == endColumn
+          ? p
+          : build();
+    }
+
+    SqlParserPos build() {
+      return new SqlParserPos(line, column, endLine, endColumn);
     }
   }
 }

@@ -221,6 +221,9 @@ public enum SqlKind {
   /** PIVOT clause. */
   PIVOT,
 
+  /** UNPIVOT clause. */
+  UNPIVOT,
+
   /** MATCH_RECOGNIZE clause. */
   MATCH_RECOGNIZE,
 
@@ -385,6 +388,9 @@ public enum SqlKind {
 
   /** {@code GREATEST} function (Oracle). */
   GREATEST,
+
+  /** The two-argument {@code CONCAT} function (Oracle). */
+  CONCAT2,
 
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
@@ -623,6 +629,18 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code SUBSTR} function (BigQuery semantics). */
+  SUBSTR_BIG_QUERY,
+
+  /** {@code SUBSTR} function (MySQL semantics). */
+  SUBSTR_MYSQL,
+
+  /** {@code SUBSTR} function (Oracle semantics). */
+  SUBSTR_ORACLE,
+
+  /** {@code SUBSTR} function (PostgreSQL semantics). */
+  SUBSTR_POSTGRESQL,
+
   /** Call to a function using JDBC function syntax. */
   JDBC_FN,
 
@@ -804,6 +822,9 @@ public enum SqlKind {
 
   /** The {@code STRING_AGG} aggregate function. */
   STRING_AGG,
+
+  /** The {@code COUNTIF} aggregate function. */
+  COUNTIF,
 
   /** The {@code ARRAY_AGG} aggregate function. */
   ARRAY_AGG,
@@ -1040,7 +1061,7 @@ public enum SqlKind {
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG,
+          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, COUNTIF,
           INTERSECTION, ANY_VALUE);
 
   /**
@@ -1364,6 +1385,14 @@ public enum SqlKind {
       return GREATER_THAN;
     case GREATER_THAN_OR_EQUAL:
       return LESS_THAN;
+    case IN:
+      return NOT_IN;
+    case NOT_IN:
+      return IN;
+    case DRUID_IN:
+      return DRUID_NOT_IN;
+    case DRUID_NOT_IN:
+      return DRUID_IN;
     case IS_TRUE:
       return IS_FALSE;
     case IS_FALSE:
@@ -1379,6 +1408,17 @@ public enum SqlKind {
       return this;
     default:
       return this.negate();
+    }
+  }
+
+  public SqlKind negateNullSafe2() {
+    switch (this) {
+    case IS_NOT_NULL:
+      return IS_NULL;
+    case IS_NULL:
+      return IS_NOT_NULL;
+    default:
+      return this.negateNullSafe();
     }
   }
 

@@ -353,7 +353,7 @@ public class PigToSqlAggregateRule
     return TYPE_FACTORY.createStructType(destTypes, destNames);
   }
 
-  private int getGroupRefIndex(RexNode rex) {
+  private static int getGroupRefIndex(RexNode rex) {
     if (rex instanceof RexFieldAccess) {
       final RexFieldAccess fieldAccess = (RexFieldAccess) rex;
       if (fieldAccess.getReferenceExpr() instanceof RexInputRef) {
@@ -372,7 +372,7 @@ public class PigToSqlAggregateRule
    *
    * @param pigAggCall Pig aggregate UDF call
    */
-  private List<Integer> getAggColumns(RexCall pigAggCall) {
+  private static List<Integer> getAggColumns(RexCall pigAggCall) {
     if (isMultisetProjection(pigAggCall)) {
       return getColsFromMultisetProjection(pigAggCall);
     }
@@ -393,7 +393,7 @@ public class PigToSqlAggregateRule
     return new ArrayList<>();
   }
 
-  private List<Integer> getColsFromMultisetProjection(RexCall multisetProjection) {
+  private static List<Integer> getColsFromMultisetProjection(RexCall multisetProjection) {
     final List<Integer> columns = new ArrayList<>();
     assert multisetProjection.getOperands().size() >= 1;
     for (int i = 1; i < multisetProjection.getOperands().size(); i++) {

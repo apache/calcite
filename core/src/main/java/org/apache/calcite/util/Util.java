@@ -42,6 +42,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -97,6 +100,7 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
@@ -106,7 +110,8 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -209,7 +214,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(Object o) {
+  public static void discard(@Nullable Object o) {
     if (false) {
       discard(o);
     }
@@ -257,7 +262,7 @@ public class Util {
    */
   public static void swallow(
       Throwable e,
-      Logger logger) {
+      @Nullable Logger logger) {
     if (logger != null) {
       logger.debug("Discarding exception", e);
     }
@@ -306,7 +311,7 @@ public class Util {
   @Deprecated // to be removed before 2.0
   public static int hash(
       int h,
-      Object o) {
+      @Nullable Object o) {
     int k = (o == null) ? 0 : o.hashCode();
     return ((h << 4) | h) ^ k;
   }
@@ -378,7 +383,7 @@ public class Util {
   @SuppressWarnings("JdkObsolete")
   public static void print(
       PrintWriter pw,
-      Object o,
+      @Nullable Object o,
       int indent) {
     if (o == null) {
       pw.print("null");
@@ -496,7 +501,7 @@ public class Util {
    */
   public static void printJavaString(
       Appendable appendable,
-      String s,
+      @Nullable String s,
       boolean nullMeansNull) {
     try {
       if (s == null) {
@@ -773,7 +778,7 @@ public class Util {
   /**
    * Returns whether s == null or if s.length() == 0.
    */
-  public static boolean isNullOrEmpty(String s) {
+  public static boolean isNullOrEmpty(@Nullable String s) {
     return (null == s) || (s.length() == 0);
   }
 
@@ -798,7 +803,7 @@ public class Util {
     case -1:
       return "";
     case 0:
-      return list.get(0).toString();
+      return String.valueOf(list.get(0));
     default:
       break;
     }
@@ -1072,7 +1077,7 @@ public class Util {
    *          overridden and a subclass forgot to do so.
    * @return an {@link UnsupportedOperationException}.
    */
-  public static RuntimeException needToImplement(Object o) {
+  public static RuntimeException needToImplement(@Nullable Object o) {
     String description = null;
     if (o != null) {
       description = o.getClass().toString() + ": " + o.toString();
@@ -1192,7 +1197,7 @@ public class Util {
    * @param jar jar to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchJar(JarFile jar) {
+  public static void squelchJar(@Nullable JarFile jar) {
     try {
       if (jar != null) {
         jar.close();
@@ -1210,7 +1215,7 @@ public class Util {
    * @param stream stream to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStream(InputStream stream) {
+  public static void squelchStream(@Nullable InputStream stream) {
     try {
       if (stream != null) {
         stream.close();
@@ -1230,7 +1235,7 @@ public class Util {
    * @param stream stream to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStream(OutputStream stream) {
+  public static void squelchStream(@Nullable OutputStream stream) {
     try {
       if (stream != null) {
         stream.close();
@@ -1248,7 +1253,7 @@ public class Util {
    * @param reader reader to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchReader(Reader reader) {
+  public static void squelchReader(@Nullable Reader reader) {
     try {
       if (reader != null) {
         reader.close();
@@ -1268,7 +1273,7 @@ public class Util {
    * @param writer writer to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchWriter(Writer writer) {
+  public static void squelchWriter(@Nullable Writer writer) {
     try {
       if (writer != null) {
         writer.close();
@@ -1286,7 +1291,7 @@ public class Util {
    * @param stmt stmt to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchStmt(Statement stmt) {
+  public static void squelchStmt(@Nullable Statement stmt) {
     try {
       if (stmt != null) {
         stmt.close();
@@ -1304,7 +1309,7 @@ public class Util {
    * @param connection connection to close
    */
   @Deprecated // to be removed before 2.0
-  public static void squelchConnection(Connection connection) {
+  public static void squelchConnection(@Nullable Connection connection) {
     try {
       if (connection != null) {
         connection.close();
@@ -1501,18 +1506,18 @@ public class Util {
           + tzString);
     }
     int j = 0;
-    int startMode = Integer.valueOf(matcher.group(++j));
-    int startMonth = Integer.valueOf(matcher.group(++j));
-    int startDay = Integer.valueOf(matcher.group(++j));
-    int startDayOfWeek = Integer.valueOf(matcher.group(++j));
-    int startTime = Integer.valueOf(matcher.group(++j));
-    int startTimeMode = Integer.valueOf(matcher.group(++j));
-    int endMode = Integer.valueOf(matcher.group(++j));
-    int endMonth = Integer.valueOf(matcher.group(++j));
-    int endDay = Integer.valueOf(matcher.group(++j));
-    int endDayOfWeek = Integer.valueOf(matcher.group(++j));
-    int endTime = Integer.valueOf(matcher.group(++j));
-    int endTimeMode = Integer.valueOf(matcher.group(++j));
+    int startMode = groupAsInt(matcher, ++j);
+    int startMonth = groupAsInt(matcher, ++j);
+    int startDay = groupAsInt(matcher, ++j);
+    int startDayOfWeek = groupAsInt(matcher, ++j);
+    int startTime = groupAsInt(matcher, ++j);
+    int startTimeMode = groupAsInt(matcher, ++j);
+    int endMode = groupAsInt(matcher, ++j);
+    int endMonth = groupAsInt(matcher, ++j);
+    int endDay = groupAsInt(matcher, ++j);
+    int endDayOfWeek = groupAsInt(matcher, ++j);
+    int endTime = groupAsInt(matcher, ++j);
+    int endTimeMode = groupAsInt(matcher, ++j);
     appendPosixDaylightTransition(
         tz,
         buf,
@@ -1536,6 +1541,13 @@ public class Util {
         verbose,
         true);
     return buf.toString();
+  }
+
+  private static int groupAsInt(Matcher matcher, int index) {
+    String value = Objects.requireNonNull(
+        matcher.group(index),
+        () -> "no group for index " + index + ", matcher " + matcher);
+    return Integer.parseInt(value);
   }
 
   /**
@@ -1715,21 +1727,24 @@ public class Util {
    * Converts a iterator whose members are automatically down-cast to a given
    * type.
    *
-   * <p>If a member of the backing iterator is not an instanceof <code>
-   * E</code>, {@link Iterator#next()}) will throw a
+   * <p>If a member of the backing iterator is not an instance of {@code E},
+   * {@link Iterator#next()}) will throw a
    * {@link ClassCastException}.
    *
    * <p>All modifications are automatically written to the backing iterator.
    * Not synchronized.
    *
-   * @param iter  Backing iterator.
-   * @param clazz Class to cast to.
+   * <p>If the backing iterator has not-nullable elements,
+   * the returned iterator has not-nullable elements.
+   *
+   * @param iter  Backing iterator
+   * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
-  public static <E> Iterator<E> cast(
-      final Iterator<?> iter,
+  public static <E extends @PolyNull Object> Iterator<E> cast(
+      final Iterator<? extends @PolyNull Object> iter,
       final Class<E> clazz) {
-    return transform(iter, clazz::cast);
+    return transform(iter, x -> clazz.cast(castNonNull(x)));
   }
 
   /**
@@ -1929,7 +1944,7 @@ public class Util {
    * @param <T>   Enum class type
    * @return Enum constant or null
    */
-  public static synchronized <T extends Enum<T>> T enumVal(
+  public static synchronized <T extends Enum<T>> @Nullable T enumVal(
       Class<T> clazz,
       String name) {
     return clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
@@ -1945,7 +1960,7 @@ public class Util {
    * @return         Enum constant, never null
    */
   public static synchronized <T extends Enum<T>> T enumVal(T default_,
-      String name) {
+      @Nullable String name) {
     final Class<T> clazz = default_.getDeclaringClass();
     final T t = clazz.cast(ENUM_CONSTANTS.getUnchecked(clazz).get(name));
     if (t == null) {
@@ -1997,63 +2012,63 @@ public class Util {
   /** Returns the first value if it is not null,
    * otherwise the second value.
    *
-   * <p>The result may be null.
+   * <p>The result may be null only if the second argument is not null.
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T> T first(T v0, T v1) {
+  public static <T extends Object> @PolyNull T first(@Nullable T v0, @PolyNull T v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Double} value,
    * using a given default value if it is null. */
-  public static double first(Double v0, double v1) {
+  public static double first(@Nullable Double v0, double v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Float} value,
    * using a given default value if it is null. */
-  public static float first(Float v0, float v1) {
+  public static float first(@Nullable Float v0, float v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Integer} value,
    * using a given default value if it is null. */
-  public static int first(Integer v0, int v1) {
+  public static int first(@Nullable Integer v0, int v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Long} value,
    * using a given default value if it is null. */
-  public static long first(Long v0, long v1) {
+  public static long first(@Nullable Long v0, long v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Boolean} value,
    * using a given default value if it is null. */
-  public static boolean first(Boolean v0, boolean v1) {
+  public static boolean first(@Nullable Boolean v0, boolean v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Short} value,
    * using a given default value if it is null. */
-  public static short first(Short v0, short v1) {
+  public static short first(@Nullable Short v0, short v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Character} value,
    * using a given default value if it is null. */
-  public static char first(Character v0, char v1) {
+  public static char first(@Nullable Character v0, char v1) {
     return v0 != null ? v0 : v1;
   }
 
   /** Unboxes a {@link Byte} value,
    * using a given default value if it is null. */
-  public static byte first(Byte v0, byte v1) {
+  public static byte first(@Nullable Byte v0, byte v1) {
     return v0 != null ? v0 : v1;
   }
 
-  public static <T> Iterable<T> orEmpty(Iterable<T> v0) {
+  public static <T> Iterable<T> orEmpty(@Nullable Iterable<T> v0) {
     return v0 != null ? v0 : ImmutableList.of();
   }
 
@@ -2199,7 +2214,7 @@ public class Util {
     final Iterator<E> iterator = list.iterator();
     final E first = iterator.next();
     while (iterator.hasNext()) {
-      if (!first.equals(iterator.next())) {
+      if (!Objects.equals(first, iterator.next())) {
         return false;
       }
     }
@@ -2403,6 +2418,7 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
+      @SuppressWarnings("override.return.invalid")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -2586,8 +2602,19 @@ public class Util {
     }
   }
 
-  /** Transforms a iterator, applying a function to each element. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  /** Transforms a list, applying a function to each element, also passing in
+   * the element's index in the list. */
+  public static <F, T> List<T> transformIndexed(List<? extends F> list,
+      BiFunction<? super F, Integer, ? extends T> function) {
+    if (list instanceof RandomAccess) {
+      return new RandomAccessTransformingIndexedList<>(list, function);
+    } else {
+      return new TransformingIndexedList<>(list, function);
+    }
+  }
+
+  /** Transforms an iterable, applying a function to each element. */
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
     // FluentIterable provides toString
@@ -2599,14 +2626,14 @@ public class Util {
   }
 
   /** Transforms an iterator. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <F, T> Iterator<T> transform(Iterator<? extends F> iterator,
       java.util.function.Function<? super F, ? extends T> function) {
     return new TransformingIterator<>(iterator, function);
   }
 
   /** Filters an iterable. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <E> Iterable<E> filter(Iterable<? extends E> iterable,
       Predicate<? super E> predicate) {
     // FluentIterable provides toString
@@ -2618,7 +2645,7 @@ public class Util {
   }
 
   /** Filters an iterator. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <E> Iterator<E> filter(Iterator<? extends E> iterator,
       Predicate<? super E> predicate) {
     return new FilteringIterator<>(iterator, predicate);
@@ -2689,17 +2716,18 @@ public class Util {
    * Exception used to interrupt a tree walk of any kind.
    */
   public static class FoundOne extends ControlFlowException {
-    private final Object node;
+    private final @Nullable Object node;
 
     /** Singleton instance. Can be used if you don't care about node. */
     @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final FoundOne NULL = new FoundOne(null);
 
-    public FoundOne(Object node) {
+    public FoundOne(@Nullable Object node) {
       this.node = node;
     }
 
-    public Object getNode() {
+    @Pure
+    public @Nullable Object getNode() {
       return node;
     }
   }
@@ -2743,7 +2771,7 @@ public class Util {
       return list.size();
     }
 
-    @Override @Nonnull public Iterator<T> iterator() {
+    @Override public Iterator<T> iterator() {
       return listIterator();
     }
   }
@@ -2762,6 +2790,49 @@ public class Util {
     }
   }
 
+  /** List that returns the same number of elements as a backing list,
+   * applying a transformation function to each one.
+   *
+   * @param <F> Element type of backing list
+   * @param <T> Element type of this list
+   */
+  private static class TransformingIndexedList<F, T> extends AbstractList<T> {
+    private final BiFunction<? super F, Integer, ? extends T> function;
+    private final List<? extends F> list;
+
+    TransformingIndexedList(List<? extends F> list,
+        BiFunction<? super F, Integer, ? extends T> function) {
+      this.function = function;
+      this.list = list;
+    }
+
+    @Override public T get(int i) {
+      return function.apply(list.get(i), i);
+    }
+
+    @Override public int size() {
+      return list.size();
+    }
+
+    @Override public Iterator<T> iterator() {
+      return listIterator();
+    }
+  }
+
+  /** Extension to {@link TransformingIndexedList} that implements
+   * {@link RandomAccess}.
+   *
+   * @param <F> Element type of backing list
+   * @param <T> Element type of this list
+   */
+  private static class RandomAccessTransformingIndexedList<F, T>
+      extends TransformingIndexedList<F, T> implements RandomAccess {
+    RandomAccessTransformingIndexedList(List<? extends F> list,
+        BiFunction<? super F, Integer, ? extends T> function) {
+      super(list, function);
+    }
+  }
+
   /** Iterator that applies a predicate to each element.
    *
    * @param <T> Element type */
@@ -2775,7 +2846,9 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      current = moveNext();
+      @SuppressWarnings("method.invocation.invalid")
+      T current = moveNext();
+      this.current = current;
     }
 
     @Override public boolean hasNext() {

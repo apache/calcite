@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
@@ -180,7 +181,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-      SqlNode parent, CalciteConnectionConfig config) {
+      @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
     assert isRolledUp(column);
     // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
     // We only allow this when approximate results are acceptable.
@@ -192,13 +193,13 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         && isValidParentKind(parent);
   }
 
-  private boolean isValidParentKind(SqlNode node) {
+  private static boolean isValidParentKind(SqlNode node) {
     return node.getKind() == SqlKind.SELECT
             || node.getKind() == SqlKind.FILTER
             || isSupportedPostAggOperation(node.getKind());
   }
 
-  private boolean isCountDistinct(SqlCall call) {
+  private static boolean isCountDistinct(SqlCall call) {
     return call.getKind() == SqlKind.COUNT
             && call.getFunctionQuantifier() != null
             && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT;
@@ -206,7 +207,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   // Post aggs support +, -, /, * so we should allow the parent of a count distinct to be any one of
   // those.
-  private boolean isSupportedPostAggOperation(SqlKind kind) {
+  private static boolean isSupportedPostAggOperation(SqlKind kind) {
     return kind == SqlKind.PLUS
             || kind == SqlKind.MINUS
             || kind == SqlKind.DIVIDE

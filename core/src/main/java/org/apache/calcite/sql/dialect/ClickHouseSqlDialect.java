@@ -36,7 +36,9 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
-import com.google.common.base.Preconditions;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
@@ -70,7 +72,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return CalendarPolicy.SHIFT;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
@@ -101,7 +103,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
+      SqlTypeName typeName) {
     SqlBasicTypeNameSpec spec = new SqlBasicTypeNameSpec(typeName, SqlParserPos.ZERO) {
       @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
         // unparse as an identifier to ensure that type names are cased correctly
@@ -128,9 +131,9 @@ public class ClickHouseSqlDialect extends SqlDialect {
     writer.literal(toFunc + "('" + literal.toFormattedString() + "')");
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null);
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    requireNonNull(fetch, "fetch");
 
     writer.newlineAndIndent();
     final SqlWriter.Frame frame =
@@ -189,9 +192,9 @@ public class ClickHouseSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     final SqlLiteral timeUnitNode = call.operand(1);
-    TimeUnitRange unit = (TimeUnitRange) timeUnitNode.getValue();
+    TimeUnitRange unit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
     String funName;
     switch (unit) {

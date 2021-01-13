@@ -18,6 +18,8 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -53,7 +55,7 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
     return Objects.hash(index, name, type);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

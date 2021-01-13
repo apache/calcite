@@ -1005,6 +1005,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("'a' similar to 'b' escape 'c'").ok();
   }
 
+  @Test void testIlike() {
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
+    s.expr("'a' ilike 'b'").columnType("BOOLEAN NOT NULL");
+    s.expr("'a' ilike cast(null as varchar(99))").columnType("BOOLEAN");
+    s.expr("cast(null as varchar(99)) not ilike 'b'").columnType("BOOLEAN");
+    s.expr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN NOT NULL");
+
+    // ILIKE is only available in the PostgreSQL function library
+    expr("^'a' ilike 'b'^")
+        .fails("No match found for function signature ILIKE");
+  }
+
   public void _testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"
@@ -1641,6 +1654,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
         + "from (select ((1,2),(3,4,5)) r from dept) t")
         .columnType("INTEGER NOT NULL");
+    sql("select row(emp.empno, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row(emp.empno + 1, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row((select deptno from dept where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp")
+        .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
   }
 
   @Test void testRowWithValidDot() {
@@ -1896,6 +1916,100 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "PIVOT (SUM(sal) FOR (job, deptno) IN (^'CLERK'^, 10))";
     sql(sql4).fails("Value count in PIVOT \\(1\\) must match number of "
         + "FOR columns \\(2\\)");
+  }
+
+  @Test void testUnpivot() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR remuneration_type IN (comm AS 'commission',\n"
+        + "                            sal as 'salary'))";
+    sql(sql).type("RecordType(INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(20) NOT NULL ENAME, VARCHAR(10) NOT NULL JOB, INTEGER MGR,"
+        + " TIMESTAMP(0) NOT NULL HIREDATE, INTEGER NOT NULL DEPTNO,"
+        + " BOOLEAN NOT NULL SLACKER, CHAR(10) NOT NULL REMUNERATION_TYPE,"
+        + " INTEGER NOT NULL REMUNERATION) NOT NULL");
+  }
+
+  @Test void testUnpivotInvalidColumn() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR remuneration_type IN (comm AS 'commission',\n"
+        + "                            ^unknownCol^ as 'salary'))";
+    sql(sql).fails("Column 'UNKNOWNCOL' not found in any table");
+  }
+
+  @Test void testUnpivotCannotDeriveMeasureType() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR remuneration_type IN (^comm^ AS 'commission',\n"
+        + "                            ename as 'salary'))";
+    sql(sql).fails("In UNPIVOT, cannot derive type for measure 'REMUNERATION'"
+        + " because source columns have different data types");
+  }
+
+  @Test void testUnpivotValueMismatch() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR remuneration_type IN (comm AS 'commission',\n"
+        + "                            sal AS ^('salary', 1)^))";
+    String expected = "Value count in UNPIVOT \\(2\\) must match "
+        + "number of FOR columns \\(1\\)";
+    sql(sql).fails(expected);
+  }
+
+  @Test void testUnpivotDuplicateName() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT ((remuneration, ^remuneration^)\n"
+        + "  FOR remuneration_type\n"
+        + "  IN ((comm, comm) AS 'commission',\n"
+        + "      (sal, sal) AS 'salary'))";
+    sql(sql).fails("Duplicate column name 'REMUNERATION' in UNPIVOT");
+  }
+
+  @Test void testUnpivotDuplicateName2() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR ^remuneration^ IN (comm AS 'commission',\n"
+        + "                         sal AS 'salary'))";
+    sql(sql).fails("Duplicate column name 'REMUNERATION' in UNPIVOT");
+  }
+
+  @Test void testUnpivotDuplicateName3() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT (remuneration\n"
+        + "  FOR ^deptno^ IN (comm AS 'commission',\n"
+        + "                         sal AS 'salary'))";
+    sql(sql).fails("Duplicate column name 'DEPTNO' in UNPIVOT");
+  }
+
+  @Test void testUnpivotMissingAs() {
+    final String sql = "SELECT *\n"
+        + "FROM (\n"
+        + "  SELECT *\n"
+        + "  FROM (VALUES (0, 1, 2, 3, 4),\n"
+        + "               (10, 11, 12, 13, 14))\n"
+        + "      AS t (c0, c1, c2, c3, c4))\n"
+        + "UNPIVOT ((m0, m1, m2)\n"
+        + "    FOR (a0, a1)\n"
+        + "     IN ((c1, c2, c3) AS ('col1','col2'),\n"
+        + "         (c2, c3, c4)))";
+    sql(sql).type("RecordType(INTEGER NOT NULL C0, VARCHAR(8) NOT NULL A0,"
+        + " VARCHAR(8) NOT NULL A1, INTEGER M0, INTEGER M1,"
+        + " INTEGER M2) NOT NULL");
+  }
+
+  @Test void testUnpivotMissingAs2() {
+    final String sql = "SELECT *\n"
+        + "FROM (\n"
+        + "  SELECT *\n"
+        + "  FROM (VALUES (0, 1, 2, 3, 4),\n"
+        + "               (10, 11, 12, 13, 14))\n"
+        + "      AS t (c0, c1, c2, c3, c4))\n"
+        + "UNPIVOT ((m0, m1, m2)\n"
+        + "    FOR (^a0^, a1)\n"
+        + "     IN ((c1, c2, c3) AS (6, true),\n"
+        + "         (c2, c3, c4)))";
+    sql(sql).fails("In UNPIVOT, cannot derive type for axis 'A0'");
   }
 
   @Test void testMatchRecognizeWithDistinctAggregation() {

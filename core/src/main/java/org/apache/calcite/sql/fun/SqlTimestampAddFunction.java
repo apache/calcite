@@ -27,6 +27,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+
 /**
  * The <code>TIMESTAMPADD</code> function, which adds an interval to a
  * datetime (TIMESTAMP, TIME or DATE).
@@ -62,7 +64,7 @@ public class SqlTimestampAddFunction extends SqlFunction {
       opBinding -> {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         return deduceType(typeFactory,
-            opBinding.getOperandLiteralValue(0, TimeUnit.class),
+            getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class),
             opBinding.getOperandType(1), opBinding.getOperandType(2));
       };
 

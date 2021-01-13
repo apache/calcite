@@ -106,7 +106,7 @@ public class JoinPushThroughJoinRule
     }
   }
 
-  private void onMatchRight(RelOptRuleCall call) {
+  private static void onMatchRight(RelOptRuleCall call) {
     final Join topJoin = call.rel(0);
     final Join bottomJoin = call.rel(1);
     final RelNode relC = call.rel(2);
@@ -210,7 +210,7 @@ public class JoinPushThroughJoinRule
    * Similar to {@link #onMatch}, but swaps the upper sibling with the left
    * of the two lower siblings, rather than the right.
    */
-  private void onMatchLeft(RelOptRuleCall call) {
+  private static void onMatchLeft(RelOptRuleCall call) {
     final Join topJoin = call.rel(0);
     final Join bottomJoin = call.rel(1);
     final RelNode relC = call.rel(2);

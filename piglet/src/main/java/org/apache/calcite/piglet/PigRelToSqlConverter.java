@@ -83,7 +83,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
       groupBy = new SqlNodeList(cubeRollupList, POS);
     }
 
-    return buildAggregate(e, builder, selectList, groupBy.getList()).result();
+    return buildAggregate(e, builder, selectList, groupBy).result();
   }
 
   // CHECKSTYLE: IGNORE 1

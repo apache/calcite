@@ -99,6 +99,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.hsqldb.jdbcDriver;
@@ -283,11 +284,18 @@ public class JdbcTest {
                   + "insert into \"adhoc\".V\n"
                   + "values ('Fred', 56, 123.4)");
           assertThat(resultSet.next(), is(true));
-          assertThat(resultSet.getString(1),
-              isLinux(
-                  "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], flattened=[false])\n"
-                      + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[56], expr#2=[10], expr#3=['Fred':JavaType(class java.lang.String)], expr#4=[CAST($t3):JavaType(class java.lang.String)], expr#5=[123.4:JavaType(float)], expr#6=[null:JavaType(class java.lang.Integer)], empid=[$t1], deptno=[$t2], name=[$t4], salary=[$t5], commission=[$t6])\n"
-                      + "    EnumerableValues(tuples=[[{ 0 }]])\n"));
+          final String expected = ""
+              + "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], "
+              + "operation=[INSERT], flattened=[false])\n"
+              + "  EnumerableCalc(expr#0..2=[{inputs}], "
+              + "expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], "
+              + "expr#5=[CAST($t0):JavaType(class java.lang.String)], "
+              + "expr#6=[CAST($t2):JavaType(float) NOT NULL], "
+              + "expr#7=[null:JavaType(class java.lang.Integer)], "
+              + "empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], "
+              + "commission=[$t7])\n"
+              + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4 }]])\n";
+          assertThat(resultSet.getString(1), isLinux(expected));
 
           // With named columns
           resultSet =
@@ -8073,7 +8081,7 @@ public class JdbcTest {
         SchemaPlus schema,
         String name,
         Map<String, Object> operand,
-        RelDataType rowType) {
+        @Nullable RelDataType rowType) {
       final Class clazz;
       final Object[] array;
       switch (name) {

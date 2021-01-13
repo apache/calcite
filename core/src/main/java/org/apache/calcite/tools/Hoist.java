@@ -30,12 +30,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 /**
  * Utility that extracts constants from a SQL query.
@@ -108,7 +109,7 @@ public class Hoist {
       throw new RuntimeException(e);
     }
     node.accept(new SqlShuttle() {
-      @Override public SqlNode visit(SqlLiteral literal) {
+      @Override public @Nullable SqlNode visit(SqlLiteral literal) {
         variables.add(new Variable(sql, variables.size(), literal));
         return super.visit(literal);
       }
@@ -120,7 +121,6 @@ public class Hoist {
   public interface Config {
     /** Returns the configuration for the SQL parser. */
     @ImmutableBeans.Property
-    @Nonnull
     SqlParser.Config parserConfig();
 
     /** Sets {@link #parserConfig()}. */

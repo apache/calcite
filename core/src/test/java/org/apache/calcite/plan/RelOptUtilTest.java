@@ -131,6 +131,10 @@ class RelOptUtilTest {
         Util.toLinux(RelOptUtil.dumpType(t2) + "\n"));
   }
 
+  /**
+   * Test {@link RelOptUtil#getFullTypeDifferenceString(String, RelDataType, String, RelDataType)}
+   * which returns the detained difference of two types.
+   */
   @Test void testTypeDifference() {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

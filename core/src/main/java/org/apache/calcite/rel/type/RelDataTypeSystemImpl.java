@@ -20,6 +20,8 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
@@ -154,7 +156,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return 19;
   }
 
-  @Override public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
+  @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     switch (typeName) {
     case VARBINARY:
     case VARCHAR:

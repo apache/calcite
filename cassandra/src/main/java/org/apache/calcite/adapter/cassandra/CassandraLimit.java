@@ -27,6 +27,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -44,7 +46,7 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
     assert getConvention() == input.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // We do this so we get the limit for free
     return planner.getCostFactory().makeZeroCost();

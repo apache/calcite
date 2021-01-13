@@ -37,6 +37,7 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
+    id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
@@ -65,6 +66,7 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
+val enableCheckerframework by props()
 val enableErrorprone by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
@@ -74,6 +76,20 @@ val enableGradleMetadata by props()
 val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
+
+// Java versions prior to 1.8.0u202 have known issues that cause invalid bytecode in certain patterns
+// of annotation usage.
+// So we require at least 1.8.0u202
+System.getProperty("java.version").let { version ->
+    version.takeIf { it.startsWith("1.8.0_") }
+        ?.removePrefix("1.8.0_")
+        ?.toIntOrNull()
+        ?.let {
+            require(it >= 202) {
+                "Apache Calcite requires Java 1.8.0u202 or later. The current Java version is $version"
+            }
+        }
+}
 
 ide {
     copyrightToAsf()
@@ -454,6 +470,8 @@ allprojects {
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
                     replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
+                    replaceRegex("jsr305 nullable -> checkerframework", "javax\\.annotation\\.Nullable", "org.checkerframework.checker.nullness.qual.Nullable")
+                    replaceRegex("jsr305 nonnull -> checkerframework", "javax\\.annotation\\.Nonnull", "org.checkerframework.checker.nullness.qual.NonNull")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -474,6 +492,8 @@ allprojects {
                         "static "
                     )
                     removeUnusedImports()
+                    replaceRegex("Avoid 2+ blank lines after package", "^package\\s+([^;]+)\\s*;\\n{3,}", "package \$1;\n\n")
+                    replaceRegex("Avoid 2+ blank lines after import", "^import\\s+([^;]+)\\s*;\\n{3,}", "import \$1;\n\n")
                     indentWithSpaces(2)
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
@@ -535,6 +555,9 @@ allprojects {
                 options.errorprone {
                     disableWarningsInGeneratedCode.set(true)
                     errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")
+                    enable(
+                        "MethodCanBeStatic"
+                    )
                     disable(
                         "ComplexBooleanConstant",
                         "EqualsGetClass",
@@ -549,6 +572,43 @@ allprojects {
                         "BigDecimalEquals",
                         "StringSplitter"
                     )
+                }
+            }
+        }
+        if (enableCheckerframework) {
+            apply(plugin = "org.checkerframework")
+            dependencies {
+                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
+                // CheckerFramework annotations might be used in the code as follows:
+                // dependencies {
+                //     "compileOnly"("org.checkerframework:checker-qual")
+                //     "testCompileOnly"("org.checkerframework:checker-qual")
+                // }
+                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+                    // only needed for JDK 8
+                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
+                }
+            }
+            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
+                skipVersionCheck = true
+                // See https://checkerframework.org/manual/#introduction
+                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
+                // Below checkers take significant time and they do not provide much value :-/
+                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
+                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
+                // https://checkerframework.org/manual/#creating-debugging-options-progress
+                // extraJavacArgs.add("-Afilenames")
+                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
+                // Consider Java assert statements for nullness and other checks
+                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
+                // https://checkerframework.org/manual/#stub-using
+                extraJavacArgs.add("-Astubs=" +
+                        fileTree("$rootDir/src/main/config/checkerframework") {
+                            include("**/*.astub")
+                        }.asPath
+                )
+                if (project.path == ":core") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
                 }
             }
         }
@@ -580,10 +640,15 @@ allprojects {
             }
 
             configureEach<JavaCompile> {
+                inputs.property("java.version", System.getProperty("java.version"))
+                inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
                 if (werror) {
                     options.compilerArgs.add("-Werror")
+                }
+                if (enableCheckerframework) {
+                    options.forkOptions.memoryMaximumSize = "2g"
                 }
             }
             configureEach<Test> {

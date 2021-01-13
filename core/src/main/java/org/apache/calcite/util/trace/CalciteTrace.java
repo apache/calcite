@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ public abstract class CalciteTrace {
    */
   public static final Logger PARSER_LOGGER = getParserTracer();
 
-  private static final ThreadLocal<Function2<Void, File, String>> DYNAMIC_HANDLER =
+  private static final ThreadLocal<@Nullable Function2<Void, File, String>> DYNAMIC_HANDLER =
       ThreadLocal.withInitial(Functions::ignore2);
 
   //~ Methods ----------------------------------------------------------------
@@ -145,7 +146,7 @@ public abstract class CalciteTrace {
    * It exists for unit-testing.
    * The handler is never null; the default handler does nothing.
    */
-  public static ThreadLocal<Function2<Void, File, String>> getDynamicHandler() {
+  public static ThreadLocal<@Nullable Function2<Void, File, String>> getDynamicHandler() {
     return DYNAMIC_HANDLER;
   }
 }

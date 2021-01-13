@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.trace;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -62,7 +63,7 @@ public class CalciteLogger {
   /**
    * Logs a WARN message with two Object parameters.
    */
-  public void warn(String format, Object arg1, Object arg2) {
+  public void warn(String format, @Nullable Object arg1, @Nullable Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
     logger.warn(format, arg1, arg2);
   }
@@ -70,7 +71,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a WARN message with three Object parameters.
    */
-  public void warn(String format, Object arg1, Object arg2, Object arg3) {
+  public void warn(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3) {
     if (logger.isWarnEnabled()) {
       logger.warn(format, arg1, arg2, arg3);
     }
@@ -79,7 +81,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a WARN message with four Object parameters.
    */
-  public void warn(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void warn(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3, @Nullable Object arg4) {
     if (logger.isWarnEnabled()) {
       logger.warn(format, arg1, arg2, arg3, arg4);
     }
@@ -96,7 +99,7 @@ public class CalciteLogger {
   /**
    * Logs an INFO message with two Object parameters.
    */
-  public void info(String format, Object arg1, Object arg2) {
+  public void info(String format, @Nullable Object arg1, @Nullable Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
     logger.info(format, arg1, arg2);
   }
@@ -104,7 +107,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs an INFO message with three Object parameters.
    */
-  public void info(String format, Object arg1, Object arg2, Object arg3) {
+  public void info(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3) {
     if (logger.isInfoEnabled()) {
       logger.info(format, arg1, arg2, arg3);
     }
@@ -113,7 +117,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs an INFO message with four Object parameters.
    */
-  public void info(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void info(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3, @Nullable Object arg4) {
     if (logger.isInfoEnabled()) {
       logger.info(format, arg1, arg2, arg3, arg4);
     }
@@ -130,7 +135,7 @@ public class CalciteLogger {
   /**
    * Logs a DEBUG message with two Object parameters.
    */
-  public void debug(String format, Object arg1, Object arg2) {
+  public void debug(String format, @Nullable Object arg1, @Nullable Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
     logger.debug(format, arg1, arg2);
   }
@@ -138,7 +143,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a DEBUG message with three Object parameters.
    */
-  public void debug(String format, Object arg1, Object arg2, Object arg3) {
+  public void debug(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3) {
     if (logger.isDebugEnabled()) {
       logger.debug(format, arg1, arg2, arg3);
     }
@@ -147,7 +153,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a DEBUG message with four Object parameters.
    */
-  public void debug(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void debug(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3, @Nullable Object arg4) {
     if (logger.isDebugEnabled()) {
       logger.debug(format, arg1, arg2, arg3, arg4);
     }
@@ -164,7 +171,7 @@ public class CalciteLogger {
   /**
    * Logs a TRACE message with two Object parameters.
    */
-  public void trace(String format, Object arg1, Object arg2) {
+  public void trace(String format, @Nullable Object arg1, @Nullable Object arg2) {
     // slf4j already avoids the array creation for 1 or 2 arg invocations
     logger.trace(format, arg1, arg2);
   }
@@ -172,7 +179,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a TRACE message with three Object parameters.
    */
-  public void trace(String format, Object arg1, Object arg2, Object arg3) {
+  public void trace(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3) {
     if (logger.isTraceEnabled()) {
       logger.trace(format, arg1, arg2, arg3);
     }
@@ -181,13 +189,14 @@ public class CalciteLogger {
   /**
    * Conditionally logs a TRACE message with four Object parameters.
    */
-  public void trace(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void trace(String format, @Nullable Object arg1, @Nullable Object arg2,
+      @Nullable Object arg3, @Nullable Object arg4) {
     if (logger.isTraceEnabled()) {
       logger.trace(format, arg1, arg2, arg3, arg4);
     }
   }
 
-  public void trace(String format, Object... args) {
+  public void trace(String format, @Nullable Object... args) {
     if (logger.isTraceEnabled()) {
       logger.trace(format, args);
     }

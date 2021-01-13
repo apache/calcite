@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
@@ -32,10 +33,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of
@@ -105,7 +111,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * from {@link #THREAD_PROVIDERS} and {@link #EMPTY} as a prototype.
    */
   protected RelMetadataQuery() {
-    this(THREAD_PROVIDERS.get(), EMPTY);
+    this(castNonNull(THREAD_PROVIDERS.get()), EMPTY);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -141,7 +147,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
       RelMetadataQuery prototype) {
-    super(Objects.requireNonNull(metadataProvider));
+    super(requireNonNull(metadataProvider));
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;
@@ -185,7 +191,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    *
    * @param rel the relational expression
    */
-  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel) {
+  public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel) {
     for (;;) {
       try {
         return nodeTypesHandler.getNodeTypes(rel, this);
@@ -206,11 +212,11 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return estimated row count, or null if no reliable estimate can be
    * determined
    */
-  public Double getRowCount(RelNode rel) {
+  public /* @Nullable: CALCITE-4263 */ Double getRowCount(RelNode rel) {
     for (;;) {
       try {
         Double result = rowCountHandler.getRowCount(rel, this);
-        return RelMdUtil.validateResult(result);
+        return RelMdUtil.validateResult(castNonNull(result));
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         rowCountHandler = revise(e.relClass, BuiltInMetadata.RowCount.DEF);
       }
@@ -225,7 +231,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return max row count
    */
-  public Double getMaxRowCount(RelNode rel) {
+  public @Nullable Double getMaxRowCount(RelNode rel) {
     for (;;) {
       try {
         return maxRowCountHandler.getMaxRowCount(rel, this);
@@ -244,7 +250,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return max row count
    */
-  public Double getMinRowCount(RelNode rel) {
+  public @Nullable Double getMinRowCount(RelNode rel) {
     for (;;) {
       try {
         return minRowCountHandler.getMinRowCount(rel, this);
@@ -263,7 +269,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public RelOptCost getCumulativeCost(RelNode rel) {
+  public @Nullable RelOptCost getCumulativeCost(RelNode rel) {
     for (;;) {
       try {
         return cumulativeCostHandler.getCumulativeCost(rel, this);
@@ -282,7 +288,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return estimated cost, or null if no reliable estimate can be determined
    */
-  public RelOptCost getNonCumulativeCost(RelNode rel) {
+  public @Nullable RelOptCost getNonCumulativeCost(RelNode rel) {
     for (;;) {
       try {
         return nonCumulativeCostHandler.getNonCumulativeCost(rel, this);
@@ -302,7 +308,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return estimated percentage (between 0.0 and 1.0), or null if no
    * reliable estimate can be determined
    */
-  public Double getPercentageOriginalRows(RelNode rel) {
+  public @Nullable Double getPercentageOriginalRows(RelNode rel) {
     for (;;) {
       try {
         Double result =
@@ -326,7 +332,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * determined (whereas empty set indicates definitely no origin columns at
    * all)
    */
-  public Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
     for (;;) {
       try {
         return columnOriginHandler.getColumnOrigins(rel, this, column);
@@ -338,8 +344,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
-   * Determines the origin of a column, provided the column maps to a single
-   * column that isn't derived.
+   * Determines the origin of a column.
    *
    * @see #getColumnOrigins(org.apache.calcite.rel.RelNode, int)
    *
@@ -347,22 +352,21 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param column the offset of the column whose origin we are trying to
    * determine
    *
-   * @return the origin of a column provided it's a simple column; otherwise,
-   * returns null
+   * @return the origin of a column
    */
-  public RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
+  public @Nullable RelColumnOrigin getColumnOrigin(RelNode rel, int column) {
     final Set<RelColumnOrigin> origins = getColumnOrigins(rel, column);
     if (origins == null || origins.size() != 1) {
       return null;
     }
     final RelColumnOrigin origin = Iterables.getOnlyElement(origins);
-    return origin.isDerived() ? null : origin;
+    return origin;
   }
 
   /**
    * Determines the origin of a column.
    */
-  public Set<RexNode> getExpressionLineage(RelNode rel, RexNode expression) {
+  public @Nullable Set<RexNode> getExpressionLineage(RelNode rel, RexNode expression) {
     for (;;) {
       try {
         return expressionLineageHandler.getExpressionLineage(rel, this, expression);
@@ -376,7 +380,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /**
    * Determines the tables used by a plan.
    */
-  public Set<RelTableRef> getTableReferences(RelNode rel) {
+  public @Nullable Set<RelTableRef> getTableReferences(RelNode rel) {
     for (;;) {
       try {
         return tableReferencesHandler.getTableReferences(rel, this);
@@ -395,7 +399,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    *
    * @return the table, if the RelNode is a simple table; otherwise null
    */
-  public RelOptTable getTableOrigin(RelNode rel) {
+  public @Nullable RelOptTable getTableOrigin(RelNode rel) {
     // Determine the simple origin of the first column in the
     // RelNode.  If it's simple, then that means that the underlying
     // table is also simple, even if the column itself is derived.
@@ -420,7 +424,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return estimated selectivity (between 0.0 and 1.0), or null if no
    * reliable estimate can be determined
    */
-  public Double getSelectivity(RelNode rel, RexNode predicate) {
+  public @Nullable Double getSelectivity(RelNode rel, @Nullable RexNode predicate) {
     for (;;) {
       try {
         Double result = selectivityHandler.getSelectivity(rel, this, predicate);
@@ -441,7 +445,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
     return getUniqueKeys(rel, false);
   }
 
@@ -457,7 +461,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return set of keys, or null if this information cannot be determined
    * (whereas empty set indicates definitely no keys at all)
    */
-  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode rel,
       boolean ignoreNulls) {
     for (;;) {
       try {
@@ -480,7 +484,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true or false depending on whether the rows are unique, or
    * null if not enough information is available to make that determination
    */
-  public Boolean areRowsUnique(RelNode rel) {
+  public @Nullable Boolean areRowsUnique(RelNode rel) {
     final ImmutableBitSet columns =
         ImmutableBitSet.range(rel.getRowType().getFieldCount());
     return areColumnsUnique(rel, columns, false);
@@ -498,7 +502,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns) {
+  public @Nullable Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns) {
     return areColumnsUnique(rel, columns, false);
   }
 
@@ -515,7 +519,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true or false depending on whether the columns are unique, or
    * null if not enough information is available to make that determination
    */
-  public Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
+  public @Nullable Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
       boolean ignoreNulls) {
     for (;;) {
       try {
@@ -537,7 +541,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return List of sorted column combinations, or
    * null if not enough information is available to make that determination
    */
-  public ImmutableList<RelCollation> collations(RelNode rel) {
+  public @Nullable ImmutableList<RelCollation> collations(RelNode rel) {
     for (;;) {
       try {
         return collationHandler.collations(rel, this);
@@ -559,7 +563,12 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   public RelDistribution distribution(RelNode rel) {
     for (;;) {
       try {
-        return distributionHandler.distribution(rel, this);
+        RelDistribution distribution = distributionHandler.distribution(rel, this);
+        //noinspection ConstantConditions
+        if (distribution == null) {
+          return RelDistributions.ANY;
+        }
+        return distribution;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distributionHandler =
             revise(e.relClass, BuiltInMetadata.Distribution.DEF);
@@ -579,7 +588,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * estimate can be determined
    *
    */
-  public Double getPopulationSize(RelNode rel,
+  public @Nullable Double getPopulationSize(RelNode rel,
       ImmutableBitSet groupKey) {
     for (;;) {
       try {
@@ -601,7 +610,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel      the relational expression
    * @return average size of a row, in bytes, or null if not known
      */
-  public Double getAverageRowSize(RelNode rel) {
+  public @Nullable Double getAverageRowSize(RelNode rel) {
     for (;;) {
       try {
         return sizeHandler.averageRowSize(rel, this);
@@ -621,7 +630,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * value, in bytes. Each value or the entire list may be null if the
    * metadata is not available
    */
-  public List<Double> getAverageColumnSizes(RelNode rel) {
+  public @Nullable List<@Nullable Double> getAverageColumnSizes(RelNode rel) {
     for (;;) {
       try {
         return sizeHandler.averageColumnSizes(rel, this);
@@ -633,8 +642,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   /** As {@link #getAverageColumnSizes(org.apache.calcite.rel.RelNode)} but
    * never returns a null list, only ever a list of nulls. */
-  public List<Double> getAverageColumnSizesNotNull(RelNode rel) {
-    final List<Double> averageColumnSizes = getAverageColumnSizes(rel);
+  public List<@Nullable Double> getAverageColumnSizesNotNull(RelNode rel) {
+    final @Nullable List<@Nullable Double> averageColumnSizes = getAverageColumnSizes(rel);
     return averageColumnSizes == null
         ? Collections.nCopies(rel.getRowType().getFieldCount(), null)
         : averageColumnSizes;
@@ -650,7 +659,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * expression belongs to a different process than its inputs, or null if not
    * known
    */
-  public Boolean isPhaseTransition(RelNode rel) {
+  public @Nullable Boolean isPhaseTransition(RelNode rel) {
     for (;;) {
       try {
         return parallelismHandler.isPhaseTransition(rel, this);
@@ -669,7 +678,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel      the relational expression
    * @return the number of distinct splits of the data, or null if not known
    */
-  public Integer splitCount(RelNode rel) {
+  public @Nullable Integer splitCount(RelNode rel) {
     for (;;) {
       try {
         return parallelismHandler.splitCount(rel, this);
@@ -690,7 +699,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * operator implementing this relational expression, across all splits,
    * or null if not known
    */
-  public Double memory(RelNode rel) {
+  public @Nullable Double memory(RelNode rel) {
     for (;;) {
       try {
         return memoryHandler.memory(rel, this);
@@ -710,7 +719,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * physical operator implementing this relational expression, and all other
    * operators within the same phase, across all splits, or null if not known
    */
-  public Double cumulativeMemoryWithinPhase(RelNode rel) {
+  public @Nullable Double cumulativeMemoryWithinPhase(RelNode rel) {
     for (;;) {
       try {
         return memoryHandler.cumulativeMemoryWithinPhase(rel, this);
@@ -730,7 +739,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * the physical operator implementing this relational expression, and all
    * operators within the same phase, within each split, or null if not known
    */
-  public Double cumulativeMemoryWithinPhaseSplit(RelNode rel) {
+  public @Nullable Double cumulativeMemoryWithinPhaseSplit(RelNode rel) {
     for (;;) {
       try {
         return memoryHandler.cumulativeMemoryWithinPhaseSplit(rel, this);
@@ -751,10 +760,10 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return distinct row count for groupKey, filtered by predicate, or null
    * if no reliable estimate can be determined
    */
-  public Double getDistinctRowCount(
+  public @Nullable Double getDistinctRowCount(
       RelNode rel,
       ImmutableBitSet groupKey,
-      RexNode predicate) {
+      @Nullable RexNode predicate) {
     for (;;) {
       try {
         Double result =
@@ -779,7 +788,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   public RelOptPredicateList getPulledUpPredicates(RelNode rel) {
     for (;;) {
       try {
-        return predicatesHandler.getPredicates(rel, this);
+        RelOptPredicateList result = predicatesHandler.getPredicates(rel, this);
+        return result != null ? result : RelOptPredicateList.EMPTY;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         predicatesHandler = revise(e.relClass, BuiltInMetadata.Predicates.DEF);
       }
@@ -794,7 +804,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel the relational expression
    * @return All predicates within and below this RelNode
    */
-  public RelOptPredicateList getAllPredicates(RelNode rel) {
+  public @Nullable RelOptPredicateList getAllPredicates(RelNode rel) {
     for (;;) {
       try {
         return allPredicatesHandler.getAllPredicates(rel, this);
@@ -814,7 +824,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true for visible, false for invisible; if no metadata is available,
    * defaults to true
    */
-  public boolean isVisibleInExplain(RelNode rel,
+  public Boolean isVisibleInExplain(RelNode rel,
       SqlExplainLevel explainLevel) {
     for (;;) {
       try {
@@ -838,7 +848,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return description of how the rows in the relational expression are
    * physically distributed
    */
-  public RelDistribution getDistribution(RelNode rel) {
+  public @Nullable RelDistribution getDistribution(RelNode rel) {
     for (;;) {
       try {
         return distributionHandler.distribution(rel, this);
@@ -851,7 +861,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /**
    * Returns the lower bound cost of a RelNode.
    */
-  public RelOptCost getLowerBoundCost(RelNode rel, VolcanoPlanner planner) {
+  public @Nullable RelOptCost getLowerBoundCost(RelNode rel, VolcanoPlanner planner) {
     for (;;) {
       try {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);

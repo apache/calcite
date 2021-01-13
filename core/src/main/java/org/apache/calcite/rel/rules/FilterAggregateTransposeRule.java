@@ -125,7 +125,7 @@ public class FilterAggregateTransposeRule
     call.transformTo(rel);
   }
 
-  private boolean canPush(Aggregate aggregate, ImmutableBitSet rCols) {
+  private static boolean canPush(Aggregate aggregate, ImmutableBitSet rCols) {
     // If the filter references columns not in the group key, we cannot push
     final ImmutableBitSet groupKeys =
         ImmutableBitSet.range(0, aggregate.getGroupSet().cardinality());

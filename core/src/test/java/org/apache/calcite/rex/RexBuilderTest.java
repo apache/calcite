@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
@@ -28,6 +30,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -41,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -51,6 +55,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -153,37 +158,37 @@ class RexBuilderTest {
     final Calendar calendar = Util.calendar();
     calendar.set(1969, Calendar.JULY, 21, 2, 56, 15); // one small step
     calendar.set(Calendar.MILLISECOND, 0);
-    checkTimestamp(builder.makeLiteral(calendar, timestampType, false));
+    checkTimestamp(builder.makeLiteral(calendar, timestampType));
 
     // Old way #2: Provide a Long
-    checkTimestamp(builder.makeLiteral(MOON, timestampType, false));
+    checkTimestamp(builder.makeLiteral(MOON, timestampType));
 
     // The new way
     final TimestampString ts = new TimestampString(1969, 7, 21, 2, 56, 15);
-    checkTimestamp(builder.makeLiteral(ts, timestampType, false));
+    checkTimestamp(builder.makeLiteral(ts, timestampType));
 
     // Now with milliseconds
     final TimestampString ts2 = ts.withMillis(56);
     assertThat(ts2.toString(), is("1969-07-21 02:56:15.056"));
-    final RexNode literal2 = builder.makeLiteral(ts2, timestampType3, false);
-    assertThat(((RexLiteral) literal2).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15.056"));
+    final RexLiteral literal2 = builder.makeLiteral(ts2, timestampType3);
+    assertThat(literal2.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15.056"));
 
     // Now with nanoseconds
     final TimestampString ts3 = ts.withNanos(56);
-    final RexNode literal3 = builder.makeLiteral(ts3, timestampType9, false);
-    assertThat(((RexLiteral) literal3).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15"));
+    final RexLiteral literal3 = builder.makeLiteral(ts3, timestampType9);
+    assertThat(literal3.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15"));
     final TimestampString ts3b = ts.withNanos(2345678);
-    final RexNode literal3b = builder.makeLiteral(ts3b, timestampType9, false);
-    assertThat(((RexLiteral) literal3b).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15.002"));
+    final RexLiteral literal3b = builder.makeLiteral(ts3b, timestampType9);
+    assertThat(literal3b.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15.002"));
 
     // Now with a very long fraction
     final TimestampString ts4 = ts.withFraction("102030405060708090102");
-    final RexNode literal4 = builder.makeLiteral(ts4, timestampType18, false);
-    assertThat(((RexLiteral) literal4).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15.102"));
+    final RexLiteral literal4 = builder.makeLiteral(ts4, timestampType18);
+    assertThat(literal4.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15.102"));
 
     // toString
     assertThat(ts2.round(1).toString(), is("1969-07-21 02:56:15"));
@@ -204,9 +209,8 @@ class RexBuilderTest {
         is("2016-02-26 19:06:00.123"));
   }
 
-  private void checkTimestamp(RexNode node) {
-    assertThat(node.toString(), is("1969-07-21 02:56:15"));
-    RexLiteral literal = (RexLiteral) node;
+  private void checkTimestamp(RexLiteral literal) {
+    assertThat(literal.toString(), is("1969-07-21 02:56:15"));
     assertThat(literal.getValue() instanceof Calendar, is(true));
     assertThat(literal.getValue2() instanceof Long, is(true));
     assertThat(literal.getValue3() instanceof Long, is(true));
@@ -234,33 +238,33 @@ class RexBuilderTest {
     final TimestampWithTimeZoneString ts = new TimestampWithTimeZoneString(
         1969, 7, 21, 2, 56, 15, TimeZone.getTimeZone("PST").getID());
     checkTimestampWithLocalTimeZone(
-        builder.makeLiteral(ts.getLocalTimestampString(), timestampType, false));
+        builder.makeLiteral(ts.getLocalTimestampString(), timestampType));
 
     // Now with milliseconds
     final TimestampWithTimeZoneString ts2 = ts.withMillis(56);
     assertThat(ts2.toString(), is("1969-07-21 02:56:15.056 PST"));
-    final RexNode literal2 = builder.makeLiteral(
-        ts2.getLocalTimestampString(), timestampType3, false);
-    assertThat(((RexLiteral) literal2).getValue().toString(), is("1969-07-21 02:56:15.056"));
+    final RexLiteral literal2 =
+        builder.makeLiteral(ts2.getLocalTimestampString(), timestampType3);
+    assertThat(literal2.getValue().toString(), is("1969-07-21 02:56:15.056"));
 
     // Now with nanoseconds
     final TimestampWithTimeZoneString ts3 = ts.withNanos(56);
-    final RexNode literal3 = builder.makeLiteral(
-        ts3.getLocalTimestampString(), timestampType9, false);
-    assertThat(((RexLiteral) literal3).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15"));
+    final RexLiteral literal3 =
+        builder.makeLiteral(ts3.getLocalTimestampString(), timestampType9);
+    assertThat(literal3.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15"));
     final TimestampWithTimeZoneString ts3b = ts.withNanos(2345678);
-    final RexNode literal3b = builder.makeLiteral(
-        ts3b.getLocalTimestampString(), timestampType9, false);
-    assertThat(((RexLiteral) literal3b).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15.002"));
+    final RexLiteral literal3b =
+        builder.makeLiteral(ts3b.getLocalTimestampString(), timestampType9);
+    assertThat(literal3b.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15.002"));
 
     // Now with a very long fraction
     final TimestampWithTimeZoneString ts4 = ts.withFraction("102030405060708090102");
-    final RexNode literal4 = builder.makeLiteral(
-        ts4.getLocalTimestampString(), timestampType18, false);
-    assertThat(((RexLiteral) literal4).getValueAs(TimestampString.class)
-            .toString(), is("1969-07-21 02:56:15.102"));
+    final RexLiteral literal4 =
+        builder.makeLiteral(ts4.getLocalTimestampString(), timestampType18);
+    assertThat(literal4.getValueAs(TimestampString.class).toString(),
+        is("1969-07-21 02:56:15.102"));
 
     // toString
     assertThat(ts2.round(1).toString(), is("1969-07-21 02:56:15 PST"));
@@ -278,9 +282,9 @@ class RexBuilderTest {
     assertThat(ts2.round(0).toString(2), is("1969-07-21 02:56:15.00 PST"));
   }
 
-  private void checkTimestampWithLocalTimeZone(RexNode node) {
-    assertThat(node.toString(), is("1969-07-21 02:56:15:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
-    RexLiteral literal = (RexLiteral) node;
+  private void checkTimestampWithLocalTimeZone(RexLiteral literal) {
+    assertThat(literal.toString(),
+        is("1969-07-21 02:56:15:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
     assertThat(literal.getValue() instanceof TimestampString, is(true));
     assertThat(literal.getValue2() instanceof Long, is(true));
     assertThat(literal.getValue3() instanceof Long, is(true));
@@ -303,37 +307,37 @@ class RexBuilderTest {
     final Calendar calendar = Util.calendar();
     calendar.set(1969, Calendar.JULY, 21, 2, 56, 15); // one small step
     calendar.set(Calendar.MILLISECOND, 0);
-    checkTime(builder.makeLiteral(calendar, timeType, false));
+    checkTime(builder.makeLiteral(calendar, timeType));
 
     // Old way #2: Provide a Long
-    checkTime(builder.makeLiteral(MOON_TIME, timeType, false));
+    checkTime(builder.makeLiteral(MOON_TIME, timeType));
 
     // The new way
     final TimeString t = new TimeString(2, 56, 15);
     assertThat(t.getMillisOfDay(), is(10575000));
-    checkTime(builder.makeLiteral(t, timeType, false));
+    checkTime(builder.makeLiteral(t, timeType));
 
     // Now with milliseconds
     final TimeString t2 = t.withMillis(56);
     assertThat(t2.getMillisOfDay(), is(10575056));
     assertThat(t2.toString(), is("02:56:15.056"));
-    final RexNode literal2 = builder.makeLiteral(t2, timeType3, false);
-    assertThat(((RexLiteral) literal2).getValueAs(TimeString.class)
-        .toString(), is("02:56:15.056"));
+    final RexLiteral literal2 = builder.makeLiteral(t2, timeType3);
+    assertThat(literal2.getValueAs(TimeString.class).toString(),
+        is("02:56:15.056"));
 
     // Now with nanoseconds
     final TimeString t3 = t.withNanos(2345678);
     assertThat(t3.getMillisOfDay(), is(10575002));
-    final RexNode literal3 = builder.makeLiteral(t3, timeType9, false);
-    assertThat(((RexLiteral) literal3).getValueAs(TimeString.class)
-        .toString(), is("02:56:15.002"));
+    final RexLiteral literal3 = builder.makeLiteral(t3, timeType9);
+    assertThat(literal3.getValueAs(TimeString.class).toString(),
+        is("02:56:15.002"));
 
     // Now with a very long fraction
     final TimeString t4 = t.withFraction("102030405060708090102");
     assertThat(t4.getMillisOfDay(), is(10575102));
-    final RexNode literal4 = builder.makeLiteral(t4, timeType18, false);
-    assertThat(((RexLiteral) literal4).getValueAs(TimeString.class)
-        .toString(), is("02:56:15.102"));
+    final RexLiteral literal4 = builder.makeLiteral(t4, timeType18);
+    assertThat(literal4.getValueAs(TimeString.class).toString(),
+        is("02:56:15.102"));
 
     // toString
     assertThat(t2.round(1).toString(), is("02:56:15"));
@@ -354,9 +358,8 @@ class RexBuilderTest {
         is("14:52:40.123"));
   }
 
-  private void checkTime(RexNode node) {
-    assertThat(node.toString(), is("02:56:15"));
-    RexLiteral literal = (RexLiteral) node;
+  private void checkTime(RexLiteral literal) {
+    assertThat(literal.toString(), is("02:56:15"));
     assertThat(literal.getValue() instanceof Calendar, is(true));
     assertThat(literal.getValue2() instanceof Integer, is(true));
     assertThat(literal.getValue3() instanceof Integer, is(true));
@@ -376,19 +379,18 @@ class RexBuilderTest {
     final Calendar calendar = Util.calendar();
     calendar.set(1969, Calendar.JULY, 21); // one small step
     calendar.set(Calendar.MILLISECOND, 0);
-    checkDate(builder.makeLiteral(calendar, dateType, false));
+    checkDate(builder.makeLiteral(calendar, dateType));
 
     // Old way #2: Provide in Integer
-    checkDate(builder.makeLiteral(MOON_DAY, dateType, false));
+    checkDate(builder.makeLiteral(MOON_DAY, dateType));
 
     // The new way
     final DateString d = new DateString(1969, 7, 21);
-    checkDate(builder.makeLiteral(d, dateType, false));
+    checkDate(builder.makeLiteral(d, dateType));
   }
 
-  private void checkDate(RexNode node) {
-    assertThat(node.toString(), is("1969-07-21"));
-    RexLiteral literal = (RexLiteral) node;
+  private void checkDate(RexLiteral literal) {
+    assertThat(literal.toString(), is("1969-07-21"));
     assertThat(literal.getValue() instanceof Calendar, is(true));
     assertThat(literal.getValue2() instanceof Integer, is(true));
     assertThat(literal.getValue3() instanceof Integer, is(true));
@@ -420,7 +422,7 @@ class RexBuilderTest {
     final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
     final RexBuilder builder = new RexBuilder(typeFactory);
     try {
-      builder.makeLiteral(12.3, type, false);
+      builder.makeLiteral(12.3, type);
       fail();
     } catch (AssertionError e) {
       assertThat(e.getMessage(),
@@ -554,7 +556,7 @@ class RexBuilderTest {
     final NlsString latin1 = new NlsString("foobar", "LATIN1", SqlCollation.IMPLICIT);
     final NlsString utf8 = new NlsString("foobar", "UTF8", SqlCollation.IMPLICIT);
 
-    RexNode literal = builder.makePreciseStringLiteral("foobar");
+    RexLiteral literal = builder.makePreciseStringLiteral("foobar");
     assertEquals("'foobar'", literal.toString());
     literal = builder.makePreciseStringLiteral(
         new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
@@ -583,9 +585,9 @@ class RexBuilderTest {
     } catch (RuntimeException e) {
       assertThat(e.getMessage(), containsString("Failed to encode"));
     }
-    literal = builder.makeLiteral(latin1, varchar, false);
+    literal = builder.makeLiteral(latin1, varchar);
     assertEquals("_LATIN1'foobar'", literal.toString());
-    literal = builder.makeLiteral(utf8, varchar, false);
+    literal = builder.makeLiteral(utf8, varchar);
     assertEquals("_UTF8'foobar'", literal.toString());
   }
 
@@ -735,4 +737,46 @@ class RexBuilderTest {
         literal.getValueAs(BigDecimal.class).toString(), is(val));
   }
 
+  @Test void testValidateRexFieldAccess() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType longType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+
+    RelDataType structType = typeFactory.createStructType(
+        Arrays.asList(intType, longType), Arrays.asList("x", "y"));
+    RexInputRef inputRef = builder.makeInputRef(structType, 0);
+
+    // construct RexFieldAccess fails because of negative index
+    IllegalArgumentException e1 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", -1, intType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e1.getMessage(),
+        is("Field #-1: z INTEGER does not exist for expression $0"));
+
+    // construct RexFieldAccess fails because of too large index
+    IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", 2, intType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e2.getMessage(),
+        is("Field #2: z INTEGER does not exist for expression $0"));
+
+    // construct RexFieldAccess fails because of incorrect type
+    IllegalArgumentException e3 = assertThrows(IllegalArgumentException.class, () -> {
+      RelDataTypeField field = new RelDataTypeFieldImpl("z", 0, longType);
+      new RexFieldAccess(inputRef, field);
+    });
+    assertThat(e3.getMessage(),
+        is("Field #0: z BIGINT does not exist for expression $0"));
+
+    // construct RexFieldAccess successfully
+    RelDataTypeField field = new RelDataTypeFieldImpl("x", 0, intType);
+    RexFieldAccess fieldAccess = new RexFieldAccess(inputRef, field);
+    RexChecker checker = new RexChecker(structType, () -> null, Litmus.THROW);
+    assertThat(fieldAccess.accept(checker), is(true));
+  }
 }

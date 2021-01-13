@@ -98,14 +98,11 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   }
 
   @Override public double tableCardinality(RelOptTable table) {
-    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
-    final List<String> qualifiedName;
-    if (jdbcTable != null) {
-      qualifiedName = Arrays.asList(jdbcTable.jdbcSchemaName,
-          jdbcTable.jdbcTableName);
-    } else {
-      qualifiedName = table.getQualifiedName();
-    }
+    final List<String> qualifiedName =
+        table.maybeUnwrap(JdbcTable.class)
+            .map(value ->
+                Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
+            .orElseGet(table::getQualifiedName);
     return cardinalityMap.get(qualifiedName.toString());
   }
 
@@ -131,7 +128,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .contains(columnNames(table, columns));
   }
 
-  private List<String> columnNames(RelOptTable table, List<Integer> columns) {
+  private static List<String> columnNames(RelOptTable table, List<Integer> columns) {
     return columns.stream()
         .map(columnOrdinal -> table.getRowType().getFieldNames()
             .get(columnOrdinal))

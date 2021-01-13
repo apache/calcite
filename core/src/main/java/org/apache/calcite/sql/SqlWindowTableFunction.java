@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -30,6 +31,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,8 +83,8 @@ public class SqlWindowTableFunction extends SqlFunction
         operandMetadata, SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public SqlOperandMetadata getOperandTypeChecker() {
-    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
+    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   @Override public SqlReturnTypeInference getRowTypeInference() {
@@ -233,13 +236,13 @@ public class SqlWindowTableFunction extends SqlFunction
     void validateColumnNames(SqlValidator validator,
         List<String> fieldNames, List<SqlNode> columnNames) {
       final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
-      for (SqlNode columnName : columnNames) {
-        final String name = ((SqlIdentifier) columnName).getSimple();
+      Ord.forEach(SqlIdentifier.simpleNames(columnNames), (name, i) -> {
         if (matcher.indexOf(fieldNames, name) < 0) {
+          final SqlIdentifier columnName = (SqlIdentifier) columnNames.get(i);
           throw SqlUtil.newContextException(columnName.getParserPosition(),
               RESOURCE.unknownIdentifier(name));
         }
-      }
+      });
     }
   }
 }

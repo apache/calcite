@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Arrays;
+import java.util.Locale;
+
 /**
  * Utilities for converting SQL {@code LIKE} and {@code SIMILAR} operators
  * to regular expressions.
@@ -40,6 +45,11 @@ public class Like {
       "[:alnum:]", "\\p{Alnum}"
   };
 
+  // It's important to have XDigit before Digit to match XDigit first
+  // (i.e. see the posixRegexToPattern method)
+  private static final String[] POSIX_CHARACTER_CLASSES = new String[] { "Lower", "Upper", "ASCII",
+      "Alpha", "XDigit", "Digit", "Alnum", "Punct", "Graph", "Print", "Blank", "Cntrl", "Space" };
+
   private Like() {
   }
 
@@ -49,7 +59,7 @@ public class Like {
    */
   static String sqlToRegexLike(
       String sqlPattern,
-      CharSequence escapeStr) {
+      @Nullable CharSequence escapeStr) {
     final char escapeChar;
     if (escapeStr != null) {
       if (escapeStr.length() != 1) {
@@ -209,7 +219,7 @@ public class Like {
    */
   static String sqlToRegexSimilar(
       String sqlPattern,
-      CharSequence escapeStr) {
+      @Nullable CharSequence escapeStr) {
     final char escapeChar;
     if (escapeStr != null) {
       if (escapeStr.length() != 1) {
@@ -300,5 +310,18 @@ public class Like {
     }
 
     return javaPattern.toString();
+  }
+
+  static java.util.regex.Pattern posixRegexToPattern(String regex, boolean caseSensitive) {
+    // Replace existing character classes with java equivalent ones
+    String originalRegex = regex;
+    String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
+        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
+    for (String v : existingExpressions) {
+      regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
+    }
+
+    int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
+    return java.util.regex.Pattern.compile(regex, flags);
   }
 }

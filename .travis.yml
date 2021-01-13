@@ -22,7 +22,23 @@ matrix:
   fast_finish: true
   include:
     - jdk: openjdk8
+      env:
+        - TZ=America/New_York # flips between −05:00 and −04:00
     - jdk: openjdk11
+      env:
+        - CHECKERFRAMEWORK=Y
+      script:
+        - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
+        - ./gradlew --no-parallel --no-daemon --scan -PenableCheckerframework :linq4j:classes :core:classes
+    - jdk: openjdk11
+      env:
+        - ERRORPRONE=Y
+      script:
+        - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
+        - ./gradlew --no-parallel --no-daemon --scan -PenableErrorprone classes
+    - jdk: openjdk11
+      env:
+        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: openjdk15
 branches:
   only:

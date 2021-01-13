@@ -38,17 +38,21 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Records that a particular query is materialized by a particular table.
  */
 public class RelOptMaterialization {
   public final RelNode tableRel;
-  public final RelOptTable starRelOptTable;
-  public final StarTable starTable;
+  public final @Nullable RelOptTable starRelOptTable;
+  public final @Nullable StarTable starTable;
   public final List<String> qualifiedTableName;
   public final RelNode queryRel;
 
@@ -56,15 +60,17 @@ public class RelOptMaterialization {
    * Creates a RelOptMaterialization.
    */
   public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
-      RelOptTable starRelOptTable, List<String> qualifiedTableName) {
+      @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName) {
     this.tableRel =
-        RelOptUtil.createCastRel(tableRel, queryRel.getRowType(), false);
+        RelOptUtil.createCastRel(
+            Objects.requireNonNull(tableRel, "tableRel"),
+            Objects.requireNonNull(queryRel, "queryRel").getRowType(),
+            false);
     this.starRelOptTable = starRelOptTable;
     if (starRelOptTable == null) {
       this.starTable = null;
     } else {
-      this.starTable = starRelOptTable.unwrap(StarTable.class);
-      assert starTable != null;
+      this.starTable = starRelOptTable.unwrapOrThrow(StarTable.class);
     }
     this.qualifiedTableName = qualifiedTableName;
     this.queryRel = queryRel;
@@ -80,16 +86,15 @@ public class RelOptMaterialization {
    * @return Rewritten expression, or null if expression cannot be rewritten
    * to use the star
    */
-  public static RelNode tryUseStar(RelNode rel,
+  public static @Nullable RelNode tryUseStar(RelNode rel,
       final RelOptTable starRelOptTable) {
-    final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
-    assert starTable != null;
+    final StarTable starTable = starRelOptTable.unwrapOrThrow(StarTable.class);
     RelNode rel2 = rel.accept(
         new RelShuttleImpl() {
           @Override public RelNode visit(TableScan scan) {
             RelOptTable relOptTable = scan.getTable();
             final Table table = relOptTable.unwrap(Table.class);
-            if (table.equals(starTable.tables.get(0))) {
+            if (Objects.equals(table, starTable.tables.get(0))) {
               Mappings.TargetMapping mapping =
                   Mappings.createShiftMapping(
                       starRelOptTable.getRowType().getFieldCount(),
@@ -99,7 +104,7 @@ public class RelOptMaterialization {
               final RelNode scan2 =
                   starRelOptTable.toRel(ViewExpanders.simpleContext(cluster));
               return RelOptUtil.createProject(scan2,
-                  Mappings.asList(mapping.inverse()));
+                  Mappings.asListNonNull(mapping.inverse()));
             }
             return scan;
           }
@@ -120,7 +125,7 @@ public class RelOptMaterialization {
                   try {
                     match(left, right, join.getCluster());
                   } catch (Util.FoundOne e) {
-                    return (RelNode) e.getNode();
+                    return (RelNode) Objects.requireNonNull(e.getNode(), "FoundOne.getNode");
                   }
                 }
               }
@@ -140,6 +145,7 @@ public class RelOptMaterialization {
             final RelOptTable rightRelOptTable = right.getTable();
             final Table rightTable = rightRelOptTable.unwrap(Table.class);
             if (leftTable instanceof StarTable
+                && rightTable != null
                 && ((StarTable) leftTable).tables.contains(rightTable)) {
               final int offset =
                   ((StarTable) leftTable).columnOffset(rightTable);
@@ -150,7 +156,7 @@ public class RelOptMaterialization {
                           leftMapping.getTargetCount()));
               final RelNode project = RelOptUtil.createProject(
                   leftRelOptTable.toRel(ViewExpanders.simpleContext(cluster)),
-                  Mappings.asList(mapping.inverse()));
+                  Mappings.asListNonNull(mapping.inverse()));
               final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {
                 conditions.add(left.condition);
@@ -165,6 +171,7 @@ public class RelOptMaterialization {
               throw new Util.FoundOne(filter);
             }
             if (rightTable instanceof StarTable
+                && leftTable != null
                 && ((StarTable) rightTable).tables.contains(leftTable)) {
               final int offset =
                   ((StarTable) rightTable).columnOffset(leftTable);
@@ -174,7 +181,7 @@ public class RelOptMaterialization {
                       Mappings.offsetTarget(rightMapping, leftCount));
               final RelNode project = RelOptUtil.createProject(
                   rightRelOptTable.toRel(ViewExpanders.simpleContext(cluster)),
-                  Mappings.asList(mapping.inverse()));
+                  Mappings.asListNonNull(mapping.inverse()));
               final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {
                 conditions.add(
@@ -200,25 +207,25 @@ public class RelOptMaterialization {
             CoreRules.AGGREGATE_FILTER_TRANSPOSE),
         false,
         DefaultRelMetadataProvider.INSTANCE);
-    return program.run(null, rel2, null,
+    return program.run(castNonNull(null), rel2, castNonNull(null),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
   /** A table scan and optional project mapping and filter condition. */
   private static class ProjectFilterTable {
-    final RexNode condition;
-    final Mappings.TargetMapping mapping;
+    final @Nullable RexNode condition;
+    final Mappings.@Nullable TargetMapping mapping;
     final TableScan scan;
 
-    private ProjectFilterTable(RexNode condition,
-        Mappings.TargetMapping mapping, TableScan scan) {
+    private ProjectFilterTable(@Nullable RexNode condition,
+        Mappings.@Nullable TargetMapping mapping, TableScan scan) {
       this.condition = condition;
       this.mapping = mapping;
       this.scan = Objects.requireNonNull(scan);
     }
 
-    static ProjectFilterTable of(RelNode node) {
+    static @Nullable ProjectFilterTable of(RelNode node) {
       if (node instanceof Filter) {
         final Filter filter = (Filter) node;
         return of2(filter.getCondition(), filter.getInput());
@@ -227,7 +234,7 @@ public class RelOptMaterialization {
       }
     }
 
-    private static ProjectFilterTable of2(RexNode condition, RelNode node) {
+    private static @Nullable ProjectFilterTable of2(@Nullable RexNode condition, RelNode node) {
       if (node instanceof Project) {
         final Project project = (Project) node;
         return of3(condition, project.getMapping(), project.getInput());
@@ -236,8 +243,8 @@ public class RelOptMaterialization {
       }
     }
 
-    private static ProjectFilterTable of3(RexNode condition,
-        Mappings.TargetMapping mapping, RelNode node) {
+    private static @Nullable ProjectFilterTable of3(@Nullable RexNode condition,
+        Mappings.@Nullable TargetMapping mapping, RelNode node) {
       if (node instanceof TableScan) {
         return new ProjectFilterTable(condition, mapping,
             (TableScan) node);
@@ -276,7 +283,7 @@ public class RelOptMaterialization {
           RelOptUtil.dumpPlan("before", rel, SqlExplainFormat.TEXT,
               SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
-    final RelNode rel2 = program.run(null, rel, null,
+    final RelNode rel2 = program.run(castNonNull(null), rel, castNonNull(null),
         ImmutableList.of(),
         ImmutableList.of());
     if (CalciteSystemProperty.DEBUG.value()) {

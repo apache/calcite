@@ -83,7 +83,7 @@ public class AggregateUnionAggregateRule
    * Returns an input with the same row type with the input Aggregate,
    * create a Project node if needed.
    */
-  private RelNode getInputWithSameRowType(Aggregate bottomAggRel) {
+  private static RelNode getInputWithSameRowType(Aggregate bottomAggRel) {
     if (RelOptUtil.areRowTypesEqual(
             bottomAggRel.getRowType(),
             bottomAggRel.getInput(0).getRowType(),

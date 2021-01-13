@@ -63,6 +63,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.ICompilerFactory;
@@ -171,7 +172,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return builder;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof JaninoRelMetadataProvider
         && ((JaninoRelMetadataProvider) obj).provider.equals(provider);
@@ -181,7 +182,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return 109 + provider.hashCode();
   }
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     throw new UnsupportedOperationException();
   }
@@ -533,7 +534,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           + relClasses.hashCode();
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof Key
           && ((Key) obj).def.equals(def)

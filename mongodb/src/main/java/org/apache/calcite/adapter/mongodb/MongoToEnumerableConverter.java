@@ -40,6 +40,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.List;
 
@@ -61,7 +63,7 @@ public class MongoToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }

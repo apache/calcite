@@ -135,7 +135,7 @@ class FileSchema extends AbstractSchema {
     return addTable(builder, source, tableName, tableDef);
   }
 
-  private boolean addTable(ImmutableMap.Builder<String, Table> builder,
+  private static boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Source source, String tableName, Map<String, Object> tableDef) {
     final Source sourceSansGz = source.trim(".gz");
     final Source sourceSansJson = sourceSansGz.trimOrNull(".json");

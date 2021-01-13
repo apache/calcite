@@ -38,6 +38,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -75,7 +77,7 @@ public class MultiJoinOptimizeBushyRule
     extends RelRule<MultiJoinOptimizeBushyRule.Config>
     implements TransformationRule {
 
-  private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
+  private final @Nullable PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)
       : null;
 
@@ -288,7 +290,7 @@ public class MultiJoinOptimizeBushyRule
     call.transformTo(relBuilder.build());
   }
 
-  private void trace(List<Vertex> vertexes,
+  private static void trace(List<Vertex> vertexes,
       List<LoptMultiJoin.Edge> unusedEdges, List<LoptMultiJoin.Edge> usedEdges,
       int edgeOrdinal, PrintWriter pw) {
     pw.println("bestEdge: " + edgeOrdinal);

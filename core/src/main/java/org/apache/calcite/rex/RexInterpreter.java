@@ -26,6 +26,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -70,7 +72,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   }
 
   /** Evaluates an expression in an environment. */
-  public static Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
+  public static @Nullable Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
     final Comparable v = e.accept(new RexInterpreter(map));
     if (false) {
       System.out.println("evaluate " + e + " on " + map + " returns " + v);
@@ -78,7 +80,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return v;
   }
 
-  private IllegalArgumentException unbound(RexNode e) {
+  private static IllegalArgumentException unbound(RexNode e) {
     return new IllegalArgumentException("unbound: " + e);
   }
 
@@ -212,7 +214,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private Comparable extract(List<Comparable> values) {
+  private static Comparable extract(List<Comparable> values) {
     final Comparable v = values.get(1);
     if (v == N) {
       return N;
@@ -229,7 +231,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return DateTimeUtils.unixDateExtract(timeUnitRange, v2);
   }
 
-  private Comparable coalesce(List<Comparable> values) {
+  private static Comparable coalesce(List<Comparable> values) {
     for (Comparable value : values) {
       if (value != N) {
         return value;
@@ -238,7 +240,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return N;
   }
 
-  private Comparable ceil(RexCall call, List<Comparable> values) {
+  private static Comparable ceil(RexCall call, List<Comparable> values) {
     if (values.get(0) == N) {
       return N;
     }
@@ -266,7 +268,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private TimeUnitRange subUnit(TimeUnitRange unit) {
+  private static TimeUnitRange subUnit(TimeUnitRange unit) {
     switch (unit) {
     case QUARTER:
       return TimeUnitRange.MONTH;
@@ -275,14 +277,14 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private Comparable cast(List<Comparable> values) {
+  private static Comparable cast(List<Comparable> values) {
     if (values.get(0) == N) {
       return N;
     }
     return values.get(0);
   }
 
-  private Comparable not(Comparable value) {
+  private static Comparable not(Comparable value) {
     if (value.equals(true)) {
       return false;
     } else if (value.equals(false)) {
@@ -292,7 +294,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private Comparable case_(List<Comparable> values) {
+  private static Comparable case_(List<Comparable> values) {
     final int size;
     final Comparable elseValue;
     if (values.size() % 2 == 0) {
@@ -310,7 +312,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return elseValue;
   }
 
-  private BigDecimal number(Comparable comparable) {
+  private static BigDecimal number(Comparable comparable) {
     return comparable instanceof BigDecimal
         ? (BigDecimal) comparable
         : comparable instanceof BigInteger
@@ -322,7 +324,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
         : new BigDecimal(((Number) comparable).doubleValue());
   }
 
-  private Comparable compare(List<Comparable> values, IntPredicate p) {
+  private static Comparable compare(List<Comparable> values, IntPredicate p) {
     if (containsNull(values)) {
       return N;
     }
@@ -354,7 +356,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return p.test(c);
   }
 
-  private boolean containsNull(List<Comparable> values) {
+  private static boolean containsNull(List<Comparable> values) {
     for (Comparable value : values) {
       if (value == N) {
         return true;

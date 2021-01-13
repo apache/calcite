@@ -207,6 +207,7 @@ class OsAdapterTest {
   }
 
   @Test void testJps() {
+    assumeToolExists("jps");
     final String q = "select pid, info from jps";
     sql(q).returns(r -> {
       try {

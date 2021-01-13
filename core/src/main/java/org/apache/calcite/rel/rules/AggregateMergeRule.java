@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Planner rule that matches an {@link Aggregate} on a {@link Aggregate}
@@ -65,16 +64,15 @@ public class AggregateMergeRule
         .as(Config.class));
   }
 
-  private boolean isAggregateSupported(AggregateCall aggCall) {
+  private static boolean isAggregateSupported(AggregateCall aggCall) {
     if (aggCall.isDistinct()
         || aggCall.hasFilter()
         || aggCall.isApproximate()
         || aggCall.getArgList().size() > 1) {
       return false;
     }
-    SqlSplittableAggFunction splitter = aggCall.getAggregation()
-        .unwrap(SqlSplittableAggFunction.class);
-    return splitter != null;
+    return aggCall.getAggregation()
+        .maybeUnwrap(SqlSplittableAggFunction.class).isPresent();
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -125,8 +123,9 @@ public class AggregateMergeRule
                && hasEmptyGroup)) {
         return;
       }
-      SqlSplittableAggFunction splitter = Objects.requireNonNull(
-          bottomCall.getAggregation().unwrap(SqlSplittableAggFunction.class));
+      SqlSplittableAggFunction splitter =
+          bottomCall.getAggregation()
+              .unwrapOrThrow(SqlSplittableAggFunction.class);
       AggregateCall finalCall = splitter.merge(topCall, bottomCall);
       // fail to merge the aggregate call, bail out
       if (finalCall == null) {

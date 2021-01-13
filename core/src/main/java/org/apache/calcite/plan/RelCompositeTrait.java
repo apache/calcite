@@ -19,6 +19,8 @@ package org.apache.calcite.plan;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -78,7 +80,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return Arrays.hashCode(traits);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RelCompositeTrait
         && Arrays.equals(traits, ((RelCompositeTrait) obj).traits);

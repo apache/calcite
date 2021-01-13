@@ -39,9 +39,11 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
 
 /**
  * Rule that converts CASE-style filtered aggregates into true filtered
@@ -148,7 +150,7 @@ public class AggregateCaseToFilterRule
     call.getPlanner().prune(aggregate);
   }
 
-  private @Nullable AggregateCall transform(AggregateCall aggregateCall,
+  private static @Nullable AggregateCall transform(AggregateCall aggregateCall,
       Project project, List<RexNode> newProjects) {
     final int singleArg = soleArgument(aggregateCall);
     if (singleArg < 0) {
@@ -227,8 +229,8 @@ public class AggregateCaseToFilterRule
           RelCollations.EMPTY, aggregateCall.getType(),
           aggregateCall.getName());
     } else if (kind == SqlKind.SUM // Case B
-        && isIntLiteral(arg1) && RexLiteral.intValue(arg1) == 1
-        && isIntLiteral(arg2) && RexLiteral.intValue(arg2) == 0) {
+        && isIntLiteral(arg1, BigDecimal.ONE)
+        && isIntLiteral(arg2, BigDecimal.ZERO)) {
 
       newProjects.add(filter);
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -241,8 +243,7 @@ public class AggregateCaseToFilterRule
     } else if ((RexLiteral.isNullLiteral(arg2) // Case A1
             && aggregateCall.getAggregation().allowsFilter())
         || (kind == SqlKind.SUM // Case A2
-            && isIntLiteral(arg2)
-            && RexLiteral.intValue(arg2) == 0)) {
+            && isIntLiteral(arg2, BigDecimal.ZERO))) {
       newProjects.add(arg1);
       newProjects.add(filter);
       return AggregateCall.create(aggregateCall.getAggregation(), false,
@@ -267,9 +268,10 @@ public class AggregateCaseToFilterRule
         && ((RexCall) rexNode).operands.size() == 3;
   }
 
-  private static boolean isIntLiteral(final RexNode rexNode) {
+  private static boolean isIntLiteral(RexNode rexNode, BigDecimal value) {
     return rexNode instanceof RexLiteral
-        && SqlTypeName.INT_TYPES.contains(rexNode.getType().getSqlTypeName());
+        && SqlTypeName.INT_TYPES.contains(rexNode.getType().getSqlTypeName())
+        && value.equals(((RexLiteral) rexNode).getValueAs(BigDecimal.class));
   }
 
   /** Rule configuration. */

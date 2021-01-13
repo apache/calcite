@@ -82,6 +82,7 @@ import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -111,8 +112,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import static org.apache.calcite.test.Matchers.compose;
@@ -1736,7 +1735,7 @@ public class CalciteAssert {
       return planContains(checkUpdateCount(count), JavaSql.fromSql(expected));
     }
 
-    @Nonnull private AssertQuery planContains(Consumer<Integer> checkUpdate,
+    private AssertQuery planContains(Consumer<Integer> checkUpdate,
         JavaSql expected) {
       ensurePlan(checkUpdate);
       if (expected.sql != null) {
@@ -2190,7 +2189,7 @@ public class CalciteAssert {
       return unwrap(java);
     }
 
-    static @Nonnull List<String> unwrap(String java) {
+    static List<String> unwrap(String java) {
       final List<String> sqlList = new ArrayList<>();
       final StringBuilder b = new StringBuilder();
       hLoop:

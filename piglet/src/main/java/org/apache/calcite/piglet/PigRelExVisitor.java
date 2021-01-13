@@ -295,7 +295,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @param rexNode The string literal
    * @return New string literal with Pig regular expressions replaced by SQL regular expressions
    */
-  private RexNode replacePatternIfPossible(RexNode rexNode) {
+  private static RexNode replacePatternIfPossible(RexNode rexNode) {
     // Until
     //   [CALCITE-3194] Convert Pig string patterns into SQL string patterns
     // is fixed, return the pattern unchanged.
@@ -366,7 +366,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     builder.registerPigUDF(className, op.getFuncSpec());
   }
 
-  private int optSize(List<Operator> list) {
+  private static int optSize(List<Operator> list) {
     return list != null ? list.size() : 0;
   }
 

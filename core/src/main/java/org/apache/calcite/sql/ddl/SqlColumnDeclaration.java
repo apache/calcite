@@ -29,6 +29,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -42,12 +44,12 @@ public class SqlColumnDeclaration extends SqlCall {
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
-  public final SqlNode expression;
+  public final @Nullable SqlNode expression;
   public final ColumnStrategy strategy;
 
   /** Creates a SqlColumnDeclaration; use {@link SqlDdlNodes#column}. */
   SqlColumnDeclaration(SqlParserPos pos, SqlIdentifier name,
-      SqlDataTypeSpec dataType, SqlNode expression,
+      SqlDataTypeSpec dataType, @Nullable SqlNode expression,
       ColumnStrategy strategy) {
     super(pos);
     this.name = name;
@@ -67,20 +69,21 @@ public class SqlColumnDeclaration extends SqlCall {
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     name.unparse(writer, 0, 0);
     dataType.unparse(writer, 0, 0);
-    if (dataType.getNullable() != null && !dataType.getNullable()) {
+    if (Boolean.FALSE.equals(dataType.getNullable())) {
       writer.keyword("NOT NULL");
     }
+    SqlNode expression = this.expression;
     if (expression != null) {
       switch (strategy) {
       case VIRTUAL:
       case STORED:
         writer.keyword("AS");
-        exp(writer);
+        exp(writer, expression);
         writer.keyword(strategy.name());
         break;
       case DEFAULT:
         writer.keyword("DEFAULT");
-        exp(writer);
+        exp(writer, expression);
         break;
       default:
         throw new AssertionError("unexpected: " + strategy);
@@ -88,7 +91,7 @@ public class SqlColumnDeclaration extends SqlCall {
     }
   }
 
-  private void exp(SqlWriter writer) {
+  static void exp(SqlWriter writer, SqlNode expression) {
     if (writer.isAlwaysUseParentheses()) {
       expression.unparse(writer, 0, 0);
     } else {

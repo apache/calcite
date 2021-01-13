@@ -28,6 +28,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +52,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     assert getConvention() == input.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
 
     RelOptCost cost = super.computeSelfCost(planner, mq);
@@ -92,7 +94,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     return getRowType().getFieldList().get(index).getName();
   }
 
-  private String direction(RelFieldCollation.Direction relDirection) {
+  private static String direction(RelFieldCollation.Direction relDirection) {
     if (relDirection == RelFieldCollation.Direction.DESCENDING) {
       return DESC;
     }

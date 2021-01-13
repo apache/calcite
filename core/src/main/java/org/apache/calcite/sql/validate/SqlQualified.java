@@ -19,6 +19,8 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -33,11 +35,11 @@ import java.util.List;
  */
 public class SqlQualified {
   public final int prefixLength;
-  public final SqlValidatorNamespace namespace;
+  public final @Nullable SqlValidatorNamespace namespace;
   public final SqlIdentifier identifier;
 
-  private SqlQualified(SqlValidatorScope scope, int prefixLength,
-      SqlValidatorNamespace namespace, SqlIdentifier identifier) {
+  private SqlQualified(@Nullable SqlValidatorScope scope, int prefixLength,
+      @Nullable SqlValidatorNamespace namespace, SqlIdentifier identifier) {
     Util.discard(scope);
     this.prefixLength = prefixLength;
     this.namespace = namespace;
@@ -48,8 +50,8 @@ public class SqlQualified {
     return "{id: " + identifier.toString() + ", prefix: " + prefixLength + "}";
   }
 
-  public static SqlQualified create(SqlValidatorScope scope, int prefixLength,
-      SqlValidatorNamespace namespace, SqlIdentifier identifier) {
+  public static SqlQualified create(@Nullable SqlValidatorScope scope, int prefixLength,
+      @Nullable SqlValidatorNamespace namespace, SqlIdentifier identifier) {
     return new SqlQualified(scope, prefixLength, namespace, identifier);
   }
 

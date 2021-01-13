@@ -20,6 +20,8 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelTrait represents the manifestation of a relational expression trait within
  * a trait definition. For example, a {@code CallingConvention.JAVA} is a trait
@@ -53,7 +55,7 @@ public interface RelTrait {
   /**
    * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
    */
-  @Override boolean equals(Object o);
+  @Override boolean equals(@Nullable Object o);
 
   /**
    * Returns whether this trait satisfies a given trait.

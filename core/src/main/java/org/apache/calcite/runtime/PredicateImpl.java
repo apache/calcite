@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.base.Predicate;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Abstract implementation of {@link com.google.common.base.Predicate}.

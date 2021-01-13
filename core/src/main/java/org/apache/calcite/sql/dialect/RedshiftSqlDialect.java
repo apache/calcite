@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Redshift database.
  */
@@ -39,8 +41,8 @@ public class RedshiftSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 }

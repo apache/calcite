@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -35,6 +36,8 @@ import org.apache.calcite.util.Source;
 
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file.
@@ -60,8 +63,9 @@ public class CsvTranslatableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       @Override public Enumerator<Object> enumerator() {
+        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
         return new CsvEnumerator<>(source, cancelFlag,
-            getFieldTypes(root.getTypeFactory()), ImmutableIntList.of(fields));
+            getFieldTypes(typeFactory), ImmutableIntList.of(fields));
       }
     };
   }

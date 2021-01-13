@@ -20,7 +20,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
-import java.util.Objects;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SQL array type.
@@ -38,7 +40,7 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.ARRAY, isNullable, null);
-    this.elementType = Objects.requireNonNull(elementType);
+    this.elementType = requireNonNull(elementType);
     computeDigest();
   }
 
@@ -67,10 +69,12 @@ public class ArraySqlType extends AbstractSqlType {
   @Override public RelDataTypePrecedenceList getPrecedenceList() {
     return new RelDataTypePrecedenceList() {
       @Override public boolean containsType(RelDataType type) {
-        return type.getSqlTypeName() == getSqlTypeName()
-            && type.getComponentType() != null
-            && getComponentType().getPrecedenceList().containsType(
-                type.getComponentType());
+        if (type.getSqlTypeName() != getSqlTypeName()) {
+          return false;
+        }
+        RelDataType otherComponentType = type.getComponentType();
+        return otherComponentType != null
+            && getComponentType().getPrecedenceList().containsType(otherComponentType);
       }
 
       @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
@@ -81,7 +85,7 @@ public class ArraySqlType extends AbstractSqlType {
           throw new IllegalArgumentException("must contain type: " + type2);
         }
         return getComponentType().getPrecedenceList()
-            .compareTypePrecedence(type1.getComponentType(), type2.getComponentType());
+            .compareTypePrecedence(getComponentTypeOrThrow(type1), getComponentTypeOrThrow(type2));
       }
     };
   }

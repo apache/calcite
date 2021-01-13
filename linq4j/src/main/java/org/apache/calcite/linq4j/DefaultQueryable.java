@@ -33,6 +33,8 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -148,7 +150,7 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.ofType(getThis(), clazz);
   }
 
-  @Override public Queryable<T> defaultIfEmpty() {
+  @Override public Queryable<@Nullable T> defaultIfEmpty() {
     return factory.defaultIfEmpty(getThis());
   }
 
@@ -162,7 +164,8 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
 
   // End disambiguate
 
-  @Override public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
+  @Override public @Nullable T aggregate(
+      FunctionExpression<Function2<@Nullable T, T, T>> selector) {
     return factory.aggregate(getThis(), selector);
   }
 
@@ -243,7 +246,7 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.first(getThis(), predicate);
   }
 
-  @Override public T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  @Override public @Nullable T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return factory.firstOrDefault(getThis(), predicate);
   }
 
@@ -421,7 +424,7 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.single(getThis(), predicate);
   }
 
-  @Override public T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  @Override public @Nullable T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return factory.singleOrDefault(getThis(), predicate);
   }
 

@@ -17,9 +17,21 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Litmus;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * Contains internal operators.
@@ -31,6 +43,41 @@ import org.apache.calcite.util.Litmus;
 public abstract class SqlInternalOperators {
   private SqlInternalOperators() {
   }
+
+  /** Similar to {@link SqlStdOperatorTable#ROW}, but does not print "ROW".
+   *
+   * <p>For arguments [1, TRUE], ROW would print "{@code ROW (1, TRUE)}",
+   * but this operator prints "{@code (1, TRUE)}". */
+  public static final SqlRowOperator ANONYMOUS_ROW =
+      new SqlRowOperator("$ANONYMOUS_ROW") {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          @SuppressWarnings("assignment.type.incompatible")
+          List<@Nullable SqlNode> operandList = call.getOperandList();
+          writer.list(SqlWriter.FrameTypeEnum.PARENTHESES, SqlWriter.COMMA,
+              SqlNodeList.of(call.getParserPosition(), operandList));
+        }
+      };
+
+  /** Similar to {@link #ANONYMOUS_ROW}, but does not print "ROW" or
+   * parentheses.
+   *
+   * <p>For arguments [1, TRUE], prints "{@code 1, TRUE}".  It is used in
+   * contexts where parentheses have been printed (because we thought we were
+   * about to print "{@code (ROW (1, TRUE))}") and we wish we had not. */
+  public static final SqlRowOperator ANONYMOUS_ROW_NO_PARENTHESES =
+      new SqlRowOperator("$ANONYMOUS_ROW_NO_PARENTHESES") {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          final SqlWriter.Frame frame =
+              writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL);
+          for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+          }
+          writer.endList(frame);
+        }
+      };
 
   /** An IN operator for Druid.
    *
@@ -56,4 +103,13 @@ public abstract class SqlInternalOperators {
           return litmus.succeed();
         }
       };
+
+  /** All implementations of {@code SUBSTRING} and {@code SUBSTR} map onto
+   * this. */
+  // TODO:
+  public static final SqlFunction SUBSTRING_INTERNAL =
+      new SqlFunction("$SUBSTRING", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_INTEGER_INTEGER, SqlFunctionCategory.SYSTEM);
+
 }

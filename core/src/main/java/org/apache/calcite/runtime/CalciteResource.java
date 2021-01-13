@@ -18,6 +18,8 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;
 import static org.apache.calcite.runtime.Resources.ExInstWithCause;
@@ -515,7 +517,7 @@ public interface CalciteResource {
       int a0, String a1);
 
   @BaseMessage("Duplicate relation name ''{0}'' in FROM clause")
-  ExInst<SqlValidatorException> fromAliasDuplicate(String a0);
+  ExInst<SqlValidatorException> fromAliasDuplicate(@Nullable String a0);
 
   @BaseMessage("Duplicate column name ''{0}'' in output")
   ExInst<SqlValidatorException> duplicateColumnName(String a0);
@@ -729,6 +731,18 @@ public interface CalciteResource {
   @BaseMessage("Value count in PIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
   ExInst<SqlValidatorException> pivotValueArityMismatch(int valueCount, int forCount);
 
+  @BaseMessage("Duplicate column name ''{0}'' in UNPIVOT")
+  ExInst<SqlValidatorException> unpivotDuplicate(String columnName);
+
+  @BaseMessage("Value count in UNPIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  ExInst<SqlValidatorException> unpivotValueArityMismatch(int valueCount, int forCount);
+
+  @BaseMessage("In UNPIVOT, cannot derive type for measure ''{0}'' because source columns have different data types")
+  ExInst<SqlValidatorException> unpivotCannotDeriveMeasureType(String measureName);
+
+  @BaseMessage("In UNPIVOT, cannot derive type for axis ''{0}''")
+  ExInst<SqlValidatorException> unpivotCannotDeriveAxisType(String axisName);
+
   @BaseMessage("Pattern variable ''{0}'' has already been defined")
   ExInst<SqlValidatorException> patternVarAlreadyDefined(String varName);
 
@@ -839,8 +853,9 @@ public interface CalciteResource {
   @BaseMessage("More than one value in list: {0}")
   ExInst<CalciteException> moreThanOneValueInList(String list);
 
-  @BaseMessage("Failed to access field ''{0}'' of object of type {1}")
-  ExInstWithCause<CalciteException> failedToAccessField(String fieldName, String typeName);
+  @BaseMessage("Failed to access field ''{0}'', index {1,number,#} of object of type {2}")
+  ExInstWithCause<CalciteException> failedToAccessField(
+      @Nullable String fieldName, int fieldIndex, String typeName);
 
   @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> $'{'expr'}'''")
   ExInst<CalciteException> illegalJsonPathSpec(String pathSpec);
@@ -927,10 +942,10 @@ public interface CalciteResource {
   ExInst<CalciteException> invalidInputForXmlTransform(String xml);
 
   @BaseMessage("Invalid input for EXTRACT xpath: ''{0}'', namespace: ''{1}''")
-  ExInst<CalciteException> invalidInputForExtractXml(String xpath, String namespace);
+  ExInst<CalciteException> invalidInputForExtractXml(String xpath, @Nullable String namespace);
 
   @BaseMessage("Invalid input for EXISTSNODE xpath: ''{0}'', namespace: ''{1}''")
-  ExInst<CalciteException> invalidInputForExistsNode(String xpath, String namespace);
+  ExInst<CalciteException> invalidInputForExistsNode(String xpath, @Nullable String namespace);
 
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);

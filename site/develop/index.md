@@ -41,7 +41,14 @@ user-friendly.
 ## Download source, build, and run tests
 
 Prerequisites are Git,
-and Java (JDK 8 or later, 13 preferred) on your path.
+and Java (JDK 8u220 or later, 11 preferred) on your path.
+
+Note: early OpenJDK 1.8 versions (e.g. versions before 1.8u202) are known to have issues with
+producing bytecode for type annotations (see [JDK-8187805](https://bugs.openjdk.java.net/browse/JDK-8187805),
+[JDK-8187805](https://bugs.openjdk.java.net/browse/JDK-8187805),
+[JDK-8210273](https://bugs.openjdk.java.net/browse/JDK-8210273),
+[JDK-8160928](https://bugs.openjdk.java.net/browse/JDK-8160928),
+[JDK-8144185](https://bugs.openjdk.java.net/browse/JDK-8144185) ), so make sure you use up to date Java.
 
 Create a local copy of the Git repository, `cd` to its root directory,
 then build using Gradle:
@@ -190,6 +197,116 @@ parameter and its alternatives. You may choose to force push your changes under
 In the special case, that the Travis CI build failed and the failure is not
 caused by your changes create an empty commit (`git commit --allow-empty`) and
 push it.
+
+## Null safety
+
+Apache Calcite uses the Checker Framework to avoid unexpected `NullPointerExceptions`.
+You might find a detailed documentation at https://checkerframework.org/
+
+Note: only main code is verified for now, so nullness annotation is not enforced in test code.
+
+To execute the Checker Framework locally please use the following command:
+
+    ./gradlew -PenableCheckerframework :linq4j:classes :core:classes
+
+Here's a small introduction to null-safe programming:
+
+* By default, parameters, return values and fields are non-nullable, so refrain from using `@NonNull`
+* Local variables infer nullness from the expression, so you can write `Object v = ...` instead of `@Nullable Object v = ...`
+* Avoid the use of `javax.annotation.*` annotations. The annotations from `jsr305` do not support cases like `List<@Nullable String>`
+so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullable`.
+  Unfortunately, Guava (as of `29-jre`) has **both** `jsr305` and `checker-qual` dependencies at the same time,
+  so you might want to configure your IDE to exclude `javax.annotation.*` annotations from code completion.
+
+* The Checker Framework verifies code method by method. That means, it can't account for method execution order.
+  That is why `@Nullable` fields should be verified in each method where they are used.
+  If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
+  For fields that start as null and become non-null later, use `@MonotonicNonNull`.
+  For fields that have already been checked against null, use `@RequiresNonNull`.
+
+* If you are absolutely sure the value is non-null, you might use `org.apache.calcite.linq4j.Nullness.castNonNull(T)`.
+  The intention behind `castNonNull` is like `trustMeThisIsNeverNullHoweverTheVerifierCantTellYet(...)`
+
+* If the expression is nullable, however, you need to pass it to a non-null method, use `Objects.requireNonNull`.
+  It allows to have a better error message that includes context information.
+
+* The Checker Framework comes with an annotated JDK, however, there might be invalid annotations.
+  In that cases, stub files can be placed to `/src/main/config/checkerframework` to override the annotations.
+  It is important the files have `.astub` extension otherwise they will be ignored.
+
+* In array types, a type annotation appears immediately before the type component (either the array or the array component) it refers to.
+  This is explained in the [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).
+
+        String nonNullable;
+        @Nullable String nullable;
+
+        java.lang.@Nullable String fullyQualifiedNullable;
+
+        // array and elements: non-nullable
+        String[] x;
+
+        // array: nullable, elements: non-nullable
+        String @Nullable [] x;
+
+        // array: non-nullable, elements: nullable
+        @Nullable String[] x;
+
+        // array: nullable, elements: nullable
+        @Nullable String @Nullable [] x;
+
+        // arrays: nullable, elements: nullable
+        // x: non-nullable
+        // x[0]: non-nullable
+        // x[0][0]: nullable
+        @Nullable String[][] x;
+
+        // x: nullable
+        // x[0]: non-nullable
+        // x[0][0]: non-nullable
+        String @Nullable [][] x;
+
+        // x: non-nullable
+        // x[0]: nullable
+        // x[0][0]: non-nullable
+        String[] @Nullable [] x;
+
+* By default, generic parameters can be both nullable and non-nullable:
+
+        class Holder<T> { // can be both nullable
+            final T value;
+            T get() {
+                return value; // works
+            }
+            int hashCode() {
+                return value.hashCode(); // error here since T can be nullable
+            }
+
+* However, default bounds are non-nullable, so if you write `<T extends Number>`,
+  then it is the same as `<T extends @NonNull Number>`.
+
+        class Holder<T extends Number> { // note how this T never permits nulls
+            final T value;
+            Holder(T value) {
+                this.value = value;
+            }
+            static <T> Holder<T> empty() {
+                return new Holder<>(null); // fails since T must be non-nullable
+            }
+
+* If you need "either nullable or non-nullable `Number`", then use `<T extends @Nullable Number>`,
+
+* If you need to ensure the type is **always** nullable, then use `<@Nullable T>` as follows:
+
+        class Holder<@Nullable T> { // note how this requires T to always be nullable
+            protected T get() { // Default implementation.
+                // Default implementation returns null, so it requires that T must always be nullable
+                return null;
+            }
+            static void useHolder() {
+                // T is declared as <@Nullable T>, so Holder<String> would not compile
+                Holder<@Nullable String> holder = ...;
+                String value = holder.get();
+            }
 
 ## Continuous Integration Testing
 

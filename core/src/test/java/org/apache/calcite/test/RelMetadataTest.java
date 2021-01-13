@@ -136,7 +136,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -392,6 +391,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(nameColumn.getOriginColumnOrdinal(), is(1));
     final RelColumnOrigin deptnoColumn = mq.getColumnOrigin(calc, 1);
     assertThat(deptnoColumn.getOriginColumnOrdinal(), is(0));
+  }
+
+  @Test void testDerivedColumnOrigins() {
+    final String sql1 = ""
+        + "select empno, sum(sal) as all_sal\n"
+        + "from emp\n"
+        + "group by empno";
+    final RelNode relNode = convertSql(sql1);
+    final HepProgram program = new HepProgramBuilder().
+        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(relNode);
+    final RelNode rel = planner.findBestExp();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelColumnOrigin allSal = mq.getColumnOrigin(rel, 1);
+    assertThat(allSal.getOriginColumnOrdinal(), is(5));
   }
 
   @Test void testColumnOriginsTableOnly() {
@@ -1338,7 +1353,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
         convertProjectAsCalc());
   }
 
-  @Nonnull
   private Function<String, RelNode> convertProjectAsCalc() {
     return s -> {
       Project project = (Project) convertSql(s);
@@ -2507,6 +2521,27 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(r);
   }
 
+  @Test void testExpressionLineageCalc() {
+    final RelNode rel = convertSql("select sal from (\n"
+        + " select deptno, empno, sal + 1 as sal, job from emp) "
+        + "where deptno = 10");
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.FILTER_TO_CALC);
+    programBuilder.addRuleInstance(CoreRules.CALC_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode optimizedRel = planner.findBestExp();
+    final RelMetadataQuery mq = optimizedRel.getCluster().getMetadataQuery();
+
+    final RexNode ref = RexInputRef.of(0, optimizedRel.getRowType().getFieldList());
+    final Set<RexNode> r = mq.getExpressionLineage(optimizedRel, ref);
+
+    assertThat(r.size(), is(1));
+    final String resultString = r.iterator().next().toString();
+    assertThat(resultString, is("+([CATALOG, SALES, EMP].#0.$5, 1)"));
+  }
+
   @Test void testAllPredicates() {
     final Project rel = (Project) convertSql("select * from emp, dept");
     final Join join = (Join) rel.getInput();
@@ -2651,6 +2686,25 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
+  @Test void testAllPredicatesAndTablesCalc() {
+    final String sql = "select empno as a, sal as b from emp where empno > 5";
+    final RelNode relNode = convertSql(sql);
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .build();
+    final HepPlanner planner = new HepPlanner(hepProgram);
+    planner.setRoot(relNode);
+    final RelNode rel = planner.findBestExp();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[>([CATALOG, SALES, EMP].#0.$0, 5)]"));
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, EMP].#0]"));
+  }
+
   @Test void testAllPredicatesAndTableUnion() {
     final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
@@ -2661,6 +2715,36 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  @Test void testAllPredicatesAndTableIntersect() {
+    final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno\n"
+        + "intersect all\n"
+        + "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  @Test void testAllPredicatesAndTableMinus() {
+    final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno\n"
+        + "except all\n"
+        + "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  public void checkAllPredicatesAndTableSetOp(String sql) {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);

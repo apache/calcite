@@ -39,6 +39,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -46,7 +48,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * Translates {@link RexNode} expressions into {@link IndexCondition}
@@ -212,7 +213,7 @@ class InnodbFilterTranslator {
    * because Innodb-java-reader only support range query, not fully
    * index condition pushdown; for point query, we can remove them all.
    */
-  private IndexCondition handlePointQuery(IndexCondition condition,
+  private static IndexCondition handlePointQuery(IndexCondition condition,
       KeyMeta keyMeta, Collection<InternalRexNode> leftMostKeyNodes,
       Multimap<Integer, InternalRexNode> keyOrdToNodesMap,
       List<RexNode> pushDownRexNodeList,
@@ -281,7 +282,7 @@ class InnodbFilterTranslator {
    * <p>If conditions can be pushed down, we will first node from field
    * expression list (<code>rexNodeList</code>).
    */
-  private IndexCondition handleRangeQuery(IndexCondition condition,
+  private static IndexCondition handleRangeQuery(IndexCondition condition,
       KeyMeta keyMeta, Collection<InternalRexNode> leftMostKeyNodes,
       List<RexNode> pushDownRexNodeList,
       List<RexNode> remainderRexNodeList,
@@ -388,7 +389,7 @@ class InnodbFilterTranslator {
   /**
    * Combines a field name, operator, and literal to produce a predicate string.
    */
-  private Optional<InternalRexNode> translateOp2(String op, String name,
+  private static Optional<InternalRexNode> translateOp2(String op, String name,
       RexLiteral right, RexNode originNode, KeyMeta keyMeta) {
     String value = literalValue(right);
     InternalRexNode node = new InternalRexNode();
@@ -431,8 +432,8 @@ class InnodbFilterTranslator {
     }
   }
 
-  private void findSubsequentMatches(List<InternalRexNode> nodes, int numOfKeyColumns,
-      Multimap<Integer, InternalRexNode> keyOrdToNodesMap, String op) {
+  private static void findSubsequentMatches(List<InternalRexNode> nodes, int numOfKeyColumns,
+          Multimap<Integer, InternalRexNode> keyOrdToNodesMap, String op) {
     for (int i = nodes.size(); i < numOfKeyColumns; i++) {
       Optional<InternalRexNode> eqOpNode = findFirstOp(keyOrdToNodesMap.get(i), op);
       if (eqOpNode.isPresent()) {
@@ -443,7 +444,7 @@ class InnodbFilterTranslator {
     }
   }
 
-  private List<Object> createKey(List<InternalRexNode> nodes) {
+  private static List<Object> createKey(List<InternalRexNode> nodes) {
     return nodes.stream().map(n -> n.right).collect(Collectors.toList());
   }
 
@@ -453,7 +454,7 @@ class InnodbFilterTranslator {
    *
    * <p>If not found, result is {@link Optional#empty()}.
    */
-  private Optional<InternalRexNode> findFirstOp(Collection<InternalRexNode> nodes,
+  private static Optional<InternalRexNode> findFirstOp(Collection<InternalRexNode> nodes,
       String... opList) {
     if (CollectionUtils.isEmpty(nodes)) {
       return Optional.empty();
@@ -495,7 +496,7 @@ class InnodbFilterTranslator {
     }
   }
 
-  private boolean isSqlTypeMatch(RexCall rexCall, SqlTypeName sqlTypeName) {
+  private static boolean isSqlTypeMatch(RexCall rexCall, SqlTypeName sqlTypeName) {
     assert rexCall != null;
     return rexCall.type.getSqlTypeName() == sqlTypeName;
   }

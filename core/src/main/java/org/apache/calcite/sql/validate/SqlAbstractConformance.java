@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.sql.fun.SqlLibrary;
+
 /**
  * Abstract base class for implementing {@link SqlConformance}.
  *
@@ -126,4 +128,9 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean allowAliasUnnestItems() {
     return SqlConformanceEnum.DEFAULT.allowAliasUnnestItems();
   }
+
+  @Override public SqlLibrary semantics() {
+    return SqlConformanceEnum.DEFAULT.semantics();
+  }
+
 }

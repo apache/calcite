@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class IdPair<L, R> {
     return left + "=" + right;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof IdPair
         && left == ((IdPair) obj).left

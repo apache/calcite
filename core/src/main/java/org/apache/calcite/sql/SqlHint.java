@@ -17,15 +17,18 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlHint</code> is a node of a parse tree which represents
@@ -67,7 +70,18 @@ public class SqlHint extends SqlCall {
   private final HintOptionFormat optionFormat;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("HINT", SqlKind.HINT);
+      new SqlSpecialOperator("HINT", SqlKind.HINT) {
+        @Override public SqlCall createCall(
+            @Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos,
+            @Nullable SqlNode... operands) {
+          return new SqlHint(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              (SqlNodeList) requireNonNull(operands[1], "options"),
+              ((SqlLiteral) requireNonNull(operands[2], "optionFormat"))
+                  .getValueAs(HintOptionFormat.class));
+        }
+      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -89,7 +103,7 @@ public class SqlHint extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name, options);
+    return ImmutableList.of(name, options, optionFormat.symbol(SqlParserPos.ZERO));
   }
 
   /**
@@ -111,21 +125,15 @@ public class SqlHint extends SqlCall {
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
-      final List<String> attrs = options.getList().stream()
-          .map(node -> ((SqlIdentifier) node).getSimple())
-          .collect(Collectors.toList());
-      return ImmutableList.copyOf(attrs);
+      return ImmutableList.copyOf(SqlIdentifier.simpleNames(options));
     } else if (optionFormat == HintOptionFormat.LITERAL_LIST) {
-      final List<String> attrs = options.getList().stream()
+      return options.stream()
           .map(node -> {
             SqlLiteral literal = (SqlLiteral) node;
-            Comparable<?> comparable = SqlLiteral.value(literal);
-            return comparable instanceof NlsString
-                ? ((NlsString) comparable).getValue()
-                : comparable.toString();
+            return requireNonNull(literal.toValue(),
+                () -> "null hint literal in " + options);
           })
-          .collect(Collectors.toList());
-      return ImmutableList.copyOf(attrs);
+          .collect(Util.toImmutableList());
     } else {
       return ImmutableList.of();
     }
@@ -170,7 +178,7 @@ public class SqlHint extends SqlCall {
   }
 
   /** Enumeration that represents hint option format. */
-  public enum HintOptionFormat {
+  public enum HintOptionFormat implements Symbolizable {
     /**
      * The hint has no options.
      */

@@ -88,6 +88,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
@@ -123,6 +124,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -2484,6 +2486,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select p1 is not distinct from p0\n"
         + "from (values (2, cast(null as integer))) as t(p0, p1)";
     sql(sql)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
         .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
             CoreRules.FILTER_REDUCE_EXPRESSIONS,
             CoreRules.JOIN_REDUCE_EXPRESSIONS)
@@ -2667,7 +2670,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "    select 'foreign table' from (values (true))\n"
         + "  )\n"
         + ") where u = 'TABLE'";
-    sql(sql).with(program).check();
+    sql(sql)
+        .withRelBuilderConfig(c -> c.withSimplifyValues(false))
+        .with(program).check();
   }
 
   @Test void testRemoveSemiJoin() {
@@ -3508,9 +3513,9 @@ class RelOptRulesTest extends RelOptTestBase {
     RelNode left = relBuilder
         .values(new String[]{"x", "y"}, 1, 2).build();
     RexNode ref = rexBuilder.makeInputRef(left, 0);
-    RexNode literal1 = rexBuilder.makeLiteral(1, type, false);
-    RexNode literal2 = rexBuilder.makeLiteral(2, type, false);
-    RexNode literal3 = rexBuilder.makeLiteral(3, type, false);
+    RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
+    RexLiteral literal2 = rexBuilder.makeLiteral(2, type);
+    RexLiteral literal3 = rexBuilder.makeLiteral(3, type);
 
     // CASE WHEN x % 2 = 1 THEN x < 2
     //      WHEN x % 3 = 2 THEN x < 1
@@ -3826,6 +3831,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + " sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,\n"
         + " sum(case when deptno = 30 then 1 else 0 end) as count_d30,\n"
         + " count(case when deptno = 40 then 'x' end) as count_d40,\n"
+        + " sum(case when deptno = 45 then 1 end) as count_d45,\n"
+        + " sum(case when deptno = 50 then 1 else null end) as count_d50,\n"
+        + " sum(case when deptno = 60 then null end) as sum_null_d60,\n"
+        + " sum(case when deptno = 70 then null else 1 end) as sum_null_d70,\n"
         + " count(case when deptno = 20 then 1 end) as count_d20\n"
         + "from emp";
     sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).check();
@@ -6825,6 +6834,62 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTester(t -> createDynamicTester())
         .withRule(projectJoinTransposeRule)
         .check();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4317">[CALCITE-4317]
+   * RelFieldTrimmer after trimming all the fields in an aggregate
+   * should not return a zero field Aggregate</a>. */
+  @Test void testProjectJoinTransposeRuleOnAggWithNoFieldsWithTrimmer() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // Build a rel equivalent to sql:
+    // SELECT name FROM (SELECT count(*) cnt_star, count(empno) cnt_en FROM sales.emp)
+    // cross join sales.dept
+    // limit 10
+
+    RelNode left = relBuilder.scan("DEPT").build();
+    RelNode right = relBuilder.scan("EMP")
+        .project(
+            ImmutableList.of(relBuilder.getRexBuilder().makeExactLiteral(BigDecimal.ZERO)),
+            ImmutableList.of("DUMMY"))
+        .aggregate(
+            relBuilder.groupKey(),
+            relBuilder.count(relBuilder.field(0)).as("DUMMY_COUNT"))
+        .build();
+
+    RelNode plan = relBuilder.push(left)
+        .push(right)
+        .join(JoinRelType.INNER,
+            relBuilder.getRexBuilder().makeLiteral(true))
+        .project(relBuilder.field("DEPTNO"))
+        .build();
+
+    final String planBeforeTrimming = NL + RelOptUtil.toString(plan);
+    getDiffRepos().assertEquals("planBeforeTrimming", "${planBeforeTrimming}", planBeforeTrimming);
+
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+    Tester tester = createDynamicTester()
+        .withTrim(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    plan = tester.trimRelNode(plan);
+
+    final String planAfterTrimming = NL + RelOptUtil.toString(plan);
+    getDiffRepos().assertEquals("planAfterTrimming", "${planAfterTrimming}", planAfterTrimming);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(plan);
+    RelNode output = hepPlanner.findBestExp();
+    final String finalPlan = NL + RelOptUtil.toString(output);
+    getDiffRepos().assertEquals("finalPlan", "${finalPlan}", finalPlan);
   }
 
   @Test void testSimplifyItemIsNotNull() {

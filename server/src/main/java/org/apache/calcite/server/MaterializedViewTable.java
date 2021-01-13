@@ -21,12 +21,14 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** A table that implements a materialized view. */
 class MaterializedViewTable
     extends MutableArrayTable {
   /** The key with which this was stored in the materialization service,
    * or null if not (yet) materialized. */
-  MaterializationKey key;
+  @Nullable MaterializationKey key;
 
   MaterializedViewTable(String name, RelProtoDataType protoRowType) {
     super(name, protoRowType, protoRowType,
@@ -37,7 +39,7 @@ class MaterializedViewTable
     return Schema.TableType.MATERIALIZED_VIEW;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (MaterializationKey.class.isAssignableFrom(aClass)
         && aClass.isInstance(key)) {
       return aClass.cast(key);

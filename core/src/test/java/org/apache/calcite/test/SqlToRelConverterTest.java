@@ -56,6 +56,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -97,6 +98,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testDotLiteralAfterRow() {
     final String sql = "select row(1,2).\"EXPR$1\" from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testRowValueConstructorWithSubquery() {
+    final String sql = "select ROW("
+        + "(select deptno\n"
+        + "from dept\n"
+        + "where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp";
     sql(sql).ok();
   }
 
@@ -3491,6 +3501,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUnpivot() {
+    final String sql = "SELECT * FROM emp\n"
+        + "UNPIVOT INCLUDE NULLS (remuneration\n"
+        + "  FOR remuneration_type IN (comm AS 'commission',\n"
+        + "                            sal as 'salary'))";
+    sql(sql).ok();
+  }
+
   @Test void testMatchRecognize1() {
     final String sql = "select *\n"
         + "  from emp match_recognize\n"
@@ -4158,7 +4176,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       return builder.build();
     }
 
-    public void visit(RelNode node, int ordinal, RelNode parent) {
+    public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
       try {
         stack.push(node);
         if (!node.isValid(Litmus.THROW, this)) {

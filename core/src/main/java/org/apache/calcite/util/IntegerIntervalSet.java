@@ -19,6 +19,8 @@ package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -125,7 +127,7 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     };
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return o instanceof Number
         && contains(((Number) o).intValue());
   }

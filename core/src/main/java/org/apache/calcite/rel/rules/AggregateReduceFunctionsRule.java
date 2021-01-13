@@ -45,6 +45,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -333,7 +334,7 @@ public class AggregateReduceFunctionsRule
     }
   }
 
-  private AggregateCall createAggregateCallWithBinding(
+  private static AggregateCall createAggregateCallWithBinding(
       RelDataTypeFactory typeFactory,
       SqlAggFunction aggFunction,
       RelDataType operandType,
@@ -356,7 +357,7 @@ public class AggregateReduceFunctionsRule
         null);
   }
 
-  private RexNode reduceAvg(
+  private static RexNode reduceAvg(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
@@ -418,7 +419,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), divideRef);
   }
 
-  private RexNode reduceSum(
+  private static RexNode reduceSum(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
@@ -477,7 +478,7 @@ public class AggregateReduceFunctionsRule
         sumZeroRef);
   }
 
-  private RexNode reduceStddev(
+  private static RexNode reduceStddev(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       boolean biased,
@@ -588,7 +589,7 @@ public class AggregateReduceFunctionsRule
         oldCall.getType(), result);
   }
 
-  private RexNode getSumAggregatedRexNode(Aggregate oldAggRel,
+  private static RexNode getSumAggregatedRexNode(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -614,7 +615,7 @@ public class AggregateReduceFunctionsRule
         ImmutableList.of(aggregateCall.getType()));
   }
 
-  private RexNode getSumAggregatedRexNodeWithBinding(Aggregate oldAggRel,
+  private static RexNode getSumAggregatedRexNodeWithBinding(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -633,7 +634,7 @@ public class AggregateReduceFunctionsRule
         ImmutableList.of(sumArgSquaredAggCall.getType()));
   }
 
-  private RexNode getRegrCountRexNode(Aggregate oldAggRel,
+  private static RexNode getRegrCountRexNode(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -660,7 +661,7 @@ public class AggregateReduceFunctionsRule
         operandTypes);
   }
 
-  private RexNode reduceRegrSzz(
+  private static RexNode reduceRegrSzz(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
@@ -730,7 +731,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), result);
   }
 
-  private RexNode reduceCovariance(
+  private static RexNode reduceCovariance(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       boolean biased,
@@ -777,7 +778,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), result);
   }
 
-  private RexNode divide(boolean biased, RexBuilder rexBuilder, RexNode sumXY,
+  private static RexNode divide(boolean biased, RexBuilder rexBuilder, RexNode sumXY,
       RexNode sumXSumY, RexNode countArg) {
     final RexNode avgSumSquaredArg =
          rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumXSumY, countArg);
@@ -850,7 +851,7 @@ public class AggregateReduceFunctionsRule
     relBuilder.project(exprs, rowType.getFieldNames());
   }
 
-  private RelDataType getFieldType(RelNode relNode, int i) {
+  private static RelDataType getFieldType(RelNode relNode, int i) {
     final RelDataTypeField inputField =
         relNode.getRowType().getFieldList().get(i);
     return inputField.getType();
@@ -873,14 +874,14 @@ public class AggregateReduceFunctionsRule
     }
 
     @ImmutableBeans.Property
-    Set<SqlKind> functionsToReduce();
+    @Nullable Set<SqlKind> functionsToReduce();
 
     /** Sets {@link #functionsToReduce}. */
-    Config withFunctionsToReduce(Set<SqlKind> functionSet);
+    Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet);
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */
-    @Nonnull default Set<SqlKind> actualFunctionsToReduce() {
+    default Set<SqlKind> actualFunctionsToReduce() {
       final Set<SqlKind> set =
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);

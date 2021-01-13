@@ -18,9 +18,10 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
@@ -81,8 +82,7 @@ public class ExtractionDimensionSpec implements DimensionSpec {
    *
    * @param dimensionSpec Druid Dimension specification
    */
-  @Nullable
-  public static Granularity toQueryGranularity(DimensionSpec dimensionSpec) {
+  public static @Nullable Granularity toQueryGranularity(DimensionSpec dimensionSpec) {
     if (!DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(dimensionSpec.getDimension())) {
       // Only __time column can be substituted by granularity
       return null;

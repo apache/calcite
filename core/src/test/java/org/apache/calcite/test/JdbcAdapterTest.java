@@ -442,6 +442,38 @@ class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1382">[CALCITE-1382]
+   * ClassCastException in JDBC adapter</a>. */
+  @Test public void testJoinPlan3() {
+    final String sql = "SELECT count(*) AS c FROM (\n"
+        + "  SELECT count(emp.empno) `Count Emp`,\n"
+        + "      dept.dname `Department Name`\n"
+        + "  FROM emp emp\n"
+        + "  JOIN dept dept ON emp.deptno = dept.deptno\n"
+        + "  JOIN salgrade salgrade ON emp.comm = salgrade.hisal\n"
+        + "  WHERE dept.dname LIKE '%A%'\n"
+        + "  GROUP BY emp.deptno, dept.dname)";
+    final String expected = "c=1\n";
+    final String expectedSql = "SELECT COUNT(*) AS \"c\"\n"
+        + "FROM (SELECT \"t0\".\"DEPTNO\", \"t2\".\"DNAME\"\n"
+        + "FROM (SELECT \"HISAL\"\n"
+        + "FROM \"SCOTT\".\"SALGRADE\") AS \"t\"\n"
+        + "INNER JOIN ((SELECT \"COMM\", \"DEPTNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
+        + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DNAME\" LIKE '%A%') AS \"t2\" "
+        + "ON \"t0\".\"DEPTNO\" = \"t2\".\"DEPTNO\") "
+        + "ON \"t\".\"HISAL\" = \"t0\".\"COMM\"\n"
+        + "GROUP BY \"t0\".\"DEPTNO\", \"t2\".\"DNAME\") AS \"t3\"";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .with(Lex.MYSQL)
+        .query(sql)
+        .returns(expected)
+        .planHasSql(expectedSql);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
    * NullPointerException when executing JdbcAggregate implement method</a>. */
   @Test void testJdbcAggregate() throws Exception {
@@ -480,7 +512,7 @@ class JdbcAdapterTest {
         .prepareStatement("select 10 * count(ID) from t2").executeQuery();
 
     assertThat(rs.next(), is(true));
-    assertThat((Long) rs.getObject(1), equalTo(20L));
+    assertThat(rs.getObject(1), equalTo(20L));
     assertThat(rs.next(), is(false));
 
     rs.close();
@@ -801,17 +833,15 @@ class JdbcAdapterTest {
         + "VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
         + " 666, '666', 666, 666)";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
-        + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-        + "    JdbcProject(store_id=[666], account_id=[666], exp_date=[1997-01-01 00:00:00], "
-        + "time_id=[666], category_id=['666'], currency_id=[666], amount=[666:DECIMAL(10, 4)])\n"
-        + "      JdbcValues(tuples=[[{ 0 }]])\n\n";
+        + "  JdbcTableModify(table=[[foodmart, expense_fact]], "
+        + "operation=[INSERT], flattened=[false])\n"
+        + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00, 666, "
+        + "'666', 666, 666 }]])\n\n";
     final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\" (\"store_id\", "
         + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\", "
         + "\"amount\")\n"
-        + "(SELECT 666 AS \"store_id\", 666 AS \"account_id\", "
-        + "TIMESTAMP '1997-01-01 00:00:00' AS \"exp_date\", 666 AS \"time_id\", "
-        + "'666' AS \"category_id\", 666 AS \"currency_id\", "
-        + "666 AS \"amount\"\nFROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+        + "VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', "
+        + "666, 666)";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
@@ -836,21 +866,17 @@ class JdbcAdapterTest {
         + " (666, 777, TIMESTAMP '1997-01-01 00:00:00',"
         + "   666, '666', 666, 666)";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
-        + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-        + "    JdbcUnion(all=[true])\n"
-        + "      JdbcProject(EXPR$0=[666], EXPR$1=[666], EXPR$2=[1997-01-01 00:00:00], EXPR$3=[666], EXPR$4=['666'], EXPR$5=[666], EXPR$6=[666:DECIMAL(10, 4)])\n"
-        + "        JdbcValues(tuples=[[{ 0 }]])\n"
-        + "      JdbcProject(EXPR$0=[666], EXPR$1=[777], EXPR$2=[1997-01-01 00:00:00], EXPR$3=[666], EXPR$4=['666'], EXPR$5=[666], EXPR$6=[666:DECIMAL(10, 4)])\n"
-        + "        JdbcValues(tuples=[[{ 0 }]])\n\n";
-    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\" (\"store_id\", "
-        + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\","
-        + " \"amount\")\n"
-        + "SELECT 666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
-        + "UNION ALL\n"
-        + "SELECT 666, 777, "
-        + "TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "  JdbcTableModify(table=[[foodmart, expense_fact]], "
+        + "operation=[INSERT], flattened=[false])\n"
+        + "    JdbcValues(tuples=[["
+        + "{ 666, 666, 1997-01-01 00:00:00, 666, '666', 666, 666 }, "
+        + "{ 666, 777, 1997-01-01 00:00:00, 666, '666', 666, 666 }]])\n\n";
+    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
+        + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\", "
+        + "\"category_id\", \"currency_id\", \"amount\")\n"
+        + "VALUES "
+        + "(666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666),\n"
+        + "(666, 777, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666)";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
@@ -958,7 +984,7 @@ class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1572">[CALCITE-1572]
    * JdbcSchema throws exception when detecting nullable columns</a>. */
-  @Test void testColumnNullability() throws Exception {
+  @Test void testColumnNullability() {
     final String sql = "select \"employee_id\", \"position_id\"\n"
         + "from \"foodmart\".\"employee\" limit 10";
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
@@ -968,13 +994,11 @@ class JdbcAdapterTest {
         .typeIs("[employee_id INTEGER NOT NULL, position_id INTEGER]");
   }
 
-  @Test void pushBindParameters() throws Exception {
+  @Test void pushBindParameters() {
     final String sql = "select empno, ename from emp where empno = ?";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)
-        .consumesPreparedStatement(p -> {
-          p.setInt(1, 7566);
-        })
+        .consumesPreparedStatement(p -> p.setInt(1, 7566))
         .returnsCount(1)
         .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
   }

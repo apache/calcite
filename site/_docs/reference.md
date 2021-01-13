@@ -130,28 +130,28 @@ statementList:
       statement [ ';' statement ]* [ ';' ]
 
 setStatement:
-      [ ALTER ( SYSTEM | SESSION ) ] SET identifier '=' expression
+      [ ALTER { SYSTEM | SESSION } ] SET identifier '=' expression
 
 resetStatement:
-      [ ALTER ( SYSTEM | SESSION ) ] RESET identifier
-  |   [ ALTER ( SYSTEM | SESSION ) ] RESET ALL
+      [ ALTER { SYSTEM | SESSION } ] RESET identifier
+  |   [ ALTER { SYSTEM | SESSION } ] RESET ALL
 
 explain:
       EXPLAIN PLAN
       [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
       [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
       [ AS JSON | AS XML | AS DOT ]
-      FOR ( query | insert | update | merge | delete )
+      FOR { query | insert | update | merge | delete }
 
 describe:
       DESCRIBE DATABASE databaseName
-   |  DESCRIBE CATALOG [ databaseName . ] catalogName
-   |  DESCRIBE SCHEMA [ [ databaseName . ] catalogName ] . schemaName
-   |  DESCRIBE [ TABLE ] [ [ [ databaseName . ] catalogName . ] schemaName . ] tableName [ columnName ]
-   |  DESCRIBE [ STATEMENT ] ( query | insert | update | merge | delete )
+  |   DESCRIBE CATALOG [ databaseName . ] catalogName
+  |   DESCRIBE SCHEMA [ [ databaseName . ] catalogName ] . schemaName
+  |   DESCRIBE [ TABLE ] [ [ [ databaseName . ] catalogName . ] schemaName . ] tableName [ columnName ]
+  |   DESCRIBE [ STATEMENT ] { query | insert | update | merge | delete }
 
 insert:
-      ( INSERT | UPSERT ) INTO tablePrimary
+      { INSERT | UPSERT } INTO tablePrimary
       [ '(' column [, column ]* ')' ]
       query
 
@@ -199,7 +199,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ '/*+' hint [, hint]* '*/' ] [ STREAM ] [ ALL | DISTINCT ]
+      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
@@ -217,7 +217,7 @@ projectItem:
 
 tableExpression:
       tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ ( LEFT | RIGHT | FULL ) [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
   |   tableExpression CROSS JOIN tableExpression
   |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
@@ -229,13 +229,14 @@ tableReference:
       tablePrimary
       [ FOR SYSTEM_TIME AS OF expression ]
       [ pivot ]
+      [ unpivot ]
       [ matchRecognize ]
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
       [ [ catalogName . ] schemaName . ] tableName
       '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
-  |   tablePrimary [ '/*+' hint [, hint]* '*/' ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
+  |   tablePrimary [ hintComment ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
@@ -248,9 +249,9 @@ hint:
   |   hintName '(' hintOptions ')'
 
 hintOptions:
-      hintKVOption [, hintKVOption]*
-  |   optionName [, optionName]*
-  |   optionValue [, optionValue]*
+      hintKVOption [, hintKVOption ]*
+  |   optionName [, optionName ]*
+  |   optionValue [, optionValue ]*
 
 hintKVOption:
       optionName '=' stringLiteral
@@ -259,6 +260,14 @@ hintKVOption:
 optionValue:
       stringLiteral
   |   numericLiteral
+
+columnOrList:
+      column
+  |   '(' column [, column ]* ')'
+
+exprOrList:
+      expr
+  |   '(' expr [, expr ]* ')'
 
 pivot:
       PIVOT '('
@@ -272,14 +281,27 @@ pivotAgg:
       [ [ AS ] alias ]
 
 pivotList:
-      column
-   |  '(' column [, column ]* ')'
+      columnOrList
 
 pivotExpr:
-      { expr
-      | '(' expr [, expr ]* ')'
-      }
-      [ [ AS ] alias ]
+      exprOrList [ [ AS ] alias ]
+
+unpivot:
+      UNPIVOT [ INCLUDING NULLS | EXCLUDING NULLS ] '('
+      unpivotMeasureList
+      FOR unpivotAxisList
+      IN '(' unpivotValue [, unpivotValue ]* ')'
+      ')'
+
+unpivotMeasureList:
+      columnOrList
+
+unpivotAxisList:
+      columnOrList
+
+unpivotValue:
+      column [ AS literal ]
+  |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
       VALUES expression [, expression ]*
@@ -610,11 +632,13 @@ HOP,
 HOURS,
 **IDENTITY**,
 IGNORE,
+ILIKE,
 IMMEDIATE,
 IMMEDIATELY,
 IMPLEMENTATION,
 **IMPORT**,
 **IN**,
+INCLUDE,
 INCLUDING,
 INCREMENT,
 **INDICATOR**,
@@ -1007,6 +1031,7 @@ UNDER,
 **UNKNOWN**,
 UNNAMED,
 **UNNEST**,
+UNPIVOT,
 **UPDATE**,
 **UPPER**,
 **UPSERT**,
@@ -1302,6 +1327,7 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- |:-----------
 | binary &#124;&#124; binary | Concatenates two binary strings
+| OCTET_LENGTH(binary) | Returns the number of bytes in *binary*
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
 | POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
 | OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
@@ -1767,10 +1793,10 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-        agg( [ ALL | DISTINCT ] value [, value ]*)
-        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
-        [ FILTER (WHERE condition) ]
-    |   agg(*) [ FILTER (WHERE condition) ]
+      agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
+      [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+      [ FILTER '(' WHERE condition ')' ]
+  |   agg '(' '*' ')' [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
 where *agg* is one of the operators in the following table, or a user-defined
@@ -1834,14 +1860,14 @@ Syntax:
 
 {% highlight sql %}
 windowedAggregateCall:
-        agg( [ ALL | DISTINCT ] value [, value ]*)
-        [ RESPECT NULLS | IGNORE NULLS ]
-        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
-        [ FILTER (WHERE condition) ]
-        OVER window
-    |   agg(*)
-        [ FILTER (WHERE condition) ]
-        OVER window
+      agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
+      [ RESPECT NULLS | IGNORE NULLS ]
+      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
+      [ FILTER '(' WHERE condition ')' ]
+      OVER window
+  |   agg '(' '*' ')'
+      [ FILTER  '(' WHERE condition ')' ]
+      OVER window
 {% endhighlight %}
 
 where *agg* is one of the operators in the following table, or a user-defined
@@ -1891,24 +1917,29 @@ Not implemented:
 | GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
 
 ### DESCRIPTOR
+
 | Operator syntax      | Description
 |:-------------------- |:-----------
 | DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
 
 ### Table functions
+
 Table functions occur in the `FROM` clause.
 
 #### TUMBLE
-In streaming queries, TUMBLE assigns a window for each row of a relation based on a timestamp column. An assigned window
-is specified by its beginning and ending. All assigned windows have the same length, and that's why tumbling sometimes
-is named as "fixed windowing".
+
+In streaming queries, TUMBLE assigns a window for each row of a relation based
+on a timestamp column. An assigned window is specified by its beginning and
+ending. All assigned windows have the same length, and that's why tumbling
+sometimes is named as "fixed windowing".
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
 | TUMBLE(data, DESCRIPTOR(timecol), size [, offset ]) | Indicates a tumbling window of *size* interval for *timecol*, optionally aligned at *offset*.
 
 Here is an example:
-```SQL
+
+{% highlight sql %}
 SELECT * FROM TABLE(
   TUMBLE(
     TABLE orders,
@@ -1922,11 +1953,14 @@ SELECT * FROM TABLE(
     DATA => TABLE orders,
     TIMECOL => DESCRIPTOR(rowtime),
     SIZE => INTERVAL '1' MINUTE));
-```
-will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
-watermarked column of table orders that tells data completeness.
+{% endhighlight %}
+
+applies a tumbling window with a one minute range to rows from the `orders`
+table. `rowtime` is the watermarked column of the `orders` table that informs
+whether data is complete.
 
 #### HOP
+
 In streaming queries, HOP assigns windows that cover rows within the interval of *size* and shifting every *slide* based
 on a timestamp column. Windows assigned could have overlapping so hopping sometime is named as "sliding windowing".
 
@@ -1936,7 +1970,8 @@ on a timestamp column. Windows assigned could have overlapping so hopping someti
 | HOP(data, DESCRIPTOR(timecol), slide, size [, offset ]) | Indicates a hopping window for *timecol*, covering rows within the interval of *size*, shifting every *slide* and optionally aligned at *offset*.
 
 Here is an example:
-```SQL
+
+{% highlight sql %}
 SELECT * FROM TABLE(
   HOP(
     TABLE orders,
@@ -1952,11 +1987,14 @@ SELECT * FROM TABLE(
     TIMECOL => DESCRIPTOR(rowtime),
     SLIDE => INTERVAL '2' MINUTE,
     SIZE => INTERVAL '5' MINUTE));
-```
-will apply hopping with 5-minute interval size on rows from table orders and shifting every 2 minutes. rowtime is the
-watermarked column of table orders that tells data completeness.
+{% endhighlight %}
+
+applies hopping with 5-minute interval size on rows from table `orders`
+and shifting every 2 minutes. `rowtime` is the watermarked column of table
+orders that tells data completeness.
 
 #### SESSION
+
 In streaming queries, SESSION assigns windows that cover rows based on *datetime*. Within a session window, distances
 of rows are less than *interval*. Session window is applied per *key*.
 
@@ -1966,7 +2004,8 @@ of rows are less than *interval*. Session window is applied per *key*.
 | session(data, DESCRIPTOR(timecol), DESCRIPTOR(key), size) | Indicates a session window of *size* interval for *timecol*. Session window is applied per *key*.
 
 Here is an example:
-```SQL
+
+{% highlight sql %}
 SELECT * FROM TABLE(
   SESSION(
     TABLE orders,
@@ -1982,9 +2021,11 @@ SELECT * FROM TABLE(
     TIMECOL => DESCRIPTOR(rowtime),
     KEY => DESCRIPTOR(product),
     SIZE => INTERVAL '20' MINUTE));
-```
-will apply session with 20-minute inactive gap on rows from table orders. rowtime is the
-watermarked column of table orders that tells data completeness. Session is applied per product.
+{% endhighlight %}
+
+applies a session with 20-minute inactive gap on rows from table `orders`.
+`rowtime` is the watermarked column of table orders that tells data
+completeness. Session is applied per product.
 
 **Note**: The `Tumble`, `Hop` and `Session` window table functions assign
 each row in the original table to a window. The output table has all
@@ -2345,7 +2386,7 @@ In the following:
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_EXISTS(jsonValue, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Whether a *jsonValue* satisfies a search criterion described using JSON path expression *path*
+| JSON_EXISTS(jsonValue, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR } ON ERROR ] ) | Whether a *jsonValue* satisfies a search criterion described using JSON path expression *path*
 | JSON_VALUE(jsonValue, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a *jsonValue* using JSON path expression *path*
 | JSON_QUERY(jsonValue, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract a JSON object or JSON array from *jsonValue* using the *path* JSON path expression
 
@@ -2360,9 +2401,9 @@ Note:
 
 Example Data:
 
-```JSON
+{% highlight json %}
 {"a": "[1,2]", "b": [1,2], "c": "hi"}
-```
+{% endhighlight json %}
 
 Comparison:
 
@@ -2381,10 +2422,23 @@ Not implemented:
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct JSON object using a series of key (*name*) value (*value*) pairs
-| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct a JSON object using a key (*name*) value (*value*) pair
-| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct a JSON array using a series of values (*value*)
-| JSON_ARRAYAGG( value [ FORMAT JSON ] [ ORDER BY orderItem [, orderItem ]* ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct a JSON array using a value (*value*)
+| JSON_OBJECT( jsonKeyVal [, jsonKeyVal ]* [ nullBehavior ] ) | Construct JSON object using a series of key-value pairs
+| JSON_OBJECTAGG( jsonKeyVal [ nullBehavior ] ) | Aggregate function to construct a JSON object using a key-value pair
+| JSON_ARRAY( [ jsonVal [, jsonVal ]* ] [ nullBehavior ] ) | Construct a JSON array using a series of values
+| JSON_ARRAYAGG( jsonVal [ ORDER BY orderItem [, orderItem ]* ] [ nullBehavior ] ) | Aggregate function to construct a JSON array using a value
+
+{% highlight sql %}
+jsonKeyVal:
+      [ KEY ] name VALUE value [ FORMAT JSON ]
+  |   name : value [ FORMAT JSON ]
+
+jsonVal:
+      value [ FORMAT JSON ]
+
+nullBehavior:
+      NULL ON NULL
+  |   ABSENT ON NULL
+{% endhighlight %}
 
 Note:
 
@@ -2452,13 +2506,15 @@ semantics.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
-| m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
-| m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
+| p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
+| p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
+| m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
+| m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
-| m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
+| m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
@@ -2476,7 +2532,7 @@ semantics.
 | o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
@@ -2522,6 +2578,7 @@ Dialect-specific aggregate functions.
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`
 | p | BOOL_OR(condition)                             | Synonym for `SOME`
+| b | COUNTIF(condition)                             | Returns the number of rows for which *condition* is TRUE; equivalent to `COUNT(*) FILTER (WHERE condition)`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
@@ -2532,14 +2589,14 @@ Usage Examples:
 
 SQL
 
-```SQL
+{% highlight sql %}
 SELECT JSON_TYPE(v) AS c1,
   JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
   JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
   JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
-```
+{% endhighlight %}
 
 Result
 
@@ -2551,14 +2608,14 @@ Result
 
 SQL
 
-```SQL
+{% highlight sql %}
 SELECT JSON_DEPTH(v) AS c1,
   JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
   JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
   JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
-```
+{% endhighlight %}
 
 Result
 
@@ -2570,14 +2627,14 @@ Result
 
 SQL
 
-```SQL
+{% highlight sql %}
 SELECT JSON_LENGTH(v) AS c1,
   JSON_LENGTH(v, 'lax $.a') AS c2,
   JSON_LENGTH(v, 'strict $.a[0]') AS c3,
   JSON_LENGTH(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true]}')) AS t(v)
 LIMIT 10;
-```
+{% endhighlight %}
 
 Result
 
@@ -2589,15 +2646,15 @@ Result
 
 SQL
 
- ```SQL
-SELECT JSON_KEYS(v) AS c1,
+{% highlight sql %}
+ELECT JSON_KEYS(v) AS c1,
   JSON_KEYS(v, 'lax $.a') AS c2,
   JSON_KEYS(v, 'lax $.b') AS c2,
   JSON_KEYS(v, 'strict $.a[0]') AS c3,
   JSON_KEYS(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
 LIMIT 10;
-```
+{% endhighlight %}
 
  Result
 
@@ -2609,11 +2666,11 @@ LIMIT 10;
 
 SQL
 
- ```SQL
+{% highlight sql %}
 SELECT JSON_REMOVE(v, '$[1]') AS c1
 FROM (VALUES ('["a", ["b", "c"], "d"]')) AS t(v)
 LIMIT 10;
-```
+{% endhighlight %}
 
  Result
 
@@ -2626,14 +2683,14 @@ LIMIT 10;
 
 SQL
 
- ```SQL
+{% highlight sql %}
 SELECT
 JSON_STORAGE_SIZE('[100, \"sakila\", [1, 3, 5], 425.05]') AS c1,
 JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"a\", \"c\": \"[1, 3, 5, 7]\"}') AS c2,
 JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"xyz\", \"c\": \"[1, 3, 5, 7]\"}') AS c3,
 JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS c4
 limit 10;
-```
+{% endhighlight %}
 
  Result
 
@@ -2646,15 +2703,15 @@ limit 10;
 
 SQL
 
-```SQL
+{% highlight sql %}
 SELECT DECODE(f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1,
   DECODE(f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2,
   DECODE(f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3,
   DECODE(f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4,
   DECODE(f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
 FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
+{% endhighlight %}
 
-```
  Result
 
 | c1          | c2          | c3          | c4          | c5          |
@@ -2665,13 +2722,13 @@ FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
 
 SQL
 
-```SQL
+{% highlight sql %}
 SELECT TRANSLATE('Aa*Bb*Cc''D*d', ' */''%', '_') as c1,
   TRANSLATE('Aa/Bb/Cc''D/d', ' */''%', '_') as c2,
   TRANSLATE('Aa Bb Cc''D d', ' */''%', '_') as c3,
   TRANSLATE('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
 FROM (VALUES (true)) AS t(f0);
-```
+{% endhighlight %}
 
 Result
 
@@ -2772,7 +2829,7 @@ FUNCTION f(
   INTEGER c,
   INTEGER d DEFAULT NULL,
   INTEGER e DEFAULT NULL) RETURNS INTEGER
-{% endhighlight sql %}
+{% endhighlight %}
 
 All of the function's parameters have names, and parameters `b`, `d` and `e`
 have a default value of `NULL` and are therefore optional.
@@ -2822,37 +2879,41 @@ It would be very flexible to profile the resource with hints per query (not the 
 
 #### Syntax
 
-Calcite supports basically two kinds of hints:
+Calcite supports hints in two locations:
 
 * Query Hint: right after the `SELECT` keyword;
 * Table Hint: right after the referenced table name.
 
+For example:
 {% highlight sql %}
-query :
-      SELECT /*+ hints */
-      ...
-      from
-          tableName /*+ hints */
-          JOIN
-          tableName /*+ hints */
-      ...
+SELECT /*+ hint1, hint2(a=1, b=2) */
+...
+FROM
+  tableName /*+ hint3(5, 'x') */
+JOIN
+  tableName /*+ hint4(c=id), hint5 */
+...
+{% endhighlight %}
 
-hints :
-      hintItem[, hintItem ]*
+The syntax is as follows:
 
-hintItem :
+{% highlight sql %}
+hintComment:
+      '/*+' hint [, hint ]* '*/'
+
+hint:
       hintName
-  |   hintName(optionKey=optionVal[, optionKey=optionVal ]*)
-  |   hintName(hintOption [, hintOption ]*)
+  |   hintName '(' optionKey '=' optionVal [, optionKey '=' optionVal ]* ')'
+  |   hintName '(' hintOption [, hintOption ]* ')'
 
-optionKey :
+optionKey:
       simpleIdentifier
   |   stringLiteral
 
-optionVal :
+optionVal:
       stringLiteral
 
-hintOption :
+hintOption:
       simpleIdentifier
    |  numericLiteral
    |  stringLiteral
@@ -2882,18 +2943,19 @@ matchRecognize:
       [ ORDER BY orderItem [, orderItem ]* ]
       [ MEASURES measureColumn [, measureColumn ]* ]
       [ ONE ROW PER MATCH | ALL ROWS PER MATCH ]
-      [ AFTER MATCH
-            ( SKIP TO NEXT ROW
-            | SKIP PAST LAST ROW
-            | SKIP TO FIRST variable
-            | SKIP TO LAST variable
-            | SKIP TO variable )
-      ]
+      [ AFTER MATCH skip ]
       PATTERN '(' pattern ')'
       [ WITHIN intervalLiteral ]
       [ SUBSET subsetItem [, subsetItem ]* ]
       DEFINE variable AS condition [, variable AS condition ]*
       ')'
+
+skip:
+      SKIP TO NEXT ROW
+  |   SKIP PAST LAST ROW
+  |   SKIP TO FIRST variable
+  |   SKIP TO LAST variable
+  |   SKIP TO variable
 
 subsetItem:
       variable = '(' variable [, variable ]* ')'
@@ -3030,7 +3092,7 @@ createFunctionStatement:
       [ USING  usingFile [, usingFile ]* ]
 
 usingFile:
-      ( JAR | FILE | ARCHIVE ) filePathLiteral
+      { JAR | FILE | ARCHIVE } filePathLiteral
 
 dropSchemaStatement:
       DROP SCHEMA [ IF EXISTS ] name
@@ -3065,16 +3127,23 @@ In *createFunctionStatement* and *usingFile*, *classNameLiteral*
 and *filePathLiteral* are character literals.
 
 
-#### Declaring Objects For Types Defined In Schema
-After an object type is defined and installed in the schema, you can use it to declare objects in any SQL block. For example, you can use the object type to specify the datatype of an attribute, column, variable, bind variable, record field, table element, formal parameter, or function result. At run time, instances of the object type are created; that is, objects of that type are instantiated. Each object can hold different values.
+#### Declaring objects for user-defined types
 
-Example: For declared types `address_typ` and `employee_typ`
-```SQL
+After an object type is defined and installed in the schema, you can use it to
+declare objects in any SQL block. For example, you can use the object type to
+specify the datatype of an attribute, column, variable, bind variable, record
+field, table element, formal parameter, or function result. At run time,
+instances of the object type are created; that is, objects of that type are
+instantiated. Each object can hold different values.
+
+For example, we can declare types `address_typ` and `employee_typ`:
+
+{% highlight sql %}
 CREATE TYPE address_typ AS OBJECT (
    street          VARCHAR2(30),
    city            VARCHAR2(20),
    state           CHAR(2),
-   postal_code     VARCHAR2(6) );
+   postal_code     VARCHAR2(6));
 
 CREATE TYPE employee_typ AS OBJECT (
   employee_id       NUMBER(6),
@@ -3088,14 +3157,13 @@ CREATE TYPE employee_typ AS OBJECT (
   commission_pct    NUMBER(2,2),
   manager_id        NUMBER(6),
   department_id     NUMBER(4),
-  address           address_typ
-);
-```
+  address           address_typ);
+{% endhighlight %}
 
-We can declare objects of type `employee_typ` and `address_typ` :
+Using these types, you can instantiate objects as follows:
 
-```SQL
+{% highlight sql %}
 employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
-        '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
-         address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
-```
+    '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+     address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
+{% endhighlight %}

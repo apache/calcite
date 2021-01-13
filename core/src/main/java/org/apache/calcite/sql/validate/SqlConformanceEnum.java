@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.sql.fun.SqlLibrary;
+
 /**
  * Enumeration of built-in SQL compatibility modes.
  */
@@ -117,6 +119,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   @Override public boolean isGroupByOrdinal() {
     switch (this) {
     case BABEL:
+    case BIG_QUERY:
     case LENIENT:
     case MYSQL_5:
     case PRESTO:
@@ -387,6 +390,20 @@ public enum SqlConformanceEnum implements SqlConformance {
       return true;
     default:
       return false;
+    }
+  }
+
+  @Override public SqlLibrary semantics() {
+    switch (this) {
+    case BIG_QUERY:
+      return SqlLibrary.BIG_QUERY;
+    case MYSQL_5:
+      return SqlLibrary.MYSQL;
+    case ORACLE_12:
+    case ORACLE_10:
+      return SqlLibrary.ORACLE;
+    default:
+      return SqlLibrary.STANDARD;
     }
   }
 

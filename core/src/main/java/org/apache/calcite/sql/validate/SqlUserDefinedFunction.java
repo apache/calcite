@@ -29,6 +29,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -44,7 +46,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   public SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
       Function function) {
     this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
@@ -58,7 +60,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   public SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata,
+      @Nullable SqlOperandMetadata operandMetadata,
       Function function) {
     this(opName, kind, returnTypeInference, operandTypeInference,
         operandMetadata, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
@@ -68,7 +70,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   protected SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata,
+      @Nullable SqlOperandMetadata operandMetadata,
       Function function,
       SqlFunctionCategory category) {
     super(Util.last(opName.names), opName, kind, returnTypeInference,
@@ -76,8 +78,8 @@ public class SqlUserDefinedFunction extends SqlFunction {
     this.function = function;
   }
 
-  @Override public SqlOperandMetadata getOperandTypeChecker() {
-    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
+    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   /**

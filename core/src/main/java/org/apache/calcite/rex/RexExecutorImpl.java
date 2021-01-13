@@ -39,6 +39,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -74,8 +76,10 @@ public class RexExecutorImpl implements RexExecutor {
       programBuilder.addProject(
           node, "c" + programBuilder.getProjectList().size());
     }
-    final JavaTypeFactoryImpl javaTypeFactory =
-        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final JavaTypeFactory javaTypeFactory = typeFactory instanceof JavaTypeFactory
+        ? (JavaTypeFactory) typeFactory
+        : new JavaTypeFactoryImpl(typeFactory.getTypeSystem());
     final BlockBuilder blockBuilder = new BlockBuilder();
     final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");
@@ -151,7 +155,7 @@ public class RexExecutorImpl implements RexExecutor {
       this.typeFactory = typeFactory;
     }
 
-    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       MethodCallExpression recFromCtx = Expressions.call(
           DataContext.ROOT,
           BuiltInMethod.DATA_CONTEXT_GET.method,

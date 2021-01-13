@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -39,10 +41,10 @@ public class BarfingInvocationHandler implements InvocationHandler {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Object invoke(
+  @Override public @Nullable Object invoke(
       Object proxy,
       Method method,
-      Object[] args) throws Throwable {
+      @Nullable Object[] args) throws Throwable {
     Class clazz = getClass();
     Method matchingMethod;
     try {

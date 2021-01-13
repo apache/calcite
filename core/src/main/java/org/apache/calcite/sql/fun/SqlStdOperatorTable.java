@@ -71,7 +71,14 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -84,7 +91,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The standard operator table.
    */
-  private static SqlStdOperatorTable instance;
+  private static @MonotonicNonNull SqlStdOperatorTable instance;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -236,6 +243,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * String concatenation operator, '<code>||</code>'.
+   *
+   * @see SqlLibraryOperators#CONCAT_FUNCTION
    */
   public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(
@@ -930,7 +939,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM</code> aggregate function.
    */
-  public static final SqlAggFunction SUM = new SqlSumAggFunction(null);
+  public static final SqlAggFunction SUM = new SqlSumAggFunction(castNonNull(null));
 
   /**
    * <code>COUNT</code> aggregate function.
@@ -1013,7 +1022,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>SINGLE_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction SINGLE_VALUE =
-      new SqlSingleValueAggFunction(null);
+      new SqlSingleValueAggFunction(castNonNull(null));
 
   /**
    * <code>AVG</code> aggregate function.
@@ -1113,7 +1122,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * aggregate versions of MIN/MAX
    */
   public static final SqlAggFunction HISTOGRAM_AGG =
-      new SqlHistogramAggFunction(null);
+      new SqlHistogramAggFunction(castNonNull(null));
 
   /**
    * <code>HISTOGRAM_MIN</code> window aggregate function.
@@ -1390,22 +1399,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true);
 
   public static final SqlSpecialOperator NOT_LIKE =
-      new SqlLikeOperator("NOT LIKE", SqlKind.LIKE, true);
+      new SqlLikeOperator("NOT LIKE", SqlKind.LIKE, true, true);
 
   public static final SqlSpecialOperator LIKE =
-      new SqlLikeOperator("LIKE", SqlKind.LIKE, false);
+      new SqlLikeOperator("LIKE", SqlKind.LIKE, false, true);
 
   public static final SqlSpecialOperator NOT_SIMILAR_TO =
-      new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true);
+      new SqlLikeOperator("NOT SIMILAR TO", SqlKind.SIMILAR, true, true);
 
   public static final SqlSpecialOperator SIMILAR_TO =
-      new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
+      new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false, true);
 
-  public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE = new SqlPosixRegexOperator(
-      "POSIX REGEX CASE SENSITIVE", SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE =
+      new SqlPosixRegexOperator("POSIX REGEX CASE SENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
 
-  public static final SqlBinaryOperator POSIX_REGEX_CASE_INSENSITIVE = new SqlPosixRegexOperator(
-      "POSIX REGEX CASE INSENSITIVE", SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, false);
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_INSENSITIVE =
+      new SqlPosixRegexOperator("POSIX REGEX CASE INSENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, false);
 
   public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_SENSITIVE =
       new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE SENSITIVE",
@@ -1509,6 +1520,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
+  /** Alias for {@link #CHAR_LENGTH}. */
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
@@ -1516,6 +1528,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction OCTET_LENGTH =
+      new SqlFunction(
+          "OCTET_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.BINARY,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =
@@ -2060,7 +2081,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The item operator {@code [ ... ]}, used to access a given element of an
-   * array or map. For example, {@code myArray[3]} or {@code "myMap['foo']"}.
+   * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
+   * {@code myStruct[2]} or {@code myStruct['fieldName']}.
    *
    * <p>The SQL standard calls the ARRAY variant a
    * &lt;array element reference&gt;. Index is 1-based. The standard says
@@ -2200,15 +2222,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The COLLECT operator. Multiset aggregator function.
    */
   public static final SqlAggFunction COLLECT =
-      new SqlAggFunction("COLLECT",
-          null,
-          SqlKind.COLLECT,
-          ReturnTypes.TO_MULTISET,
-          null,
-          OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.OPTIONAL) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.COLLECT, ReturnTypes.TO_MULTISET, OperandTypes.ANY)
+      .withFunctionType(SqlFunctionCategory.SYSTEM)
+      .withGroupOrder(Optionality.OPTIONAL);
 
   /**
    * The LISTAGG operator. String aggregator function.
@@ -2220,27 +2237,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The FUSION operator. Multiset aggregator function.
    */
   public static final SqlAggFunction FUSION =
-      new SqlAggFunction("FUSION", null,
-          SqlKind.FUSION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.FORBIDDEN) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.FUSION, ReturnTypes.ARG0, OperandTypes.MULTISET)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /**
    * The INTERSECTION operator. Multiset aggregator function.
    */
   public static final SqlAggFunction INTERSECTION =
-      new SqlAggFunction("INTERSECTION", null,
-          SqlKind.INTERSECTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false,
-          Optionality.FORBIDDEN) {
-      };
+      SqlBasicAggFunction
+          .create(SqlKind.INTERSECTION, ReturnTypes.ARG0, OperandTypes.MULTISET)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /** The sequence next value function: <code>NEXT VALUE FOR sequence</code>. */
   public static final SqlOperator NEXT_VALUE =
@@ -2493,7 +2500,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** Returns the group function for which a given kind is an auxiliary
    * function, or null if it is not an auxiliary function. */
-  public static SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
+  public static @Nullable SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
     switch (kind) {
     case TUMBLE_START:
     case TUMBLE_END:
@@ -2514,11 +2521,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
+  public static @Nullable SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroupAuxiliary()) {
-      return copy(call, ((SqlGroupedWindowFunction) op).groupFunction);
+      SqlGroupedWindowFunction groupFunction = ((SqlGroupedWindowFunction) op).groupFunction;
+      return copy(call, requireNonNull(groupFunction, "groupFunction"));
     }
     return null;
   }
@@ -2610,6 +2618,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return GREATER_THAN_OR_EQUAL;
     default:
       return operator;
+    }
+  }
+
+  /** Returns the operator for {@code LIKE} with given case-sensitivity,
+   * optionally negated. */
+  public static SqlOperator like(boolean negated, boolean caseSensitive) {
+    if (negated) {
+      if (caseSensitive) {
+        return NOT_LIKE;
+      } else {
+        return SqlLibraryOperators.NOT_ILIKE;
+      }
+    } else {
+      if (caseSensitive) {
+        return LIKE;
+      } else {
+        return SqlLibraryOperators.ILIKE;
+      }
     }
   }
 

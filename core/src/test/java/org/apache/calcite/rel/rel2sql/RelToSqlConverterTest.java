@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -53,10 +54,13 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -76,12 +80,16 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -97,20 +105,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for {@link RelToSqlConverter}.
  */
 class RelToSqlConverterTest {
-  static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
-      SqlToRelConverter.config()
-          .withTrimUnusedFields(false);
-
-  static final SqlToRelConverter.Config NO_EXPAND_CONFIG =
-      SqlToRelConverter.config()
-          .withTrimUnusedFields(false)
-          .withExpand(false);
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
-        DEFAULT_REL_CONFIG, null, ImmutableList.of());
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
+        UnaryOperator.identity(), null, ImmutableList.of());
   }
 
   /** Initiates a test case with a given {@link RelNode} supplier. */
@@ -120,9 +120,13 @@ class RelToSqlConverterTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
-      SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+      SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
+      Program... programs) {
     final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+        new MockSqlOperatorTable(
+            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
+                SqlLibraryOperatorTableFactory.INSTANCE
+                    .getOperatorTable(librarySet)));
     MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -193,9 +197,21 @@ class RelToSqlConverterTest {
 
   /** Converts a relational expression to SQL in a given dialect. */
   private static String toSql(RelNode root, SqlDialect dialect) {
+    return toSql(root, dialect, c ->
+        c.withAlwaysUseParentheses(false)
+            .withSelectListItemsOnSeparateLines(false)
+            .withUpdateSetListNewline(false)
+            .withIndentation(0));
+  }
+
+  /** Converts a relational expression to SQL in a given dialect
+   * and with a particular writer configuration. */
+  private static String toSql(RelNode root, SqlDialect dialect,
+      UnaryOperator<SqlWriterConfig> transform) {
     final RelToSqlConverter converter = new RelToSqlConverter(dialect);
     final SqlNode sqlNode = converter.visitRoot(root).asStatement();
-    return sqlNode.toSqlString(dialect).getSql();
+    return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
+        .getSql();
   }
 
   @Test void testSimpleSelectStarFromProductTable() {
@@ -287,6 +303,36 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"net_weight\" <> 10 OR \"net_weight\" IS NULL";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4449">[CALCITE-4449]
+   * Calcite generates incorrect SQL for Sarg 'x IS NULL OR x NOT IN
+   * (1, 2)'</a>. */
+  @Test void testSelectWhereNotIn() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.isNull(b.field("COMM")),
+                b.not(b.in(b.field("COMM"), b.literal(1), b.literal(2)))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" NOT IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
+  @Test void testSelectWhereNotEquals() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(b.isNull(b.field("COMM")),
+                b.not(b.in(b.field("COMM"), b.literal(1)))))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IS NULL OR \"COMM\" <> 1";
+    relFn(relFn).ok(expected);
   }
 
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
@@ -701,7 +747,8 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
    * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
   @Test void testSum0BecomesCoalesce() {
-    final Function<RelBuilder, RelNode> fn = b -> b.scan("EMP")
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
         .aggregate(b.groupKey(),
             b.aggregateCall(SqlStdOperatorTable.SUM0, b.field(3))
                 .as("s"))
@@ -710,7 +757,7 @@ class RelToSqlConverterTest {
         + "FROM `scott`.`EMP`";
     final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
         + "FROM \"scott\".\"EMP\"";
-    relFn(fn)
+    relFn(relFn)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withMysql()
@@ -871,7 +918,8 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
-   * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
+   * StackOverflowError while evaluating filter with large number of OR
+   * conditions</a>. */
   @Test void testBalancedBinaryCall() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -980,7 +1028,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]
-   * Fail to convert Join RelNode with like condition to sql statement </a>.
+   * Fail to convert Join RelNode with like condition to sql statement</a>.
    */
   @Test void testJoinWithLikeConditionRel2Sql() {
     final Function<RelBuilder, RelNode> relFn = b -> b
@@ -1511,10 +1559,10 @@ class RelToSqlConverterTest {
    * replaces INs with ORs or sub-queries.
    */
   @Test void testUnparseIn1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(b.in(b.field("DEPTNO"), b.literal(21)))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("DEPTNO"), b.literal(21)))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" = 21";
@@ -1533,15 +1581,15 @@ class RelToSqlConverterTest {
   }
 
   @Test void testUnparseInStruct1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT"))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.in(
+                b.call(SqlStdOperatorTable.ROW,
+                    b.field("DEPTNO"), b.field("JOB")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(1),
+                    b.literal("PRESIDENT"))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
@@ -1549,17 +1597,17 @@ class RelToSqlConverterTest {
   }
 
   @Test void testUnparseInStruct2() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(2),
-                        b.literal("PRESIDENT"))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.in(
+                b.call(SqlStdOperatorTable.ROW,
+                    b.field("DEPTNO"), b.field("JOB")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(1),
+                    b.literal("PRESIDENT")),
+                b.call(SqlStdOperatorTable.ROW, b.literal(2),
+                    b.literal("PRESIDENT"))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
@@ -2495,18 +2543,18 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4249">[CALCITE-4249]
    * JDBC adapter cannot translate NOT LIKE in join condition</a>. */
   @Test void testJoinOnNotLike() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .scan("DEPT")
-            .join(JoinRelType.LEFT,
-                b.and(
-                    b.equals(b.field(2, 0, "DEPTNO"),
-                        b.field(2, 1, "DEPTNO")),
-                    b.not(
-                        b.call(SqlStdOperatorTable.LIKE,
-                            b.field(2, 1, "DNAME"),
-                            b.literal("ACCOUNTING")))))
-            .build();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.LEFT,
+            b.and(
+                b.equals(b.field(2, 0, "DEPTNO"),
+                    b.field(2, 1, "DEPTNO")),
+                b.not(
+                    b.call(SqlStdOperatorTable.LIKE,
+                        b.field(2, 1, "DNAME"),
+                        b.literal("ACCOUNTING")))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "LEFT JOIN \"scott\".\"DEPT\" "
@@ -2539,12 +2587,10 @@ class RelToSqlConverterTest {
         + "  (SELECT 0 AS g) AS v\n"
         + "GROUP BY v.g";
     final String expected = "SELECT"
-        + " CASE WHEN \"t1\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"customer\") AS \"t\",\n"
-        + "(SELECT 0 AS \"G\"\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")) AS \"t1\"\n"
-        + "GROUP BY \"t1\".\"G\"";
+        + " CASE WHEN \"t0\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
+        + "FROM (SELECT *\nFROM \"foodmart\".\"customer\") AS \"t\",\n"
+        + "(VALUES (0)) AS \"t0\" (\"G\")\n"
+        + "GROUP BY \"t0\".\"G\"";
     sql(query).ok(expected);
   }
 
@@ -2920,7 +2966,7 @@ class RelToSqlConverterTest {
     sql("VALUES " + expression)
         .withHsqldb()
         .ok("SELECT *\n"
-            + "FROM (VALUES  (" + expected + ")) AS t (EXPR$0)");
+            + "FROM (VALUES (" + expected + ")) AS t (EXPR$0)");
   }
 
   /** Test case for
@@ -3004,6 +3050,22 @@ class RelToSqlConverterTest {
             + "OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\"), \"hire_date\"\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"hire_date\", \"employee_id\"";
+    String query7 = "SELECT "
+        + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
+    String expected7 = "SELECT "
+        + "COUNT(DISTINCT \"employee_id\") "
+        + "OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$0\""
+        + "\nFROM \"foodmart\".\"employee\"";
+
+    String query8 = "SELECT "
+        + "sum(distinct \"position_id\") over (order by \"hire_date\") FROM \"employee\"";
+    String expected8 =
+        "SELECT CASE WHEN (COUNT(DISTINCT \"position_id\") OVER (ORDER BY \"hire_date\" "
+            + "RANGE"
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) > 0 THEN COALESCE(SUM(DISTINCT "
+            + "\"position_id\") OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED "
+            + "PRECEDING AND CURRENT ROW), 0) ELSE NULL END\n"
+            + "FROM \"foodmart\".\"employee\"";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
@@ -3017,6 +3079,8 @@ class RelToSqlConverterTest {
     sql(query4).optimize(rules, hepPlanner).ok(expected4);
     sql(query5).optimize(rules, hepPlanner).ok(expected5);
     sql(query6).optimize(rules, hepPlanner).ok(expected6);
+    sql(query7).optimize(rules, hepPlanner).ok(expected7);
+    sql(query8).optimize(rules, hepPlanner).ok(expected8);
   }
 
   /**
@@ -3476,7 +3540,7 @@ class RelToSqlConverterTest {
         + "WHERE EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
   @Test void testNotExistsWithExpand() {
@@ -3489,7 +3553,7 @@ class RelToSqlConverterTest {
         + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
   @Test void testSubQueryInWithExpand() {
@@ -3502,7 +3566,7 @@ class RelToSqlConverterTest {
         + "WHERE \"product_id\" IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
   @Test void testSubQueryInWithExpand2() {
@@ -3511,7 +3575,7 @@ class RelToSqlConverterTest {
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" = 1 OR \"product_id\" = 2";
-    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
   @Test void testSubQueryNotInWithExpand() {
@@ -3524,7 +3588,7 @@ class RelToSqlConverterTest {
         + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
   @Test void testLike() {
@@ -3543,6 +3607,24 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_name\" NOT LIKE 'abc'";
     sql(query).ok(expected);
+  }
+
+  @Test void testIlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" ilike 'abC'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" ILIKE 'abC'";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
+  }
+
+  @Test void testNotIlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" not ilike 'abC'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT ILIKE 'abC'";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
   }
 
   @Test void testMatchRecognizePatternExpression() {
@@ -4578,15 +4660,15 @@ class RelToSqlConverterTest {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
     final String expectedHsqldb = "SELECT a\n"
-        + "FROM (VALUES  (1, 'x '),\n"
-        + " (2, 'yy')) AS t (a, b)";
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS t (a, b)";
     final String expectedMysql = "SELECT `a`\n"
         + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
         + "UNION ALL\n"
         + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
-        + "FROM (VALUES  (1, 'x '),\n"
-        + " (2, 'yy')) AS \"t\" (\"a\", \"b\")";
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -4635,7 +4717,7 @@ class RelToSqlConverterTest {
         + "FROM \"DUAL\"\n"
         + "WHERE 1 = 0";
     final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES  (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
+        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
         + "WHERE 1 = 0";
     sql(sql)
         .optimize(rules, null)
@@ -4660,11 +4742,22 @@ class RelToSqlConverterTest {
         .project(builder.field("a"))
         .build();
     final String expectedSql = "SELECT \"t\".\"a\"\n"
-        + "FROM (VALUES  (1, 'x '),\n"
-        + " (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
-        + "FULL JOIN (VALUES  (1, 'x '),\n"
-        + " (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
+        + "FULL JOIN (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
     assertThat(toSql(root), isLinux(expectedSql));
+
+    // Now with indentation.
+    final String expectedSql2 = "SELECT \"t\".\"a\"\n"
+        + "FROM (VALUES (1, 'x '),\n"
+        + "        (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
+        + "  FULL JOIN (VALUES (1, 'x '),\n"
+        + "        (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
+    assertThat(
+        toSql(root, DatabaseProduct.CALCITE.getDialect(),
+            c -> c.withIndentation(2)),
+        isLinux(expectedSql2));
   }
 
   @Test void testSelectWithoutFromEmulationForHiveAndBigQuery() {
@@ -4755,7 +4848,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
         + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
         + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
     sql(sql).ok(expected);
   }
 
@@ -5091,7 +5184,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
         + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
-        + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
+        + "FROM (SELECT *\nFROM (VALUES (NULL, NULL))"
         + " AS \"t\" (\"department_id\", \"department_description\")"
         + "\nWHERE 1 = 0) AS \"t\","
         + "\n(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\""
@@ -5190,8 +5283,8 @@ class RelToSqlConverterTest {
 
   @Test void testSelectNullWithCast() {
     final String query = "SELECT CAST(NULL AS INT)";
-    final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    final String expected = "SELECT *\n"
+        + "FROM (VALUES (NULL)) AS \"t\" (\"EXPR$0\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5199,8 +5292,8 @@ class RelToSqlConverterTest {
 
   @Test void testSelectNullWithCount() {
     final String query = "SELECT COUNT(CAST(NULL AS INT))";
-    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    final String expected = "SELECT COUNT(\"$f0\")\n"
+        + "FROM (VALUES (NULL)) AS \"t\" (\"$f0\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5210,9 +5303,9 @@ class RelToSqlConverterTest {
     final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
         + "FROM (VALUES  (0))AS \"t\"\n"
         + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
-    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
-        + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    final String expected = "SELECT COUNT(\"$f1\")\n"
+        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"$f0\", \"$f1\")\n"
+        + "GROUP BY \"$f0\"";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5237,12 +5330,16 @@ class RelToSqlConverterTest {
     final String expected = "INSERT INTO \"foodmart\".\"account\" ("
         + "\"account_id\", \"account_parent\", \"account_description\", "
         + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
-        + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
-        + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
-        + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
-        + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+        + "(SELECT \"EXPR$0\" AS \"account_id\","
+        + " \"EXPR$1\" AS \"account_parent\","
+        + " CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\") "
+        + "AS \"account_description\","
+        + " \"EXPR$2\" AS \"account_type\","
+        + " \"EXPR$3\" AS \"account_rollup\","
+        + " CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") "
+        + "AS \"Custom_Members\"\n"
+        + "FROM (VALUES (1, NULL, '123', '123')) "
+        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\"))";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -5341,23 +5438,39 @@ class RelToSqlConverterTest {
 
   @Test void testRowValueExpression() {
     String sql = "insert into \"DEPT\"\n"
-        + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
+        + "values ROW(1,'Fred', 'San Francisco'),\n"
+        + "  ROW(2, 'Eric', 'Washington')";
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedDefaultX = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedHiveX = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
     final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
+        + " (`DEPTNO`, `DNAME`, `LOC`)\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedMysqlX = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\nSELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
     final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedOracleX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM \"DUAL\"\n"
@@ -5366,18 +5479,26 @@ class RelToSqlConverterTest {
         + "FROM \"DUAL\"";
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
+        + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) AS [t] ([ZERO])\n"
+        + "FROM (VALUES (0)) AS [t] ([ZERO])\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) AS [t] ([ZERO])";
+        + "FROM (VALUES (0)) AS [t] ([ZERO])";
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "VALUES (1, 'Fred', 'San Francisco'),\n"
+        + "(2, 'Eric', 'Washington')";
+    final String expectedCalciteX = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expectedDefault)
@@ -5385,7 +5506,16 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
         .withMssql().ok(expectedMssql)
-        .withCalcite().ok(expectedCalcite);
+        .withCalcite().ok(expectedCalcite)
+        .withConfig(c ->
+            c.withRelBuilderConfigTransform(b ->
+                b.withSimplifyValues(false)))
+        .withCalcite().ok(expectedDefaultX)
+        .withHive().ok(expectedHiveX)
+        .withMysql().ok(expectedMysqlX)
+        .withOracle().ok(expectedOracleX)
+        .withMssql().ok(expectedMssqlX)
+        .withCalcite().ok(expectedCalciteX);
   }
 
   @Test void testInsertValuesWithDynamicParams() {
@@ -5393,10 +5523,10 @@ class RelToSqlConverterTest {
     final String expected = ""
         + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected);
@@ -5409,10 +5539,10 @@ class RelToSqlConverterTest {
     final String expected = ""
         + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected);
@@ -5490,19 +5620,22 @@ class RelToSqlConverterTest {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
+    private final Set<SqlLibrary> librarySet;
     private final Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
-    private final SqlToRelConverter.Config config;
+    private final UnaryOperator<SqlToRelConverter.Config> config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
+        UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -5510,12 +5643,14 @@ class RelToSqlConverterTest {
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
+        UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -5523,13 +5658,13 @@ class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql withCalcite() {
@@ -5651,18 +5786,27 @@ class RelToSqlConverterTest {
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
-    Sql config(SqlToRelConverter.Config config) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+    Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
+    }
+
+    final Sql withLibrary(SqlLibrary library) {
+      return withLibrarySet(ImmutableSet.of(library));
+    }
+
+    Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
+      return new Sql(schema, sql, dialect, parserConfig,
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          FlatLists.append(transforms, r -> {
+      final List<Function<RelNode, RelNode>> transforms =
+          FlatLists.append(this.transforms, r -> {
             Program program = Programs.of(ruleSet);
             final RelOptPlanner p =
                 Util.first(relOptPlanner,
@@ -5671,7 +5815,9 @@ class RelToSqlConverterTest {
                             .build()));
             return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
-          }));
+          });
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql ok(String expectedQuery) {
@@ -5696,8 +5842,10 @@ class RelToSqlConverterTest {
         if (relFn != null) {
           rel = relFn.apply(relBuilder());
         } else {
+          final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
+              .withTrimUnusedFields(false));
           final Planner planner =
-              getPlanner(null, parserConfig, schema, config);
+              getPlanner(null, parserConfig, schema, config, librarySet);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).rel;
@@ -5712,8 +5860,8 @@ class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
   }
 }

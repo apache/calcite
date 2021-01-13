@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.type;
 
-
 /**
  * Specific type of RelRecordType that corresponds to a dynamic table,
  * where columns are created as they are requested.

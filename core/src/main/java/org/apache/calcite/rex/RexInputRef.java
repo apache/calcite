@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -68,7 +70,7 @@ public class RexInputRef extends RexSlot {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexInputRef
         && index == ((RexInputRef) obj).index;

@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUnnestOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Namespace for UNNEST.
  */
@@ -47,13 +49,16 @@ class UnnestNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlValidatorTable getTable() {
+  @Override public @Nullable SqlValidatorTable getTable() {
     final SqlNode toUnnest = unnest.operand(0);
     if (toUnnest instanceof SqlIdentifier) {
       // When operand of SqlIdentifier type does not have struct, fake a table
       // for UnnestNamespace
       final SqlIdentifier id = (SqlIdentifier) toUnnest;
       final SqlQualified qualified = this.scope.fullyQualify(id);
+      if (qualified.namespace == null) {
+        return null;
+      }
       return qualified.namespace.getTable();
     }
     return null;
@@ -68,7 +73,7 @@ class UnnestNamespace extends AbstractNamespace {
     return toStruct(type, unnest);
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return unnest;
   }
 }

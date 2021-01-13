@@ -23,7 +23,11 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.core.AggregateCall;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of
@@ -31,9 +35,9 @@ import java.util.List;
  */
 public class AggResultContextImpl extends AggResetContextImpl
     implements AggResultContext {
-  private final AggregateCall call;
-  private final ParameterExpression key;
-  private final PhysType keyPhysType;
+  private final @Nullable AggregateCall call;
+  private final @Nullable ParameterExpression key;
+  private final @Nullable PhysType keyPhysType;
 
   /**
    * Creates aggregate result context.
@@ -44,24 +48,25 @@ public class AggResultContextImpl extends AggResetContextImpl
    *                    aggregate state
    * @param key Key
    */
-  public AggResultContextImpl(BlockBuilder block, AggregateCall call,
-      List<Expression> accumulator, ParameterExpression key,
-      PhysType keyPhysType) {
+  public AggResultContextImpl(BlockBuilder block, @Nullable AggregateCall call,
+      List<Expression> accumulator, @Nullable ParameterExpression key,
+      @Nullable PhysType keyPhysType) {
     super(block, accumulator);
-    this.call = call;
+    this.call = call; // null for AggAddContextImpl
     this.key = key;
-    this.keyPhysType = keyPhysType;
+    this.keyPhysType = keyPhysType; // null for AggAddContextImpl
   }
 
-  @Override public Expression key() {
+  @Override public @Nullable Expression key() {
     return key;
   }
 
   @Override public Expression keyField(int i) {
-    return keyPhysType.fieldReference(key, i);
+    return requireNonNull(keyPhysType, "keyPhysType")
+        .fieldReference(requireNonNull(key, "key"), i);
   }
 
   @Override public AggregateCall call() {
-    return call;
+    return requireNonNull(call, "call");
   }
 }

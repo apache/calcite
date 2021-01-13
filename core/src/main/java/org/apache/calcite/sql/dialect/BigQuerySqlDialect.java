@@ -46,11 +46,14 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -102,7 +105,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -121,14 +124,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public @Nonnull SqlParser.Config configureParser(
+  @Override public SqlParser.Config configureParser(
       SqlParser.Config configBuilder) {
     return super.configureParser(configBuilder)
         .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
@@ -189,13 +192,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    Long intervalValueInLong;
     try {
-      intervalValueInLong = Long.parseLong(literal.getValue().toString());
+      Long.parseLong(interval.getIntervalLiteral());
     } catch (NumberFormatException e) {
       throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
     }
-    writer.literal(intervalValueInLong.toString());
+    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
             RelDataTypeSystem.DEFAULT);
   }
@@ -215,7 +217,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
    *  BQ Trim Function</a>.
    */
-  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+  private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final String operatorName;
     SqlLiteral trimFlag = call.operand(0);
@@ -237,14 +239,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    if (!valueToTrim.toValue().matches("\\s+")) {
+    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
+    if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(trimFrame);
   }
 
-  private TimeUnit validate(TimeUnit timeUnit) {
+  private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case MILLISECOND:
@@ -269,7 +272,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
    * BigQuery Standard SQL Data Types</a>.
    */
-  @Override public SqlNode getCastSpec(final RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
@@ -306,7 +309,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+  private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
+      SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);

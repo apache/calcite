@@ -36,6 +36,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -57,7 +59,7 @@ public class MongoFilter extends Filter implements MongoRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
@@ -139,7 +141,7 @@ public class MongoFilter extends Filter implements MongoRel {
       return map;
     }
 
-    private void addPredicate(Map<String, Object> map, String op, Object v) {
+    private static void addPredicate(Map<String, Object> map, String op, Object v) {
       if (map.containsKey(op) && stronger(op, map.get(op), v)) {
         return;
       }
@@ -152,7 +154,7 @@ public class MongoFilter extends Filter implements MongoRel {
      * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
      * "&lt; 100" is a more powerful condition than "&lt; 200".
      */
-    private boolean stronger(String key, Object v0, Object v1) {
+    private static boolean stronger(String key, Object v0, Object v1) {
       if (key.equals("$lt") || key.equals("$lte")) {
         if (v0 instanceof Number && v1 instanceof Number) {
           return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();

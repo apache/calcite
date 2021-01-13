@@ -16,7 +16,15 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * JSON schema element that represents a custom schema.
@@ -33,13 +41,26 @@ public class JsonCustomSchema extends JsonMapSchema {
    * {@link org.apache.calcite.schema.SchemaFactory} and have a public default
    * constructor.
    */
-  public String factory;
+  public final String factory;
 
   /** Contains attributes to be passed to the factory.
    *
    * <p>May be a JSON object (represented as Map) or null.
    */
-  public Map<String, Object> operand;
+  public final @Nullable Map<String, Object> operand;
+
+  @JsonCreator
+  public JsonCustomSchema(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("path") @Nullable List<Object> path,
+      @JsonProperty("cache") @Nullable Boolean cache,
+      @JsonProperty("autoLattice") @Nullable Boolean autoLattice,
+      @JsonProperty(value = "factory", required = true) String factory,
+      @JsonProperty("operand") @Nullable Map<String, Object> operand) {
+    super(name, path, cache, autoLattice);
+    this.factory = requireNonNull(factory, "factory");
+    this.operand = operand;
+  }
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

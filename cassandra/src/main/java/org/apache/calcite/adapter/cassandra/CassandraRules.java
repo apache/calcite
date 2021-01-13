@@ -155,7 +155,7 @@ public class CassandraRules {
      * @param clusteringKeys Names of primary key columns
      * @return True if the node represents an equality predicate on a primary key
      */
-    private boolean isEqualityOnKey(RexNode node, List<String> fieldNames,
+    private static boolean isEqualityOnKey(RexNode node, List<String> fieldNames,
         Set<String> partitionKeys, List<String> clusteringKeys) {
       if (node.getKind() != SqlKind.EQUALS) {
         return false;
@@ -182,7 +182,8 @@ public class CassandraRules {
      * @param fieldNames Names of all columns in the table
      * @return The field being compared or null if there is no key equality
      */
-    private String compareFieldWithLiteral(RexNode left, RexNode right, List<String> fieldNames) {
+    private static String compareFieldWithLiteral(RexNode left, RexNode right,
+        List<String> fieldNames) {
       // FIXME Ignore casts for new and assume they aren't really necessary
       if (left.isA(SqlKind.CAST)) {
         left = ((RexCall) left).getOperands().get(0);
@@ -305,7 +306,7 @@ public class CassandraRules {
      *
      * @return True if it is possible to achieve this sort in Cassandra
      */
-    private boolean collationsCompatible(RelCollation sortCollation,
+    private static boolean collationsCompatible(RelCollation sortCollation,
         RelCollation implicitCollation) {
       List<RelFieldCollation> sortFieldCollations = sortCollation.getFieldCollations();
       List<RelFieldCollation> implicitFieldCollations = implicitCollation.getFieldCollations();

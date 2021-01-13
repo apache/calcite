@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * <p>Analogous to LINQ's System.Linq.Expressions.ExpressionType.</p>
  */
@@ -596,8 +598,8 @@ public enum ExpressionType {
    */
   While;
 
-  final String op;
-  final String op2;
+  final @Nullable String op;
+  final @Nullable String op2;
   final boolean postfix;
   final int lprec;
   final int rprec;
@@ -607,16 +609,16 @@ public enum ExpressionType {
     this(null, false, 0, false);
   }
 
-  ExpressionType(String op, boolean postfix, int prec, boolean right) {
+  ExpressionType(@Nullable String op, boolean postfix, int prec, boolean right) {
     this(op, null, postfix, prec, right);
   }
 
-  ExpressionType(String op, String op2, boolean postfix, int prec,
+  ExpressionType(@Nullable String op, @Nullable String op2, boolean postfix, int prec,
       boolean right) {
     this(op, op2, postfix, prec, right, false);
   }
 
-  ExpressionType(String op, String op2, boolean postfix, int prec,
+  ExpressionType(@Nullable String op, @Nullable String op2, boolean postfix, int prec,
       boolean right, boolean modifiesLvalue) {
     this.op = op;
     this.op2 = op2;

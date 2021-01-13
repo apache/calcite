@@ -20,6 +20,9 @@ ij_java_use_single_class_imports = true
 max_line_length = 100
 ij_any_wrap_long_lines = true
 
+[*.astub]
+indent_size = 2
+
 [*.java]
 # Doc: https://youtrack.jetbrains.com/issue/IDEA-170643#focus=streamItem-27-3708697.0-0
 # $ means "static"

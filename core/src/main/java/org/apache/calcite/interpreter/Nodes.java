@@ -33,6 +33,8 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+
 /**
  * Helper methods for {@link Node} and implementations for core relational
  * expressions.
@@ -43,7 +45,7 @@ public class Nodes {
    * that knows how to handle the core logical
    * {@link org.apache.calcite.rel.RelNode}s. */
   public static class CoreCompiler extends Interpreter.CompilerImpl {
-    CoreCompiler(Interpreter interpreter, RelOptCluster cluster) {
+    CoreCompiler(@UnknownInitialization Interpreter interpreter, RelOptCluster cluster) {
       super(interpreter, cluster);
     }
 

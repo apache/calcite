@@ -20,6 +20,7 @@ import org.apache.calcite.util.SimpleNamespaceContext;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -47,16 +48,19 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of functions used in Xml processing.
  */
 public class XmlFunctions {
 
-  private static final ThreadLocal<XPathFactory> XPATH_FACTORY =
+  private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
       ThreadLocal.withInitial(XPathFactory::newInstance);
-  private static final ThreadLocal<TransformerFactory> TRANSFORMER_FACTORY =
+  private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
       ThreadLocal.withInitial(TransformerFactory::newInstance);
 
   private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
@@ -67,18 +71,21 @@ public class XmlFunctions {
   private XmlFunctions() {
   }
 
-  public static String extractValue(String input, String xpath) {
+  public static @Nullable String extractValue(@Nullable String input, @Nullable String xpath) {
     if (input == null || xpath == null) {
       return null;
     }
     try {
-      XPathExpression xpathExpression = XPATH_FACTORY.get().newXPath().compile(xpath);
+      XPathExpression xpathExpression = castNonNull(XPATH_FACTORY.get()).newXPath().compile(xpath);
       try {
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(new InputSource(new StringReader(input)), XPathConstants.NODESET);
-        List<String> result = new ArrayList<>();
+        List<@Nullable String> result = new ArrayList<>();
         for (int i = 0; i < nodes.getLength(); i++) {
-          result.add(nodes.item(i).getFirstChild().getTextContent());
+          Node item = castNonNull(nodes.item(i));
+          Node firstChild = requireNonNull(item.getFirstChild(),
+              () -> "firstChild of node " + item);
+          result.add(firstChild.getTextContent());
         }
         return StringUtils.join(result, " ");
       } catch (XPathExpressionException e) {
@@ -89,14 +96,15 @@ public class XmlFunctions {
     }
   }
 
-  public static String xmlTransform(String xml, String xslt) {
+  public static @Nullable String xmlTransform(@Nullable String xml, @Nullable String xslt) {
     if (xml == null || xslt == null) {
       return null;
     }
     try {
       final Source xsltSource = new StreamSource(new StringReader(xslt));
       final Source xmlSource = new StreamSource(new StringReader(xml));
-      final Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer(xsltSource);
+      final Transformer transformer = castNonNull(TRANSFORMER_FACTORY.get())
+          .newTransformer(xsltSource);
       final StringWriter writer = new StringWriter();
       final StreamResult result = new StreamResult(writer);
       transformer.transform(xmlSource, result);
@@ -108,16 +116,17 @@ public class XmlFunctions {
     }
   }
 
-  public static String extractXml(String xml, String xpath) {
+  public static @Nullable String extractXml(@Nullable String xml, @Nullable String xpath) {
     return extractXml(xml, xpath, null);
   }
 
-  public static String extractXml(String xml, String xpath, String namespace) {
+  public static @Nullable String extractXml(@Nullable String xml, @Nullable String xpath,
+      @Nullable String namespace) {
     if (xml == null || xpath == null) {
       return null;
     }
     try {
-      XPath xPath = XPATH_FACTORY.get().newXPath();
+      XPath xPath = castNonNull(XPATH_FACTORY.get()).newXPath();
 
       if (namespace != null) {
         xPath.setNamespaceContext(extractNamespaceContext(namespace));
@@ -130,7 +139,7 @@ public class XmlFunctions {
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
         for (int i = 0; i < nodes.getLength(); i++) {
-          result.add(convertNodeToString(nodes.item(i)));
+          result.add(convertNodeToString(castNonNull(nodes.item(i))));
         }
         return StringUtils.join(result, "");
       } catch (XPathExpressionException e) {
@@ -143,16 +152,17 @@ public class XmlFunctions {
     }
   }
 
-  public static Integer existsNode(String xml, String xpath) {
+  public static @Nullable Integer existsNode(@Nullable String xml, @Nullable String xpath) {
     return existsNode(xml, xpath, null);
   }
 
-  public static Integer existsNode(String xml, String xpath, String namespace) {
+  public static @Nullable Integer existsNode(@Nullable String xml, @Nullable String xpath,
+      @Nullable String namespace) {
     if (xml == null || xpath == null) {
       return null;
     }
     try {
-      XPath xPath = XPATH_FACTORY.get().newXPath();
+      XPath xPath = castNonNull(XPATH_FACTORY.get()).newXPath();
       if (namespace != null) {
         xPath.setNamespaceContext(extractNamespaceContext(namespace));
       }
@@ -185,14 +195,14 @@ public class XmlFunctions {
     Map<String, String> namespaceMap = new HashMap<>();
     Matcher matcher = EXTRACT_NAMESPACE_PATTERN.matcher(namespace);
     while (matcher.find()) {
-      namespaceMap.put(matcher.group(1), matcher.group(3));
+      namespaceMap.put(castNonNull(matcher.group(1)), castNonNull(matcher.group(3)));
     }
     return new SimpleNamespaceContext(namespaceMap);
   }
 
   private static String convertNodeToString(Node node) throws TransformerException {
     StringWriter writer = new StringWriter();
-    Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer();
+    Transformer transformer = castNonNull(TRANSFORMER_FACTORY.get()).newTransformer();
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
     transformer.transform(new DOMSource(node), new StreamResult(writer));
     return writer.toString();

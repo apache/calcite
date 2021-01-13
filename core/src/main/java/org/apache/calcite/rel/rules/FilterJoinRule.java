@@ -36,6 +36,8 @@ import org.apache.calcite.util.ImmutableBeans;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -63,7 +65,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void perform(RelOptRuleCall call, Filter filter,
+  protected void perform(RelOptRuleCall call, @Nullable Filter filter,
       Join join) {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
@@ -206,10 +208,11 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
             joinType,
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
-    if (!leftFilters.isEmpty()) {
+    // TODO: review if filter can be nullable here or not
+    if (!leftFilters.isEmpty() && filter != null) {
       call.getPlanner().onCopy(filter, leftRel);
     }
-    if (!rightFilters.isEmpty()) {
+    if (!rightFilters.isEmpty() && filter != null) {
       call.getPlanner().onCopy(filter, rightRel);
     }
 
@@ -235,7 +238,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    * expressions if any
    * @see RelOptUtil#conjunctions(RexNode)
    */
-  private List<RexNode> getConjunctions(Filter filter) {
+  private static List<RexNode> getConjunctions(Filter filter) {
     List<RexNode> conjunctions = conjunctions(filter.getCondition());
     RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     for (int i = 0; i < conjunctions.size(); i++) {

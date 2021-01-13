@@ -27,10 +27,15 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
@@ -72,7 +77,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
@@ -90,6 +95,17 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return new SqlDataTypeSpec(
         new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
+  }
+
+  @Override public boolean supportsFunction(SqlOperator operator,
+      RelDataType type, final List<RelDataType> paramTypes) {
+    switch (operator.kind) {
+    case LIKE:
+      // introduces support for ILIKE as well
+      return true;
+    default:
+      return super.supportsFunction(operator, type, paramTypes);
+    }
   }
 
   @Override public boolean requiresAliasForFromItems() {

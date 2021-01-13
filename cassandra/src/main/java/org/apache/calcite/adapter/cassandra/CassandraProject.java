@@ -29,6 +29,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +53,7 @@ public class CassandraProject extends Project implements CassandraRel {
         rowType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }

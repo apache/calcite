@@ -98,6 +98,7 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlUnnestOperator;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
@@ -269,8 +270,7 @@ void debug_message1() {
 }
 
 JAVACODE String unquotedIdentifier() {
-    return SqlParserUtil.strip(getToken(0).image, null, null, null,
-        unquotedCasing);
+    return SqlParserUtil.toCase(getToken(0).image, unquotedCasing);
 }
 
 /**
@@ -1934,7 +1934,7 @@ SqlNode JoinTable(SqlNode e) :
                 joinType,
                 e2,
                 using,
-                new SqlNodeList(list.getList(), Span.of(using).end(this)));
+                new SqlNodeList(list, Span.of(using).end(this)));
         }
     |
         {
@@ -2161,7 +2161,7 @@ SqlNode TableRef2(boolean lateral) :
             }
         ]
         {
-            tableRef = unnestOp.createCall(s.end(this), args.toArray());
+            tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
         }
     |
         [<LATERAL> { lateral = true; } ]
@@ -2178,7 +2178,12 @@ SqlNode TableRef2(boolean lateral) :
         tableRef = ExtendedTableRef()
     )
     [
+        LOOKAHEAD(2)
         tableRef = Pivot(tableRef)
+    ]
+    [
+        LOOKAHEAD(2)
+        tableRef = Unpivot(tableRef)
     ]
     [
         [ <AS> ] alias = SimpleIdentifier()
@@ -2461,7 +2466,7 @@ SqlNode RowConstructor() :
         // sub-queries inside of ROW and row sub-queries?  The standard does,
         // but the distinction seems to be purely syntactic.
         return SqlStdOperatorTable.ROW.createCall(s.end(valueList),
-            valueList.toArray());
+            (List<SqlNode>) valueList);
     }
 }
 
@@ -2880,6 +2885,57 @@ void PivotValue(List<SqlNode> list) :
         }
     |
         { list.add(tuple); }
+    )
+}
+
+/** Parses an UNPIVOT clause following a table expression. */
+SqlNode Unpivot(SqlNode tableRef) :
+{
+    final Span s;
+    final boolean includeNulls;
+    final SqlNodeList measureList;
+    final SqlNodeList axisList;
+    final Span s2;
+    final List<SqlNode> values = new ArrayList<SqlNode>();
+    final SqlNodeList inList;
+}
+{
+    <UNPIVOT> { s = span(); }
+    (
+        <INCLUDE> <NULLS> { includeNulls = true; }
+    |   <EXCLUDE> <NULLS> { includeNulls = false; }
+    |   { includeNulls = false; }
+    )
+    <LPAREN>
+    measureList = SimpleIdentifierOrList()
+    <FOR> axisList = SimpleIdentifierOrList()
+    <IN>
+    <LPAREN> { s2 = span(); }
+    UnpivotValue(values) ( <COMMA> UnpivotValue(values) )*
+    <RPAREN>
+    { inList = new SqlNodeList(values, s2.end(this)); }
+    <RPAREN> {
+        return new SqlUnpivot(s.end(this), tableRef, includeNulls, measureList,
+            axisList, inList);
+    }
+}
+
+void UnpivotValue(List<SqlNode> list) :
+{
+    final SqlNodeList columnList;
+    final SqlNode values;
+}
+{
+    columnList = SimpleIdentifierOrList()
+    (
+        <AS> values = RowConstructor() {
+            final SqlNodeList valueList = SqlParserUtil.stripRow(values);
+            list.add(
+                SqlStdOperatorTable.AS.createCall(Span.of(columnList).end(this),
+                    columnList, valueList));
+        }
+    |
+        { list.add(columnList); }
     )
 }
 
@@ -3532,10 +3588,14 @@ List<Object> Expression2(ExprContext exprContext) :
                         (
                             <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
                         |
+                            <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
+                        |
                             <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                         )
                     |
                         <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                    |
+                        <ILIKE> { op = SqlLibraryOperators.ILIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )
@@ -3662,7 +3722,7 @@ SqlNode Expression3(ExprContext exprContext) :
     <ROW> {
         s = span();
     }
-    list = ParenthesizedSimpleIdentifierList() {
+    list = ParenthesizedQueryOrCommaList(exprContext) {
         if (exprContext != ExprContext.ACCEPT_ALL
             && exprContext != ExprContext.ACCEPT_CURSOR
             && !this.conformance.allowExplicitRowValueConstructor())
@@ -3680,7 +3740,7 @@ SqlNode Expression3(ExprContext exprContext) :
         if (rowSpan != null) {
             // interpret as row constructor
             return SqlStdOperatorTable.ROW.createCall(rowSpan.end(list1),
-                list1.toArray());
+                (List<SqlNode>) list1);
         }
     }
     [
@@ -3734,7 +3794,7 @@ SqlNode Expression3(ExprContext exprContext) :
         } else {
             // interpret as row constructor
             return SqlStdOperatorTable.ROW.createCall(span().end(list1),
-                list1.toArray());
+                (List<SqlNode>) list1);
         }
     }
 }
@@ -4387,7 +4447,8 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_DOUBLE_QUOTED_STRING>
     {
-        p = SqlParserUtil.strip(getToken(0).image, DQ, DQ, "\\\"", Casing.UNCHANGED);
+        p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
+            Casing.UNCHANGED);
         try {
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
@@ -4398,7 +4459,8 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_QUOTED_STRING>
     {
-        p = SqlParserUtil.strip(getToken(0).image, "'", "'", "\\'", Casing.UNCHANGED);
+        p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "\\'",
+            Casing.UNCHANGED);
         try {
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
@@ -4881,19 +4943,19 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
         }
     |
         <QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, DQ, DQ, DQDQ,
+            id = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, DQDQ,
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
     |
         <BACK_QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, "`", "`", "``",
+            id = SqlParserUtil.stripQuotes(getToken(0).image, "`", "`", "``",
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
     |
         <BRACKET_QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, "[", "]", "]]",
+            id = SqlParserUtil.stripQuotes(getToken(0).image, "[", "]", "]]",
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
@@ -4902,7 +4964,7 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
             span = span();
             String image = getToken(0).image;
             image = image.substring(image.indexOf('"'));
-            image = SqlParserUtil.strip(image, DQ, DQ, DQDQ, quotedCasing);
+            image = SqlParserUtil.stripQuotes(image, DQ, DQ, DQDQ, quotedCasing);
         }
         [
             <UESCAPE> <QUOTED_STRING> {
@@ -7389,11 +7451,13 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HOURS: "HOURS" >
 |   < IDENTITY: "IDENTITY" >
 |   < IGNORE: "IGNORE" >
+|   < ILIKE: "ILIKE" >
 |   < IMMEDIATE: "IMMEDIATE" >
 |   < IMMEDIATELY: "IMMEDIATELY" >
 |   < IMPLEMENTATION: "IMPLEMENTATION" >
 |   < IMPORT: "IMPORT" >
 |   < IN: "IN" >
+|   < INCLUDE: "INCLUDE" >
 |   < INCLUDING: "INCLUDING" >
 |   < INCREMENT: "INCREMENT" >
 |   < INDICATOR: "INDICATOR" >
@@ -7784,6 +7848,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UNION: "UNION" >
 |   < UNIQUE: "UNIQUE" >
 |   < UNKNOWN: "UNKNOWN" >
+|   < UNPIVOT: "UNPIVOT" >
 |   < UNNAMED: "UNNAMED" >
 |   < UNNEST: "UNNEST" >
 |   < UPDATE: "UPDATE" > { beforeTableName(); }

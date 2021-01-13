@@ -70,7 +70,6 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -286,6 +285,7 @@ public class SqlParserTest {
       "HOURS",                                             "2011",
       "IDENTITY",                      "92", "99", "2003", "2011", "2014", "c",
       "IF",                            "92", "99", "2003",
+      "ILIKE",
       "IMMEDIATE",                     "92", "99", "2003",
       "IMMEDIATELY",
       "IMPORT",                                                            "c",
@@ -668,7 +668,7 @@ public class SqlParserTest {
   /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
    * VALUES that contains a ROW that contains an identifier whose {@code i}th
    * element is quoted. */
-  @Nonnull private static Matcher<SqlNode> isQuoted(final int i,
+  private static Matcher<SqlNode> isQuoted(final int i,
       final boolean quoted) {
     return new CustomTypeSafeMatcher<SqlNode>("quoting") {
       protected boolean matchesSafely(SqlNode item) {
@@ -1288,6 +1288,14 @@ public class SqlParserTest {
     sql(sql)
         .withDialect(MSSQL)
         .ok(expected3);
+
+    conformance = SqlConformanceEnum.DEFAULT;
+    expr("ROW(EMP.EMPNO, EMP.ENAME)").ok("(ROW(`EMP`.`EMPNO`, `EMP`.`ENAME`))");
+    expr("ROW(EMP.EMPNO + 1, EMP.ENAME)").ok("(ROW((`EMP`.`EMPNO` + 1), `EMP`.`ENAME`))");
+    expr("ROW((select deptno from dept where dept.deptno = emp.deptno), EMP.ENAME)")
+        .ok("(ROW((SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`)), `EMP`.`ENAME`))");
   }
 
   /** Whether this is a sub-class that tests un-parsing as well as parsing. */
@@ -1799,7 +1807,20 @@ public class SqlParserTest {
             + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`)))");
   }
 
-  @Test void testFoo() {
+  @Test void testIlike() {
+    // The ILIKE operator is only valid when the PostgreSQL function library is
+    // enabled ('fun=postgresql'). But the parser can always parse it.
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` NOT ILIKE '%abc%')";
+    final String sql = "select * from t where x not ilike '%abc%'";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select * from t where x ilike '%abc%'";
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` ILIKE '%abc%')";
+    sql(sql1).ok(expected1);
   }
 
   @Test void testArithmeticOperators() {
@@ -6150,8 +6171,8 @@ public class SqlParserTest {
     final SqlNode sqlNode = getSqlParser(sql).parseStmt();
     final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     assertNotSame(sqlNodeVisited, sqlNode);
@@ -6163,8 +6184,8 @@ public class SqlParserTest {
     final SqlNode sqlNode0 = getSqlParser(sql0).parseStmt();
     final SqlNode sqlNodeVisited0 = sqlNode0.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     final String str0 = "INSERT INTO `EMPS`\n"
@@ -6176,14 +6197,33 @@ public class SqlParserTest {
     final SqlNode sqlNode1 = getSqlParser(sql1).parseStmt();
     final SqlNode sqlNodeVisited1 = sqlNode1.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
-        return new SqlIdentifier(identifier.names,
-            identifier.getParserPosition());
+        // Copy the identifier in order to return a new SqlInsert.
+        return identifier.clone(identifier.getParserPosition());
       }
     });
     final String str1 = "INSERT INTO `EMPS`\n"
         + "(SELECT `EMPNO`\n"
         + "FROM `EMPS`)";
     assertEquals(linux(sqlNodeVisited1.toString()), str1);
+  }
+
+  @Test void testVisitSqlMatchRecognizeWithSqlShuttle() throws Exception {
+    final String sql = "select *\n"
+        + "from emp \n"
+        + "match_recognize (\n"
+        + "  pattern (strt down+ up+)\n"
+        + "  define\n"
+        + "    down as down.sal < PREV(down.sal),\n"
+        + "    up as up.sal > PREV(up.sal)\n"
+        + ") mr";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        // Copy the identifier in order to return a new SqlMatchRecognize.
+        return identifier.clone(identifier.getParserPosition());
+      }
+    });
+    assertNotSame(sqlNodeVisited, sqlNode);
   }
 
   /**
@@ -7278,7 +7318,7 @@ public class SqlParserTest {
         .ok("INTERVAL '1:1' MINUTE TO SECOND");
   }
 
-  @Nonnull private Consumer<List<? extends Throwable>> checkWarnings(
+  private Consumer<List<? extends Throwable>> checkWarnings(
       String... tokens) {
     final List<String> messages = new ArrayList<>();
     for (String token : tokens) {
@@ -8040,6 +8080,25 @@ public class SqlParserTest {
         + " ('MANAGER', 20) AS `MGR20`,"
         + " ('ANALYST', 10) AS `a10`))\n"
         + "ORDER BY `DEPTNO`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUnpivot() {
+    final String sql = "SELECT *\n"
+        + "FROM emp_pivoted\n"
+        + "UNPIVOT (\n"
+        + "  (sum_sal, count_star)\n"
+        + "  FOR (job, deptno)\n"
+        + "  IN ((c10_ss, c10_c) AS ('CLERK', 10),\n"
+        + "      (c20_ss, c20_c) AS ('CLERK', 20),\n"
+        + "      (a20_ss, a20_c) AS ('ANALYST', 20)))";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP_PIVOTED` "
+        + "UNPIVOT EXCLUDE NULLS ((`SUM_SAL`, `COUNT_STAR`)"
+        + " FOR (`JOB`, `DEPTNO`)"
+        + " IN ((`C10_SS`, `C10_C`) AS ('CLERK', 10),"
+        + " (`C20_SS`, `C20_C`) AS ('CLERK', 20),"
+        + " (`A20_SS`, `A20_C`) AS ('ANALYST', 20)))";
     sql(sql).ok(expected);
   }
 
@@ -9319,6 +9378,21 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testHintThroughShuttle() throws Exception {
+    final String sql = "select * from emp /*+ options('key1' = 'val1') */";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        // Copy the identifier in order to return a new SqlTableRef.
+        return identifier.clone(identifier.getParserPosition());
+      }
+    });
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "/*+ `OPTIONS`('key1' = 'val1') */";
+    assertThat(linux(shuttled.toString()), is(expected));
+  }
+
   @Test void testInvalidHintFormat() {
     final String sql1 = "select "
         + "/*+ properties(^k1^=123, k2='v2'), no_hash_join() */ "
@@ -9607,7 +9681,7 @@ public class SqlParserTest {
 
     private String toSqlString(SqlNodeList sqlNodeList,
         UnaryOperator<SqlWriterConfig> transform) {
-      return sqlNodeList.getList().stream()
+      return sqlNodeList.stream()
           .map(node -> node.toSqlString(transform).getSql())
           .collect(Collectors.joining(";"));
     }

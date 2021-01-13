@@ -28,6 +28,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +37,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
-import javax.annotation.Nonnull;
 
 /**
  * A <code>SqlNode</code> is a SQL parse tree.
@@ -47,7 +48,7 @@ import javax.annotation.Nonnull;
 public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final SqlNode[] EMPTY_ARRAY = new SqlNode[0];
+  public static final @Nullable SqlNode[] EMPTY_ARRAY = new SqlNode[0];
 
   //~ Instance fields --------------------------------------------------------
 
@@ -94,7 +95,7 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@link SqlKind} value, never null
    * @see #isA
    */
-  public @Nonnull SqlKind getKind() {
+  public SqlKind getKind() {
     return SqlKind.OTHER;
   }
 
@@ -173,7 +174,7 @@ public abstract class SqlNode implements Cloneable {
    * @param forceParens Whether to wrap all expressions in parentheses;
    *                    useful for parse test, but false by default
    */
-  public SqlString toSqlString(SqlDialect dialect, boolean forceParens) {
+  public SqlString toSqlString(@Nullable SqlDialect dialect, boolean forceParens) {
     return toSqlString(c ->
         c.withDialect(Util.first(dialect, AnsiSqlDialect.DEFAULT))
             .withAlwaysUseParentheses(forceParens)
@@ -182,7 +183,7 @@ public abstract class SqlNode implements Cloneable {
             .withIndentation(0));
   }
 
-  public SqlString toSqlString(SqlDialect dialect) {
+  public SqlString toSqlString(@Nullable SqlDialect dialect) {
     return toSqlString(dialect, false);
   }
 
@@ -297,10 +298,10 @@ public abstract class SqlNode implements Cloneable {
    * (2 + 3), because the '+' operator is left-associative</li>
    * </ul>
    */
-  public abstract boolean equalsDeep(SqlNode node, Litmus litmus);
+  public abstract boolean equalsDeep(@Nullable SqlNode node, Litmus litmus);
 
   @Deprecated // to be removed before 2.0
-  public final boolean equalsDeep(SqlNode node, boolean fail) {
+  public final boolean equalsDeep(@Nullable SqlNode node, boolean fail) {
     return equalsDeep(node, fail ? Litmus.THROW : Litmus.IGNORE);
   }
 
@@ -314,8 +315,8 @@ public abstract class SqlNode implements Cloneable {
    *              not equal)
    */
   public static boolean equalDeep(
-      SqlNode node1,
-      SqlNode node2,
+      @Nullable SqlNode node1,
+      @Nullable SqlNode node2,
       Litmus litmus) {
     if (node1 == null) {
       return node2 == null;
@@ -336,7 +337,7 @@ public abstract class SqlNode implements Cloneable {
    *
    * @param scope Scope
    */
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
@@ -363,7 +364,7 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@code Collector} that collects all the input elements into a
    * {@link SqlNodeList}, in encounter order
    */
-  public static <T extends SqlNode> Collector<T, ArrayList<T>, SqlNodeList>
+  public static <T extends SqlNode> Collector<T, ArrayList<@Nullable SqlNode>, SqlNodeList>
       toList() {
     return toList(SqlParserPos.ZERO);
   }
@@ -377,9 +378,11 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@code Collector} that collects all the input elements into a
    * {@link SqlNodeList}, in encounter order
    */
-  public static <T extends SqlNode> Collector<T, ArrayList<T>, SqlNodeList>
-      toList(SqlParserPos pos) {
-    return Collector.of(ArrayList::new, ArrayList::add, Util::combine,
-        list -> new SqlNodeList(list, pos));
+  public static <T extends @Nullable SqlNode> Collector<T,
+      ArrayList<@Nullable SqlNode>, SqlNodeList> toList(SqlParserPos pos) {
+    //noinspection RedundantTypeArguments
+    return Collector.<T, ArrayList<@Nullable SqlNode>, SqlNodeList>of(
+        ArrayList::new, ArrayList::add, Util::combine,
+        (ArrayList<@Nullable SqlNode> list) -> SqlNodeList.of(pos, list));
   }
 }

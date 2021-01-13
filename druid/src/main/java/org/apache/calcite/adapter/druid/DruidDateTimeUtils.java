@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
@@ -44,7 +45,6 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -62,9 +62,8 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  @Nullable
   @SuppressWarnings("BetaApi")
-  public static List<Interval> createInterval(RexNode e) {
+  public static @Nullable List<Interval> createInterval(RexNode e) {
     final List<Range<Long>> ranges = extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
@@ -106,8 +105,7 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
-  @Nullable
-  protected static List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
+  protected static @Nullable List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -166,9 +164,8 @@ public class DruidDateTimeUtils {
     }
   }
 
-  @Nullable
   @SuppressWarnings("BetaApi")
-  protected static List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
+  protected static @Nullable List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
     final ImmutableList.Builder<Range<Long>> ranges;
     switch (call.getKind()) {
     case EQUALS:
@@ -271,8 +268,7 @@ public class DruidDateTimeUtils {
    * datetime type, or a cast that only alters nullability on top of a literal with
    * datetime type.
    */
-  @Nullable
-  protected static Long literalValue(RexNode node) {
+  protected static @Nullable Long literalValue(RexNode node) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
@@ -328,8 +324,7 @@ public class DruidDateTimeUtils {
    * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
-  @Nullable
-  public static Granularity extractGranularity(RexNode node, String timeZone) {
+  public static @Nullable Granularity extractGranularity(RexNode node, String timeZone) {
     final int valueIndex;
     final int flagIndex;
 
@@ -368,8 +363,7 @@ public class DruidDateTimeUtils {
    * @return String representing the granularity as ISO8601 Period of Time; null
    * for unknown case
    */
-  @Nullable
-  public static String toISOPeriodFormat(Granularity.Type type) {
+  public static @Nullable String toISOPeriodFormat(Granularity.Type type) {
     switch (type) {
     case SECOND:
       return Period.seconds(1).toString();
@@ -399,8 +393,7 @@ public class DruidDateTimeUtils {
    *
    * @return Druid Granularity or null
    */
-  @Nullable
-  public static Granularity.Type toDruidGranularity(TimeUnitRange timeUnit) {
+  public static Granularity.@Nullable Type toDruidGranularity(TimeUnitRange timeUnit) {
     if (timeUnit == null) {
       return null;
     }

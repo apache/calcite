@@ -274,7 +274,7 @@ public class PigConverter extends PigServer {
     return optimizedPlans;
   }
 
-  private void resetPlannerRules(RelOptPlanner planner,
+  private static void resetPlannerRules(RelOptPlanner planner,
       List<RelOptRule> rulesToSet) {
     planner.clear();
     for (RelOptRule rule : rulesToSet) {

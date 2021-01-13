@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.math.BigDecimal;
@@ -103,15 +104,15 @@ public abstract class RexProgramBuilderBase {
       return null;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    public @Nullable JavaTypeFactory getTypeFactory() {
       return null;
     }
 
-    public QueryProvider getQueryProvider() {
+    public @Nullable QueryProvider getQueryProvider() {
       return null;
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       return map.get(name);
     }
   }
@@ -473,7 +474,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexLiteral literal(boolean value) {
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableBool, false);
+    return rexBuilder.makeLiteral(value, nonNullableBool);
   }
 
   protected RexLiteral literal(Boolean value) {
@@ -484,7 +485,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexLiteral literal(int value) {
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableInt, false);
+    return rexBuilder.makeLiteral(value, nonNullableInt);
   }
 
   protected RexLiteral literal(BigDecimal value) {
@@ -506,8 +507,7 @@ public abstract class RexProgramBuilderBase {
     if (value == null) {
       return rexBuilder.makeNullLiteral(nullableVarchar);
     }
-    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableVarchar,
-        false);
+    return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
   // Variables

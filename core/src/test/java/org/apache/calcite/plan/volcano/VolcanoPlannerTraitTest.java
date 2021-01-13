@@ -44,6 +44,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -322,7 +323,7 @@ class VolcanoPlannerTraitTest {
       return ALT_TRAIT;
     }
 
-    public RelNode convert(
+    public @Nullable RelNode convert(
         RelOptPlanner planner,
         RelNode rel,
         AltTrait toTrait,
@@ -397,7 +398,7 @@ class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
@@ -444,7 +445,7 @@ class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -462,7 +463,7 @@ class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeInfiniteCost();
     }
@@ -517,7 +518,7 @@ class VolcanoPlannerTraitTest {
     }
 
     // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -582,7 +583,7 @@ class VolcanoPlannerTraitTest {
       return new NoneTinyLeafRel(getCluster(), getLabel());
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
                                       RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -813,7 +814,7 @@ class VolcanoPlannerTraitTest {
           label);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeZeroCost();
     }

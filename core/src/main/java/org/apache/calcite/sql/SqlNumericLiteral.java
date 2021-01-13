@@ -22,7 +22,12 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.math.BigDecimal;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A numeric SQL literal.
@@ -30,16 +35,16 @@ import java.math.BigDecimal;
 public class SqlNumericLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
-  private Integer prec;
-  private Integer scale;
+  private @Nullable Integer prec;
+  private @Nullable Integer scale;
   private boolean isExact;
 
   //~ Constructors -----------------------------------------------------------
 
   protected SqlNumericLiteral(
       BigDecimal value,
-      Integer prec,
-      Integer scale,
+      @Nullable Integer prec,
+      @Nullable Integer scale,
       boolean isExact,
       SqlParserPos pos) {
     super(
@@ -53,11 +58,16 @@ public class SqlNumericLiteral extends SqlLiteral {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Integer getPrec() {
+  private BigDecimal getValueNonNull() {
+    return (BigDecimal) requireNonNull(value, "value");
+  }
+
+  public @Nullable Integer getPrec() {
     return prec;
   }
 
-  public Integer getScale() {
+  @Pure
+  public @Nullable Integer getScale() {
     return scale;
   }
 
@@ -66,7 +76,7 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   @Override public SqlNumericLiteral clone(SqlParserPos pos) {
-    return new SqlNumericLiteral((BigDecimal) value, getPrec(), getScale(),
+    return new SqlNumericLiteral(getValueNonNull(), getPrec(), getScale(),
         isExact, pos);
   }
 
@@ -78,18 +88,18 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   @Override public String toValue() {
-    BigDecimal bd = (BigDecimal) value;
+    BigDecimal bd = getValueNonNull();
     if (isExact) {
-      return value.toString();
+      return getValueNonNull().toString();
     }
     return Util.toScientificNotation(bd);
   }
 
   @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
     if (isExact) {
-      int scaleValue = scale.intValue();
+      int scaleValue = requireNonNull(scale, "scale");
       if (0 == scaleValue) {
-        BigDecimal bd = (BigDecimal) value;
+        BigDecimal bd = getValueNonNull();
         SqlTypeName result;
         long l = bd.longValue();
         if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
@@ -103,7 +113,7 @@ public class SqlNumericLiteral extends SqlLiteral {
       // else we have a decimal
       return typeFactory.createSqlType(
           SqlTypeName.DECIMAL,
-          prec.intValue(),
+          requireNonNull(prec, "prec"),
           scaleValue);
     }
 
@@ -113,6 +123,6 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   public boolean isInteger() {
-    return 0 == scale.intValue();
+    return scale != null && 0 == scale.intValue();
   }
 }

@@ -33,6 +33,9 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -41,13 +44,14 @@ import java.util.Comparator;
  *
  * @param <TSource> Element type
  */
+@Covariant(0)
 interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Applies an accumulator function over a sequence.
    */
-  TSource aggregate(
-      FunctionExpression<Function2<TSource, TSource, TSource>> selector);
+  @Nullable TSource aggregate(
+      FunctionExpression<Function2<@Nullable TSource, TSource, TSource>> selector);
 
   /**
    * Applies an accumulator function over a
@@ -172,7 +176,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  @Override Queryable<TSource> defaultIfEmpty();
+  @Override Queryable<@Nullable TSource> defaultIfEmpty();
 
   /**
    * Returns distinct elements from a sequence by using
@@ -227,7 +231,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * satisfies a specified condition or a default value if no such
    * element is found.
    */
-  TSource firstOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource firstOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Groups the elements of a sequence according to a
@@ -400,7 +404,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  TSource lastOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource lastOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Returns an long that represents the number of
@@ -413,7 +417,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * generic {@code IQueryable<TSource>} and returns the maximum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult max(
+  <TResult extends Comparable<TResult>> @Nullable TResult max(
       FunctionExpression<Function1<TSource, TResult>> selector);
 
   /**
@@ -421,7 +425,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * generic {@code IQueryable<TSource>} and returns the minimum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult min(
+  <TResult extends Comparable<TResult>> @Nullable TResult min(
       FunctionExpression<Function1<TSource, TResult>> selector);
 
   /**
@@ -564,7 +568,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * exception if there is more than one element in the
    * sequence.
    */
-  @Override TSource singleOrDefault();
+  @Override @Nullable TSource singleOrDefault();
 
   /**
    * Returns the only element of a sequence that
@@ -572,7 +576,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * element exists; this method throws an exception if more than
    * one element satisfies the condition.
    */
-  TSource singleOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource singleOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Bypasses a specified number of elements in a

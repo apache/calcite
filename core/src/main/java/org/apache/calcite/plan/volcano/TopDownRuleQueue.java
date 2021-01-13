@@ -19,6 +19,8 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -29,7 +31,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * A rule queue that manage rule matches for cascade planner.
+ * A rule queue that manages rule matches for cascades planner.
  */
 class TopDownRuleQueue extends RuleQueue {
 
@@ -53,6 +55,13 @@ class TopDownRuleQueue extends RuleQueue {
       return;
     }
 
+    // The substitution rule would be applied first though it is added at the end of the queue.
+    // The process looks like:
+    //   1) put the non-substitution rule at the front and substitution rule at the end of the queue
+    //   2) get each rule from the queue in order from first to last and generate an ApplyRule task
+    //   3) push each ApplyRule task into the task stack
+    // As a result, substitution rule is executed first since the ApplyRule(substitution) task is
+    // popped earlier than the ApplyRule(non-substitution) task from the stack.
     if (!planner.isSubstituteRule(match)) {
       queue.addFirst(match);
     } else {
@@ -60,7 +69,7 @@ class TopDownRuleQueue extends RuleQueue {
     }
   }
 
-  public VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
+  public @Nullable VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
     Deque<VolcanoRuleMatch> queue = matches.get(category.left);
     if (queue == null) {
       return null;

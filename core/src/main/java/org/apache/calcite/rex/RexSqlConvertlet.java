@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Converts a {@link RexNode} expression into a {@link SqlNode} expression.
  */
@@ -31,7 +33,7 @@ public interface RexSqlConvertlet {
    * @param call      RexCall to translate
    * @return SqlNode, or null if translation was unavailable
    */
-  SqlNode convertCall(
+  @Nullable SqlNode convertCall(
       RexToSqlNodeConverter converter,
       RexCall call);
 }

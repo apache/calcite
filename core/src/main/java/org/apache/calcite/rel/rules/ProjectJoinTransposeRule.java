@@ -35,6 +35,8 @@ import org.apache.calcite.util.ImmutableBeans;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.Join}
@@ -135,7 +137,7 @@ public class ProjectJoinTransposeRule
     final Join newJoin =
         join.copy(
             join.getTraitSet(),
-            newJoinFilter,
+            requireNonNull(newJoinFilter, "newJoinFilter must not be null"),
             leftProject,
             rightProject,
             join.getJoinType(),

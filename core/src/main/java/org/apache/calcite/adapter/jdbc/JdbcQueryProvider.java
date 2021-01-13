@@ -21,6 +21,8 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.QueryProviderImpl;
 import org.apache.calcite.linq4j.Queryable;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Implementation of {@link QueryProvider} that talks to JDBC databases.
  */
@@ -31,6 +33,6 @@ public final class JdbcQueryProvider extends QueryProviderImpl {
   }
 
   @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
-    return null;
+    return castNonNull(null);
   }
 }

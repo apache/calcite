@@ -95,6 +95,7 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
@@ -102,6 +103,7 @@ import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -2036,10 +2038,10 @@ class UtilTest {
   /** Tests {@link ReflectUtil#mightBeAssignableFrom(Class, Class)}. */
   @Test void testMightBeAssignableFrom() {
     final Object myMap = new HashMap<String, Integer>() {
-      @NotNull @Override public Set<Entry<String, Integer>> entrySet() {
+      @Override public @NotNull Set<Entry<String, Integer>> entrySet() {
         throw new UnsupportedOperationException();
       }
-      @Nullable @Override public Integer put(String key, Integer value) {
+      @Override public @Nullable Integer put(String key, Integer value) {
         throw new UnsupportedOperationException();
       }
       @Override public int size() {
@@ -2761,7 +2763,8 @@ class UtilTest {
     assertThat(incTripleFn.apply(2), is(9));
   }
 
-  /** Tests {@link Util#transform(List, java.util.function.Function)}. */
+  /** Tests {@link Util#transform(List, java.util.function.Function)}
+   * and {@link Util#transformIndexed(List, BiFunction)}. */
   @Test void testTransform() {
     final List<String> beatles =
         Arrays.asList("John", "Paul", "George", "Ringo");
@@ -2776,6 +2779,13 @@ class UtilTest {
     final List<String> beatles2 = new LinkedList<>(beatles);
     assertThat(Util.transform(beatles2, String::length),
         not(instanceOf(RandomAccess.class)));
+
+    assertThat(Util.transformIndexed(beatles, (s, i) -> i + ": " + s),
+        allOf(is(Arrays.asList("0: John", "1: Paul", "2: George", "3: Ringo")),
+            instanceOf(RandomAccess.class)));
+    assertThat(Util.transformIndexed(beatles2, (s, i) -> i + ": " + s),
+        allOf(is(Arrays.asList("0: John", "1: Paul", "2: George", "3: Ringo")),
+            not(instanceOf(RandomAccess.class))));
   }
 
   /** Tests {@link Util#filter(Iterable, java.util.function.Predicate)}. */

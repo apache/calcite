@@ -35,11 +35,12 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes a {@link Project} under {@link Correlate} to apply
@@ -170,9 +171,11 @@ public class ProjectCorrelateTransposeRule
       // creates new RexFieldAccess instance for the case when referenceExpr was replaced.
       // Otherwise calls super method.
       if (refExpr == rexCorrelVariable) {
+        int fieldIndex = fieldAccess.getField().getIndex();
         return builder.makeFieldAccess(
             refExpr,
-            requiredColsMap.get(fieldAccess.getField().getIndex()));
+            requireNonNull(requiredColsMap.get(fieldIndex),
+                () -> "no entry for field " + fieldIndex + " in " + requiredColsMap));
       }
       return super.visitFieldAccess(fieldAccess);
     }
@@ -194,7 +197,7 @@ public class ProjectCorrelateTransposeRule
         child = ((HepRelVertex) child).getCurrentRel();
       } else if (child instanceof RelSubset) {
         RelSubset subset = (RelSubset) child;
-        child = Util.first(subset.getBest(), subset.getOriginal());
+        child = subset.getBestOrOriginal();
       }
       return super.visitChild(parent, i, child).accept(rexVisitor);
     }

@@ -24,6 +24,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -61,7 +63,7 @@ import java.util.function.BiConsumer;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
-@SuppressWarnings("BetaApi")
+@SuppressWarnings({"BetaApi", "type.argument.type.incompatible"})
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final boolean containsNull;
@@ -90,7 +92,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    *
    * and also null is printed as
    *
-   * <blockquote>{@code Sarg[7, 9, (10..+∞), null]}</blockquote>
+   * <blockquote>{@code Sarg[7, 9, (10..+∞) OR NULL]}</blockquote>
    */
   @Override public String toString() {
     final StringBuilder sb = new StringBuilder();
@@ -102,6 +104,12 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * with each embedded value. */
   public StringBuilder printTo(StringBuilder sb,
       BiConsumer<StringBuilder, C> valuePrinter) {
+    if (isAll()) {
+      return sb.append(containsNull ? "Sarg[TRUE]" : "Sarg[NOT NULL]");
+    }
+    if (isNone()) {
+      return sb.append(containsNull ? "Sarg[NULL]" : "Sarg[FALSE]");
+    }
     sb.append("Sarg[");
     final RangeSets.Consumer<C> printer = RangeSets.printer(sb, valuePrinter);
     Ord.forEach(rangeSet.asRanges(), (r, i) -> {
@@ -111,7 +119,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       RangeSets.forEach(r, printer);
     });
     if (containsNull) {
-      sb.append(", null");
+      sb.append(" OR NULL");
     }
     return sb.append("]");
   }
@@ -124,11 +132,23 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return RangeSets.hashCode(rangeSet) * 31 + (containsNull ? 2 : 3);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof Sarg
-        && rangeSet.equals(((Sarg) o).rangeSet)
-        && containsNull == ((Sarg) o).containsNull;
+        && containsNull == ((Sarg) o).containsNull
+        && rangeSet.equals(((Sarg) o).rangeSet);
+  }
+
+  /** Returns whether this Sarg includes all values (including or not including
+   * null). */
+  public boolean isAll() {
+    return rangeSet.equals(RangeSets.rangeSetAll());
+  }
+
+  /** Returns whether this Sarg includes no values (including or not including
+   * null). */
+  public boolean isNone() {
+    return rangeSet.isEmpty();
   }
 
   /** Returns whether this Sarg is a collection of 1 or more points (and perhaps
@@ -147,6 +167,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * or {@code ref NOT IN (value1, ...)}. */
   public boolean isComplementedPoints() {
     return rangeSet.span().encloses(Range.all())
+        && !rangeSet.equals(RangeSets.rangeSetAll())
         && rangeSet.complement().asRanges().stream()
             .allMatch(RangeSets::isPoint);
   }
@@ -181,5 +202,10 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       ++complexity;
     }
     return complexity;
+  }
+
+  /** Returns a Sarg that matches a value if and only this Sarg does not. */
+  public Sarg negate() {
+    return Sarg.of(!containsNull, rangeSet.complement());
   }
 }

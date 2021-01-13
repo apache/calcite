@@ -48,11 +48,16 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.apache.calcite.util.NumberUtil.multiply;
 
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
@@ -102,7 +107,9 @@ public class RelMdUtil {
     RexCall call = (RexCall) artificialSelectivityFuncNode;
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
-    return ((RexLiteral) operand).getValueAs(Double.class);
+    @SuppressWarnings("unboxing.of.nullable")
+    double doubleValue = ((RexLiteral) operand).getValueAs(Double.class);
+    return doubleValue;
   }
 
   /**
@@ -202,7 +209,7 @@ public class RelMdUtil {
     return b != null && b;
   }
 
-  public static Boolean areColumnsUnique(RelMetadataQuery mq, RelNode rel,
+  public static @Nullable Boolean areColumnsUnique(RelMetadataQuery mq, RelNode rel,
       List<RexInputRef> columnRefs) {
     ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
     for (RexInputRef columnRef : columnRefs) {
@@ -235,7 +242,7 @@ public class RelMdUtil {
     return b != null && b;
   }
 
-  public static Boolean areColumnsUniqueWhenNullsFiltered(RelMetadataQuery mq,
+  public static @Nullable Boolean areColumnsUniqueWhenNullsFiltered(RelMetadataQuery mq,
       RelNode rel, List<RexInputRef> columnRefs) {
     ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
 
@@ -284,18 +291,21 @@ public class RelMdUtil {
    * between 1 and 100, you'll most likely end up with fewer than 100 distinct
    * values, because you'll pick some values more than once.
    *
-   * The implementation is an unbiased estimation of the number of distinct values
-   * by performing a number of selections (with replacement) from a universe set.
+   * <p>The implementation is an unbiased estimation of the number of distinct
+   * values by performing a number of selections (with replacement) from a
+   * universe set.
    *
-   * @param domainSize size of the universe set.
-   * @param numSelected the number of selections.
-   * @return the expected number of distinct values.
+   * @param domainSize Size of the universe set
+   * @param numSelected The number of selections
+   *
+   * @return the expected number of distinct values, or null if either argument
+   * is null
    */
-  public static Double numDistinctVals(
-      Double domainSize,
-      Double numSelected) {
+  public static @PolyNull Double numDistinctVals(
+      @PolyNull Double domainSize,
+      @PolyNull Double numSelected) {
     if ((domainSize == null) || (numSelected == null)) {
-      return null;
+      return domainSize;
     }
 
     // Cap the input sizes at MAX_VALUE to ensure that the calculations
@@ -365,7 +375,7 @@ public class RelMdUtil {
    *                  means true, so gives selectity of 1.0
    * @return estimated selectivity
    */
-  public static double guessSelectivity(RexNode predicate) {
+  public static double guessSelectivity(@Nullable RexNode predicate) {
     return guessSelectivity(predicate, false);
   }
 
@@ -379,7 +389,7 @@ public class RelMdUtil {
    * @return estimated selectivity
    */
   public static double guessSelectivity(
-      RexNode predicate,
+      @Nullable RexNode predicate,
       boolean artificialOnly) {
     double sel = 1.0;
     if ((predicate == null) || predicate.isAlwaysTrue()) {
@@ -421,10 +431,10 @@ public class RelMdUtil {
    * @param pred2      second predicate
    * @return AND'd predicate or individual predicates if one is null
    */
-  public static RexNode unionPreds(
+  public static @Nullable RexNode unionPreds(
       RexBuilder rexBuilder,
-      RexNode pred1,
-      RexNode pred2) {
+      @Nullable RexNode pred1,
+      @Nullable RexNode pred2) {
     final Set<RexNode> unionList = new LinkedHashSet<>();
     unionList.addAll(RelOptUtil.conjunctions(pred1));
     unionList.addAll(RelOptUtil.conjunctions(pred2));
@@ -440,10 +450,10 @@ public class RelMdUtil {
    * @param pred2      second predicate
    * @return MINUS'd predicate list
    */
-  public static RexNode minusPreds(
+  public static @Nullable RexNode minusPreds(
       RexBuilder rexBuilder,
-      RexNode pred1,
-      RexNode pred2) {
+      @Nullable RexNode pred1,
+      @Nullable RexNode pred2) {
     final List<RexNode> minusList =
         new ArrayList<>(RelOptUtil.conjunctions(pred1));
     minusList.removeAll(RelOptUtil.conjunctions(pred2));
@@ -510,7 +520,7 @@ public class RelMdUtil {
    * @param expr projection expression
    * @return cardinality
    */
-  public static Double cardOfProjExpr(RelMetadataQuery mq, Project rel,
+  public static @Nullable Double cardOfProjExpr(RelMetadataQuery mq, Project rel,
       RexNode expr) {
     return expr.accept(new CardOfProjExpr(mq, rel));
   }
@@ -522,7 +532,7 @@ public class RelMdUtil {
    * @param groupKey Keys to compute the population for
    * @return computed population size
    */
-  public static Double getJoinPopulationSize(RelMetadataQuery mq,
+  public static @Nullable Double getJoinPopulationSize(RelMetadataQuery mq,
       RelNode join_, ImmutableBitSet groupKey) {
     Join join = (Join) join_;
     if (!join.getJoinType().projectsRight()) {
@@ -538,7 +548,7 @@ public class RelMdUtil {
         groupKey, leftMask, rightMask, left.getRowType().getFieldCount());
 
     Double population =
-        NumberUtil.multiply(
+        multiply(
             mq.getPopulationSize(left, leftMask.build()),
             mq.getPopulationSize(right, rightMask.build()));
 
@@ -577,8 +587,8 @@ public class RelMdUtil {
    * @param predicate   join predicate
    * @return number of distinct rows
    */
-  public static Double getSemiJoinDistinctRowCount(Join semiJoinRel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public static @Nullable Double getSemiJoinDistinctRowCount(Join semiJoinRel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
@@ -611,9 +621,9 @@ public class RelMdUtil {
    *                  otherwise use <code>left NDV * right NDV</code>.
    * @return number of distinct rows
    */
-  public static Double getJoinDistinctRowCount(RelMetadataQuery mq,
+  public static @Nullable Double getJoinDistinctRowCount(RelMetadataQuery mq,
       RelNode joinRel, JoinRelType joinType, ImmutableBitSet groupKey,
-      RexNode predicate, boolean useMaxNdv) {
+      @Nullable RexNode predicate, boolean useMaxNdv) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
@@ -663,12 +673,12 @@ public class RelMdUtil {
     }
 
     if (useMaxNdv) {
-      distRowCount = Math.max(
+      distRowCount = NumberUtil.max(
           mq.getDistinctRowCount(left, leftMask.build(), leftPred),
           mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     } else {
       distRowCount =
-        NumberUtil.multiply(
+        multiply(
             mq.getDistinctRowCount(left, leftMask.build(), leftPred),
             mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     }
@@ -701,7 +711,7 @@ public class RelMdUtil {
   }
 
   /** Returns an estimate of the number of rows returned by a {@link Join}. */
-  public static Double getJoinRowCount(RelMetadataQuery mq, Join join,
+  public static @Nullable Double getJoinRowCount(RelMetadataQuery mq, Join join,
       RexNode condition) {
     if (!join.getJoinType().projectsRight()) {
       // Create a RexNode representing the selectivity of the
@@ -709,11 +719,13 @@ public class RelMdUtil {
       RexNode semiJoinSelectivity =
           RelMdUtil.makeSemiJoinSelectivityRexNode(mq, join);
       Double selectivity = mq.getSelectivity(join.getLeft(), semiJoinSelectivity);
-      return NumberUtil.multiply(
-          join.getJoinType() == JoinRelType.SEMI
-              ? selectivity
-              : NumberUtil.subtract(1D, selectivity), // ANTI join
-          mq.getRowCount(join.getLeft()));
+      if (selectivity == null) {
+        return null;
+      }
+      return (join.getJoinType() == JoinRelType.SEMI
+          ? selectivity
+          : 1D - selectivity) // ANTI join
+          * mq.getRowCount(join.getLeft());
     }
     // Row count estimates of 0 will be rounded up to 1.
     // So, use maxRowCount where the product is very small.
@@ -761,10 +773,12 @@ public class RelMdUtil {
     return estimateFilteredRows(child, condition, mq);
   }
 
-  public static double estimateFilteredRows(RelNode child, RexNode condition,
+  public static double estimateFilteredRows(RelNode child, @Nullable RexNode condition,
       RelMetadataQuery mq) {
-    return mq.getRowCount(child)
-        * mq.getSelectivity(child, condition);
+    @SuppressWarnings("unboxing.of.nullable")
+    double result = multiply(mq.getRowCount(child),
+        mq.getSelectivity(child, condition));
+    return result;
   }
 
   /** Returns a point on a line.
@@ -801,7 +815,7 @@ public class RelMdUtil {
 
   /** Visitor that walks over a scalar expression and computes the
    * cardinality of its result. */
-  private static class CardOfProjExpr extends RexVisitorImpl<Double> {
+  private static class CardOfProjExpr extends RexVisitorImpl<@Nullable Double> {
     private final RelMetadataQuery mq;
     private Project rel;
 
@@ -811,7 +825,7 @@ public class RelMdUtil {
       this.rel = rel;
     }
 
-    @Override public Double visitInputRef(RexInputRef var) {
+    @Override public @Nullable Double visitInputRef(RexInputRef var) {
       int index = var.getIndex();
       ImmutableBitSet col = ImmutableBitSet.of(index);
       Double distinctRowCount =
@@ -823,11 +837,11 @@ public class RelMdUtil {
       }
     }
 
-    @Override public Double visitLiteral(RexLiteral literal) {
+    @Override public @Nullable Double visitLiteral(RexLiteral literal) {
       return numDistinctVals(1.0, mq.getRowCount(rel));
     }
 
-    @Override public Double visitCall(RexCall call) {
+    @Override public @Nullable Double visitCall(RexCall call) {
       Double distinctRowCount;
       Double rowCount = mq.getRowCount(rel);
       if (call.isA(SqlKind.MINUS_PREFIX)) {
@@ -844,7 +858,7 @@ public class RelMdUtil {
         distinctRowCount = Math.max(card0, card1);
       } else if (call.isA(ImmutableList.of(SqlKind.TIMES, SqlKind.DIVIDE))) {
         distinctRowCount =
-            NumberUtil.multiply(
+            multiply(
                 cardOfProjExpr(mq, rel, call.getOperands().get(0)),
                 cardOfProjExpr(mq, rel, call.getOperands().get(1)));
 
@@ -869,7 +883,7 @@ public class RelMdUtil {
    * <p>If this is the case, it is safe to push down a
    * {@link org.apache.calcite.rel.core.Sort} with limit and optional offset. */
   public static boolean checkInputForCollationAndLimit(RelMetadataQuery mq,
-      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
+      RelNode input, RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
     return alreadySorted(mq, input, collation) && alreadySmaller(mq, input, offset, fetch);
   }
 
@@ -893,7 +907,7 @@ public class RelMdUtil {
 
   // Checks if we are not reducing the number of tuples
   private static boolean alreadySmaller(RelMetadataQuery mq, RelNode input,
-      RexNode offset, RexNode fetch) {
+      @Nullable RexNode offset, @Nullable RexNode fetch) {
     if (fetch == null) {
       return true;
     }
@@ -908,18 +922,20 @@ public class RelMdUtil {
   }
 
   /**
-   * Validate the {@code result} represents a percentage number,
-   * e.g. the value interval is [0.0, 1.0].
+   * Validates whether a value represents a percentage number
+   * (that is, a value in the interval [0.0, 1.0]) and returns the value.
    *
-   * @return true if the {@code result} is a percentage number
-   * @throws AssertionError if the validation fails
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, not in range 0 to 1,
+   * and assertions are enabled.
    */
-  public static Double validatePercentage(Double result) {
+  public static @PolyNull Double validatePercentage(@PolyNull Double result) {
     assert isPercentage(result, true);
     return result;
   }
 
-  private static boolean isPercentage(Double result, boolean fail) {
+  private static boolean isPercentage(@Nullable Double result, boolean fail) {
     if (result != null) {
       final double d = result;
       if (d < 0.0) {
@@ -942,10 +958,15 @@ public class RelMdUtil {
    * division expression.  Also, cap the value at the max double value
    * to avoid calculations using infinity.
    *
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, is negative,
+   * and assertions are enabled.
+   *
    * @return the corrected value from the {@code result}
    * @throws AssertionError if the {@code result} is negative
    */
-  public static Double validateResult(Double result) {
+  public static @PolyNull Double validateResult(@PolyNull Double result) {
     if (result == null) {
       return null;
     }
@@ -960,7 +981,7 @@ public class RelMdUtil {
     return result;
   }
 
-  private static boolean isNonNegative(Double result, boolean fail) {
+  private static boolean isNonNegative(@Nullable Double result, boolean fail) {
     if (result != null) {
       final double d = result;
       if (d < 0.0) {

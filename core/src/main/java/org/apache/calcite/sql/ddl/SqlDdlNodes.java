@@ -26,8 +26,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-
-
 /**
  * Utilities concerning {@link SqlNode} for DDL.
  */

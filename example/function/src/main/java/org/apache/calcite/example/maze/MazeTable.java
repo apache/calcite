@@ -28,6 +28,8 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.util.Random;
 import java.util.Set;
@@ -85,7 +87,7 @@ public class MazeTable extends AbstractTable implements ScannableTable {
         .build();
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     final Random random = seed >= 0 ? new Random(seed) : new Random();
     final Maze maze = new Maze(width, height);
     final PrintWriter pw = Util.printWriter(System.out);
@@ -93,8 +95,8 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     if (Maze.DEBUG) {
       maze.print(pw, true);
     }
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         final Set<Integer> solutionSet;
         if (solution) {
           solutionSet = maze.solve(0, 0);

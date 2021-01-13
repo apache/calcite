@@ -34,11 +34,15 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
@@ -82,7 +86,7 @@ public class AggregateProjectMergeRule
     }
   }
 
-  public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
+  public static @Nullable RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
     // Find all fields which we need to be straightforward field projections.
     final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);
@@ -125,7 +129,9 @@ public class AggregateProjectMergeRule
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     final List<Integer> newKeys =
-        Util.transform(aggregate.getGroupSet().asList(), map::get);
+        Util.transform(aggregate.getGroupSet().asList(),
+            key -> requireNonNull(map.get(key),
+                () -> "no value found for key " + key + " in " + map));
     if (!newKeys.equals(newGroupSet.asList())) {
       final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {
