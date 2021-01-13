@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -47,8 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class MultipleTraitConversionTest {
   @SuppressWarnings("ConstantConditions")
-  @Test
-  public void testMultipleTraitConversion() {
+  @Test public void testMultipleTraitConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -97,8 +95,7 @@ public class MultipleTraitConversionTest {
       super(cluster, traits, input);
     }
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new CustomTraitEnforcer(getCluster(), traitSet, inputs.get(0));
     }
   }
@@ -115,23 +112,19 @@ public class MultipleTraitConversionTest {
     }
 
     @SuppressWarnings("rawtypes")
-    @Override
-    public RelTraitDef getTraitDef() {
+    @Override public RelTraitDef getTraitDef() {
       return CustomTraitDef.INSTANCE;
     }
 
-    @Override
-    public boolean satisfies(RelTrait trait) {
+    @Override public boolean satisfies(RelTrait trait) {
       return this == trait;
     }
 
-    @Override
-    public void register(RelOptPlanner planner) {
+    @Override public void register(RelOptPlanner planner) {
       // No-op
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return label;
     }
   }
@@ -140,18 +133,15 @@ public class MultipleTraitConversionTest {
 
     private static final CustomTraitDef INSTANCE = new CustomTraitDef();
 
-    @Override
-    public Class<CustomTrait> getTraitClass() {
+    @Override public Class<CustomTrait> getTraitClass() {
       return CustomTrait.class;
     }
 
-    @Override
-    public String getSimpleName() {
+    @Override public String getSimpleName() {
       return "custom";
     }
 
-    @Override
-    public @Nullable RelNode convert(
+    @Override public @Nullable RelNode convert(
         RelOptPlanner planner,
         RelNode rel,
         CustomTrait toTrait,
@@ -164,13 +154,11 @@ public class MultipleTraitConversionTest {
       );
     }
 
-    @Override
-    public boolean canConvert(RelOptPlanner planner, CustomTrait fromTrait, CustomTrait toTrait) {
+    @Override public boolean canConvert(RelOptPlanner planner, CustomTrait fromTrait, CustomTrait toTrait) {
       return true;
     }
 
-    @Override
-    public CustomTrait getDefault() {
+    @Override public CustomTrait getDefault() {
       return CustomTrait.FROM;
     }
   }
