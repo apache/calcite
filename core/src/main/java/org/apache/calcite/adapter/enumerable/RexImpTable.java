@@ -326,8 +326,7 @@ public class RexImpTable {
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
     defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
     defineMethod(CHR, "chr", NullPolicy.STRICT);
-    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
-        NullPolicy.STRICT);
+    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method, NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
     defineMethod(CONCAT, BuiltInMethod.STRING_CONCAT.method,
