@@ -401,6 +401,12 @@ public interface SqlConformance {
    * the parser.
    */
   boolean allowIsTrue();
+
+  /**
+   * Check if the "else" condition is mandatory in the "Case" operator
+   *
+   */
+  boolean isElseCaseNeeded();
 }
 
 // End SqlConformance.java

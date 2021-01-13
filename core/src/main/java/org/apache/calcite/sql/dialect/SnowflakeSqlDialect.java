@@ -25,11 +25,14 @@ import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -39,6 +42,16 @@ import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
+import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 
 /**
@@ -73,6 +86,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
       return super.getTargetFunc(call);
     }
   }
+
+  private static final Map<String, String> DATE_TIME_FORMAT_MAP =
+      new HashMap<String, String>() {{
+        put(DAYOFWEEK.value, "DY");
+        put(E3.value, "DY");
+        put(ABBREVIATEDDAYOFWEEK.value, "DY");
+        put(E4.value, "DY");
+      }};
 
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
     switch (call.getOperands().get(1).getType().getSqlTypeName()) {
@@ -283,34 +304,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case DateTimestampFormatUtil.DAYNUMBER_OF_CALENDAR:
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
-      break;
-    case "LOWER":
-      if (call.operand(0).getKind() == SqlKind.LITERAL) {
-        getDayofWeek(writer, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void getDayofWeek(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (((SqlLiteral) call.operand(0)).getValueAs(String.class)) {
-    case "Sunday":
-    case "Monday":
-    case "Tuesday":
-    case "Wednesday":
-    case "Thursday":
-    case "Friday":
-    case "Saturday":
-      final SqlWriter.Frame operatorFrame = writer.startFunCall(call.getOperator().toString());
-      final SqlWriter.Frame substrFrame = writer.startFunCall("SUBSTR");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(", 0, 3");
-      writer.endFunCall(substrFrame);
-      writer.endFunCall(operatorFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -613,21 +606,50 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private void formatDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    switch (((SqlLiteral) call.operand(0)).getValueAs(String.class)) {
-    case "EEEE":
-    case "E4":
-    case "EEE":
-    case "E3":
-      writer.print("'DY'");
-      break;
-    default:
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      break;
+    if (call.operand(0).toString().equals("'EEEE'") || call.operand(0).toString().equals("'E4'")) {
+      SqlCall toVarcharNode = createVarCharNode(call);
+      List<String> abvList = Arrays.asList("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat");
+      ArrayList<String> abvDays = new ArrayList<>(abvList);
+
+      SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
+      abvDays.forEach(it ->
+          whenList.add(
+          SqlStdOperatorTable.EQUALS.createCall(
+          null, SqlParserPos.ZERO, toVarcharNode,
+          SqlLiteral.createCharString(it, SqlParserPos.ZERO))
+      ));
+
+      List<String> weekDays = Arrays.asList("Sunday", "Monday", "Tuesday",
+              "Wednesday", "Thursday", "Friday", "Saturday");
+      ArrayList<SqlLiteral> weekDaysNode = new ArrayList<>();
+
+      weekDays.forEach(it ->
+              weekDaysNode.add(
+                      SqlLiteral.createCharString(it, SqlParserPos.ZERO)));
+
+      SqlNodeList thenList = new SqlNodeList(weekDaysNode, SqlParserPos.ZERO);
+
+      SqlCall caseNode = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, null);
+      unparseCall(writer, caseNode, leftPrec, rightPrec);
+    } else {
+      if (DATE_TIME_FORMAT_MAP.containsKey(unquoteStringLiteral(call.operand(0).toString()))) {
+        unparseCall(writer, createVarCharNode(call), leftPrec, rightPrec);
+      } else {
+        SqlNode formatDate = SqlLibraryOperators.TO_VARCHAR.createCall(
+                SqlParserPos.ZERO, call.operand(1), call.operand(0));
+
+        formatDate.unparse(writer, leftPrec, rightPrec);
+      }
     }
-    writer.endFunCall(formatDate);
+  }
+
+  private SqlCall createVarCharNode(SqlCall call) {
+    SqlNode dayNode = SqlLiteral.createCharString(
+            DATE_TIME_FORMAT_MAP.get(
+                    unquoteStringLiteral(call.operand(0).toString())), SqlParserPos.ZERO);
+
+    return SqlLibraryOperators.TO_VARCHAR.createCall(
+            SqlParserPos.ZERO, call.operand(1), dayNode);
   }
 
 }
