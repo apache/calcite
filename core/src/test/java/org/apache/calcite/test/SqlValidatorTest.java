@@ -1244,8 +1244,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testCastRegisteredType() {
-    expr("cast(123 as customBigInt)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: CUSTOMBIGINT");
+    expr("cast(123 as ^customBigInt^)")
+        .fails("Unknown identifier 'CUSTOMBIGINT'");
     expr("cast(123 as sales.customBigInt)")
         .columnType("BIGINT NOT NULL");
     expr("cast(123 as catalog.sales.customBigInt)")
@@ -1254,7 +1254,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCastFails() {
     expr("cast('foo' as ^bar^)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: BAR");
+        .fails("Unknown identifier 'BAR'");
     wholeExpr("cast(multiset[1] as integer)")
         .fails("(?s).*Cast function cannot convert value of type "
             + "INTEGER MULTISET to type INTEGER");
@@ -8007,9 +8007,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "VARCHAR(5) NOT NULL ARRAY NOT NULL F1) NOT NULL "
             + "ARRAY NOT NULL MULTISET NOT NULL");
     // test UDT collection type.
-    sql("select cast(a as MyUDT array multiset) from COMPLEXTYPES.CTC_T1")
+    sql("select cast(a as ^MyUDT^ array multiset) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .fails("(?s).*class org\\.apache\\.calcite\\.sql\\.SqlIdentifier: MYUDT.*");
+        .fails("Unknown identifier 'MYUDT'");
   }
 
   @Test void testCastAsRowType() {
