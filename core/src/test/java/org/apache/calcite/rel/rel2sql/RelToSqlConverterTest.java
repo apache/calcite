@@ -6514,6 +6514,67 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testCaseExprForE4() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("E4"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE CASE WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sun' "
+            + "THEN 'Sunday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Mon' "
+            + "THEN 'Monday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Tue' "
+            + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
+            + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
+            + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForEEEE() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("EEEE"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE CASE WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sun' "
+            + "THEN 'Sunday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Mon' "
+            + "THEN 'Monday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Tue' "
+            + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
+            + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
+            + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForE3() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("E3"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForEEE() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("EEE"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
 }
 
 // End RelToSqlConverterTest.java
