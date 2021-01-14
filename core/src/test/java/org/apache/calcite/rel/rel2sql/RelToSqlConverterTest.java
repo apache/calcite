@@ -1490,11 +1490,18 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
     sql(query)
+        .withSpark()
+        .ok(expected)
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(expectedMssql);
   }
 
   @Test public void testSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
@@ -1503,11 +1510,18 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     sql(query)
+        .withSpark()
+        .ok(expected)
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(expectedMssql);
   }
 
   @Test public void testSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
@@ -1516,11 +1530,18 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]";
     sql(query)
+        .withSpark()
+        .ok(expected)
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(expectedMssql);
   }
 
   @Test public void testSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
@@ -1529,11 +1550,18 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id] DESC";
     sql(query)
+        .withSpark()
+        .ok(expected)
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(expectedMssql);
   }
 
   @Test
@@ -4359,6 +4387,17 @@ public class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
+  @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
+    String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
+    final String expectedBigQuery = "SELECT CAST(DATETIME_ADD(CAST(hire_date AS DATETIME), "
+        + "INTERVAL "
+        + "-10 MONTH) AS TIMESTAMP)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testDatePlusIntervalMonthFunctionWithCol() {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
@@ -6475,6 +6514,67 @@ public class RelToSqlConverterTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test
+  public void testCaseExprForE4() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("E4"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE CASE WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sun' "
+            + "THEN 'Sunday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Mon' "
+            + "THEN 'Monday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Tue' "
+            + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
+            + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
+            + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForEEEE() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("EEEE"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE CASE WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sun' "
+            + "THEN 'Sunday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Mon' "
+            + "THEN 'Monday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Tue' "
+            + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
+            + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
+            + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForE3() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("E3"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseExprForEEE() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("EEE"), builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String expectedSF = "SELECT *\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
 }
 
 // End RelToSqlConverterTest.java

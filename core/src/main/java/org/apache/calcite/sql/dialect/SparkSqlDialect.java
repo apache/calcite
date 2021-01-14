@@ -102,6 +102,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
 public class SparkSqlDialect extends SqlDialect {
+
+  private final boolean emulateNullDirection;
+
   public static final SqlDialect DEFAULT =
       new SparkSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.SPARK)
@@ -148,6 +151,7 @@ public class SparkSqlDialect extends SqlDialect {
    */
   public SparkSqlDialect(SqlDialect.Context context) {
     super(context);
+    emulateNullDirection = true;
   }
 
   @Override protected boolean allowsAs() {
@@ -189,6 +193,14 @@ public class SparkSqlDialect extends SqlDialect {
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
+  @Override public SqlNode emulateNullDirection(
+    SqlNode node, boolean nullsFirst, boolean desc) {
+    if (emulateNullDirection) {
+      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+    }
+    return null;
   }
 
   @Override public SqlOperator getTargetFunc(RexCall call) {

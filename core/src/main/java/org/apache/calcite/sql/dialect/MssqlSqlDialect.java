@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlCall;
@@ -28,9 +29,12 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
@@ -41,9 +45,11 @@ public class MssqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new MssqlSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.MSSQL)
+          .withNullCollation(NullCollation.LOW)
           .withIdentifierQuoteString("[")
           .withCaseSensitive(false));
 
+  private final boolean emulateNullDirection;
   private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -52,6 +58,31 @@ public class MssqlSqlDialect extends SqlDialect {
   /** Creates a MssqlSqlDialect. */
   public MssqlSqlDialect(Context context) {
     super(context);
+    emulateNullDirection = true;
+  }
+
+  @Override public SqlNode emulateNullDirection(
+          SqlNode node, boolean nullsFirst, boolean desc) {
+    if (emulateNullDirection) {
+      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+    }
+    return null;
+  }
+
+  @Override protected SqlNode emulateNullDirectionWithIsNull(
+          SqlNode node, boolean nullsFirst, boolean desc) {
+    if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
+      return null;
+    }
+    String caseThenOperand = (nullsFirst && desc) ? "0" : "1";
+    String caseElseOperand = caseThenOperand.equals("1") ? "0" : "1";
+    node = new SqlCase(
+            SqlParserPos.ZERO, null,
+            SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node)),
+            SqlNodeList.of(SqlLiteral.createExactNumeric(caseThenOperand, SqlParserPos.ZERO)),
+            SqlLiteral.createExactNumeric(caseElseOperand, SqlParserPos.ZERO)
+    );
+    return node;
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
@@ -75,7 +106,6 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
-
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -96,7 +126,6 @@ public class MssqlSqlDialect extends SqlDialect {
   private void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
     TimeUnitRange unit = (TimeUnitRange) node.getValue();
-
     switch (unit) {
     case YEAR:
       unparseFloorWithUnit(writer, call, 4, "-01-01");
@@ -125,8 +154,7 @@ public class MssqlSqlDialect extends SqlDialect {
       unparseFloorWithUnit(writer, call, 19, ":00");
       break;
     default:
-      throw new IllegalArgumentException("MSSQL does not support FLOOR for time unit: "
-          + unit);
+      throw new IllegalArgumentException("MSSQL does not support FLOOR for time unit: " + unit);
     }
   }
 

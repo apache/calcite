@@ -325,8 +325,10 @@ public class SqlCaseOperator extends SqlOperator {
       pair.right.unparse(writer, 0, 0);
     }
 
-    writer.sep("ELSE");
-    kase.elseExpr.unparse(writer, 0, 0);
+    if (kase.elseExpr != null || writer.getDialect().getConformance().isElseCaseNeeded()) {
+      writer.sep("ELSE");
+      kase.elseExpr.unparse(writer, 0, 0);
+    }
     writer.endList(frame);
   }
 }

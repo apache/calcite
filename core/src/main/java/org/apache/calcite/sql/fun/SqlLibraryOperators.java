@@ -265,7 +265,13 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.ARG0_NULLABLE,
       null,
       OperandTypes.DATETIME,
-      SqlFunctionCategory.TIMEDATE);
+      SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+              writer, call, leftPrec, rightPrec);
+        }
+      };
 
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction DATETIME_SUB =
@@ -274,7 +280,13 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.ARG0_NULLABLE,
       null,
       OperandTypes.DATETIME,
-      SqlFunctionCategory.TIMEDATE);
+      SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+              writer, call, leftPrec, rightPrec);
+        }
+      };
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction DATE_ADD =

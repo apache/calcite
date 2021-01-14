@@ -106,6 +106,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowIsTrue() {
     return SqlConformanceEnum.DEFAULT.allowIsTrue();
   }
+
+  public boolean isElseCaseNeeded() {
+    return SqlConformanceEnum.DEFAULT.isElseCaseNeeded();
+  }
 }
 
 // End SqlAbstractConformance.java
