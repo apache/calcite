@@ -807,7 +807,8 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE,
       null,
-      OperandTypes.STRING_STRING_INTEGER,
+      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
+          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
