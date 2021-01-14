@@ -705,7 +705,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of
           (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              number -> number == 2 || number == 3),
+              number -> number == 1 || number == 3),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -807,8 +807,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE,
       null,
-      OperandTypes.family(ImmutableList.of
-              (SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
+      OperandTypes.STRING_STRING_INTEGER,
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -826,7 +825,9 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.BINARY,
           null,
-          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+              number -> number == 1),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SNOWFLAKE})

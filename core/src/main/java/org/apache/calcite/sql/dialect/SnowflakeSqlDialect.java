@@ -67,7 +67,6 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
@@ -343,7 +342,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     case "PARSE_DATE":
-      unparseToDate(writer, call, leftPrec, rightPrec);
+      unparseParseDate(writer, call, leftPrec, rightPrec);
       break;
     case "TIME_SUB":
       unparseTimeSub(writer, call, leftPrec, rightPrec);
@@ -394,14 +393,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     writer.endFunCall(timeAddFrame);
   }
 
-  private void unparseToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame dateDiffFrame = writer.startFunCall(TO_DATE.getName());
-    int size = call.getOperandList().size();
-    for (int index = size - 1; index >= 0; index--) {
-      writer.sep(",");
-      call.operand(index).unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(dateDiffFrame);
+  private void unparseParseDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(1),
+        call.operand(0));
+    super.unparseCall(writer, toDateCall, leftPrec, rightPrec);
   }
 
   private void unparseFormatTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
