@@ -6489,8 +6489,8 @@ public class RelToSqlConverterTest {
             + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
             + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
             + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
-            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' T"
-            + "HEN 'Saturday' END";
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
@@ -6508,8 +6508,8 @@ public class RelToSqlConverterTest {
             + "THEN 'Tuesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Wed' "
             + "THEN 'Wednesday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Thu' "
             + "THEN 'Thursday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Fri' "
-            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' T"
-            + "HEN 'Saturday' END";
+            + "THEN 'Friday' WHEN TO_VARCHAR(\"HIREDATE\", 'DY') = 'Sat' "
+            + "THEN 'Saturday' END";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 

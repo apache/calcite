@@ -45,7 +45,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
@@ -247,7 +246,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
-      formatDate(writer, call, leftPrec, rightPrec);
+      unparseFormatDate(writer, call, leftPrec, rightPrec);
       break;
     case "LOG10":
       if (call.operand(0) instanceof SqlLiteral && "1".equals(call.operand(0).toString())) {
@@ -605,45 +604,42 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return ((SqlBasicCall) aggCall).operand(0);
   }
 
-  private void formatDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseFormatDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.operand(0).toString().equals("'EEEE'") || call.operand(0).toString().equals("'E4'")) {
-      SqlCall toVarcharNode = createVarCharNode(call);
-      List<String> abvList = Arrays.asList("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat");
-      ArrayList<String> abvDays = new ArrayList<>(abvList);
+      SqlCall toVarcharCall = createToVarcharCall(call);
 
+      ArrayList<String> abvWeekDays = new ArrayList<>(Arrays.asList
+              ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"));
       SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-      abvDays.forEach(it ->
+      abvWeekDays.forEach(it ->
           whenList.add(
           SqlStdOperatorTable.EQUALS.createCall(
-          null, SqlParserPos.ZERO, toVarcharNode,
+          null, SqlParserPos.ZERO, toVarcharCall,
           SqlLiteral.createCharString(it, SqlParserPos.ZERO))
       ));
 
-      List<String> weekDays = Arrays.asList("Sunday", "Monday", "Tuesday",
-              "Wednesday", "Thursday", "Friday", "Saturday");
-      ArrayList<SqlLiteral> weekDaysNode = new ArrayList<>();
-
+      ArrayList<String> weekDays = new ArrayList<>(Arrays.asList("Sunday", "Monday", "Tuesday",
+              "Wednesday", "Thursday", "Friday", "Saturday"));
+      SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
       weekDays.forEach(it ->
-              weekDaysNode.add(
+              thenList.add(
                       SqlLiteral.createCharString(it, SqlParserPos.ZERO)));
 
-      SqlNodeList thenList = new SqlNodeList(weekDaysNode, SqlParserPos.ZERO);
-
-      SqlCall caseNode = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, null);
-      unparseCall(writer, caseNode, leftPrec, rightPrec);
+      SqlCall caseCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, null);
+      unparseCall(writer, caseCall, leftPrec, rightPrec);
     } else {
       if (DATE_TIME_FORMAT_MAP.containsKey(unquoteStringLiteral(call.operand(0).toString()))) {
-        unparseCall(writer, createVarCharNode(call), leftPrec, rightPrec);
+        unparseCall(writer, createToVarcharCall(call), leftPrec, rightPrec);
       } else {
-        SqlNode formatDate = SqlLibraryOperators.TO_VARCHAR.createCall(
+        SqlNode toVarcharCall = SqlLibraryOperators.TO_VARCHAR.createCall(
                 SqlParserPos.ZERO, call.operand(1), call.operand(0));
 
-        formatDate.unparse(writer, leftPrec, rightPrec);
+        toVarcharCall.unparse(writer, leftPrec, rightPrec);
       }
     }
   }
 
-  private SqlCall createVarCharNode(SqlCall call) {
+  private SqlCall createToVarcharCall(SqlCall call) {
     SqlNode dayNode = SqlLiteral.createCharString(
             DATE_TIME_FORMAT_MAP.get(
                     unquoteStringLiteral(call.operand(0).toString())), SqlParserPos.ZERO);

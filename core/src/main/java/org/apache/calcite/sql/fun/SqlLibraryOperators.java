@@ -353,7 +353,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
-  @LibraryOperator(libraries = {MYSQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction DAYNAME =
       new SqlFunction("DAYNAME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
