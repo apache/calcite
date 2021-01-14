@@ -61,7 +61,7 @@ public enum SqlLibrary {
   TERADATA("t"),
   /** A collection of operators that are in Snowflake but not in standard SQL. */
   SNOWFLAKE("sf"),
-  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  /** A collection of operators that are in MSSQL but not in standard SQL. */
   MSSQL("ms");
 
   /** Abbreviation for the library used in SQL reference. */

@@ -2807,11 +2807,7 @@ public class SqlFunctions {
    * @return Object
    */
   public static Object isNull(Object first, Object second) {
-    if (first != null) {
-      return first;
-    } else {
-      return second;
-    }
+    return first != null ? first : second;
   }
 
   /***
