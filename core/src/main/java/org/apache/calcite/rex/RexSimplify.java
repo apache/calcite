@@ -356,9 +356,12 @@ public class RexSimplify {
     simplifyList(operands, UNKNOWN);
 
     // Simplify "x <op> x"
+    // We exclude floating types since simplification is not valid
+    // in all cases, e.g., NaN
     final RexNode o0 = operands.get(0);
     final RexNode o1 = operands.get(1);
-    if (o0.equals(o1) && RexUtil.isDeterministic(o0)) {
+    if (o0.equals(o1) && RexUtil.isDeterministic(o0)
+        && !SqlTypeName.APPROX_TYPES.contains(o0.getType().getSqlTypeName())) {
       RexNode newExpr;
       switch (e.getKind()) {
       case EQUALS:

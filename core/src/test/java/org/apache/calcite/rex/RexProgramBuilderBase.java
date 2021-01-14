@@ -63,6 +63,7 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullVarchar;
   protected RexLiteral nullDecimal;
   protected RexLiteral nullVarbinary;
+  protected RexLiteral nullFloat;
 
   private RelDataType nullableBool;
   private RelDataType nonNullableBool;
@@ -81,6 +82,9 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableVarbinary;
   private RelDataType nonNullableVarbinary;
+
+  private RelDataType nullableFloat;
+  private RelDataType nonNullableFloat;
 
   // Note: JUnit 4 creates new instance for each test method,
   // so we initialize these structures on demand
@@ -151,6 +155,10 @@ public abstract class RexProgramBuilderBase {
     nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
     nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
     nullVarbinary = rexBuilder.makeNullLiteral(nullableVarbinary);
+
+    nonNullableFloat = typeFactory.createSqlType(SqlTypeName.FLOAT);
+    nullableFloat = typeFactory.createTypeWithNullability(nonNullableFloat, true);
+    nullFloat = rexBuilder.makeNullLiteral(nullableFloat);
   }
 
   private RexDynamicParam getDynamicParam(RelDataType type, String fieldNamePrefix) {
@@ -750,6 +758,28 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vDecimalNotNull(int arg) {
     return vParamNotNull("decimal", arg, nonNullableDecimal);
+  }
+
+  /**
+   * Creates {@code nullable int variable} with index of 0.
+   * If you need several distinct variables, use {@link #vInt(int)}.
+   * The resulting node would look like {@code ?0.notNullInt0}
+   *
+   * @return nullable int variable with index of 0
+   */
+  protected RexNode vFloat() {
+    return vFloat(0);
+  }
+
+  /**
+   * Creates {@code nullable float variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.float3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return nullable int variable with given index (0-based)
+   */
+  protected RexNode vFloat(int arg) {
+    return vParam("float", arg, nonNullableFloat);
   }
 
   /**

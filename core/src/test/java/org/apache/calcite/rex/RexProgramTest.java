@@ -2465,6 +2465,13 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
   }
 
+  @Test void testSelfComparisonsFloat() {
+    checkSimplifyUnchanged(
+        and(eq(vFloat(), vFloat()), eq(vFloat(1), vFloat(1))));
+    checkSimplifyUnchanged(
+        and(ne(vFloat(), vFloat()), ne(vFloat(1), vFloat(1))));
+  }
+
   @Test void testBooleanComparisons() {
     checkSimplify(eq(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ge(vBool(), trueLiteral), "?0.bool0");
