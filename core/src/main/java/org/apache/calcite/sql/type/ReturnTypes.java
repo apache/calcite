@@ -224,6 +224,9 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference TIMESTAMP =
           explicit(SqlTypeName.TIMESTAMP);
 
+  public static final SqlReturnTypeInference BINARY =
+      explicit(SqlTypeName.BINARY);
+
   /**
    * Type-inference strategy whereby the result type of a call is nullable
    * Date.

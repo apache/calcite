@@ -705,7 +705,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of
           (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              number -> number == 2 || number == 3),
+              number -> number == 1 || number == 3),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -800,5 +800,43 @@ public abstract class SqlLibraryOperators {
       null,
       OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.INTEGER),
       SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
+  public static final SqlFunction STRTOK = new SqlFunction(
+      "STRTOK",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE,
+      null,
+      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
+          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
+      SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction TIME_SUB =
+      new SqlFunction("TIME_SUB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME,
+          null,
+          OperandTypes.DATETIME_INTERVAL,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TO_BINARY =
+      new SqlFunction("TO_BINARY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BINARY,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+              number -> number == 1),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TO_CHAR =
+      new SqlFunction("TO_CHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+              OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
 }
 // End SqlLibraryOperators.java

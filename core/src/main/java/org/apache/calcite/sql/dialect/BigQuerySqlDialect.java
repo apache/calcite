@@ -847,9 +847,24 @@ public class BigQuerySqlDialect extends SqlDialect {
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "STRTOK":
+      unparseStrtok(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(splitFrame);
+    writer.print("[OFFSET (");
+    int thirdOperandValue = Integer.valueOf(call.operand(2).toString()) - 1;
+    writer.print(thirdOperandValue);
+    writer.print(") ]");
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

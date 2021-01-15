@@ -25,6 +25,7 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,10 +61,14 @@ import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.strTok;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
+import static org.apache.calcite.runtime.SqlFunctions.timeSub;
 import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toBinary;
+import static org.apache.calcite.runtime.SqlFunctions.toCharFunction;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
@@ -1110,6 +1115,32 @@ public class SqlFunctionsTest {
   @Test public void testdatetimeSub() {
     assertThat(datetimeSub("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
         is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
+  }
+
+  /** Test for {@link SqlFunctions#toBinary(Object, Object)}. */
+  @Test public void testToBinary() {
+    assertThat(toBinary("williams", "UTF-8"), is("77696C6C69616D73"));
+    assertThat(toBinary("david", "UTF-8"), is("6461766964"));
+  }
+
+  /** Test for {@link SqlFunctions#timeSub(Object, Object)}. */
+  @Test public void testTimeSub() {
+    assertThat(timeSub("15:30:00", "INTERVAL 10 MINUTE"), is(Time.valueOf("15:20:00")));
+    assertThat(timeSub("10:00:00", "INTERVAL 1 HOUR"), is(Time.valueOf("09:00:00")));
+  }
+
+  /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
+  @Test public void testToChar() {
+    assertThat(toCharFunction(null, null), nullValue());
+    assertThat(toCharFunction(23, "99"), is("23"));
+    assertThat(toCharFunction(123, "999"), is("123"));
+    assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
+  }
+
+  /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
+  @Test public void testStrtok() {
+    assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
+    assertThat(strTok("a.b.c.d", "\\.", 3), is("c"));
   }
 }
 
