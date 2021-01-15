@@ -126,7 +126,7 @@ public class MultipleTraitConversionTest {
     }
 
     @Override public boolean satisfies(RelTrait trait) {
-      return this == trait;
+      return equals(trait);
     }
 
     @Override public void register(RelOptPlanner planner) {
@@ -135,6 +135,14 @@ public class MultipleTraitConversionTest {
 
     @Override public String toString() {
       return label;
+    }
+
+    @Override public boolean equals(Object o) {
+      return (o instanceof CustomTrait) && label.equals(((CustomTrait) o).label);
+    }
+
+    @Override public int hashCode() {
+      return label.hashCode();
     }
   }
 
