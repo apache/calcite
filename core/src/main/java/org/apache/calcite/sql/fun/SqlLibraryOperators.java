@@ -359,7 +359,7 @@ public abstract class SqlLibraryOperators {
    * MySQL's equivalent of
    * {@link SqlStdOperatorTable#LISTAGG}.
    *
-   * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
+   * <p>{@code GROUP_CONCAT(v ORDER BY x, y SEPARATOR s)} is implemented by
    * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlAggFunction GROUP_CONCAT =
