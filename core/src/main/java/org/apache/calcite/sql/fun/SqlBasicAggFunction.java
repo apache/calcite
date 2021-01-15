@@ -50,6 +50,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   private final Optionality distinctOptionality;
   private final SqlSyntax syntax;
   private final boolean allowsNullTreatment;
+  private final boolean allowsSeparator;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -57,17 +58,18 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlKind kind, SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
-      boolean requiresOrder, boolean requiresOver, boolean allowsSeparator,
+      boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,
-      SqlSyntax syntax, boolean allowsNullTreatment) {
+      SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator) {
     super(name, sqlIdentifier, kind,
         requireNonNull(returnTypeInference), operandTypeInference,
         requireNonNull(operandTypeChecker),
-        requireNonNull(funcType), requiresOrder, requiresOver, allowsSeparator,
+        requireNonNull(funcType), requiresOrder, requiresOver,
         requiresGroupOrder);
     this.distinctOptionality = requireNonNull(distinctOptionality);
     this.syntax = requireNonNull(syntax);
     this.allowsNullTreatment = allowsNullTreatment;
+    this.allowsSeparator = allowsSeparator;
   }
 
   /** Creates a SqlBasicAggFunction whose name is the same as its kind. */
@@ -82,28 +84,28 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicAggFunction(name, null, kind, returnTypeInference, null,
-        operandTypeChecker, SqlFunctionCategory.NUMERIC, false, false, false,
-        Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false);
+        operandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
+        Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false, false);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
-    SqlCall stripedCall = call;
-    if (allowSeparator()) {
-      stripedCall = ReturnTypes.stripSeparator(stripedCall);
+    SqlCall strippedCall = call;
+    if (allowsSeparator) {
+      strippedCall = ReturnTypes.stripSeparator(strippedCall);
     }
 
     if (syntax == SqlSyntax.ORDERED_FUNCTION) {
-      stripedCall = ReturnTypes.stripOrderBy(stripedCall);
+      strippedCall = ReturnTypes.stripOrderBy(strippedCall);
     }
 
-    RelDataType derivedType = super.deriveType(validator, scope, stripedCall);
+    RelDataType derivedType = super.deriveType(validator, scope, strippedCall);
 
-    //assigning back the operands that might have been casted by validator
-    for (int i = 0; i < stripedCall.getOperandList().size(); i += 1) {
-      call.setOperand(i, stripedCall.getOperandList().get(i));
+    // Assigning back the operands that might have been casted by validator
+    for (int i = 0; i < strippedCall.getOperandList().size(); i++) {
+      call.setOperand(i, strippedCall.getOperandList().get(i));
     }
 
     return derivedType;
@@ -128,8 +130,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
-        requiresOver(), allowSeparator(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator);
   }
 
   /** Sets {@link #getFunctionType()}. */
@@ -137,8 +139,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), category, requiresOrder(),
-        requiresOver(), allowSeparator(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator);
   }
 
   @Override public SqlSyntax getSyntax() {
@@ -150,8 +152,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
-        requiresOver(), allowSeparator(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator);
   }
 
   @Override public boolean allowsNullTreatment() {
@@ -163,17 +165,17 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
-        requiresOver(), allowSeparator(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator);
   }
 
-  /** Sets {@link #allowSeparator()}. */
-  public SqlBasicAggFunction withAllowsSeparator(boolean allowsSeparator) {
+  /** Sets {@link #allowsSeparator}. */
+  public SqlBasicAggFunction withAllowsSeparator(boolean allowsSeparatorTreatment) {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
-        requiresOver(), allowsSeparator, requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(),  requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparatorTreatment);
   }
 
   /** Sets {@link #requiresGroupOrder()}. */
@@ -181,7 +183,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
-        requiresOver(), allowSeparator(), groupOrder, distinctOptionality, syntax,
-        allowsNullTreatment);
+        requiresOver(), groupOrder, distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator);
   }
 }
