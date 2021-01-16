@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.geode.pdx.PdxInstance;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;

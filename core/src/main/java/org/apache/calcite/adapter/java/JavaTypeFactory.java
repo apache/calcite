@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.java;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -33,6 +34,17 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
    * @return Record type that remembers its Java class
    */
   RelDataType createStructType(Class clazz);
+
+  /**
+   * Creates a record type based upon the provided fields of a Java class.
+   *
+   * @param clazz Java class
+   * @param fields fields to use to build the record
+   * @return Record type that remembers its Java class
+   */
+  default RelDataType createStructType(Class clazz, List<Field> fields) {
+    return createStructType(clazz);
+  }
 
   /**
    * Creates a type, deducing whether a record, scalar or primitive type

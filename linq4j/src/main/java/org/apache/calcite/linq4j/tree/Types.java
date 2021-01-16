@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.linq4j.Enumerator;
+
+import com.google.common.primitives.Primitives;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -25,6 +28,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -32,8 +37,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -44,6 +54,9 @@ import static java.util.Objects.requireNonNull;
  * @see Primitive
  */
 public abstract class Types {
+  private static final FieldsOrdering FALLBACK_FIELDS_ORDERING =
+      FieldsOrdering.ALPHABETICAL_AND_HIERARCHY;
+
   private Types() {}
 
   /**
@@ -136,6 +149,212 @@ public abstract class Types {
       final Class clazz) {
     // The "length" field of an array does not appear in Class.getFields().
     return new ArrayLengthRecordField(fieldName, clazz);
+  }
+
+  /** Various strategies to order fields in the derived SQL type(s). */
+  public enum FieldsOrdering {
+    JVM,
+    ALPHABETICAL,
+    ALPHABETICAL_AND_HIERARCHY,
+    CONSTRUCTOR,
+    EXPLICIT,
+    EXPLICIT_TOLERANT
+  }
+
+  /**
+   * Returns the fields of a given class.
+   * @param type the target class
+   * @return the list of fields of a given class.
+   */
+  public static List<Field> getClassFields(Class type) {
+    return getClassFields(type, true);
+  }
+
+  /**
+   * Returns the fields of a given class.
+   * @param type the target class
+   * @param useHierarchy true if the inherited fields are considered, false otherwise
+   * @return the list of fields of a given class.
+   */
+  public static List<Field> getClassFields(Class type, boolean useHierarchy) {
+    return getClassFields(type, useHierarchy, FieldsOrdering.JVM, null);
+  }
+
+  /**
+   * Returns the fields of a given class.
+   * @param type the target class
+   * @param useHierarchy true if the inherited fields are considered, false otherwise
+   * @param fieldsOrdering the strategy for the fields ordering
+   * @param classFieldsMap a mapping from class to fields
+   * @return the list of fields of a given class.
+   */
+  public static List<Field> getClassFields(Class type, boolean useHierarchy,
+      FieldsOrdering fieldsOrdering, @Nullable Map<Class, List<Field>> classFieldsMap) {
+    if (type.equals(MetaImpl.MetaTable.class)) {
+      return Arrays.asList(type.getFields());
+    }
+
+    switch (fieldsOrdering) {
+    case JVM:
+      return _getClassFields(useHierarchy ? type.getFields() : type.getDeclaredFields());
+    case ALPHABETICAL:
+      List<Field> fieldList =
+          _getClassFields(useHierarchy ? type.getFields() : type.getDeclaredFields());
+      fieldList.sort(Comparator.comparing(Field::getName));
+      return fieldList;
+    case ALPHABETICAL_AND_HIERARCHY:
+      return Types.getCandidateClasses(type, useHierarchy).stream()
+          .map(
+              t -> Types._getClassFields(t.getDeclaredFields(),
+              Comparator.comparing(Field::getName)))
+          .flatMap(Collection::stream)
+          .collect(Collectors.toList());
+    case CONSTRUCTOR:
+      return getFieldsFromConstructors(type, useHierarchy);
+    case EXPLICIT:
+    case EXPLICIT_TOLERANT:
+      if (classFieldsMap == null) {
+        throw new IllegalStateException("classFieldsMap cannot be null with field ordering \""
+            + fieldsOrdering.name() + "\"");
+      }
+
+      List<Field> classFields = classFieldsMap.get(type);
+      if (classFields == null) {
+        throw new IllegalArgumentException("Missing fields declaration for type \"" + type
+            + "\" with field ordering \"" + fieldsOrdering.name() + "\"");
+      }
+
+      if (fieldsOrdering == Types.FieldsOrdering.EXPLICIT) {
+        checkFields(type, classFieldsMap, new HashSet<>());
+      }
+
+      return classFields;
+    default:
+      throw new IllegalArgumentException("Unknown fields ordering: " + fieldsOrdering);
+    }
+  }
+
+  private static List<Class> getCandidateClasses(Class cls, boolean useHierarchy) {
+    final List<Class> list = new ArrayList<>();
+
+    if (!useHierarchy) {
+      list.add(cls);
+    } else {
+      Class clazz = cls;
+      while (clazz != null && clazz != Object.class) {
+        list.add(0, clazz);
+        clazz = clazz.getSuperclass();
+      }
+    }
+
+    return list;
+  }
+
+  private static List<Field> _getClassFields(Field[] fields) {
+    // no-op comparator
+    return _getClassFields(fields, (f1, f2) -> 0);
+  }
+
+  private static List<Field> _getClassFields(Field[] fields, Comparator<Field> comparator) {
+    return Arrays.stream(fields)
+        .filter(f -> Modifier.isPublic(f.getModifiers()))
+        .filter(f -> !Modifier.isStatic(f.getModifiers()))
+        .sorted(comparator)
+        .collect(Collectors.toList());
+  }
+
+  private static void checkFields(
+      Class type, Map<Class, List<Field>> classFieldsMap, Set<Class> visitedClasses) {
+    if (visitedClasses.contains(type)) {
+      return;
+    }
+
+    if (!classFieldsMap.containsKey(type)) {
+      throw new IllegalArgumentException("No list of fields for " + type);
+    }
+
+    List<Field> allClassFields = Types.getClassFields(type);
+    List<Field> classFields = classFieldsMap.get(type);
+    if (!classFields.containsAll(allClassFields)
+        || !allClassFields.containsAll(classFields)) {
+      List<Field> missingFields = new ArrayList<>(allClassFields);
+      missingFields.removeAll(classFields);
+      throw new IllegalArgumentException(
+          "Incomplete list of fields is not compatible with \""
+              + Types.FieldsOrdering.EXPLICIT.name()
+              + "\" field ordering, provided \"" + classFields
+              + "\",\nwhile the full list of class fields is \"" + allClassFields
+              + "\",\nmissing: " + missingFields);
+    }
+
+    visitedClasses.add(type);
+
+    for (Field f : allClassFields) {
+      Class fieldType = f.getType();
+      if (fieldType.isArray()) {
+        checkFields(fieldType.getComponentType(), classFieldsMap, visitedClasses);
+      } else if (fieldType == Collection.class) {
+        checkFields(fieldType.getTypeParameters()[0].getClass(), classFieldsMap, visitedClasses);
+      } else if (fieldType == Map.class) {
+        TypeVariable[] typeVariable = fieldType.getTypeParameters();
+        checkFields(typeVariable[0].getClass(), classFieldsMap, visitedClasses);
+        checkFields(typeVariable[1].getClass(), classFieldsMap, visitedClasses);
+      } else if ((!fieldType.isPrimitive()
+          && !Primitives.isWrapperType(fieldType)
+          && !fieldType.equals(String.class))
+          && !fieldType.isInterface()) {
+        checkFields(fieldType, classFieldsMap, visitedClasses);
+      }
+    }
+  }
+
+  private static List<Field> getFieldsFromConstructors(Class type, boolean useHierarchy) {
+    Set<Field> allFieldsSet = new HashSet<>(
+        Types.getClassFields(type, useHierarchy, FieldsOrdering.JVM, null));
+    List<List<Field>> candidatesList = new ArrayList<>();
+
+    for (Constructor<?> constructor: type.getDeclaredConstructors()) {
+      List<Field> fields = new ArrayList<>();
+      for (Parameter param : constructor.getParameters()) {
+        // fail fast and use default ordering, if one param has no name, none has
+        if (!param.isNamePresent()) {
+          return getClassFields(type, useHierarchy, FALLBACK_FIELDS_ORDERING, null);
+        }
+        try {
+          Field f = type.getField(param.getName());
+
+          if (!allFieldsSet.contains(f)) {
+            continue;
+          }
+          if (f.getType().isAssignableFrom(param.getType())) {
+            fields.add(f);
+          } else {
+            fields.clear();
+            break; // try another constructor, if any
+          }
+        } catch (NoSuchFieldException e) {
+          fields.clear();
+          break; // try another constructor, if any
+        }
+      }
+      if (!fields.isEmpty()) {
+        candidatesList.add(fields);
+      }
+    }
+
+    final List<Field> fields = candidatesList.stream().max(Comparator.comparingInt(List::size))
+        .orElse(getClassFields(type, useHierarchy, FALLBACK_FIELDS_ORDERING, null));
+
+    // if even the "longest" constructor does not cover all fields, keep its ordering and fill
+    // in the rest following the "fallback" ordering
+    if (!fields.containsAll(allFieldsSet)) {
+      List<Field> allFields =
+          getClassFields(type, useHierarchy, FALLBACK_FIELDS_ORDERING, null);
+      allFields.removeAll(fields);
+      fields.addAll(allFields);
+    }
+
+    return fields;
   }
 
   public static Class toClass(Type type) {
