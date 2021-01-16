@@ -812,15 +812,15 @@ public abstract class SqlImplementor {
         final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
         if (inverseOperator != null) {
           switch (operand.getKind()) {
-        case IN:
+          case IN:
             return SqlStdOperatorTable.NOT_IN
-              .createCall(POS, ((SqlCall) node).getOperandList());
+                .createCall(POS, ((SqlCall) node).getOperandList());
           case LIKE:
             return SqlStdOperatorTable.NOT_LIKE
-              .createCall(POS, ((SqlCall) node).getOperandList());
+                .createCall(POS, ((SqlCall) node).getOperandList());
           case SIMILAR:
             return SqlStdOperatorTable.NOT_SIMILAR_TO
-              .createCall(POS, ((SqlCall) node).getOperandList());
+                .createCall(POS, ((SqlCall) node).getOperandList());
           default:
             break;
           }
