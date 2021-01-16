@@ -119,7 +119,8 @@ public class ImmutableBeans {
       if (property == null) {
         continue;
       }
-      final boolean hasNonnull = hasAnnotation(method, "javax.annotation.Nonnull");
+      final boolean hasNonnull =
+          hasAnnotation(method, "org.checkerframework.checker.nullness.qual.NonNull");
       final Mode mode;
       final Object defaultValue = getDefault(method);
       final String methodName = method.getName();

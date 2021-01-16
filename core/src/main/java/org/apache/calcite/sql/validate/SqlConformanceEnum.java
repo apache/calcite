@@ -131,6 +131,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case MYSQL_5:
     case PRESTO:
+    case SNOWFLAKE:
       return true;
     default:
       return false;
