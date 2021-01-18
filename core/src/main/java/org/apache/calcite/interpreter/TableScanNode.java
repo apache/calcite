@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.TableScan;
@@ -141,11 +142,8 @@ public class TableScanNode implements Node {
           relOptTable.getQualifiedName());
       ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
       Class type = (Class) elementType;
-      for (Field field : type.getFields()) {
-        if (Modifier.isPublic(field.getModifiers())
-            && !Modifier.isStatic(field.getModifiers())) {
-          fieldBuilder.add(field);
-        }
+      for (Field field : Types.getClassFields(type)) {
+        fieldBuilder.add(field);
       }
       final List<Field> fields = fieldBuilder.build();
       rowEnumerable = queryable.select(o -> {

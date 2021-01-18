@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.tree.Types;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.util.Cursor} on top of an
@@ -43,6 +44,6 @@ public class RecordEnumeratorCursor<E> extends EnumeratorCursor<E> {
   }
 
   @Override protected Getter createGetter(int ordinal) {
-    return new FieldGetter(clazz.getFields()[ordinal]);
+    return new FieldGetter(Types.getClassFields(clazz).get(ordinal));
   }
 }

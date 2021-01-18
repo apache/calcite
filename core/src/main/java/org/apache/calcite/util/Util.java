@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -471,7 +472,7 @@ public class Util {
     } else {
       pw.print(clazz.getName());
       pw.print(" {");
-      Field[] fields = clazz.getFields();
+      Field[] fields = Types.getClassFields(clazz).toArray(new Field[0]);
       int printed = 0;
       for (Field field : fields) {
         if (Modifier.isStatic(field.getModifiers())) {
