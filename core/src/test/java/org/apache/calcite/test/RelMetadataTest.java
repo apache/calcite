@@ -90,6 +90,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -969,7 +970,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     ImmutableBitSet groupKey =
         ImmutableBitSet.of(rel.getRowType().getFieldNames().indexOf("DEPTNO"));
     Double result = mq.getDistinctRowCount(rel, groupKey, null);
-    assertThat(result, nullValue());
+    assertThat(result, is(1.0));
   }
 
   @Test void testDistinctRowCountTableEmptyKey() {
@@ -3410,5 +3411,46 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
     assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
         equalTo("SAL"));
+  }
+
+  private RelNode getPlan4NdvEstimation(String sql) {
+    final RelNode node = convertSql(sql);
+    final HepProgram program = new HepProgramBuilder().
+        addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS).build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(node);
+    return planner.findBestExp();
+  }
+
+  private void validateNdv(
+      String sql, ImmutableBitSet cols, Double expectedNdv, Double ndvUpperBound) {
+    final RelNode plan = getPlan4NdvEstimation(sql);
+
+    assertThat(plan.getInput(0), instanceOf(Filter.class));
+    Filter filter = (Filter) plan.getInput(0);
+
+    final RelMetadataQuery mq = plan.getCluster().getMetadataQuery();
+    Double ndv = mq.getDistinctRowCount(filter, cols, null);
+    assertThat(ndv, equalTo(expectedNdv));
+    assertThat(ndvUpperBound, equalTo(RexUtil.estimateColumnsNdv(cols, filter.getCondition())));
+  }
+
+  @Test void testPredicateNdv() {
+    validateNdv("select empno, ename from emp where empno = 10",
+        ImmutableBitSet.of(0), 1.0, 1.0);
+    validateNdv("select empno, ename from emp where empno in (10, 20)",
+        ImmutableBitSet.of(0), 2.0, 2.0);
+    validateNdv("select empno, ename from emp where empno >= 10 and empno <= 12",
+        ImmutableBitSet.of(0), 3.0, 3.0);
+    validateNdv("select empno, ename from emp where ename in ('a', 'b')",
+        ImmutableBitSet.of(1), 2.0, 2.0);
+    validateNdv("select empno, ename from emp where empno >= 10 and empno <= 12 "
+            + "and ename in ('a', 'b')",
+        ImmutableBitSet.of(0, 1), 1.0, 6.0);
+    validateNdv("select empno, ename from emp where empno >= 10 "
+            + "and ename in ('a', 'b')",
+        ImmutableBitSet.of(0, 1), 1.75, null);
+    validateNdv("select empno, ename from emp where empno >= 12 or empno <= 10",
+        ImmutableBitSet.of(0), 3.5, null);
   }
 }

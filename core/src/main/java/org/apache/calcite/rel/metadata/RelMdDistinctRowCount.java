@@ -79,15 +79,18 @@ public class RelMdDistinctRowCount
     // consideration selectivity of predicates passed in.  Also, they
     // assume the rows are unique even if the table is not
     boolean uniq = RelMdUtil.areColumnsDefinitelyUnique(mq, rel, groupKey);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
     if (uniq) {
-      return NumberUtil.multiply(mq.getRowCount(rel),
-          mq.getSelectivity(rel, predicate));
+      return NumberUtil.min(
+          NumberUtil.multiply(mq.getRowCount(rel),
+          mq.getSelectivity(rel, predicate)), ndvUpperBound);
     }
-    return null;
+    return ndvUpperBound;
   }
 
   public @Nullable Double getDistinctRowCount(Union rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
     double rowCount = 0.0;
     int[] adjustments = new int[rel.getRowType().getFieldCount()];
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
@@ -108,26 +111,32 @@ public class RelMdDistinctRowCount
       Double partialRowCount =
           mq.getDistinctRowCount(input, groupKey, modifiedPred);
       if (partialRowCount == null) {
-        return null;
+        return ndvUpperBound;
       }
       rowCount += partialRowCount;
     }
-    return rowCount;
+    return NumberUtil.min(rowCount, ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(Sort rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
-    return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
+    return NumberUtil.min(
+        mq.getDistinctRowCount(rel.getInput(), groupKey, predicate), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(TableModify rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
-    return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
+    return NumberUtil.min(
+        mq.getDistinctRowCount(rel.getInput(), groupKey, predicate), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(Exchange rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
-    return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
+    return NumberUtil.min(
+        mq.getDistinctRowCount(rel.getInput(), groupKey, predicate), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
@@ -146,13 +155,17 @@ public class RelMdDistinctRowCount
             predicate,
             rel.getCondition());
 
-    return mq.getDistinctRowCount(rel.getInput(), groupKey, unionPreds);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, unionPreds);
+    return NumberUtil.min(
+        mq.getDistinctRowCount(rel.getInput(), groupKey, unionPreds), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(Join rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
-    return RelMdUtil.getJoinDistinctRowCount(mq, rel, rel.getJoinType(),
-        groupKey, predicate, false);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
+    return NumberUtil.min(
+        RelMdUtil.getJoinDistinctRowCount(mq, rel, rel.getJoinType(),
+        groupKey, predicate, false), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,
@@ -181,14 +194,15 @@ public class RelMdDistinctRowCount
 
     Double distinctRowCount =
         mq.getDistinctRowCount(rel.getInput(), childKey.build(), childPreds);
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
     if (distinctRowCount == null) {
-      return null;
+      return ndvUpperBound;
     } else if (notPushable.isEmpty()) {
-      return distinctRowCount;
+      return NumberUtil.min(distinctRowCount, ndvUpperBound);
     } else {
       RexNode preds =
           RexUtil.composeConjunction(rexBuilder, notPushable, true);
-      return distinctRowCount * RelMdUtil.guessSelectivity(preds);
+      return NumberUtil.min(distinctRowCount * RelMdUtil.guessSelectivity(preds), ndvUpperBound);
     }
   }
 
@@ -211,12 +225,14 @@ public class RelMdDistinctRowCount
       set.add(ImmutableList.copyOf(values));
       values.clear();
     }
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
+    double upBound = ndvUpperBound == null ? Double.MAX_VALUE : ndvUpperBound;
     double nRows = set.size();
     if ((predicate == null) || predicate.isAlwaysTrue()) {
-      return nRows;
+      return Math.min(nRows, upBound);
     } else {
       double selectivity = RelMdUtil.guessSelectivity(predicate);
-      return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
+      return Math.min(RelMdUtil.numDistinctVals(nRows, nRows * selectivity), upBound);
     }
   }
 
@@ -256,8 +272,9 @@ public class RelMdDistinctRowCount
         mq.getDistinctRowCount(rel.getInput(), baseCols.build(),
             modifiedPred);
 
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
     if (distinctRowCount == null) {
-      return null;
+      return ndvUpperBound;
     } else if (!notPushable.isEmpty()) {
       RexNode preds =
           RexUtil.composeConjunction(rexBuilder, notPushable, true);
@@ -267,7 +284,7 @@ public class RelMdDistinctRowCount
     // No further computation required if the projection expressions
     // are all column references
     if (projCols.cardinality() == 0) {
-      return distinctRowCount;
+      return NumberUtil.min(distinctRowCount, ndvUpperBound);
     }
 
     // multiply by the cardinality of the non-child projection expressions
@@ -275,22 +292,26 @@ public class RelMdDistinctRowCount
       Double subRowCount =
           RelMdUtil.cardOfProjExpr(mq, rel, projExprs.get(bit));
       if (subRowCount == null) {
-        return null;
+        return ndvUpperBound;
       }
       distinctRowCount *= subRowCount;
     }
 
-    return RelMdUtil.numDistinctVals(distinctRowCount, mq.getRowCount(rel));
+    return NumberUtil.min(
+        RelMdUtil.numDistinctVals(distinctRowCount, mq.getRowCount(rel)), ndvUpperBound);
   }
 
   public @Nullable Double getDistinctRowCount(RelSubset rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, @Nullable RexNode predicate) {
+    Double ndvUpperBound = RexUtil.estimateColumnsNdv(groupKey, predicate);
     final RelNode best = rel.getBest();
     if (best != null) {
-      return mq.getDistinctRowCount(best, groupKey, predicate);
+      return NumberUtil.min(ndvUpperBound,
+          mq.getDistinctRowCount(best, groupKey, predicate));
     }
     if (!Bug.CALCITE_1048_FIXED) {
-      return getDistinctRowCount((RelNode) rel, mq, groupKey, predicate);
+      return NumberUtil.min(
+          getDistinctRowCount((RelNode) rel, mq, groupKey, predicate), ndvUpperBound);
     }
     Double d = null;
     for (RelNode r2 : rel.getRels()) {
@@ -302,6 +323,6 @@ public class RelMdDistinctRowCount
         // in this set.
       }
     }
-    return d;
+    return NumberUtil.min(d, ndvUpperBound);
   }
 }

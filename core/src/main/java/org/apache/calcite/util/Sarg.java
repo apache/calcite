@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.ImmutableRangeSet;
@@ -207,5 +208,28 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   /** Returns a Sarg that matches a value if and only this Sarg does not. */
   public Sarg negate() {
     return Sarg.of(!containsNull, rangeSet.complement());
+  }
+
+  /**
+   * Estimates the number of distinct values for the Sarg (if possible).
+   * A null is returned if the number of distinct values is infinity or unknown.
+   */
+  public @Nullable Double numDistinctVals(RelDataType type) {
+    double ndv = 0;
+
+    for (Range<C> range : rangeSet.asRanges()) {
+      Double rangeNdv = RangeSets.numDistinctVals(range, type);
+      if (rangeNdv == null) {
+        // if the ndv is infinity or unknown for one range,
+        // the overall ndv is infinity or unknown.
+        return null;
+      }
+      ndv += rangeNdv;
+    }
+    if (containsNull && type.isNullable()) {
+      // account for null
+      ndv += 1.0;
+    }
+    return ndv;
   }
 }
