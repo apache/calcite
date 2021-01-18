@@ -62,8 +62,7 @@ public class MssqlSqlDialect extends SqlDialect {
     emulateNullDirection = true;
   }
 
-  @Override
-  public SqlNode emulateNullDirection(
+  @Override public SqlNode emulateNullDirection(
       SqlNode node, boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -71,8 +70,7 @@ public class MssqlSqlDialect extends SqlDialect {
     return null;
   }
 
-  @Override
-  protected SqlNode emulateNullDirectionWithIsNull(
+  @Override protected SqlNode emulateNullDirectionWithIsNull(
       SqlNode node, boolean nullsFirst, boolean desc) {
     if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
       return null;
@@ -88,15 +86,13 @@ public class MssqlSqlDialect extends SqlDialect {
     return node;
   }
 
-  @Override
-  public void unparseDateTimeLiteral(
+  @Override public void unparseDateTimeLiteral(
       SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal("'" + literal.toFormattedString() + "'");
   }
 
-  @Override
-  public void unparseCall(
+  @Override public void unparseCall(
       SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
@@ -124,8 +120,7 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override
-  public boolean supportsCharSet() {
+  @Override public boolean supportsCharSet() {
     return false;
   }
 
@@ -171,8 +166,7 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override
-  public void unparseSqlDatetimeArithmetic(
+  @Override public void unparseSqlDatetimeArithmetic(
       SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
 
@@ -191,8 +185,7 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-  @Override
-  public void unparseSqlIntervalQualifier(
+  @Override public void unparseSqlIntervalQualifier(
       SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     switch (qualifier.timeUnitRange) {
@@ -219,8 +212,7 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override
-  public void unparseSqlIntervalLiteral(
+  @Override public void unparseSqlIntervalLiteral(
       SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     unparseSqlIntervalLiteralMssql(writer, literal, 1);
   }
