@@ -1004,6 +1004,13 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * Returns whether this dialect supports "ASYMMETRIC" and "SYMMETRIC" in "BETWEEN" clause.
+   */
+  public boolean supportsSQL99Between() {
+    return true;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
