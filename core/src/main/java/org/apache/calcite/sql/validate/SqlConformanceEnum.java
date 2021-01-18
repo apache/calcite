@@ -330,6 +330,15 @@ public enum SqlConformanceEnum implements SqlConformance {
       return true;
     }
   }
+
+  public boolean isElseCaseNeeded() {
+    switch (this) {
+    case SNOWFLAKE:
+      return false;
+    default:
+      return true;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

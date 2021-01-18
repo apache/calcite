@@ -131,7 +131,10 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMPINTSUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TO_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_DIFF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BINARY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
@@ -345,27 +348,7 @@ public class RexImpTable {
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
     defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
     defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
-    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
-    defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
-        NullPolicy.NONE);
-    defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
-        NullPolicy.NONE);
-    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
-    defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
-        NullPolicy.NONE);
-    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
-    defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
-        NullPolicy.NONE);
-    defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
-        NullPolicy.NONE);
-    defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
-    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
-    defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
-    defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
-    defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
+    defineOtherFunctionMethod();
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
     defineMethod(DATE_MOD, BuiltInMethod.DATE_MOD.method, NullPolicy.NONE);
@@ -680,6 +663,33 @@ public class RexImpTable {
       ((EnumerableMatch.PrevInputGetter) translator.inputGetter).setOffset(offs);
       return translator.translate(node, nullAs);
     });
+  }
+
+  private void defineOtherFunctionMethod() {
+    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
+    defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
+        NullPolicy.NONE);
+    defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
+        NullPolicy.NONE);
+    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
+    defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
+        NullPolicy.NONE);
+    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
+    defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
+        NullPolicy.NONE);
+    defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
+        NullPolicy.NONE);
+    defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
+    defineMethod(TO_BINARY, BuiltInMethod.TO_BINARY.method, NullPolicy.NONE);
+    defineMethod(TIME_SUB, BuiltInMethod.TIME_SUB.method, NullPolicy.NONE);
+    defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.ARG0);
+    defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
+    defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
+    defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {

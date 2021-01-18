@@ -52,7 +52,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
@@ -3057,13 +3059,67 @@ public class SqlFunctions {
       break;
     default: throw new IllegalArgumentException(" unknown interval type");
     }
-    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Timestamp timestamp = Timestamp.valueOf((String) datetime);
     Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
         Locale.getDefault(Locale.Category.FORMAT));
-    cal.setTime(ts);
+    cal.setTime(timestamp);
     cal.add(unit, additive);
-    ts.setTime(cal.getTime().getTime());
+    timestamp.setTime(cal.getTime().getTime());
     return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object toBinary(Object value, Object charSet) {
+    Charset charset = Charset.forName((String) charSet);
+    BigInteger bigInteger = new BigInteger(1, ((String) value).getBytes(charset));
+    return upper(String.format(Locale.ENGLISH, "%x", bigInteger));
+  }
+
+  public static Object timeSub(Object timeVal, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer subtractValue = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "HOUR":
+      unit = Calendar.HOUR;
+      break;
+    case "MINUTE":
+      unit = Calendar.MINUTE;
+      break;
+    case "SECOND":
+      unit = Calendar.SECOND;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Time time = Time.valueOf((String) timeVal);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(time);
+    cal.add(unit, subtractValue);
+    time.setTime(cal.getTime().getTime());
+    return time;
+  }
+
+  public static Object toCharFunction(Object value, Object format) {
+    if (null == value || null == format) {
+      return null;
+    }
+    String[] formatStore = ((String) format).split("\\.");
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("%");
+    pattern.append(formatStore[0].length());
+    if (formatStore.length > 1) {
+      pattern.append(".");
+      pattern.append(formatStore[1].length());
+      pattern.append("f");
+    } else {
+      pattern.append("d");
+    }
+    return String.format(Locale.ENGLISH, pattern.toString(), value);
+  }
+
+  public static Object strTok(Object value, Object delimiter, Object part) {
+    return ((String) value).split((String) delimiter) [(Integer) part - 1];
   }
 }
 

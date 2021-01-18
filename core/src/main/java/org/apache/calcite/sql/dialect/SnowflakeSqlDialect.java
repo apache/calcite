@@ -17,29 +17,56 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.FormatFunctionUtil;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import org.apache.commons.lang3.StringUtils;
 
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
+import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -57,6 +84,27 @@ public class SnowflakeSqlDialect extends SqlDialect {
     super(context);
   }
 
+  private static Map<SqlDateTimeFormat, String> dateTimeFormatMap =
+      new HashMap() {{
+        put(E3, ABBREVIATED_NAME_OF_DAY.value);
+        put(ABBREVIATEDDAYOFWEEK, ABBREVIATED_NAME_OF_DAY.value);
+        put(ABBREVIATEDMONTH, ABBREVIATED_MONTH.value);
+        put(DAYOFWEEK, ABBREVIATED_NAME_OF_DAY.value);
+        put(E4, ABBREVIATED_NAME_OF_DAY.value);
+      }};
+
+  private static Map<String, String> timeUnitEquivalentMap = new HashMap<>();
+
+  static {
+    for (SqlDateTimeFormat dateTimeFormat : SqlDateTimeFormat.values()) {
+      dateTimeFormatMap.putIfAbsent(dateTimeFormat, dateTimeFormat.value);
+    }
+
+    for (TimeUnit timeUnit : TimeUnit.values()) {
+      timeUnitEquivalentMap.putIfAbsent(timeUnit.name(), timeUnit.name() + "S");
+    }
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }
@@ -68,6 +116,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public SqlOperator getTargetFunc(RexCall call) {
     switch (call.type.getSqlTypeName()) {
     case DATE:
+    case TIMESTAMP:
       return getTargetFunctionForDateOperations(call);
     default:
       return super.getTargetFunc(call);
@@ -77,10 +126,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
   private SqlOperator getTargetFunctionForDateOperations(RexCall call) {
     switch (call.getOperands().get(1).getType().getSqlTypeName()) {
     case INTERVAL_DAY:
+    case INTERVAL_YEAR:
       if (call.op.kind == SqlKind.MINUS) {
         return SqlLibraryOperators.DATE_SUB;
       }
       return SqlLibraryOperators.DATE_ADD;
+
+    case INTERVAL_MONTH:
+      return SqlLibraryOperators.ADD_MONTHS;
     }
     return super.getTargetFunc(call);
   }
@@ -226,11 +279,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_DATE":
-      final SqlWriter.Frame formatDate = writer.startFunCall("TO_VARCHAR");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(formatDate);
+      unparseFormatDateTimestamp(writer, call, leftPrec, rightPrec, SqlLibraryOperators.TO_VARCHAR);
+      break;
+    case "FORMAT_TIMESTAMP":
+      unparseFormatDateTimestamp(writer, call, leftPrec, rightPrec, SqlLibraryOperators.TO_CHAR);
       break;
     case "LOG10":
       if (call.operand(0) instanceof SqlLiteral && "1".equals(call.operand(0).toString())) {
@@ -288,9 +340,69 @@ public class SnowflakeSqlDialect extends SqlDialect {
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATE":
+      unparseParseDate(writer, call, leftPrec, rightPrec);
+      break;
+    case "TIME_SUB":
+      unparseTimeSub(writer, call, leftPrec, rightPrec);
+      break;
+    case "TO_HEX":
+      unparseToHex(writer, call, leftPrec, rightPrec);
+      break;
+    case "REGEXP_CONTAINS":
+      unparseRegexContains(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseRegexContains(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame regexpLikeFrame = writer.startFunCall("REGEXP_LIKE");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(regexpLikeFrame);
+  }
+
+  private void unparseToHex(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode[] operands = new SqlNode[] {
+        call.operand(0), SqlLiteral.createCharString("UTF-8", SqlParserPos.ZERO)
+    };
+    SqlBasicCall toBinaryCall = new SqlBasicCall(SqlLibraryOperators.TO_BINARY, operands,
+        SqlParserPos.ZERO);
+    SqlNode varcharSqlCall =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR, 100));
+    SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, toBinaryCall, varcharSqlCall);
+    castCall.unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseTimeSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame timeAddFrame = writer.startFunCall("TIMEADD");
+    SqlBasicCall firstOperand = call.operand(1);
+    String interval = timeUnitEquivalentMap.get(firstOperand.getOperator().getName()
+        .replace("INTERVAL_", ""));
+    writer.print(interval);
+    writer.print(", -");
+    firstOperand.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(timeAddFrame);
+  }
+
+  private void unparseParseDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(1),
+        call.operand(0));
+    super.unparseCall(writer, toDateCall, leftPrec, rightPrec);
+  }
+
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
+
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        dateTimeFormatMap);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -586,6 +698,59 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
+  }
+
+  private void unparseFormatDateTimestamp(SqlWriter writer, SqlCall call, int leftPrec,
+        int rightPrec, SqlOperator operator) {
+    if (call.operand(0).toString().equals("'EEEE'") || call.operand(0).toString().equals("'E4'")) {
+      SqlCall operatorCall = createSqlCallBasedOnOperator(call, operator);
+
+      ArrayList<String> abvWeekDays = new ArrayList<>(Arrays.asList
+              ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"));
+      SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
+      abvWeekDays.forEach(it ->
+          whenList.add(
+          SqlStdOperatorTable.EQUALS.createCall(
+          null, SqlParserPos.ZERO, operatorCall,
+          SqlLiteral.createCharString(it, SqlParserPos.ZERO))
+      ));
+
+      ArrayList<String> weekDays = new ArrayList<>(Arrays.asList("Sunday", "Monday", "Tuesday",
+              "Wednesday", "Thursday", "Friday", "Saturday"));
+      SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
+      weekDays.forEach(it ->
+              thenList.add(
+                      SqlLiteral.createCharString(it, SqlParserPos.ZERO)));
+
+      SqlCall caseCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, null);
+      unparseCall(writer, caseCall, leftPrec, rightPrec);
+    } else {
+      unparseCall(writer, createSqlCallBasedOnOperator(call, operator), leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCall createSqlCallBasedOnOperator(SqlCall call, SqlOperator operator) {
+    return operator.createCall(
+            SqlParserPos.ZERO, call.operand(1), createDateTimestampFormatNode(call.operand(0)));
+  }
+
+  private SqlNode createDateTimestampFormatNode(SqlNode operand) {
+    String[] secondSplit = ((NlsString) ((SqlCharStringLiteral) operand)
+        .getValue()).getValue().split("\\.");
+    SqlNode dayFormatNode = null;
+    if (secondSplit.length > 1) {
+      Matcher matcher = Pattern.compile("\\d+").matcher(secondSplit[1]);
+      if (matcher.find()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(secondSplit[0]);
+        sb.append(".");
+        sb.append("FF" + matcher.group(0));
+        dayFormatNode = SqlLiteral.createCharString(sb.toString(), SqlParserPos.ZERO);
+      }
+    } else {
+      dayFormatNode = createDateTimeFormatSqlCharLiteral(unquoteStringLiteral(operand.toString()));
+    }
+    return dayFormatNode;
   }
 
 }
