@@ -252,12 +252,12 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(frame);
       break;
     case LEADING:
-      unparseCall(writer, SqlLibraryOperators.LTRIM.createCall(
-          SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      unparseCall(writer, SqlLibraryOperators.LTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
       break;
     case TRAILING:
-      unparseCall(writer, SqlLibraryOperators.RTRIM.createCall(
-          SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      unparseCall(writer, SqlLibraryOperators.RTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
