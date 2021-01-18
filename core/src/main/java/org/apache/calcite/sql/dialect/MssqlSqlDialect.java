@@ -129,7 +129,7 @@ public class MssqlSqlDialect extends SqlDialect {
    * using calls to CONVERT.
    *
    * @param writer Writer
-   * @param call   Call
+   * @param call Call
    */
   private void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
