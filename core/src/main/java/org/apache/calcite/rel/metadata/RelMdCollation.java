@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeUnion;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
 import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.linq4j.Ord;
@@ -173,6 +174,17 @@ public class RelMdCollation
     return copyOf(
         RelMdCollation.enumerableNestedLoopJoin(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
+  }
+
+  public @Nullable ImmutableList<RelCollation> collations(EnumerableMergeUnion mergeUnion,
+      RelMetadataQuery mq) {
+    final RelCollation collation = mergeUnion.getTraitSet().getCollation();
+    if (collation == null) {
+      // should not happen
+      return null;
+    }
+    // MergeUnion guarantees order, like a sort
+    return copyOf(RelMdCollation.sort(collation));
   }
 
   public @Nullable ImmutableList<RelCollation> collations(EnumerableCorrelate join,

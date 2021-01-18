@@ -239,6 +239,8 @@ public enum BuiltInMethod {
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
       Enumerable.class, int.class, boolean.class, EqualityComparer.class),
+  MERGE_UNION(EnumerableDefaults.class, "mergeUnion", List.class, Function1.class,
+      Comparator.class, boolean.class, EqualityComparer.class),
   LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,
       Enumerable.class),
   INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
