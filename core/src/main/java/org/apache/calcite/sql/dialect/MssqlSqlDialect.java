@@ -33,7 +33,9 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
@@ -105,6 +107,9 @@ public class MssqlSqlDialect extends SqlDialect {
           return;
         }
         unparseFloor(writer, call);
+        break;
+      case TRIM:
+        unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -233,6 +238,32 @@ public class MssqlSqlDialect extends SqlDialect {
     }
     writer.endList(frame);
   }
+
+  /**
+   * For usage of TRIM in MSSQL
+   */
+  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (((SqlLiteral) call.operand(0)).getValueAs(SqlTrimFunction.Flag.class)) {
+    case BOTH:
+      final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep("FROM");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
+      break;
+    case LEADING:
+      unparseCall(writer, SqlLibraryOperators.LTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      break;
+    case TRAILING:
+      unparseCall(writer, SqlLibraryOperators.RTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
 }
 
 // End MssqlSqlDialect.java
