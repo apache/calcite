@@ -125,7 +125,9 @@ public class MssqlSqlDialect extends SqlDialect {
     switch (call.getOperator().getName()) {
     case "LN":
     case "LOG10":
-      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+      final String frameName = call.getOperator().getName()
+                                    .equalsIgnoreCase("LN") ? "LOG" : "LOG10";
+      final SqlWriter.Frame logFrame = writer.startFunCall(frameName);
       if (call.operand(0).getKind().toString().equalsIgnoreCase("CAST")) {
         ((SqlBasicCall) call.operand(0)).operand(0).unparse(writer, leftPrec, rightPrec);
       } else {
