@@ -6264,7 +6264,7 @@ public class JdbcTest {
   @Test public void testIfNull() {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
             .with(CalciteConnectionProperty.FUN, "bigquery")
-            .query("select isnull(\"commission\", -99) as c from \"hr\".\"emps\"")
+            .query("select ifnull(\"commission\", -99) as c from \"hr\".\"emps\"")
             .returnsUnordered("C=-99",
                     "C=1000",
                     "C=250",
