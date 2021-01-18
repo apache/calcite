@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -35,7 +36,9 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.util.SqlString;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -106,9 +109,30 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
+      case OTHER_FUNCTION:
+        unparseOtherFunction(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+    }
+  }
+
+  public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "LN":
+    case "LOG10":
+      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+      if (call.operand(0).getKind().toString().equalsIgnoreCase("CAST")) {
+        ((SqlBasicCall) call.operand(0)).operand(0).unparse(writer, leftPrec, rightPrec);
+      }
+      else {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(logFrame);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 

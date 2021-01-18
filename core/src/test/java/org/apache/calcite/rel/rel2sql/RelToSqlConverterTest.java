@@ -6575,6 +6575,27 @@ public class RelToSqlConverterTest {
             + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
+
+  @Test
+  public void testCaseExprForLnSynapse() {
+    final String query = "SELECT LN(\"product_id\") as dd from \"product\"";
+    final String expectedSynapse = "SELECT LOG([product_id]) AS [DD]"
+            + "\nFROM [foodmart].[product]";
+    sql(query)
+            .withMssql()
+            .ok(expectedSynapse);
+  }
+
+  @Test
+  public void testCaseExprForLog10Synapse() {
+    final String query = "SELECT LOG10(\"product_id\") as dd from \"product\"";
+    final String expectedSynapse = "SELECT LOG([product_id]) AS [DD]"
+            + "\nFROM [foodmart].[product]";
+    sql(query)
+            .withMssql()
+            .ok(expectedSynapse);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
