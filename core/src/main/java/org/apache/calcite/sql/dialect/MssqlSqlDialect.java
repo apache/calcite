@@ -36,9 +36,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.util.SqlString;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -125,8 +123,7 @@ public class MssqlSqlDialect extends SqlDialect {
       final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
       if (call.operand(0).getKind().toString().equalsIgnoreCase("CAST")) {
         ((SqlBasicCall) call.operand(0)).operand(0).unparse(writer, leftPrec, rightPrec);
-      }
-      else {
+      } else {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(logFrame);
