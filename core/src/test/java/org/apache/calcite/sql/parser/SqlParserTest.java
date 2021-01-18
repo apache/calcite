@@ -3255,31 +3255,6 @@ public class SqlParserTest {
             + "OFFSET 1 ROWS");
   }
 
-  /**
-   * same as {@link #testLimit} test method but specific spark dialect.
-   */
-  @Test void testLimitWithSparkDialect() {
-    sql("select a from foo order by b, c limit 2 offset 1")
-        .withDialect(SparkSqlDialect.DEFAULT)
-        .ok("SELECT A\n"
-            + "FROM FOO\n"
-            + "ORDER BY B, C\n"
-            + "LIMIT 2\n"
-            + "OFFSET 1");
-    sql("select a from foo order by b, c limit 2")
-        .withDialect(SparkSqlDialect.DEFAULT)
-        .ok("SELECT A\n"
-            + "FROM FOO\n"
-            + "ORDER BY B, C\n"
-            + "LIMIT 2");
-    sql("select a from foo order by b, c offset 1")
-        .withDialect(SparkSqlDialect.DEFAULT)
-        .ok("SELECT A\n"
-            + "FROM FOO\n"
-            + "ORDER BY B, C\n"
-            + "OFFSET 1");
-  }
-
   /** Test case that does not reproduce but is related to
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1238">[CALCITE-1238]
    * Unparsing LIMIT without ORDER BY after validation</a>. */
