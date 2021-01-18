@@ -106,9 +106,30 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
+      case OTHER_FUNCTION:
+        unparseOtherFunction(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+    }
+  }
+
+  public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "ROUND":
+      if (call.getOperandList().size() < 2) {
+        /*SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+        super.unparseCall(writer, call, leftPrec, rightPrec);*/
+        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.print(",");
+        writer.sep("0");
+        writer.endFunCall(roundFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     }
   }
 

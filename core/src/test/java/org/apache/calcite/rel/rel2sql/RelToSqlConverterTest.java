@@ -6431,15 +6431,30 @@ public class RelToSqlConverterTest {
             + "CASE WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 "
             + "THEN -12 ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
             + "FROM \"foodmart\".\"product\"";
+    final String expectedSynapse = "SELECT ROUND(123.41445, [product_id]) AS [a]\n"
+            + "FROM [foodmart].[product]";
     sql(query)
-            .withBigQuery()
+            /*.withBigQuery()
             .ok(expectedBq)
             .withHive()
             .ok(expected)
             .withSpark()
             .ok(expected)
             .withSnowflake()
-            .ok(expectedSnowFlake);
+            .ok(expectedSnowFlake)*/
+            .withMssql()
+            .ok(expectedSynapse);
+  }
+
+  @Test
+  public void testRoundFunctionWithOneParameter() {
+    final String query = "SELECT ROUND(123.41445) AS \"a\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedSynapse = "SELECT ROUND(123.41445, 0) AS [a]\n"
+            + "FROM [foodmart].[product]";
+    sql(query)
+            .withMssql()
+            .ok(expectedSynapse);
   }
 
   @Test
