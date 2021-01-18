@@ -167,15 +167,20 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public void reset() {
+    throw new UnsupportedOperationException();
   }
 
   public void close() {
-    if (projector != null) {
-      projector.close();
+    try {
+      if (projector != null) {
+        projector.close();
+      }
+      if (filter != null) {
+        filter.close();
+      }
+    } catch (GandivaException e) {
     }
-    if (filter != null) {
-      filter.close();
-    }
+
     this.buf.close();
     this.allocator.close();
   }
