@@ -40,6 +40,7 @@ import java.util.List;
  * ArrowEnumerator.
  */
 public class ArrowEnumerator implements Enumerator<Object> {
+  private final BufferAllocator allocator;
   private final ArrowFileReader arrowFileReader;
   private final Projector projector;
   private final Filter filter;
@@ -48,11 +49,16 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private final int[] fields;
   private final int numFields;
   private int rowSize;
+  private ArrowBuf buf;
   private SelectionVector selectionVector;
   private int selectionVectorIndex = 0;
 
   public ArrowEnumerator(Projector projector, Filter filter, int[] fields,
                          ArrowFileReader arrowFileReader) {
+    this.allocator = new RootAllocator(Long.MAX_VALUE);
+    this.buf = this.allocator.buffer(rowSize * 2);
+    this.selectionVector = new SelectionVectorInt16(buf);
+
     this.projector = projector;
     this.filter = filter;
     this.arrowFileReader = arrowFileReader;
@@ -148,9 +154,6 @@ public class ArrowEnumerator implements Enumerator<Object> {
       this.rowSize = vsr.getRowCount();
       VectorUnloader vectorUnloader = new VectorUnloader(vsr);
       ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
-      BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
-      ArrowBuf buf = allocator.buffer(rowSize * 2);
-      SelectionVectorInt16 selectionVector = new SelectionVectorInt16(buf);
       if (projector != null) {
         projector.evaluate(arrowRecordBatch, valueVectors);
       }
@@ -167,5 +170,13 @@ public class ArrowEnumerator implements Enumerator<Object> {
   }
 
   public void close() {
+    if (projector != null) {
+      projector.close();
+    }
+    if (filter != null) {
+      filter.close();
+    }
+    this.buf.close();
+    this.allocator.close();
   }
 }
