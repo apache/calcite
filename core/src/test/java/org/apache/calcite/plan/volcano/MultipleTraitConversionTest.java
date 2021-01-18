@@ -64,7 +64,10 @@ public class MultipleTraitConversionTest {
 
     CustomLeafRel rel = new CustomLeafRel(cluster, fromTraits);
     planner.setRoot(rel);
-    planner.changeTraitsUsingConverters(rel, toTraits);
+
+    RelNode convertedRel = planner.changeTraitsUsingConverters(rel, toTraits);
+    assertEquals(CustomTraitEnforcer.class, convertedRel.getClass());
+    assertTrue(convertedRel.getTraitSet().satisfies(toTraits));
 
     // Make sure that the equivalence set contains only the original and converted rels.
     // It should not contain the collation enforcer, because the "from" collation already
@@ -169,7 +172,7 @@ public class MultipleTraitConversionTest {
     ) {
       return new CustomTraitEnforcer(
           rel.getCluster(),
-          rel.getTraitSet().plus(toTrait),
+          rel.getTraitSet().replace(toTrait),
           rel
       );
     }
