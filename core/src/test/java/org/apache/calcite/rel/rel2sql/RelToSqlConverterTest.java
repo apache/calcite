@@ -1078,6 +1078,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedMsSql = "SELECT TRIM(' ' FROM [full_name])\n"
+        + "FROM [foodmart].[reserve_employee]";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1086,7 +1088,9 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expected)
         .withSnowflake()
-        .ok(expectedSnowFlake);
+        .ok(expectedSnowFlake)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void testTrimWithLeadingSpace() {
@@ -1096,6 +1100,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM(' str ')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedMsSql = "SELECT LTRIM(' str ')\n"
+        + "FROM [foodmart].[reserve_employee]";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1104,7 +1110,9 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expected)
         .withSnowflake()
-        .ok(expectedSnowFlake);
+        .ok(expectedSnowFlake)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void testTrimWithTailingSpace() {
@@ -1114,6 +1122,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM(' str ')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedMsSql = "SELECT RTRIM(' str ')\n"
+        + "FROM [foodmart].[reserve_employee]";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1122,7 +1132,9 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expected)
         .withSnowflake()
-        .ok(expectedSnowFlake);
+        .ok(expectedSnowFlake)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void testTrimWithLeadingCharacter() {
@@ -6563,6 +6575,25 @@ public class RelToSqlConverterTest {
             + "FROM \"scott\".\"EMP\"\n"
             + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test
+  public void testCaseForLnFunction() {
+    final String query = "SELECT LN(\"product_id\") as dd from \"product\"";
+    final String expectedMssql = "SELECT LOG([product_id]) AS [DD]"
+            + "\nFROM [foodmart].[product]";
+    sql(query)
+            .withMssql()
+            .ok(expectedMssql);
+  }
+
+  @Test public void testCaseForCeilToCeilingMSSQL() {
+    final String query = "SELECT CEIL(12345) FROM \"product\"";
+    final String expected = "SELECT CEILING(12345)\n"
+            + "FROM [foodmart].[product]";
+    sql(query)
+      .withMssql()
+      .ok(expected);
   }
 }
 
