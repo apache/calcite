@@ -20,7 +20,6 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -124,15 +123,8 @@ public class MssqlSqlDialect extends SqlDialect {
   public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "LN":
-    case "LOG10":
-      final String operator = call.getOperator().getName()
-                                    .equalsIgnoreCase("LN") ? "LOG" : "LOG10";
-      final SqlWriter.Frame logFrame = writer.startFunCall(operator);
-      if (call.operand(0).getKind() == SqlKind.CAST) {
-        ((SqlBasicCall) call.operand(0)).operand(0).unparse(writer, leftPrec, rightPrec);
-      } else {
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-      }
+      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(logFrame);
       break;
     default:
