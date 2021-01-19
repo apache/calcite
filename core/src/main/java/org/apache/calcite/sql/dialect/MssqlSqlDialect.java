@@ -125,10 +125,10 @@ public class MssqlSqlDialect extends SqlDialect {
     switch (call.getOperator().getName()) {
     case "LN":
     case "LOG10":
-      final String frameName = call.getOperator().getName()
+      final String operator = call.getOperator().getName()
                                     .equalsIgnoreCase("LN") ? "LOG" : "LOG10";
-      final SqlWriter.Frame logFrame = writer.startFunCall(frameName);
-      if (call.operand(0).getKind().toString().equalsIgnoreCase("CAST")) {
+      final SqlWriter.Frame logFrame = writer.startFunCall(operator);
+      if (call.operand(0).getKind() == SqlKind.CAST) {
         ((SqlBasicCall) call.operand(0)).operand(0).unparse(writer, leftPrec, rightPrec);
       } else {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
