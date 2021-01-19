@@ -6601,7 +6601,7 @@ public class RelToSqlConverterTest {
   @Test
   public void testCaseExprForLog10Synapse() {
     final String query = "SELECT LOG10(\"product_id\") as dd from \"product\"";
-    final String expectedSynapse = "SELECT LOG([product_id]) AS [DD]"
+    final String expectedSynapse = "SELECT LOG10([product_id]) AS [DD]"
             + "\nFROM [foodmart].[product]";
     sql(query)
             .withMssql()
