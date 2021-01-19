@@ -6587,6 +6587,15 @@ public class RelToSqlConverterTest {
             + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
+
+  @Test public void testCaseForCeilToCeilingMSSQL() {
+    final String query = "SELECT CEIL(12345) FROM \"product\"";
+    final String expected = "SELECT CEILING(12345)\n"
+            + "FROM [foodmart].[product]";
+    sql(query)
+      .withMssql()
+      .ok(expected);
+  }
 }
 
 // End RelToSqlConverterTest.java
