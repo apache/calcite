@@ -33,12 +33,15 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * A <code>SqlDialect</code> implementation for the Microsoft SQL Server database.
+ * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
+ * database.
  */
 public class MssqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
@@ -54,16 +57,14 @@ public class MssqlSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  /**
-   * Creates a MssqlSqlDialect.
-   */
+  /** Creates a MssqlSqlDialect. */
   public MssqlSqlDialect(Context context) {
     super(context);
     emulateNullDirection = true;
   }
 
   @Override public SqlNode emulateNullDirection(
-      SqlNode node, boolean nullsFirst, boolean desc) {
+          SqlNode node, boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
@@ -71,29 +72,27 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   @Override protected SqlNode emulateNullDirectionWithIsNull(
-      SqlNode node, boolean nullsFirst, boolean desc) {
+          SqlNode node, boolean nullsFirst, boolean desc) {
     if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
       return null;
     }
     String caseThenOperand = (nullsFirst && desc) ? "0" : "1";
     String caseElseOperand = caseThenOperand.equals("1") ? "0" : "1";
     node = new SqlCase(
-        SqlParserPos.ZERO, null,
-        SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node)),
-        SqlNodeList.of(SqlLiteral.createExactNumeric(caseThenOperand, SqlParserPos.ZERO)),
-        SqlLiteral.createExactNumeric(caseElseOperand, SqlParserPos.ZERO)
+            SqlParserPos.ZERO, null,
+            SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node)),
+            SqlNodeList.of(SqlLiteral.createExactNumeric(caseThenOperand, SqlParserPos.ZERO)),
+            SqlLiteral.createExactNumeric(caseElseOperand, SqlParserPos.ZERO)
     );
     return node;
   }
 
-  @Override public void unparseDateTimeLiteral(
-      SqlWriter writer,
+  @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal("'" + literal.toFormattedString() + "'");
   }
 
-  @Override public void unparseCall(
-      SqlWriter writer, SqlCall call,
+  @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       if (call.operandCount() != 3) {
@@ -108,6 +107,9 @@ public class MssqlSqlDialect extends SqlDialect {
           return;
         }
         unparseFloor(writer, call);
+        break;
+      case TRIM:
+        unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
         final SqlWriter.Frame ceilFrame = writer.startFunCall("CEILING");
@@ -125,8 +127,8 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   /**
-   * Unparses datetime floor for Microsoft SQL Server. There is no TRUNC function, so simulate this
-   * using calls to CONVERT.
+   * Unparses datetime floor for Microsoft SQL Server.
+   * There is no TRUNC function, so simulate this using calls to CONVERT.
    *
    * @param writer Writer
    * @param call Call
@@ -166,8 +168,7 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseSqlDatetimeArithmetic(
-      SqlWriter writer,
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
 
     final SqlWriter.Frame frame = writer.startFunCall("DATEADD");
@@ -185,8 +186,7 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-  @Override public void unparseSqlIntervalQualifier(
-      SqlWriter writer,
+  @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     switch (qualifier.timeUnitRange) {
     case YEAR:
@@ -230,8 +230,7 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.literal(literal.getValue().toString());
   }
 
-  private void unparseFloorWithUnit(
-      SqlWriter writer, SqlCall call, int charLen,
+  private void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,
       String offset) {
     writer.print("CONVERT");
     SqlWriter.Frame frame = writer.startList("(", ")");
@@ -244,6 +243,32 @@ public class MssqlSqlDialect extends SqlDialect {
     }
     writer.endList(frame);
   }
+
+  /**
+   * For usage of TRIM in MSSQL
+   */
+  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (((SqlLiteral) call.operand(0)).getValueAs(SqlTrimFunction.Flag.class)) {
+    case BOTH:
+      final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep("FROM");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
+      break;
+    case LEADING:
+      unparseCall(writer, SqlLibraryOperators.LTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      break;
+    case TRAILING:
+      unparseCall(writer, SqlLibraryOperators.RTRIM.
+          createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(2)}), leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
 }
 
 // End MssqlSqlDialect.java
