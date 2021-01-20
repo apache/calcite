@@ -132,6 +132,17 @@ public class MssqlSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(logFrame);
       break;
+    case "ROUND":
+      if (call.getOperandList().size() < 2) {
+        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",", true);
+        writer.print("0");
+        writer.endFunCall(roundFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
