@@ -136,8 +136,8 @@ public class MssqlSqlDialect extends SqlDialect {
       if (call.getOperandList().size() < 2) {
         final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.print(",");
-        writer.sep("0");
+        writer.sep(",");
+        writer.print("0");
         writer.endFunCall(roundFrame);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
