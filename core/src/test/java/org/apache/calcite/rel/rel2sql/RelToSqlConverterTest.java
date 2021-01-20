@@ -6446,14 +6446,14 @@ public class RelToSqlConverterTest {
     final String expectedMssql = "SELECT ROUND(123.41445, [product_id]) AS [a]\n"
             + "FROM [foodmart].[product]";
     sql(query)
-            /*.withBigQuery()
+            .withBigQuery()
             .ok(expectedBq)
             .withHive()
             .ok(expected)
             .withSpark()
             .ok(expected)
             .withSnowflake()
-            .ok(expectedSnowFlake)*/
+            .ok(expectedSnowFlake)
             .withMssql()
             .ok(expectedMssql);
   }
