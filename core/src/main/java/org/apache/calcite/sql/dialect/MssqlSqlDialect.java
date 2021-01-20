@@ -119,6 +119,17 @@ public class MssqlSqlDialect extends SqlDialect {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(ceilFrame);
         break;
+      case TRUNCATE:
+        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        if (call.getOperandList().size() < 2) {
+          writer.print("0");
+        }
+        writer.endFunCall(roundFrame);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -131,6 +142,17 @@ public class MssqlSqlDialect extends SqlDialect {
       final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(logFrame);
+      break;
+    case "ROUND":
+      if (call.getOperandList().size() < 2) {
+        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        writer.print("0");
+        writer.endFunCall(roundFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
