@@ -114,9 +114,26 @@ public class MssqlSqlDialect extends SqlDialect {
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
+      case CEIL:
+        final SqlWriter.Frame ceilFrame = writer.startFunCall("CEILING");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(ceilFrame);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+    }
+  }
+
+  public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "LN":
+      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(logFrame);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
