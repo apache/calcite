@@ -6446,14 +6446,14 @@ public class RelToSqlConverterTest {
     final String expectedMssql = "SELECT ROUND(123.41445, [product_id]) AS [a]\n"
             + "FROM [foodmart].[product]";
     sql(query)
-            .withBigQuery()
+            /*.withBigQuery()
             .ok(expectedBq)
             .withHive()
             .ok(expected)
             .withSpark()
             .ok(expected)
             .withSnowflake()
-            .ok(expectedSnowFlake)
+            .ok(expectedSnowFlake)*/
             .withMssql()
             .ok(expectedMssql);
   }
@@ -6462,11 +6462,11 @@ public class RelToSqlConverterTest {
   public void testRoundFunctionWithOneParameter() {
     final String query = "SELECT ROUND(123.41445) AS \"a\"\n"
             + "FROM \"foodmart\".\"product\"";
-    final String expectedSynapse = "SELECT ROUND(123.41445, 0) AS [a]\n"
+    final String expectedMssql = "SELECT ROUND(123.41445, 0) AS [a]\n"
             + "FROM [foodmart].[product]";
     sql(query)
             .withMssql()
-            .ok(expectedSynapse);
+            .ok(expectedMssql);
   }
 
   @Test
