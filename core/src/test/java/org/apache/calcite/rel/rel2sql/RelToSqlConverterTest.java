@@ -1263,7 +1263,7 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testTrimWithFunction() {
-    final String query = "SELECT TRIM(substring(\"full_name\" from 2 for 3))\n"
+    final String query = "SELECT TRIM(substring(\"full_name\" from 2))\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(SUBSTR(full_name, 2, 3))\n"
         + "FROM foodmart.reserve_employee";
@@ -2641,6 +2641,8 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product";
     final String expectedBiqQuery = "SELECT SUBSTR(brand_name, 2)\n"
         + "FROM foodmart.product";
+    final String synapseSql = "SELECT SUBSTRING([brand_name], 2, 2147483647)\n"
+            + "FROM [foodmart].[product]";
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -2653,8 +2655,7 @@ public class RelToSqlConverterTest {
         .withMysql()
         .ok(expectedMysql)
         .withMssql()
-        // mssql does not support this syntax and so should fail
-        .throws_("MSSQL SUBSTRING requires FROM and FOR arguments")
+        .ok(synapseSql)
         .withHive()
         .ok(expectedHive)
         .withSpark()
@@ -6587,6 +6588,7 @@ public class RelToSqlConverterTest {
             + "WHERE TO_VARCHAR(\"HIREDATE\", 'DY')";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
+
 }
 
 // End RelToSqlConverterTest.java

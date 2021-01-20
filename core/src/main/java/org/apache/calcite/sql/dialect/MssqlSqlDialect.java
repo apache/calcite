@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -30,6 +31,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -37,7 +39,9 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -94,26 +98,45 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-      if (call.operandCount() != 3) {
-        throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
-      }
-      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
-    } else {
-      switch (call.getKind()) {
-      case FLOOR:
-        if (call.operandCount() != 2) {
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-          return;
-        }
-        unparseFloor(writer, call);
-        break;
-      case TRIM:
-        unparseTrim(writer, call, leftPrec, rightPrec);
-        break;
-      default:
+    switch (call.getKind()) {
+    case FLOOR:
+      if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
       }
+      unparseFloor(writer, call);
+      break;
+    case TRIM:
+      unparseTrim(writer, call, leftPrec, rightPrec);
+      break;
+    case SUBSTRING:
+      unparseSubstring(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseSubstring(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operandCount() == 3) {
+      if (call.operand(0) instanceof SqlBasicCall
+              && ((SqlBasicCall) call.operand(0)).getOperator() == SqlLibraryOperators.FORMAT) {
+        SqlNode literalVarchar = getCastSpec(
+                new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
+        SqlCall castCall = SqlStdOperatorTable.CAST.createCall(
+                SqlParserPos.ZERO, ((SqlBasicCall) call.operand(0)).operand(1), literalVarchar);
+        SqlCall substrCall = SqlStdOperatorTable.SUBSTRING.createCall(
+                SqlParserPos.ZERO, castCall, call.operand(1), call.operand(2));
+        SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, substrCall);
+      } else {
+        SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
+      }
+    } else {
+      SqlNumericLiteral forNumber = SqlLiteral.createExactNumeric(
+              "2147483647", SqlParserPos.ZERO);
+      SqlNode substringCall = SqlStdOperatorTable.SUBSTRING.createCall(
+              SqlParserPos.ZERO, call.operand(0), call.operand(1), forNumber);
+      substringCall.unparse(writer, leftPrec, rightPrec);
     }
   }
 
