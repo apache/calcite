@@ -4399,6 +4399,17 @@ public class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
+  @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
+    String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
+    final String expectedBigQuery = "SELECT CAST(DATETIME_ADD(CAST(hire_date AS DATETIME), "
+        + "INTERVAL "
+        + "-10 MONTH) AS TIMESTAMP)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testDatePlusIntervalMonthFunctionWithCol() {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
