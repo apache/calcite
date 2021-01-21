@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -42,6 +43,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -53,7 +55,8 @@ public class MssqlSqlDialect extends SqlDialect {
           .withDatabaseProduct(DatabaseProduct.MSSQL)
           .withNullCollation(NullCollation.LOW)
           .withIdentifierQuoteString("[")
-          .withCaseSensitive(false));
+          .withCaseSensitive(false)
+          .withConformance(SqlConformanceEnum.SQL_SERVER_2008));
 
   private final boolean emulateNullDirection;
   private static final SqlFunction MSSQL_SUBSTRING =
@@ -112,8 +115,44 @@ public class MssqlSqlDialect extends SqlDialect {
     case SUBSTRING:
       unparseSubstring(writer, call, leftPrec, rightPrec);
       break;
+    case CONCAT:
+      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(concatFrame);
+      break;
+    case OVER:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (((SqlWindow) call.operand(1)).getPartitionList().size() == 0
+            && ((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
+        final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
+        writer.endFunCall(overFrame);
+      } else if (((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
+        final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
+        writer.print("PARTITION BY ");
+        ((SqlWindow) call.operand(1)).getPartitionList().unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(overFrame);
+      } else {
+        writer.print("OVER ");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+      }
+      break;
+    case OTHER:
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "DAYOFMONTH":
+      final SqlWriter.Frame frame = writer.startFunCall("DAY");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
     }
   }
 
