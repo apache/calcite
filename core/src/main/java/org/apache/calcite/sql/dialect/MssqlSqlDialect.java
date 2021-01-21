@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -111,6 +112,30 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
+      case CONCAT:
+        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(concatFrame);
+        break;
+      case OVER:
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        if (((SqlWindow) call.operand(1)).getPartitionList().size() == 0
+                && ((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
+          final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
+          writer.endFunCall(overFrame);
+        } else if (((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
+          final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
+          writer.print("PARTITION BY ");
+          ((SqlWindow) call.operand(1)).getPartitionList().unparse(writer, leftPrec, rightPrec);
+          writer.endFunCall(overFrame);
+        } else {
+          writer.print("OVER ");
+          call.operand(1).unparse(writer, leftPrec, rightPrec);
+        }
+        break;
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
@@ -142,6 +167,11 @@ public class MssqlSqlDialect extends SqlDialect {
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "DAYOFMONTH":
+      final SqlWriter.Frame frame = writer.startFunCall("DAY");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
