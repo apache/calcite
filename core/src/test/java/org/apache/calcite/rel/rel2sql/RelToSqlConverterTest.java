@@ -6489,6 +6489,16 @@ public class RelToSqlConverterTest {
   }
 
   @Test
+  public void testTruncateFunctionWithOneParameter() {
+    String query = "select truncate(2.30259) from \"employee\"";
+    final String expectedMssql = "SELECT ROUND(2.30259, 0)"
+            + "\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expectedMssql);
+  }
+
+  @Test
   public void testWindowFunctionWithOrderByWithoutcolumn() {
     String query = "Select count(*) over() from \"employee\"";
     final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED "

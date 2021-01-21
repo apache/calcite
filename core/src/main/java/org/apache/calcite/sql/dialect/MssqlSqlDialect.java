@@ -112,23 +112,13 @@ public class MssqlSqlDialect extends SqlDialect {
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       case OTHER_FUNCTION:
+      case TRUNCATE:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
         final SqlWriter.Frame ceilFrame = writer.startFunCall("CEILING");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(ceilFrame);
-        break;
-      case TRUNCATE:
-        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
-        for (SqlNode operand : call.getOperandList()) {
-          writer.sep(",");
-          operand.unparse(writer, leftPrec, rightPrec);
-        }
-        if (call.getOperandList().size() < 2) {
-          writer.print("0");
-        }
-        writer.endFunCall(roundFrame);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -144,15 +134,17 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
-      if (call.getOperandList().size() < 2) {
-        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",", true);
-        writer.print("0");
-        writer.endFunCall(roundFrame);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+    case "TRUNCATE":
+      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
       }
+      if (call.operandCount() < 2) {
+        writer.sep(",");
+        writer.print("0");
+      }
+      writer.endFunCall(funcFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
