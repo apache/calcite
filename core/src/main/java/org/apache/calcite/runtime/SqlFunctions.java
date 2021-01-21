@@ -2993,6 +2993,15 @@ public class SqlFunctions {
     return start + 1;
   }
 
+  /**Returns matching index value*/
+  public static Integer charindex(String strToFind, String strToSearch, Integer startLocation) {
+    if (null == strToFind || null == strToSearch) {
+      return 0;
+    }
+    return strToSearch.toLowerCase(Locale.ROOT)
+            .indexOf(strToFind.toLowerCase(Locale.ROOT), startLocation - 1) + 1;
+  }
+
   public static long timeDiff(java.sql.Date d1, java.sql.Date d2) {
     return d2.getTime() - d1.getTime();
   }

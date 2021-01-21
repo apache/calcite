@@ -143,6 +143,21 @@ public class MssqlSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "INSTR":
+      final SqlWriter.Frame charindexFrame = writer.startFunCall("CHARINDEX");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      if (call.operandCount() == 3) {
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      if (call.operandCount() > 3) {
+        throw new RuntimeException("4th operand Not Supported by CHARINDEX in MSSQL");
+      }
+      writer.endFunCall(charindexFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

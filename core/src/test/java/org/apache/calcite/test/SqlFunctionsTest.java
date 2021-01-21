@@ -35,6 +35,7 @@ import java.util.List;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
+import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.dateMod;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
@@ -1103,6 +1104,12 @@ public class SqlFunctionsTest {
   @Test public void testInStr() {
     assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
     assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#charindex}. */
+  @Test public void testCharindex() {
+    assertThat(charindex("ch", "Choose a chocolate chip cookie", 1), is(1));
+    assertThat(charindex("ch", "Choose a chocolate chip cookie", 2), is(10));
   }
 
   /** Test for {@link SqlFunctions#datetimeAdd(Object, Object)}. */

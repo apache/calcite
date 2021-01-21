@@ -92,6 +92,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHARINDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_SUB;
@@ -689,6 +690,7 @@ public class RexImpTable {
     defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
     defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
     defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
+    defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {

@@ -601,6 +601,7 @@ public enum BuiltInMethod {
       "singleGroupResultSelector", Function1.class),
   TIMESTAMP_TO_DATE(SqlFunctions.class, "timestampToDate", Object.class),
   INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class),
+  CHARINDEX(SqlFunctions.class, "charindex", String.class, String.class, Integer.class),
   DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
   DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class);
 

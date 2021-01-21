@@ -116,6 +116,7 @@ public class DocumentationTest {
       case SPARK:
       case TERADATA:
       case SNOWFLAKE:
+      case MSSQL:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",
