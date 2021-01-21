@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -63,6 +64,10 @@ public class MssqlSqlDialect extends SqlDialect {
     emulateNullDirection = true;
   }
 
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
   @Override public SqlNode emulateNullDirection(
           SqlNode node, boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
@@ -89,7 +94,15 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
-    writer.literal("'" + literal.toFormattedString() + "'");
+    if (literal instanceof SqlTimestampLiteral) {
+      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      writer.literal("'" + literal.toFormattedString() + "'");
+      writer.sep("AS");
+      writer.print("DATETIME2");
+      writer.endFunCall(castFrame);
+    } else {
+      writer.literal("'" + literal.toFormattedString() + "'");
+    }
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -111,6 +124,27 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
+      case CONCAT:
+        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(concatFrame);
+        break;
+      /*case AS:
+        if (call.operand(0) instanceof SqlTimestampLiteral) {
+          final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+          writer.literal("'" + ((SqlTimestampLiteral) call.operand(0)).toFormattedString() + "'");
+          writer.sep("AS");
+          writer.print("DATETIME");
+          writer.endFunCall(castFrame);
+          writer.sep("AS");
+          call.operand(1).unparse(writer, leftPrec, rightPrec);
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
+        break;*/
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
