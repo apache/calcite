@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlCall;
@@ -30,6 +31,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
@@ -39,6 +41,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -95,14 +100,30 @@ public class MssqlSqlDialect extends SqlDialect {
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     if (literal instanceof SqlTimestampLiteral) {
-      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-      writer.literal("'" + literal.toFormattedString() + "'");
-      writer.sep("AS");
-      writer.print("DATETIME2");
-      writer.endFunCall(castFrame);
+      SqlNode[] sqlNodes = {SqlLiteral.createCharString(literal.toFormattedString(),
+          SqlParserPos.ZERO), SqlLiteral.createSymbol(
+          DateTimeEnum.DATETIME2, SqlParserPos.ZERO)};
+      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+      castCall.unparse(writer, leftPrec, rightPrec);
+    } else if (literal instanceof SqlTimeLiteral) {
+      SqlNode[] sqlNodes = {SqlLiteral.createCharString(literal.toFormattedString(),
+          SqlParserPos.ZERO), SqlLiteral.createSymbol(
+          SqlTypeName.TIME, SqlParserPos.ZERO)};
+      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+      castCall.unparse(writer, leftPrec, rightPrec);
     } else {
       writer.literal("'" + literal.toFormattedString() + "'");
     }
+  }
+
+  @Override public SqlNode getCastCall(
+      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
+      SqlNode[] sqlNodes = {operandToCast, SqlLiteral.createSymbol(
+          DateTimeEnum.DATETIME2, SqlParserPos.ZERO)};
+      return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+    }
+    return super.getCastCall(operandToCast, castFrom, castTo);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -132,23 +153,17 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         writer.endFunCall(concatFrame);
         break;
-      /*case AS:
-        if (call.operand(0) instanceof SqlTimestampLiteral) {
-          final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-          writer.literal("'" + ((SqlTimestampLiteral) call.operand(0)).toFormattedString() + "'");
-          writer.sep("AS");
-          writer.print("DATETIME");
-          writer.endFunCall(castFrame);
-          writer.sep("AS");
-          call.operand(1).unparse(writer, leftPrec, rightPrec);
-        } else {
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-        }
-        break;*/
+      case OTHER_FUNCTION:
+        unparseOtherFunction(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+
   }
 
   @Override public boolean supportsCharSet() {
@@ -298,6 +313,18 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  /**
+   * Date time Enum for MS-Sql
+   */
+  enum DateTimeEnum {
+    DATETIME2("DATETIME2");
+
+    String name;
+
+    DateTimeEnum(String name) {
+      this.name = name;
+    }
+  }
 }
 
 // End MssqlSqlDialect.java
