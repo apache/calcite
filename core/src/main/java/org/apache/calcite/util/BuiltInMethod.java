@@ -314,6 +314,7 @@ public enum BuiltInMethod {
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
   IFNULL(SqlFunctions.class, "ifNull", Object.class, Object.class),
+  ISNULL(SqlFunctions.class, "isNull", Object.class, Object.class),
   LPAD(SqlFunctions.class, "lpad", String.class, Integer.class, String.class),
   RPAD(SqlFunctions.class, "rpad", String.class, Integer.class, String.class),
   FORMAT(SqlFunctions.class, "format", Object.class, Object.class),

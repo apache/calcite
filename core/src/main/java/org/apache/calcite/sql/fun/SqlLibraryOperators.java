@@ -118,6 +118,14 @@ public abstract class SqlLibraryOperators {
               SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
+  /** The "ISNULL(value, value)" function. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ISNULL =
+      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+              SqlTypeTransforms.TO_NULLABLE_ALL),
+          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LTRIM =

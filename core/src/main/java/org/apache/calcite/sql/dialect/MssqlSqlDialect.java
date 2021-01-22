@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -38,6 +39,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -112,6 +115,7 @@ public class MssqlSqlDialect extends SqlDialect {
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       case OTHER_FUNCTION:
+      case TRUNCATE:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -119,6 +123,13 @@ public class MssqlSqlDialect extends SqlDialect {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(ceilFrame);
         break;
+      case NVL:
+        SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
+        SqlCall sqlCall = new SqlBasicCall(ISNULL, extractNodeOperands,
+                SqlParserPos.ZERO);
+        unparseCall(writer, sqlCall, leftPrec, rightPrec);
+        break;
+
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -133,15 +144,17 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
-      if (call.getOperandList().size() < 2) {
-        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",", true);
-        writer.print("0");
-        writer.endFunCall(roundFrame);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+    case "TRUNCATE":
+      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
       }
+      if (call.operandCount() < 2) {
+        writer.sep(",");
+        writer.print("0");
+      }
+      writer.endFunCall(funcFrame);
       break;
     case "INSTR":
       if (call.operandCount() > 3) {
