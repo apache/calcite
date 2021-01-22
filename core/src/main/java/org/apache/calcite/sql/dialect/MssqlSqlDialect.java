@@ -115,6 +115,7 @@ public class MssqlSqlDialect extends SqlDialect {
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
       case OTHER_FUNCTION:
+      case TRUNCATE:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -141,6 +142,19 @@ public class MssqlSqlDialect extends SqlDialect {
       final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(logFrame);
+      break;
+    case "ROUND":
+    case "TRUNCATE":
+      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      if (call.operandCount() < 2) {
+        writer.sep(",");
+        writer.print("0");
+      }
+      writer.endFunCall(funcFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
