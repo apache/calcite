@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -38,6 +39,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -120,6 +123,13 @@ public class MssqlSqlDialect extends SqlDialect {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(ceilFrame);
         break;
+      case NVL:
+        SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
+        SqlCall sqlCall = new SqlBasicCall(ISNULL, extractNodeOperands,
+                SqlParserPos.ZERO);
+        unparseCall(writer, sqlCall, leftPrec, rightPrec);
+        break;
+
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
