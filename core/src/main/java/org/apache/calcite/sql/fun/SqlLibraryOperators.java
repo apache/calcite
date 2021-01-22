@@ -706,7 +706,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of
           (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              number -> number == 1 || number == 3),
+              number -> number == 2 || number == 3),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MSSQL})
@@ -718,7 +718,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of
           (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER),
-              number -> number == 1 || number == 3),
+              number -> number == 2),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
