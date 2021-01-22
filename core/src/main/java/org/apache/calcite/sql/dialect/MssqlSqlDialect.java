@@ -145,6 +145,14 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
+      case OTHER_FUNCTION:
+        unparseOtherFunction(writer, call, leftPrec, rightPrec);
+        break;
+      case CEIL:
+        final SqlWriter.Frame ceilFrame = writer.startFunCall("CEILING");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(ceilFrame);
+        break;
       case CONCAT:
         final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
         for (SqlNode operand : call.getOperandList()) {
@@ -153,17 +161,33 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         writer.endFunCall(concatFrame);
         break;
-      case OTHER_FUNCTION:
-        unparseOtherFunction(writer, call, leftPrec, rightPrec);
-        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
   }
 
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-
+  public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "LN":
+      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(logFrame);
+      break;
+    case "ROUND":
+      if (call.getOperandList().size() < 2) {
+        final SqlWriter.Frame roundFrame = writer.startFunCall("ROUND");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",", true);
+        writer.print("0");
+        writer.endFunCall(roundFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
   @Override public boolean supportsCharSet() {
