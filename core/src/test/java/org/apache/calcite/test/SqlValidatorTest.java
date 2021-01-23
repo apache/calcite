@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -64,6 +66,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -7829,9 +7832,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp where deptno = ?").ok();
     sql("select * from emp where deptno = ? and sal < 100000").ok();
     sql("select case when deptno = ? then 1 else 2 end from emp").ok();
-    // It is not possible to infer type of ?, because SUBSTRING is overloaded
-    sql("select deptno from emp group by substring(ename from ^?^ for ?)")
-        .fails("Illegal use of dynamic parameter");
     // In principle we could infer that ? should be a VARCHAR
     sql("select count(*) from emp group by position(^?^ in ename)")
         .fails("Illegal use of dynamic parameter");
@@ -7853,6 +7853,48 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp where ? between ? and deptno").ok();
     sql("select * from emp where ^?^ between ? and ?")
         .fails("Illegal use of dynamic parameter");
+  }
+
+  @Test void testBindSubstringFunction() {
+    sql("select * from emp where ename = substring(? from 0)").ok();
+    sql("select * from emp where cast(ename as binary) = substring(? from 0)").ok();
+    sql("select * from emp where ename = substring('abc' from ?)").ok();
+    sql("select * from emp where ename = substring(? from 0 for 5)").ok();
+    sql("select * from emp where ename = substring('abc' from ? for 5)").ok();
+    sql("select * from emp where ename = substring('abc' from 0 for ?)").ok();
+  }
+
+  @Test void testBindSubstringFunctionInferredType() {
+    assertEquals(
+        getDynamicParamNodeType(
+        "select * from emp where cast(ename as varchar(20)) = substring(? from 0)"),
+        "VARCHAR(20)");
+    assertEquals(
+        getDynamicParamNodeType(
+        "select * from emp where cast(ename as binary(20)) = substring(? from 0)"),
+        "BINARY(20)");
+    assertEquals(getDynamicParamNodeType("select * from emp where ename = substring(ename from ?)"),
+        "INTEGER");
+    sql("select * from emp where deptno = ^substring(? from 0)^")
+        .fails(
+            "(?s)Cannot apply 'SUBSTRING' to arguments of type 'SUBSTRING\\(<INTEGER> FROM <INTEGER>\\)'.*");
+  }
+
+  /**
+   * Returns the full type string of a dynamic param node in the parse tree of the given SQL string.
+   */
+  private String getDynamicParamNodeType(String sqlString) {
+    SqlTester tester = getTester();
+    SqlValidator validator = tester.getValidator();
+    SqlNode sqlNode = tester.parseAndValidate(validator, sqlString);
+    SqlDynamicParam[] dynamicParams = new SqlDynamicParam[1];
+    sqlNode.accept(new SqlShuttle() {
+      @Override public @Nullable SqlNode visit(final SqlDynamicParam param) {
+        dynamicParams[0] = param;
+        return super.visit(param);
+      }
+    });
+    return validator.getValidatedNodeType(dynamicParams[0]).getFullTypeString();
   }
 
   @Test void testUnnest() {
