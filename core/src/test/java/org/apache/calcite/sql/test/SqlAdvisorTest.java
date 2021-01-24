@@ -1611,23 +1611,29 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
     // but Tokenizer#nextToken() does not recognize it
     originSql = baseOriginSql + "where price > 10.0-- this is comment "
         + System.lineSeparator() + " -- comment ";
-    filterCommentHelper(originSql, baseResultSql + "WHERE price > 10.0");
+    assertSimplifySql(originSql, baseResultSql + "WHERE price > 10.0");
 
     originSql = baseOriginSql + "where column_b='/* this is not comment */'";
-    filterCommentHelper(originSql, baseResultSql + "WHERE column_b= '/* this is not comment */'");
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '/* this is not comment */'");
 
     originSql = baseOriginSql + "where column_b='2021 --this is not comment'";
-    filterCommentHelper(originSql, baseResultSql + "WHERE column_b= '2021 --this is not comment'");
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '2021 --this is not comment'");
 
     originSql = baseOriginSql + "where column_b='2021--this is not comment'";
-    filterCommentHelper(originSql, baseResultSql + "WHERE column_b= '2021--this is not comment'");
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '2021--this is not comment'");
   }
 
-  private void filterCommentHelper(String originSql, String expectedSql) {
+  /**
+   * Tests that the simplified originSql is consistent with expectedSql.
+   *
+   * @param originSql   a string sql to simplify.
+   * @param expectedSql Expected result after simplification.
+   */
+  private void assertSimplifySql(String originSql, String expectedSql) {
     SqlSimpleParser simpleParser =
         new SqlSimpleParser("_suggest_", SqlParser.Config.DEFAULT);
 
     String actualSql = simpleParser.simplifySql(originSql);
-    assertThat(originSql, actualSql, equalTo(expectedSql));
+    assertThat("simpleParser.simplifySql(" + originSql + ")", actualSql, equalTo(expectedSql));
   }
 }
