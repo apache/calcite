@@ -47,6 +47,7 @@ import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.instr;
+import static org.apache.calcite.runtime.SqlFunctions.isNull;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.lpad;
@@ -987,6 +988,15 @@ public class SqlFunctionsTest {
     assertThat(ifNull(null, null), nullValue());
     assertThat(ifNull(1, 1), is(1));
     assertThat(ifNull(substring("abc", 1, 1), "b"), is("a"));
+  }
+
+  /** Test for {@link SqlFunctions#isNull}. */
+  @Test public void testisNull() {
+    assertThat(isNull("a", "b"), is("a"));
+    assertThat(isNull(null, "b"), is("b"));
+    assertThat(isNull(null, null), nullValue());
+    assertThat(isNull(1, 1), is(1));
+    assertThat(isNull(substring("abc", 1, 1), "b"), is("a"));
   }
 
   /** Test for {@link SqlFunctions#lpad}. */

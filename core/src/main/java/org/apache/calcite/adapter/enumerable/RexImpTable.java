@@ -103,6 +103,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
@@ -328,8 +329,7 @@ public class RexImpTable {
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
     defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
     defineMethod(CHR, "chr", NullPolicy.STRICT);
-    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
-        NullPolicy.STRICT);
+    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method, NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
     defineMethod(CONCAT, BuiltInMethod.STRING_CONCAT.method,
@@ -343,6 +343,7 @@ public class RexImpTable {
     defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
     defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
     defineMethod(IFNULL, BuiltInMethod.IFNULL.method, NullPolicy.NONE);
+    defineMethod(ISNULL, BuiltInMethod.ISNULL.method, NullPolicy.NONE);
     defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
     defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
