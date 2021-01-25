@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
@@ -92,8 +93,15 @@ public class Smalls {
         int.class, Integer.class);
   public static final Method FIBONACCI_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTable");
-  public static final Method FIBONACCI2_TABLE_METHOD =
+  public static final Method FIBONACCI_LIMIT_100_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit100");
+  public static final Method FIBONACCI_LIMIT_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit", long.class);
+  public static final Method FIBONACCI_INSTANCE_TABLE_METHOD =
+      Types.lookupMethod(Smalls.FibonacciTableFunction.class, "eval");
+  public static final Method DYNAMIC_ROW_TYPE_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "dynamicRowTypeTable", String.class,
+          int.class);
   public static final Method VIEW_METHOD =
       Types.lookupMethod(Smalls.class, "view", String.class);
   public static final Method STR_METHOD =
@@ -234,9 +242,18 @@ public class Smalls {
   }
 
   /** A function that generates the Fibonacci sequence.
-   * Interesting because it has one column and no arguments. */
+   *
+   * <p>Interesting because it has one column and no arguments,
+   * and because it is infinite. */
   public static ScannableTable fibonacciTable() {
     return fibonacciTableWithLimit(-1L);
+  }
+
+  /** A function that generates the first 100 terms of the Fibonacci sequence.
+   *
+   * <p>Interesting because it has one column and no arguments. */
+  public static ScannableTable fibonacciTableWithLimit100() {
+    return fibonacciTableWithLimit(100L);
   }
 
   /** A function that generates the Fibonacci sequence.
@@ -297,6 +314,33 @@ public class Smalls {
         return true;
       }
     };
+  }
+
+  public static ScannableTable dynamicRowTypeTable(String jsonRowType,
+      int rowCount) {
+    return new DynamicRowTypeTable(jsonRowType, rowCount);
+  }
+
+  /** A table whose row type is determined by parsing a JSON argument. */
+  private static class DynamicRowTypeTable extends AbstractTable
+      implements ScannableTable {
+    private final String jsonRowType;
+
+    DynamicRowTypeTable(String jsonRowType, int count) {
+      this.jsonRowType = jsonRowType;
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      try {
+        return RelJsonReader.readType(typeFactory, jsonRowType);
+      } catch (IOException e) {
+        throw Util.throwAsRuntime(e);
+      }
+    }
+
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.emptyEnumerable();
+    }
   }
 
   /** Table function that adds a number to the first column of input cursor. */
@@ -476,6 +520,22 @@ public class Smalls {
 
     public static int eval(int x) {
       return x * 2;
+    }
+  }
+
+  /** Example of a UDF with non-default constructor.
+   *
+   * <p>Not used; we do not currently have a way to instantiate function
+   * objects other than via their default constructor. */
+  public static class FibonacciTableFunction {
+    private final int limit;
+
+    public FibonacciTableFunction(int limit) {
+      this.limit = limit;
+    }
+
+    public ScannableTable eval() {
+      return fibonacciTableWithLimit(limit);
     }
   }
 

@@ -49,14 +49,25 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -65,6 +76,7 @@ import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
@@ -78,6 +90,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -94,6 +107,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -373,6 +387,52 @@ public class RelBuilderTest {
         .build();
     final String expected = "LogicalTableFunctionScan(invocation=[RAMP(3)], "
         + "rowType=[RecordType(INTEGER I)])\n";
+    assertThat(root, hasTree(expected));
+
+    // Make sure that the builder's stack is empty.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertNull(e.getMessage());
+    }
+  }
+
+  /** Tests scanning a table function whose row type is determined by parsing a
+   * JSON argument. The arguments must therefore be available at prepare
+   * time. */
+  @Test void testTableFunctionScanDynamicType() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE("dynamicRowType"('{nullable:true,fields:[...]}', 3))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Method m = Smalls.DYNAMIC_ROW_TYPE_TABLE_METHOD;
+    final TableFunction tableFunction =
+        TableFunctionImpl.create(m.getDeclaringClass(), m.getName());
+    final SqlOperator operator =
+        new SqlUserDefinedTableFunction(
+            new SqlIdentifier("dynamicRowType", SqlParserPos.ZERO),
+            SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR, InferTypes.ANY_NULLABLE,
+            Arg.metadata(
+                Arg.of("count", f -> f.createSqlType(SqlTypeName.INTEGER),
+                    SqlTypeFamily.INTEGER, false),
+                Arg.of("typeJson", f -> f.createSqlType(SqlTypeName.VARCHAR),
+                    SqlTypeFamily.STRING, false)),
+            tableFunction);
+
+    final String jsonRowType = "{\"nullable\":false,\"fields\":["
+        + "  {\"name\":\"i\",\"type\":\"INTEGER\",\"nullable\":false},"
+        + "  {\"name\":\"d\",\"type\":\"DATE\",\"nullable\":true}"
+        + "]}";
+    final int rowCount = 3;
+    RelNode root = builder.functionScan(operator, 0,
+        builder.literal(jsonRowType), builder.literal(rowCount))
+        .build();
+    final String expected = "LogicalTableFunctionScan("
+        + "invocation=[dynamicRowType('{\"nullable\":false,\"fields\":["
+        + "  {\"name\":\"i\",\"type\":\"INTEGER\",\"nullable\":false},"
+        + "  {\"name\":\"d\",\"type\":\"DATE\",\"nullable\":true}]}', 3)], "
+        + "rowType=[RecordType(INTEGER i, DATE d)])\n";
     assertThat(root, hasTree(expected));
 
     // Make sure that the builder's stack is empty.
@@ -4117,5 +4177,44 @@ public class RelBuilderTest {
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
+  }
+
+  /** Operand to a user-defined function. */
+  private interface Arg {
+    String name();
+    RelDataType type(RelDataTypeFactory typeFactory);
+    SqlTypeFamily family();
+    boolean optional();
+
+    static SqlOperandMetadata metadata(Arg... args) {
+      return OperandTypes.operandMetadata(
+          Arrays.stream(args).map(Arg::family).collect(Collectors.toList()),
+          typeFactory ->
+              Arrays.stream(args).map(arg -> arg.type(typeFactory))
+                  .collect(Collectors.toList()),
+          i -> args[i].name(), i -> args[i].optional());
+    }
+
+    static Arg of(String name,
+        Function<RelDataTypeFactory, RelDataType> protoType,
+        SqlTypeFamily family, boolean optional) {
+      return new Arg() {
+        @Override public String name() {
+          return name;
+        }
+
+        @Override public RelDataType type(RelDataTypeFactory typeFactory) {
+          return protoType.apply(typeFactory);
+        }
+
+        @Override public SqlTypeFamily family() {
+          return family;
+        }
+
+        @Override public boolean optional() {
+          return optional;
+        }
+      };
+    }
   }
 }

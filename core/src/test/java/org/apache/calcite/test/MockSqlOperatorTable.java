@@ -92,6 +92,25 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
+  /** "DYNTYPE" user-defined table function. */
+  public static class DynamicTypeFunction extends SqlFunction
+      implements SqlTableFunction {
+    public DynamicTypeFunction() {
+      super("RAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
+          .add("I", SqlTypeName.INTEGER)
+          .build();
+    }
+  }
+
   /** Not valid as a table function, even though it returns CURSOR, because
    * it does not implement {@link SqlTableFunction}. */
   public static class NotATableFunction extends SqlFunction {

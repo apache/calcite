@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
@@ -72,6 +73,10 @@ public class Nodes {
 
     public void visit(Bindables.BindableTableScan scan) {
       node = TableScanNode.create(this, scan, scan.filters, scan.projects);
+    }
+
+    public void visit(TableFunctionScan functionScan) {
+      node = TableFunctionScanNode.create(this, functionScan);
     }
 
     public void visit(Sort sort) {
