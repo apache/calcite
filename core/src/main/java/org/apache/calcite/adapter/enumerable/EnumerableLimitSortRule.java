@@ -36,7 +36,7 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final LogicalSort sort = call.rel(0);
+    final Sort sort = call.rel(0);
     RelNode input = sort.getInput();
     final Sort o = EnumerableLimitSort.create(
         convert(input, input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
