@@ -158,12 +158,7 @@ public class MssqlSqlDialect extends SqlDialect {
         writer.endFunCall(ceilFrame);
         break;
       case CONCAT:
-        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
-        for (SqlNode operand : call.getOperandList()) {
-          writer.sep(",");
-          operand.unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(concatFrame);
+        unparseConcatFunction(writer, call, leftPrec, rightPrec);
         break;
       case NVL:
         SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
@@ -176,6 +171,15 @@ public class MssqlSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  private void unparseConcatFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(concatFrame);
   }
 
   public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
