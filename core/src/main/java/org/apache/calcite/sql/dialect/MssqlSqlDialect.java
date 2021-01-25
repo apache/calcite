@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -121,22 +122,15 @@ public class MssqlSqlDialect extends SqlDialect {
         writer.endFunCall(concatFrame);
         break;
       case OVER:
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        if (((SqlWindow) call.operand(1)).getPartitionList().size() == 0
-                && ((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
-          final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
-          writer.endFunCall(overFrame);
-        } else if (((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
-          final SqlWriter.Frame overFrame = writer.startFunCall("OVER");
-          writer.print("PARTITION BY ");
-          ((SqlWindow) call.operand(1)).getPartitionList().unparse(writer, leftPrec, rightPrec);
-          writer.endFunCall(overFrame);
+        if (checkWindowFunctionContainOrderBy(call)) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
         } else {
-          writer.print("OVER ");
-          call.operand(1).unparse(writer, leftPrec, rightPrec);
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          unparseSqlWindow(call.operand(1), writer, call);
         }
         break;
       case OTHER_FUNCTION:
+      case OTHER:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -169,9 +163,12 @@ public class MssqlSqlDialect extends SqlDialect {
       }
       break;
     case "DAYOFMONTH":
-      final SqlWriter.Frame frame = writer.startFunCall("DAY");
+      final SqlWriter.Frame dayFrame = writer.startFunCall("DAY");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(frame);
+      writer.endFunCall(dayFrame);
+      break;
+    case "CURRENT_TIMESTAMP":
+      writer.print("CURRENT_TIMESTAMP ");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -325,6 +322,41 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  private boolean checkWindowFunctionContainOrderBy(SqlCall call) {
+    return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
+  }
+
+  private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
+    final SqlWindow window = sqlWindow;
+    writer.print("OVER ");
+    SqlCall operand1 = call.operand(0);
+    final SqlWriter.Frame frame =
+            writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
+    if (window.getRefName() != null) {
+      window.getRefName().unparse(writer, 0, 0);
+    }
+    if (((SqlBasicCall) call.operand(0)).getOperandList().isEmpty()
+            && ((SqlWindow) call.operand(1)).getPartitionList().size() == 0
+                && ((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
+      writer.endList(frame);
+    } else if (window.getOrderList().size() == 0) {
+      if (window.getPartitionList().size() > 0) {
+        writer.sep("PARTITION BY");
+        final SqlWriter.Frame partitionFrame = writer.startList("", "");
+        window.getPartitionList().unparse(writer, 0, 0);
+        writer.endList(partitionFrame);
+      }
+      writer.print("ORDER BY ");
+      SqlNode operand2 = operand1.operand(0);
+      operand2.unparse(writer, 0, 0);
+
+      writer.print("ROWS BETWEEN ");
+      writer.sep(window.getLowerBound().toString());
+      writer.sep("AND");
+      writer.sep(window.getUpperBound().toString());
+      writer.endList(frame);
+    }
+  }
 }
 
 // End MssqlSqlDialect.java
