@@ -20,11 +20,12 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RepeatUnion;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 
 /**
- * Rule to convert a {@link LogicalRepeatUnion} into an
- * {@link EnumerableRepeatUnion}.
+ * Rule to convert a {@link LogicalRepeatUnion} into an {@link EnumerableRepeatUnion}.
+ * You may provide a custom config to convert other nodes that extend {@link RepeatUnion}.
  *
  * @see EnumerableRules#ENUMERABLE_REPEAT_UNION_RULE
  */
@@ -41,7 +42,7 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalRepeatUnion union = (LogicalRepeatUnion) rel;
+    RepeatUnion union = (RepeatUnion) rel;
     EnumerableConvention out = EnumerableConvention.INSTANCE;
     RelTraitSet traitSet = union.getTraitSet().replace(out);
     RelNode seedRel = union.getSeedRel();

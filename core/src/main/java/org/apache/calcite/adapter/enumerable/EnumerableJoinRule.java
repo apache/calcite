@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -30,8 +31,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
+ * {@link LogicalJoin} relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ * You may provide a custom config to convert other nodes that extend {@link Join}.
  *
  * @see EnumerableRules#ENUMERABLE_JOIN_RULE */
 class EnumerableJoinRule extends ConverterRule {
@@ -47,7 +49,7 @@ class EnumerableJoinRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalJoin join = (LogicalJoin) rel;
+    Join join = (Join) rel;
     List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {
