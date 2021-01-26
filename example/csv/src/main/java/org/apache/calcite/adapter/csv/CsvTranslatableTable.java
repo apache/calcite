@@ -39,10 +39,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file.
+ *
+ * 和csv文件对应的表。
  */
 public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
-  /** Creates a CsvTable. */
+
+  /**
+   * Creates a CsvTable.
+   *
+   * 创建csv表
+   */
   CsvTranslatableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
@@ -67,8 +74,9 @@ public class CsvTranslatableTable extends CsvTable
     };
   }
 
-  @Override public Expression getExpression(SchemaPlus schema, String tableName,
-      Class clazz) {
+  @Override
+  public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
+    // 返回 获取schema中某张表的 表达式
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
@@ -87,6 +95,10 @@ public class CsvTranslatableTable extends CsvTable
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = CsvEnumerator.identityList(fieldCount);
-    return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
+    return new CsvTableScan(
+        context.getCluster(),
+        relOptTable,
+        this,
+        fields);
   }
 }

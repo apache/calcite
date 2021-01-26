@@ -58,8 +58,10 @@ public interface RelDataType {
   // by getFields!
 
   /**
-   * Gets the fields in a struct type. The field count is equal to the size of
-   * the returned list.
+   * Gets the fields in a struct type.
+   * The field count is equal to the size of the returned list.
+   *
+   * fixme 返回结构化类型的字段集合信息。
    *
    * @return read-only list of fields
    */

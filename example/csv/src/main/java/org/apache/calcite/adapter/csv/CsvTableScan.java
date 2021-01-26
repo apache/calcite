@@ -51,8 +51,10 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;
   final int[] fields;
 
-  protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
-      CsvTranslatableTable csvTable, int[] fields) {
+  protected CsvTableScan(RelOptCluster cluster,
+                         RelOptTable table,
+                         CsvTranslatableTable csvTable,
+                         int[] fields) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
     this.csvTable = csvTable;
     this.fields = fields;
@@ -98,7 +100,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             / ((double) table.getRowType().getFieldCount() + 2D));
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

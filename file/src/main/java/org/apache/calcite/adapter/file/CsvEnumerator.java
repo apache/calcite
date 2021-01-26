@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 /**
  * Enumerator that reads from a CSV file.
@@ -118,7 +119,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   /**
    * Deduces(推断) the names and types of a table's columns by reading the first line of a CSV file.
-   * 通过读取csv文件第一行，推断 schema 的名称和类型。
+   * 通过读取csv文件第一行，推断 schema 的信息。
    *
    * @param typeFactory
    * @param source
@@ -238,6 +239,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
+  // todo 改成 IntStream
   /** Returns an array of integers {0, ..., n - 1}. */
   public static int[] identityList(int n) {
     int[] integers = new int[n];

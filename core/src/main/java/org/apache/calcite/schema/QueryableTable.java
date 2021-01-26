@@ -34,8 +34,9 @@ public interface QueryableTable extends Table {
    * table. */
   Type getElementType();
 
-  /** Generates an expression with which this table can be referenced in
-   * generated code.
+  /**
+   * Generates an expression with which this table can be referenced in generated code.
+   * 生成一个表达式，可以在生成的代码中中引用该表。
    *
    * @param schema Schema
    * @param tableName Table name (unique within schema)

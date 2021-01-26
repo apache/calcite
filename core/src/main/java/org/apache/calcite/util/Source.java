@@ -40,7 +40,7 @@ public interface Source {
   String protocol();
 
   /**
-   * Looks for a suffix on a path and returns either the path with the suffix removed or the original path.
+   * Looks for a suffix(后缀) on a path and returns either the path with the suffix removed or the original path.
    */
   Source trim(String suffix);
 

@@ -58,6 +58,7 @@ public class CsvSchema extends AbstractSchema {
     this.flavor = flavor;
   }
 
+  // todo trim 和 trimOrNull合并为一个函数
   /**
    * Looks for a suffix on a string and returns
    * either the string with the suffix removed
@@ -88,6 +89,8 @@ public class CsvSchema extends AbstractSchema {
   }
 
   private Map<String, Table> createTableMap() {
+
+    // todo 放到下边，用的时候在创建
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json", ".json.gz".
     // 查找指定目录下以 ".csv", ".csv.gz", ".json", ".json.gz" 结尾的文件。
     final Source baseSource = Sources.of(directoryFile);

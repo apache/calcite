@@ -138,7 +138,8 @@ public interface DataContext {
 
     /** Returns the value of this variable in a given data context. */
     public <T> T get(DataContext dataContext) {
-      //noinspection unchecked
+      // clazz.cast(obj)：如果obj不是clazz类型，则抛异常
+      // 这里怎么确定 clazz和T是同一类型
       return (T) clazz.cast(dataContext.get(camelName));
     }
   }

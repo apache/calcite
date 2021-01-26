@@ -55,6 +55,7 @@ public class CsvScannableTable extends CsvTable implements ScannableTable {
     final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+
     return new AbstractEnumerable<Object[]>() {
       @Override
       public Enumerator<Object[]> enumerator() {

@@ -142,9 +142,15 @@ public final class Schemas {
         type);
   }
 
-  /** Returns the expression to access a table within a schema. */
-  public static Expression tableExpression(SchemaPlus schema, Type elementType,
-      String tableName, Class clazz) {
+  /**
+   * Returns the expression to access a table within a schema.
+   *
+   * 返回 获取schema中某张表的 表达式
+   */
+  public static Expression tableExpression(SchemaPlus schema,
+                                           Type elementType,
+                                           String tableName,
+                                           Class clazz) {
     final MethodCallExpression expression;
     if (Table.class.isAssignableFrom(clazz)) {
       expression = Expressions.call(

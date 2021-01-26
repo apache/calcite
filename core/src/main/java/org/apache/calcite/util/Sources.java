@@ -199,7 +199,10 @@ public abstract class Sources {
     }
 
     private static URL fileToUrl(File file) {
+      // 获取文件路径
       String filePath = file.getPath();
+
+      // 如果不是绝对路径
       if (!file.isAbsolute()) {
         // convert relative file paths
         filePath = filePath.replace(File.separatorChar, '/');

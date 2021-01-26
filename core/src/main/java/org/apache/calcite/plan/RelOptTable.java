@@ -54,6 +54,8 @@ public interface RelOptTable extends Wrapper {
 
   /**
    * Describes the type of rows returned by this table.
+   *
+   * 返回表列的类型描述
    */
   RelDataType getRowType();
 
@@ -149,8 +151,11 @@ public interface RelOptTable extends Wrapper {
         List<String> schemaPath, List<String> viewPath);
   }
 
-  /** Contains the context needed to convert a a table into a relational
-   * expression. */
+  /**
+   * Contains the context needed to convert a table into a relational expression.
+   *
+   * fixme 包含 将 表 转换为 关系表达式 的上下文对象。
+   */
   interface ToRelContext extends ViewExpander {
     RelOptCluster getCluster();
 
