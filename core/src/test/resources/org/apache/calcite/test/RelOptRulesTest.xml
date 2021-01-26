@@ -5169,7 +5169,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testPullConstantThroughUnion">
+    <TestCase name="testPullConstantThroughUnionAll">
         <Resource name="sql">
             <![CDATA[select 2, deptno, job from emp as e1
 union all
@@ -5188,6 +5188,32 @@ LogicalUnion(all=[true])
             <![CDATA[
 LogicalProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
   LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPullConstantThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select 2, deptno, job from emp as e1
+union
+select 2, deptno, job from emp as e2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
+  LogicalUnion(all=[false])
     LogicalProject(DEPTNO=[$7], JOB=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$7], JOB=[$2])
@@ -7210,7 +7236,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testPullAggregateThroughUnionAndAddProjects">
+    <TestCase name="testPullAggregateThroughUnionAllAndAddProjects">
         <Resource name="sql">
             <![CDATA[select job, deptno from (select job, deptno from emp as e1 group by job, deptno  union all select job, deptno from emp as e2 group by job, deptno) group by job, deptno]]>
         </Resource>
@@ -7233,6 +7259,33 @@ LogicalAggregate(group=[{0, 1}])
     LogicalProject(JOB=[$2], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUnionAndAddProjects">
+        <Resource name="sql">
+            <![CDATA[select empno, deptno from (select empno, deptno from emp as e1 group by empno, deptno union select empno, deptno from emp as e2 group by empno, deptno) group by empno, deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalUnion(all=[false])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalUnion(all=[false])
+    LogicalAggregate(group=[{2, 7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{2, 7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

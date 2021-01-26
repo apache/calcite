@@ -907,6 +907,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // They can not be trimmed because the comparison needs
     // complete fields.
     if (!(setOp.kind == SqlKind.UNION && setOp.all)) {
+//    if (!(setOp.kind == SqlKind.UNION)) {
       return result(setOp, Mappings.createIdentity(fieldCount));
     }
 

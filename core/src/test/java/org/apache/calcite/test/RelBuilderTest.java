@@ -1762,7 +1762,7 @@ public class RelBuilderTest {
         hasTree(expected2));
   }
 
-  @Test void testUnion() {
+  @Test void testUnionAll() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   UNION ALL
@@ -1781,6 +1781,33 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalUnion(all=[true])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalFilter(condition=[=($7, 20)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testUnion() {
+    // Equivalent SQL:
+    //   SELECT deptno FROM emp
+    //   UNION
+    //   SELECT deptno FROM dept
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("DEPT")
+            .project(builder.field("DEPTNO"))
+            .scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field("DEPTNO"),
+                    builder.literal(20)))
+            .project(builder.field("EMPNO"))
+            .union(false)
+            .build();
+    final String expected = ""
+        + "LogicalUnion(all=[false])\n"
         + "  LogicalProject(DEPTNO=[$0])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "  LogicalProject(EMPNO=[$0])\n"

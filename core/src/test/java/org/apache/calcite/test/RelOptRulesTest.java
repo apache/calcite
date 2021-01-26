@@ -3715,9 +3715,20 @@ class RelOptRulesTest extends RelOptTestBase {
     basePullConstantTroughAggregate();
   }
 
-  @Test void testPullConstantThroughUnion() {
+  @Test void testPullConstantThroughUnionAll() {
     final String sql = "select 2, deptno, job from emp as e1\n"
         + "union all\n"
+        + "select 2, deptno, job from emp as e2";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testPullConstantThroughUnion() {
+    final String sql = "select 2, deptno, job from emp as e1\n"
+        + "union\n"
         + "select 2, deptno, job from emp as e2";
     sql(sql)
         .withTrim(true)
@@ -3871,7 +3882,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Once the bottom aggregate pulled through union, we need to add a Project
    * if the new input contains a different type from the union.
    */
-  @Test void testPullAggregateThroughUnionAndAddProjects() {
+  @Test void testPullAggregateThroughUnionAllAndAddProjects() {
     final String sql = "select job, deptno from"
         + " (select job, deptno from emp as e1"
         + " group by job, deptno"
@@ -3880,6 +3891,24 @@ class RelOptRulesTest extends RelOptTestBase {
         + " group by job, deptno)"
         + " group by job, deptno";
     sql(sql)
+        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_UNION_AGGREGATE)
+        .check();
+  }
+
+  /**
+   * Need top add a project on the scan.
+   */
+  @Test void testUnionAndAddProjects() {
+    final String sql = "select job, deptno from"
+        + " (select job, deptno from emp as e1"
+        + " group by job, deptno"
+        + "  union"
+        + " select job, deptno from emp as e2"
+        + " group by job, deptno)"
+        + " group by job, deptno";
+    sql(sql)
+        .withTrim(true)
         .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.AGGREGATE_UNION_AGGREGATE)
         .check();
