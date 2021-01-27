@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -608,6 +609,18 @@ class RexBuilderTest {
     checkBigDecimalLiteral(builder, "-100000.111111111111111111");
     checkBigDecimalLiteral(builder, "73786976294838206464"); // 2^66
     checkBigDecimalLiteral(builder, "-73786976294838206464");
+  }
+
+  @Test void testMakeIn() {
+    final RelDataTypeFactory typeFactory =
+            new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.FLOAT);
+    RexNode left = rexBuilder.makeInputRef(floatType, 0);
+    final RexNode literal1 = rexBuilder.makeLiteral(1.0f, floatType);
+    final RexNode literal2 = rexBuilder.makeLiteral(2.0f, floatType);
+    RexNode inCall = rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
+    assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
