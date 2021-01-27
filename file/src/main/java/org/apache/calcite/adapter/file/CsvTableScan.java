@@ -43,8 +43,10 @@ import java.util.List;
 
 /**
  * Relational expression representing a scan of a CSV file.
+ * fixme 关系表达式：表示对CSV文件的扫描。
  *
  * <p>Like any table scan, it serves as a leaf node of a query tree.
+ * fixme 像任何表扫描、作为查询树的叶子节点。
  */
 public class CsvTableScan extends TableScan implements EnumerableRel {
   final CsvTranslatableTable csvTable;

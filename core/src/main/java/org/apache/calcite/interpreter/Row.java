@@ -19,7 +19,7 @@ package org.apache.calcite.interpreter;
 import java.util.Arrays;
 
 /**
- * Row.
+ * Row：原生类型
  */
 public class Row {
   private final Object[] values;

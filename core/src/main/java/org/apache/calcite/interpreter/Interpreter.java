@@ -578,8 +578,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     }
   }
 
-  /** Converts a list of expressions to a scalar that can compute their
-   * values. */
+  /**
+   * Converts a list of expressions to a scalar that can compute their values.
+   *
+   * 将表达式转换为可计算的标量。
+   */
   interface ScalarCompiler {
     Scalar compile(List<RexNode> nodes, RelDataType inputRowType);
   }

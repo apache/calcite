@@ -23,12 +23,16 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Represents a block that contains a sequence of expressions where variables
- * can be defined.
+ * Represents a block that contains a sequence of expressions
+ * where variables can be defined.
+ *
+ * 表示 变量可定义的、包含关系表达式的Block.
  */
 public class BlockStatement extends Statement {
+
   public final List<Statement> statements;
-  /** Cached hash code for the expression. */
+
+  // 缓存 hash值。
   private int hash;
 
   BlockStatement(List<Statement> statements, Type type) {
@@ -59,7 +63,8 @@ public class BlockStatement extends Statement {
     return shuttle.visit(this, newStatements);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  @Override
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -103,10 +108,15 @@ public class BlockStatement extends Statement {
     return true;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     int result = hash;
     if (result == 0) {
+      // tag 即使3个值都为null、也不会为0
+      //     Objects.hash(null)结果为0
       result = Objects.hash(nodeType, type, statements);
+
+      // todo 这个1毫无道理：如果后续修改了list或者list里边的对象，hashCode会改变。
       if (result == 0) {
         result = 1;
       }

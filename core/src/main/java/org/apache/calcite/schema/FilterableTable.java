@@ -29,6 +29,7 @@ import java.util.List;
  * fixme
  *      可以被扫描的表；
  *      可以用提供的过滤表达式，而不创建中间关系表达式。
+ *      初级用法，我们能拿到filter条件，即能再查询底层DB时进行一部分的数据过滤，一般开始介入calcite可以用这种方式（translatable方式学习成本较高）。
  *
  * @see ScannableTable
  */

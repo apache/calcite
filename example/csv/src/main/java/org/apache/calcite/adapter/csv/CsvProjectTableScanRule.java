@@ -29,7 +29,7 @@ import java.util.List;
  * needed to satisfy a projection. If the projection's expressions are trivial,
  * the projection is removed.
  *
- * @see CsvRules#PROJECT_SCAN
+ * @see  CsvRules#PROJECT_SCAN
  */
 public class CsvProjectTableScanRule
     extends RelRule<CsvProjectTableScanRule.Config> {
@@ -69,14 +69,15 @@ public class CsvProjectTableScanRule
   }
 
   /** Rule configuration. */
-  public interface Config extends RelRule.Config {
+  public interface  Config extends RelRule.Config {
     Config DEFAULT = EMPTY
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(CsvTableScan.class).noInputs()))
         .as(Config.class);
 
-    @Override default CsvProjectTableScanRule toRule() {
+    @Override
+    default CsvProjectTableScanRule toRule() {
       return new CsvProjectTableScanRule(this);
     }
   }

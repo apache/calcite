@@ -23,9 +23,16 @@ import org.apache.calcite.sql.validate.SqlConformance;
  * This is a marker interface for a callback used to convert a tree of
  * {@link RelNode relational expressions} into a plan. Calling
  * conventions typically have their own protocol for walking over a
- * tree, and correspondingly have their own implementors
+ * tree, and correspondingly have their own implementors。
+ *
+ * fixme 用于回调的marker接口：用于将一个关系表达式节点树转换为plan。
  */
 public interface RelImplementor {
-  /** Returns the desired SQL conformance. */
+
+  /**
+   * Returns the desired SQL conformance.
+   *
+   * "返回所需的sql一致性"。
+   */
   SqlConformance getConformance();
 }

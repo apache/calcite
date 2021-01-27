@@ -34,6 +34,8 @@ import java.util.List;
 
 /**
  * How a row is represented as a Java value.
+ *
+ * 每一行如何代表一个java值。
  */
 public enum JavaRowFormat {
   CUSTOM {
@@ -192,7 +194,8 @@ public enum JavaRowFormat {
    * See {@link org.apache.calcite.interpreter.Row}.
    */
   ROW {
-    @Override Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {
+    @Override
+    Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type) {
       return Row.class;
     }
 
@@ -218,7 +221,8 @@ public enum JavaRowFormat {
   },
 
   ARRAY {
-    @Override Type javaRowClass(
+    @Override
+    Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
       return Object[].class;
@@ -250,18 +254,19 @@ public enum JavaRowFormat {
 
   public JavaRowFormat optimize(RelDataType rowType) {
     switch (rowType.getFieldCount()) {
-    case 0:
-      return LIST;
-    case 1:
-      return SCALAR;
-    default:
-      if (this == SCALAR) {
+      case 0:
         return LIST;
-      }
-      return this;
+      case 1:
+        return SCALAR;
+      default:
+        if (this == SCALAR) {
+          return LIST;
+        }
+        return this;
     }
   }
 
+  // 获取java类型
   abstract Type javaRowClass(JavaTypeFactory typeFactory, RelDataType type);
 
   /**

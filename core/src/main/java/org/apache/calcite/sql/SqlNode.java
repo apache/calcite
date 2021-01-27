@@ -38,6 +38,7 @@ import java.util.stream.Collector;
 import javax.annotation.Nonnull;
 
 /**
+ * fixme 该对象表示 SQL解析树，可能是操作符或者是文本值。
  * A <code>SqlNode</code> is a SQL parse tree.
  *
  * <p>It may be an
@@ -46,11 +47,10 @@ import javax.annotation.Nonnull;
  */
 public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
-
   public static final SqlNode[] EMPTY_ARRAY = new SqlNode[0];
 
   //~ Instance fields --------------------------------------------------------
-
+  // tag token位置
   protected final SqlParserPos pos;
 
   //~ Constructors -----------------------------------------------------------

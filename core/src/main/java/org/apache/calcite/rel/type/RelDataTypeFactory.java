@@ -529,6 +529,8 @@ public interface RelDataTypeFactory {
 
     /**
      * Adds a field. Field's ordinal is ignored.
+     *
+     * 添加字段：指定名称和类型
      */
     public Builder add(RelDataTypeField field) {
       add(field.getName(), field.getType());

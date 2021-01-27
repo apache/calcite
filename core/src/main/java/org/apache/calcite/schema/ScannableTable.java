@@ -23,6 +23,8 @@ import org.apache.calcite.linq4j.Enumerable;
  * Table that can be scanned without creating an intermediate relational expression.
  *
  * "不用创建 关系表达式 即可被扫描的表"
+ *
+ * > 这种方式基本不会用，原因是查询数据库的时候没有任何条件限制，默认会先把全部数据拉到内存，然后再根据filter条件在内存中过滤。
  */
 public interface ScannableTable extends Table {
 

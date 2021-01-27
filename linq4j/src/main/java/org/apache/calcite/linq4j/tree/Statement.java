@@ -22,6 +22,7 @@ import java.lang.reflect.Type;
  * <p>Statement.</p>
  */
 public abstract class Statement extends AbstractNode {
+
   protected Statement(ExpressionType nodeType, Type type) {
     super(nodeType, type);
   }

@@ -101,9 +101,14 @@ public interface EnumerableRel
     }
   }
 
-  /** Result of implementing an enumerable relational expression by generating
-   * Java code. */
+  /**
+   * Result of implementing an enumerable relational expression
+   * by generating Java code.
+   *
+   * 通过生成java代码、实现可枚举的关系表达式。
+   */
   class Result {
+
     public final BlockStatement block;
 
     /**

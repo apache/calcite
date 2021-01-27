@@ -43,6 +43,8 @@ import java.util.UUID;
 
 /**
  * Utility methods for expressions, including a lot of factory methods.
+ *
+ * 表达式的工具方法，包含很多工厂方法。
  */
 public abstract class Expressions {
   private Expressions() {}

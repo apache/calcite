@@ -31,8 +31,9 @@ import java.util.Objects;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * SqlParserPos represents the position of a parsed token within SQL statement
- * text.
+ * SqlParserPos represents the position of a parsed token within SQL statement text.
+ *
+ * fixme sql-token的位置
  */
 public class SqlParserPos implements Serializable {
   //~ Static fields/initializers ---------------------------------------------

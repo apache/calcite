@@ -23,7 +23,7 @@ import java.util.Collection;
 
 /**
  * Row expression.
- * 行表达式。
+ * fixme 行表达式， 如 RexLiteral(常量), RexCall(函数)， RexInputRef (输入引用) 等
  *
  * <p>
  *   Every row-expression has a type.

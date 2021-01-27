@@ -71,8 +71,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Subclass of {@link org.apache.calcite.plan.RelImplementor} for relational
- * operators of {@link EnumerableConvention} calling convention.
+ * Subclass of {@link org.apache.calcite.plan.RelImplementor}
+ * for relational operators of {@link EnumerableConvention} calling convention.
+ *
+ * fixme RelImplementor的子类，
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
