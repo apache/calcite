@@ -44,9 +44,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
-
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
