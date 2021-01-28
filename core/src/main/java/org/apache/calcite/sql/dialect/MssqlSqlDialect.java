@@ -166,6 +166,10 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
