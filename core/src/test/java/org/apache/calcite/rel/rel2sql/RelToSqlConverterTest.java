@@ -4246,10 +4246,15 @@ public class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
+    final String synapse = "SELECT employee_id\n"
+            + "FROM foodmart.employee\n"
+            + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
     sql(query)
         .ok(expected)
         .withBigQuery()
-        .ok(expectedBiqquery);
+        .ok(expectedBiqquery)
+        .ok(synapse)
+        .withMssql();
   }
 
   @Test public void testRegexSubstrFunction2Args() {
@@ -5162,7 +5167,8 @@ public class RelToSqlConverterTest {
         + "UNBOUNDED FOLLOWING)";
     final String synapseSql = "SELECT [product_id], MAX([product_id]) OVER (PARTITION "
             + "BY [product_id] ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND "
-            + "UNBOUNDED FOLLOWING) AS [ABC]\n FROM [foodmart].[product]\n"
+            + "UNBOUNDED FOLLOWING) AS [ABC]\n"
+            + "FROM [foodmart].[product]\n"
             + "GROUP BY [product_id], MAX([product_id]) OVER (PARTITION BY [product_id] "
             + "ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
     sql(query)
@@ -5232,7 +5238,8 @@ public class RelToSqlConverterTest {
     final String synapseSql = "SELECT [first_name], COUNT(*) AS [department_id_number],"
             + " ROW_NUMBER() OVER (ORDER BY [department_id] NULLS LAST), SUM([department_id])"
             + " OVER (ORDER BY [department_id] NULLS LAST RANGE BETWEEN UNBOUNDED "
-            + "PRECEDING AND CURRENT ROW)\n FROM [foodmart].[employee]\n"
+            + "PRECEDING AND CURRENT ROW)\n"
+            + "FROM [foodmart].[employee]\n"
             + "GROUP BY [first_name], [department_id]";
     sql(query)
         .withHive()
@@ -6665,6 +6672,19 @@ public class RelToSqlConverterTest {
     sql(query)
       .withMssql()
       .ok(expected);
+  }
+
+  @Test public void testForDayOfMonth() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlStdOperatorTable.DAYOFMONTH,
+            builder.field("HIREDATE"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String synapse = "SELECT *\n"
+            + "FROM [scott].[EMP]\n"
+            + "WHERE DAY([HIREDATE])";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(synapse));
   }
 }
 

@@ -341,33 +341,30 @@ public class MssqlSqlDialect extends SqlDialect {
   private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
     final SqlWindow window = sqlWindow;
     writer.print("OVER ");
-    SqlCall operand1 = call.operand(0);
     final SqlWriter.Frame frame =
             writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
     if (window.getRefName() != null) {
       window.getRefName().unparse(writer, 0, 0);
     }
-    if (((SqlBasicCall) call.operand(0)).getOperandList().isEmpty()
-            && ((SqlWindow) call.operand(1)).getPartitionList().size() == 0
-                && ((SqlWindow) call.operand(1)).getOrderList().size() == 0) {
-      writer.endList(frame);
-    } else if (window.getOrderList().size() == 0) {
+    SqlCall firstOperandColumn = call.operand(0);
+    if (!firstOperandColumn.getOperandList().isEmpty()) {
       if (window.getPartitionList().size() > 0) {
         writer.sep("PARTITION BY");
         final SqlWriter.Frame partitionFrame = writer.startList("", "");
         window.getPartitionList().unparse(writer, 0, 0);
         writer.endList(partitionFrame);
       }
-      writer.print("ORDER BY ");
-      SqlNode operand2 = operand1.operand(0);
-      operand2.unparse(writer, 0, 0);
 
-      writer.print("ROWS BETWEEN ");
-      writer.sep(window.getLowerBound().toString());
-      writer.sep("AND");
-      writer.sep(window.getUpperBound().toString());
-      writer.endList(frame);
+      if (window.getLowerBound() != null) {
+        writer.print("ORDER BY ");
+        SqlNode operand2 = firstOperandColumn.operand(0);
+        operand2.unparse(writer, 0, 0);
+
+        writer.print("ROWS BETWEEN " +  window.getLowerBound()
+                + " AND " + window.getUpperBound());
+      }
     }
+    writer.endList(frame);
   }
 }
 
