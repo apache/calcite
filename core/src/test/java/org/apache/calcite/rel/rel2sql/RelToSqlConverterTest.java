@@ -4825,7 +4825,7 @@ public class RelToSqlConverterTest {
       .withBigQuery().ok(expectedBigQuery);
   }
 
-  @Test public void extractFunctionEmulationForHiveAndSparkAndBigQuery() {
+  @Test public void extractFunctionEmulation() {
     String query = "select extract(year from \"hire_date\") from \"employee\"";
     final String expectedHive = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
@@ -4833,13 +4833,43 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT EXTRACT(YEAR FROM hire_date)\n"
         + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT YEAR([hire_date])\n"
+        + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expectedBigQuery);
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
+  }
+
+  @Test public void extractMinuteFunctionEmulation() {
+    String query = "select extract(minute from \"hire_date\") from \"employee\"";
+    final String expectedBigQuery = "SELECT EXTRACT(MINUTE FROM hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT DATEPART(MINUTE, [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
+  }
+
+  @Test public void extractSecondFunctionEmulation() {
+    String query = "select extract(second from \"hire_date\") from \"employee\"";
+    final String expectedBigQuery = "SELECT EXTRACT(SECOND FROM hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT DATEPART(SECOND, [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void selectWithoutFromEmulationForHiveAndSparkAndBigquery() {
