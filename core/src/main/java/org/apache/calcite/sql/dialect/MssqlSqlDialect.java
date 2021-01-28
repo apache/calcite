@@ -189,10 +189,8 @@ public class MssqlSqlDialect extends SqlDialect {
       unparseGetDate(writer);
       break;
     case "CURRENT_DATE":
-      castGetDateToDateTime(writer, "DATE");
-      break;
     case "CURRENT_TIME":
-      castGetDateToDateTime(writer, "TIME");
+      castGetDateToDateTime(writer, call.getOperator().getName().replace("CURRENT_", ""));
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
