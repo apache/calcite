@@ -64,7 +64,7 @@ public class MssqlSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  private static final List<String> EXTRACT_DATEPART_LIST = Arrays.asList(
+  private static final List<String> DATEPART_CONVERTER_LIST = Arrays.asList(
       TimeUnit.MINUTE.name(),
       TimeUnit.SECOND.name());
 
@@ -147,7 +147,7 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   private void unparseExtract(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (EXTRACT_DATEPART_LIST.contains(call.operand(0).toString())) {
+    if (DATEPART_CONVERTER_LIST.contains(call.operand(0).toString())) {
       unparseDatePartCall(writer, call, leftPrec, rightPrec);
     } else {
       final SqlWriter.Frame extractFuncCall = writer.startFunCall(call.operand(0).toString());
@@ -205,7 +205,7 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   private void unparseGetDate(SqlWriter writer) {
-    final SqlWriter.Frame currentDateFunc = writer.startFunCall("getDate");
+    final SqlWriter.Frame currentDateFunc = writer.startFunCall("GETDATE");
     writer.endFunCall(currentDateFunc);
   }
 
