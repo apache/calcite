@@ -6638,8 +6638,8 @@ public class RelToSqlConverterTest {
 
   @Test public void testLastDayMSSQL() {
     final String query = "SELECT LAST_DAY(DATE '2009-12-20')";
-    final String expected = "SELECT EOMONTH('2009-12-20')\n" +
-            "FROM (VALUES  (0)) AS [t] ([ZERO])";
+    final String expected = "SELECT EOMONTH('2009-12-20')\n"
+            + "FROM (VALUES  (0)) AS [t] ([ZERO])";
     sql(query)
             .withMssql()
             .ok(expected);
