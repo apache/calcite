@@ -6665,6 +6665,33 @@ public class RelToSqlConverterTest {
       .withMssql()
       .ok(expected);
   }
+
+  @Test public void testCurrentDate() {
+    String query =
+        "select CURRENT_DATE from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT CAST(GETDATE() AS DATE) AS [CURRENT_DATE]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
+  }
+
+  @Test public void testCurrentTime() {
+    String query =
+        "select CURRENT_TIME from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT CAST(GETDATE() AS TIME) AS [CURRENT_TIME]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
+  }
+
+  @Test public void testCurrentTimestamp() {
+    String query =
+        "select CURRENT_TIMESTAMP from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT GETDATE() AS [CURRENT_TIMESTAMP]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
+  }
 }
 
 // End RelToSqlConverterTest.java

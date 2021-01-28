@@ -185,13 +185,30 @@ public class MssqlSqlDialect extends SqlDialect {
       }
       writer.endFunCall(funcFrame);
       break;
+    case "CURRENT_TIMESTAMP":
+      unparseGetDate(writer);
+      break;
     case "CURRENT_DATE":
-      final SqlWriter.Frame currentDateFunc = writer.startFunCall("getDate");
-      writer.endFunCall(currentDateFunc);
+      castGetDateToDateTime(writer, "DATE");
+      break;
+    case "CURRENT_TIME":
+      castGetDateToDateTime(writer, "TIME");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void castGetDateToDateTime(SqlWriter writer, String timeUnit) {
+    final SqlWriter.Frame castDateTimeFunc = writer.startFunCall("CAST");
+    unparseGetDate(writer);
+    writer.print("AS " + timeUnit);
+    writer.endFunCall(castDateTimeFunc);
+  }
+
+  private void unparseGetDate(SqlWriter writer) {
+    final SqlWriter.Frame currentDateFunc = writer.startFunCall("getDate");
+    writer.endFunCall(currentDateFunc);
   }
 
   @Override public boolean supportsCharSet() {
