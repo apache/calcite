@@ -357,8 +357,8 @@ public class MssqlSqlDialect extends SqlDialect {
 
       if (window.getLowerBound() != null) {
         writer.print("ORDER BY ");
-        SqlNode operand2 = firstOperandColumn.operand(0);
-        operand2.unparse(writer, 0, 0);
+        SqlNode orderByColumn = firstOperandColumn.operand(0);
+        orderByColumn.unparse(writer, 0, 0);
 
         writer.print("ROWS BETWEEN " +  window.getLowerBound()
                 + " AND " + window.getUpperBound());
