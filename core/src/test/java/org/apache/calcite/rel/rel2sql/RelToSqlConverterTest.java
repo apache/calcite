@@ -6666,6 +6666,14 @@ public class RelToSqlConverterTest {
       .ok(expected);
   }
 
+  @Test public void testLastDayMSSQL() {
+    final String query = "SELECT LAST_DAY(DATE '2009-12-20')";
+    final String expected = "SELECT EOMONTH('2009-12-20')";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+  }
+
   @Test public void testCurrentDate() {
     String query =
         "select CURRENT_DATE from \"product\" where \"product_id\" < 10";
