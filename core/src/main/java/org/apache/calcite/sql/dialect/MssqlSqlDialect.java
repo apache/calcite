@@ -138,6 +138,11 @@ public class MssqlSqlDialect extends SqlDialect {
 
   public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "LAST_DAY":
+      final SqlWriter.Frame lastDayFrame = writer.startFunCall("EOMONTH");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(lastDayFrame);
+      break;
     case "LN":
       final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -159,6 +164,10 @@ public class MssqlSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
   }
 
   @Override public boolean supportsCharSet() {
