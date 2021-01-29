@@ -4825,7 +4825,7 @@ public class RelToSqlConverterTest {
       .withBigQuery().ok(expectedBigQuery);
   }
 
-  @Test public void extractFunctionEmulationForHiveAndSparkAndBigQuery() {
+  @Test public void extractFunctionEmulation() {
     String query = "select extract(year from \"hire_date\") from \"employee\"";
     final String expectedHive = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
@@ -4833,13 +4833,43 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT EXTRACT(YEAR FROM hire_date)\n"
         + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT YEAR([hire_date])\n"
+        + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expectedBigQuery);
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
+  }
+
+  @Test public void extractMinuteFunctionEmulation() {
+    String query = "select extract(minute from \"hire_date\") from \"employee\"";
+    final String expectedBigQuery = "SELECT EXTRACT(MINUTE FROM hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT DATEPART(MINUTE, [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
+  }
+
+  @Test public void extractSecondFunctionEmulation() {
+    String query = "select extract(second from \"hire_date\") from \"employee\"";
+    final String expectedBigQuery = "SELECT EXTRACT(SECOND FROM hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT DATEPART(SECOND, [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void selectWithoutFromEmulationForHiveAndSparkAndBigquery() {
@@ -6634,6 +6664,41 @@ public class RelToSqlConverterTest {
     sql(query)
       .withMssql()
       .ok(expected);
+  }
+
+  @Test public void testLastDayMSSQL() {
+    final String query = "SELECT LAST_DAY(DATE '2009-12-20')";
+    final String expected = "SELECT EOMONTH('2009-12-20')";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+  }
+
+  @Test public void testCurrentDate() {
+    String query =
+        "select CURRENT_DATE from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT CAST(GETDATE() AS DATE) AS [CURRENT_DATE]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
+  }
+
+  @Test public void testCurrentTime() {
+    String query =
+        "select CURRENT_TIME from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT CAST(GETDATE() AS TIME) AS [CURRENT_TIME]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
+  }
+
+  @Test public void testCurrentTimestamp() {
+    String query =
+        "select CURRENT_TIMESTAMP from \"product\" where \"product_id\" < 10";
+    final String expected = "SELECT GETDATE() AS [CURRENT_TIMESTAMP]\n"
+        + "FROM [foodmart].[product]\n"
+        + "WHERE [product_id] < 10";
+    sql(query).withMssql().ok(expected);
   }
 }
 
