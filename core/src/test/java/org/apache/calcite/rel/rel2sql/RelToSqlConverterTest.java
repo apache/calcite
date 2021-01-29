@@ -2556,6 +2556,20 @@ public class RelToSqlConverterTest {
         .ok(expectedDateMinusNegate);
   }
 
+  @Test public void testUnparseTimeLiteral() {
+    String sourceSql = "select TIME '11:25:18' "
+        + "from \"employee\"";
+    String expectedBQSql = "SELECT TIME '11:25:18'\n"
+        + "FROM foodmart.employee";
+    String expectedSql = "SELECT CAST('11:25:18' AS TIME)\n"
+        + "FROM [foodmart].[employee]";
+    sql(sourceSql)
+        .withBigQuery()
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedSql);
+  }
+
   @Test public void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"

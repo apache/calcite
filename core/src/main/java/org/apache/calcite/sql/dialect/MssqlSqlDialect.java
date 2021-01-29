@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -42,6 +43,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -105,11 +107,11 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
+    SqlCharStringLiteral charStringLiteral = SqlLiteral
+        .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
     if (literal instanceof SqlTimestampLiteral) {
-      SqlNode[] sqlNodes = {SqlLiteral.createCharString(literal.toFormattedString(),
-          SqlParserPos.ZERO), SqlLiteral.createSymbol(
-          DateTimeEnum.DATETIME2, SqlParserPos.ZERO)};
-      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+      SqlNode castCall = getCastCall(charStringLiteral, null,
+          new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
       SqlNode[] sqlNodes = {SqlLiteral.createCharString(literal.toFormattedString(),
@@ -122,11 +124,18 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  private BasicSqlType getDateTime2SqlType() {
+    return new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATETIME2);
+  }
+
   @Override public SqlNode getCastCall(
       SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
-    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
-      SqlNode[] sqlNodes = {operandToCast, SqlLiteral.createSymbol(
-          DateTimeEnum.DATETIME2, SqlParserPos.ZERO)};
+    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() >= 0) {
+      SqlNode[] sqlNodes = {operandToCast, getCastSpec(getDateTime2SqlType())};
+      return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+    } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
+      SqlNode[] sqlNodes = {operandToCast,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME))};
       return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
     }
     return super.getCastCall(operandToCast, castFrom, castTo);
@@ -403,19 +412,6 @@ public class MssqlSqlDialect extends SqlDialect {
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  /**
-   * Date time Enum for MS-Sql
-   */
-  enum DateTimeEnum {
-    DATETIME2("DATETIME2");
-
-    String name;
-
-    DateTimeEnum(String name) {
-      this.name = name;
     }
   }
 }
