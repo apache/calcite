@@ -1118,6 +1118,7 @@ public class SqlFunctionsTest {
 
   /** Test for {@link SqlFunctions#charindex}. */
   @Test public void testCharindex() {
+    assertThat(charindex("xy", "Choose a chocolate chip cookie", 2), is(0));
     assertThat(charindex("ch", "Choose a chocolate chip cookie", 1), is(1));
     assertThat(charindex("ch", "Choose a chocolate chip cookie", 2), is(10));
   }
