@@ -114,8 +114,10 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
-      case OTHER_FUNCTION:
       case TRUNCATE:
+        unparseTruncateAndRound(writer, call, leftPrec, rightPrec);
+        break;
+      case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -144,17 +146,7 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
-    case "TRUNCATE":
-      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      if (call.operandCount() < 2) {
-        writer.sep(",");
-        writer.print("0");
-      }
-      writer.endFunCall(funcFrame);
+      unparseTruncateAndRound(writer, call, leftPrec, rightPrec);
       break;
     case "INSTR":
       if (call.operandCount() > 3) {
@@ -320,6 +312,20 @@ public class MssqlSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTruncateAndRound(
+          SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    if (call.operandCount() < 2) {
+      writer.sep(",");
+      writer.print("0");
+    }
+    writer.endFunCall(funcFrame);
   }
 
 }
