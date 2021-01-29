@@ -2557,13 +2557,13 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseTimeLiteral() {
-    String sourceSql = "select TIME '11:25:18' "
+    String queryDatePlus = "select TIME '11:25:18' "
         + "from \"employee\"";
     String expectedBQSql = "SELECT TIME '11:25:18'\n"
         + "FROM foodmart.employee";
-    String expectedSql = "SELECT CAST('11:25:18' AS TIME)\n"
+    String expectedSql = "SELECT CAST('11:25:18' AS TIME(0))\n"
         + "FROM [foodmart].[employee]";
-    sql(sourceSql)
+    sql(queryDatePlus)
         .withBigQuery()
         .ok(expectedBQSql)
         .withMssql()

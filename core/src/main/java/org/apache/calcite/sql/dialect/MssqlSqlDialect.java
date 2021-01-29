@@ -114,10 +114,8 @@ public class MssqlSqlDialect extends SqlDialect {
           new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
-      SqlNode[] sqlNodes = {SqlLiteral.createCharString(literal.toFormattedString(),
-          SqlParserPos.ZERO), SqlLiteral.createSymbol(
-          SqlTypeName.TIME, SqlParserPos.ZERO)};
-      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+      SqlNode castCall = getCastCall(charStringLiteral, null,
+          new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else {
       writer.literal("'" + literal.toFormattedString() + "'");
@@ -132,10 +130,6 @@ public class MssqlSqlDialect extends SqlDialect {
       SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() >= 0) {
       SqlNode[] sqlNodes = {operandToCast, getCastSpec(getDateTime2SqlType())};
-      return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
-    } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
-      SqlNode[] sqlNodes = {operandToCast,
-          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME))};
       return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
     }
     return super.getCastCall(operandToCast, castFrom, castTo);
