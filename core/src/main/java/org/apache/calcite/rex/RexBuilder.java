@@ -72,6 +72,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntPredicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -301,23 +302,19 @@ public class RexBuilder {
    * @param groupCount number of groups in the aggregate relation
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
-   * @param aggArgTypes Argument types, not null
+   * @param isNullable Whether input field i is nullable
    *
    * @return Rex expression for the given aggregate call
    */
   public RexNode addAggCall(AggregateCall aggCall, int groupCount,
       List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      final @Nullable List<RelDataType> aggArgTypes) {
+      IntPredicate isNullable) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
         && !aggCall.isDistinct()) {
       final List<Integer> args = aggCall.getArgList();
-      Objects.requireNonNull(aggArgTypes, "aggArgTypes");
-      final List<Integer> nullableArgs = nullableArgs(args, aggArgTypes);
-      if (!nullableArgs.equals(args)) {
-        aggCall = aggCall.copy(nullableArgs, aggCall.filterArg,
-            aggCall.collation);
-      }
+      final List<Integer> nullableArgs = nullableArgs(args, isNullable);
+      aggCall = aggCall.withArgList(nullableArgs);
     }
     RexNode rex = aggCallMapping.get(aggCall);
     if (rex == null) {
@@ -327,6 +324,16 @@ public class RexBuilder {
       aggCallMapping.put(aggCall, rex);
     }
     return rex;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RexNode addAggCall(final AggregateCall aggCall, int groupCount,
+      List<AggregateCall> aggCalls,
+      Map<AggregateCall, RexNode> aggCallMapping,
+      final @Nullable List<RelDataType> aggArgTypes) {
+    return addAggCall(aggCall, groupCount, aggCalls, aggCallMapping, i ->
+        Objects.requireNonNull(aggArgTypes, "aggArgTypes")
+            .get(aggCall.getArgList().indexOf(i)).isNullable());
   }
 
   /**
@@ -345,14 +352,10 @@ public class RexBuilder {
   }
 
   private static List<Integer> nullableArgs(List<Integer> list0,
-      List<RelDataType> types) {
-    final List<Integer> list = new ArrayList<>();
-    for (Pair<Integer, RelDataType> pair : Pair.zip(list0, types)) {
-      if (pair.right.isNullable()) {
-        list.add(pair.left);
-      }
-    }
-    return list;
+      IntPredicate isNullable) {
+    return list0.stream()
+        .filter(isNullable::test)
+        .collect(Util.toImmutableList());
   }
 
   @Deprecated // to be removed before 2.0
