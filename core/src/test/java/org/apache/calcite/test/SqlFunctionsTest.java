@@ -1152,6 +1152,11 @@ public class SqlFunctionsTest {
     assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
     assertThat(strTok("a.b.c.d", "\\.", 3), is("c"));
   }
+
+  /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
+  @Test public void testDateTimeForm() {
+    assertThat(toCharFunction(111200, "HHMISS"), is("111200"));
+  }
 }
 
 // End SqlFunctionsTest.java
