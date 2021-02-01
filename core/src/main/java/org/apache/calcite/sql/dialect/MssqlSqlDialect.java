@@ -182,6 +182,20 @@ public class MssqlSqlDialect extends SqlDialect {
     case "ROUND":
       unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
       break;
+    case "INSTR":
+      if (call.operandCount() > 3) {
+        throw new RuntimeException("4th operand Not Supported by CHARINDEX in MSSQL");
+      }
+      final SqlWriter.Frame charindexFrame = writer.startFunCall("CHARINDEX");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(charindexFrame);
+      break;
     case "CURRENT_TIMESTAMP":
       unparseGetDate(writer);
       break;

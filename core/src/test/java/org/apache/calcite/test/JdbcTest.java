@@ -7087,6 +7087,13 @@ public class JdbcTest {
         .returns("result=20\n");
   }
 
+  @Test public void testCharindex() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "mssql")
+        .query("SELECT CHARINDEX('ch', 'Choose a chocolate chip cookie', 3) as \"result\"")
+        .returns("result=10\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
