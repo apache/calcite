@@ -443,7 +443,7 @@ public final class AggregateExpandDistinctAggregatesRule
             aggCall.left.adaptTo(aggregate.getInput(),
                 aggCall.left.getArgList(), aggCall.left.filterArg,
                 aggregate.getGroupCount(), fullGroupSet.cardinality());
-        distinctAggCalls.add(newAggCall.rename(aggCall.right));
+        distinctAggCalls.add(newAggCall.withName(aggCall.right));
       }
     }
 
