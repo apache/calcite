@@ -2802,6 +2802,17 @@ public class SqlFunctions {
   }
 
   /***
+   * If first operand is not null isNull will return first operand
+   * else it will return second operand.
+   * @param first operand
+   * @param second operand
+   * @return Object
+   */
+  public static Object isNull(Object first, Object second) {
+    return first != null ? first : second;
+  }
+
+  /***
    * If size is less than the str, then return substring of str
    * Append whitespace at the beginning of the str
    *

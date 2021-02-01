@@ -6271,6 +6271,16 @@ public class JdbcTest {
                     "C=500");
   }
 
+  @Test public void testIsNull() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .with(CalciteConnectionProperty.FUN, "mssql")
+            .query("select isnull(\"commission\", -99) as c from \"hr\".\"emps\"")
+            .returnsUnordered("C=-99",
+                    "C=1000",
+                    "C=250",
+                    "C=500");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */

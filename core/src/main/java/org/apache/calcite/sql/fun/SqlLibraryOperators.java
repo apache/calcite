@@ -41,6 +41,7 @@ import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
+import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
@@ -113,6 +114,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction IFNULL =
       new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+              SqlTypeTransforms.TO_NULLABLE_ALL),
+          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
+  /** The "ISNULL(value, value)" function. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ISNULL =
+      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
               SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
