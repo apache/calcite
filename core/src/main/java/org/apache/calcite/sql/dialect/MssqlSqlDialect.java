@@ -124,6 +124,7 @@ public class MssqlSqlDialect extends SqlDialect {
         break;
       case OTHER_FUNCTION:
       case TRUNCATE:
+      case OTHER:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
