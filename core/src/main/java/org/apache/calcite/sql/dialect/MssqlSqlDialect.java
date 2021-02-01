@@ -115,20 +115,12 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
-      case CONCAT:
-        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
-        for (SqlNode operand : call.getOperandList()) {
-          writer.sep(",");
-          operand.unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(concatFrame);
-        break;
       case OVER:
         if (checkWindowFunctionContainOrderBy(call)) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
         } else {
           call.operand(0).unparse(writer, leftPrec, rightPrec);
-          unparseSqlWindow(call.operand(1), writer, call);
+          unparseSqlWindow(writer, call, leftPrec, rightPrec);
         }
         break;
       case OTHER_FUNCTION:
@@ -173,14 +165,6 @@ public class MssqlSqlDialect extends SqlDialect {
         writer.print("0");
       }
       writer.endFunCall(funcFrame);
-      break;
-    case "DAYOFMONTH":
-      final SqlWriter.Frame dayFrame = writer.startFunCall("DAY");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(dayFrame);
-      break;
-    case "CURRENT_TIMESTAMP":
-      writer.print("CURRENT_TIMESTAMP ");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -338,23 +322,26 @@ public class MssqlSqlDialect extends SqlDialect {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
 
-  private void unparseSqlWindow(SqlWindow sqlWindow, SqlWriter writer, SqlCall call) {
-    final SqlWindow window = sqlWindow;
+  private void unparseSqlWindow(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWindow window = call.operand(1);
     writer.print("OVER ");
     final SqlWriter.Frame frame =
             writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
+
     if (window.getRefName() != null) {
       window.getRefName().unparse(writer, 0, 0);
     }
-    SqlCall firstOperandColumn = call.operand(0);
-    if (!firstOperandColumn.getOperandList().isEmpty()) {
-      if (window.getPartitionList().size() > 0) {
-        writer.sep("PARTITION BY");
-        final SqlWriter.Frame partitionFrame = writer.startList("", "");
-        window.getPartitionList().unparse(writer, 0, 0);
-        writer.endList(partitionFrame);
-      }
 
+    SqlCall firstOperandColumn = call.operand(0);
+
+    if (window.getPartitionList().size() > 0) {
+      writer.sep("PARTITION BY");
+      final SqlWriter.Frame partitionFrame = writer.startList("", "");
+      window.getPartitionList().unparse(writer, 0, 0);
+      writer.endList(partitionFrame);
+    }
+
+    if (!firstOperandColumn.getOperandList().isEmpty()) {
       if (window.getLowerBound() != null) {
         writer.print("ORDER BY ");
         SqlNode orderByColumn = firstOperandColumn.operand(0);
