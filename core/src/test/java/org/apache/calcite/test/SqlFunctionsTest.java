@@ -41,6 +41,7 @@ import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
 import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
 import static org.apache.calcite.runtime.SqlFunctions.dayOccurrenceOfMonth;
+import static org.apache.calcite.runtime.SqlFunctions.dayOfMonth;
 import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -1125,6 +1126,11 @@ public class SqlFunctionsTest {
   @Test public void testdatetimeSub() {
     assertThat(datetimeSub("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
         is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
+  }
+
+  @Test public void testdayOfMonth() {
+    assertThat(dayOfMonth("2008-09-23"),
+            is(23));
   }
 
   /** Test for {@link SqlFunctions#toBinary(Object, Object)}. */

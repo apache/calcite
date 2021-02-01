@@ -3068,6 +3068,12 @@ public class SqlFunctions {
     return new Timestamp(cal.getTime().getTime());
   }
 
+  public static Object dayOfMonth(Object date) {
+    String[] split = ((String) date).split("-");
+    Integer dayUnit = Integer.parseInt(split[2]);
+    return dayUnit;
+  }
+
   public static Object toBinary(Object value, Object charSet) {
     Charset charset = Charset.forName((String) charSet);
     BigInteger bigInteger = new BigInteger(1, ((String) value).getBytes(charset));

@@ -7155,6 +7155,13 @@ public class JdbcTest {
         .returns("result=autopilot\n");
   }
 
+  @Test public void testDayofMonth() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "mssql")
+        .query("select DAYOFMONTH(DATE '2008-09-23') as \"result\"")
+        .returns("result=23\n");
+  }
+
   @Test public void testRPAD() {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
         .with(CalciteConnectionProperty.FUN, "hive")
