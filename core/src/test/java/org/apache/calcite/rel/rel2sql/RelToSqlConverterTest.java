@@ -4237,10 +4237,15 @@ public class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
+    final String synapse = "SELECT [employee_id]\n"
+            + "FROM [foodmart].[employee]\n"
+            + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
     sql(query)
         .ok(expected)
         .withBigQuery()
-        .ok(expectedBiqquery);
+        .ok(expectedBiqquery)
+        .withMssql()
+        .ok(synapse);
   }
 
   @Test public void testRegexSubstrFunction2Args() {
@@ -5967,13 +5972,17 @@ public class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
         + "':05') AS TIME(0))) AS TIME(0))\n"
         + "FROM foodmart.employee";
+    final String synapse = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
+            + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expectedBigQuery);
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(synapse);
   }
 
   @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
