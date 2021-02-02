@@ -5747,7 +5747,9 @@ public class RelToSqlConverterTest {
         .withSpark()
         .ok(expected)
         .withSnowflake()
-        .ok(expectedSnowFlake);
+        .ok(expectedSnowFlake)
+        .withMssql()
+        .ok(expected);
   }
 
   @Test
