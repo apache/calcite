@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -41,6 +42,9 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 
 /**
@@ -60,6 +64,10 @@ public class MssqlSqlDialect extends SqlDialect {
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
+
+  private static final List<String> DATEPART_CONVERTER_LIST = Arrays.asList(
+      TimeUnit.MINUTE.name(),
+      TimeUnit.SECOND.name());
 
   /** Creates a MssqlSqlDialect. */
   public MssqlSqlDialect(Context context) {
@@ -115,6 +123,9 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
+      case TRUNCATE:
+        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+        break;
       case OVER:
         if (checkWindowFunctionContainOrderBy(call)) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -124,7 +135,6 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         break;
       case OTHER_FUNCTION:
-      case TRUNCATE:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -138,36 +148,89 @@ public class MssqlSqlDialect extends SqlDialect {
                 SqlParserPos.ZERO);
         unparseCall(writer, sqlCall, leftPrec, rightPrec);
         break;
-
+      case EXTRACT:
+        unparseExtract(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
   }
 
+  private void unparseExtract(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (DATEPART_CONVERTER_LIST.contains(call.operand(0).toString())) {
+      unparseDatePartCall(writer, call, leftPrec, rightPrec);
+    } else {
+      final SqlWriter.Frame extractFuncCall = writer.startFunCall(call.operand(0).toString());
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(extractFuncCall);
+    }
+  }
+
+  private void unparseDatePartCall(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    final SqlWriter.Frame datePartFrame = writer.startFunCall("DATEPART");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(datePartFrame);
+  }
+
   public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "LAST_DAY":
+      final SqlWriter.Frame lastDayFrame = writer.startFunCall("EOMONTH");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(lastDayFrame);
+      break;
     case "LN":
       final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
-    case "TRUNCATE":
-      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
+      unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+      break;
+    case "INSTR":
+      if (call.operandCount() > 3) {
+        throw new RuntimeException("4th operand Not Supported by CHARINDEX in MSSQL");
       }
-      if (call.operandCount() < 2) {
+      final SqlWriter.Frame charindexFrame = writer.startFunCall("CHARINDEX");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
         writer.sep(",");
-        writer.print("0");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
-      writer.endFunCall(funcFrame);
+      writer.endFunCall(charindexFrame);
+      break;
+    case "CURRENT_TIMESTAMP":
+      unparseGetDate(writer);
+      break;
+    case "CURRENT_DATE":
+    case "CURRENT_TIME":
+      castGetDateToDateTime(writer, call.getOperator().getName().replace("CURRENT_", ""));
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
+  private void castGetDateToDateTime(SqlWriter writer, String timeUnit) {
+    final SqlWriter.Frame castDateTimeFunc = writer.startFunCall("CAST");
+    unparseGetDate(writer);
+    writer.print("AS " + timeUnit);
+    writer.endFunCall(castDateTimeFunc);
+  }
+
+  private void unparseGetDate(SqlWriter writer) {
+    final SqlWriter.Frame currentDateFunc = writer.startFunCall("GETDATE");
+    writer.endFunCall(currentDateFunc);
   }
 
   @Override public boolean supportsCharSet() {
@@ -317,6 +380,18 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  private void unpaseRoundAndTrunc(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    if (call.operandCount() < 2) {
+      writer.sep(",");
+      writer.print("0");
+    }
+    writer.endFunCall(funcFrame);
+  }
   private boolean checkWindowFunctionContainOrderBy(SqlCall call) {
     return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
   }
