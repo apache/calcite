@@ -44,6 +44,7 @@ public enum SqlDateTimeFormat {
   ABBREVIATEDDAYOFWEEK("EEE"),
   TWENTYFOURHOUR("HH24"),
   HOUR("HH"),
+  HOURMINSEC("HHMISS"),
   MINUTE("MI"),
   SECOND("SS"),
   FRACTIONONE("S(1)"),
