@@ -678,7 +678,7 @@ class DruidConnectionImpl implements DruidConnection {
   private static class BlockingQueueEnumerator<E> implements Enumerator<E> {
     final BlockingQueue<E> queue = new ArrayBlockingQueue<>(1000);
     final AtomicBoolean done = new AtomicBoolean(false);
-    final Holder<Throwable> throwableHolder = Holder.of(null);
+    final Holder<Throwable> throwableHolder = Holder.empty();
 
     E next;
 

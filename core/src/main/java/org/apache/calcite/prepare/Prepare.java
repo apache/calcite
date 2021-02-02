@@ -181,9 +181,9 @@ public abstract class Prepare {
 
   protected Program getProgram() {
     // Allow a test to override the default program.
-    final Holder<@Nullable Program> holder = Holder.of(null);
+    final Holder<@Nullable Program> holder = Holder.empty();
     Hook.PROGRAM.run(holder);
-    Program holderValue = holder.get();
+    @Nullable Program holderValue = holder.get();
     if (holderValue != null) {
       return holderValue;
     }

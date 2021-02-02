@@ -115,6 +115,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
@@ -1223,7 +1224,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .distinct()
         .filter(builder.equals(builder.field("SAL"), builder.literal(1)))
         .build();
-    final Holder<RexCorrelVariable> v = Holder.of(null);
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel1 = builder.scan("EMP")
         .variable(v)
         .project(builder.field("DEPTNO"), builder.field("SAL"))

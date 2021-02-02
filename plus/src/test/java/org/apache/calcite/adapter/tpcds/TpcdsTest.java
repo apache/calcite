@@ -32,6 +32,7 @@ import org.apache.calcite.util.Holder;
 
 import net.hydromatic.tpcds.query.Query;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -301,7 +302,7 @@ class TpcdsTest {
   }
 
   public Frameworks.ConfigBuilder config() throws Exception {
-    final Holder<SchemaPlus> root = Holder.of(null);
+    final Holder<@Nullable SchemaPlus> root = Holder.empty();
     CalciteAssert.model(TPCDS_MODEL)
         .doWithConnection(connection -> {
           root.set(connection.getRootSchema().getSubSchema("TPCDS"));

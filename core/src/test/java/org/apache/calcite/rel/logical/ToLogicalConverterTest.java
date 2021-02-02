@@ -43,6 +43,7 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -322,7 +323,7 @@ class ToLogicalConverterTest {
 
   @Test void testCorrelation() {
     final RelBuilder builder = builder();
-    final Holder<RexCorrelVariable> v = Holder.of(null);
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")
