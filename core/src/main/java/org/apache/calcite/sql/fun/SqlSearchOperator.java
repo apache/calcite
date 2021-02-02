@@ -45,7 +45,7 @@ class SqlSearchOperator extends SqlInternalOperator {
    * It is evident from the expansion, "x = 10", but holds for all Sarg
    * values.
    *
-   * <p>If {@link Sarg#unknownAs} is TRUE or FALSE, SEARCH will never return
+   * <p>If {@link Sarg#nullAs} is TRUE or FALSE, SEARCH will never return
    * UNKNOWN. For example, {@code SEARCH(x, Sarg[10 OR NULL])} expands to
    * {@code x = 10 OR x IS NOT NULL}, which returns {@code TRUE} if
    * {@code x} is NULL, {@code TRUE} if {@code x} is 10, and {@code FALSE}
@@ -54,7 +54,7 @@ class SqlSearchOperator extends SqlInternalOperator {
   private static RelDataType makeNullable(SqlOperatorBinding binding,
       RelDataType type) {
     final boolean nullable = binding.getOperandType(0).isNullable()
-        && getOperandLiteralValueOrThrow(binding, 1, Sarg.class).unknownAs
+        && getOperandLiteralValueOrThrow(binding, 1, Sarg.class).nullAs
         != RexUnknownAs.UNKNOWN;
     return binding.getTypeFactory().createTypeWithNullability(type, nullable);
   }

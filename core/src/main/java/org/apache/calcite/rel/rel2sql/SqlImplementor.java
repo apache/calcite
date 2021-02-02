@@ -893,7 +893,7 @@ public abstract class SqlImplementor {
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
-      if (sarg.unknownAs == RexUnknownAs.TRUE) {
+      if (sarg.nullAs == RexUnknownAs.TRUE) {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {

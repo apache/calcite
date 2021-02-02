@@ -265,7 +265,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     final Comparable value = values.get(0);
     final Sarg sarg = (Sarg) values.get(1);
     if (value == N) {
-      switch (sarg.unknownAs) {
+      switch (sarg.nullAs) {
       case FALSE:
         return false;
       case TRUE:

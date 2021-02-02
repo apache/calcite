@@ -1345,12 +1345,12 @@ public class RexSimplify {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
 
-    final SargCollector sargCollector =
-        new SargCollector(rexBuilder, true, unknownAs);
+    final SargCollector sargCollector = new SargCollector(rexBuilder, true);
     operands.forEach(t -> sargCollector.accept(t, terms));
     if (sargCollector.needToFix()) {
       operands.clear();
-      terms.forEach(t -> operands.add(sargCollector.fix(rexBuilder, t)));
+      terms.forEach(t ->
+          operands.add(SargCollector.fix(rexBuilder, t, unknownAs)));
     }
     terms.clear();
 
@@ -1819,13 +1819,13 @@ public class RexSimplify {
   /** Simplifies a list of terms and combines them into an OR.
    * Modifies the list in place. */
   private RexNode simplifyOrs(List<RexNode> terms, RexUnknownAs unknownAs) {
-    final SargCollector sargCollector =
-        new SargCollector(rexBuilder, false, unknownAs);
+    final SargCollector sargCollector = new SargCollector(rexBuilder, false);
     final List<RexNode> newTerms = new ArrayList<>();
     terms.forEach(t -> sargCollector.accept(t, newTerms));
     if (sargCollector.needToFix()) {
       terms.clear();
-      newTerms.forEach(t -> terms.add(SargCollector.fix(rexBuilder, t)));
+      newTerms.forEach(t ->
+          terms.add(SargCollector.fix(rexBuilder, t, unknownAs)));
     }
 
     // CALCITE-3198 Auxiliary map to simplify cases like:
@@ -1959,9 +1959,10 @@ public class RexSimplify {
         }
       }
       if (!v0.equals(v1)) {
-        throw new AssertionError("result mismatch: when applied to " + map
-            + ", " + before + " yielded " + v0
-            + ", and " + simplified + " yielded " + v1);
+        throw new AssertionError("result mismatch (unknown as "
+            + unknownAs + "): when applied to " + map + ",\n"
+            + before + " yielded " + v0 + ";\n"
+            + simplified + " yielded " + v1);
       }
     }
   }
@@ -1972,14 +1973,11 @@ public class RexSimplify {
     if (call.getOperands().get(1) instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
-      if (sarg.isAll()
-          && (sarg.unknownAs == TRUE || !a.getType().isNullable())) {
-        // SEARCH(x, [TRUE])  -> TRUE
-        // SEARCH(x, [NOT NULL])  -> TRUE if x's type is NOT NULL
-        return rexBuilder.makeLiteral(true);
+      if (sarg.isAll() || sarg.isNone()) {
+        return RexUtil.simpleSarg(rexBuilder, a, sarg, unknownAs);
       }
       // Remove null from sarg if the left-hand side is never null
-      if (sarg.unknownAs != UNKNOWN) {
+      if (sarg.nullAs != UNKNOWN) {
         final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
         if (simplified != null
             && simplified.isAlwaysFalse()) {
@@ -2628,7 +2626,6 @@ public class RexSimplify {
     final Map<RexNode, RexSargBuilder> map = new HashMap<>();
     private final RexBuilder rexBuilder;
     private final boolean negate;
-    private final RexUnknownAs unknownAs;
     /**
      * Count of the new terms after converting all the operands to
      * {@code SEARCH} on a {@link Sarg}. It is used to decide whether
@@ -2636,11 +2633,9 @@ public class RexSimplify {
      */
     private int newTermsCount;
 
-    SargCollector(RexBuilder rexBuilder, boolean negate,
-        RexUnknownAs unknownAs) {
+    SargCollector(RexBuilder rexBuilder, boolean negate) {
       this.rexBuilder = rexBuilder;
       this.negate = negate;
-      this.unknownAs = unknownAs;
     }
 
     private void accept(RexNode term, List<RexNode> newTerms) {
@@ -2706,24 +2701,14 @@ public class RexSimplify {
     private boolean accept1(RexNode e, SqlKind kind, List<RexNode> newTerms) {
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
-              addFluent(newTerms,
-                  new RexSargBuilder(e2, rexBuilder, negate, unknownAs)));
-      switch (kind) {
+              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
+      switch (negate ? kind.negate() : kind) {
       case IS_NULL:
-        if (negate) {
-          ++b.notNullTermCount;
-          b.addAll();
-        } else {
-          ++b.nullTermCount;
-        }
+        ++b.nullAsTrueCount;
         return true;
       case IS_NOT_NULL:
-        if (negate) {
-          ++b.nullTermCount;
-        } else {
-          ++b.notNullTermCount;
-          b.addAll();
-        }
+        ++b.nullAsFalseCount;
+        b.addAll();
         return true;
       default:
         throw new AssertionError("unexpected " + kind);
@@ -2740,8 +2725,7 @@ public class RexSimplify {
       }
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
-              addFluent(newTerms,
-                  new RexSargBuilder(e2, rexBuilder, negate, unknownAs)));
+              addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
       if (negate) {
         kind = kind.negateNullSafe();
       }
@@ -2793,11 +2777,11 @@ public class RexSimplify {
       case TRUE:
         // "unknown as true" can not be simplified to
         // "false" or "IS NOT NULL"
-        return sarg.unknownAs == TRUE || !isAllOrNone;
+        return sarg.nullAs == TRUE || !isAllOrNone;
       case FALSE:
         // "unknown as false" can not be simplified to
         // "true" or "IS NULL"
-        return sarg.unknownAs == FALSE || !isAllOrNone;
+        return sarg.nullAs == FALSE || !isAllOrNone;
       default:
         return true;
       }
@@ -2818,8 +2802,8 @@ public class RexSimplify {
         return true;
       }
       if (builders.size() == 1
-          && Bug.remark("TODO: remove method canMerge, field unknownAs") == null
-          && !canMerge(builders.iterator().next().build(), unknownAs)) {
+          && Bug.remark("TODO: remove method canMerge") == null
+          && !canMerge(builders.iterator().next().build(), UNKNOWN)) {
         return false;
       }
       return newTermsCount == 1
@@ -2836,17 +2820,23 @@ public class RexSimplify {
 
     /** If a term is a call to {@code SEARCH} on a {@link RexSargBuilder},
      * converts it to a {@code SEARCH} on a {@link Sarg}. */
-    static RexNode fix(RexBuilder rexBuilder, RexNode term) {
+    static RexNode fix(RexBuilder rexBuilder, RexNode term,
+        RexUnknownAs unknownAs) {
       if (term instanceof RexSargBuilder) {
         final RexSargBuilder sargBuilder = (RexSargBuilder) term;
         final Sarg sarg = sargBuilder.build();
         if (sarg.complexity() <= 1 && simpleSarg(sarg)) {
           // Expand small sargs into comparisons in order to avoid plan changes
           // and better readability.
-          return RexUtil.sargRef(rexBuilder, sargBuilder.ref, sarg, term.getType());
+          return RexUtil.sargRef(rexBuilder, sargBuilder.ref, sarg,
+              term.getType(), unknownAs);
         }
+        final Sarg sarg2 =
+            unknownAs != UNKNOWN && sarg.nullAs == UNKNOWN && false // TODO
+                ? Sarg.of(unknownAs, sarg.rangeSet)
+                : sarg;
         return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
-            rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
+            rexBuilder.makeSearchArgumentLiteral(sarg2, term.getType()));
       }
       return term;
     }
@@ -2863,25 +2853,22 @@ public class RexSimplify {
     final RexNode ref;
     final RexBuilder rexBuilder;
     final boolean negate;
-    final RexUnknownAs unknownAs;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
     int termCount;
-    int notNullTermCount;
-    int nullTermCount;
+    int nullAsFalseCount;
+    int nullAsTrueCount;
 
-    RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate,
-        RexUnknownAs unknownAs) {
+    RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate) {
       this.ref = requireNonNull(ref, "ref");
       this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.negate = negate;
-      this.unknownAs = unknownAs;
     }
 
     @Override public String toString() {
       return "SEARCH(" + ref + ", " + (negate ? "NOT " : "") + rangeSet
-          + ", " + (nullTermCount + notNullTermCount)
-          + " terms of which " + nullTermCount + " allow null)";
+          + ", " + (nullAsTrueCount + nullAsFalseCount)
+          + " terms of which " + nullAsTrueCount + " allow null)";
     }
 
     <C extends Comparable<C>> Sarg<C> build() {
@@ -2889,11 +2876,12 @@ public class RexSimplify {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
-    <C extends Comparable<C>> Sarg<C> build(boolean negate) {
+    <C extends Comparable<C>> Sarg<C> build(boolean negateTodo) {
       final RexUnknownAs unknownAs =
-          notNullTermCount > 0 ? FALSE
-              : nullTermCount > 0 ? TRUE
+          nullAsTrueCount > 0 ? TRUE
+              : nullAsFalseCount == termCount ? FALSE // TODO
                   : UNKNOWN;
+//      assert nullAsFalseCount == 0; // TODO
       if (negate) {
         return Sarg.of(unknownAs.negate(), (RangeSet) rangeSet.complement());
       } else {
@@ -2940,12 +2928,14 @@ public class RexSimplify {
     void addSarg(Sarg sarg, boolean negate, RelDataType type) {
       types.add(type);
       rangeSet.addAll(negate ? sarg.rangeSet.complement() : sarg.rangeSet);
-      switch (sarg.unknownAs) {
+      RexUnknownAs nullAs = sarg.nullAs;
+      if (negate) nullAs = nullAs.negate(); // TODO
+      switch (nullAs) {
       case TRUE:
-        ++nullTermCount;
+        ++nullAsTrueCount;
         break;
       case FALSE:
-        ++notNullTermCount;
+        ++nullAsFalseCount;
         break;
       }
     }

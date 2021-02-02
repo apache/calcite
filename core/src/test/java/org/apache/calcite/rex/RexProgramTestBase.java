@@ -131,18 +131,10 @@ class RexProgramTestBase extends RexProgramBuilderBase {
   protected SimplifiedNode checkSimplify3_(RexNode node, String expected,
       String expectedFalse, String expectedTrue) {
     final RexNode simplified =
-        simplify.simplifyUnknownAs(node, RexUnknownAs.UNKNOWN);
-    assertThat("simplify(unknown as unknown): " + node,
-        simplified.toString(), equalTo(expected));
+        checkSimplifyAs(node, RexUnknownAs.UNKNOWN, is(expected));
     if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      final RexNode simplified2 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-      assertThat("simplify(unknown as false): " + node,
-          simplified2.toString(), equalTo(expectedFalse));
-      final RexNode simplified3 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.TRUE);
-      assertThat("simplify(unknown as true): " + node,
-          simplified3.toString(), equalTo(expectedTrue));
+      checkSimplifyAs(node, RexUnknownAs.FALSE, is(expectedFalse));
+      checkSimplifyAs(node, RexUnknownAs.TRUE, is(expectedTrue));
     } else {
       assertThat("node type is not BOOLEAN, so <<expectedFalse>> should match <<expected>>",
           expectedFalse, is(expected));
@@ -152,15 +144,21 @@ class RexProgramTestBase extends RexProgramBuilderBase {
     return new SimplifiedNode(rexBuilder, node, simplified);
   }
 
-  protected Node checkSimplifyFilter(RexNode node, String expected) {
+  private RexNode checkSimplifyAs(RexNode node, RexUnknownAs unknownAs,
+      Matcher<String> matcher) {
     final RexNode simplified =
-        this.simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toString(), equalTo(expected));
-    return node(node);
+        simplify.simplifyUnknownAs(node, unknownAs);
+    assertThat(("simplify(unknown as " + unknownAs + "): ") + node,
+        simplified.toString(), matcher);
+    return simplified;
   }
 
-  protected void checkSimplifyFilter(RexNode node, RelOptPredicateList predicates,
-                                   String expected) {
+  protected void checkSimplifyFilter(RexNode node, String expected) {
+    checkSimplifyAs(node, RexUnknownAs.FALSE, is(expected));
+  }
+
+  protected void checkSimplifyFilter(RexNode node,
+      RelOptPredicateList predicates, String expected) {
     final RexNode simplified =
         simplify.withPredicates(predicates)
             .simplifyUnknownAs(node, RexUnknownAs.FALSE);

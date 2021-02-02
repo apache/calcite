@@ -67,15 +67,57 @@ import java.util.function.BiConsumer;
 @SuppressWarnings({"BetaApi", "type.argument.type.incompatible"})
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
-  public final RexUnknownAs unknownAs;
+  public final RexUnknownAs nullAs;
   @Deprecated // to be removed before 1.28
   public final boolean containsNull;
   public final int pointCount;
 
-  private Sarg(ImmutableRangeSet<C> rangeSet, RexUnknownAs unknownAs) {
+  /** Returns FALSE for all null and not-null values.
+   *
+   * <p>{@code SEARCH(x, FALSE_EMPTY)} is equivalent to {@code FALSE}. */
+  private static final SpecialSarg FALSE_EMPTY =
+      new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.FALSE,
+          "Sarg[FALSE]", 2);
+
+  /** Returns TRUE for all not-null values, FALSE for null.
+   *
+   * <p>{@code SEARCH(x, FALSE)} is equivalent to {@code x IS NOT NULL}. */
+  private static final SpecialSarg FALSE =
+      new SpecialSarg(ImmutableRangeSet.of().complement(), RexUnknownAs.FALSE,
+          "Sarg[IS NOT NULL]", 3);
+
+  /** Returns FALSE for all not-null values, TRUE for null.
+   *
+   * <p>{@code SEARCH(x, TRUE_EMPTY)} is equivalent to {@code x IS NULL}. */
+  private static final SpecialSarg TRUE_EMPTY =
+      new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.TRUE,
+          "Sarg[IS NULL]", 4);
+
+  /** Returns TRUE for all null and not-null values.
+   *
+   * <p>{@code SEARCH(x, TRUE)} is equivalent to {@code TRUE}. */
+  private static final SpecialSarg TRUE =
+      new SpecialSarg(ImmutableRangeSet.of().complement(), RexUnknownAs.TRUE,
+          "Sarg[TRUE]", 5);
+
+  /** Returns FALSE for all not-null values, UNKNOWN for null.
+   *
+   * <p>{@code SEARCH(x, UNKNOWN_EMPTY)} is equivalent to {@code x <> x}. */
+  private static final SpecialSarg UNKNOWN_EMPTY =
+      new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.UNKNOWN,
+          "Sarg[<>]", 6);
+
+  /** Returns TRUE for all not-null values, UNKNOWN for null.
+   *
+   * <p>{@code SEARCH(x, UNKNOWN)} is equivalent to {@code x = x}. */
+  private static final SpecialSarg UNKNOWN =
+      new SpecialSarg(ImmutableRangeSet.of().complement(), RexUnknownAs.UNKNOWN,
+          "Sarg[=]", 7);
+
+  private Sarg(ImmutableRangeSet<C> rangeSet, RexUnknownAs nullAs) {
     this.rangeSet = Objects.requireNonNull(rangeSet, "rangeSet");
-    this.unknownAs = unknownAs;
-    this.containsNull = unknownAs == RexUnknownAs.TRUE;
+    this.nullAs = Objects.requireNonNull(nullAs, "nullAs");
+    this.containsNull = nullAs == RexUnknownAs.TRUE;
     this.pointCount = RangeSets.countPoints(rangeSet);
   }
 
@@ -87,15 +129,35 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   /** Creates a search argument. */
-  public static <C extends Comparable<C>> Sarg<C> of(RexUnknownAs unknownAs,
+  public static <C extends Comparable<C>> Sarg<C> of(RexUnknownAs nullAs,
       RangeSet<C> rangeSet) {
-    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), unknownAs);
+    if (rangeSet.isEmpty()) {
+      switch (nullAs) {
+      case FALSE:
+        return FALSE_EMPTY;
+      case TRUE:
+        return TRUE_EMPTY;
+      default:
+        return UNKNOWN_EMPTY;
+      }
+    }
+    if (rangeSet.equals(RangeSets.rangeSetAll())) {
+      switch (nullAs) {
+      case FALSE:
+        return FALSE;
+      case TRUE:
+        return TRUE;
+      default:
+        return UNKNOWN;
+      }
+    }
+    return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), nullAs);
   }
 
   /**
    * {@inheritDoc}
    *
-   * <p>Produces a similar result to {@link RangeSet}, but adds ", null"
+   * <p>Produces a similar result to {@link RangeSet}, but adds ", null" TODO
    * if nulls are matched, and simplifies point ranges. For example,
    * the Sarg that allows the range set
    *
@@ -115,16 +177,6 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
    * with each embedded value. */
   public StringBuilder printTo(StringBuilder sb,
       BiConsumer<StringBuilder, C> valuePrinter) {
-    if (isAll()) {
-      return sb.append(unknownAs == RexUnknownAs.TRUE ? "Sarg[TRUE]"
-          : unknownAs == RexUnknownAs.UNKNOWN ? "Sarg[meh1]"
-          : "Sarg[NOT NULL]");
-    }
-    if (isNone()) {
-      return sb.append(unknownAs == RexUnknownAs.TRUE ? "Sarg[NULL]"
-          : unknownAs == RexUnknownAs.UNKNOWN ? "Sarg[meh2]"
-          : "Sarg[FALSE]");
-    }
     sb.append("Sarg[");
     final RangeSets.Consumer<C> printer = RangeSets.printer(sb, valuePrinter);
     Ord.forEach(rangeSet.asRanges(), (r, i) -> {
@@ -133,9 +185,16 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       }
       RangeSets.forEach(r, printer);
     });
-    return sb.append(unknownAs == RexUnknownAs.TRUE ? " OR NULL]"
-        : unknownAs == RexUnknownAs.UNKNOWN ? "]"
-        : " meh3]");
+    switch (nullAs) {
+    case FALSE:
+      return sb.append("; NULL AS FALSE]");
+    case TRUE:
+      return sb.append("; NULL AS TRUE]");
+    case UNKNOWN:
+      return sb.append("]");
+    default:
+      throw new AssertionError();
+    }
   }
 
   @Override public int compareTo(Sarg<C> o) {
@@ -143,26 +202,26 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   @Override public int hashCode() {
-    return RangeSets.hashCode(rangeSet) * 31 + unknownAs.ordinal();
+    return RangeSets.hashCode(rangeSet) * 31 + nullAs.ordinal();
   }
 
   @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof Sarg
-        && unknownAs == ((Sarg) o).unknownAs
+        && nullAs == ((Sarg) o).nullAs
         && rangeSet.equals(((Sarg) o).rangeSet);
   }
 
   /** Returns whether this Sarg includes all values (including or not including
    * null). */
   public boolean isAll() {
-    return rangeSet.equals(RangeSets.rangeSetAll());
+    return false;
   }
 
   /** Returns whether this Sarg includes no values (including or not including
    * null). */
   public boolean isNone() {
-    return rangeSet.isEmpty();
+    return false;
   }
 
   /** Returns whether this Sarg is a collection of 1 or more points (and perhaps
@@ -212,7 +271,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     } else {
       complexity = rangeSet.asRanges().size();
     }
-    if (containsNull) {
+    if (nullAs == RexUnknownAs.TRUE) {
       ++complexity;
     }
     return complexity;
@@ -220,6 +279,61 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
 
   /** Returns a Sarg that matches a value if and only this Sarg does not. */
   public Sarg negate() {
-    return Sarg.of(unknownAs.negate(), rangeSet.complement());
+    return Sarg.of(nullAs.negate(), rangeSet.complement());
+  }
+
+  /** Sarg whose range is all or none.
+   *
+   * <p>There are only 6 instances: {all, none} * {true, false, unknown}.
+   *
+   * @param <C> Value type */
+  private static class SpecialSarg<C extends Comparable<C>> extends Sarg<C> {
+    final String name;
+    final int ordinal;
+
+    SpecialSarg(ImmutableRangeSet<C> rangeSet, RexUnknownAs nullAs, String name,
+        int ordinal) {
+      super(rangeSet, nullAs);
+      this.name = name;
+      this.ordinal = ordinal;
+      assert rangeSet.isEmpty() == ((ordinal & 1) == 0);
+      assert rangeSet.equals(RangeSets.rangeSetAll()) == ((ordinal & 1) == 1);
+    }
+
+    @Override public boolean equals(@Nullable Object o) {
+      return this == o;
+    }
+
+    @Override public int hashCode() {
+      return ordinal;
+    }
+
+    @Override public boolean isAll() {
+      return (ordinal & 1) == 1;
+    }
+
+    @Override public boolean isNone() {
+      return (ordinal & 1) == 0;
+    }
+
+    @Override public int complexity() {
+      switch (name) {
+      case "Sarg[FALSE]":
+        return 0; // for backwards compatibility
+      case "Sarg[TRUE]":
+        return 2; // for backwards compatibility
+      default:
+        return 1;
+      }
+    }
+
+    @Override public StringBuilder printTo(StringBuilder sb,
+        BiConsumer<StringBuilder, C> valuePrinter) {
+      return sb.append(name);
+    }
+
+    @Override public String toString() {
+      return name;
+    }
   }
 }
