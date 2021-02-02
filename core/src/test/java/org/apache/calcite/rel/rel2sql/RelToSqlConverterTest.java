@@ -832,7 +832,7 @@ public class RelToSqlConverterTest {
         + "ELSE NULL END AS rnk\n"
         + "FROM foodmart.employee) AS t\n"
         + "GROUP BY rnk";
-    final  String synapseSql = "SELECT CASE WHEN CAST([salary] AS DECIMAL(14, 4)) = 20 THEN MAX("
+    final  String mssql = "SELECT CASE WHEN CAST([salary] AS DECIMAL(14, 4)) = 20 THEN MAX("
             + "[salary]) OVER (PARTITION BY [position_id] ORDER BY [salary] ROWS BETWEEN UNBOUNDED "
             + "PRECEDING AND UNBOUNDED FOLLOWING) ELSE NULL END AS [rnk]\n"
             + "FROM [foodmart].[employee]\n"
@@ -848,7 +848,7 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBigQuery)
         .withMssql()
-        .ok(synapseSql);
+        .ok(mssql);
   }
 
   /** Test case for
@@ -5160,7 +5160,7 @@ public class RelToSqlConverterTest {
         + "GROUP BY \"product_id\", MAX(\"product_id\") OVER (PARTITION BY \"product_id\" "
         + "ORDER BY \"product_id\" ROWS BETWEEN UNBOUNDED PRECEDING AND "
         + "UNBOUNDED FOLLOWING)";
-    final String synapseSql = "SELECT [product_id], MAX([product_id]) OVER (PARTITION "
+    final String mssql = "SELECT [product_id], MAX([product_id]) OVER (PARTITION "
             + "BY [product_id] ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND "
             + "UNBOUNDED FOLLOWING) AS [ABC]\n"
             + "FROM [foodmart].[product]\n"
@@ -5176,7 +5176,7 @@ public class RelToSqlConverterTest {
         .withSnowflake()
         .ok(expectedSnowFlake)
         .withMssql()
-        .ok(synapseSql);
+        .ok(mssql);
   }
 
   @Test
@@ -5191,7 +5191,7 @@ public class RelToSqlConverterTest {
     final String expectedSnowFlake = "SELECT COUNT(*) OVER (ORDER BY 0 "
         + "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String synapseSql = "SELECT COUNT(*) OVER ()\n"
+    final String mssql = "SELECT COUNT(*) OVER ()\n"
             + "FROM [foodmart].[product]";
     sql(query)
         .withHive()
@@ -5203,7 +5203,7 @@ public class RelToSqlConverterTest {
         .withSnowflake()
         .ok(expectedSnowFlake)
         .withMssql()
-        .ok(synapseSql);
+        .ok(mssql);
   }
 
   @Test
@@ -5230,7 +5230,7 @@ public class RelToSqlConverterTest {
         + " \"department_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"first_name\", \"department_id\"";
-    final String synapseSql = "SELECT [first_name], COUNT(*) AS [department_id_number],"
+    final String mssql = "SELECT [first_name], COUNT(*) AS [department_id_number],"
             + " ROW_NUMBER() OVER (ORDER BY [department_id] NULLS LAST), SUM([department_id])"
             + " OVER (ORDER BY [department_id] NULLS LAST RANGE BETWEEN UNBOUNDED "
             + "PRECEDING AND CURRENT ROW)\n"
@@ -5246,7 +5246,7 @@ public class RelToSqlConverterTest {
         .withSnowflake()
         .ok(expectedSnowFlake)
         .withMssql()
-        .ok(synapseSql);
+        .ok(mssql);
   }
 
   @Test
@@ -6533,13 +6533,13 @@ public class RelToSqlConverterTest {
     final String expectedSnowflake = "SELECT COUNT(*) OVER (ORDER BY 0 ROWS BETWEEN UNBOUNDED "
             + "PRECEDING AND UNBOUNDED FOLLOWING)\n"
             + "FROM \"foodmart\".\"employee\"";
-    final String synapseSql = "SELECT COUNT(*) OVER ()\n"
+    final String mssql = "SELECT COUNT(*) OVER ()\n"
             + "FROM [foodmart].[employee]";
     sql(query)
             .withSnowflake()
             .ok(expectedSnowflake)
             .withMssql()
-            .ok(synapseSql);
+            .ok(mssql);
   }
 
   @Test
