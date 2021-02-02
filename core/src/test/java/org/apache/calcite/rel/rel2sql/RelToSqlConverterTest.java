@@ -84,6 +84,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -845,7 +846,7 @@ class RelToSqlConverterTest {
                 "rank"))
         .as("t")
         .aggregate(b.groupKey(),
-            b.count(b.field("t", "rank")).as("c"))
+            b.count(b.field("t", "rank")).distinct().as("c"))
         .filter(
             b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
                 b.field("c"), b.literal(10)))
@@ -853,17 +854,17 @@ class RelToSqlConverterTest {
 
     // PostgreSQL does not not support nested aggregations
     final String expectedPostgresql =
-        "SELECT COUNT(\"rank\") AS \"c\"\n"
+        "SELECT COUNT(DISTINCT \"rank\") AS \"c\"\n"
         + "FROM (SELECT RANK() OVER (ORDER BY \"SAL\") AS \"rank\"\n"
         + "FROM \"scott\".\"EMP\") AS \"t\"\n"
-        + "HAVING COUNT(\"rank\") >= 10";
+        + "HAVING COUNT(DISTINCT \"rank\") >= 10";
     relFn(relFn).withPostgresql().ok(expectedPostgresql);
 
     // Oracle does support nested aggregations
     final String expectedOracle =
-        "SELECT COUNT(RANK() OVER (ORDER BY \"SAL\")) \"c\"\n"
+        "SELECT COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) \"c\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "HAVING COUNT(RANK() OVER (ORDER BY \"SAL\")) >= 10";
+        + "HAVING COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) >= 10";
     relFn(relFn).withOracle().ok(expectedOracle);
   }
 
@@ -893,7 +894,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .filter(
             builder.call(SqlStdOperatorTable.GREATER_THAN,
-              builder.field(builder.peek().getRowType().getField("EMPNO", false, false).getIndex()),
+              builder.field("EMPNO"),
               builder.literal((short) 10)))
         .join(
             JoinRelType.SEMI, builder.equals(
@@ -5667,7 +5668,7 @@ class RelToSqlConverterTest {
     private final String sql;
     private final SqlDialect dialect;
     private final Set<SqlLibrary> librarySet;
-    private final Function<RelBuilder, RelNode> relFn;
+    private final @Nullable Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
@@ -5675,7 +5676,7 @@ class RelToSqlConverterTest {
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
-        Function<RelBuilder, RelNode> relFn,
+        @Nullable Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);

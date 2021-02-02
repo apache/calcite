@@ -252,20 +252,20 @@ class ToLogicalConverterTest {
 
   @Test void testAggregate() {
     // Equivalent SQL:
-    //   SELECT COUNT(empno) AS c
+    //   SELECT deptno, COUNT(sal) AS c
     //   FROM emp
     //   GROUP BY deptno
     final RelBuilder builder = builder();
     final RelNode rel =
         builder.scan("EMP")
             .aggregate(builder.groupKey(builder.field("DEPTNO")),
-                builder.count(false, "C", builder.field("EMPNO")))
+                builder.count(false, "C", builder.field("SAL")))
             .build();
     String expectedPhysical = ""
-        + "EnumerableAggregate(group=[{7}], C=[COUNT($0)])\n"
+        + "EnumerableAggregate(group=[{7}], C=[COUNT($5)])\n"
         + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical = ""
-        + "LogicalAggregate(group=[{7}], C=[COUNT($0)])\n"
+        + "LogicalAggregate(group=[{7}], C=[COUNT($5)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysical, expectedLogical);
   }

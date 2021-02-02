@@ -254,7 +254,7 @@ class RelFieldTrimmerTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field("DEPTNO")),
-                builder.count(false, "C", builder.field("EMPNO")))
+                builder.count(false, "C", builder.field("SAL")))
             .hints(aggHint)
             .build();
 
@@ -263,7 +263,7 @@ class RelFieldTrimmerTest {
 
     final String expected = ""
         + "LogicalAggregate(group=[{1}], C=[COUNT($0)])\n"
-        + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+        + "  LogicalProject(SAL=[$5], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
 
