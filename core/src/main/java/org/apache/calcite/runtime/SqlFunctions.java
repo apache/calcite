@@ -3069,9 +3069,33 @@ public class SqlFunctions {
   }
 
   public static Object dayOfMonth(Object date) {
-    String[] split = ((String) date).split("-");
-    Integer dayUnit = Integer.parseInt(split[2]);
-    return dayUnit;
+    String delimiter = getDelimiter((String) date);
+    String[] split = ((String) date).split(delimiter);
+    if (split[0].length() == 4) {
+      return Integer.parseInt(split[2]);
+    } else if (split[2].length() == 4) {
+      return Integer.parseInt(split[1]);
+    } else {
+      throw new IllegalArgumentException(" Incorrect Date Format");
+    }
+  }
+
+  public static String getDelimiter(String s) {
+    List<String> cases = new ArrayList<>();
+    cases.add("-");
+    cases.add("/");
+    cases.add(".");
+
+    for (String itr : cases) {
+      if (s.contains(itr)) {
+        if (itr.equals(".")) {
+          return "\\.";
+        }
+        return itr;
+      }
+    }
+    throw new IllegalArgumentException(" Conversion failed"
+            + " when converting date and/or time from character string.");
   }
 
   public static Object toBinary(Object value, Object charSet) {

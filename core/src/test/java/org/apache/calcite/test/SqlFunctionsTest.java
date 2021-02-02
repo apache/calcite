@@ -1129,7 +1129,17 @@ public class SqlFunctionsTest {
   }
 
   @Test public void testdayOfMonth() {
+    assertThat(dayOfMonth("09-23-2008"),
+            is(23));
+    assertThat(dayOfMonth("09/23/2008"),
+            is(23));
+    assertThat(dayOfMonth("09.23.2008"),
+            is(23));
     assertThat(dayOfMonth("2008-09-23"),
+            is(23));
+    assertThat(dayOfMonth("2008/09/23"),
+            is(23));
+    assertThat(dayOfMonth("2008.09.23"),
             is(23));
   }
 

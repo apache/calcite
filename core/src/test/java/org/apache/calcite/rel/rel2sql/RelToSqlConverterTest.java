@@ -4237,7 +4237,7 @@ public class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
-    final String synapse = "SELECT [employee_id]\n"
+    final String mssql = "SELECT [employee_id]\n"
             + "FROM [foodmart].[employee]\n"
             + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
     sql(query)
@@ -4245,7 +4245,7 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBiqquery)
         .withMssql()
-        .ok(synapse);
+        .ok(mssql);
   }
 
   @Test public void testRegexSubstrFunction2Args() {
@@ -4908,13 +4908,17 @@ public class RelToSqlConverterTest {
     String query = "select 'foo' || 'bar' from \"employee\"";
     final String expected = "SELECT CONCAT('foo', 'bar')\n"
         + "FROM foodmart.employee";
+    final String mssql = "SELECT CONCAT('foo', 'bar')\n"
+            + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(mssql);
   }
 
   @Test public void testJsonRemove() {
@@ -5972,7 +5976,7 @@ public class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
         + "':05') AS TIME(0))) AS TIME(0))\n"
         + "FROM foodmart.employee";
-    final String synapse = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
+    final String mssql = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
             + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
@@ -5982,7 +5986,7 @@ public class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBigQuery)
         .withMssql()
-        .ok(synapse);
+        .ok(mssql);
   }
 
   @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
