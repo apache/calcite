@@ -1706,6 +1706,51 @@ public class RelBuilderTest {
         hasTree(plan));
   }
 
+  /** Tests creating (and expanding) a call to {@code GROUP_ID()} in a
+   * {@code GROUPING SETS} query. Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4199">[CALCITE-4199]
+   * RelBuilder throws NullPointerException while implementing
+   * GROUP_ID()</a>. */
+  @Test void testAggregateGroupingSetsGroupId() {
+    final String plan = ""
+        + "LogicalProject(JOB=[$0], DEPTNO=[$1], $f2=[0:BIGINT])\n"
+        + "  LogicalAggregate(group=[{2, 7}], groups=[[{2, 7}, {2}, {7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(groupIdRel(createBuilder(), false), hasTree(plan));
+    assertThat(
+        groupIdRel(createBuilder(c -> c.withAggregateUnique(true)), false),
+        hasTree(plan));
+
+    // If any group occurs more than once, we need a UNION ALL.
+    final String plan2 = ""
+        + "LogicalUnion(all=[true])\n"
+        + "  LogicalProject(JOB=[$0], DEPTNO=[$1], $f2=[0:BIGINT])\n"
+        + "    LogicalAggregate(group=[{2, 7}], groups=[[{2, 7}, {2}, {7}]])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalProject(JOB=[$0], DEPTNO=[$1], $f2=[1:BIGINT])\n"
+        + "    LogicalAggregate(group=[{2, 7}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(groupIdRel(createBuilder(), true), hasTree(plan2));
+  }
+
+  private static RelNode groupIdRel(RelBuilder builder, boolean extra) {
+    final List<String> djList = Arrays.asList("DEPTNO", "JOB");
+    final List<String> dList = Collections.singletonList("DEPTNO");
+    final List<String> jList = Collections.singletonList("JOB");
+    return builder.scan("EMP")
+        .aggregate(
+            builder.groupKey(builder.fields(djList),
+                ImmutableList.<List<? extends RexNode>>builder()
+                    .add(builder.fields(dList))
+                    .add(builder.fields(jList))
+                    .add(builder.fields(djList))
+                    .addAll(extra ? ImmutableList.of(builder.fields(djList))
+                        : ImmutableList.of())
+                    .build()),
+            builder.aggregateCall(SqlStdOperatorTable.GROUP_ID))
+        .build();
+  }
+
   @Test void testDistinct() {
     // Equivalent SQL:
     //   SELECT DISTINCT deptno

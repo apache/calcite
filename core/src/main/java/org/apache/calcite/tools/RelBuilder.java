@@ -3367,11 +3367,14 @@ public class RelBuilder {
     }
 
     @Override public AggregateCall aggregateCall() {
+      // Use dummy values for collation and type. This method only promises to
+      // return a call that is "approximately equivalent ... and is good for
+      // deriving field names", so dummy values are good enough.
+      final RelCollation collation = RelCollations.EMPTY;
+      final RelDataType type =
+          getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
       return AggregateCall.create(aggFunction, distinct, approximate,
-          ignoreNulls, ImmutableList.of(), -1,
-          requireNonNull(null, "CALCITE-4234: collation is null"),
-          requireNonNull(null, "CALCITE-4234: type is null"),
-          alias);
+          ignoreNulls, ImmutableList.of(), -1, collation, type, alias);
     }
 
     @Override public AggregateCall aggregateCall(Registrar registrar,
