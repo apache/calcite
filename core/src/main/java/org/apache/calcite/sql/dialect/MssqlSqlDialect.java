@@ -46,6 +46,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -110,29 +111,27 @@ public class MssqlSqlDialect extends SqlDialect {
     SqlCharStringLiteral charStringLiteral = SqlLiteral
         .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
     if (literal instanceof SqlTimestampLiteral) {
-      SqlNode castCall = getCastCall(charStringLiteral, null,
-          new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+      SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATETIME2)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
-      SqlNode castCall = getCastCall(charStringLiteral, null,
-          new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME));
+      SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else {
       writer.literal("'" + literal.toFormattedString() + "'");
     }
   }
 
-  private BasicSqlType getDateTime2SqlType() {
-    return new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATETIME2);
-  }
-
-  @Override public SqlNode getCastCall(
-      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
-    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() >= 0) {
-      SqlNode[] sqlNodes = {operandToCast, getCastSpec(getDateTime2SqlType())};
-      return CAST.createCall(SqlParserPos.ZERO, sqlNodes);
+  @Override public SqlNode getCastSpec(RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      int maxPrecision = -1;
+      String charSet = type.getCharset() != null && supportsCharSet()
+          ? type.getCharset().name()
+          : null;
+      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision);
     }
-    return super.getCastCall(operandToCast, castFrom, castTo);
+    return SqlTypeUtil.convertTypeToSpec(type);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
