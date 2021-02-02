@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -124,6 +125,14 @@ public class MssqlSqlDialect extends SqlDialect {
         break;
       case TRUNCATE:
         unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+        break;
+      case OVER:
+        if (checkWindowFunctionContainOrderBy(call)) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        } else {
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          unparseSqlWindow(writer, call, leftPrec, rightPrec);
+        }
         break;
       case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -382,6 +391,41 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.print("0");
     }
     writer.endFunCall(funcFrame);
+  }
+  private boolean checkWindowFunctionContainOrderBy(SqlCall call) {
+    return !((SqlWindow) call.operand(1)).getOrderList().getList().isEmpty();
+  }
+
+  private void unparseSqlWindow(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWindow window = call.operand(1);
+    writer.print("OVER ");
+    final SqlWriter.Frame frame =
+            writer.startList(SqlWriter.FrameTypeEnum.WINDOW, "(", ")");
+
+    if (window.getRefName() != null) {
+      window.getRefName().unparse(writer, 0, 0);
+    }
+
+    SqlCall firstOperandColumn = call.operand(0);
+
+    if (window.getPartitionList().size() > 0) {
+      writer.sep("PARTITION BY");
+      final SqlWriter.Frame partitionFrame = writer.startList("", "");
+      window.getPartitionList().unparse(writer, 0, 0);
+      writer.endList(partitionFrame);
+    }
+
+    if (!firstOperandColumn.getOperandList().isEmpty()) {
+      if (window.getLowerBound() != null) {
+        writer.print("ORDER BY ");
+        SqlNode orderByColumn = firstOperandColumn.operand(0);
+        orderByColumn.unparse(writer, 0, 0);
+
+        writer.print("ROWS BETWEEN " +  window.getLowerBound()
+                + " AND " + window.getUpperBound());
+      }
+    }
+    writer.endList(frame);
   }
 }
 
