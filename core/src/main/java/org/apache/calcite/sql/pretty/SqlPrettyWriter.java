@@ -256,6 +256,13 @@ public class SqlPrettyWriter implements SqlWriter {
           LoggerFactory.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
 
   /**
+   * Default SqlWriterConfig, reduce the overhead of "ImmutableBeans.create"
+   */
+  private static final SqlWriterConfig CONFIG =
+      ImmutableBeans.create(SqlWriterConfig.class)
+          .withDialect(CalciteSqlDialect.DEFAULT);
+
+  /**
    * Bean holding the default property values.
    */
   private static final Bean DEFAULT_BEAN =
@@ -353,8 +360,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a {@link SqlWriterConfig} with Calcite's SQL dialect. */
   public static SqlWriterConfig config() {
-    return ImmutableBeans.create(SqlWriterConfig.class)
-        .withDialect(CalciteSqlDialect.DEFAULT);
+    return CONFIG;
   }
 
   //~ Methods ----------------------------------------------------------------
