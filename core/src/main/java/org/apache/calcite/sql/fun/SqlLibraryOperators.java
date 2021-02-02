@@ -714,7 +714,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(ImmutableList.of
           (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              number -> number == 1 || number == 3),
+              number -> number == 2 || number == 3),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction CHARINDEX = new SqlFunction(
+          "CHARINDEX",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(ImmutableList.of
+          (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.INTEGER),
+              number -> number == 2),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})

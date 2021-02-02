@@ -154,8 +154,10 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
-      case OTHER_FUNCTION:
       case TRUNCATE:
+        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+        break;
+      case OTHER_FUNCTION:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -222,17 +224,21 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
-    case "TRUNCATE":
-      final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
+      unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+      break;
+    case "INSTR":
+      if (call.operandCount() > 3) {
+        throw new RuntimeException("4th operand Not Supported by CHARINDEX in MSSQL");
       }
-      if (call.operandCount() < 2) {
+      final SqlWriter.Frame charindexFrame = writer.startFunCall("CHARINDEX");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
         writer.sep(",");
-        writer.print("0");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
-      writer.endFunCall(funcFrame);
+      writer.endFunCall(charindexFrame);
       break;
     case "CURRENT_TIMESTAMP":
       unparseGetDate(writer);
@@ -407,6 +413,19 @@ public class MssqlSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unpaseRoundAndTrunc(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall("ROUND");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    if (call.operandCount() < 2) {
+      writer.sep(",");
+      writer.print("0");
+    }
+    writer.endFunCall(funcFrame);
   }
 }
 
