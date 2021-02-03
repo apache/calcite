@@ -6713,6 +6713,15 @@ public class RelToSqlConverterTest {
         + "WHERE [product_id] < 10";
     sql(query).withMssql().ok(expected);
   }
+
+  @Test public void testDayOfMonth() {
+    String query = "select DAYOFMONTH( DATE '2008-08-29')";
+    final String expectedMssql = "SELECT DAY('2008-08-29')";
+    sql(query)
+      .withMssql()
+      .ok(expectedMssql);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
