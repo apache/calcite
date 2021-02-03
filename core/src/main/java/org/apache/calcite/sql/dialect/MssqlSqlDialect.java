@@ -41,6 +41,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.ToNumberUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -113,6 +114,9 @@ public class MssqlSqlDialect extends SqlDialect {
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
     } else {
       switch (call.getKind()) {
+      case TO_NUMBER:
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+        break;
       case FLOOR:
         if (call.operandCount() != 2) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -135,6 +139,7 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         break;
       case OTHER_FUNCTION:
+      case OTHER:
         unparseOtherFunction(writer, call, leftPrec, rightPrec);
         break;
       case CEIL:
@@ -150,6 +155,14 @@ public class MssqlSqlDialect extends SqlDialect {
         break;
       case EXTRACT:
         unparseExtract(writer, call, leftPrec, rightPrec);
+        break;
+      case CONCAT:
+        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(concatFrame);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -211,6 +224,11 @@ public class MssqlSqlDialect extends SqlDialect {
     case "CURRENT_DATE":
     case "CURRENT_TIME":
       castGetDateToDateTime(writer, call.getOperator().getName().replace("CURRENT_", ""));
+      break;
+    case "DAYOFMONTH":
+      final SqlWriter.Frame dayFrame = writer.startFunCall("DAY");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(dayFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -4246,10 +4246,15 @@ public class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
+    final String mssql = "SELECT [employee_id]\n"
+            + "FROM [foodmart].[employee]\n"
+            + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
     sql(query)
         .ok(expected)
         .withBigQuery()
-        .ok(expectedBiqquery);
+        .ok(expectedBiqquery)
+        .withMssql()
+        .ok(mssql);
   }
 
   @Test public void testRegexSubstrFunction2Args() {
@@ -4912,13 +4917,17 @@ public class RelToSqlConverterTest {
     String query = "select 'foo' || 'bar' from \"employee\"";
     final String expected = "SELECT CONCAT('foo', 'bar')\n"
         + "FROM foodmart.employee";
+    final String mssql = "SELECT CONCAT('foo', 'bar')\n"
+            + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(mssql);
   }
 
   @Test public void testJsonRemove() {
@@ -5776,7 +5785,9 @@ public class RelToSqlConverterTest {
         .withSpark()
         .ok(expected)
         .withSnowflake()
-        .ok(expectedSnowFlake);
+        .ok(expectedSnowFlake)
+        .withMssql()
+        .ok(expected);
   }
 
   @Test
@@ -5996,13 +6007,17 @@ public class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
         + "':05') AS TIME(0))) AS TIME(0))\n"
         + "FROM foodmart.employee";
+    final String mssql = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
+            + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expectedBigQuery);
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(mssql);
   }
 
   @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
@@ -6733,6 +6748,15 @@ public class RelToSqlConverterTest {
         + "WHERE [product_id] < 10";
     sql(query).withMssql().ok(expected);
   }
+
+  @Test public void testDayOfMonth() {
+    String query = "select DAYOFMONTH( DATE '2008-08-29')";
+    final String expectedMssql = "SELECT DAY('2008-08-29')";
+    sql(query)
+      .withMssql()
+      .ok(expectedMssql);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
