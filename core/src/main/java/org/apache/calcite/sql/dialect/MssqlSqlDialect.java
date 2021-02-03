@@ -41,6 +41,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.ToNumberUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -113,6 +114,9 @@ public class MssqlSqlDialect extends SqlDialect {
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
     } else {
       switch (call.getKind()) {
+      case TO_NUMBER:
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+        break;
       case FLOOR:
         if (call.operandCount() != 2) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
