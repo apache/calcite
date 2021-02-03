@@ -22,17 +22,21 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * ArrowFieldType.
  */
 enum ArrowFieldType {
-  INT(Primitive.LONG),
+  INT(Primitive.INT),
   BOOLEAN(Primitive.BOOLEAN),
   STRING(String.class, null),
-  FLOAT(Primitive.DOUBLE);
+  FLOAT(Primitive.FLOAT),
+  DATE(Date.class, null),
+  LIST(List.class, null);
 
   private final Class clazz;
   private final Primitive primitive;
@@ -44,6 +48,8 @@ enum ArrowFieldType {
     MAP.put(ArrowType.Bool.class, BOOLEAN);
     MAP.put(ArrowType.Utf8.class, STRING);
     MAP.put(ArrowType.FloatingPoint.class, FLOAT);
+    MAP.put(ArrowType.Date.class, DATE);
+    MAP.put(ArrowType.List.class, LIST);
   }
 
   ArrowFieldType(Primitive primitive) {
