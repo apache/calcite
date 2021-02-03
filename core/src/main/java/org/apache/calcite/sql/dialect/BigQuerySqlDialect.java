@@ -85,6 +85,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOURMINSEC;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILISECONDS_4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
@@ -174,6 +175,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(ABBREVIATEDDAYOFWEEK, "%a");
         put(TWENTYFOURHOUR, "%H");
         put(HOUR, "%I");
+        put(HOURMINSEC, "%I%M%S");
         put(MINUTE, "%M");
         put(SECOND, "%S");
         put(FRACTIONONE, "1S");
