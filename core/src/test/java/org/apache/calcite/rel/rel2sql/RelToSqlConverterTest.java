@@ -4922,17 +4922,21 @@ public class RelToSqlConverterTest {
         .ok(expectedBigQuery);
   }
 
-  @Test public void concatFunctionEmulationForHiveAndSparkAndBigQuery() {
+  @Test public void concatFunctionEmulation() {
     String query = "select 'foo' || 'bar' from \"employee\"";
     final String expected = "SELECT CONCAT('foo', 'bar')\n"
         + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT CONCAT('foo', 'bar')\n"
+        + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expected)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void testJsonRemove() {
@@ -6012,13 +6016,17 @@ public class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
         + "':05') AS TIME(0))) AS TIME(0))\n"
         + "FROM foodmart.employee";
+    final String expectedMsSql = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
+        + "FROM [foodmart].[employee]";
     sql(query)
         .withHive()
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
         .withBigQuery()
-        .ok(expectedBigQuery);
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
   @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
