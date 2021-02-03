@@ -19,7 +19,6 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -46,9 +45,8 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.ToNumberUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -114,7 +112,7 @@ public class MssqlSqlDialect extends SqlDialect {
         .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
     if (literal instanceof SqlTimestampLiteral) {
       SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
-          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATETIME2)));
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP, 0)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
       SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
@@ -123,17 +121,6 @@ public class MssqlSqlDialect extends SqlDialect {
     } else {
       writer.literal("'" + literal.toFormattedString() + "'");
     }
-  }
-
-  @Override public SqlNode getCastSpec(RelDataType type) {
-    if (type instanceof BasicSqlType) {
-      int maxPrecision = -1;
-      String charSet = type.getCharset() != null && supportsCharSet()
-          ? type.getCharset().name()
-          : null;
-      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision);
-    }
-    return SqlTypeUtil.convertTypeToSpec(type);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,

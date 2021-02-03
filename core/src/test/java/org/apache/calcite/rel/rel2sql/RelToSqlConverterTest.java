@@ -2537,7 +2537,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDatePlus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS DATETIME2)";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDatePlus)
         .withMssql()
@@ -2547,7 +2547,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS DATETIME2)";
+        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinus)
         .withMssql()
@@ -2558,7 +2558,7 @@ public class RelToSqlConverterTest {
         + " > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinusNegate = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS DATETIME2)";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinusNegate)
         .withMssql()
