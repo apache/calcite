@@ -619,6 +619,12 @@ public class SqlFunctions {
     return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
   }
 
+  /** SQL {@code RLIKE} function. */
+  public static boolean rlike(String s, String pattern) {
+    // use java regex pattern match
+    return Pattern.compile(pattern).matcher(s).find();
+  }
+
   /** SQL {@code SIMILAR} function. */
   public static boolean similar(String s, String pattern) {
     final String regex = Like.sqlToRegexSimilar(pattern, null);

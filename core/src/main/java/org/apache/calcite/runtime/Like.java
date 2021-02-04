@@ -110,6 +110,7 @@ public class Like {
     return javaPattern.toString();
   }
 
+
   private static RuntimeException invalidEscapeCharacter(String s) {
     return new RuntimeException(
         "Invalid escape character '" + s + "'");

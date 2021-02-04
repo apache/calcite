@@ -137,6 +137,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -479,6 +480,10 @@ public class RexImpTable {
         new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
             false);
     map.put(ILIKE, ilikeImplementor);
+    final MethodImplementor rlikeImplementor =
+        new MethodImplementor(BuiltInMethod.RLIKE.method, NullPolicy.STRICT,
+        false);
+    map.put(RLIKE, rlikeImplementor);
     final MethodImplementor similarImplementor =
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
             false);

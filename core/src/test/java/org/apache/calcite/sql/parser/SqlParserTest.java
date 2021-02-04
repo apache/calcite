@@ -451,6 +451,7 @@ public class SqlParserTest {
       "RETURNS",                       "92", "99", "2003", "2011", "2014", "c",
       "REVOKE",                        "92", "99", "2003", "2011", "2014", "c",
       "RIGHT",                         "92", "99", "2003", "2011", "2014", "c",
+      "RLIKE",
       "ROLE",                                "99",
       "ROLLBACK",                      "92", "99", "2003", "2011", "2014", "c",
       "ROLLUP",                              "99", "2003", "2011", "2014", "c",
@@ -1820,6 +1821,22 @@ public class SqlParserTest {
     final String expected1 = "SELECT *\n"
         + "FROM `T`\n"
         + "WHERE (`X` ILIKE '%abc%')";
+    sql(sql1).ok(expected1);
+  }
+
+  @Test void testRLike() {
+    // The RLIKE operator is valid when the HIVE or SPARK function library is
+    // enabled ('fun=spark' or 'fun=hive'). But the parser can always parse it.
+    final String expected = "SELECT `COLA`\n"
+        + "FROM `T`\n"
+        + "WHERE (MAX(`EMAIL`) RLIKE '.+@.+\\\\..+')";
+    final String sql = "select cola from t where max(email) rlike '.+@.+\\\\..+'";
+    sql(sql).ok(expected);
+
+    final String expected1 = "SELECT `COLA`\n"
+        + "FROM `T`\n"
+        + "WHERE (MAX(`EMAIL`) NOT RLIKE '.+@.+\\\\..+')";
+    final String sql1 = "select cola from t where max(email) not rlike '.+@.+\\\\..+'";
     sql(sql1).ok(expected1);
   }
 

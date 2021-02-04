@@ -471,6 +471,16 @@ public abstract class SqlLibraryOperators {
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
+  /** The regex variant of the LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false, true);
+
+  /** The regex variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator NOT_RLIKE =
+      new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
