@@ -852,6 +852,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "STRTOK":
       unparseStrtok(writer, call, leftPrec, rightPrec);
       break;
+    case "DAYOFMONTH":
+      SqlWriter.Frame extrctFrame = writer.startFunCall("Extract");
+      writer.print("DAY FROM ");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(extrctFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
