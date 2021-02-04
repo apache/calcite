@@ -2537,7 +2537,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDatePlus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDatePlus)
         .withMssql()
@@ -2547,7 +2547,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinus)
         .withMssql()
@@ -2558,11 +2558,25 @@ public class RelToSqlConverterTest {
         + " > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinusNegate = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinusNegate)
         .withMssql()
         .ok(expectedDateMinusNegate);
+  }
+
+  @Test public void testUnparseTimeLiteral() {
+    String queryDatePlus = "select TIME '11:25:18' "
+        + "from \"employee\"";
+    String expectedBQSql = "SELECT TIME '11:25:18'\n"
+        + "FROM foodmart.employee";
+    String expectedSql = "SELECT CAST('11:25:18' AS TIME(0))\n"
+        + "FROM [foodmart].[employee]";
+    sql(queryDatePlus)
+        .withBigQuery()
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedSql);
   }
 
   @Test public void testFloorMysqlWeek() {
