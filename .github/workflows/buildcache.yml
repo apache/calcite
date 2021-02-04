@@ -6,8 +6,11 @@ on:
       - master
 
 jobs:
-  ubuntu-code-style:
+  seed-build-cache:
     strategy:
+      # CI resources are shared, so reduce concurrent builds
+      max-parallel: 3
+      fail-fast: false
       matrix:
         os: [ubuntu, macos, windows]
         jdk: [8, 11, 15]
