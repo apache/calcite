@@ -1022,20 +1022,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final Sql s = sql("?")
         .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
     s.expr("'a' rlike '.+@.+\\\\..+'").columnType("BOOLEAN NOT NULL");
-  }
-
-  @Test void testRlikeSparkSupport1() {
-    final Sql s = sql("?")
-        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
     s.expr("'first_name' rlike '%Ted%'").columnType("BOOLEAN NOT NULL");
-  }
-
-  @Test void testRlikeSparkSupport2() {
-    final Sql s = sql("?")
-        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
     s.expr("'first_name' rlike '^M+'").columnType("BOOLEAN NOT NULL");
   }
-
 
   @Test void testRlikeHiveSupport() {
     final Sql s = sql("?")
