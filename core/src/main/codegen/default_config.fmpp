@@ -224,6 +224,7 @@ parser: {
     "RETURNED_OCTET_LENGTH"
     "RETURNED_SQLSTATE"
     "RETURNING"
+    "RLIKE"
     "ROLE"
     "ROUTINE"
     "ROUTINE_CATALOG"
