@@ -4563,6 +4563,28 @@ public class RelToSqlConverterTest {
         .ok(expectedSnowflake);
   }
 
+  @Test public void testIntervalMinute() {
+    String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
+            + "'2' minute from \"employee\"";
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
+            + "TIMESTAMP(0)), INTERVAL 2 MINUTE)\n"
+            + "FROM foodmart.employee";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery);
+  }
+
+  @Test public void testIntervalSecond() {
+    String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
+            + "second from \"employee\"";
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS"
+            + " TIMESTAMP(0)), INTERVAL 2 SECOND)\n"
+            + "FROM foodmart.employee";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery);
+  }
+
   @Test public void testDateSubInterFunction() {
     String query = "select \"birth_date\" - INTERVAL '2' day from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, 2) AS DATE)\n"
