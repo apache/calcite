@@ -859,6 +859,7 @@ RETURNING,
 **RETURNS**,
 **REVOKE**,
 **RIGHT**,
+RLIKE,
 ROLE,
 **ROLLBACK**,
 **ROLLUP**,
@@ -2533,6 +2534,8 @@ semantics.
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
+| h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
+| h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*

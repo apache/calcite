@@ -3665,6 +3665,29 @@ class RelToSqlConverterTest {
     sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
   }
 
+  @Test void testRlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" rlike '.+@.+\\\\..+'";
+    String expectedSpark = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" RLIKE '.+@.+\\\\..+'";
+    String expectedHive = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" RLIKE '.+@.+\\\\..+'";
+    sql(query)
+        .withLibrary(SqlLibrary.SPARK).ok(expectedSpark)
+        .withLibrary(SqlLibrary.HIVE).ok(expectedHive);
+  }
+
+  @Test void testNotRlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" not rlike '.+@.+\\\\..+'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT RLIKE '.+@.+\\\\..+'";
+    sql(query).withLibrary(SqlLibrary.SPARK).ok(expected);
+  }
+
   @Test void testNotIlike() {
     String query = "select \"product_name\" from \"product\" a "
         + "where \"product_name\" not ilike 'abC'";

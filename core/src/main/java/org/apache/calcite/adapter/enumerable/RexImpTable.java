@@ -138,6 +138,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -473,18 +474,18 @@ public class RexImpTable {
     map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
 
     // LIKE, ILIKE and SIMILAR
-    final MethodImplementor likeImplementor =
+    map.put(LIKE,
         new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
-            false);
-    map.put(LIKE, likeImplementor);
-    final MethodImplementor ilikeImplementor =
+            false));
+    map.put(ILIKE,
         new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
-            false);
-    map.put(ILIKE, ilikeImplementor);
-    final MethodImplementor similarImplementor =
+            false));
+    map.put(RLIKE,
+        new MethodImplementor(BuiltInMethod.RLIKE.method, NullPolicy.STRICT,
+            false));
+    map.put(SIMILAR_TO,
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
-            false);
-    map.put(SIMILAR_TO, similarImplementor);
+        false));
 
     // POSIX REGEX
     final MethodImplementor posixRegexImplementorCaseSensitive =

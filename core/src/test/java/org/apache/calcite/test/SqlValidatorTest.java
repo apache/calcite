@@ -1018,6 +1018,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature ILIKE");
   }
 
+  @Test void testRlike() {
+    // RLIKE is supported for SPARK
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    s.expr("'first_name' rlike '%Ted%'").columnType("BOOLEAN NOT NULL");
+    s.expr("'first_name' rlike '^M+'").columnType("BOOLEAN NOT NULL");
+
+    // RLIKE is only supported for Spark and Hive
+    String noMatch = "(?s).*No match found for function signature RLIKE";
+    expr("^'b' rlike '.+@.+\\\\..+'^")
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .columnType("BOOLEAN NOT NULL")
+        .withOperatorTable(operatorTableFor(SqlLibrary.HIVE))
+        .columnType("BOOLEAN NOT NULL");
+  }
+
   public void _testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"

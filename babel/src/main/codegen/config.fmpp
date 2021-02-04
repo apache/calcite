@@ -402,6 +402,7 @@ data: {
       "RETURNS"
       "REVOKE"
 #     "RIGHT"
+      "RLIKE"
       "ROLE"
       "ROLLBACK"
 #     "ROLLUP"
