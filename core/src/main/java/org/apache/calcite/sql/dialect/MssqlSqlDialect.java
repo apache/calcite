@@ -111,7 +111,7 @@ public class MssqlSqlDialect extends SqlDialect {
     SqlCharStringLiteral charStringLiteral = SqlLiteral
         .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
     if (literal instanceof SqlTimestampLiteral) {
-      SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
+      SqlNode castCall =  CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
           getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
