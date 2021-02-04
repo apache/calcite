@@ -857,9 +857,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseStrtok(writer, call, leftPrec, rightPrec);
       break;
     case "DAYOFMONTH":
-      SqlNode dayCall = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
+      SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
       SqlCall extractCall = EXTRACT.createCall(SqlParserPos.ZERO,
-              dayCall, call.operand(0));
+              daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
     default:
