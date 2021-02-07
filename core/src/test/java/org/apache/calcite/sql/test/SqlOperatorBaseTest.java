@@ -3852,10 +3852,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab\ncd\nef' not like '%cde%'", Boolean.TRUE);
   }
 
-  @Test void testRLikeOperator() {
+  @Test void testRlikeOperatorSpark() {
+    // Rlike Supported for Spark
     final SqlTester tester1 = libraryTester(SqlLibrary.SPARK);
     tester1.setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
     tester1.checkBoolean("'Merrisa@gmail.com' rlike '.+@*\\.com'", Boolean.TRUE);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike '.com$'", Boolean.TRUE);
     tester1.checkBoolean("'acbd' rlike '^ac+'", Boolean.TRUE);
     tester1.checkBoolean("'acb' rlike 'acb|efg'", Boolean.TRUE);
     tester1.checkBoolean("'acb|efg' rlike 'acb\\|efg'", Boolean.TRUE);
@@ -3864,7 +3866,32 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkBoolean("'abcdef' rlike '%cd%'", Boolean.FALSE);
   }
 
-  @Test void testNotRLikeOperator() {
+  @Test void testRlikeOperatorHive() {
+    // Rlike Supported for HIVE
+    final SqlTester tester1 = libraryTester(SqlLibrary.HIVE);
+    tester1.setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike '.+@*\\.com'", Boolean.TRUE);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike '.com$'", Boolean.TRUE);
+    tester1.checkBoolean("'acbd' rlike '^ac+'", Boolean.TRUE);
+    tester1.checkBoolean("'acb' rlike 'acb|efg'", Boolean.TRUE);
+    tester1.checkBoolean("'acb|efg' rlike 'acb\\|efg'", Boolean.TRUE);
+    tester1.checkBoolean("'Acbd' rlike '^ac+'", Boolean.FALSE);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike 'Merrisa_'", Boolean.FALSE);
+    tester1.checkBoolean("'abcdef' rlike '%cd%'", Boolean.FALSE);
+  }
+
+  @Test void testNotRlikeOperatorHive() {
+    // Not Rlike Supported for Hive
+    final SqlTester tester1 = libraryTester(SqlLibrary.HIVE);
+    tester1.setFor(SqlLibraryOperators.NOT_RLIKE, VM_EXPAND);
+    tester1.checkBoolean("'Merrisagmail' not rlike '.+@*\\.com'", Boolean.TRUE);
+    tester1.checkBoolean("'acbd' not rlike '^ac+'", Boolean.FALSE);
+    tester1.checkBoolean("'acb|efg' not rlike 'acb\\|efg'", Boolean.FALSE);
+    tester1.checkBoolean("'Merrisa@gmail.com' not rlike 'Merrisa_'", Boolean.TRUE);
+  }
+
+  @Test void testNotRlikeOperatorSpark() {
+    // Not Rlike Supported for Spark
     final SqlTester tester1 = libraryTester(SqlLibrary.SPARK);
     tester1.setFor(SqlLibraryOperators.NOT_RLIKE, VM_EXPAND);
     tester1.checkBoolean("'Merrisagmail' not rlike '.+@*\\.com'", Boolean.TRUE);
@@ -3872,6 +3899,19 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkBoolean("'acb|efg' not rlike 'acb\\|efg'", Boolean.FALSE);
     tester1.checkBoolean("'Merrisa@gmail.com' not rlike 'Merrisa_'", Boolean.TRUE);
   }
+
+  @Test void testRlikeOperatorMySQL() {
+    // Rlike not supported for MYSQL
+    final SqlTester tester1 = libraryTester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    final String noRlike = "(?s).*No match found for function signature RLIKE";
+    tester1.checkFails("^'Merrisa@gmail.com' rlike '.+@*\\.com'^", noRlike, false);
+    tester1.checkFails("^'acb' rlike 'acb|efg'^", noRlike, false);
+    final String noNotRlike = "(?s).*No match found for function signature NOT RLIKE";
+    tester1.checkFails("^'abcdef' not rlike '%cd%'^", noNotRlike, false);
+    tester1.checkFails("^'Merrisa@gmail.com' not rlike 'Merrisa_'^", noNotRlike, false);
+  }
+
 
   @Test void testLikeEscape() {
     tester.setFor(SqlStdOperatorTable.LIKE);

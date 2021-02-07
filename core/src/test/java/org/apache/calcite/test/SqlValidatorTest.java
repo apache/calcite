@@ -1018,18 +1018,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature ILIKE");
   }
 
-  @Test void testRlikeSparkSupport() {
+  @Test void testRlikeSupport() {
+    // Rlike is supported for SPARK
     final Sql s = sql("?")
         .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
     s.expr("'a' rlike '.+@.+\\\\..+'").columnType("BOOLEAN NOT NULL");
     s.expr("'first_name' rlike '%Ted%'").columnType("BOOLEAN NOT NULL");
     s.expr("'first_name' rlike '^M+'").columnType("BOOLEAN NOT NULL");
-  }
 
-  @Test void testRlikeHiveSupport() {
-    final Sql s = sql("?")
+    // Rlike is supported for HIVE
+    final Sql s1 = sql("?")
         .withOperatorTable(operatorTableFor(SqlLibrary.HIVE));
-    s.expr("'a' rlike '.+@.+\\\\..+'").columnType("BOOLEAN NOT NULL");
+    s1.expr("'a' rlike '.+@.+\\\\..+'").columnType("BOOLEAN NOT NULL");
+
+    // Rlike is only supported for Spark and Hive
+    expr("^'b' rlike '.+@.+\\\\..+'^").fails("(?s).*No match found for function signature RLIKE");
   }
 
   @Test void testRlikeNotSupported() {

@@ -1824,7 +1824,7 @@ public class SqlParserTest {
     sql(sql1).ok(expected1);
   }
 
-  @Test void testRLike() {
+  @Test void testRlike() {
     // The RLIKE operator is valid when the HIVE or SPARK function library is
     // enabled ('fun=spark' or 'fun=hive'). But the parser can always parse it.
     final String expected = "SELECT `COLA`\n"
