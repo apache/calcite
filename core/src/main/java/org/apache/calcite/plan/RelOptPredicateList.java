@@ -96,12 +96,12 @@ public class RelOptPredicateList {
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,
       ImmutableMap<RexNode, RexNode> constantMap) {
-    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates);
+    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates, "pulledUpPredicates");
     this.leftInferredPredicates =
-        Objects.requireNonNull(leftInferredPredicates);
+        Objects.requireNonNull(leftInferredPredicates, "leftInferredPredicates");
     this.rightInferredPredicates =
-        Objects.requireNonNull(rightInferredPredicates);
-    this.constantMap = Objects.requireNonNull(constantMap);
+        Objects.requireNonNull(rightInferredPredicates, "rightInferredPredicates");
+    this.constantMap = Objects.requireNonNull(constantMap, "constantMap");
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred

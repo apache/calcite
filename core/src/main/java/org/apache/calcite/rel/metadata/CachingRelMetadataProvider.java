@@ -107,7 +107,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     private final Metadata metadata;
 
     CachingInvocationHandler(Metadata metadata) {
-      this.metadata = requireNonNull(metadata);
+      this.metadata = requireNonNull(metadata, "metadata");
     }
 
     @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)

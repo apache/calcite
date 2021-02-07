@@ -98,8 +98,8 @@ public class IndexCondition {
             : ImmutableList.copyOf(remainderConditions);
     this.queryType = queryType;
     this.pointQueryKey = pointQueryKey;
-    this.rangeQueryLowerOp = Objects.requireNonNull(rangeQueryLowerOp);
-    this.rangeQueryUpperOp = Objects.requireNonNull(rangeQueryUpperOp);
+    this.rangeQueryLowerOp = Objects.requireNonNull(rangeQueryLowerOp, "rangeQueryLowerOp");
+    this.rangeQueryUpperOp = Objects.requireNonNull(rangeQueryUpperOp, "rangeQueryUpperOp");
     this.rangeQueryLowerKey = ImmutableList.copyOf(rangeQueryLowerKey);
     this.rangeQueryUpperKey = ImmutableList.copyOf(rangeQueryUpperKey);
   }

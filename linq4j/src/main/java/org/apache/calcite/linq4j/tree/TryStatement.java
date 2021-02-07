@@ -33,8 +33,8 @@ public class TryStatement extends Statement {
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
       @Nullable Statement fynally) {
     super(ExpressionType.Try, body.getType());
-    this.body = Objects.requireNonNull(body);
-    this.catchBlocks = Objects.requireNonNull(catchBlocks);
+    this.body = Objects.requireNonNull(body, "body");
+    this.catchBlocks = Objects.requireNonNull(catchBlocks, "catchBlocks");
     this.fynally = fynally;
   }
 

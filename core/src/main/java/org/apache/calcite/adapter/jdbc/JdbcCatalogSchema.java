@@ -68,9 +68,9 @@ public class JdbcCatalogSchema extends AbstractSchema {
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog) {
-    this.dataSource = requireNonNull(dataSource);
-    this.dialect = requireNonNull(dialect);
-    this.convention = requireNonNull(convention);
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.dialect = requireNonNull(dialect, "dialect");
+    this.convention = requireNonNull(convention, "convention");
     this.catalog = catalog;
   }
 

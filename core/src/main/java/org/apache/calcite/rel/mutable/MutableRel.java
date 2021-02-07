@@ -71,9 +71,9 @@ public abstract class MutableRel {
 
   protected MutableRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type) {
-    this.cluster = Objects.requireNonNull(cluster);
-    this.rowType = Objects.requireNonNull(rowType);
-    this.type = Objects.requireNonNull(type);
+    this.cluster = Objects.requireNonNull(cluster, "cluster");
+    this.rowType = Objects.requireNonNull(rowType, "rowType");
+    this.type = Objects.requireNonNull(type, "type");
   }
 
   public @Nullable MutableRel getParent() {

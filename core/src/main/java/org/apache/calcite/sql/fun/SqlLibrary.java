@@ -72,8 +72,8 @@ public enum SqlLibrary {
   public final String fun;
 
   SqlLibrary(String abbrev, String fun) {
-    this.abbrev = Objects.requireNonNull(abbrev);
-    this.fun = Objects.requireNonNull(fun);
+    this.abbrev = Objects.requireNonNull(abbrev, "abbrev");
+    this.fun = Objects.requireNonNull(fun, "fun");
     Preconditions.checkArgument(
         fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }

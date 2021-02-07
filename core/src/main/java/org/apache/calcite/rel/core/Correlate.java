@@ -97,9 +97,9 @@ public abstract class Correlate extends BiRel {
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
     assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
-    this.joinType = requireNonNull(joinType);
-    this.correlationId = requireNonNull(correlationId);
-    this.requiredColumns = requireNonNull(requiredColumns);
+    this.joinType = requireNonNull(joinType, "joinType");
+    this.correlationId = requireNonNull(correlationId, "correlationId");
+    this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
   }
 
   /**

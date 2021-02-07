@@ -105,7 +105,7 @@ public final class LogicalJoin extends Join {
       ImmutableList<RelDataTypeField> systemFieldList) {
     super(cluster, traitSet, hints, left, right, condition, variablesSet, joinType);
     this.semiJoinDone = semiJoinDone;
-    this.systemFieldList = requireNonNull(systemFieldList);
+    this.systemFieldList = requireNonNull(systemFieldList, "systemFieldList");
   }
 
   @Deprecated // to be removed before 2.0

@@ -50,7 +50,7 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) ->
           SqlTypeUtil.makeNullableIfOperandsAre(opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
-              requireNonNull(typeToTransform));
+              requireNonNull(typeToTransform, "typeToTransform"));
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -70,7 +70,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_NOT_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), false);
+              requireNonNull(typeToTransform, "typeToTransform"), false);
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -79,7 +79,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform FORCE_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), true);
+              requireNonNull(typeToTransform, "typeToTransform"), true);
 
   /**
    * Type-inference strategy whereby the result is NOT NULL if any of

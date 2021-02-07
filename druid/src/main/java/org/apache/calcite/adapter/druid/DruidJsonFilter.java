@@ -460,7 +460,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
     JsonExpressionFilter(String expression) {
       super(Type.EXPRESSION);
-      this.expression = Objects.requireNonNull(expression);
+      this.expression = Objects.requireNonNull(expression, "expression");
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {
@@ -627,7 +627,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
   public static DruidJsonFilter getSelectorFilter(String column, String value,
       ExtractionFunction extractionFunction) {
-    Objects.requireNonNull(column);
+    Objects.requireNonNull(column, "column");
     return new JsonSelector(column, value, extractionFunction);
   }
 

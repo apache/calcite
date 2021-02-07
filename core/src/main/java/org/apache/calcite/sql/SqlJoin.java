@@ -64,10 +64,10 @@ public class SqlJoin extends SqlCall {
       @Nullable SqlNode condition) {
     super(pos);
     this.left = left;
-    this.natural = requireNonNull(natural);
-    this.joinType = requireNonNull(joinType);
+    this.natural = requireNonNull(natural, "natural");
+    this.joinType = requireNonNull(joinType, "joinType");
     this.right = right;
-    this.conditionType = requireNonNull(conditionType);
+    this.conditionType = requireNonNull(conditionType, "conditionType");
     this.condition = condition;
 
     Preconditions.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);

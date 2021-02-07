@@ -44,7 +44,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   public RelRecordType(StructKind kind, List<RelDataTypeField> fields, boolean nullable) {
     super(fields);
     this.nullable = nullable;
-    this.kind = requireNonNull(kind);
+    this.kind = requireNonNull(kind, "kind");
     computeDigest();
   }
 

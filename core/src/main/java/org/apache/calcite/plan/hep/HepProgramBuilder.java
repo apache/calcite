@@ -115,7 +115,7 @@ public class HepProgramBuilder {
   public HepProgramBuilder addRuleInstance(RelOptRule rule) {
     HepInstruction.RuleInstance instruction =
         new HepInstruction.RuleInstance();
-    instruction.rule = requireNonNull(rule);
+    instruction.rule = requireNonNull(rule, "rule");
     instructions.add(instruction);
     return this;
   }

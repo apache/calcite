@@ -160,15 +160,15 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     Sql(Tester tester, String sql, HepProgram preProgram, RelOptPlanner planner,
         ImmutableMap<Hook, Consumer> hooks,
         ImmutableList<Function<Tester, Tester>> transforms) {
-      this.tester = Objects.requireNonNull(tester);
-      this.sql = Objects.requireNonNull(sql);
+      this.tester = Objects.requireNonNull(tester, "tester");
+      this.sql = Objects.requireNonNull(sql, "sql");
       if (sql.contains(" \n")) {
         throw new AssertionError("trailing whitespace");
       }
       this.preProgram = preProgram;
       this.planner = planner;
-      this.hooks = Objects.requireNonNull(hooks);
-      this.transforms = Objects.requireNonNull(transforms);
+      this.hooks = Objects.requireNonNull(hooks, "hooks");
+      this.transforms = Objects.requireNonNull(transforms, "transforms");
     }
 
     public Sql withTester(UnaryOperator<Tester> transform) {

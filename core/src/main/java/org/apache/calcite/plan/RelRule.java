@@ -220,7 +220,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     static RelOptRuleOperand operand(OperandTransform transform) {
       final OperandBuilderImpl b = new OperandBuilderImpl();
       final Done done = transform.apply(b);
-      Objects.requireNonNull(done);
+      Objects.requireNonNull(done, "done");
       if (b.operands.size() != 1) {
         throw new IllegalArgumentException("operand supplier must call one of "
             + "the following methods: operand or exactly");
@@ -250,12 +250,12 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     private Predicate<? super R> predicate = r -> true;
 
     OperandDetailBuilderImpl(OperandBuilderImpl parent, Class<R> relClass) {
-      this.parent = Objects.requireNonNull(parent);
-      this.relClass = Objects.requireNonNull(relClass);
+      this.parent = Objects.requireNonNull(parent, "parent");
+      this.relClass = Objects.requireNonNull(relClass, "relClass");
     }
 
     @Override public OperandDetailBuilderImpl<R> trait(RelTrait trait) {
-      this.trait = Objects.requireNonNull(trait);
+      this.trait = Objects.requireNonNull(trait, "trait");
       return this;
     }
 
@@ -288,14 +288,14 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     @Override public Done oneInput(OperandTransform transform) {
       final Done done = transform.apply(inputBuilder);
-      Objects.requireNonNull(done);
+      Objects.requireNonNull(done, "done");
       return done(RelOptRuleOperandChildPolicy.SOME);
     }
 
     @Override public Done inputs(OperandTransform... transforms) {
       for (OperandTransform transform : transforms) {
         final Done done = transform.apply(inputBuilder);
-        Objects.requireNonNull(done);
+        Objects.requireNonNull(done, "done");
       }
       return done(RelOptRuleOperandChildPolicy.SOME);
     }
@@ -303,7 +303,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     @Override public Done unorderedInputs(OperandTransform... transforms) {
       for (OperandTransform transform : transforms) {
         final Done done = transform.apply(inputBuilder);
-        Objects.requireNonNull(done);
+        Objects.requireNonNull(done, "done");
       }
       return done(RelOptRuleOperandChildPolicy.UNORDERED);
     }

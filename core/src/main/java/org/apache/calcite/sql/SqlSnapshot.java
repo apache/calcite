@@ -41,8 +41,8 @@ public class SqlSnapshot extends SqlCall {
   /** Creates a SqlSnapshot. */
   public SqlSnapshot(SqlParserPos pos, SqlNode tableRef, SqlNode period) {
     super(pos);
-    this.tableRef = Objects.requireNonNull(tableRef);
-    this.period = Objects.requireNonNull(period);
+    this.tableRef = Objects.requireNonNull(tableRef, "tableRef");
+    this.period = Objects.requireNonNull(period, "period");
   }
 
   // ~ Methods
@@ -66,10 +66,10 @@ public class SqlSnapshot extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = Objects.requireNonNull(operand);
+      tableRef = Objects.requireNonNull(operand, "operand");
       break;
     case OPERAND_PERIOD:
-      period = Objects.requireNonNull(operand);
+      period = Objects.requireNonNull(operand, "operand");
       break;
     default:
       throw new AssertionError(i);

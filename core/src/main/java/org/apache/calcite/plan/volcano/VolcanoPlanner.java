@@ -821,7 +821,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
 
       assert traitDef == toTrait.getTraitDef();
-      if (fromTrait.equals(toTrait)) {
+      if (fromTrait.satisfies(toTrait)) {
         // No need to convert; it's already correct.
         continue;
       }

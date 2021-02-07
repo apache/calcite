@@ -192,14 +192,14 @@ public class HintStrategyTable {
     private final Map<Key, HintStrategy> strategies = new HashMap<>();
     private Litmus errorHandler = HintErrorLogger.INSTANCE;
 
-    public Builder hintStrategy(String hintName, HintPredicate strategy) {
+    public Builder hintStrategy(String hintName, HintPredicate hintPredicate) {
       this.strategies.put(Key.of(hintName),
-          HintStrategy.builder(requireNonNull(strategy, "HintPredicate")).build());
+          HintStrategy.builder(requireNonNull(hintPredicate, "hintPredicate")).build());
       return this;
     }
 
-    public Builder hintStrategy(String hintName, HintStrategy entry) {
-      this.strategies.put(Key.of(hintName), requireNonNull(entry, "HintStrategy"));
+    public Builder hintStrategy(String hintName, HintStrategy hintStrategy) {
+      this.strategies.put(Key.of(hintName), requireNonNull(hintStrategy, "hintStrategy"));
       return this;
     }
 

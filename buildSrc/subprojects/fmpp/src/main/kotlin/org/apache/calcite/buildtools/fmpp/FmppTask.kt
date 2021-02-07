@@ -48,6 +48,11 @@ open class FmppTask @Inject constructor(
     @PathSensitive(PathSensitivity.RELATIVE)
     val templates = objectFactory.directoryProperty()
 
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    val defaultConfig = objectFactory.fileProperty()
+        .convention(templates.file("../default_config.fmpp"))
+
     @OutputDirectory
     val output = objectFactory.directoryProperty()
         .convention(project.layout.buildDirectory.dir("fmpp/$name"))
@@ -72,8 +77,8 @@ open class FmppTask @Inject constructor(
                 "configuration" to config.get(),
                 "sourceRoot" to templates.get().asFile,
                 "outputRoot" to output.get().asFile,
-                "data" to "tdd(" + config.get().toString().tddString() + "), " +
-                    "default: tdd(" + "${templates.get().asFile}/../default_config.fmpp".tddString() + ")"
+                "data" to "tdd(${config.get().toString().tddString()}), " +
+                    "default: tdd(${defaultConfig.get().toString().tddString()})"
             )
         }
     }

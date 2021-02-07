@@ -41,7 +41,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
       JdbcTable jdbcTable,
       JdbcConvention jdbcConvention) {
     super(cluster, cluster.traitSetOf(jdbcConvention), ImmutableList.of(), table);
-    this.jdbcTable = Objects.requireNonNull(jdbcTable);
+    this.jdbcTable = Objects.requireNonNull(jdbcTable, "jdbcTable");
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -59,9 +59,9 @@ public class SqlShell {
   SqlShell(InputStreamReader in, PrintWriter out,
       PrintWriter err, String... args) {
     this.args = ImmutableList.copyOf(args);
-    this.in = Objects.requireNonNull(in);
-    this.out = Objects.requireNonNull(out);
-    this.err = Objects.requireNonNull(err);
+    this.in = Objects.requireNonNull(in, "in");
+    this.out = Objects.requireNonNull(out, "out");
+    this.err = Objects.requireNonNull(err, "err");
   }
 
   private static String model() {

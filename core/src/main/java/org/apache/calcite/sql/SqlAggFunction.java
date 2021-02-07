@@ -110,7 +110,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
         operandTypeChecker, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
-    this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder);
+    this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder, "requiresGroupOrder");
   }
 
   //~ Methods ----------------------------------------------------------------

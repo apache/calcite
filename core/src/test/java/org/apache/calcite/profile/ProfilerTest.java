@@ -468,10 +468,10 @@ class ProfilerTest {
         Predicate<Profiler.Statistic> predicate,
         Comparator<Profiler.Statistic> comparator, int limit,
         List<String> columns) {
-      this.sql = Objects.requireNonNull(sql);
-      this.factory = Objects.requireNonNull(factory);
+      this.sql = Objects.requireNonNull(sql, "sql");
+      this.factory = Objects.requireNonNull(factory, "factory");
       this.columns = ImmutableList.copyOf(columns);
-      this.predicate = Objects.requireNonNull(predicate);
+      this.predicate = Objects.requireNonNull(predicate, "predicate");
       this.comparator = comparator; // null means sort on JSON representation
       this.limit = limit;
       this.config = config;

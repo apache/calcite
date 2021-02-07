@@ -41,8 +41,8 @@ public class IdPair<L, R> {
   }
 
   protected IdPair(L left, R right) {
-    this.left = Objects.requireNonNull(left);
-    this.right = Objects.requireNonNull(right);
+    this.left = Objects.requireNonNull(left, "left");
+    this.right = Objects.requireNonNull(right, "right");
   }
 
   @Override public String toString() {

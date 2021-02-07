@@ -81,8 +81,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Objects.requireNonNull(url);
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url, "url");
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
   }
 
   /** Executes a query request.

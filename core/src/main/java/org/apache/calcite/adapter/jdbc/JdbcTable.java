@@ -86,11 +86,11 @@ public class JdbcTable extends AbstractQueryableTable
       String jdbcSchemaName, String jdbcTableName,
       Schema.TableType jdbcTableType) {
     super(Object[].class);
-    this.jdbcSchema = requireNonNull(jdbcSchema);
+    this.jdbcSchema = requireNonNull(jdbcSchema, "jdbcSchema");
     this.jdbcCatalogName = jdbcCatalogName;
     this.jdbcSchemaName = jdbcSchemaName;
-    this.jdbcTableName = requireNonNull(jdbcTableName);
-    this.jdbcTableType = requireNonNull(jdbcTableType);
+    this.jdbcTableName = requireNonNull(jdbcTableName, "jdbcTableName");
+    this.jdbcTableType = requireNonNull(jdbcTableType, "jdbcTableType");
   }
 
   @Override public String toString() {

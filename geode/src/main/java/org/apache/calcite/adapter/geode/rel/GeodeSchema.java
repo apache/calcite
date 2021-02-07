@@ -39,9 +39,9 @@ public class GeodeSchema extends AbstractSchema {
   private final List<String> regionNames;
   private ImmutableMap<String, Table> tableMap;
 
-  public GeodeSchema(final GemFireCache cache, final Iterable<String> regionNames) {
+  public GeodeSchema(final GemFireCache gemFireCache, final Iterable<String> regionNames) {
     super();
-    this.cache = Objects.requireNonNull(cache, "clientCache");
+    this.cache = Objects.requireNonNull(gemFireCache, "gemFireCache");
     this.regionNames = ImmutableList.copyOf(Objects.requireNonNull(regionNames, "regionNames"));
   }
 

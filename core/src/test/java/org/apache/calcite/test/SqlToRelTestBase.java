@@ -574,14 +574,14 @@ public abstract class SqlToRelTestBase {
       this.enableTypeCoercion = enableTypeCoercion;
       this.catalogReaderFactory = catalogReaderFactory;
       this.clusterFactory = clusterFactory;
-      this.configTransform = Objects.requireNonNull(configTransform);
-      this.plannerFactory = Objects.requireNonNull(plannerFactory);
-      this.conformance = Objects.requireNonNull(conformance);
-      this.contextTransform = Objects.requireNonNull(contextTransform);
+      this.configTransform = Objects.requireNonNull(configTransform, "configTransform");
+      this.plannerFactory = Objects.requireNonNull(plannerFactory, "plannerFactory");
+      this.conformance = Objects.requireNonNull(conformance, "conformance");
+      this.contextTransform = Objects.requireNonNull(contextTransform, "contextTransform");
     }
 
     public RelRoot convertSqlToRel(String sql) {
-      Objects.requireNonNull(sql);
+      Objects.requireNonNull(sql, "sql");
       final SqlNode sqlQuery;
       try {
         sqlQuery = parseQuery(sql);

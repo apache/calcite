@@ -99,8 +99,8 @@ public abstract class RelOptRule {
    */
   protected RelOptRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, @Nullable String description) {
-    this.operand = Objects.requireNonNull(operand);
-    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);
+    this.operand = Objects.requireNonNull(operand, "operand");
+    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory, "relBuilderFactory");
     if (description == null) {
       description = guessDescription(getClass().getName());
     }

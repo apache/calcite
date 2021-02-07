@@ -103,18 +103,18 @@ public abstract class Match extends SingleRel {
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       @Nullable RexNode interval) {
     super(cluster, traitSet, input);
-    this.rowType = Objects.requireNonNull(rowType);
-    this.pattern = Objects.requireNonNull(pattern);
+    this.rowType = Objects.requireNonNull(rowType, "rowType");
+    this.pattern = Objects.requireNonNull(pattern, "pattern");
     Preconditions.checkArgument(patternDefinitions.size() > 0);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
     this.measures = ImmutableMap.copyOf(measures);
-    this.after = Objects.requireNonNull(after);
+    this.after = Objects.requireNonNull(after, "after");
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
-    this.partitionKeys = Objects.requireNonNull(partitionKeys);
-    this.orderKeys = Objects.requireNonNull(orderKeys);
+    this.partitionKeys = Objects.requireNonNull(partitionKeys, "partitionKeys");
+    this.orderKeys = Objects.requireNonNull(orderKeys, "orderKeys");
     this.interval = interval;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();

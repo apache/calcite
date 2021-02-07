@@ -41,8 +41,8 @@ public interface SqlTypeMappingRule {
   /** Returns whether it is valid to apply the defined rules from type {@code from} to
    * type {@code to}. */
   default boolean canApplyFrom(SqlTypeName to, SqlTypeName from) {
-    Objects.requireNonNull(to);
-    Objects.requireNonNull(from);
+    Objects.requireNonNull(to, "to");
+    Objects.requireNonNull(from, "from");
 
     if (to == SqlTypeName.NULL) {
       return false;

@@ -7282,7 +7282,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
-  @Test void testGroupAgg() {
+  @Test void testGroupByAliasedColumn() {
     // alias in GROUP BY query has been known to cause problems
     sql("select deptno as d, count(*) as c from emp group by deptno").ok();
   }

@@ -117,7 +117,7 @@ public class Contexts {
     final Object target;
 
     WrapContext(Object target) {
-      this.target = Objects.requireNonNull(target);
+      this.target = Objects.requireNonNull(target, "target");
     }
 
     @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
@@ -140,7 +140,7 @@ public class Contexts {
     final ImmutableList<Context> contexts;
 
     ChainContext(ImmutableList<Context> contexts) {
-      this.contexts = Objects.requireNonNull(contexts);
+      this.contexts = Objects.requireNonNull(contexts, "contexts");
       for (Context context : contexts) {
         assert !(context instanceof ChainContext) : "must be flat";
       }
