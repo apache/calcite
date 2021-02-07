@@ -58,7 +58,7 @@ public abstract class ListScope extends DelegatingScope {
 
   @Override public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
-    Objects.requireNonNull(alias);
+    Objects.requireNonNull(alias, "alias");
     children.add(new ScopeChild(children.size(), alias, ns, nullable));
   }
 

@@ -95,12 +95,12 @@ public class AggregateCall {
   private AggregateCall(SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls, List<Integer> argList,
       int filterArg, RelCollation collation, RelDataType type, @Nullable String name) {
-    this.type = Objects.requireNonNull(type);
+    this.type = Objects.requireNonNull(type, "type");
     this.name = name;
-    this.aggFunction = Objects.requireNonNull(aggFunction);
+    this.aggFunction = Objects.requireNonNull(aggFunction, "aggFunction");
     this.argList = ImmutableList.copyOf(argList);
     this.filterArg = filterArg;
-    this.collation = Objects.requireNonNull(collation);
+    this.collation = Objects.requireNonNull(collation, "collation");
     this.distinct = distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;

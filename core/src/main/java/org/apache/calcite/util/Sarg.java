@@ -70,7 +70,7 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final int pointCount;
 
   private Sarg(ImmutableRangeSet<C> rangeSet, boolean containsNull) {
-    this.rangeSet = Objects.requireNonNull(rangeSet);
+    this.rangeSet = Objects.requireNonNull(rangeSet, "rangeSet");
     this.containsNull = containsNull;
     this.pointCount = RangeSets.countPoints(rangeSet);
   }

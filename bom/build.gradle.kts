@@ -130,6 +130,7 @@ dependencies {
         apiv("org.hamcrest:hamcrest-library", "hamcrest")
         apiv("org.hsqldb:hsqldb")
         apiv("org.incava:java-diff")
+        apiv("org.jboss:jandex")
         apiv("org.jsoup:jsoup")
         apiv("org.junit.jupiter:junit-jupiter-api", "junit5")
         apiv("org.junit.jupiter:junit-jupiter-params", "junit5")

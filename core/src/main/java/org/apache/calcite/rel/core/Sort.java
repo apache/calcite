@@ -173,7 +173,7 @@ public abstract class Sort extends SingleRel {
     //noinspection StaticPseudoFunctionalStyleMethod
     return Util.transform(collation.getFieldCollations(), field ->
         getCluster().getRexBuilder().makeInputRef(input,
-            Objects.requireNonNull(field).getFieldIndex()));
+            Objects.requireNonNull(field, "field").getFieldIndex()));
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

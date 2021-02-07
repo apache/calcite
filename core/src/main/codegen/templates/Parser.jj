@@ -106,6 +106,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -3896,21 +3897,24 @@ SqlNode RowExpressionExtension() :
 }
 
 /**
- * Parses a call to the STRING_AGG aggregate function.
+ * Parses a call to the STRING_AGG aggregate function (or to an aggregate
+ * function with similar syntax: ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT).
  */
 SqlCall StringAggFunctionCall() :
 {
-    final Span s;
+    final Span s, s2;
     final SqlOperator op;
     final List<SqlNode> args = new ArrayList();
     final SqlLiteral qualifier;
     final SqlNodeList orderBy;
     final Pair<SqlParserPos, SqlOperator> nullTreatment;
+    final SqlNode separator;
 }
 {
     (
         <ARRAY_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_AGG; }
     |   <ARRAY_CONCAT_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_CONCAT_AGG; }
+    |   <GROUP_CONCAT> { s = span(); op = SqlLibraryOperators.GROUP_CONCAT; }
     |   <STRING_AGG> { s = span(); op = SqlLibraryOperators.STRING_AGG; }
     )
     <LPAREN>
@@ -3935,6 +3939,11 @@ SqlCall StringAggFunctionCall() :
     [
         orderBy = OrderBy(true) {
             args.add(orderBy);
+        }
+    ]
+    [
+        <SEPARATOR> { s2 = span(); } separator = StringLiteral() {
+            args.add(SqlInternalOperators.SEPARATOR.createCall(s2.end(this), separator));
         }
     ]
     <RPAREN>
@@ -7441,6 +7450,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < GRANT: "GRANT" >
 |   < GRANTED: "GRANTED" >
 |   < GROUP: "GROUP" >
+|   < GROUP_CONCAT: "GROUP_CONCAT" >
 |   < GROUPING: "GROUPING" >
 |   < GROUPS: "GROUPS" >
 |   < HAVING: "HAVING" >
@@ -7707,6 +7717,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SELECT: "SELECT" > { afterTableName(); }
 |   < SELF: "SELF" >
 |   < SENSITIVE: "SENSITIVE" >
+|   < SEPARATOR: "SEPARATOR" >
 |   < SEQUENCE: "SEQUENCE" >
 |   < SERIALIZABLE: "SERIALIZABLE" >
 |   < SERVER: "SERVER" >

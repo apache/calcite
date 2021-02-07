@@ -427,12 +427,12 @@ public abstract class EnumerableDefaults {
           private @Nullable Iterator<TSource> rest;
 
           @Override public boolean hasNext() {
-            return !nonFirst || requireNonNull(rest).hasNext();
+            return !nonFirst || requireNonNull(rest, "rest").hasNext();
           }
 
           @Override public TSource next() {
             if (nonFirst) {
-              return requireNonNull(rest).next();
+              return requireNonNull(rest, "rest").next();
             } else {
               final TSource first = os.current();
               nonFirst = true;
@@ -948,7 +948,7 @@ public abstract class EnumerableDefaults {
 
       if (curResult == null) {
         // current key is the last key.
-        curResult = resultSelector.apply(prevKey, requireNonNull(curAccumulator));
+        curResult = resultSelector.apply(prevKey, requireNonNull(curAccumulator, "curAccumulator"));
         // no need to keep accumulator for the last key.
         curAccumulator = null;
       }
@@ -3801,7 +3801,7 @@ public abstract class EnumerableDefaults {
     return source instanceof OrderedQueryable
         ? ((OrderedQueryable<T>) source)
         : new EnumerableOrderedQueryable<>(
-            source, (Class) Object.class, requireNonNull(null), null);
+            source, (Class) Object.class, requireNonNull(null, "null"), null);
   }
 
   /** Default implementation of {@link ExtendedEnumerable#into(Collection)}. */

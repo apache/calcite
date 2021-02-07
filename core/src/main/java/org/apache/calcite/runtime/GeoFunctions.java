@@ -194,7 +194,7 @@ public class GeoFunctions {
         + xMax + " " + yMax + ", "
         + xMax + " " + yMin + ", "
         + xMin + " " + yMin + "))", srid);
-    return Objects.requireNonNull(geom);
+    return Objects.requireNonNull(geom, "geom");
   }
 
   /** Creates a rectangular Polygon. */

@@ -146,7 +146,7 @@ public class AggregateReduceFunctionsRule
         .as(Config.class)
         .withOperandFor(aggregateClass)
         // reduce specific functions provided by the client
-        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce)));
+        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce, "functionsToReduce")));
   }
 
   //~ Methods ----------------------------------------------------------------

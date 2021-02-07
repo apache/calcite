@@ -256,6 +256,13 @@ public class SqlPrettyWriter implements SqlWriter {
           LoggerFactory.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
 
   /**
+   * Default SqlWriterConfig, reduce the overhead of "ImmutableBeans.create"
+   */
+  private static final SqlWriterConfig CONFIG =
+      ImmutableBeans.create(SqlWriterConfig.class)
+          .withDialect(CalciteSqlDialect.DEFAULT);
+
+  /**
    * Bean holding the default property values.
    */
   private static final Bean DEFAULT_BEAN =
@@ -283,9 +290,9 @@ public class SqlPrettyWriter implements SqlWriter {
   @SuppressWarnings("method.invocation.invalid")
   private SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
-    this.buf = requireNonNull(buf);
+    this.buf = requireNonNull(buf, "buf");
     this.dialect = requireNonNull(config.dialect());
-    this.config = requireNonNull(config);
+    this.config = requireNonNull(config, "config");
     lineStart = 0;
     reset();
   }
@@ -294,7 +301,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * and a given buffer to write to. */
   public SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf) {
-    this(config, requireNonNull(buf), false);
+    this(config, requireNonNull(buf, "buf"), false);
   }
 
   /** Creates a writer with the given configuration and dialect,
@@ -303,14 +310,14 @@ public class SqlPrettyWriter implements SqlWriter {
       SqlDialect dialect,
       SqlWriterConfig config,
       StringBuilder buf) {
-    this(config.withDialect(requireNonNull(dialect)), buf);
+    this(config.withDialect(requireNonNull(dialect, "dialect")), buf);
   }
 
   /** Creates a writer with the given configuration
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect, SqlWriterConfig config) {
-    this(config.withDialect(requireNonNull(dialect)));
+    this(config.withDialect(requireNonNull(dialect, "dialect")));
   }
 
   @Deprecated
@@ -319,7 +326,7 @@ public class SqlPrettyWriter implements SqlWriter {
       boolean alwaysUseParentheses,
       PrintWriter pw) {
     // NOTE that 'pw' is ignored; there is no place for it in the new API
-    this(config().withDialect(requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect, "dialect"))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -327,7 +334,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public SqlPrettyWriter(
       SqlDialect dialect,
       boolean alwaysUseParentheses) {
-    this(config().withDialect(requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect, "dialect"))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -335,7 +342,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect) {
-    this(config().withDialect(requireNonNull(dialect)));
+    this(config().withDialect(requireNonNull(dialect, "dialect")));
   }
 
   /** Creates a writer with the given configuration,
@@ -353,8 +360,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a {@link SqlWriterConfig} with Calcite's SQL dialect. */
   public static SqlWriterConfig config() {
-    return ImmutableBeans.create(SqlWriterConfig.class)
-        .withDialect(CalciteSqlDialect.DEFAULT);
+    return CONFIG;
   }
 
   //~ Methods ----------------------------------------------------------------

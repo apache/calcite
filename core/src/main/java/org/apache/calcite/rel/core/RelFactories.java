@@ -657,23 +657,23 @@ public class RelFactories {
         MatchFactory matchFactory,
         SpoolFactory spoolFactory,
         RepeatUnionFactory repeatUnionFactory) {
-      this.filterFactory = requireNonNull(filterFactory);
-      this.projectFactory = requireNonNull(projectFactory);
-      this.aggregateFactory = requireNonNull(aggregateFactory);
-      this.sortFactory = requireNonNull(sortFactory);
-      this.exchangeFactory = requireNonNull(exchangeFactory);
-      this.sortExchangeFactory = requireNonNull(sortExchangeFactory);
-      this.setOpFactory = requireNonNull(setOpFactory);
-      this.joinFactory = requireNonNull(joinFactory);
-      this.correlateFactory = requireNonNull(correlateFactory);
-      this.valuesFactory = requireNonNull(valuesFactory);
-      this.scanFactory = requireNonNull(scanFactory);
+      this.filterFactory = requireNonNull(filterFactory, "filterFactory");
+      this.projectFactory = requireNonNull(projectFactory, "projectFactory");
+      this.aggregateFactory = requireNonNull(aggregateFactory, "aggregateFactory");
+      this.sortFactory = requireNonNull(sortFactory, "sortFactory");
+      this.exchangeFactory = requireNonNull(exchangeFactory, "exchangeFactory");
+      this.sortExchangeFactory = requireNonNull(sortExchangeFactory, "sortExchangeFactory");
+      this.setOpFactory = requireNonNull(setOpFactory, "setOpFactory");
+      this.joinFactory = requireNonNull(joinFactory, "joinFactory");
+      this.correlateFactory = requireNonNull(correlateFactory, "correlateFactory");
+      this.valuesFactory = requireNonNull(valuesFactory, "valuesFactory");
+      this.scanFactory = requireNonNull(scanFactory, "scanFactory");
       this.tableFunctionScanFactory =
-          requireNonNull(tableFunctionScanFactory);
-      this.snapshotFactory = requireNonNull(snapshotFactory);
-      this.matchFactory = requireNonNull(matchFactory);
-      this.spoolFactory = requireNonNull(spoolFactory);
-      this.repeatUnionFactory = requireNonNull(repeatUnionFactory);
+          requireNonNull(tableFunctionScanFactory, "tableFunctionScanFactory");
+      this.snapshotFactory = requireNonNull(snapshotFactory, "snapshotFactory");
+      this.matchFactory = requireNonNull(matchFactory, "matchFactory");
+      this.spoolFactory = requireNonNull(spoolFactory, "spoolFactory");
+      this.repeatUnionFactory = requireNonNull(repeatUnionFactory, "repeatUnionFactory");
     }
 
     public static Struct fromContext(Context context) {

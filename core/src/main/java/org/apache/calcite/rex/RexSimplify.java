@@ -98,12 +98,12 @@ public class RexSimplify {
   private RexSimplify(RexBuilder rexBuilder, RelOptPredicateList predicates,
       RexUnknownAs defaultUnknownAs, boolean predicateElimination,
       boolean paranoid, RexExecutor executor) {
-    this.rexBuilder = requireNonNull(rexBuilder);
-    this.predicates = requireNonNull(predicates);
-    this.defaultUnknownAs = requireNonNull(defaultUnknownAs);
+    this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
+    this.predicates = requireNonNull(predicates, "predicates");
+    this.defaultUnknownAs = requireNonNull(defaultUnknownAs, "defaultUnknownAs");
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
-    this.executor = requireNonNull(executor);
+    this.executor = requireNonNull(executor, "executor");
     this.strong = new Strong();
   }
 
@@ -2446,9 +2446,9 @@ public class RexSimplify {
     final RexLiteral literal;
 
     private Comparison(RexNode ref, SqlKind kind, RexLiteral literal) {
-      this.ref = requireNonNull(ref);
-      this.kind = requireNonNull(kind);
-      this.literal = requireNonNull(literal);
+      this.ref = requireNonNull(ref, "ref");
+      this.kind = requireNonNull(kind, "kind");
+      this.literal = requireNonNull(literal, "literal");
     }
 
     /** Creates a comparison, between a {@link RexInputRef} or {@link RexFieldAccess} or
@@ -2507,8 +2507,8 @@ public class RexSimplify {
     final SqlKind kind;
 
     private IsPredicate(RexNode ref, SqlKind kind) {
-      this.ref = requireNonNull(ref);
-      this.kind = requireNonNull(kind);
+      this.ref = requireNonNull(ref, "ref");
+      this.kind = requireNonNull(kind, "kind");
     }
 
     /** Creates an IS predicate, or returns null. */
@@ -2833,8 +2833,8 @@ public class RexSimplify {
     int nullTermCount;
 
     RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate) {
-      this.ref = requireNonNull(ref);
-      this.rexBuilder = requireNonNull(rexBuilder);
+      this.ref = requireNonNull(ref, "ref");
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.negate = negate;
     }
 

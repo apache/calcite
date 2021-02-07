@@ -54,7 +54,7 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
         }, OperandTypes.family(SqlTypeFamily.CHARACTER,
             SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
-    this.nullClause = Objects.requireNonNull(nullClause);
+    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

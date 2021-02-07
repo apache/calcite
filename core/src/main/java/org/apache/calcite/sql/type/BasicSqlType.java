@@ -107,7 +107,7 @@ public class BasicSqlType extends AbstractSqlType {
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem);
+    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
     this.collation = collation;

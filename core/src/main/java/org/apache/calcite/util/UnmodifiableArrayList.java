@@ -39,7 +39,7 @@ public class UnmodifiableArrayList<E>
   private final E[] elements;
 
   private UnmodifiableArrayList(E[] elements) {
-    this.elements = Objects.requireNonNull(elements);
+    this.elements = Objects.requireNonNull(elements, "elements");
   }
 
   public static <E> UnmodifiableArrayList<E> of(E... elements) {

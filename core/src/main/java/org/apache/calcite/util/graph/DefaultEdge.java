@@ -28,8 +28,8 @@ public class DefaultEdge {
   public final Object target;
 
   public DefaultEdge(Object source, Object target) {
-    this.source = Objects.requireNonNull(source);
-    this.target = Objects.requireNonNull(target);
+    this.source = Objects.requireNonNull(source, "source");
+    this.target = Objects.requireNonNull(target, "target");
   }
 
   @Override public int hashCode() {

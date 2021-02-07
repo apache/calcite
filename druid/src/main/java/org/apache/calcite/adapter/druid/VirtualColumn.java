@@ -36,8 +36,8 @@ public class VirtualColumn implements DruidJson {
   private final DruidType outputType;
 
   public VirtualColumn(String name, String expression, DruidType outputType) {
-    this.name = Objects.requireNonNull(name);
-    this.expression = Objects.requireNonNull(expression);
+    this.name = Objects.requireNonNull(name, "name");
+    this.expression = Objects.requireNonNull(expression, "expression");
     this.outputType = outputType == null ? DruidType.FLOAT : outputType;
   }
 

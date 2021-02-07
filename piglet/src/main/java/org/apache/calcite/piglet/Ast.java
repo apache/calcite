@@ -136,8 +136,8 @@ public class Ast {
     public final SqlParserPos pos;
 
     protected Node(SqlParserPos pos, Op op) {
-      this.op = Objects.requireNonNull(op);
-      this.pos = Objects.requireNonNull(pos);
+      this.op = Objects.requireNonNull(op, "op");
+      this.pos = Objects.requireNonNull(pos, "pos");
     }
   }
 
@@ -154,7 +154,7 @@ public class Ast {
 
     protected Assignment(SqlParserPos pos, Op op, Identifier target) {
       super(pos, op);
-      this.target = Objects.requireNonNull(target);
+      this.target = Objects.requireNonNull(target, "target");
     }
   }
 
@@ -164,7 +164,7 @@ public class Ast {
 
     public LoadStmt(SqlParserPos pos, Identifier target, Literal name) {
       super(pos, Op.LOAD, target);
-      this.name = Objects.requireNonNull(name);
+      this.name = Objects.requireNonNull(name, "name");
     }
   }
 
@@ -333,7 +333,7 @@ public class Ast {
 
     public DumpStmt(SqlParserPos pos, Identifier relation) {
       super(pos, Op.DUMP);
-      this.relation = Objects.requireNonNull(relation);
+      this.relation = Objects.requireNonNull(relation, "relation");
     }
   }
 
@@ -343,7 +343,7 @@ public class Ast {
 
     public DescribeStmt(SqlParserPos pos, Identifier relation) {
       super(pos, Op.DESCRIBE);
-      this.relation = Objects.requireNonNull(relation);
+      this.relation = Objects.requireNonNull(relation, "relation");
     }
   }
 
@@ -353,7 +353,7 @@ public class Ast {
 
     public Literal(SqlParserPos pos, Object value) {
       super(pos, Op.LITERAL);
-      this.value = Objects.requireNonNull(value);
+      this.value = Objects.requireNonNull(value, "value");
     }
 
     public static NumericLiteral createExactNumeric(String s,
@@ -408,7 +408,7 @@ public class Ast {
 
     public Identifier(SqlParserPos pos, String value) {
       super(pos, Op.IDENTIFIER);
-      this.value = Objects.requireNonNull(value);
+      this.value = Objects.requireNonNull(value, "value");
     }
 
     public boolean isStar() {
@@ -466,8 +466,8 @@ public class Ast {
 
     public FieldSchema(SqlParserPos pos, Identifier id, Type type) {
       super(pos, Op.FIELD_SCHEMA);
-      this.id = Objects.requireNonNull(id);
-      this.type = Objects.requireNonNull(type);
+      this.id = Objects.requireNonNull(id, "id");
+      this.type = Objects.requireNonNull(type, "type");
     }
   }
 

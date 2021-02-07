@@ -280,7 +280,7 @@ public class SqlValidatorUtil {
   static void checkIdentifierListForDuplicates(List<? extends @Nullable SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
     final List<List<String>> names = Util.transform(columnList,
-        o -> ((SqlIdentifier) requireNonNull(o, "sqlNode")).names);
+        sqlNode -> ((SqlIdentifier) requireNonNull(sqlNode, "sqlNode")).names);
     final int i = Util.firstDuplicate(names);
     if (i >= 0) {
       throw validationErrorFunction.apply(
@@ -1331,7 +1331,7 @@ public class SqlValidatorUtil {
     private final RelDataType rowType;
 
     ExplicitRowTypeTable(RelDataType rowType) {
-      this.rowType = requireNonNull(rowType);
+      this.rowType = requireNonNull(rowType, "rowType");
     }
 
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -1346,7 +1346,7 @@ public class SqlValidatorUtil {
     private final Map<String, Table> tableMap;
 
     ExplicitTableSchema(Map<String, Table> tableMap) {
-      this.tableMap = requireNonNull(tableMap);
+      this.tableMap = requireNonNull(tableMap, "tableMap");
     }
 
     @Override protected Map<String, Table> getTableMap() {

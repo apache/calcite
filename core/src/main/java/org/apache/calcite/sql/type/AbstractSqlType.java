@@ -53,7 +53,7 @@ public abstract class AbstractSqlType
       boolean isNullable,
       @Nullable List<? extends RelDataTypeField> fields) {
     super(fields);
-    this.typeName = Objects.requireNonNull(typeName);
+    this.typeName = Objects.requireNonNull(typeName, "typeName");
     this.isNullable = isNullable || (typeName == SqlTypeName.NULL);
   }
 

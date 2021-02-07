@@ -47,7 +47,7 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
       SqlReturnTypeInference rule,
       SqlTypeTransform... transforms) {
     Preconditions.checkArgument(transforms.length > 0);
-    this.rule = Objects.requireNonNull(rule);
+    this.rule = Objects.requireNonNull(rule, "rule");
     this.transforms = ImmutableList.copyOf(transforms);
   }
 

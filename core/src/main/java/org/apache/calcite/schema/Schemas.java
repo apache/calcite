@@ -464,7 +464,7 @@ public final class Schemas {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
-          requireNonNull(entry).getStarTable();
+          requireNonNull(entry, "entry").getStarTable();
       assert starTable.getTable().getJdbcTableType()
           == Schema.TableType.STAR;
       return entry.getStarTable();
@@ -517,7 +517,7 @@ public final class Schemas {
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = requireNonNull(base);
+    String t = requireNonNull(base, "base");
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }

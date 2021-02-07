@@ -72,8 +72,8 @@ public class AggregateFunctionImpl implements AggregateFunction,
     this.parameters = params;
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
-    this.initMethod = Objects.requireNonNull(initMethod);
-    this.addMethod = Objects.requireNonNull(addMethod);
+    this.initMethod = Objects.requireNonNull(initMethod, "initMethod");
+    this.addMethod = Objects.requireNonNull(addMethod, "addMethod");
     this.mergeMethod = mergeMethod;
     this.resultMethod = resultMethod;
     this.isStatic = Modifier.isStatic(initMethod.getModifiers());

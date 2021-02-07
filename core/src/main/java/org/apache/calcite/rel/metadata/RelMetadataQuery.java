@@ -147,7 +147,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
       RelMetadataQuery prototype) {
-    super(requireNonNull(metadataProvider));
+    super(requireNonNull(metadataProvider, "metadataProvider"));
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;

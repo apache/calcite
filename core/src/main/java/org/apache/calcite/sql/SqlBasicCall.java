@@ -49,7 +49,7 @@ public class SqlBasicCall extends SqlCall {
       boolean expanded,
       @Nullable SqlLiteral functionQualifier) {
     super(pos);
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Objects.requireNonNull(operator, "operator");
     this.operands = operands;
     this.expanded = expanded;
     this.functionQuantifier = functionQualifier;
@@ -68,7 +68,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   public void setOperator(SqlOperator operator) {
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Objects.requireNonNull(operator, "operator");
   }
 
   @Override public SqlOperator getOperator() {

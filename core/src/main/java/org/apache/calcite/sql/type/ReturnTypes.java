@@ -26,6 +26,7 @@ import org.apache.calcite.sql.ExplicitOperatorBinding;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
@@ -111,16 +112,19 @@ public abstract class ReturnTypes {
         typeInference.inferReturnType(bindingTransform.apply(opBinding));
   }
 
-  /** Converts a binding of {@code FOO(x, y ORDER BY z)} to a binding of
-   * {@code FOO(x, y)}. Used for {@code STRING_AGG}. */
+  /** Converts a binding of {@code FOO(x, y ORDER BY z)}
+   * or {@code FOO(x, y ORDER BY z SEPARATOR s)}
+   * to a binding of {@code FOO(x, y)}.
+   * Used for {@code STRING_AGG} and {@code GROUP_CONCAT}. */
   public static SqlOperatorBinding stripOrderBy(
       SqlOperatorBinding operatorBinding) {
     if (operatorBinding instanceof SqlCallBinding) {
       final SqlCallBinding callBinding = (SqlCallBinding) operatorBinding;
-      final SqlCall call2 = stripOrderBy(callBinding.getCall());
-      if (call2 != callBinding.getCall()) {
+      final SqlCall call2 = stripSeparator(callBinding.getCall());
+      final SqlCall call3 = stripOrderBy(call2);
+      if (call3 != callBinding.getCall()) {
         return new SqlCallBinding(callBinding.getValidator(),
-            callBinding.getScope(), call2);
+            callBinding.getScope(), call3);
       }
     }
     return operatorBinding;
@@ -132,6 +136,16 @@ public abstract class ReturnTypes {
       // Remove the last argument if it is "ORDER BY". The parser stashes the
       // ORDER BY clause in the argument list but it does not take part in
       // type derivation.
+      return call.getOperator().createCall(call.getFunctionQuantifier(),
+          call.getParserPosition(), Util.skipLast(call.getOperandList()));
+    }
+    return call;
+  }
+
+  public static SqlCall stripSeparator(SqlCall call) {
+    if (!call.getOperandList().isEmpty()
+        && Util.last(call.getOperandList()).getKind() == SqlKind.SEPARATOR) {
+      // Remove the last argument if it is "SEPARATOR literal".
       return call.getOperator().createCall(call.getFunctionQuantifier(),
           call.getParserPosition(), Util.skipLast(call.getOperandList()));
     }

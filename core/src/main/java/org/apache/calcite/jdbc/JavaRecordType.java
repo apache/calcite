@@ -36,7 +36,7 @@ public class JavaRecordType extends RelRecordType {
 
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
-    this.clazz = Objects.requireNonNull(clazz);
+    this.clazz = Objects.requireNonNull(clazz, "clazz");
   }
 
   @Override public boolean equals(@Nullable Object obj) {

@@ -92,7 +92,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
     this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
-        ImmutableList.of(Objects.requireNonNull(defaultSchema),
+        ImmutableList.of(Objects.requireNonNull(defaultSchema, "defaultSchema"),
             ImmutableList.of()),
         typeFactory, config);
   }
@@ -100,7 +100,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   protected CalciteCatalogReader(CalciteSchema rootSchema,
       SqlNameMatcher nameMatcher, List<List<String>> schemaPaths,
       RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
-    this.rootSchema = Objects.requireNonNull(rootSchema);
+    this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
     this.nameMatcher = nameMatcher;
     this.schemaPaths =
         Util.immutableCopy(Util.isDistinct(schemaPaths)

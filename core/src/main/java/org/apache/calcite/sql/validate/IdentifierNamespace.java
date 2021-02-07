@@ -77,7 +77,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
-    this.parentScope = Objects.requireNonNull(parentScope);
+    this.parentScope = Objects.requireNonNull(parentScope, "parentScope");
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,

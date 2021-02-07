@@ -2852,8 +2852,49 @@ from emp group by gender;
 
 !ok
 
-# STRING_AGG (BigQuery and PostgreSQL) is very similar to LISTAGG.
+!use mysqlfunc
+
+# GROUP_CONCAT (MySQL) is very similar to LISTAGG.
+
+# GROUP_CONCAT with DISTINCT, SEPARATOR
+select
+    group_concat(distinct ename order by ename) as combined_name,
+    group_concat(ename order by ename separator ';') as separated_name
+from emp;
++------------------------------------------------+------------------------------------------------+
+| COMBINED_NAME                                  | SEPARATED_NAME                                 |
++------------------------------------------------+------------------------------------------------+
+| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
++------------------------------------------------+------------------------------------------------+
+(1 row)
+
+!ok
+
+# GROUP_CONCAT with multiple columns
+select
+    group_concat(deptno, ename order by ename) as combined_name
+from emp;
++-----------------------------------------------+
+| COMBINED_NAME                                 |
++-----------------------------------------------+
+| 50Alice30Bob10Eric20Eve50Grace60Jane10Susan30 |
++-----------------------------------------------+
+(1 row)
+
+!ok
+
+# We currently do not support GROUP_CONCAT with composite columns and
+# SEPARATOR because LIST_AGG does not support it.
+!if (false) {
+select
+   group_concat(deptno, ename order by ename separator ';') as separated_name
+from emp;
+!ok
+!}
+
 !use post-big-query
+
+# STRING_AGG (BigQuery and PostgreSQL) is very similar to LISTAGG.
 select
   string_agg(ename order by deptno, ename) as default_string_agg_sep,
   string_agg(ename, '; ' order by deptno, ename desc) as custom_string_agg_sep

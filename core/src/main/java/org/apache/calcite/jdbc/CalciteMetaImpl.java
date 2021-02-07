@@ -165,7 +165,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    requireNonNull(names);
+    requireNonNull(names, "names");
     final List<ColumnMetaData> columns = new ArrayList<>(names.length);
     final List<Field> fields = new ArrayList<>(names.length);
     final List<String> fieldNames = new ArrayList<>(names.length);
@@ -752,7 +752,7 @@ public class CalciteMetaImpl extends MetaImpl {
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);
-      this.calciteTable = requireNonNull(calciteTable);
+      this.calciteTable = requireNonNull(calciteTable, "calciteTable");
     }
   }
 

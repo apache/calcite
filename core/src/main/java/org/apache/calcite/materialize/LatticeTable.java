@@ -30,7 +30,7 @@ public class LatticeTable {
   public final String alias;
 
   LatticeTable(RelOptTable table) {
-    t = Objects.requireNonNull(table);
+    t = Objects.requireNonNull(table, "table");
     alias = Objects.requireNonNull(Util.last(table.getQualifiedName()));
   }
 

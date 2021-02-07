@@ -654,7 +654,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) requireNonNull(value);
+      BigDecimal bd = (BigDecimal) requireNonNull(value, "value");
       if (exact) {
         try {
           return bd.intValueExact();
@@ -682,7 +682,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) requireNonNull(value);
+      BigDecimal bd = (BigDecimal) requireNonNull(value, "value");
       if (exact) {
         try {
           return bd.longValueExact();
@@ -724,7 +724,7 @@ public class SqlLiteral extends SqlNode {
 
   @Deprecated // to be removed before 2.0
   public String getStringValue() {
-    return ((NlsString) requireNonNull(value)).getValue();
+    return ((NlsString) requireNonNull(value, "value")).getValue();
   }
 
   @Override public void unparse(
@@ -763,11 +763,11 @@ public class SqlLiteral extends SqlNode {
       ret = typeFactory.createTypeWithNullability(ret, null == value);
       return ret;
     case BINARY:
-      bitString = (BitString) requireNonNull(value);
+      bitString = (BitString) requireNonNull(value, "value");
       int bitCount = bitString.getBitCount();
       return typeFactory.createSqlType(SqlTypeName.BINARY, bitCount / 8);
     case CHAR:
-      NlsString string = (NlsString) requireNonNull(value);
+      NlsString string = (NlsString) requireNonNull(value, "value");
       Charset charset = string.getCharset();
       if (null == charset) {
         charset = typeFactory.getDefaultCharset();
@@ -801,7 +801,7 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       SqlIntervalLiteral.IntervalValue intervalValue =
-          (SqlIntervalLiteral.IntervalValue) requireNonNull(value);
+          (SqlIntervalLiteral.IntervalValue) requireNonNull(value, "value");
       return typeFactory.createSqlIntervalType(
           intervalValue.getIntervalQualifier());
 
@@ -1009,7 +1009,7 @@ public class SqlLiteral extends SqlNode {
       return this;
     }
     assert SqlTypeUtil.inCharFamily(getTypeName());
-    NlsString ns = (NlsString) requireNonNull(value);
+    NlsString ns = (NlsString) requireNonNull(value, "value");
     String s = ns.getValue();
     StringBuilder sb = new StringBuilder();
     int n = s.length();

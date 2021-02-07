@@ -68,7 +68,7 @@ public final class LogicalFilter extends Filter {
       RexNode condition,
       ImmutableSet<CorrelationId> variablesSet) {
     super(cluster, traitSet, child, condition);
-    this.variablesSet = Objects.requireNonNull(variablesSet);
+    this.variablesSet = Objects.requireNonNull(variablesSet, "variablesSet");
     assert isValid(Litmus.THROW, null);
   }
 

@@ -87,8 +87,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
 
   public AbstractSqlTester(SqlTestFactory factory,
       UnaryOperator<SqlValidator> validatorTransform) {
-    this.factory = Objects.requireNonNull(factory);
-    this.validatorTransform = Objects.requireNonNull(validatorTransform);
+    this.factory = Objects.requireNonNull(factory, "factory");
+    this.validatorTransform = Objects.requireNonNull(validatorTransform, "validatorTransform");
   }
 
   public final SqlTestFactory getFactory() {

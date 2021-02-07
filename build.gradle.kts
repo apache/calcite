@@ -43,6 +43,7 @@ plugins {
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false
+    id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -68,6 +69,7 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
+val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -431,6 +433,11 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
+        configure<JavaPluginExtension> {
+            consistentResolution {
+                useCompileClasspathVersions()
+            }
+        }
 
         repositories {
             if (enableMavenLocal) {
@@ -442,6 +449,15 @@ allprojects {
 
         apply(plugin = "de.thetaphi.forbiddenapis")
         apply(plugin = "maven-publish")
+
+        if (!skipJandex) {
+            apply(plugin = "com.github.vlsi.jandex")
+
+            project.configure<com.github.vlsi.jandex.JandexExtension> {
+                toolVersion.set("jandex".v)
+                skipIndexFileGeneration()
+            }
+        }
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
@@ -498,6 +514,7 @@ allprojects {
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
                     replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
+                    replaceRegex("require message for requireNonNull", """(?<!#)requireNonNull\(\s*(\w+)\s*(?:,\s*"(?!\1")\w+"\s*)?\)""", "requireNonNull($1, \"$1\")")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")

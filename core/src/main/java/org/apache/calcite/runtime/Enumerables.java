@@ -97,7 +97,7 @@ public class Enumerables {
           final AtomicInteger matchCounter = new AtomicInteger(1);
 
           @Override public TResult current() {
-            Objects.requireNonNull(resultRow);
+            Objects.requireNonNull(resultRow, "resultRow");
             return resultRow;
           }
 

@@ -198,8 +198,8 @@ public class LoptJoinTree {
 
     public Node(BinaryTree left, BinaryTree right, @UnderInitialization LoptJoinTree parent) {
       super(parent);
-      this.left = Objects.requireNonNull(left);
-      this.right = Objects.requireNonNull(right);
+      this.left = Objects.requireNonNull(left, "left");
+      this.right = Objects.requireNonNull(right, "right");
     }
 
     public BinaryTree getLeft() {

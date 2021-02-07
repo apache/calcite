@@ -139,7 +139,7 @@ public class SqlBinaryOperator extends SqlOperator {
                 .createTypeWithCharsetAndCollation(
                     type,
                     type.getCharset(),
-                    requireNonNull(resultCol));
+                    requireNonNull(resultCol, "resultCol"));
       }
     }
     return type;

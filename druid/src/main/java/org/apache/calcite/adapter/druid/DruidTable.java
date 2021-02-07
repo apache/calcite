@@ -86,9 +86,9 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
       String timestampFieldName, List<Interval> intervals,
       Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
-    this.timestampFieldName = Objects.requireNonNull(timestampFieldName);
-    this.schema = Objects.requireNonNull(schema);
-    this.dataSource = Objects.requireNonNull(dataSource);
+    this.timestampFieldName = Objects.requireNonNull(timestampFieldName, "timestampFieldName");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
     this.protoRowType = protoRowType;
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
     this.intervals = intervals != null ? ImmutableList.copyOf(intervals)

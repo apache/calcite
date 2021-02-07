@@ -1544,8 +1544,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     QuerySpec(QueryType queryType, String queryString,
         List<String> fieldNames) {
-      this.queryType = Objects.requireNonNull(queryType);
-      this.queryString = Objects.requireNonNull(queryString);
+      this.queryType = Objects.requireNonNull(queryType, "queryType");
+      this.queryString = Objects.requireNonNull(queryString, "queryString");
       this.fieldNames = ImmutableList.copyOf(fieldNames);
     }
 

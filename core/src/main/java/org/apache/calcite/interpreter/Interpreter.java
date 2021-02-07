@@ -87,7 +87,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
-    this.dataContext = requireNonNull(dataContext);
+    this.dataContext = requireNonNull(dataContext, "dataContext");
     final RelNode rel = optimize(rootRel);
     final CompilerImpl compiler =
         new Nodes.CoreCompiler(this, rootRel.getCluster());
@@ -280,7 +280,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     private final Enumerator<Row> enumerator;
 
     EnumeratorSource(final Enumerator<Row> enumerator) {
-      this.enumerator = requireNonNull(enumerator);
+      this.enumerator = requireNonNull(enumerator, "enumerator");
     }
 
     @Override public @Nullable Row receive() {

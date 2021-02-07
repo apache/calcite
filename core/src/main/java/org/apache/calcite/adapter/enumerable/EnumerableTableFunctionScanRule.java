@@ -20,11 +20,11 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 
-/** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan} to
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+/** Rule to convert a {@link LogicalTableFunctionScan} to an {@link EnumerableTableFunctionScan}.
+ * You may provide a custom config to convert other nodes that extend {@link TableFunctionScan}.
  *
  * @see EnumerableRules#ENUMERABLE_TABLE_FUNCTION_SCAN_RULE */
 public class EnumerableTableFunctionScanRule extends ConverterRule {
@@ -43,7 +43,7 @@ public class EnumerableTableFunctionScanRule extends ConverterRule {
   @Override public RelNode convert(RelNode rel) {
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    LogicalTableFunctionScan scan = (LogicalTableFunctionScan) rel;
+    TableFunctionScan scan = (TableFunctionScan) rel;
     return new EnumerableTableFunctionScan(rel.getCluster(), traitSet,
         convertList(scan.getInputs(), traitSet.getTrait(0)),
         scan.getElementType(), scan.getRowType(),

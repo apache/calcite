@@ -155,7 +155,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     super(cluster, traitSet, input);
     this.hints = ImmutableList.copyOf(hints);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
-    this.groupSet = Objects.requireNonNull(groupSet);
+    this.groupSet = Objects.requireNonNull(groupSet, "groupSet");
     if (groupSets == null) {
       this.groupSets = ImmutableList.of(groupSet);
     } else {

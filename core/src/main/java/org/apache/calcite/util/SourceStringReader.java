@@ -32,7 +32,7 @@ public class SourceStringReader extends StringReader {
    * @param s String providing the character stream
    */
   public SourceStringReader(String s) {
-    super(Objects.requireNonNull(s));
+    super(Objects.requireNonNull(s, "s"));
     this.s = s;
   }
 

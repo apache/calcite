@@ -94,8 +94,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    */
   public NlsString(ByteString bytesValue, String charsetName,
       @Nullable SqlCollation collation) {
-    this(null, Objects.requireNonNull(bytesValue),
-        Objects.requireNonNull(charsetName), collation);
+    this(null, Objects.requireNonNull(bytesValue, "bytesValue"),
+        Objects.requireNonNull(charsetName, "charsetName"), collation);
   }
 
   /**
@@ -113,7 +113,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    */
   public NlsString(String stringValue, @Nullable String charsetName,
       @Nullable SqlCollation collation) {
-    this(Objects.requireNonNull(stringValue), null, charsetName, collation);
+    this(Objects.requireNonNull(stringValue, "stringValue"), null, charsetName, collation);
   }
 
   /** Internal constructor; other constructors must call it. */

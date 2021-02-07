@@ -405,9 +405,16 @@ public class SqlSimpleParser {
               case ')':
               case '/':
               case ',':
+              case '\'':
                 break loop;
+              case '-':
+                // possible start of '--' comment
+                if (c == '-' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '-') {
+                  break loop;
+                }
+                // fall through
               default:
-                if (Character.isWhitespace(c)) {
+                if (Character.isWhitespace(c) || c == openQuote) {
                   break loop;
                 } else {
                   ++pos;

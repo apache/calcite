@@ -4201,15 +4201,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     Sql(String sql, boolean decorrelate, Tester tester, boolean trim,
         UnaryOperator<SqlToRelConverter.Config> config,
         SqlConformance conformance) {
-      this.sql = Objects.requireNonNull(sql);
+      this.sql = Objects.requireNonNull(sql, "sql");
       if (sql.contains(" \n")) {
         throw new AssertionError("trailing whitespace");
       }
       this.decorrelate = decorrelate;
-      this.tester = Objects.requireNonNull(tester);
+      this.tester = Objects.requireNonNull(tester, "tester");
       this.trim = trim;
-      this.config = Objects.requireNonNull(config);
-      this.conformance = Objects.requireNonNull(conformance);
+      this.config = Objects.requireNonNull(config, "config");
+      this.conformance = Objects.requireNonNull(conformance, "conformance");
     }
 
     public void ok() {
@@ -4226,7 +4226,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
     public Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
       final UnaryOperator<SqlToRelConverter.Config> config2 =
-          this.config.andThen(Objects.requireNonNull(config))::apply;
+          this.config.andThen(Objects.requireNonNull(config, "config"))::apply;
       return new Sql(sql, decorrelate, tester, trim, config2, conformance);
     }
 

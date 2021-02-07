@@ -385,7 +385,7 @@ public class MultiJoinOptimizeBushyRule
       super(id, factors, cost);
       this.leftFactor = leftFactor;
       this.rightFactor = rightFactor;
-      this.conditions = Objects.requireNonNull(conditions);
+      this.conditions = Objects.requireNonNull(conditions, "conditions");
     }
 
     @Override public String toString() {

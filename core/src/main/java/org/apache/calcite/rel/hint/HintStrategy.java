@@ -85,14 +85,14 @@ public class HintStrategy {
     private ImmutableSet<ConverterRule> converterRules;
 
     private Builder(HintPredicate predicate) {
-      this.predicate = Objects.requireNonNull(predicate);
+      this.predicate = Objects.requireNonNull(predicate, "predicate");
       this.excludedRules = ImmutableSet.of();
       this.converterRules = ImmutableSet.of();
     }
 
     /** Registers a hint option checker to validate the hint options. */
     public Builder optionChecker(HintOptionChecker optionChecker) {
-      this.optionChecker = Objects.requireNonNull(optionChecker);
+      this.optionChecker = Objects.requireNonNull(optionChecker, "optionChecker");
       return this;
     }
 

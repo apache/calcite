@@ -120,7 +120,7 @@ public class AutomatonBuilder {
   /** Adds a symbol transition. */
   AutomatonBuilder symbol(State fromState, State toState,
       String name) {
-    Objects.requireNonNull(name);
+    Objects.requireNonNull(name, "name");
     final int symbolId =
         symbolIds.computeIfAbsent(name, k -> symbolIds.size());
     transitionList.add(new SymbolTransition(fromState, toState, symbolId));
