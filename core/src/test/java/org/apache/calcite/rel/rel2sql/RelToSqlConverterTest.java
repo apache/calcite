@@ -36,6 +36,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -84,6 +86,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -819,6 +822,74 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testAggregatedWindowFunction() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.field("SAL")
+        )
+        .project(
+            builder.alias(
+                builder.getRexBuilder().makeOver(
+                    builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
+                    SqlStdOperatorTable.RANK,
+                    new ArrayList<>(),
+                    new ArrayList<>(),
+                    ImmutableList.of(
+                        new RexFieldCollation(builder.field("SAL"), ImmutableSet.of())
+                    ),
+                    RexWindowBounds.UNBOUNDED_PRECEDING,
+                    RexWindowBounds.UNBOUNDED_FOLLOWING,
+                    true,
+                    true,
+                    false,
+                    false,
+                    false
+                ),
+                "rank"
+            )
+        )
+        .as("tmp")
+        .aggregate(
+            builder.groupKey(),
+            builder.count(
+                true,
+                "cnt",
+                builder.field("tmp", "rank")
+            )
+        )
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                builder.field("cnt"),
+                builder.literal(10)
+            )
+        )
+        .build();
+
+    // Database not supporting nested aggregations
+    final String expectedPostgreSql =
+        "SELECT COUNT(DISTINCT \"rank\") AS \"cnt\"\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY \"SAL\") AS \"rank\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "HAVING COUNT(DISTINCT \"rank\") >= 10";
+    assertThat(
+        toSql(root, PostgresqlSqlDialect.DEFAULT),
+        isLinux(expectedPostgreSql)
+    );
+
+    // Database supporting nested aggregations
+    final String expectedOracleSql =
+        "SELECT COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) \"cnt\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "HAVING COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) >= 10";
+    assertThat(
+        toSql(root, OracleSqlDialect.DEFAULT),
+        isLinux(expectedOracleSql)
+    );
   }
 
   @Test void testSemiJoin() {

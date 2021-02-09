@@ -64,6 +64,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
@@ -1803,9 +1804,10 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
-        final boolean hasNestedAgg = hasNestedAggregations(agg);
+        final boolean hasNestedAgg = hasNested(agg, SqlAggFunction.class);
+        final boolean hasNestedWindows = hasNested(agg, SqlOverOperator.class);
         if (!dialect.supportsNestedAggregations()
-            && hasNestedAgg) {
+            && (hasNestedAgg || hasNestedWindows)) {
           return true;
         }
 
@@ -1818,9 +1820,10 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasNestedAggregations(
+    private <T> boolean hasNested(
         @UnknownInitialization Result this,
-        Aggregate rel) {
+        Aggregate rel,
+        Class<T> type) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
@@ -1834,7 +1837,7 @@ public abstract class SqlImplementor {
                   (SqlBasicCall) selectList.get(aggregatesArg);
               for (SqlNode operand : call.getOperands()) {
                 if (operand instanceof SqlCall
-                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
+                    && type.isInstance(((SqlCall) operand).getOperator())) {
                   return true;
                 }
               }
