@@ -64,6 +64,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
@@ -115,6 +116,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -628,6 +630,18 @@ public abstract class SqlImplementor {
     default:
       return true;
     }
+  }
+
+  /** Returns whether a node is a call to an aggregate function. */
+  private static boolean isAggregate(SqlNode node) {
+    return node instanceof SqlCall
+        && ((SqlCall) node).getOperator() instanceof SqlAggFunction;
+  }
+
+  /** Returns whether a node is a call to a windowed aggregate function. */
+  private static boolean isWindowedAggregate(SqlNode node) {
+    return node instanceof SqlCall
+        && ((SqlCall) node).getOperator() instanceof SqlOverOperator;
   }
 
   /** Context for translating a {@link RexNode} expression (within a
@@ -1803,9 +1817,12 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
-        final boolean hasNestedAgg = hasNestedAggregations(agg);
+        final boolean hasNestedAgg =
+            hasNested(agg, SqlImplementor::isAggregate);
+        final boolean hasNestedWindowedAgg =
+            hasNested(agg, SqlImplementor::isWindowedAggregate);
         if (!dialect.supportsNestedAggregations()
-            && hasNestedAgg) {
+            && (hasNestedAgg || hasNestedWindowedAgg)) {
           return true;
         }
 
@@ -1818,14 +1835,21 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasNestedAggregations(
+    /** Returns whether an {@link Aggregate} contains nested operands that
+     * match the predicate.
+     *
+     * @param aggregate Aggregate node
+     * @param operandPredicate Predicate for the nested operands
+     * @return whether any nested operands matches the predicate */
+    private boolean hasNested(
         @UnknownInitialization Result this,
-        Aggregate rel) {
+        Aggregate aggregate,
+        Predicate<SqlNode> operandPredicate) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
           final Set<Integer> aggregatesArgs = new HashSet<>();
-          for (AggregateCall aggregateCall : rel.getAggCallList()) {
+          for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             aggregatesArgs.addAll(aggregateCall.getArgList());
           }
           for (int aggregatesArg : aggregatesArgs) {
@@ -1833,8 +1857,7 @@ public abstract class SqlImplementor {
               final SqlBasicCall call =
                   (SqlBasicCall) selectList.get(aggregatesArg);
               for (SqlNode operand : call.getOperands()) {
-                if (operand instanceof SqlCall
-                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
+                if (operand != null && operandPredicate.test(operand)) {
                   return true;
                 }
               }

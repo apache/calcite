@@ -36,6 +36,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -819,6 +821,50 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4491">[CALCITE-4491]
+   * Aggregation of window function produces invalid SQL for PostgreSQL</a>. */
+  @Test void testAggregatedWindowFunction() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("SAL"))
+        .project(
+            b.alias(
+                b.getRexBuilder().makeOver(
+                    b.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
+                    SqlStdOperatorTable.RANK, ImmutableList.of(),
+                    ImmutableList.of(),
+                    ImmutableList.of(
+                        new RexFieldCollation(b.field("SAL"),
+                            ImmutableSet.of())),
+                    RexWindowBounds.UNBOUNDED_PRECEDING,
+                    RexWindowBounds.UNBOUNDED_FOLLOWING,
+                    true, true, false, false, false),
+                "rank"))
+        .as("t")
+        .aggregate(b.groupKey(),
+            b.count(b.field("t", "rank")).as("c"))
+        .filter(
+            b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                b.field("c"), b.literal(10)))
+        .build();
+
+    // PostgreSQL does not not support nested aggregations
+    final String expectedPostgresql =
+        "SELECT COUNT(\"rank\") AS \"c\"\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY \"SAL\") AS \"rank\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "HAVING COUNT(\"rank\") >= 10";
+    relFn(relFn).withPostgresql().ok(expectedPostgresql);
+
+    // Oracle does support nested aggregations
+    final String expectedOracle =
+        "SELECT COUNT(RANK() OVER (ORDER BY \"SAL\")) \"c\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "HAVING COUNT(RANK() OVER (ORDER BY \"SAL\")) >= 10";
+    relFn(relFn).withOracle().ok(expectedOracle);
   }
 
   @Test void testSemiJoin() {
