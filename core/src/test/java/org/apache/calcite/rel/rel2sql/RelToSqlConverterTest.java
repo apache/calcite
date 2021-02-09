@@ -1496,6 +1496,45 @@ public class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test public void testIntersectOrderBy() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t order by t.\"product_id\"";
+    final String expectedBigQuery = "SELECT *\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "ORDER BY product_id IS NULL, product_id";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIntersectWithWhere() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t where t.\"product_id\"<=14";
+    final String expectedBigQuery = "SELECT *\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "WHERE product_id <= 14";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIntersectWithGroupBy() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t group by  \"product_id\"";
+    final String expectedBigQuery = "SELECT product_id\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "GROUP BY product_id";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
   @Test public void testExceptOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "EXCEPT select 1 from \"product\"";
