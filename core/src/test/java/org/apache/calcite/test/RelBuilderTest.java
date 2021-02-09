@@ -4002,6 +4002,26 @@ public class RelBuilderTest {
     }
   }
 
+  /** Tests {@link RelBuilder#isDistinctFrom} and
+   * {@link RelBuilder#isNotDistinctFrom}. */
+  @Test void testIsDistinctFrom() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            b.isNotDistinctFrom(b.field("SAL"), b.field("DEPTNO")),
+            b.isNotDistinctFrom(b.field("EMPNO"), b.field("DEPTNO")),
+            b.isDistinctFrom(b.field("EMPNO"), b.field("DEPTNO")))
+        .build();
+    // Note: skip IS NULL check when both fields are NOT NULL;
+    // enclose in IS TRUE or IS NOT TRUE so that the result is BOOLEAN NOT NULL.
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], "
+        + "$f1=[OR(AND(IS NULL($5), IS NULL($7)), IS TRUE(=($5, $7)))], "
+        + "$f2=[IS TRUE(=($0, $7))], "
+        + "$f3=[IS NOT TRUE(=($0, $7))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4415">[CALCITE-4415]
    * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */

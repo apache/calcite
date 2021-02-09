@@ -715,6 +715,20 @@ public class RelBuilder {
     return call(SqlStdOperatorTable.NOT_EQUALS, operand0, operand1);
   }
 
+  /** Creates an expression equivalent to "{@code o0 IS NOT DISTINCT FROM o1}".
+   * It is also equivalent to
+   * "{@code o0 = o1 OR (o0 IS NULL AND o1 IS NULL)}". */
+  public RexNode isNotDistinctFrom(RexNode operand0, RexNode operand1) {
+    return RelOptUtil.isDistinctFrom(getRexBuilder(), operand0, operand1, true);
+  }
+
+  /** Creates an expression equivalent to {@code o0 IS DISTINCT FROM o1}.
+   * It is also equivalent to
+   * "{@code NOT (o0 = o1 OR (o0 IS NULL AND o1 IS NULL))}. */
+  public RexNode isDistinctFrom(RexNode operand0, RexNode operand1) {
+    return RelOptUtil.isDistinctFrom(getRexBuilder(), operand0, operand1, false);
+  }
+
   /** Creates a {@code BETWEEN}. */
   public RexNode between(RexNode arg, RexNode lower, RexNode upper) {
     return getRexBuilder().makeBetween(arg, lower, upper);

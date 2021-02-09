@@ -36,6 +36,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see org.apache.calcite.sql.fun.SqlStdOperatorTable#IS_NOT_DISTINCT_FROM
  * @see CoreRules#FILTER_EXPAND_IS_NOT_DISTINCT_FROM
+ * @see RelBuilder#isDistinctFrom
+ * @see RelBuilder#isNotDistinctFrom
  */
 public final class FilterRemoveIsNotDistinctFromRule
     extends RelRule<FilterRemoveIsNotDistinctFromRule.Config>
