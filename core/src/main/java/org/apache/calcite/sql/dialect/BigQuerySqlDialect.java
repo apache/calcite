@@ -861,6 +861,16 @@ public class BigQuerySqlDialect extends SqlDialect {
               daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
+    case "MONTHS_BETWEEN":
+      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      writer.literal("MONTH");
+      writer.endFunCall(dateDiffFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
