@@ -1829,8 +1829,7 @@ public abstract class SqlImplementor {
      *
      * @param rel aggregation node
      * @param operandPredicate predicate for the nested operands
-     * @return if any of the nested operands passes the predicate test then true, false otherwise.
-     */
+     * @return if any of the nested operands passes the predicate test then true, false otherwise.*/
     private boolean hasNested(
         @UnknownInitialization Result this,
         Aggregate rel,
