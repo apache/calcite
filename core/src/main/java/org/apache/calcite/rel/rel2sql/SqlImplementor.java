@@ -116,6 +116,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -1804,8 +1805,12 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
-        final boolean hasNestedAgg = hasNested(agg, SqlAggFunction.class);
-        final boolean hasNestedWindows = hasNested(agg, SqlOverOperator.class);
+        final boolean hasNestedAgg = hasNested(agg, operand ->
+            operand instanceof SqlCall
+                && ((SqlCall) operand).getOperator() instanceof SqlAggFunction);
+        final boolean hasNestedWindows = hasNested(agg, operand ->
+            operand instanceof SqlCall
+                && ((SqlCall) operand).getOperator() instanceof SqlOverOperator);
         if (!dialect.supportsNestedAggregations()
             && (hasNestedAgg || hasNestedWindows)) {
           return true;
@@ -1820,10 +1825,10 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private <T> boolean hasNested(
+    private boolean hasNested(
         @UnknownInitialization Result this,
         Aggregate rel,
-        Class<T> type) {
+        Predicate<SqlNode> operandPredicate) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
@@ -1836,8 +1841,7 @@ public abstract class SqlImplementor {
               final SqlBasicCall call =
                   (SqlBasicCall) selectList.get(aggregatesArg);
               for (SqlNode operand : call.getOperands()) {
-                if (operand instanceof SqlCall
-                    && type.isInstance(((SqlCall) operand).getOperator())) {
+                if (operandPredicate.test(operand)) {
                   return true;
                 }
               }
