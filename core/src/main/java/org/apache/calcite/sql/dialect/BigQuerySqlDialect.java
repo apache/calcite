@@ -854,9 +854,20 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "STRTOK":
       unparseStrtok(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEX_MATCH_COUNT":
+      unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlCall extractCall = makeExtractSqlCall(call);
+    REGEXP_EXTRACT_ALL.unparse(writer, extractCall, leftPrec, rightPrec);
+    //writeOffset(writer, call);
+    SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.unparse(
+        writer, extractCall, leftPrec, rightPrec);
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
