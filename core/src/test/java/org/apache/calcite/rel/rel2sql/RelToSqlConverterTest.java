@@ -1496,6 +1496,45 @@ public class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test public void testIntersectOrderBy() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t order by t.\"product_id\"";
+    final String expectedBigQuery = "SELECT *\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "ORDER BY product_id IS NULL, product_id";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIntersectWithWhere() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t where t.\"product_id\"<=14";
+    final String expectedBigQuery = "SELECT *\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "WHERE product_id <= 14";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIntersectWithGroupBy() {
+    final String query = "select * from (select \"product_id\" from \"product\"\n"
+            + "INTERSECT select \"product_id\" from \"product\") t group by  \"product_id\"";
+    final String expectedBigQuery = "SELECT product_id\n"
+            + "FROM (SELECT product_id\n"
+            + "FROM foodmart.product\n"
+            + "INTERSECT DISTINCT\n"
+            + "SELECT product_id\n"
+            + "FROM foodmart.product) AS t1\n"
+            + "GROUP BY product_id";
+    sql(query).withBigQuery().ok(expectedBigQuery);
+  }
+
   @Test public void testExceptOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "EXCEPT select 1 from \"product\"";
@@ -2537,7 +2576,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDatePlus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDatePlus)
         .withMssql()
@@ -2547,7 +2586,7 @@ public class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinus = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinus)
         .withMssql()
@@ -2558,11 +2597,25 @@ public class RelToSqlConverterTest {
         + " > TIMESTAMP '2005-10-17 00:00:00' ";
     String expectedDateMinusNegate = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
-        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > CAST('2005-10-17 00:00:00' AS TIMESTAMP(0))";
 
     sql(queryDateMinusNegate)
         .withMssql()
         .ok(expectedDateMinusNegate);
+  }
+
+  @Test public void testUnparseTimeLiteral() {
+    String queryDatePlus = "select TIME '11:25:18' "
+        + "from \"employee\"";
+    String expectedBQSql = "SELECT TIME '11:25:18'\n"
+        + "FROM foodmart.employee";
+    String expectedSql = "SELECT CAST('11:25:18' AS TIME(0))\n"
+        + "FROM [foodmart].[employee]";
+    sql(queryDatePlus)
+        .withBigQuery()
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedSql);
   }
 
   @Test public void testFloorMysqlWeek() {
@@ -6774,9 +6827,13 @@ public class RelToSqlConverterTest {
   @Test public void testDayOfMonth() {
     String query = "select DAYOFMONTH( DATE '2008-08-29')";
     final String expectedMssql = "SELECT DAY('2008-08-29')";
+    final String expectedBQ = "SELECT EXTRACT(DAY FROM DATE '2008-08-29')";
+
     sql(query)
       .withMssql()
-      .ok(expectedMssql);
+      .ok(expectedMssql)
+      .withBigQuery()
+      .ok(expectedBQ);
   }
 
 }

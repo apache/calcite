@@ -115,6 +115,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -853,6 +854,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "STRTOK":
       unparseStrtok(writer, call, leftPrec, rightPrec);
+      break;
+    case "DAYOFMONTH":
+      SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
+      SqlCall extractCall = EXTRACT.createCall(SqlParserPos.ZERO,
+              daySymbolLiteral, call.operand(0));
+      super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
     case "REGEX_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);

@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -32,6 +33,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTimeLiteral;
+import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
@@ -40,13 +43,16 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ToNumberUtils;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -102,7 +108,19 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
-    writer.literal("'" + literal.toFormattedString() + "'");
+    SqlCharStringLiteral charStringLiteral = SqlLiteral
+        .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
+    if (literal instanceof SqlTimestampLiteral) {
+      SqlNode castCall =  CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP)));
+      castCall.unparse(writer, leftPrec, rightPrec);
+    } else if (literal instanceof SqlTimeLiteral) {
+      SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME)));
+      castCall.unparse(writer, leftPrec, rightPrec);
+    } else {
+      writer.literal("'" + literal.toFormattedString() + "'");
+    }
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,

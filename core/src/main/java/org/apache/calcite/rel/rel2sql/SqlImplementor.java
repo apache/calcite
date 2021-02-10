@@ -25,6 +25,8 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1187,6 +1189,13 @@ public abstract class SqlImplementor {
       if (rel instanceof Project && rel.getInput(0) instanceof Project
           && !dialect.supportNestedAnalyticalFunctions()
           && hasNestedAnalyticalFunctions((Project) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof LogicalSort && rel.getInput(0)
+              instanceof LogicalProject
+              && ((LogicalProject) ((LogicalSort) rel).getInput()).getInput()
+              instanceof LogicalIntersect) {
         needNew = true;
       }
 
