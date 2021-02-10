@@ -828,9 +828,7 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
         .scan("EMP")
-        .project(
-            builder.field("SAL")
-        )
+        .project(builder.field("SAL"))
         .project(
             builder.alias(
                 builder.getRexBuilder().makeOver(
@@ -839,35 +837,26 @@ class RelToSqlConverterTest {
                     new ArrayList<>(),
                     new ArrayList<>(),
                     ImmutableList.of(
-                        new RexFieldCollation(builder.field("SAL"), ImmutableSet.of())
-                    ),
+                        new RexFieldCollation(builder.field("SAL"), ImmutableSet.of())),
                     RexWindowBounds.UNBOUNDED_PRECEDING,
                     RexWindowBounds.UNBOUNDED_FOLLOWING,
                     true,
                     true,
                     false,
                     false,
-                    false
-                ),
-                "rank"
-            )
-        )
+                    false),
+                "rank"))
         .as("tmp")
         .aggregate(
             builder.groupKey(),
             builder.count(
                 true,
                 "cnt",
-                builder.field("tmp", "rank")
-            )
-        )
+                builder.field("tmp", "rank")))
         .filter(
-            builder.call(
-                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+            builder.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
                 builder.field("cnt"),
-                builder.literal(10)
-            )
-        )
+                builder.literal(10)))
         .build();
 
     // Database not supporting nested aggregations
@@ -876,20 +865,14 @@ class RelToSqlConverterTest {
         + "FROM (SELECT RANK() OVER (ORDER BY \"SAL\") AS \"rank\"\n"
         + "FROM \"scott\".\"EMP\") AS \"t\"\n"
         + "HAVING COUNT(DISTINCT \"rank\") >= 10";
-    assertThat(
-        toSql(root, PostgresqlSqlDialect.DEFAULT),
-        isLinux(expectedPostgreSql)
-    );
+    assertThat(toSql(root, PostgresqlSqlDialect.DEFAULT), isLinux(expectedPostgreSql));
 
     // Database supporting nested aggregations
     final String expectedOracleSql =
         "SELECT COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) \"cnt\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "HAVING COUNT(DISTINCT RANK() OVER (ORDER BY \"SAL\")) >= 10";
-    assertThat(
-        toSql(root, OracleSqlDialect.DEFAULT),
-        isLinux(expectedOracleSql)
-    );
+    assertThat(toSql(root, OracleSqlDialect.DEFAULT), isLinux(expectedOracleSql));
   }
 
   @Test void testSemiJoin() {
