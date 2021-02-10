@@ -824,6 +824,11 @@ class RelToSqlConverterTest {
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4491">[CALCITE-4491]
+   * Aggregation of window function produces invalid SQL</a>.
+   */
   @Test void testAggregatedWindowFunction() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
