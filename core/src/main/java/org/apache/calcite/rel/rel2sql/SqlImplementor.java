@@ -1833,7 +1833,7 @@ public abstract class SqlImplementor {
     private boolean hasNested(
         @UnknownInitialization Result this,
         Aggregate rel,
-        Predicate<SqlNode> operandPredicate) {
+        Predicate<@Nullable SqlNode> operandPredicate) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
