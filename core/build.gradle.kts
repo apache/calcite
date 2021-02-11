@@ -75,6 +75,7 @@ dependencies {
     testImplementation("org.apache.commons:commons-pool2")
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
+    testImplementation("org.sosy-lab:javasmt-solver-z3")
     testImplementation("sqlline:sqlline")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
