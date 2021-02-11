@@ -846,8 +846,9 @@ public class RelMdPredicates
         for (int j = 0, i = fields.nextSetBit(0); i >= 0; i = fields
             .nextSetBit(i + 1), j++) {
           columns[j] = i;
+          int fieldIndex = i;
           columnSets[j] = requireNonNull(equivalence.get(i),
-              "equivalence.get(i) is null for " + i + ", " + equivalence);
+              () -> "equivalence.get(i) is null for " + fieldIndex + ", " + equivalence);
           iterationIdx[j] = 0;
         }
         firstCall = true;

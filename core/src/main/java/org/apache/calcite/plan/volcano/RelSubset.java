@@ -434,6 +434,13 @@ public class RelSubset extends AbstractRelNode {
   }
 
   /**
+   * Returns whether the rel is a part of the current subset.
+   */
+  public boolean contains(RelNode node) {
+    return set.rels.contains(node) && node.getTraitSet().satisfies(traitSet);
+  }
+
+  /**
    * Returns stream of subsets whose traitset satisfies
    * current subset's traitset.
    */
