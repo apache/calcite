@@ -391,8 +391,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
               continue;
             }
           } else {
-            List<RelNode> inputRels = input.getRelList();
-            if (!inputRels.contains(previous)) {
+            if (!input.contains(previous)) {
               continue;
             }
           }
