@@ -47,8 +47,7 @@ public class ArrowProjectRule extends ArrowConverterRule {
     super(config);
   }
 
-  @Override
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     return null;
   }
 

@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -90,7 +91,7 @@ class ArrowSchema extends AbstractSchema {
         RootAllocator allocator = new RootAllocator();
         ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
         tables.put(
-            trim(file.getName(), ".arrow").toUpperCase(),
+            trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT),
             new ArrowTable(null, arrowFileReader));
       }
     }
