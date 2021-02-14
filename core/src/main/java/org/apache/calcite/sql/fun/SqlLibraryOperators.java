@@ -859,5 +859,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
+
+  public static final SqlFunction REGEXP_MATCH_COUNT =
+      new SqlFunction("REGEXP_MATCH_COUNT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction ARRAY_LENGTH = new SqlFunction("ARRAY_LENGTH",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.INTEGER_NULLABLE,
+      null, OperandTypes.ARRAY,
+      SqlFunctionCategory.STRING);
 }
 // End SqlLibraryOperators.java

@@ -861,8 +861,9 @@ public class BigQuerySqlDialect extends SqlDialect {
               daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
-    case "REGEX_MATCH_COUNT":
+    case "REGEXP_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -870,11 +871,13 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    SqlCall extractCall = makeExtractSqlCall(call);
-    REGEXP_EXTRACT_ALL.unparse(writer, extractCall, leftPrec, rightPrec);
-    //writeOffset(writer, call);
-    SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.unparse(
-        writer, extractCall, leftPrec, rightPrec);
+    SqlWriter.Frame arrayLengthFrame = writer.startFunCall("ARRAY_LENGTH");
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(", r");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(regexpExtractAllFrame);
+    writer.endFunCall(arrayLengthFrame);
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

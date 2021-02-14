@@ -69,6 +69,8 @@ here to appease testAllFunctionsAreDocumented:
 | TIME_SUB       | Return time minus from interval
 | TO_CHAR        | Format date based on the format given
 | STRTOK         | Tokenizes a given string and returns the requested part
+| REGEXP_MATCH_COUNT | Returns the number of matching occurrences in the input
+| ARRAY_LENGTH       | Returns the number of elements in array
 {% endcomment %}
 -->
 

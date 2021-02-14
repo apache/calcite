@@ -34,6 +34,7 @@ import java.util.List;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
+import static org.apache.calcite.runtime.SqlFunctions.arrayLength;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
@@ -59,6 +60,7 @@ import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
@@ -1164,6 +1166,20 @@ public class SqlFunctionsTest {
   /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
   @Test public void testDateTimeForm() {
     assertThat(toCharFunction(111200, "HHMISS"), is("111200"));
+  }
+
+  /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object)}. */
+  @Test public void testRegexpMatchCount() {
+    assertThat(regexpMatchCount("Steven Jones and Stephen Smith are the best players",
+        "Ste(v|ph)en"), is(2));
+    assertThat(regexpMatchCount("Steven Jones and Stephen are the best players",
+        "Jon"), is(1));
+  }
+
+  /** Test for {@link SqlFunctions#arrayLength(Object)}. */
+  @Test public void testArrayLength() {
+    assertThat(arrayLength("[1, 2, 3, 4, 5]"), is(5));
+    assertThat(arrayLength("[9, 5"), is(2));
   }
 }
 

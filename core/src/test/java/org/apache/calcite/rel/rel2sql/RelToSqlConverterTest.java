@@ -6836,6 +6836,15 @@ public class RelToSqlConverterTest {
       .ok(expectedBQ);
   }
 
+  @Test public void testRegexMatchCount() {
+    final String query = "select regexp_match_count(\"full_name\" ,'(\\W)')"
+        + "from \"employee\"";
+    final String expectedBQ = "SELECT EXTRACT(DAY FROM DATE '2008-08-29')";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
