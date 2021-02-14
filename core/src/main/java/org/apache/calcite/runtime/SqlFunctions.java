@@ -3132,9 +3132,24 @@ public class SqlFunctions {
     return ((String) value).split((String) delimiter) [(Integer) part - 1];
   }
 
-  public static Object regexpMatchCount(Object str, Object regex) {
-    Pattern pattern = Pattern.compile((String) regex);
-    Matcher matcher = pattern.matcher((String) str);
+  public static Object regexpMatchCount(Object str, Object regex, Object startPos, Object flag) {
+    String newString = (String) str;
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern;
+    switch (((String) flag).toLowerCase()) {
+      case "m":
+        pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
+        break;
+      case "i":
+        pattern = Pattern.compile((String) regex, Pattern.CASE_INSENSITIVE);
+        break;
+      default:
+        pattern = Pattern.compile((String) regex);
+    }
+    Matcher matcher = pattern.matcher(newString);
     int count = 0;
     while (matcher.find()) {
       count++;

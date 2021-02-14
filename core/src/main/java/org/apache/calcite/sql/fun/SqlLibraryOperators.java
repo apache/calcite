@@ -865,7 +865,10 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000,
           null,
-          OperandTypes.STRING_STRING,
+          OperandTypes.family(ImmutableList.of(
+              SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+              number -> number == 2 || number == 3),
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {BIGQUERY})

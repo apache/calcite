@@ -1168,12 +1168,14 @@ public class SqlFunctionsTest {
     assertThat(toCharFunction(111200, "HHMISS"), is("111200"));
   }
 
-  /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object)}. */
+  /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object, Object, Object)}. */
   @Test public void testRegexpMatchCount() {
     assertThat(regexpMatchCount("Steven Jones and Stephen Smith are the best players",
-        "Ste(v|ph)en"), is(2));
+        "Ste(v|ph)en", 0, ""), is(2));
     assertThat(regexpMatchCount("Steven Jones and Stephen are the best players",
-        "Jon"), is(1));
+        "Jon", 5, "i"), is(1));
+    assertThat(regexpMatchCount("Steven Jones and Stephen are the best players",
+        "Jon", 20, "i"), is(0));
   }
 
   /** Test for {@link SqlFunctions#arrayLength(Object)}. */
