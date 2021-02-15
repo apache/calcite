@@ -3139,7 +3139,7 @@ public class SqlFunctions {
       newString = newString.substring(startPosition, newString.length());
     }
     Pattern pattern;
-    switch (((String) flag).toLowerCase()) {
+    switch (((String) flag).toLowerCase(Locale.ROOT)) {
     case "m":
       pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
       break;
