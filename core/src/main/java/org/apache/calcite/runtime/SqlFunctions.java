@@ -3140,14 +3140,14 @@ public class SqlFunctions {
     }
     Pattern pattern;
     switch (((String) flag).toLowerCase()) {
-      case "m":
-        pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
-        break;
-      case "i":
-        pattern = Pattern.compile((String) regex, Pattern.CASE_INSENSITIVE);
-        break;
-      default:
-        pattern = Pattern.compile((String) regex);
+    case "m":
+      pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
+      break;
+    case "i":
+      pattern = Pattern.compile((String) regex, Pattern.CASE_INSENSITIVE);
+      break;
+    default:
+      pattern = Pattern.compile((String) regex);
     }
     Matcher matcher = pattern.matcher(newString);
     int count = 0;

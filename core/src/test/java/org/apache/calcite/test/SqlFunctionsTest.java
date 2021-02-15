@@ -1170,11 +1170,16 @@ public class SqlFunctionsTest {
 
   /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object, Object, Object)}. */
   @Test public void testRegexpMatchCount() {
-    assertThat(regexpMatchCount("Steven Jones and Stephen Smith are the best players",
-        "Ste(v|ph)en", 0, ""), is(2));
-    assertThat(regexpMatchCount("Steven Jones and Stephen are the best players",
-        "Jon", 5, "i"), is(1));
-    assertThat(regexpMatchCount("Steven Jones and Stephen are the best players",
+    String regex = "Ste(v|ph)en";
+    assertThat(
+        regexpMatchCount("Steven Jones and Stephen Smith are the best players",
+        regex, 0, ""), is(2));
+    String bestPlayers = "Steven Jones and Stephen are the best players";
+    assertThat(
+        regexpMatchCount(bestPlayers,
+         "Jon", 5, "i"), is(1));
+    assertThat(
+        regexpMatchCount(bestPlayers,
         "Jon", 20, "i"), is(0));
   }
 
