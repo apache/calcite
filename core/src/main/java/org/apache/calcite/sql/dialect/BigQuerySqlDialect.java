@@ -872,12 +872,16 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     SqlWriter.Frame arrayLengthFrame = writer.startFunCall("ARRAY_LENGTH");
+    unparseRegexpExtractAll(writer, call, leftPrec, rightPrec);
+    writer.endFunCall(arrayLengthFrame);
+  }
+
+  private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(regexpExtractAllFrame);
-    writer.endFunCall(arrayLengthFrame);
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
