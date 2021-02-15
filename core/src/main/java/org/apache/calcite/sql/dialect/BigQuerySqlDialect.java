@@ -876,7 +876,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(arrayLengthFrame);
   }
 
-  private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
