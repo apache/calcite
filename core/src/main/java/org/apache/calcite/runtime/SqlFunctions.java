@@ -3156,10 +3156,6 @@ public class SqlFunctions {
     }
     return count;
   }
-
-  public static Object arrayLength(Object array) {
-    return ((String) array).split(", ").length;
-  }
 }
 
 // End SqlFunctions.java

@@ -347,7 +347,6 @@ public enum BuiltInMethod {
   STRTOK(SqlFunctions.class, "strTok", Object.class, Object.class, Object.class),
   REGEXP_MATCH_COUNT(SqlFunctions.class, "regexpMatchCount", Object.class,
       Object.class, Object.class, Object.class),
-  ARRAY_LENGTH(SqlFunctions.class, "arrayLength", Object.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",

@@ -34,7 +34,6 @@ import java.util.List;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
-import static org.apache.calcite.runtime.SqlFunctions.arrayLength;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
@@ -1181,12 +1180,6 @@ public class SqlFunctionsTest {
     assertThat(
         regexpMatchCount(bestPlayers,
         "Jon", 20, "i"), is(0));
-  }
-
-  /** Test for {@link SqlFunctions#arrayLength(Object)}. */
-  @Test public void testArrayLength() {
-    assertThat(arrayLength("[1, 2, 3, 4, 5]"), is(5));
-    assertThat(arrayLength("[9, 5"), is(2));
   }
 }
 

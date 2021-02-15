@@ -92,7 +92,6 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHARINDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_ADD;
@@ -694,7 +693,6 @@ public class RexImpTable {
     defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
     defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
     defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
-    defineMethod(ARRAY_LENGTH, BuiltInMethod.ARRAY_LENGTH.method, NullPolicy.NONE);
     defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
   }
 
