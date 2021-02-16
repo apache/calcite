@@ -43,6 +43,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.NETEZZA;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
@@ -852,12 +853,83 @@ public abstract class SqlLibraryOperators {
               number -> number == 1),
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
+  @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction TO_CHAR =
       new SqlFunction("TO_CHAR",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction BITWISE_AND =
+      new SqlFunction("BITWISE_AND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction BITWISE_OR =
+      new SqlFunction("BITWISE_OR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction BITWISE_XOR =
+      new SqlFunction("BITWISE_XOR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction INT2SHL =
+      new SqlFunction("INT2SHL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC,
+                  SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction INT8XOR =
+          new SqlFunction("INT8XOR",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.INTEGER_NULLABLE, null,
+                  OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+                  SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction INT2SHR =
+      new SqlFunction("INT2SHR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC,
+                  SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction PI = new SqlFunction("PI",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL_MOD_NULLABLE, null,
+          null,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction ACOS = new SqlFunction("ACOS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL_MOD_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction OCTET_LENGTH = new SqlFunction("OCTET_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.CHARACTER),
+          SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java

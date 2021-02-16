@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -861,9 +862,63 @@ public class BigQuerySqlDialect extends SqlDialect {
               daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
+    case "COT":
+      final SqlWriter.Frame cotFrame = writer.startFunCall("1/tan");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(cotFrame);
+      break;
+    case "BITWISE_AND":
+      unparseBitwiseAnd(writer, call.operand(0), call.operand(1), leftPrec, rightPrec);
+      break;
+    case "BITWISE_OR":
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print("| ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "BITWISE_XOR":
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print("^ ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "INT2SHR":
+      writer.print("(");
+      unparseBitwiseAnd(writer, call.operand(0), call.operand(2), leftPrec, rightPrec);
+      writer.print(") >> ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "INT2SHL":
+      writer.print("(");
+      unparseBitwiseAnd(writer, call.operand(0), call.operand(2), leftPrec, rightPrec);
+      writer.print(") << ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
+    case "PI":
+      SqlNode numericNode = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+      SqlCall acosCall = ACOS.createCall(SqlParserPos.ZERO, numericNode);
+      unparseCall(writer, acosCall, leftPrec, rightPrec);
+      break;
+    case "OCTET_LENGTH":
+      SqlNode operandCall = call.operand(0);
+      if (call.operand(0) instanceof SqlLiteral) {
+        String newOperand = call.operand(0).toString().replace("\\",
+                "\\\\");
+        operandCall = SqlLiteral.createCharString(
+                unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
+      }
+      final SqlWriter.Frame octetFrame = writer.startFunCall("OCTET_LENGTH");
+      operandCall.unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(octetFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseBitwiseAnd(SqlWriter writer, SqlNode operand1,
+                                 SqlNode operand2, int leftPrec, int rightPrec) {
+    operand1.unparse(writer, leftPrec, rightPrec);
+    writer.print("& ");
+    operand2.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

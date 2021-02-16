@@ -6770,6 +6770,99 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
+  @Test public void octetLength() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.OCTET_LENGTH,
+            builder.field("ENAME"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE OCTET_LENGTH(ENAME)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void octetLengthWithLiteral() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.OCTET_LENGTH,
+            builder.literal("ENAME"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE OCTET_LENGTH(ENAME)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void iNT2SHR() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.INT2SHR,
+            builder.literal(3), builder.literal(1), builder.literal(6));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE (3 & 6 ) >> 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void iNT8XOR() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_XOR,
+            builder.literal(3), builder.literal(6));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 ^ 6";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void iNT2SHL() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.INT2SHL,
+            builder.literal(3), builder.literal(1), builder.literal(6));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE (3 & 6 ) << 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void iNT2AND() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_AND,
+            builder.literal(3), builder.literal(6));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 & 6";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void iNT1OR() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_OR,
+            builder.literal(3), builder.literal(6));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 | 6";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void cot() {
+    final String query = "SELECT COT(0.12)";
+
+    final String expectedBQ = "SELECT 1/TAN(0.12)";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
   @Test
   public void testCaseForLnFunction() {
     final String query = "SELECT LN(\"product_id\") as dd from \"product\"";
@@ -6835,7 +6928,6 @@ public class RelToSqlConverterTest {
       .withBigQuery()
       .ok(expectedBQ);
   }
-
 }
 
 // End RelToSqlConverterTest.java
