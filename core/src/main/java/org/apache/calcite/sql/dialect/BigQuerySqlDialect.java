@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -115,12 +116,14 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 
 
@@ -862,14 +865,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
     case "MONTHS_BETWEEN":
-      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      writer.literal("MONTH");
-      writer.endFunCall(dateDiffFrame);
+      SqlNode monthSymbol = SqlLiteral.createSymbol(TimeUnit.MONTH, SqlParserPos.ZERO);
+      SqlNode dateDiffNode = DATE_DIFF.createCall(SqlParserPos.ZERO,
+              call.operand(0), call.operand(1), monthSymbol);
+
+      daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
+
+      SqlNode day1 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(0));
+      SqlNode day2 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(1));
+
+      SqlNode subtarctNode = MINUS.createCall(SqlParserPos.ZERO, day1, day2);
+
+      SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, subtarctNode,
+              SqlLiteral.createExactNumeric("31", SqlParserPos.ZERO));
+
+      SqlNode addNode = PLUS.createCall(SqlParserPos.ZERO, dateDiffNode, divideNode);
+
+      SqlCall roundCall = ROUND.createCall(SqlParserPos.ZERO, addNode,
+              SqlLiteral.createExactNumeric("9", SqlParserPos.ZERO));
+
+      roundCall.unparse(writer, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

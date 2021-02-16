@@ -6770,6 +6770,21 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
+  @Test public void monthsBetween() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
+            builder.literal("2012-07-01"), builder.literal("2010-08-30"));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+
+    final String expectedBQ = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE ROUND(DATE_DIFF('2012-07-01', '2010-08-30', MONTH) "
+            + "+ (EXTRACT(DAY FROM '2012-07-01') - "
+            + "EXTRACT(DAY FROM '2010-08-30')) / 31, 9)";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
   @Test
   public void testCaseForLnFunction() {
     final String query = "SELECT LN(\"product_id\") as dd from \"product\"";
