@@ -77,6 +77,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
@@ -3129,6 +3130,31 @@ public class SqlFunctions {
 
   public static Object strTok(Object value, Object delimiter, Object part) {
     return ((String) value).split((String) delimiter) [(Integer) part - 1];
+  }
+
+  public static Object regexpMatchCount(Object str, Object regex, Object startPos, Object flag) {
+    String newString = (String) str;
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern;
+    switch (((String) flag).toLowerCase(Locale.ROOT)) {
+    case "m":
+      pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
+      break;
+    case "i":
+      pattern = Pattern.compile((String) regex, Pattern.CASE_INSENSITIVE);
+      break;
+    default:
+      pattern = Pattern.compile((String) regex);
+    }
+    Matcher matcher = pattern.matcher(newString);
+    int count = 0;
+    while (matcher.find()) {
+      count++;
+    }
+    return count;
   }
 }
 
