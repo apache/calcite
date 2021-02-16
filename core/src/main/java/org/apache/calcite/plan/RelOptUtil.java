@@ -2814,7 +2814,6 @@ public abstract class RelOptUtil {
       List<RexNode> rightFilters) {
     RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
     List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
-    final int nTotalFields = joinFields.size();
     final int nSysFields = 0; // joinRel.getSystemFieldList().size();
     final List<RelDataTypeField> leftFields =
         joinRel.getInputs().get(0).getRowType().getFieldList();
@@ -2822,11 +2821,7 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> rightFields =
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
-
-    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
-    assert nTotalFields == (!joinType.projectsRight()
-            ? nSysFields + nFieldsLeft
-            : nSysFields + nFieldsLeft + nFieldsRight);
+    final int nTotalFields = nFieldsLeft + nFieldsRight;
 
     // set the reference bitmaps for the left and right children
     ImmutableBitSet leftBitmap =
