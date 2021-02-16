@@ -8088,6 +8088,25 @@ LogicalProject(NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushFilterSemijoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[AND(=($0, $10), =($8, 100))], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $10)], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalFilter(condition=[=($5, 100)])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushFilterThroughOuterJoin">
     <Resource name="sql">
       <![CDATA[select 1 from sales.dept d left outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>

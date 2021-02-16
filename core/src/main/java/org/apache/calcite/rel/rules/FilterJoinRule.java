@@ -110,10 +110,9 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     if (RelOptUtil.classifyFilters(
         join,
         aboveFilters,
-        joinType,
-        true,
-        !joinType.generatesNullsOnLeft(),
-        !joinType.generatesNullsOnRight(),
+        joinType.canPushIntoFromAbove(),
+        joinType.canPushLeftFromAbove(),
+        joinType.canPushRightFromAbove(),
         joinFilters,
         leftFilters,
         rightFilters)) {
@@ -147,14 +146,12 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     // The semantic would change if join condition $2 is pushed into left,
     // that is, the result set may be smaller. The right can not be pushed
     // into for the same reason.
-    if (joinType != JoinRelType.ANTI
-        && RelOptUtil.classifyFilters(
+    if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
-        joinType,
         false,
-        !joinType.generatesNullsOnRight(),
-        !joinType.generatesNullsOnLeft(),
+        joinType.canPushLeftFromWithin(),
+        joinType.canPushRightFromWithin(),
         joinFilters,
         leftFilters,
         rightFilters)) {
