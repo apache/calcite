@@ -188,11 +188,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
-  final RelOptCost zeroCost;
+  RelOptCost zeroCost;
 
   /** Infinite cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
-  final RelOptCost infCost;
+  RelOptCost infCost;
 
   /**
    * Whether to enable top-down optimization or not.
@@ -271,6 +271,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public void setRoot(RelNode rel) {
+    // Re-initialize default costs.
+    zeroCost = costFactory.makeZeroCost();
+    infCost = costFactory.makeInfiniteCost();
+
+    // Clear cached metadata because it may have stale costs.
+    rel.getCluster().getMetadataQuery().map.clear();
+
     // We've registered all the rules, and therefore RelNode classes,
     // we're interested in, and have not yet started calling metadata providers.
     // So now is a good time to tell the metadata layer what to expect.
