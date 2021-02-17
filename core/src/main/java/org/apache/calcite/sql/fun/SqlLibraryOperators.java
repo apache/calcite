@@ -881,10 +881,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.BOOLEAN,
           null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-                  SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
-              number -> number == 2 || number == 3),
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java
