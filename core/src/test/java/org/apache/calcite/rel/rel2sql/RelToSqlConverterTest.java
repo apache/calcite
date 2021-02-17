@@ -6826,6 +6826,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDayOfMonth() {
     String query = "select DAYOFMONTH( DATE '2008-08-29')";
+//    String query = "SELECT EXTRACT(CENTURY FROM DATE '2008-08-29')";
     final String expectedMssql = "SELECT DAY('2008-08-29')";
     final String expectedBQ = "SELECT EXTRACT(DAY FROM DATE '2008-08-29')";
 
