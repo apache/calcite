@@ -28,7 +28,7 @@ immediately, but we want to deploy documentation of project features only when t
 in a release.
 
 The building and publishing of the website is completely automated using Github actions, so you should simply commit
-your changes to master. If you are committing a change to the website that needs to be published immediately, the
+your changes to main. If you are committing a change to the website that needs to be published immediately, the
 Github action uses these [rules](../.github/workflows/publish-non-release-website-updates.yml#L7).
 
 # Previewing the website locally

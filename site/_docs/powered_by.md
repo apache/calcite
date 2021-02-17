@@ -30,7 +30,7 @@ The following companies and projects are powered by Apache Calcite.
 {:toc}
 
 Is your company or project powered by Calcite?
-[Add it to this page](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md)
+[Add it to this page](https://github.com/apache/calcite/blob/main/site/_docs/powered_by.md)
 and then use the "powered by Apache Calcite" logo
 ([140 px]({{ site.baseurl }}/img/pb-calcite-140.png)
 or [240 px]({{ site.baseurl }}/img/pb-calcite-240.png))

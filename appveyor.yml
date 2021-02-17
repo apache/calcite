@@ -29,8 +29,7 @@ init:
 branches:
   # whitelist
   only:
-    - master
-    - new-master
+    - main
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/

@@ -579,7 +579,7 @@ protocol that you are using (HTTPS vs. SSH).
 ## Merging pull requests
 
 These are instructions for a Calcite committer who has reviewed a pull request
-from a contributor, found it satisfactory, and is about to merge it to master.
+from a contributor, found it satisfactory, and is about to merge it to main.
 Usually the contributor is not a committer (otherwise they would be committing
 it themselves, after you gave approval in a review).
 
@@ -690,7 +690,7 @@ Note: release artifacts (dist.apache.org and repository.apache.org) are managed 
 Before you start:
 
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
-  is starting and therefore `master` branch is in code freeze until further notice.
+  is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
@@ -948,8 +948,8 @@ Add a release announcement by copying
 Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
 javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file. Rebase the `site` branch with `master` (e.g., `git checkout site && git rebase master`);
-at this point there shouldn't be any commits in `site` that are not in `master`, so the rebase is
+in the same file. Rebase the `site` branch with `main` (e.g., `git checkout site && git rebase main`);
+at this point there shouldn't be any commits in `site` that are not in `main`, so the rebase is
 essentially a noop.
 
 In JIRA, search for
@@ -972,8 +972,8 @@ Increase the `calcite.version` value in `/gradle.properties`, commit and push
 the change with the message "Prepare for next development iteration"
 (see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
 
-Re-open the `master` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
-that `master` code freeze is over and commits can resume.
+Re-open the `main` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
+that `main` code freeze is over and commits can resume.
 
 ## Publishing the web site
 {: #publish-the-web-site}

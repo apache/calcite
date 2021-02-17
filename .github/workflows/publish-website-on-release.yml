@@ -22,21 +22,21 @@ on:
       - calcite-[0-9]+.[0-9]+.[0-9]+ # Trigger only when a tag that matches calcite-X.Y.Z is pushed
 
 jobs:
-  sync-master-site:
+  sync-main-site:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: site
-      - name: Sync master and site branches
+      - name: Sync main and site branches
         run: |
-          git reset --hard origin/master
+          git reset --hard origin/main
           git push --force origin site
 
   publish-website:
     runs-on: ubuntu-latest
-    needs: sync-master-site
+    needs: sync-main-site
     steps:
       - uses: actions/checkout@v3
         with:
@@ -54,18 +54,18 @@ jobs:
         env:
           CALCITE_WEBSITE_BUILD: ${{ secrets.CALCITE_WEBSITE_BUILD }}
         run: |
-          git config --global init.defaultBranch master
+          git config --global init.defaultBranch main
           git init                           # Turn the folder into a git repo
           git config url."https://asf-ci-deploy:$CALCITE_WEBSITE_BUILD@github.com/".insteadOf "https://github.com/"
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git config user.name ${{ github.actor }}
           git remote add origin https://github.com/apache/calcite-site
           git fetch                          # Pull from the calcite-site repo
-          git reset origin/master --soft     # Bring in changes from the calcite-site repo, but keep our local changes
+          git reset origin/main --soft     # Bring in changes from the calcite-site repo, but keep our local changes
           git reset -- avatica/              # Restore the avatica site
           git checkout -- avatica/
           git add .
           if ! git diff-index --quiet HEAD; then
             git commit -m "Website deployed from calcite@$GITHUB_SHA"
-            git push origin master
+            git push origin main
           fi
