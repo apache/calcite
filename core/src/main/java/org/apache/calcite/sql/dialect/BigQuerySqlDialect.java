@@ -864,9 +864,19 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_LIKE":
+      unparseRegexLike(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseRegexLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode[] operands = new SqlNode[]{ call.operand(0), call.operand(1) };
+    SqlCall regexpContainsCall = new SqlBasicCall(SqlLibraryOperators.REGEXP_CONTAINS, operands,
+        SqlParserPos.ZERO);
+    regexpContainsCall.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,

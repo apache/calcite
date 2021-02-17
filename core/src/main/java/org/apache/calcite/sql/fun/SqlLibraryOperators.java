@@ -871,5 +871,17 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
               number -> number == 2 || number == 3),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_CONTAINS =
+      new SqlFunction("REGEXP_CONTAINS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+              number -> number == 2 || number == 3),
+          SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java

@@ -3156,6 +3156,15 @@ public class SqlFunctions {
     }
     return count;
   }
+
+  public static Object regexpContains(Object value, Object regex) {
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher((String) value);
+    while (matcher.find()) {
+      return true;
+    }
+    return false;
+  }
 }
 
 // End SqlFunctions.java

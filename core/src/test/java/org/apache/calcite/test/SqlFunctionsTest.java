@@ -59,6 +59,7 @@ import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
 import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
@@ -1180,6 +1181,12 @@ public class SqlFunctionsTest {
     assertThat(
         regexpMatchCount(bestPlayers,
         "Jon", 20, "i"), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#regexpContains(Object, Object)}. */
+  @Test public void testRegexpContains() {
+    assertThat(regexpContains("foo@example.com", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(true));
+    assertThat(regexpContains("www.example.net", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(false));
   }
 }
 
