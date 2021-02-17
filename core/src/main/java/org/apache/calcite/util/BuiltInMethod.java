@@ -606,7 +606,14 @@ public enum BuiltInMethod {
   INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class),
   CHARINDEX(SqlFunctions.class, "charindex", String.class, String.class, Integer.class),
   DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
-  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class);
+  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class),
+  OCTET_LENGTH(SqlFunctions.class, "octetLength", Object.class),
+  INT2SHR(SqlFunctions.class, "bitwiseSHR", Integer.class, Integer.class, Integer.class),
+  INT8XOR(SqlFunctions.class, "bitwiseXOR", Integer.class, Integer.class),
+  INT2SHL(SqlFunctions.class, "bitwiseSHL", Integer.class, Integer.class, Integer.class),
+  BITWISE_OR(SqlFunctions.class, "bitwiseOR", Integer.class, Integer.class),
+  BITWISE_AND(SqlFunctions.class, "bitwiseAnd", Integer.class, Integer.class),;
+
 
   public final Method method;
   public final Constructor constructor;

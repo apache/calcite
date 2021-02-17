@@ -866,51 +866,28 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
     case "COT":
-      final SqlWriter.Frame cotFrame = writer.startFunCall("1/tan");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(cotFrame);
+      unparseCot(writer, call, leftPrec, rightPrec);
       break;
     case "BITWISE_AND":
       unparseBitwiseAnd(writer, call.operand(0), call.operand(1), leftPrec, rightPrec);
       break;
     case "BITWISE_OR":
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print("| ");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseBiwiseFunctions(writer, call, "|", leftPrec, rightPrec);
       break;
     case "BITWISE_XOR":
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print("^ ");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseBiwiseFunctions(writer, call, "^", leftPrec, rightPrec);
       break;
     case "INT2SHR":
-      writer.print("(");
-      unparseBitwiseAnd(writer, call.operand(0), call.operand(2), leftPrec, rightPrec);
-      writer.print(") >> ");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, ">>", leftPrec, rightPrec);
       break;
     case "INT2SHL":
-      writer.print("(");
-      unparseBitwiseAnd(writer, call.operand(0), call.operand(2), leftPrec, rightPrec);
-      writer.print(") << ");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, "<<", leftPrec, rightPrec);
       break;
     case "PI":
-      SqlNode numericNode = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
-      SqlCall acosCall = ACOS.createCall(SqlParserPos.ZERO, numericNode);
-      unparseCall(writer, acosCall, leftPrec, rightPrec);
+      unparsePI(writer, call, leftPrec, rightPrec);
       break;
     case "OCTET_LENGTH":
-      SqlNode operandCall = call.operand(0);
-      if (call.operand(0) instanceof SqlLiteral) {
-        String newOperand = call.operand(0).toString().replace("\\",
-                "\\\\");
-        operandCall = SqlLiteral.createCharString(
-                unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
-      }
-      final SqlWriter.Frame octetFrame = writer.startFunCall("OCTET_LENGTH");
-      operandCall.unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(octetFrame);
+      unparseOctetLength(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -931,6 +908,46 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(", r");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(regexpExtractAllFrame);
+  }
+
+  private void unparseCot(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame cotFrame = writer.startFunCall("1/tan");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(cotFrame);
+  }
+
+  private void unparsePI(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode numericNode = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+    SqlCall acosCall = ACOS.createCall(SqlParserPos.ZERO, numericNode);
+    unparseCall(writer, acosCall, leftPrec, rightPrec);
+  }
+
+  private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode operandCall = call.operand(0);
+    if (call.operand(0) instanceof SqlLiteral) {
+      String newOperand = call.operand(0).toString().replace("\\",
+              "\\\\");
+      operandCall = SqlLiteral.createCharString(
+              unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
+    }
+    final SqlWriter.Frame octetFrame = writer.startFunCall("OCTET_LENGTH");
+    operandCall.unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(octetFrame);
+  }
+
+  private void unparseInt2shFunctions(SqlWriter writer, SqlCall call,
+                                      String s, int leftPrec, int rightPrec) {
+    writer.print("(");
+    unparseBitwiseAnd(writer, call.operand(0), call.operand(2), leftPrec, rightPrec);
+    writer.sep(") " + s);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseBiwiseFunctions(SqlWriter writer, SqlCall call,
+                                      String s, int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(s);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseBitwiseAnd(SqlWriter writer, SqlNode operand1,

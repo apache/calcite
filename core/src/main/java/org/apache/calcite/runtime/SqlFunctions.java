@@ -3156,6 +3156,39 @@ public class SqlFunctions {
     }
     return count;
   }
+
+  public static Object cotFunction(Double value) {
+    return 1 / Math.tan(value);
+  }
+
+  public static Object bitwiseAnd(Integer value1, Integer value2) {
+    return value1 & value2;
+  }
+
+  public static Object bitwiseOR(Integer value1, Integer value2) {
+    return value1 | value2;
+  }
+
+  public static Object bitwiseXOR(Integer value1, Integer value2) {
+    return value1 ^ value2;
+  }
+
+  public static Object bitwiseSHR(Integer value1, Integer value2, Integer value3) {
+    return (value1 & value3) >> value2;
+  }
+
+  public static Object bitwiseSHL(Integer value1, Integer value2, Integer value3) {
+    return (value1 & value3) << value2;
+  }
+
+  public static Object pi() {
+    return Math.acos(-1);
+  }
+
+  public static Object octetLength(Object value) {
+    return value.toString().getBytes(UTF_8).length;
+  }
+
 }
 
 // End SqlFunctions.java
