@@ -220,7 +220,10 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING,
+      null, OperandTypes.family(
+      ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          number -> number == 2 || number == 3),
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
