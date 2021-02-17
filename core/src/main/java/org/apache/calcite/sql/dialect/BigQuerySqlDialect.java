@@ -865,30 +865,34 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
     case "MONTHS_BETWEEN":
-      SqlNode monthSymbol = SqlLiteral.createSymbol(TimeUnit.MONTH, SqlParserPos.ZERO);
-      SqlNode dateDiffNode = DATE_DIFF.createCall(SqlParserPos.ZERO,
-              call.operand(0), call.operand(1), monthSymbol);
-
-      daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
-
-      SqlNode day1 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(0));
-      SqlNode day2 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(1));
-
-      SqlNode subtarctNode = MINUS.createCall(SqlParserPos.ZERO, day1, day2);
-
-      SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, subtarctNode,
-              SqlLiteral.createExactNumeric("31", SqlParserPos.ZERO));
-
-      SqlNode addNode = PLUS.createCall(SqlParserPos.ZERO, dateDiffNode, divideNode);
-
-      SqlCall roundCall = ROUND.createCall(SqlParserPos.ZERO, addNode,
-              SqlLiteral.createExactNumeric("9", SqlParserPos.ZERO));
-
-      roundCall.unparse(writer, leftPrec, rightPrec);
+      unparseMonthsBetween(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseMonthsBetween(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode monthSymbol = SqlLiteral.createSymbol(TimeUnit.MONTH, SqlParserPos.ZERO);
+    SqlNode dateDiffNode = DATE_DIFF.createCall(SqlParserPos.ZERO,
+            call.operand(0), call.operand(1), monthSymbol);
+
+    SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
+
+    SqlNode day1 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(0));
+    SqlNode day2 = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(1));
+
+    SqlNode subtractNode = MINUS.createCall(SqlParserPos.ZERO, day1, day2);
+
+    SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, subtractNode,
+            SqlLiteral.createExactNumeric("31", SqlParserPos.ZERO));
+
+    SqlNode addNode = PLUS.createCall(SqlParserPos.ZERO, dateDiffNode, divideNode);
+
+    SqlCall roundCall = ROUND.createCall(SqlParserPos.ZERO, addNode,
+            SqlLiteral.createExactNumeric("9", SqlParserPos.ZERO));
+
+    roundCall.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

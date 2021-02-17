@@ -1155,6 +1155,12 @@ public class SqlFunctionsTest {
     assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
   }
 
+  @Test public void monthsBetween() {
+    assertThat(SqlFunctions.monthsBetween("2020-05-23", "2020-04-23"), is(1.0));
+    assertThat(SqlFunctions.monthsBetween("2020-05-26", "2020-04-20"), is(1.193548387));
+    assertThat(SqlFunctions.monthsBetween("2019-05-26", "2020-04-20"), is(-10.806451613));
+  }
+
   /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
   @Test public void testStrtok() {
     assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
