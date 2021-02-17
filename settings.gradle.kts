@@ -110,7 +110,8 @@ if (isCiServer) {
 
 // Cache build artifacts, so expensive operations do not need to be re-computed
 // The logic is as follows:
-//  1. Cache is populated only in CI that has S3_BUILD_CACHE_ACCESS_KEY_ID and S3_BUILD_CACHE_SECRET_KEY (GitHub Actions in master branch)
+//  1. Cache is populated only in CI that has S3_BUILD_CACHE_ACCESS_KEY_ID and
+//     S3_BUILD_CACHE_SECRET_KEY (GitHub Actions in main branch)
 //  2. Otherwise the cache is read-only (e.g. everyday builds and PR builds)
 buildCache {
     local {
