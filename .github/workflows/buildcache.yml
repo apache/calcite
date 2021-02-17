@@ -3,13 +3,13 @@ name: Seed build cache
 on:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
-  # On master/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On main/release, we don't want any jobs cancelled so the sha is used to name the group
   # On PR branches, we cancel the job if new commits are pushed
   # More info: https://stackoverflow.com/a/68422069/253468
-  group: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release' ) && format('ci-buildcache-{0}', github.sha) || format('ci-buildcache-{0}', github.ref) }}
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' ) && format('ci-buildcache-{0}', github.sha) || format('ci-buildcache-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:

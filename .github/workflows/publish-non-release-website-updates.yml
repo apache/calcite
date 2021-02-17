@@ -19,7 +19,7 @@ name: Publish non-release website updates
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'site/**'                     # Trigger only for changes to files in the site/ folder
       - '!site/_docs/**'              # except for files in the site/_docs/ folder
@@ -58,14 +58,14 @@ jobs:
         env:
           CALCITE_WEBSITE_BUILD: ${{ secrets.CALCITE_WEBSITE_BUILD }}
         run: |
-          git config --global init.defaultBranch master
+          git config --global init.defaultBranch main
           git init                           # Turn the folder into a git repo
           git config url."https://asf-ci-deploy:$CALCITE_WEBSITE_BUILD@github.com/".insteadOf "https://github.com/"
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git config user.name ${{ github.actor }}
           git remote add origin https://github.com/apache/calcite-site
           git fetch                          # Pull from the calcite-site repo
-          git reset origin/master --soft     # Bring in changes from the calcite-site repo, but keep our local changes
+          git reset origin/main --soft     # Bring in changes from the calcite-site repo, but keep our local changes
           git reset -- javadocAggregate/     # Restore the javadoc
           git checkout -- javadocAggregate/
           git reset -- avatica/              # Restore the avatica site
@@ -73,5 +73,5 @@ jobs:
           git add .
           if ! git diff-index --quiet HEAD; then
             git commit -m "Website deployed from calcite@$GITHUB_SHA"
-            git push origin master
+            git push origin main
           fi

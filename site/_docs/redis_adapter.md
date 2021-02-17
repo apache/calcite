@@ -121,7 +121,7 @@ A basic example of a model file is given below:
 }
 {% endhighlight %}
 
-This file is stored as [`redis/src/test/resources/redis-mix-model.json`](https://github.com/apache/calcite/blob/master/redis/src/test/resources/redis-mix-model.json),
+This file is stored as [`redis/src/test/resources/redis-mix-model.json`](https://github.com/apache/calcite/blob/main/redis/src/test/resources/redis-mix-model.json),
 so you can connect to Redis via
 [`sqlline`](https://github.com/julianhyde/sqlline)
 as follows:
