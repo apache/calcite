@@ -349,6 +349,8 @@ public enum BuiltInMethod {
       Object.class, Object.class, Object.class),
   REGEXP_CONTAINS(SqlFunctions.class, "regexpContains", Object.class,
       Object.class),
+  REGEXP_EXTRACT(SqlFunctions.class, "regexpExtract", Object.class,
+      Object.class, Object.class, Object.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",

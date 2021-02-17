@@ -3165,6 +3165,28 @@ public class SqlFunctions {
     }
     return false;
   }
+
+  public static Object regexpExtract(Object str, Object regex, Object startPos, Object occurrence) {
+    String newString = (String) str;
+    if ((Integer) startPos > newString.length()) {
+      return null;
+    }
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher(newString);
+    int count = 0;
+    while (matcher.find()) {
+      if (count == (Integer) occurrence) {
+        return matcher.group();
+      }
+      count++;
+    }
+    return null;
+  }
+
 }
 
 // End SqlFunctions.java
