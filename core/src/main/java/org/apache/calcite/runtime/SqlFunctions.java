@@ -3132,19 +3132,19 @@ public class SqlFunctions {
   }
 
   public static Object monthsBetween(Object date1, Object date2) {
-    String[] dateSplit1 = ((String) date1).split("-");
-    String[] dateSplit2 = ((String) date2).split("-");
+    String[] splitter1 = ((String) date1).split("-");
+    String[] splitter2 = ((String) date2).split("-");
 
     Calendar calendar = calendar();
-    calendar.set(Integer.parseInt(dateSplit1[0]), Integer.parseInt(dateSplit1[1]),
-            Integer.parseInt(dateSplit1[2]));
+    calendar.set(Integer.parseInt(splitter1[0]), Integer.parseInt(splitter1[1]),
+            Integer.parseInt(splitter1[2]));
     int y0 = calendar.get(Calendar.YEAR);
     int m0 = calendar.get(Calendar.MONTH);
     int d0 = calendar.get(Calendar.DAY_OF_MONTH);
 
     Calendar calendar2 = calendar();
-    calendar2.set(Integer.parseInt(dateSplit2[0]), Integer.parseInt(dateSplit2[1]),
-            Integer.parseInt(dateSplit2[2]));
+    calendar2.set(Integer.parseInt(splitter2[0]), Integer.parseInt(splitter2[1]),
+            Integer.parseInt(splitter2[2]));
     int y1 = calendar2.get(Calendar.YEAR);
     int m1 = calendar2.get(Calendar.MONTH);
     int d1 = calendar2.get(Calendar.DAY_OF_MONTH);
