@@ -927,7 +927,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PI = new SqlFunction("PI",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DECIMAL_MOD_NULLABLE, null,
-          null,
+          OperandTypes.family(SqlTypeFamily.NULL),
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {NETEZZA})
