@@ -879,10 +879,13 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
 
-    SqlNode firstExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(0));
-    SqlNode secondExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(1));
+    SqlNode firstExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO,
+            daySymbolLiteral, call.operand(0));
+    SqlNode secondExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO,
+            daySymbolLiteral, call.operand(1));
 
-    SqlNode subtractNode = MINUS.createCall(SqlParserPos.ZERO, firstExtractedDay, secondExtractedDay);
+    SqlNode subtractNode = MINUS.createCall(SqlParserPos.ZERO,
+            firstExtractedDay, secondExtractedDay);
 
     SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, subtractNode,
             SqlLiteral.createExactNumeric("31", SqlParserPos.ZERO));
