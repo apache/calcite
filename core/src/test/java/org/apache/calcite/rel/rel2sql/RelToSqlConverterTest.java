@@ -6790,7 +6790,7 @@ public class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE OCTET_LENGTH(ENAME)";
+            + "WHERE OCTET_LENGTH('ENAME')";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 

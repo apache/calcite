@@ -210,10 +210,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
-  private static final String or = "|";
-  private static final String shiftRight = ">>";
-  private static final String xor = "^";
-  private static final String shiftLeft = "<<";
+  private static final String OR = "|";
+  private static final String SHIFTRIGHT = ">>";
+  private static final String XOR = "^";
+  private static final String SHIFTLEFT = "<<";
 
   /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
@@ -878,16 +878,16 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseBitwiseAnd(writer, operands, leftPrec, rightPrec);
       break;
     case "BITWISE_OR":
-      unparseBitwiseFunctions(writer, call, or, leftPrec, rightPrec);
+      unparseBitwiseFunctions(writer, call, OR, leftPrec, rightPrec);
       break;
     case "BITWISE_XOR":
-      unparseBitwiseFunctions(writer, call, xor, leftPrec, rightPrec);
+      unparseBitwiseFunctions(writer, call, XOR, leftPrec, rightPrec);
       break;
     case "INT2SHR":
-      unparseInt2shFunctions(writer, call, shiftRight, leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, SHIFTRIGHT, leftPrec, rightPrec);
       break;
     case "INT2SHL":
-      unparseInt2shFunctions(writer, call, shiftLeft, leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, SHIFTLEFT, leftPrec, rightPrec);
       break;
     case "PI":
       unparsePI(writer, call, leftPrec, rightPrec);
@@ -958,7 +958,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
-  private void unparseBitwiseAnd(SqlWriter writer, SqlNode[] operands, int leftPrec, int rightPrec) {
+  private void unparseBitwiseAnd(SqlWriter writer, SqlNode[] operands,
+                                 int leftPrec, int rightPrec) {
     operands[0].unparse(writer, leftPrec, rightPrec);
     writer.print("& ");
     operands[1].unparse(writer, leftPrec, rightPrec);
