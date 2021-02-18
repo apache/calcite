@@ -315,7 +315,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         case INTERVAL_DAY_SECOND:
         case INTERVAL_MINUTE:
         case INTERVAL_SECOND:
-        case INTERVAL_HOUR:
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
