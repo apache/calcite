@@ -210,6 +210,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
+  private static final String or = "|";
+  private static final String shiftRight = ">>";
+  private static final String xor = "^";
+  private static final String shiftLeft = "<<";
+
   /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
@@ -873,17 +878,16 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseBitwiseAnd(writer, operands, leftPrec, rightPrec);
       break;
     case "BITWISE_OR":
-      SqlNode literal = SqlLiteral.
-      unparseBitwiseFunctions(writer, call, "|", leftPrec, rightPrec);
+      unparseBitwiseFunctions(writer, call, or, leftPrec, rightPrec);
       break;
     case "BITWISE_XOR":
-      unparseBitwiseFunctions(writer, call, "^", leftPrec, rightPrec);
+      unparseBitwiseFunctions(writer, call, xor, leftPrec, rightPrec);
       break;
     case "INT2SHR":
-      unparseInt2shFunctions(writer, call, ">>", leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, shiftRight, leftPrec, rightPrec);
       break;
     case "INT2SHL":
-      unparseInt2shFunctions(writer, call, "<<", leftPrec, rightPrec);
+      unparseInt2shFunctions(writer, call, shiftLeft, leftPrec, rightPrec);
       break;
     case "PI":
       unparsePI(writer, call, leftPrec, rightPrec);
