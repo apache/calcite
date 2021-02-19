@@ -869,5 +869,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.NUMERIC);
 
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_MATCH_COUNT =
+      new SqlFunction("REGEXP_MATCH_COUNT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+              number -> number == 2 || number == 3),
+          SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java

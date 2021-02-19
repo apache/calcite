@@ -59,6 +59,7 @@ import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
@@ -1170,6 +1171,21 @@ public class SqlFunctionsTest {
   /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
   @Test public void testDateTimeForm() {
     assertThat(toCharFunction(111200, "HHMISS"), is("111200"));
+  }
+
+  /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object, Object, Object)}. */
+  @Test public void testRegexpMatchCount() {
+    String regex = "Ste(v|ph)en";
+    assertThat(
+        regexpMatchCount("Steven Jones and Stephen Smith are the best players",
+        regex, 0, ""), is(2));
+    String bestPlayers = "Steven Jones and Stephen are the best players";
+    assertThat(
+        regexpMatchCount(bestPlayers,
+         "Jon", 5, "i"), is(1));
+    assertThat(
+        regexpMatchCount(bestPlayers,
+        "Jon", 20, "i"), is(0));
   }
 }
 
