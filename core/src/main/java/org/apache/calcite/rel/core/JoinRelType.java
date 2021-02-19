@@ -152,4 +152,29 @@ public enum JoinRelType {
   public boolean projectsRight() {
     return this != SEMI && this != ANTI;
   }
+
+  /** Returns whether this join type accepts pushing predicates from above into its predicate. */
+  public boolean canPushIntoFromAbove() {
+    return (this == INNER) || (this == SEMI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from above into its left input. */
+  public boolean canPushLeftFromAbove() {
+    return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from above into its right input. */
+  public boolean canPushRightFromAbove() {
+    return (this == INNER) || (this == RIGHT);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from within into its left input. */
+  public boolean canPushLeftFromWithin() {
+    return (this == INNER) || (this == RIGHT) || (this == SEMI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from within into its right input. */
+  public boolean canPushRightFromWithin() {
+    return (this == INNER) || (this == LEFT) || (this == SEMI);
+  }
 }
