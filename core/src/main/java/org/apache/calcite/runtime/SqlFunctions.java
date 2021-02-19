@@ -2792,40 +2792,8 @@ public class SqlFunctions {
    * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
    * a single item), builds an Enumerable that returns those single items inside the structs.
    */
-  public static Function1<Object, Enumerable<Comparable>> flatList() {
-    return inputObject -> {
-      final List list = (List) inputObject;
-      final Enumerator<List<Object>> enumerator = Linq4j.enumerator(list);
-      return new AbstractEnumerable<Comparable>() {
-        @Override public Enumerator<Comparable> enumerator() {
-          return new Enumerator<Comparable>() {
-
-            @Override public boolean moveNext() {
-              return enumerator.moveNext();
-            }
-
-            @Override public Comparable current() {
-              final Object element = enumerator.current();
-              final Comparable comparable;
-              if (element.getClass().isArray()) {
-                comparable = (Comparable) ((Object[]) element)[0];
-              } else {
-                comparable = (Comparable) ((List) element).get(0);
-              }
-              return comparable;
-            }
-
-            @Override public void reset() {
-              enumerator.reset();
-            }
-
-            @Override public void close() {
-              enumerator.close();
-            }
-          };
-        }
-      };
-    };
+  public static Function1<List<Object>, Enumerable<Object>> flatList() {
+    return inputList -> Linq4j.asEnumerable(inputList).select(v -> structAccess(v, 0, null));
   }
 
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
@@ -3038,8 +3006,8 @@ public class SqlFunctions {
    * @param <E> element type */
   private static class ProductComparableListEnumerator<E extends Comparable>
       extends CartesianProductEnumerator<List<E>, FlatLists.ComparableList<E>> {
-    final E[] flatElements;
-    final List<E> list;
+    final Object[] flatElements;
+    final List<Object> list;
     private final boolean withOrdinality;
     private int ordinality;
 
@@ -3047,7 +3015,7 @@ public class SqlFunctions {
         int fieldCount, boolean withOrdinality) {
       super(enumerators);
       this.withOrdinality = withOrdinality;
-      flatElements = (E[]) new Comparable[fieldCount];
+      flatElements = new Object[fieldCount];
       list = Arrays.asList(flatElements);
     }
 
@@ -3073,9 +3041,10 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) Integer.valueOf(ordinality);
+        flatElements[i] = ordinality;
       }
-      return FlatLists.ofComparable(list);
+      //noinspection unchecked
+      return (FlatLists.ComparableList) FlatLists.of(list);
     }
 
     @Override public void reset() {
