@@ -6804,7 +6804,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void iNT2SHR() {
+  @Test public void testInt2Shr() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition = builder.call(SqlLibraryOperators.INT2SHR,
             builder.literal(3), builder.literal(1), builder.literal(6));
@@ -6816,7 +6816,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void iNT8XOR() {
+  @Test public void testInt8Xor() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_XOR,
             builder.literal(3), builder.literal(6));
@@ -6828,7 +6828,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void iNT2SHL() {
+  @Test public void testInt2Shl() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition = builder.call(SqlLibraryOperators.INT2SHL,
             builder.literal(3), builder.literal(1), builder.literal(6));
@@ -6840,7 +6840,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void iNT2AND() {
+  @Test public void testInt2And() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_AND,
             builder.literal(3), builder.literal(6));
@@ -6852,7 +6852,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void iNT1OR() {
+  @Test public void testInt1Or() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_OR,
             builder.literal(3), builder.literal(6));
@@ -6864,7 +6864,7 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
-  @Test public void cot() {
+  @Test public void testCot() {
     final String query = "SELECT COT(0.12)";
 
     final String expectedBQ = "SELECT 1 / TAN(0.12)";
