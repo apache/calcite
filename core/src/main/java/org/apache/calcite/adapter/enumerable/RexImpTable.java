@@ -120,6 +120,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_QUAR
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHS_BETWEEN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_MATCH_COUNT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
@@ -696,6 +698,8 @@ public class RexImpTable {
     defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
     defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
     defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
+    defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method, NullPolicy.NONE);
+    defineMethod(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT.method, NullPolicy.NONE);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
