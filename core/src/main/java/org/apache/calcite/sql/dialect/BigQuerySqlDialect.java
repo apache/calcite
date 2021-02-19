@@ -110,6 +110,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
@@ -865,17 +866,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
     case "REGEXP_LIKE":
-      unparseRegexLike(writer, call, leftPrec, rightPrec);
+      unparseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
-  private void unparseRegexLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlNode[] operands = new SqlNode[]{ call.operand(0), call.operand(1) };
-    SqlCall regexpContainsCall = new SqlBasicCall(SqlLibraryOperators.REGEXP_CONTAINS, operands,
-        SqlParserPos.ZERO);
+  private void unparseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall regexpContainsCall = REGEXP_CONTAINS.createCall(call.getParserPosition(), call.getOperandList());
     regexpContainsCall.unparse(writer, leftPrec, rightPrec);
   }
 
