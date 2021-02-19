@@ -116,6 +116,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
@@ -123,6 +124,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 
 
 /**
@@ -917,9 +919,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseCot(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame cotFrame = writer.startFunCall("1/tan");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(cotFrame);
+    SqlNode tanNode = TAN.createCall(SqlParserPos.ZERO, call.getOperandList());
+    SqlCall divideCall = DIVIDE.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO), tanNode);
+    divideCall.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparsePI(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

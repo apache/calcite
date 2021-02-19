@@ -6857,7 +6857,7 @@ public class RelToSqlConverterTest {
   @Test public void cot() {
     final String query = "SELECT COT(0.12)";
 
-    final String expectedBQ = "SELECT 1/TAN(0.12)";
+    final String expectedBQ = "SELECT 1 / TAN(0.12)";
     sql(query)
             .withBigQuery()
             .ok(expectedBQ);
