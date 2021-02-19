@@ -610,7 +610,8 @@ public enum BuiltInMethod {
   INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class),
   CHARINDEX(SqlFunctions.class, "charindex", String.class, String.class, Integer.class),
   DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
-  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class);
+  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class),
+  MONTHS_BETWEEN(SqlFunctions.class, "monthsBetween", Object.class, Object.class);
 
   public final Method method;
   public final Constructor constructor;

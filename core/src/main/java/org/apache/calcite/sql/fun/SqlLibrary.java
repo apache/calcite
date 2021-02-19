@@ -62,7 +62,9 @@ public enum SqlLibrary {
   /** A collection of operators that are in Snowflake but not in standard SQL. */
   SNOWFLAKE("sf"),
   /** A collection of operators that are in MSSQL but not in standard SQL. */
-  MSSQL("mssql");
+  MSSQL("mssql"),
+  /** A collection of operators that are in NETEZZA but not in standard SQL. */
+  NETEZZA("NETEZZA");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
