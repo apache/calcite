@@ -41,6 +41,7 @@ public class ExtractFunctionFormatUtil {
   public static final String DAY_OF_WEEK = "DOW";
   public static final String DECADE = "DECADE";
   public static final String CENTURY = "CENTURY";
+  public static final String MILLENNIUM = "MILLENNIUM";
   SqlDialect dialect;
   public SqlCall unparseCall(SqlCall call, SqlDialect dialect) {
     this.dialect = dialect;
@@ -53,6 +54,9 @@ public class ExtractFunctionFormatUtil {
       return handleExtractDeacade(call);
     case CENTURY:
       return handleExtractCentury(call);
+    case MILLENNIUM:
+      return handleExtractMillennium(call);
+
     }
     return null;
   }
@@ -88,6 +92,22 @@ public class ExtractFunctionFormatUtil {
             SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, ceilCall, SqlTypeUtil.convertTypeToSpec(sqlType));
+  }
+  private SqlCall handleExtractMillennium(SqlCall call) {
+    SqlCall extractCall =  handleExtractWithOperand(call.operand(1), DateTimeUnit.YEAR);
+    SqlNode varcharSqlCall =
+            dialect.getCastSpec(
+                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR, 100));
+    SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, extractCall, varcharSqlCall);
+    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0",
+            SqlParserPos.ZERO);
+    SqlNumericLiteral threeLiteral = SqlLiteral.createExactNumeric("1",
+            SqlParserPos.ZERO);
+    SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, threeLiteral};
+    SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR, substrOperand,
+            SqlParserPos.ZERO);
+    BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
+    return CAST.createCall(SqlParserPos.ZERO, substrCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
   /**
    * DateTime Unit for supporting different categories of date and time

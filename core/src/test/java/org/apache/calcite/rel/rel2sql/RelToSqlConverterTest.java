@@ -6826,7 +6826,6 @@ public class RelToSqlConverterTest {
 
   @Test public void testDayOfMonth() {
     String query = "select DAYOFMONTH( DATE '2008-08-29')";
-//    String query = "SELECT EXTRACT(CENTURY FROM DATE '2008-08-29')";
     final String expectedMssql = "SELECT DAY('2008-08-29')";
     final String expectedBQ = "SELECT EXTRACT(DAY FROM DATE '2008-08-29')";
 
@@ -6837,6 +6836,62 @@ public class RelToSqlConverterTest {
       .ok(expectedBQ);
   }
 
+  @Test public void testExtractDecade() {
+    String query = "SELECT EXTRACT(DECADE FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT CAST(SUBSTR(CAST("
+            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS VARCHAR(100)), 0, 3) AS INTEGER)";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
+  @Test public void testExtractCentury() {
+    String query = "SELECT EXTRACT(CENTURY FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT CAST(CEIL(EXTRACT(YEAR FROM DATE '2008-08-29') / 100) "
+            + "AS INTEGER)";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
+  @Test public void testExtractDOY() {
+    String query = "SELECT EXTRACT(DOY FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT EXTRACT(DAYOFYEAR FROM DATE '2008-08-29')";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
+  @Test public void testExtractDOW() {
+    String query = "SELECT EXTRACT(DOW FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT EXTRACT(DAYOFWEEK FROM DATE '2008-08-29')";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
+  @Test public void testExtractEpoch() {
+    String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT UNIX_SECONDS(DATE '2008-08-29')";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
+
+  @Test public void testExtractMillennium() {
+    String query = "SELECT EXTRACT(MILLENNIUM FROM DATE '2008-08-29')";
+    final String expectedBQ = "SELECT CAST(SUBSTR(CAST("
+            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS VARCHAR(100)), 0, 1) AS INTEGER)";
+
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+  }
 }
 
 // End RelToSqlConverterTest.java

@@ -496,12 +496,18 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case EXTRACT:
-      ExtractFunctionFormatUtil extractFormatUtil = new ExtractFunctionFormatUtil();
-      SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
-      if (null != extractCall) {
-        super.unparseCall(writer, extractCall, leftPrec, rightPrec);
+      if (call.operand(0).toString().equals("EPOCH")) {
+        final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(epochFrame);
       } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+        ExtractFunctionFormatUtil extractFormatUtil = new ExtractFunctionFormatUtil();
+        SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
+        if (null != extractCall) {
+          super.unparseCall(writer, extractCall, leftPrec, rightPrec);
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
       }
       break;
     default:
