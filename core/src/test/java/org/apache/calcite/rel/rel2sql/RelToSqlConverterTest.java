@@ -338,6 +338,17 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expected);
   }
 
+  @Test void testSelectWhereIn() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("COMM"), b.literal(1), b.literal(2)))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
     String query = "select * from \"product\" "
         + "where (\"product_id\" = 10 OR \"product_id\" <= 5) "
