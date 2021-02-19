@@ -611,6 +611,8 @@ public enum BuiltInMethod {
   CHARINDEX(SqlFunctions.class, "charindex", String.class, String.class, Integer.class),
   DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
   DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class),
+  MONTHS_BETWEEN(SqlFunctions.class, "monthsBetween", Object.class, Object.class);
+  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class),
   OCTET_LENGTH(SqlFunctions.class, "octetLength", Object.class),
   INT2SHR(SqlFunctions.class, "bitwiseSHR", Integer.class, Integer.class, Integer.class),
   INT8XOR(SqlFunctions.class, "bitwiseXOR", Integer.class, Integer.class),

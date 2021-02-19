@@ -71,6 +71,7 @@ here to appease testAllFunctionsAreDocumented:
 | STRTOK         | Tokenizes a given string and returns the requested part
 | REGEXP_MATCH_COUNT | Returns the number of matching occurrences in the input
 | REGEXP_CONTAINS    | Returns TRUE if value is a partial match for the regular expression.
+| MONTHS_BETWEEN | Returns the month difference between two dates or timestamp
 {% endcomment %}
 -->
 

@@ -3192,6 +3192,27 @@ public class SqlFunctions {
   }
 
 
+  public static Object monthsBetween(Object date1, Object date2) {
+    String[] firstDate = ((String) date1).split("-");
+    String[] secondDate = ((String) date2).split("-");
+
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(firstDate[0]), Integer.parseInt(firstDate[1]),
+            Integer.parseInt(firstDate[2]));
+    int firstYear = calendar.get(Calendar.YEAR);
+    int firstMonth = calendar.get(Calendar.MONTH);
+    int firstDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    calendar.set(Integer.parseInt(secondDate[0]), Integer.parseInt(secondDate[1]),
+            Integer.parseInt(secondDate[2]));
+    int secondYear = calendar.get(Calendar.YEAR);
+    int secondMonth = calendar.get(Calendar.MONTH);
+    int secondDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    return Math.round(((firstYear - secondYear) * 12 + (firstMonth - secondMonth)
+           + (double) (firstDay - secondDay) / 31) * Math.pow(10, 9)) / Math.pow(10, 9);
+  }
+
   public static Object regexpContains(Object value, Object regex) {
     Pattern pattern = Pattern.compile((String) regex);
     Matcher matcher = pattern.matcher((String) value);
