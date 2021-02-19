@@ -3157,28 +3157,30 @@ public class SqlFunctions {
     return count;
   }
 
-  public static Object cotFunction(Double value) {
-    return 1 / Math.tan(value);
+  public static Object cotFunction(Double operand) {
+    return 1 / Math.tan(operand);
   }
 
-  public static Object bitwiseAnd(Integer value1, Integer value2) {
-    return value1 & value2;
+  public static Object bitwiseAnd(Integer firstOperand, Integer secondOperand) {
+    return firstOperand & secondOperand;
   }
 
-  public static Object bitwiseOR(Integer value1, Integer value2) {
-    return value1 | value2;
+  public static Object bitwiseOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand | secondOperand;
   }
 
-  public static Object bitwiseXOR(Integer value1, Integer value2) {
-    return value1 ^ value2;
+  public static Object bitwiseXOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand ^ secondOperand;
   }
 
-  public static Object bitwiseSHR(Integer value1, Integer value2, Integer value3) {
-    return (value1 & value3) >> value2;
+  public static Object bitwiseSHR(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) >> secondOperand;
   }
 
-  public static Object bitwiseSHL(Integer value1, Integer value2, Integer value3) {
-    return (value1 & value3) << value2;
+  public static Object bitwiseSHL(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) << secondOperand;
   }
 
   public static Object pi() {
