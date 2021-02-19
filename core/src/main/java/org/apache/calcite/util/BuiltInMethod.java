@@ -347,6 +347,10 @@ public enum BuiltInMethod {
   STRTOK(SqlFunctions.class, "strTok", Object.class, Object.class, Object.class),
   REGEXP_MATCH_COUNT(SqlFunctions.class, "regexpMatchCount", Object.class,
       Object.class, Object.class, Object.class),
+  REGEXP_CONTAINS(SqlFunctions.class, "regexpContains", Object.class,
+      Object.class),
+  REGEXP_EXTRACT(SqlFunctions.class, "regexpExtract", Object.class,
+      Object.class, Object.class, Object.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",
@@ -606,7 +610,8 @@ public enum BuiltInMethod {
   INSTR(SqlFunctions.class, "instr", String.class, String.class, Integer.class, Integer.class),
   CHARINDEX(SqlFunctions.class, "charindex", String.class, String.class, Integer.class),
   DATETIME_ADD(SqlFunctions.class, "datetimeAdd", Object.class, Object.class),
-  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class);
+  DATETIME_SUB(SqlFunctions.class, "datetimeSub", Object.class, Object.class),
+  MONTHS_BETWEEN(SqlFunctions.class, "monthsBetween", Object.class, Object.class);
 
   public final Method method;
   public final Constructor constructor;

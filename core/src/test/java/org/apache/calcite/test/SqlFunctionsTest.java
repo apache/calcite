@@ -59,6 +59,8 @@ import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
+import static org.apache.calcite.runtime.SqlFunctions.regexpExtract;
 import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
@@ -1156,6 +1158,12 @@ public class SqlFunctionsTest {
     assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
   }
 
+  @Test public void monthsBetween() {
+    assertThat(SqlFunctions.monthsBetween("2020-05-23", "2020-04-23"), is(1.0));
+    assertThat(SqlFunctions.monthsBetween("2020-05-26", "2020-04-20"), is(1.193548387));
+    assertThat(SqlFunctions.monthsBetween("2019-05-26", "2020-04-20"), is(-10.806451613));
+  }
+
   /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
   @Test public void testStrtok() {
     assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
@@ -1180,6 +1188,22 @@ public class SqlFunctionsTest {
     assertThat(
         regexpMatchCount(bestPlayers,
         "Jon", 20, "i"), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#regexpContains(Object, Object)}. */
+  @Test public void testRegexpContains() {
+    assertThat(regexpContains("foo@example.com", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(true));
+    assertThat(regexpContains("www.example.net", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(false));
+  }
+
+  /** Test for {@link SqlFunctions#regexpExtract(Object, Object, Object, Object)}. */
+  @Test public void testRegexpExtract() {
+    assertThat(regexpExtract("foo@example.com", "^[a-zA-Z0-9_.+-]+", 0, 0),
+        is("foo"));
+    assertThat(regexpExtract("cat on the mat", ".at", 0, 0),
+        is("cat"));
+    assertThat(regexpExtract("cat on the mat", ".at", 0, 1),
+        is("mat"));
   }
 }
 
