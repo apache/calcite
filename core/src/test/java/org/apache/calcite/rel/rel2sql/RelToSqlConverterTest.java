@@ -4627,6 +4627,16 @@ public class RelToSqlConverterTest {
             .ok(expectedBigQuery);
   }
 
+  @Test public void testIntervalHour() {
+    String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
+            + "'2' hour from \"employee\"";
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
+            + "TIMESTAMP(0)), INTERVAL 2 HOUR)\n"
+            + "FROM foodmart.employee";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBigQuery);
+  }
   @Test public void testIntervalSecond() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";

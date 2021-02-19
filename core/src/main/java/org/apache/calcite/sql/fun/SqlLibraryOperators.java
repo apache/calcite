@@ -221,7 +221,10 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING,
+      null, OperandTypes.family(
+      ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          number -> number == 2 || number == 3),
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -853,7 +856,7 @@ public abstract class SqlLibraryOperators {
               number -> number == 1),
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {NETEZZA})
+  @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TO_CHAR =
       new SqlFunction("TO_CHAR",
           SqlKind.OTHER_FUNCTION,
@@ -942,6 +945,15 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.CHARACTER),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_CONTAINS =
+      new SqlFunction("REGEXP_CONTAINS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java
