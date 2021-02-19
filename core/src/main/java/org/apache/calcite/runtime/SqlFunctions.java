@@ -3156,6 +3156,58 @@ public class SqlFunctions {
     }
     return count;
   }
+
+  public static Object monthsBetween(Object date1, Object date2) {
+    String[] firstDate = ((String) date1).split("-");
+    String[] secondDate = ((String) date2).split("-");
+
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(firstDate[0]), Integer.parseInt(firstDate[1]),
+            Integer.parseInt(firstDate[2]));
+    int firstYear = calendar.get(Calendar.YEAR);
+    int firstMonth = calendar.get(Calendar.MONTH);
+    int firstDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    calendar.set(Integer.parseInt(secondDate[0]), Integer.parseInt(secondDate[1]),
+            Integer.parseInt(secondDate[2]));
+    int secondYear = calendar.get(Calendar.YEAR);
+    int secondMonth = calendar.get(Calendar.MONTH);
+    int secondDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    return Math.round(((firstYear - secondYear) * 12 + (firstMonth - secondMonth)
+           + (double) (firstDay - secondDay) / 31) * Math.pow(10, 9)) / Math.pow(10, 9);
+  }
+
+  public static Object regexpContains(Object value, Object regex) {
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher((String) value);
+    while (matcher.find()) {
+      return true;
+    }
+    return false;
+  }
+
+  public static Object regexpExtract(Object str, Object regex, Object startPos, Object occurrence) {
+    String newString = (String) str;
+    if ((Integer) startPos > newString.length()) {
+      return null;
+    }
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher(newString);
+    int count = 0;
+    while (matcher.find()) {
+      if (count == (Integer) occurrence) {
+        return matcher.group();
+      }
+      count++;
+    }
+    return null;
+  }
+
 }
 
 // End SqlFunctions.java

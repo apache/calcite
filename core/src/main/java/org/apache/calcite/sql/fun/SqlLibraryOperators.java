@@ -43,6 +43,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.NETEZZA;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
@@ -220,7 +221,10 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING,
+      null, OperandTypes.family(
+      ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          number -> number == 2 || number == 3),
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -860,6 +864,15 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction MONTHS_BETWEEN =
+      new SqlFunction("MONTHS_BETWEEN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          SqlFunctionCategory.NUMERIC);
+
+
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction REGEXP_MATCH_COUNT =
       new SqlFunction("REGEXP_MATCH_COUNT",
@@ -870,6 +883,15 @@ public abstract class SqlLibraryOperators {
               ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
               SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
               number -> number == 2 || number == 3),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_CONTAINS =
+      new SqlFunction("REGEXP_CONTAINS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 }
 // End SqlLibraryOperators.java
