@@ -37,11 +37,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
  */
 public class ExtractFunctionFormatUtil {
 
-  public static final String DAY_OF_YEAR = "DOY";
-  public static final String DAY_OF_WEEK = "DOW";
-  public static final String DECADE = "DECADE";
-  public static final String CENTURY = "CENTURY";
-  public static final String MILLENNIUM = "MILLENNIUM";
+  private static final String DAY_OF_YEAR = "DOY";
+  private static final String DAY_OF_WEEK = "DOW";
+  private static final String DECADE = "DECADE";
+  private static final String CENTURY = "CENTURY";
+  private static final String MILLENNIUM = "MILLENNIUM";
   SqlDialect dialect;
   public SqlCall unparseCall(SqlCall call, SqlDialect dialect) {
     this.dialect = dialect;
@@ -51,12 +51,11 @@ public class ExtractFunctionFormatUtil {
     case DAY_OF_WEEK:
       return  handleExtractWithOperand(call.operand(1), DateTimeUnit.DAYOFWEEK);
     case DECADE:
-      return handleExtractDeacade(call);
+      return handleExtractMillenniumOrDecade(call, "3");
     case CENTURY:
       return handleExtractCentury(call);
     case MILLENNIUM:
-      return handleExtractMillennium(call);
-
+      return handleExtractMillenniumOrDecade(call, "1");
     }
     return null;
   }
@@ -64,22 +63,6 @@ public class ExtractFunctionFormatUtil {
     return SqlStdOperatorTable.EXTRACT.createCall(SqlParserPos.ZERO,
             SqlLiteral.createSymbol(dateTimeUnit, SqlParserPos.ZERO),
             operand);
-  }
-  private SqlCall handleExtractDeacade(SqlCall call) {
-    SqlCall extractCall =  handleExtractWithOperand(call.operand(1), DateTimeUnit.YEAR);
-    SqlNode varcharSqlCall =
-            dialect.getCastSpec(
-                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR, 100));
-    SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, extractCall, varcharSqlCall);
-    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0",
-            SqlParserPos.ZERO);
-    SqlNumericLiteral threeLiteral = SqlLiteral.createExactNumeric("3",
-            SqlParserPos.ZERO);
-    SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, threeLiteral};
-    SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR, substrOperand,
-            SqlParserPos.ZERO);
-    BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
-    return CAST.createCall(SqlParserPos.ZERO, substrCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
   private SqlCall handleExtractCentury(SqlCall call) {
     SqlCall extractCall =  handleExtractWithOperand(call.operand(1), DateTimeUnit.YEAR);
@@ -93,7 +76,7 @@ public class ExtractFunctionFormatUtil {
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, ceilCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
-  private SqlCall handleExtractMillennium(SqlCall call) {
+  private SqlCall handleExtractMillenniumOrDecade(SqlCall call, String literalValue) {
     SqlCall extractCall =  handleExtractWithOperand(call.operand(1), DateTimeUnit.YEAR);
     SqlNode varcharSqlCall =
             dialect.getCastSpec(
@@ -101,9 +84,9 @@ public class ExtractFunctionFormatUtil {
     SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, extractCall, varcharSqlCall);
     SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0",
             SqlParserPos.ZERO);
-    SqlNumericLiteral threeLiteral = SqlLiteral.createExactNumeric("1",
+    SqlNumericLiteral unfixedLiteral = SqlLiteral.createExactNumeric(literalValue,
             SqlParserPos.ZERO);
-    SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, threeLiteral};
+    SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, unfixedLiteral};
     SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR, substrOperand,
             SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
@@ -125,5 +108,4 @@ public class ExtractFunctionFormatUtil {
     }
   }
 }
-
 // End ExtractFunctionFormatUtil.java
