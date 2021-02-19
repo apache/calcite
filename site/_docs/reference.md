@@ -1,3 +1,4 @@
+
 ---
 layout: docs
 title: SQL language
@@ -70,6 +71,7 @@ here to appease testAllFunctionsAreDocumented:
 | TO_CHAR        | Format date based on the format given
 | STRTOK         | Tokenizes a given string and returns the requested part
 | REGEXP_MATCH_COUNT | Returns the number of matching occurrences in the input
+| MONTHS_BETWEEN | Returns the month difference between two dates or timestamp
 {% endcomment %}
 -->
 
