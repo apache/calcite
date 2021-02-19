@@ -2876,7 +2876,7 @@ public class RexSimplify {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
-    <C extends Comparable<C>> Sarg<C> build(boolean negateTodo) {
+    <C extends Comparable<C>> Sarg<C> build(boolean negate/*Todo*/) {
       final RexUnknownAs unknownAs =
           nullAsTrueCount > 0 ? TRUE
               : nullAsFalseCount == termCount ? FALSE // TODO
