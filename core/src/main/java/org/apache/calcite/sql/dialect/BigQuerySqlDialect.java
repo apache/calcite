@@ -874,7 +874,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall regexpContainsCall = REGEXP_CONTAINS.createCall(call.getParserPosition(), call.getOperandList());
+    SqlCall regexpContainsCall = REGEXP_CONTAINS.createCall(call.getParserPosition(),
+        call.getOperandList());
     regexpContainsCall.unparse(writer, leftPrec, rightPrec);
   }
 
