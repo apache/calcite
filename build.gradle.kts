@@ -587,6 +587,7 @@ allprojects {
                     // Analyze issues, and enable the check
                     disable(
                         "BigDecimalEquals",
+                        "DoNotCallSuggester",
                         "StringSplitter"
                     )
                 }
