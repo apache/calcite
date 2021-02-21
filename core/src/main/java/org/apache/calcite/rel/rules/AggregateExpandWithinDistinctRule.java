@@ -371,7 +371,7 @@ public class AggregateExpandWithinDistinctRule
     return aggregateCall;
   }
 
-  private ImmutableBitSet union(ImmutableBitSet s0,
+  private static ImmutableBitSet union(ImmutableBitSet s0,
       @Nullable ImmutableBitSet s1) {
     return s1 == null ? s0 : s0.union(s1);
   }

@@ -115,7 +115,7 @@ public class BlockBuilder {
       }
     }
     Expression result = null;
-    final Map<ParameterExpression, Expression> replacements =
+    final IdentityHashMap<ParameterExpression, Expression> replacements =
         new IdentityHashMap<>();
     final Shuttle shuttle = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
@@ -357,7 +357,7 @@ public class BlockBuilder {
         statement.accept(useCounter);
       }
     }
-    final Map<ParameterExpression, Expression> subMap =
+    final IdentityHashMap<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
     final Shuttle visitor = new InlineVariableVisitor(
         subMap);
@@ -513,7 +513,7 @@ public class BlockBuilder {
   /** Substitute Variable Visitor. */
   private static class SubstituteVariableVisitor extends Shuttle {
     protected final Map<ParameterExpression, Expression> map;
-    private final Map<ParameterExpression, Boolean> actives =
+    private final IdentityHashMap<ParameterExpression, Boolean> actives =
         new IdentityHashMap<>();
 
     SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
@@ -580,7 +580,7 @@ public class BlockBuilder {
 
   /** Use counter. */
   private static class UseCounter extends VisitorImpl<Void> {
-    private final Map<ParameterExpression, Slot> map = new IdentityHashMap<>();
+    private final IdentityHashMap<ParameterExpression, Slot> map = new IdentityHashMap<>();
 
     @Override public Void visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);

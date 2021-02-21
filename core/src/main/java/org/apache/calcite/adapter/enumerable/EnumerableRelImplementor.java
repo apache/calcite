@@ -80,7 +80,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       new HashMap<>();
-  private final Map<Object, ParameterExpression> stashedParameters =
+  private final IdentityHashMap<Object, ParameterExpression> stashedParameters =
       new IdentityHashMap<>();
 
   @SuppressWarnings("methodref.receiver.bound.invalid")

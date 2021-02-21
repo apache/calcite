@@ -193,7 +193,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Maps {@link SqlNode query node} objects to the {@link SqlValidatorScope}
    * scope created from them.
    */
-  protected final Map<SqlNode, SqlValidatorScope> scopes =
+  protected final IdentityHashMap<SqlNode, SqlValidatorScope> scopes =
       new IdentityHashMap<>();
 
   /**
@@ -212,7 +212,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * {@link SqlValidatorNamespace namespace} which describes what columns they
    * contain.
    */
-  protected final Map<SqlNode, SqlValidatorNamespace> namespaces =
+  protected final IdentityHashMap<SqlNode, SqlValidatorNamespace> namespaces =
       new IdentityHashMap<>();
 
   /**
@@ -242,11 +242,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * since in some cases (such as null literals) we need to discriminate by
    * instance.
    */
-  private final Map<SqlNode, RelDataType> nodeToTypeMap =
+  private final IdentityHashMap<SqlNode, RelDataType> nodeToTypeMap =
       new IdentityHashMap<>();
 
   /** Provides the data for {@link #getValidatedOperandTypes(SqlCall)}. */
-  public final Map<SqlCall, List<RelDataType>> callToOperandTypesMap =
+  public final IdentityHashMap<SqlCall, List<RelDataType>> callToOperandTypesMap =
       new IdentityHashMap<>();
 
   private final AggFinder aggFinder;

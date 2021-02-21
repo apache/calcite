@@ -134,7 +134,7 @@ public final class LogicalWindow extends Window {
     // Build a list of groups, partitions, and aggregate functions. Each
     // aggregate function will add its arguments as outputs of the input
     // program.
-    final Map<RexOver, RexOver> origToNewOver = new IdentityHashMap<>();
+    final IdentityHashMap<RexOver, RexOver> origToNewOver = new IdentityHashMap<>();
     for (RexNode agg : program.getExprList()) {
       if (agg instanceof RexOver) {
         final RexOver origOver = (RexOver) agg;

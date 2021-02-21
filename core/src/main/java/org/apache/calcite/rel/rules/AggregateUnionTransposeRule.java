@@ -48,7 +48,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Planner rule that pushes an
@@ -61,7 +60,7 @@ public class AggregateUnionTransposeRule
     extends RelRule<AggregateUnionTransposeRule.Config>
     implements TransformationRule {
 
-  private static final Map<Class<? extends SqlAggFunction>, Boolean>
+  private static final IdentityHashMap<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();
 
   static {

@@ -312,7 +312,7 @@ class DruidConnectionImpl implements DruidConnection {
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static void parseFieldForName(List<String> fieldNames,
       List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
@@ -498,7 +498,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);

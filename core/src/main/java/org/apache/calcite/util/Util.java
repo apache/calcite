@@ -648,7 +648,7 @@ public class Util {
    * string reflects the current time.
    */
   @Deprecated // to be removed before 2.0
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   public static String getFileTimestamp() {
     SimpleDateFormat sdf =
         new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);
@@ -2425,7 +2425,7 @@ public class Util {
     };
   }
 
-  @SuppressWarnings("Guava")
+  @SuppressWarnings({"Guava", "UnnecessaryMethodReference"})
   @Deprecated
   public static <K, V> Map<K, V> asIndexMap(
       final Collection<V> values,
