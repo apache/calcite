@@ -3157,6 +3157,41 @@ public class SqlFunctions {
     return count;
   }
 
+  public static Object cotFunction(Double operand) {
+    return 1 / Math.tan(operand);
+  }
+
+  public static Object bitwiseAnd(Integer firstOperand, Integer secondOperand) {
+    return firstOperand & secondOperand;
+  }
+
+  public static Object bitwiseOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand | secondOperand;
+  }
+
+  public static Object bitwiseXOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand ^ secondOperand;
+  }
+
+  public static Object bitwiseSHR(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) >> secondOperand;
+  }
+
+  public static Object bitwiseSHL(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) << secondOperand;
+  }
+
+  public static Object pi() {
+    return Math.acos(-1);
+  }
+
+  public static Object octetLength(Object value) {
+    return value.toString().getBytes(UTF_8).length;
+  }
+
+
   public static Object monthsBetween(Object date1, Object date2) {
     String[] firstDate = ((String) date1).split("-");
     String[] secondDate = ((String) date2).split("-");
