@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
 import org.hsqldb.jdbcDriver;
@@ -758,6 +759,47 @@ class JdbcAdapterTest {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+  @Test void testMetadataFunctions() {
+    final String model = ""
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_STR',\n"
+        + "           className: '" + Smalls.MyToStringFunction.class.getName() + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'FIBONACCI_TABLE',\n"
+        + "           className: '" + Smalls.class.getName() + "',\n"
+        + "           methodName: 'fibonacciTable'\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       materializations: [\n"
+        + "         {\n"
+        + "           table: 'TEST_VIEW',\n"
+        + "           sql: 'SELECT 1'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}";
+    CalciteAssert.model(model)
+        .withDefaultSchema("adhoc")
+        .metaData(connection -> {
+          try {
+            return connection.getMetaData().getFunctions(null, "adhoc", "%");
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .returns(""
+            + "FUNCTION_CAT=null; FUNCTION_SCHEM=adhoc; FUNCTION_NAME=FIBONACCI_TABLE; REMARKS=null; FUNCTION_TYPE=0; SPECIFIC_NAME=FIBONACCI_TABLE\n"
+            + "FUNCTION_CAT=null; FUNCTION_SCHEM=adhoc; FUNCTION_NAME=MY_STR; REMARKS=null; FUNCTION_TYPE=0; SPECIFIC_NAME=MY_STR\n");
   }
 
   /** Test case for
