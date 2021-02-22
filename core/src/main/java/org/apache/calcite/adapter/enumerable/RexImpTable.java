@@ -92,6 +92,8 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITWISE_AND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITWISE_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHARINDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_ADD;
@@ -104,6 +106,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT2SHL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT2SHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT8XOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
@@ -119,6 +124,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_QUARTER;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHS_BETWEEN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
@@ -362,6 +368,13 @@ public class RexImpTable {
     defineBinary(AND, AndAlso, NullPolicy.AND, null);
     defineBinary(OR, OrElse, NullPolicy.OR, null);
     defineUnary(NOT, Not, NullPolicy.NOT);
+
+    defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method, NullPolicy.ARG0);
+    defineMethod(INT2SHR, BuiltInMethod.INT2SHR.method, NullPolicy.NONE);
+    defineMethod(INT8XOR, BuiltInMethod.INT8XOR.method, NullPolicy.NONE);
+    defineMethod(INT2SHL, BuiltInMethod.INT2SHL.method, NullPolicy.NONE);
+    defineMethod(BITWISE_OR, BuiltInMethod.BITWISE_OR.method, NullPolicy.NONE);
+    defineMethod(BITWISE_AND, BuiltInMethod.BITWISE_AND.method, NullPolicy.NONE);
 
     // comparisons
     defineBinary(LESS_THAN, LessThan, NullPolicy.STRICT, "lt");
