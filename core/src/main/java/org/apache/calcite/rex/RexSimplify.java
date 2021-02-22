@@ -2876,7 +2876,7 @@ public class RexSimplify {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
-    <C extends Comparable<C>> Sarg<C> build(boolean negate/*Todo*/) {
+    <C extends Comparable<C>> Sarg<C> build0(boolean negate/*Todo*/) {
       final RexUnknownAs unknownAs =
           nullAsTrueCount > 0 ? TRUE
               : nullAsFalseCount == termCount ? FALSE // TODO
@@ -2887,6 +2887,24 @@ public class RexSimplify {
       } else {
         return Sarg.of(unknownAs, (RangeSet) rangeSet);
       }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
+    <C extends Comparable<C>> Sarg<C> build(boolean negate) {
+      final RexUnknownAs unknownAs;
+      final RangeSet r;
+      if (negate) {
+        r = this.rangeSet.complement();
+        unknownAs = nullAsFalseCount > 0 ? TRUE
+            : nullAsTrueCount > 0 ? FALSE
+                : UNKNOWN;
+      } else {
+        r = this.rangeSet;
+        unknownAs = nullAsTrueCount > 0 ? TRUE
+            : nullAsFalseCount == termCount ? FALSE
+                : UNKNOWN;
+      }
+      return Sarg.of(unknownAs, r);
     }
 
     @Override public RelDataType getType() {
