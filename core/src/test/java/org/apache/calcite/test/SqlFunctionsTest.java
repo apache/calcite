@@ -1171,7 +1171,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.monthsBetween("2019-05-26", "2020-04-20"), is(-10.806451613));
   }
 
-  @Test public void testCotFunction() {
+  @Test public void cotFunctionTest() {
     assertThat(cotFunction(0.12), is(8.293294880594532));
   }
 
@@ -1199,7 +1199,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.pi(), is(3.141592653589793));
   }
 
-  @Test public void octetLengthTest() {
+  @Test public void testOctetLengthWithLiteral() {
     assertThat(octetLength("abc"), is(3));
   }
 
