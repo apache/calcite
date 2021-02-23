@@ -38,6 +38,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
@@ -487,7 +488,7 @@ public class CalciteAssert {
               + " "
               + metaData.getColumnTypeName(i + 1)
               + (metaData.isNullable(i + 1) == ResultSetMetaData.columnNoNulls
-              ? " NOT NULL"
+              ? RelDataTypeImpl.NON_NULLABLE_SUFFIX
               : ""));
     }
     return list.toString();

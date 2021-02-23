@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
@@ -1194,8 +1195,8 @@ public abstract class SqlTypeUtil {
     }
 
     return (x.length() == y.length()
-        || x.length() == y.length() + 9 && x.endsWith(" NOT NULL"))
-        && x.startsWith(y);
+        || x.length() == y.length() + NON_NULLABLE_SUFFIX.length()
+        && x.endsWith(NON_NULLABLE_SUFFIX)) && x.startsWith(y);
   }
 
   /**

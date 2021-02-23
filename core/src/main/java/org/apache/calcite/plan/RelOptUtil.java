@@ -135,6 +135,8 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
  * {@link RelNode}s.
@@ -4315,7 +4317,7 @@ public abstract class RelOptUtil {
         this.indent = prevIndent;
         pw.print(")");
         if (!type.isNullable()) {
-          pw.print(" NOT NULL");
+          pw.print(NON_NULLABLE_SUFFIX);
         }
       } else if (type instanceof MultisetSqlType) {
         // E.g. "INTEGER NOT NULL MULTISET NOT NULL"
@@ -4326,7 +4328,7 @@ public abstract class RelOptUtil {
         accept(componentType);
         pw.print(" MULTISET");
         if (!type.isNullable()) {
-          pw.print(" NOT NULL");
+          pw.print(NON_NULLABLE_SUFFIX);
         }
       } else {
         // E.g. "INTEGER" E.g. "VARCHAR(240) CHARACTER SET "ISO-8859-1"

@@ -23,6 +23,7 @@ import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -2524,7 +2525,8 @@ class RexProgramTest extends RexProgramTestBase {
       RexNode rexNode, String representation, String type) {
     assertEquals(representation, rexNode.toString());
     assertEquals(type, rexNode.getType().toString()
-        + (rexNode.getType().isNullable() ? "" : " NOT NULL"), "type of " + rexNode);
+        + (rexNode.getType().isNullable() ? "" : RelDataTypeImpl.NON_NULLABLE_SUFFIX),
+        "type of " + rexNode);
   }
 
   @Test void testIsDeterministic() {
