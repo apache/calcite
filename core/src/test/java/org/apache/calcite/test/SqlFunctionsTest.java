@@ -34,9 +34,15 @@ import java.util.List;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseAnd;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseOR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHL;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseXOR;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.cotFunction;
 import static org.apache.calcite.runtime.SqlFunctions.dateMod;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
@@ -57,6 +63,7 @@ import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfQuarter;
 import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
+import static org.apache.calcite.runtime.SqlFunctions.octetLength;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
@@ -1162,6 +1169,38 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.monthsBetween("2020-05-23", "2020-04-23"), is(1.0));
     assertThat(SqlFunctions.monthsBetween("2020-05-26", "2020-04-20"), is(1.193548387));
     assertThat(SqlFunctions.monthsBetween("2019-05-26", "2020-04-20"), is(-10.806451613));
+  }
+
+  @Test public void cotFunctionTest() {
+    assertThat(cotFunction(0.12), is(8.293294880594532));
+  }
+
+  @Test public void bitwiseAndFunctionTest() {
+    assertThat(bitwiseAnd(3, 6), is(2));
+  }
+
+  @Test public void bitwiseORFunctionTest() {
+    assertThat(bitwiseOR(3, 6), is(7));
+  }
+
+  @Test public void bitwiseXORFunctionTest() {
+    assertThat(bitwiseXOR(3, 6), is(5));
+  }
+
+  @Test public void bitwiseSHRFunctionTest() {
+    assertThat(bitwiseSHR(3, 1, 6), is(1));
+  }
+
+  @Test public void bitwiseSHLFunctionTest() {
+    assertThat(bitwiseSHL(3, 1, 6), is(4));
+  }
+
+  @Test public void piTest() {
+    assertThat(SqlFunctions.pi(), is(3.141592653589793));
+  }
+
+  @Test public void testOctetLengthWithLiteral() {
+    assertThat(octetLength("abc"), is(3));
   }
 
   /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
