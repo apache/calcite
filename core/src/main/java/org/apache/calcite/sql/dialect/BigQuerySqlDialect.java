@@ -1114,11 +1114,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     default :
       ExtractFunctionFormatUtil extractFormatUtil = new ExtractFunctionFormatUtil();
       SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
-      if (extractCall != null) {
-        super.unparseCall(writer, extractCall, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
+      super.unparseCall(writer, extractCall, leftPrec, rightPrec);
     }
   }
 }
