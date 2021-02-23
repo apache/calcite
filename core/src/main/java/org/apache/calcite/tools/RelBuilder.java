@@ -1476,7 +1476,7 @@ public class RelBuilder {
 
     bloat:
     if (frame.rel instanceof Project
-        && shouldMergeProject(nodeList)) {
+        && config.bloat() >= 0 && shouldMergeProject(nodeList)) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.

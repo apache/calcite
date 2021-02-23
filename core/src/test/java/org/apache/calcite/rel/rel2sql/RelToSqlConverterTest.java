@@ -5413,7 +5413,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
         + "LATERAL (SELECT *\n"
-        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"I\"";
+        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
     sql(query).ok(expected);
   }
 

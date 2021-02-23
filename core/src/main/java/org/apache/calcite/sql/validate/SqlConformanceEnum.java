@@ -111,7 +111,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-
   @Override public boolean isGroupByAlias() {
     switch (this) {
     case BABEL:

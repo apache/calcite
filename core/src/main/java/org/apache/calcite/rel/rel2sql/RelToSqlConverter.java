@@ -1056,10 +1056,7 @@ public class RelToSqlConverter extends SqlImplementor
     Map<String, RelDataType> aliasesMap = new HashMap<>();
     RelDataTypeField relDataTypeField = fieldList.get(0);
     aliasesMap.put(relDataTypeField.getName(), e.getRowType());
-    Result x = new Result(select,
-        ImmutableList.of(Clause.SELECT),
-        relDataTypeField.getName(), e.getRowType(), aliasesMap);
-    return x;
+    return result(select, ImmutableList.of(Clause.SELECT), e, aliasesMap);
   }
 
   /**
