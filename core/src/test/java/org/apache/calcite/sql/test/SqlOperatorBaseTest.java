@@ -383,10 +383,6 @@ public abstract class SqlOperatorBaseTest {
    * For development. Put any old code in here.
    */
   @Test void testDummy() {
-    tester.setFor(SqlLibraryOperators.COUNTIF, VM_FENNEL, VM_JAVA);
-    final SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
-    final String[] values = {"1", "2", "CAST(NULL AS INTEGER)", "1"};
-    tester.checkAgg("countif(x between 1 and 2)", values, 3, 0d);
   }
 
   @Test void testSqlOperatorOverloading() {

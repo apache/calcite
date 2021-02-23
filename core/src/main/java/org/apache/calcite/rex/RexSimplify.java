@@ -2731,7 +2731,6 @@ public class RexSimplify {
       }
       final Comparable value =
           requireNonNull(literal.getValueAs(Comparable.class), "value");
-      ++b.termCount;
       switch (kind) {
       case LESS_THAN:
         b.addRange(Range.lessThan(value), literal.getType());
@@ -2831,12 +2830,8 @@ public class RexSimplify {
           return RexUtil.sargRef(rexBuilder, sargBuilder.ref, sarg,
               term.getType(), unknownAs);
         }
-        final Sarg sarg2 =
-            unknownAs != UNKNOWN && sarg.nullAs == UNKNOWN && false // TODO
-                ? Sarg.of(unknownAs, sarg.rangeSet)
-                : sarg;
         return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, sargBuilder.ref,
-            rexBuilder.makeSearchArgumentLiteral(sarg2, term.getType()));
+            rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
       }
       return term;
     }
@@ -2855,7 +2850,7 @@ public class RexSimplify {
     final boolean negate;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
-    int termCount;
+    int nullAsUnknownCount;
     int nullAsFalseCount;
     int nullAsTrueCount;
 
@@ -2876,35 +2871,18 @@ public class RexSimplify {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
-    <C extends Comparable<C>> Sarg<C> build0(boolean negate/*Todo*/) {
+    <C extends Comparable<C>> Sarg<C> build(boolean negate) {
       final RexUnknownAs unknownAs =
           nullAsTrueCount > 0 ? TRUE
-              : nullAsFalseCount == termCount ? FALSE // TODO
-                  : UNKNOWN;
-//      assert nullAsFalseCount == 0; // TODO
+              : nullAsUnknownCount > 0 ? UNKNOWN
+                  : nullAsFalseCount > 0 ? FALSE
+                      : UNKNOWN;
+      final RangeSet<C> r = (RangeSet) this.rangeSet;
       if (negate) {
-        return Sarg.of(unknownAs.negate(), (RangeSet) rangeSet.complement());
+        return Sarg.of(unknownAs.negate(), r.complement());
       } else {
-        return Sarg.of(unknownAs, (RangeSet) rangeSet);
+        return Sarg.of(unknownAs, r);
       }
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
-    <C extends Comparable<C>> Sarg<C> build(boolean negate) {
-      final RexUnknownAs unknownAs;
-      final RangeSet r;
-      if (negate) {
-        r = this.rangeSet.complement();
-        unknownAs = nullAsFalseCount > 0 ? TRUE
-            : nullAsTrueCount > 0 ? FALSE
-                : UNKNOWN;
-      } else {
-        r = this.rangeSet;
-        unknownAs = nullAsTrueCount > 0 ? TRUE
-            : nullAsFalseCount == termCount ? FALSE
-                : UNKNOWN;
-      }
-      return Sarg.of(unknownAs, r);
     }
 
     @Override public RelDataType getType() {
@@ -2939,21 +2917,34 @@ public class RexSimplify {
     }
 
     void addRange(Range<Comparable> range, RelDataType type) {
+      ++nullAsUnknownCount;
       types.add(type);
       rangeSet.add(range);
     }
 
-    void addSarg(Sarg sarg, boolean negate, RelDataType type) {
+    @SuppressWarnings({"UnstableApiUsage", "rawtypes", "unchecked"})
+    void addSarg(Sarg sarg, boolean negate,
+        RelDataType type) {
+      final RangeSet r;
+      final RexUnknownAs nullAs;
+      if (negate) {
+        r = sarg.rangeSet.complement();
+        nullAs = sarg.nullAs.negate();
+      } else {
+        r = sarg.rangeSet;
+        nullAs = sarg.nullAs;
+      }
       types.add(type);
-      rangeSet.addAll(negate ? sarg.rangeSet.complement() : sarg.rangeSet);
-      RexUnknownAs nullAs = sarg.nullAs;
-      if (negate) nullAs = nullAs.negate(); // TODO
+      rangeSet.addAll(r);
       switch (nullAs) {
       case TRUE:
         ++nullAsTrueCount;
         break;
       case FALSE:
         ++nullAsFalseCount;
+        break;
+      case UNKNOWN:
+        ++nullAsUnknownCount;
         break;
       }
     }
