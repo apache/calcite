@@ -93,6 +93,7 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
@@ -468,7 +469,7 @@ public abstract class SqlOperatorBaseTest {
       double delta) {
     tester.checkScalarApprox(
         getCastString(value, targetType, false),
-        targetType + " NOT NULL",
+        targetType + NON_NULLABLE_SUFFIX,
         expected,
         delta);
   }
@@ -480,7 +481,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString(
         getCastString(value, targetType, false),
         expected,
-        targetType + " NOT NULL");
+        targetType + NON_NULLABLE_SUFFIX);
   }
 
   private void checkCastToScalarOkay(
@@ -489,7 +490,7 @@ public abstract class SqlOperatorBaseTest {
       String expected) {
     tester.checkScalarExact(
         getCastString(value, targetType, false),
-        targetType + " NOT NULL",
+        targetType + NON_NULLABLE_SUFFIX,
         expected);
   }
 
@@ -7040,7 +7041,7 @@ public abstract class SqlOperatorBaseTest {
         if (binary) {
           expected = DOUBLER.apply(expected);
         }
-        t.checkString(expression, expected, type + " NOT NULL");
+        t.checkString(expression, expected, type + NON_NULLABLE_SUFFIX);
       }
     }
   }

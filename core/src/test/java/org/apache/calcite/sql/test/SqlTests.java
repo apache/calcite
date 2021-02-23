@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
@@ -104,7 +105,7 @@ public abstract class SqlTests {
         actual = actual + "(" + sqlType.getPrecision() + ")";
       }
       if (!sqlType.isNullable()) {
-        actual += " NOT NULL";
+        actual += RelDataTypeImpl.NON_NULLABLE_SUFFIX;
       }
       return actual;
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.Matchers;
@@ -78,7 +79,8 @@ class RexProgramTestBase extends RexProgramBuilderBase {
       // toString contains type (see RexCall.toString)
       actual = node.toString();
     } else {
-      actual = node + ":" + node.getType() + (node.getType().isNullable() ? "" : " NOT NULL");
+      actual = node + ":" + node.getType() + (node.getType().isNullable() ? ""
+          : RelDataTypeImpl.NON_NULLABLE_SUFFIX);
     }
     assertEquals(expected, actual, message);
   }

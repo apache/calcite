@@ -50,6 +50,12 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class RelDataTypeImpl
     implements RelDataType, RelDataTypeFamily {
+
+  /**
+   * Suffix for the digests of non-nullable types.
+   */
+  public static final String NON_NULLABLE_SUFFIX = " NOT NULL";
+
   //~ Instance fields --------------------------------------------------------
 
   protected final @Nullable List<RelDataTypeField> fieldList;
@@ -279,7 +285,7 @@ public abstract class RelDataTypeImpl
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {
-      sb.append(" NOT NULL");
+      sb.append(NON_NULLABLE_SUFFIX);
     }
     digest = sb.toString();
   }
