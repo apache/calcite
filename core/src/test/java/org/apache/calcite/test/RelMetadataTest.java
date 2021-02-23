@@ -90,6 +90,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -3140,6 +3141,46 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Filter.class, 1);
     expected.put(Aggregate.class, 1);
     checkNodeTypeCount(sql, expected);
+  }
+
+  @Test void testConstColumnsNdv() {
+    final String sql = "select ename, 100, 200 from emp";
+    final RelNode rel = convertSql(sql);
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    assertThat(rel, instanceOf(Project.class));
+
+    Project project = (Project) rel;
+    assertThat(project.getProjects().size(), is(3));
+
+    // a non-const column, followed by two constant columns.
+    assertThat(RexUtil.isLiteral(project.getProjects().get(0), true), is(false));
+    assertThat(RexUtil.isLiteral(project.getProjects().get(1), true), is(true));
+    assertThat(RexUtil.isLiteral(project.getProjects().get(2), true), is(true));
+
+    // the distinct row count of const columns should be 1
+    assertThat(mq.getDistinctRowCount(rel, ImmutableBitSet.of(), null), is(1.0));
+    assertThat(mq.getDistinctRowCount(rel, ImmutableBitSet.of(1), null), is(1.0));
+    assertThat(mq.getDistinctRowCount(rel, ImmutableBitSet.of(1, 2), null), is(1.0));
+
+    // the population size of const columns should be 1
+    assertThat(mq.getPopulationSize(rel, ImmutableBitSet.of()), is(1.0));
+    assertThat(mq.getPopulationSize(rel, ImmutableBitSet.of(1)), is(1.0));
+    assertThat(mq.getPopulationSize(rel, ImmutableBitSet.of(1, 2)), is(1.0));
+
+    // the distinct row count of mixed columns depends on the distinct row
+    // count of non-const columns
+    assertThat(mq.getDistinctRowCount(rel, ImmutableBitSet.of(0, 1), null),
+        is(mq.getDistinctRowCount(rel, ImmutableBitSet.of(0), null)));
+    assertThat(mq.getDistinctRowCount(rel, ImmutableBitSet.of(0, 1, 2), null),
+        is(mq.getDistinctRowCount(rel, ImmutableBitSet.of(0), null)));
+
+    // the population size of mixed columns depends on the population size of
+    // non-const columns
+    assertThat(mq.getPopulationSize(rel, ImmutableBitSet.of(0, 1)),
+        is(mq.getPopulationSize(rel, ImmutableBitSet.of(0))));
+    assertThat(mq.getPopulationSize(rel, ImmutableBitSet.of(0, 1, 2)),
+        is(mq.getPopulationSize(rel, ImmutableBitSet.of(0))));
   }
 
   private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(

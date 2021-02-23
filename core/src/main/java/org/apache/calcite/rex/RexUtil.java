@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
@@ -2289,6 +2290,28 @@ public class RexUtil {
       }
     }.visitEach(nodes);
     return occurrences;
+  }
+
+  /**
+   * Given some expressions, gets the indices of the non-constant ones.
+   */
+  public static ImmutableBitSet getNonConstColumns(List<RexNode> expressions) {
+    ImmutableBitSet cols = ImmutableBitSet.range(0, expressions.size());
+    return getNonConstColumns(cols, expressions);
+  }
+
+  /**
+   * Given some expressions and columns, gets the indices of the non-constant ones.
+   */
+  public static ImmutableBitSet getNonConstColumns(
+      ImmutableBitSet columns, List<RexNode> expressions) {
+    ImmutableBitSet.Builder nonConstCols = ImmutableBitSet.builder();
+    for (int col : columns) {
+      if (!isLiteral(expressions.get(col), true)) {
+        nonConstCols.set(col);
+      }
+    }
+    return nonConstCols.build();
   }
 
   //~ Inner Classes ----------------------------------------------------------
