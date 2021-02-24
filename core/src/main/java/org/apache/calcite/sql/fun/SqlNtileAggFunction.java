@@ -41,6 +41,9 @@ public class SqlNtileAggFunction extends SqlAggFunction {
         true,
         Optionality.FORBIDDEN);
   }
+  @Override public boolean allowsFraming() {
+    return false;
+  }
 
 }
 

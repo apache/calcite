@@ -5304,6 +5304,19 @@ public class RelToSqlConverterTest {
   }
 
   @Test
+  public void testNtileFunction() {
+    String query = "SELECT ntile(2)\n"
+            + "OVER(order BY \"product_id\") AS abc\n"
+            + "FROM \"product\"";
+    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id NULLS LAST) AS ABC\n"
+            + "FROM foodmart.product";
+    sql(query)
+            .withBigQuery()
+            .ok(expectedBQ);
+
+  }
+
+  @Test
   public void testCountWithWindowFunction() {
     String query = "Select count(*) over() from \"product\"";
     String expected = "SELECT COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING "
