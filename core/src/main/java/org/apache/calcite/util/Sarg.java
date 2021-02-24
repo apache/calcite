@@ -157,15 +157,17 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   /**
    * {@inheritDoc}
    *
-   * <p>Produces a similar result to {@link RangeSet}, but adds ", null" TODO
-   * if nulls are matched, and simplifies point ranges. For example,
-   * the Sarg that allows the range set
+   * <p>Produces a similar result to {@link RangeSet},
+   * but adds "; NULL AS FALSE" or "; NULL AS TRUE" to indicate {@link #nullAs},
+   * and simplifies point ranges.
+   *
+   * <p>For example, the Sarg that allows the range set
    *
    * <blockquote>{@code [[7..7], [9..9], (10..+∞)]}</blockquote>
    *
-   * and also null is printed as
+   * <p>and also null is printed as
    *
-   * <blockquote>{@code Sarg[7, 9, (10..+∞) OR NULL]}</blockquote>
+   * <blockquote>{@code Sarg[7, 9, (10..+∞); NULL AS TRUE]}</blockquote>
    */
   @Override public String toString() {
     final StringBuilder sb = new StringBuilder();

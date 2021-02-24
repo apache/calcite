@@ -2760,32 +2760,6 @@ public class RexSimplify {
       }
     }
 
-    /**
-     * Returns whether the merged {@code sarg} with given {@code unknownAs} keeps the semantics,
-     * The merge can not go ahead if the semantics change.
-     *
-     * @return true if the semantics does not change
-     */
-    private static boolean canMerge(Sarg sarg, RexUnknownAs unknownAs) {
-      final boolean isAllOrNone = sarg.isAll() || sarg.isNone();
-      switch (unknownAs) {
-      case UNKNOWN:
-        // "unknown as unknown" can not be simplified to
-        // "IS NULL"/"IS NOT NULL"/"TRUE"/"FALSE"
-        return !isAllOrNone;
-      case TRUE:
-        // "unknown as true" can not be simplified to
-        // "false" or "IS NOT NULL"
-        return sarg.nullAs == TRUE || !isAllOrNone;
-      case FALSE:
-        // "unknown as false" can not be simplified to
-        // "true" or "IS NULL"
-        return sarg.nullAs == FALSE || !isAllOrNone;
-      default:
-        return true;
-      }
-    }
-
     /** Returns whether it is worth to fix and convert to {@code SEARCH} calls. */
     boolean needToFix() {
       // Fix and converts to SEARCH if:
@@ -2797,16 +2771,9 @@ public class RexSimplify {
       // method. "build().complexity()" would be a better estimate, if we could
       // switch to it breaking lots of plans.
       final Collection<RexSargBuilder> builders = map.values();
-      if (builders.stream().anyMatch(b -> b.build(false).complexity() > 1)) {
-        return true;
-      }
-      if (builders.size() == 1
-          && Bug.remark("TODO: remove method canMerge") == null
-          && !canMerge(builders.iterator().next().build(), UNKNOWN)) {
-        return false;
-      }
-      return newTermsCount == 1
-          && map.values().stream().allMatch(b -> simpleSarg(b.build()));
+      return builders.stream().anyMatch(b -> b.build(false).complexity() > 1)
+          || newTermsCount == 1
+          && builders.stream().allMatch(b -> simpleSarg(b.build()));
     }
 
     /**
