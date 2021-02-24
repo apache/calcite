@@ -2884,14 +2884,13 @@ public class RexSimplify {
     }
 
     void addRange(Range<Comparable> range, RelDataType type) {
-      ++nullAsUnknownCount;
       types.add(type);
       rangeSet.add(range);
+      ++nullAsUnknownCount;
     }
 
     @SuppressWarnings({"UnstableApiUsage", "rawtypes", "unchecked"})
-    void addSarg(Sarg sarg, boolean negate,
-        RelDataType type) {
+    void addSarg(Sarg sarg, boolean negate, RelDataType type) {
       final RangeSet r;
       final RexUnknownAs nullAs;
       if (negate) {
