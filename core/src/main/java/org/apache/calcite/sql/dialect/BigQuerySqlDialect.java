@@ -931,8 +931,8 @@ public class BigQuerySqlDialect extends SqlDialect {
    * Use to handle toChar function of Netezza whith format type of 'W' and 'WW'.
    * It converts the query of Netezza - "SELECT to_char(CURRENT_DATE,'W')" to query like
    * "SELECT CAST(CEIL(EXTRACT(DAY "
-   * + "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
-   * + "FROM scott.EMP"
+   * "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
+   * "FROM scott.EMP"
    *
    */
   private void unparseDayWithFormat(SqlWriter writer, SqlCall call,
