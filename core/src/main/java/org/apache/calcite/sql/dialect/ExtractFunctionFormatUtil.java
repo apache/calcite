@@ -57,7 +57,7 @@ public class ExtractFunctionFormatUtil {
     case MILLENNIUM:
       return handleExtractMillenniumOrDecade(call, "1");
     }
-    return null;
+    return call;
   }
   private SqlCall handleExtractWithOperand(SqlNode operand, DateTimeUnit dateTimeUnit) {
     return SqlStdOperatorTable.EXTRACT.createCall(SqlParserPos.ZERO,
