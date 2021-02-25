@@ -929,7 +929,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   /**
    * Format_date function does not use format types of 'W' and 'WW', So to handle that
-   * we have to make a separate function that will use extract, divide, Ceil and Call
+   * we have to make a separate function that will use extract, divide, Ceil and Cast
    * functions to make the same logic.
    */
   private void unparseDayWithFormat(SqlWriter writer, SqlCall call,
