@@ -6146,6 +6146,35 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
   }
 
+  @Test public void testDOMAndDOY() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOfMonthRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("W"), builder.scan("EMP").field(4));
+    final RexNode dayOfYearRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal("WW"), builder.scan("EMP").field(4));
+
+    final RelNode domRoot = builder
+            .scan("EMP")
+            .project(builder.alias(dayOfMonthRexNode, "FD"))
+            .build();
+    final RelNode doyRoot = builder
+            .scan("EMP")
+            .project(builder.alias(dayOfYearRexNode, "FD"))
+            .build();
+
+    final String expectedDOMBiqQuery = "SELECT CAST(CEIL(EXTRACT(DAY "
+            + "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
+            + "FROM scott.EMP";
+    final String expectedDOYBiqQuery = "SELECT CAST(CEIL(EXTRACT(DAYOFYEAR "
+            + "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+            isLinux(expectedDOYBiqQuery));
+    assertThat(toSql(domRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+            isLinux(expectedDOMBiqQuery));
+  }
+
   @Test public void testFormatTimestampRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
