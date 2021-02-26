@@ -45,7 +45,6 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -971,22 +970,44 @@ public class RelBuilderTest {
     return b.call(SqlStdOperatorTable.CASE, list);
   }
 
-  /** Creates a {@link Project} that contains a windowed aggregate function. As
-   * {@link RelBuilder} not explicitly support for {@link RexOver} the syntax is
-   * a bit cumbersome. */
+  /** Creates a {@link Project} that contains a windowed aggregate function.
+   * Repeats the using {@link RelBuilder.AggCall#over} and
+   * {@link RexBuilder#makeOver}. */
   @Test void testProjectOver() {
-    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+    final Function<RelBuilder, RelNode> f = b -> {
+      final RelDataType intType =
+          b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+      return b.scan("EMP")
+          .project(b.field("DEPTNO"),
+              b.alias(
+                  b.getRexBuilder().makeOver(intType,
+                      SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),
+                      ImmutableList.of(),
+                      ImmutableList.of(
+                          new RexFieldCollation(b.field("EMPNO"),
+                              ImmutableSet.of())),
+                      RexWindowBounds.UNBOUNDED_PRECEDING,
+                      RexWindowBounds.UNBOUNDED_FOLLOWING,
+                      true, true, false, false, false),
+                  "x"))
+          .build();
+    };
+    final Function<RelBuilder, RelNode> f2 = b -> b.scan("EMP")
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of())),
-                "x"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("x"))
         .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
   }
 
   /** Tests that RelBuilder does not merge a Project that contains a windowed
@@ -994,36 +1015,25 @@ public class RelBuilderTest {
   @Test void testProjectOverOver() {
     final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of())),
-                "x"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("DEPTNO"),
-                        ImmutableSet.of())),
-                "y"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("DEPTNO"))
+                .rowsUnbounded()
+                .as("y"))
         .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$0], y=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "  LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
-  }
-
-  private RexNode over(RelBuilder b,
-      ImmutableList<RexFieldCollation> fieldCollations, String alias) {
-    final RelDataType intType =
-        b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-    return b.alias(
-        b.getRexBuilder()
-            .makeOver(intType, SqlStdOperatorTable.ROW_NUMBER,
-                ImmutableList.of(), ImmutableList.of(), fieldCollations,
-                RexWindowBounds.UNBOUNDED_PRECEDING,
-                RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-                false, false), alias);
   }
 
   @Test void testRename() {
