@@ -808,7 +808,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIMESTAMP":
-    case "FORMAT_TIME":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
       switch (call.operand(0).toString()) {
@@ -825,6 +824,11 @@ public class BigQuerySqlDialect extends SqlDialect {
                 creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
         super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       }
+      break;
+    case "FORMAT_TIME":
+      SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+              creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
