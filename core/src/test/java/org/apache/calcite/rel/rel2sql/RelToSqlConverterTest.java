@@ -36,8 +36,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.rex.RexFieldCollation;
-import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -843,18 +841,13 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(b.field("SAL"))
         .project(
-            b.alias(
-                b.getRexBuilder().makeOver(
-                    b.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
-                    SqlStdOperatorTable.RANK, ImmutableList.of(),
-                    ImmutableList.of(),
-                    ImmutableList.of(
-                        new RexFieldCollation(b.field("SAL"),
-                            ImmutableSet.of())),
-                    RexWindowBounds.UNBOUNDED_PRECEDING,
-                    RexWindowBounds.UNBOUNDED_FOLLOWING,
-                    true, true, false, false, false),
-                "rank"))
+            b.aggregateCall(SqlStdOperatorTable.RANK)
+                .over()
+                .orderBy(b.field("SAL"))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("rank"))
         .as("t")
         .aggregate(b.groupKey(),
             b.count(b.field("t", "rank")).distinct().as("c"))

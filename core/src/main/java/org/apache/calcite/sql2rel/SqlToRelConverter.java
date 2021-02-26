@@ -73,7 +73,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -2052,13 +2051,14 @@ public class SqlToRelConverter {
       }
     }
 
-    final ImmutableList.Builder<RexFieldCollation> orderKeys =
+    final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
     for (SqlNode order : orderList) {
       orderKeys.add(
           bb.convertSortExpression(order,
               RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.UNSPECIFIED));
+              RelFieldCollation.NullDirection.UNSPECIFIED,
+              bb::sortToRex));
     }
 
     try {
@@ -2079,14 +2079,10 @@ public class SqlToRelConverter {
           && q.getValue() == SqlSelectKeyword.DISTINCT;
 
       final RexShuttle visitor =
-          new HistogramShuttle(
-              partitionKeys.build(), orderKeys.build(),
+          new HistogramShuttle(partitionKeys.build(), orderKeys.build(), rows,
               RexWindowBounds.create(sqlLowerBound, lowerBound),
               RexWindowBounds.create(sqlUpperBound, upperBound),
-              rows,
-              window.isAllowPartial(),
-              isDistinct,
-              ignoreNulls);
+              window.isAllowPartial(), isDistinct, ignoreNulls);
       return rexAgg.accept(visitor);
     } finally {
       bb.window = null;
@@ -4481,6 +4477,18 @@ public class SqlToRelConverter {
     }
   }
 
+  /** Function that can convert a sort specification (expression, direction
+   * and null direction) to a target format.
+   *
+   * @param <R> Target format, such as {@link RexFieldCollation} or
+   * {@link RexNode}
+   */
+  @FunctionalInterface
+  interface SortExpressionConverter<R> {
+    R convert(SqlNode node, RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection);
+  }
+
   /**
    * Workspace for translating an individual SELECT statement (or sub-SELECT).
    */
@@ -5097,50 +5105,78 @@ public class SqlToRelConverter {
     public RexFieldCollation convertSortExpression(SqlNode expr,
         RelFieldCollation.Direction direction,
         RelFieldCollation.NullDirection nullDirection) {
+      return convertSortExpression(expr, direction, nullDirection,
+          this::sortToRexFieldCollation);
+    }
+
+    /** Handles an item in an ORDER BY clause, passing using a converter
+     * function to produce the final result. */
+    <R> R convertSortExpression(SqlNode expr,
+        RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection,
+        SortExpressionConverter<R> converter) {
       switch (expr.getKind()) {
       case DESCENDING:
         return convertSortExpression(((SqlCall) expr).operand(0),
-            RelFieldCollation.Direction.DESCENDING, nullDirection);
+            RelFieldCollation.Direction.DESCENDING, nullDirection, converter);
       case NULLS_LAST:
         return convertSortExpression(((SqlCall) expr).operand(0),
-            direction, RelFieldCollation.NullDirection.LAST);
+            direction, RelFieldCollation.NullDirection.LAST, converter);
       case NULLS_FIRST:
         return convertSortExpression(((SqlCall) expr).operand(0),
-            direction, RelFieldCollation.NullDirection.FIRST);
+            direction, RelFieldCollation.NullDirection.FIRST, converter);
       default:
-        final Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
-        switch (direction) {
-        case DESCENDING:
-          flags.add(SqlKind.DESCENDING);
-          break;
-        default:
-          break;
-        }
-        switch (nullDirection) {
-        case UNSPECIFIED:
-          final RelFieldCollation.NullDirection nullDefaultDirection =
-              validator().config().defaultNullCollation().last(desc(direction))
-                  ? RelFieldCollation.NullDirection.LAST
-                  : RelFieldCollation.NullDirection.FIRST;
-          if (nullDefaultDirection != direction.defaultNullDirection()) {
-            SqlKind nullDirectionSqlKind =
-                validator().config().defaultNullCollation().last(desc(direction))
-                    ? SqlKind.NULLS_LAST
-                    : SqlKind.NULLS_FIRST;
-            flags.add(nullDirectionSqlKind);
-          }
-          break;
-        case FIRST:
-          flags.add(SqlKind.NULLS_FIRST);
-          break;
-        case LAST:
-          flags.add(SqlKind.NULLS_LAST);
-          break;
-        default:
-          break;
-        }
-        return new RexFieldCollation(convertExpression(expr), flags);
+        return converter.convert(expr, direction, nullDirection);
       }
+    }
+
+    private RexFieldCollation sortToRexFieldCollation(SqlNode expr,
+        RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection) {
+      final Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
+      if (direction == RelFieldCollation.Direction.DESCENDING) {
+        flags.add(SqlKind.DESCENDING);
+      }
+      switch (nullDirection) {
+      case UNSPECIFIED:
+        final RelFieldCollation.NullDirection nullDefaultDirection =
+            validator().config().defaultNullCollation().last(desc(direction))
+                ? RelFieldCollation.NullDirection.LAST
+                : RelFieldCollation.NullDirection.FIRST;
+        if (nullDefaultDirection != direction.defaultNullDirection()) {
+          SqlKind nullDirectionSqlKind =
+              validator().config().defaultNullCollation().last(desc(direction))
+                  ? SqlKind.NULLS_LAST
+                  : SqlKind.NULLS_FIRST;
+          flags.add(nullDirectionSqlKind);
+        }
+        break;
+      case FIRST:
+        flags.add(SqlKind.NULLS_FIRST);
+        break;
+      case LAST:
+        flags.add(SqlKind.NULLS_LAST);
+        break;
+      default:
+        break;
+      }
+      return new RexFieldCollation(convertExpression(expr), flags);
+    }
+
+    private RexNode sortToRex(SqlNode expr,
+        RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection) {
+      RexNode node = convertExpression(expr);
+      if (direction == RelFieldCollation.Direction.DESCENDING) {
+        node = relBuilder.desc(node);
+      }
+      if (nullDirection == RelFieldCollation.NullDirection.FIRST) {
+        node = relBuilder.nullsFirst(node);
+      }
+      if (nullDirection == RelFieldCollation.NullDirection.LAST) {
+        node = relBuilder.nullsLast(node);
+      }
+      return node;
     }
 
     /**
@@ -5727,12 +5763,8 @@ public class SqlToRelConverter {
                 .map(order ->
                     bb.convertSortExpression(order,
                         RelFieldCollation.Direction.ASCENDING,
-                        RelFieldCollation.NullDirection.UNSPECIFIED))
-                .map(fieldCollation ->
-                    new RelFieldCollation(
-                        lookupOrCreateGroupExpr(fieldCollation.left),
-                        fieldCollation.getDirection(),
-                        fieldCollation.getNullDirection()))
+                        RelFieldCollation.NullDirection.UNSPECIFIED,
+                        this::sortToFieldCollation))
                 .collect(Collectors.toList()));
       }
       final AggregateCall aggCall =
@@ -5755,6 +5787,17 @@ public class SqlToRelConverter {
               aggCallMapping,
               i -> convertedInputExprs.get(i).left.getType().isNullable());
       aggMapping.put(outerCall, rex);
+    }
+
+    private RelFieldCollation sortToFieldCollation(SqlNode expr,
+        RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection) {
+      final RexNode node = bb.convertExpression(expr);
+      final int fieldIndex = lookupOrCreateGroupExpr(node);
+      if (nullDirection == RelFieldCollation.NullDirection.UNSPECIFIED) {
+        nullDirection = direction.defaultNullDirection();
+      }
+      return new RelFieldCollation(fieldIndex, direction, nullDirection);
     }
 
     private int lookupOrCreateGroupExpr(RexNode expr) {
@@ -5886,8 +5929,8 @@ public class SqlToRelConverter {
      */
     static final boolean ENABLE_HISTOGRAM_AGG = false;
 
-    private final List<RexNode> partitionKeys;
-    private final ImmutableList<RexFieldCollation> orderKeys;
+    private final ImmutableList<RexNode> partitionKeys;
+    private final ImmutableList<RexNode> orderKeys;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
     private final boolean rows;
@@ -5895,14 +5938,10 @@ public class SqlToRelConverter {
     private final boolean distinct;
     private final boolean ignoreNulls;
 
-    HistogramShuttle(
-        List<RexNode> partitionKeys,
-        ImmutableList<RexFieldCollation> orderKeys,
+    HistogramShuttle(ImmutableList<RexNode> partitionKeys,
+        ImmutableList<RexNode> orderKeys, boolean rows,
         RexWindowBound lowerBound, RexWindowBound upperBound,
-        boolean rows,
-        boolean allowPartial,
-        boolean distinct,
-        boolean ignoreNulls) {
+        boolean allowPartial, boolean distinct, boolean ignoreNulls) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
@@ -5947,28 +5986,18 @@ public class SqlToRelConverter {
               : rexBuilder.makeCast(histogramType, exprs.get(0)));
         }
 
-        RexCallBinding bind =
-            new RexCallBinding(
-                rexBuilder.getTypeFactory(),
-                SqlStdOperatorTable.HISTOGRAM_AGG,
-                exprs,
-                ImmutableList.of());
-
         RexNode over =
-            rexBuilder.makeOver(
-                SqlStdOperatorTable.HISTOGRAM_AGG
-                    .inferReturnType(bind),
-                SqlStdOperatorTable.HISTOGRAM_AGG,
-                exprs,
-                partitionKeys,
-                orderKeys,
-                lowerBound,
-                upperBound,
-                rows,
-                allowPartial,
-                false,
-                distinct,
-                ignoreNulls);
+            relBuilder.aggregateCall(SqlStdOperatorTable.HISTOGRAM_AGG, exprs)
+                .distinct(distinct)
+                .ignoreNulls(ignoreNulls)
+                .over()
+                .partitionBy(partitionKeys)
+                .orderBy(orderKeys)
+                .let(c ->
+                    rows ? c.rowsBetween(lowerBound, upperBound)
+                        : c.rangeBetween(lowerBound, upperBound))
+                .allowPartial(allowPartial)
+                .toRex();
 
         RexNode histogramCall =
             rexBuilder.makeCall(
@@ -5998,19 +6027,18 @@ public class SqlToRelConverter {
         SqlAggFunction aggOpToUse =
             needSum0 ? SqlStdOperatorTable.SUM0
                 : aggOp;
-        return rexBuilder.makeOver(
-            type,
-            aggOpToUse,
-            exprs,
-            partitionKeys,
-            orderKeys,
-            lowerBound,
-            upperBound,
-            rows,
-            allowPartial,
-            needSum0,
-            distinct,
-            ignoreNulls);
+        return relBuilder.aggregateCall(aggOpToUse, exprs)
+            .distinct(distinct)
+            .ignoreNulls(ignoreNulls)
+            .over()
+            .partitionBy(partitionKeys)
+            .orderBy(orderKeys)
+            .let(c ->
+                rows ? c.rowsBetween(lowerBound, upperBound)
+                    : c.rangeBetween(lowerBound, upperBound))
+            .allowPartial(allowPartial)
+            .nullWhenCountZero(needSum0)
+            .toRex();
       }
     }
 
