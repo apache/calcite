@@ -71,6 +71,8 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -6980,5 +6982,141 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTester(t -> createDynamicTester())
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .checkUnchanged();
+  }
+
+  @Test void testJoinCommuteRuleWithAlwaysTrueConditionAllowed() {
+    checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(true);
+  }
+
+  @Test void testJoinCommuteRuleWithAlwaysTrueConditionDisallowed() {
+    checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(false);
+  }
+
+  private void checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+
+    RelNode relNode = relBuilder.push(left)
+        .push(right)
+        .join(JoinRelType.INNER,
+            relBuilder.literal(true))
+        .build();
+
+    JoinCommuteRule.Config ruleConfig = JoinCommuteRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed() {
+    checkJoinAssociateRuleWithBottomAlwaysTrueCondition(true);
+  }
+
+  @Test void testJoinAssociateRuleWithBottomAlwaysTrueConditionDisallowed() {
+    checkJoinAssociateRuleWithBottomAlwaysTrueCondition(false);
+  }
+
+  private void checkJoinAssociateRuleWithBottomAlwaysTrueCondition(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode bottomLeft = relBuilder.scan("EMP").build();
+    RelNode bottomRight = relBuilder.scan("DEPT").build();
+    RelNode top = relBuilder.scan("BONUS").build();
+
+    RelNode relNode = relBuilder.push(bottomLeft)
+        .push(bottomRight)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .push(top)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "JOB"),
+                relBuilder.field(2, 1, "JOB")))
+        .build();
+
+    JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addMatchOrder(HepMatchOrder.TOP_DOWN)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed() {
+    checkJoinAssociateRuleWithTopAlwaysTrueCondition(true);
+  }
+
+  @Test void testJoinAssociateRuleWithTopAlwaysTrueConditionDisallowed() {
+    checkJoinAssociateRuleWithTopAlwaysTrueCondition(false);
+  }
+
+  private void checkJoinAssociateRuleWithTopAlwaysTrueCondition(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode bottomLeft = relBuilder.scan("EMP").build();
+    RelNode bottomRight = relBuilder.scan("BONUS").build();
+    RelNode top = relBuilder.scan("DEPT").build();
+
+    RelNode relNode = relBuilder.push(bottomLeft)
+        .push(bottomRight)
+        .join(JoinRelType.INNER,
+            relBuilder.literal(true))
+        .push(top)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .build();
+
+    JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addMatchOrder(HepMatchOrder.TOP_DOWN)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
   }
 }

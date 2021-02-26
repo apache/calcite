@@ -3718,6 +3718,69 @@ LogicalIntersect(all=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[AND(=($2, $12), =($7, $8))], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionDisallowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($7, $12)], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, BONUS]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionDisallowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($7, $12)], joinType=[inner])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, BONUS]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionAllowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], DEPTNO0=[$0], DNAME=[$1], LOC=[$2])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionDisallowed">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinProjectTransposeWindow">
         <Resource name="sql">
             <![CDATA[select *
@@ -8227,7 +8290,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
     </TestCase>
     <TestCase name="testPushAggregateThroughJoin7">
         <Resource name="sql">
-            <![CDATA[select any_value(B.sal)
+            <![CDATA[select any_value(distinct B.sal)
 from sales.emp as A
 join (select distinct sal from sales.emp) as B
 on A.sal=B.sal
@@ -8255,7 +8318,7 @@ LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
     </TestCase>
     <TestCase name="testPushAggregateThroughJoin8">
         <Resource name="sql">
-            <![CDATA[select single_value(B.sal)
+            <![CDATA[select single_value(distinct B.sal)
 from sales.emp as A
 join (select distinct sal from sales.emp) as B
 on A.sal=B.sal

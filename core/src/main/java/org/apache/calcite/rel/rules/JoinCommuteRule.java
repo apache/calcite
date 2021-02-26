@@ -139,7 +139,13 @@ public class JoinCommuteRule
   @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
     // SEMI and ANTI join cannot be swapped.
-    return join.getJoinType().projectsRight();
+    if (!join.getJoinType().projectsRight()) {
+      return false;
+    }
+
+    // Suppress join with "true" condition (that is, cartesian joins).
+    return config.isAllowAlwaysTrueCondition()
+        || !join.getCondition().isAlwaysTrue();
   }
 
   @Override public void onMatch(final RelOptRuleCall call) {
@@ -241,12 +247,21 @@ public class JoinCommuteRule
           .as(Config.class);
     }
 
-    /** Whether to swap outer joins. */
+    /** Whether to swap outer joins; default false. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     boolean isSwapOuter();
 
     /** Sets {@link #isSwapOuter()}. */
     Config withSwapOuter(boolean swapOuter);
+
+    /** Whether to emit the new join tree if the join condition is {@code TRUE}
+     * (that is, cartesian joins); default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean isAllowAlwaysTrueCondition();
+
+    /** Sets {@link #isAllowAlwaysTrueCondition()}. */
+    Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);
   }
 }
