@@ -820,15 +820,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
         break;
       default:
-        SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-                creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
-        super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+        unparseFormatCall(writer, call, leftPrec, rightPrec);
       }
       break;
     case "FORMAT_TIME":
-      SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-              creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
-      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+      unparseFormatCall(writer, call, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
@@ -929,6 +925,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseFormatCall(SqlWriter writer,
+                                 SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+        creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
   /**
