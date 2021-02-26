@@ -13184,4 +13184,85 @@ LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionAllowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join dept ON emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], DEPTNO0=[$0], DNAME=[$1], LOC=[$2])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionDisallowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join dept ON emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join dept ON emp.deptno = dept.deptno join bonus on emp.job = bonus.job]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[AND(=($2, $12), =($7, $8))], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionDisallowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join dept ON emp.deptno = dept.deptno join bonus on emp.job = bonus.job]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join bonus ON 1=1 join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($7, $12)], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, BONUS]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionDisallowed">
+        <Resource name="sql">
+            <![CDATA[select * from emp join bonus ON 1=1 join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($7, $12)], joinType=[inner])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, BONUS]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
