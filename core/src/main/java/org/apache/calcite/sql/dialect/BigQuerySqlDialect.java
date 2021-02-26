@@ -810,6 +810,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_TIME":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
+    case "PARSE_TIMESTAMP":
       SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
           creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
       super.unparseCall(writer, formatCall, leftPrec, rightPrec);
