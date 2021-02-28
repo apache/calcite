@@ -2829,8 +2829,7 @@ public class RexSimplify {
 
     @Override public String toString() {
       return "SEARCH(" + ref + ", " + (negate ? "NOT " : "") + rangeSet
-          + ", " + (nullAsTrueCount + nullAsFalseCount)
-          + " terms of which " + nullAsTrueCount + " allow null)";
+          + "; NULL AS " + deriveUnknownAs() + ")";
     }
 
     <C extends Comparable<C>> Sarg<C> build() {
@@ -2839,17 +2838,46 @@ public class RexSimplify {
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
-      final RexUnknownAs unknownAs =
-          nullAsTrueCount > 0 ? TRUE
-              : nullAsUnknownCount > 0 ? UNKNOWN
-                  : nullAsFalseCount > 0 ? FALSE
-                      : UNKNOWN;
+      final RexUnknownAs unknownAs = deriveUnknownAs();
       final RangeSet<C> r = (RangeSet) this.rangeSet;
       if (negate) {
         return Sarg.of(unknownAs.negate(), r.complement());
       } else {
         return Sarg.of(unknownAs, r);
       }
+    }
+
+    /** Derives the value that will be assigned to {@link Sarg#nullAs}.
+     *
+     * <p>Behavior is as follows:
+     *
+     * <ul>
+     * <li>If there is at least one term that returns TRUE when the argument
+     * is NULL, then the overall value will be TRUE; failing that,
+     * <li>if there is at least one term that returns UNKNOWN when the argument
+     * is NULL, then the overall value will be UNKNOWN; failing that,
+     * <li>the value will be FALSE.
+     * </ul>
+     *
+     * <p>Consider the behavior of an OR expression in terms of three-valued
+     * logic:
+     * {@code TRUE OR UNKNOWN OR FALSE} returns {@code TRUE};
+     * {@code UNKNOWN OR FALSE OR UNKNOWN} returns {@code UNKNOWN};
+     * {@code FALSE OR FALSE} returns {@code FALSE}.
+     * It will be evident that a Sarg that is the union of several terms (each
+     * of which can be seen as a Sarg with its own null behavior) will behave
+     * analogously. */
+    private RexUnknownAs deriveUnknownAs() {
+      if (nullAsTrueCount > 0) {
+        return TRUE;
+      }
+      if (nullAsUnknownCount > 0) {
+        return UNKNOWN;
+      }
+      if (nullAsFalseCount > 0) {
+        return FALSE;
+      }
+      return UNKNOWN;
     }
 
     @Override public RelDataType getType() {

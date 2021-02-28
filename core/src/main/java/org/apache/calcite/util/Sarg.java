@@ -64,7 +64,7 @@ import java.util.function.BiConsumer;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
-@SuppressWarnings({"BetaApi", "type.argument.type.incompatible"})
+@SuppressWarnings({"BetaApi", "type.argument.type.incompatible", "UnstableApiUsage"})
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final RexUnknownAs nullAs;
@@ -74,22 +74,23 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
 
   /** Returns FALSE for all null and not-null values.
    *
-   * <p>{@code SEARCH(x, FALSE_EMPTY)} is equivalent to {@code FALSE}. */
-  private static final SpecialSarg FALSE_EMPTY =
+   * <p>{@code SEARCH(x, FALSE)} is equivalent to {@code FALSE}. */
+  private static final SpecialSarg FALSE =
       new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.FALSE,
           "Sarg[FALSE]", 2);
 
   /** Returns TRUE for all not-null values, FALSE for null.
    *
-   * <p>{@code SEARCH(x, FALSE)} is equivalent to {@code x IS NOT NULL}. */
-  private static final SpecialSarg FALSE =
+   * <p>{@code SEARCH(x, IS_NOT_NULL)} is equivalent to
+   * {@code x IS NOT NULL}. */
+  private static final SpecialSarg IS_NOT_NULL =
       new SpecialSarg(ImmutableRangeSet.of().complement(), RexUnknownAs.FALSE,
           "Sarg[IS NOT NULL]", 3);
 
   /** Returns FALSE for all not-null values, TRUE for null.
    *
-   * <p>{@code SEARCH(x, TRUE_EMPTY)} is equivalent to {@code x IS NULL}. */
-  private static final SpecialSarg TRUE_EMPTY =
+   * <p>{@code SEARCH(x, IS_NULL)} is equivalent to {@code x IS NULL}. */
+  private static final SpecialSarg IS_NULL =
       new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.TRUE,
           "Sarg[IS NULL]", 4);
 
@@ -102,15 +103,15 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
 
   /** Returns FALSE for all not-null values, UNKNOWN for null.
    *
-   * <p>{@code SEARCH(x, UNKNOWN_EMPTY)} is equivalent to {@code x <> x}. */
-  private static final SpecialSarg UNKNOWN_EMPTY =
+   * <p>{@code SEARCH(x, NOT_EQUAL)} is equivalent to {@code x <> x}. */
+  private static final SpecialSarg NOT_EQUAL =
       new SpecialSarg(ImmutableRangeSet.of(), RexUnknownAs.UNKNOWN,
           "Sarg[<>]", 6);
 
   /** Returns TRUE for all not-null values, UNKNOWN for null.
    *
-   * <p>{@code SEARCH(x, UNKNOWN)} is equivalent to {@code x = x}. */
-  private static final SpecialSarg UNKNOWN =
+   * <p>{@code SEARCH(x, EQUAL)} is equivalent to {@code x = x}. */
+  private static final SpecialSarg EQUAL =
       new SpecialSarg(ImmutableRangeSet.of().complement(), RexUnknownAs.UNKNOWN,
           "Sarg[=]", 7);
 
@@ -134,21 +135,21 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     if (rangeSet.isEmpty()) {
       switch (nullAs) {
       case FALSE:
-        return FALSE_EMPTY;
+        return FALSE;
       case TRUE:
-        return TRUE_EMPTY;
+        return IS_NULL;
       default:
-        return UNKNOWN_EMPTY;
+        return NOT_EQUAL;
       }
     }
     if (rangeSet.equals(RangeSets.rangeSetAll())) {
       switch (nullAs) {
       case FALSE:
-        return FALSE;
+        return IS_NOT_NULL;
       case TRUE:
         return TRUE;
       default:
-        return UNKNOWN;
+        return EQUAL;
       }
     }
     return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), nullAs);
@@ -319,10 +320,10 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     }
 
     @Override public int complexity() {
-      switch (name) {
-      case "Sarg[FALSE]":
+      switch (ordinal) {
+      case 2: // Sarg[FALSE]
         return 0; // for backwards compatibility
-      case "Sarg[TRUE]":
+      case 5: // Sarg[TRUE]
         return 2; // for backwards compatibility
       default:
         return 1;
