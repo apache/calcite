@@ -692,6 +692,34 @@ class VolcanoPlannerTest {
         null);
   }
 
+  /**
+   * Test for relSet merge order. When the merging relSets are parent set of each other, we should
+   * merge the smaller set into the bigger one.
+   */
+  @Test void testSetMergeWithCycle() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
+    NoneSingleRel singleRelA = new NoneSingleRel(cluster, leafRel);
+    NoneSingleRel singleRelB = new NoneSingleRel(cluster, singleRelA);
+
+    planner.setRoot(singleRelA);
+    RelSet setA = planner.ensureRegistered(singleRelA, null).getSet();
+    RelSet setB = planner.ensureRegistered(leafRel, null).getSet();
+
+    // Create the relSet dependency cycle, so that both sets are parent set of each other
+    planner.ensureRegistered(singleRelB, leafRel);
+
+    // trigger the set merge
+    planner.ensureRegistered(singleRelB, singleRelA);
+
+    // setA and setB has the same popularity (parentRels.size()).
+    // Since setB is larger than setA. setA should be merged into setB
+    assert setA.equivalentSet == setB;
+  }
+
   private void checkEvent(
       List<RelOptListener.RelEvent> eventList,
       int iEvent,

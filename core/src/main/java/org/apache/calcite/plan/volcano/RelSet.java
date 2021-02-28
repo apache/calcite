@@ -129,14 +129,14 @@ class RelSet {
   /**
    * Returns the child RelSet for the current set.
    */
-  public Set<RelSet> getChildSets(VolcanoPlanner planner) {
+  public Set<RelSet> getChildSets() {
     Set<RelSet> childSets = new HashSet<>();
     for (RelNode node : this.rels) {
       if (node instanceof Converter) {
         continue;
       }
       for (RelNode child : node.getInputs()) {
-        RelSet childSet = planner.equivRoot(((RelSubset) child).getSet());
+        RelSet childSet = VolcanoPlanner.equivRoot(((RelSubset) child).getSet());
         if (childSet.id != this.id) {
           childSets.add(childSet);
         }

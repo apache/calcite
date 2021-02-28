@@ -1136,32 +1136,43 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return false;
   }
 
-  private RelSet merge(RelSet set, RelSet set2) {
-    assert set != set2 : "pre: set != set2";
+  private RelSet merge(RelSet set1, RelSet set2) {
+    assert set1 != set2 : "pre: set1 != set2";
 
     // Find the root of set2's equivalence tree.
-    set = equivRoot(set);
+    set1 = equivRoot(set1);
     set2 = equivRoot(set2);
 
     // Looks like set2 was already marked as equivalent to set. Nothing
     // to do.
-    if (set2 == set) {
-      return set;
+    if (set2 == set1) {
+      return set1;
     }
 
-    // If necessary, swap the sets, so we're always merging the newer set
-    // into the older or merging parent set into child set.
-    if (set2.getChildSets(this).contains(set)) {
-      // No-op
-    } else if (set.getChildSets(this).contains(set2)
-        || set.id > set2.id) {
-      RelSet t = set;
-      set = set2;
+    // If necessary, swap the sets. We are going to keep set1 and discarding set2.
+    boolean swap;
+    // Prefer merging non-popular (then smaller, newer) set into popular (then bigger, older) ones
+    if (set1.getParentRels().size() != set2.getParentRels().size()) {
+      swap = set1.getParentRels().size() < set2.getParentRels().size();
+    } else if (set1.getRelsFromAllSubsets().size() != set2.getRelsFromAllSubsets().size()) {
+      swap = set1.getRelsFromAllSubsets().size() < set2.getRelsFromAllSubsets().size();
+    } else {
+      swap = set1.id > set2.id;
+    }
+    // Prefer merging parent set into child set.
+    boolean set1IsParent = set1.getChildSets().contains(set2);
+    if (set1IsParent != set2.getChildSets().contains(set1)) {
+      swap = set1IsParent;
+    }
+
+    if (swap) {
+      RelSet t = set1;
+      set1 = set2;
       set2 = t;
     }
 
     // Merge.
-    set.mergeWith(this, set2);
+    set1.mergeWith(this, set2);
 
     if (root == null) {
       throw new IllegalStateException("root must not be null");
@@ -1170,15 +1181,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
-      root = set.getOrCreateSubset(
+      root = set1.getOrCreateSubset(
           root.getCluster(), root.getTraitSet(), root.isRequired());
       ensureRootConverters();
     }
 
     if (ruleDriver != null) {
-      ruleDriver.onSetMerged(set);
+      ruleDriver.onSetMerged(set1);
     }
-    return set;
+    return set1;
   }
 
   static RelSet equivRoot(RelSet s) {
