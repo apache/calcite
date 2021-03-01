@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
+
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -103,6 +108,45 @@ public class RangeSets {
       }
     }
     return 0;
+  }
+
+  /**
+   * Estimates the number of distinct values for a range (if possible).
+   * A null is returned if the number of distinct values is infinity or unknown.
+   */
+  public static <C extends Comparable<C>> @Nullable Double numDistinctVals(
+      Range<C> range, RelDataType type) {
+    if (RangeSets.isPoint(range)) {
+      return 1.0;
+    }
+    if (!range.hasLowerBound() || !range.hasUpperBound()) {
+      // infinity range.
+      return null;
+    }
+    C lower = range.lowerEndpoint();
+    C upper = range.upperEndpoint();
+
+    if (lower instanceof Number && upper instanceof Number) {
+      Number lowerNum = (Number) lower;
+      Number upperNum = (Number) upper;
+
+      boolean discreteType = type.getSqlTypeName() == SqlTypeName.BOOLEAN
+          || type.getSqlTypeName() == SqlTypeName.TINYINT
+          || type.getSqlTypeName() == SqlTypeName.SMALLINT
+          || type.getSqlTypeName() == SqlTypeName.INTEGER
+          || type.getSqlTypeName() == SqlTypeName.BIGINT;
+      if (discreteType) {
+        double ndv = upperNum.doubleValue() - lowerNum.doubleValue() + 1.0;
+        if (range.upperBoundType() == BoundType.OPEN) {
+          ndv -= 1.0;
+        }
+        if (range.lowerBoundType() == BoundType.OPEN) {
+          ndv -= 1.0;
+        }
+        return ndv;
+      }
+    }
+    return null;
   }
 
   /** Computes a hash code for a range set.

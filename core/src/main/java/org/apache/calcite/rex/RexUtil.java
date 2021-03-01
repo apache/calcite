@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
@@ -2618,6 +2619,99 @@ public class RexUtil {
   /** Transforms a list of expressions to the list of digests. */
   public static List<String> strings(List<RexNode> list) {
     return Util.transform(list, Object::toString);
+  }
+
+  /** Estimate the number of distinct values for the specified columns (if possible),
+   * given the condition. */
+  public static @Nullable Double estimateColumnsNdv(
+      ImmutableBitSet columns, @Nullable RexNode condition) {
+    if (condition == null) {
+      return null;
+    }
+    if (condition.isAlwaysFalse()) {
+      return 0.0;
+    }
+    double ndv = 1.0;
+    List<RexNode> conditions = RelOptUtil.conjunctions(condition);
+    for (int col : columns) {
+      Double colNdv = estimateColumnNdv(col, conditions);
+      if (colNdv == null) {
+        // if one column's ndv cannot be estimated, we cannot
+        // estimate the ndv for the column set.
+        return null;
+      }
+      // ndv's should be multiplied.
+      // for example, NDV(x) <= a, and NDV(y) <= b;
+      // then we have NDV(x, y) <= a * b;
+      ndv *= colNdv;
+    }
+    return ndv;
+  }
+
+  /** Estimate the number of distinct values for a single column (if possible),
+   * given the condition. */
+  private static @Nullable Double estimateColumnNdv(int colIdx, List<RexNode> conditions) {
+    Double ndv = null;
+    for (RexNode condition : conditions) {
+      Double singleNdv = estimateColumnNdvSingleCondition(colIdx, condition);
+      if (singleNdv != null) {
+        // if there are multiple ndv estimations, we select the minimum one.
+        // for example, if we have two conditions
+        // 1) x in (a, b)
+        // 2) x in (a, b, c)
+        // the first estimation gives NDV(x) = 2, while the second gives NDV(x) = 3
+        // the final ndv estimation should be NDV(x) = min(2, 3) = 2.
+        ndv = ndv == null ? singleNdv : Math.min(ndv, singleNdv);
+      }
+    }
+    return ndv;
+  }
+
+  /** Estimate the ndv for a single column, given a single condition. */
+  private static @Nullable Double estimateColumnNdvSingleCondition(int colIdx, RexNode condition) {
+    if (condition.getKind() == SqlKind.IS_NULL) {
+      assert condition instanceof RexCall;
+      RexNode op = ((RexCall) condition).getOperands().get(0);
+      if (op instanceof RexInputRef && ((RexInputRef) op).getIndex() == colIdx) {
+        // Given condition x is null,
+        // NDV(x) = 1 if x is nullable, or 0 otherwise.
+        return op.getType().isNullable() ? 1.0 : 0.0;
+      }
+    }
+    if (condition instanceof RexCall
+        && ((RexCall) condition).getOperands().size() == 2) {
+      // process x = a, or Search(x, Sarg).
+
+      List<RexNode> operands = ((RexCall) condition).getOperands();
+      if (operands.get(0).getKind() != SqlKind.LITERAL
+          && operands.get(1).getKind() != SqlKind.LITERAL) {
+        // one of the operands must be a literal, otherwise we cannot estimate
+        return null;
+      }
+      RexNode literalOp = operands.get(0).getKind() == SqlKind.LITERAL
+          ? operands.get(0) : operands.get(1);
+      RexNode otherOp = operands.get(0).getKind() == SqlKind.LITERAL
+          ? operands.get(1) : operands.get(0);
+
+      if (otherOp instanceof RexInputRef && ((RexInputRef) otherOp).getIndex() == colIdx) {
+        switch (condition.getKind()) {
+        case EQUALS:
+          // expression of the form: x = a
+          return 1.0;
+        case SEARCH:
+          // expression of the form: Search(x, Sarg)
+          Comparable value = ((RexLiteral) literalOp).getValue();
+          if (value instanceof Sarg) {
+            Sarg sarg = (Sarg) value;
+            return sarg.numDistinctVals(literalOp.getType());
+          }
+          break;
+        default:
+          return null;
+        }
+      }
+    }
+    return null;
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
