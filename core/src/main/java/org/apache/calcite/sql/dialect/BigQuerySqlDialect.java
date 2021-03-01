@@ -645,7 +645,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame castTimeStampFrame = null;
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
+    if (isDateTimeCall(call) && (isIntervalYearAndMonth(call) || isIntervalHourAndSecond(call))) {
       castTimeStampFrame = writer.startFunCall("CAST");
     }
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
@@ -675,7 +675,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     writer.endFunCall(frame);
 
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
+    if (isDateTimeCall(call) && (isIntervalYearAndMonth(call) || isIntervalHourAndSecond(call))) {
       writer.sep("AS", true);
       writer.literal("TIMESTAMP");
       writer.endFunCall(castTimeStampFrame);
@@ -696,6 +696,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH;
   }
 
+  private boolean isIntervalHourAndSecond(SqlCall call) {
+    if (call.operand(1) instanceof SqlIntervalLiteral) {
+      return ((SqlIntervalLiteral) call.operand(1)).getTypeName().getFamily()
+              == SqlTypeFamily.INTERVAL_DAY_TIME;
+    }
+    SqlLiteral literal = getIntervalLiteral(call.operand(1));
+    return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME;
+  }
   @Override public void unparseSqlIntervalLiteral(
       SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     literal = updateSqlIntervalLiteral(literal);
