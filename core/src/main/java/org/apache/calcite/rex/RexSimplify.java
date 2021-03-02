@@ -2704,10 +2704,10 @@ public class RexSimplify {
               addFluent(newTerms, new RexSargBuilder(e2, rexBuilder, negate)));
       switch (negate ? kind.negate() : kind) {
       case IS_NULL:
-        ++b.nullAsTrueCount;
+        b.nullAs = b.nullAs.or(TRUE);
         return true;
       case IS_NOT_NULL:
-        ++b.nullAsFalseCount;
+        b.nullAs = b.nullAs.or(FALSE);
         b.addAll();
         return true;
       default:
@@ -2809,7 +2809,22 @@ public class RexSimplify {
    * traverses a list of OR or AND terms.
    *
    * <p>The {@link SargCollector#fix} method converts it to an immutable
-   * literal. */
+   * literal.
+   *
+   * <p>The {@link #nullAs} field will become {@link Sarg#nullAs}, as follows:
+   *
+   * <ul>
+   * <li>If there is at least one term that returns TRUE when the argument
+   * is NULL, then the overall value will be TRUE; failing that,
+   * <li>if there is at least one term that returns UNKNOWN when the argument
+   * is NULL, then the overall value will be UNKNOWN; failing that,
+   * <li>the value will be FALSE.
+   * </ul>
+   *
+   * <p>This is analogous to the behavior of OR in three-valued logic:
+   * {@code TRUE OR UNKNOWN OR FALSE} returns {@code TRUE};
+   * {@code UNKNOWN OR FALSE OR UNKNOWN} returns {@code UNKNOWN};
+   * {@code FALSE OR FALSE} returns {@code FALSE}. */
   @SuppressWarnings("BetaApi")
   private static class RexSargBuilder extends RexNode {
     final RexNode ref;
@@ -2817,9 +2832,7 @@ public class RexSimplify {
     final boolean negate;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
-    int nullAsUnknownCount;
-    int nullAsFalseCount;
-    int nullAsTrueCount;
+    RexUnknownAs nullAs = FALSE;
 
     RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate) {
       this.ref = requireNonNull(ref, "ref");
@@ -2829,7 +2842,7 @@ public class RexSimplify {
 
     @Override public String toString() {
       return "SEARCH(" + ref + ", " + (negate ? "NOT " : "") + rangeSet
-          + "; NULL AS " + deriveUnknownAs() + ")";
+          + "; NULL AS " + nullAs + ")";
     }
 
     <C extends Comparable<C>> Sarg<C> build() {
@@ -2838,46 +2851,12 @@ public class RexSimplify {
 
     @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
-      final RexUnknownAs unknownAs = deriveUnknownAs();
       final RangeSet<C> r = (RangeSet) this.rangeSet;
       if (negate) {
-        return Sarg.of(unknownAs.negate(), r.complement());
+        return Sarg.of(nullAs.negate(), r.complement());
       } else {
-        return Sarg.of(unknownAs, r);
+        return Sarg.of(nullAs, r);
       }
-    }
-
-    /** Derives the value that will be assigned to {@link Sarg#nullAs}.
-     *
-     * <p>Behavior is as follows:
-     *
-     * <ul>
-     * <li>If there is at least one term that returns TRUE when the argument
-     * is NULL, then the overall value will be TRUE; failing that,
-     * <li>if there is at least one term that returns UNKNOWN when the argument
-     * is NULL, then the overall value will be UNKNOWN; failing that,
-     * <li>the value will be FALSE.
-     * </ul>
-     *
-     * <p>Consider the behavior of an OR expression in terms of three-valued
-     * logic:
-     * {@code TRUE OR UNKNOWN OR FALSE} returns {@code TRUE};
-     * {@code UNKNOWN OR FALSE OR UNKNOWN} returns {@code UNKNOWN};
-     * {@code FALSE OR FALSE} returns {@code FALSE}.
-     * It will be evident that a Sarg that is the union of several terms (each
-     * of which can be seen as a Sarg with its own null behavior) will behave
-     * analogously. */
-    private RexUnknownAs deriveUnknownAs() {
-      if (nullAsTrueCount > 0) {
-        return TRUE;
-      }
-      if (nullAsUnknownCount > 0) {
-        return UNKNOWN;
-      }
-      if (nullAsFalseCount > 0) {
-        return FALSE;
-      }
-      return UNKNOWN;
     }
 
     @Override public RelDataType getType() {
@@ -2914,7 +2893,7 @@ public class RexSimplify {
     void addRange(Range<Comparable> range, RelDataType type) {
       types.add(type);
       rangeSet.add(range);
-      ++nullAsUnknownCount;
+      nullAs = nullAs.or(UNKNOWN);
     }
 
     @SuppressWarnings({"UnstableApiUsage", "rawtypes", "unchecked"})
@@ -2932,13 +2911,13 @@ public class RexSimplify {
       rangeSet.addAll(r);
       switch (nullAs) {
       case TRUE:
-        ++nullAsTrueCount;
+        this.nullAs = this.nullAs.or(TRUE);
         break;
       case FALSE:
-        ++nullAsFalseCount;
+        this.nullAs = this.nullAs.or(FALSE);
         break;
       case UNKNOWN:
-        ++nullAsUnknownCount;
+        this.nullAs = this.nullAs.or(UNKNOWN);
         break;
       }
     }
