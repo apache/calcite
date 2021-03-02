@@ -696,6 +696,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH;
   }
 
+  /**
+   * interval hour second  is represented as
+   * SqlTypeFamily.INTERVAL_DAY_TIME
+   */
   private boolean isIntervalHourAndSecond(SqlCall call) {
     if (call.operand(1) instanceof SqlIntervalLiteral) {
       return ((SqlIntervalLiteral) call.operand(1)).getTypeName().getFamily()
