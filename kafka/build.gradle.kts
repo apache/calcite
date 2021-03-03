@@ -17,9 +17,10 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.apache.kafka:kafka-clients")
+    api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.kafka:kafka-clients")
 
     testImplementation(project(":core", "testClasses"))
 }

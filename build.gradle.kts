@@ -54,6 +54,7 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.license-gather") apply false
     id("com.github.vlsi.stage-vote-release")
+    id("com.autonomousapps.dependency-analysis")
 }
 
 repositories {
@@ -230,6 +231,23 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
                 }
             }
         )
+    }
+}
+
+dependencyAnalysis {
+    // See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin
+    // Most of the time the recommendations are good, however, there are cases the suggestsions
+    // are off, so we don't include the dependency analysis to CI workflow yet
+    // ./gradlew buildHealth --no-parallel --no-daemon
+    issues {
+        all { // all projects
+            onAny {
+                severity("fail")
+            }
+            onRedundantPlugins {
+                severity("ignore")
+            }
+        }
     }
 }
 

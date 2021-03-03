@@ -25,16 +25,17 @@ dependencies {
     api(project(":linq4j"))
 
     api("com.fasterxml.jackson.core:jackson-annotations")
+    api("com.fasterxml.jackson.core:jackson-core")
+    api("com.fasterxml.jackson.core:jackson-databind")
+    api("org.elasticsearch.client:elasticsearch-rest-client")
+    api("org.slf4j:slf4j-api")
 
-    implementation("com.fasterxml.jackson.core:jackson-core")
-    implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
+    implementation("org.apache.httpcomponents:httpasyncclient")
     implementation("org.apache.httpcomponents:httpclient")
     implementation("org.apache.httpcomponents:httpcore")
     implementation("org.checkerframework:checker-qual")
-    implementation("org.elasticsearch.client:elasticsearch-rest-client")
-    implementation("org.slf4j:slf4j-api")
 
     // https://github.com/elastic/elasticsearch/issues/49218
     if (project.props.bool("elasticStrictAsm", default = true)) {

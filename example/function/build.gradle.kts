@@ -17,6 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava") {
         because("""ForbiddenApis' signatures.txt contains com.google.common.base.Precondition

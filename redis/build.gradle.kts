@@ -17,17 +17,15 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("redis.clients:jedis")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("com.github.kstyrc:embedded-redis")
     implementation("com.google.guava:guava")
-    implementation("joda-time:joda-time")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.apache.commons:commons-pool2")
     implementation("org.slf4j:slf4j-api")
-    implementation("redis.clients:jedis")
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("com.github.kstyrc:embedded-redis")

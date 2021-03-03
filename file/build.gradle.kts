@@ -17,6 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
     implementation("com.joestelmach:natty")
@@ -25,6 +26,8 @@ dependencies {
     implementation("commons-io:commons-io")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.jsoup:jsoup")
+    implementation("com.fasterxml.jackson.core:jackson-core")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
 
     testImplementation(project(":core", "testClasses"))
 }

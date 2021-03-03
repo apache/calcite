@@ -18,10 +18,11 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
 
-    implementation("com.datastax.cassandra:cassandra-driver-core")
-    implementation("com.google.guava:guava")
+    api("com.datastax.cassandra:cassandra-driver-core")
+    api("com.google.guava:guava")
+    api("org.slf4j:slf4j-api")
+
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("org.apache.cassandra:cassandra-all") {

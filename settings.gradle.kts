@@ -19,6 +19,7 @@ pluginManagement {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
+        idv("com.autonomousapps.dependency-analysis")
         idv("org.checkerframework")
         idv("com.github.autostyle")
         idv("com.github.burrunan.s3-build-cache")

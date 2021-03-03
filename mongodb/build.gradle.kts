@@ -17,11 +17,11 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("com.google.guava:guava")
+    api("org.slf4j:slf4j-api")
 
-    implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.mongodb:mongo-java-driver")
-    implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("de.bwaldvogel:mongo-java-server-core")

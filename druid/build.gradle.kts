@@ -17,15 +17,15 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("com.fasterxml.jackson.core:jackson-core")
+    api("joda-time:joda-time")
+    api("org.apache.calcite.avatica:avatica-core")
+    api("org.checkerframework:checker-qual")
+    api("org.slf4j:slf4j-api")
 
-    implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
-    implementation("joda-time:joda-time")
-    implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
-    implementation("org.checkerframework:checker-qual")
-    implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("org.mockito:mockito-core")
