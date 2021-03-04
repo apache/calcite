@@ -835,6 +835,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         unparseFormatCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "PARSE_TIMESTAMP":
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
       break;
