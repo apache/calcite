@@ -829,12 +829,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
-          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     case "TO_DATE":
       SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          call.operand(1), call.operand(0));
       final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
       unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
       writer.endFunCall(timestampSecond);
@@ -847,7 +847,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         break;
       }
       SqlCall parseTimestampCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          call.operand(1), call.operand(0));
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     case "INSTR":
@@ -931,7 +931,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseFormatCall(SqlWriter writer,
                                  SqlCall call, int leftPrec, int rightPrec) {
     SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-        creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+        createDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
@@ -1083,7 +1083,7 @@ public class BigQuerySqlDialect extends SqlDialect {
             : operatorName;
   }
 
-  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
