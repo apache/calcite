@@ -57,6 +57,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -4129,25 +4130,62 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
-  @Test void testJoinExpandAndDecorrelation() {
-    String sql = ""
-        + "SELECT emp.deptno, emp.sal\n"
-        + "FROM dept\n"
-        + "JOIN emp ON emp.deptno = dept.deptno AND emp.sal < (\n"
-        + "  SELECT AVG(emp.sal)\n"
-        + "  FROM emp\n"
-        + "  WHERE  emp.deptno = dept.deptno\n"
-        + ")";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(true)
-            .withDecorrelationEnabled(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(false)
-            .withDecorrelationEnabled(false))
-        .convertsTo("${plan_not_extended}");
+  @Test void testJoinDecorrelationWithCorrelatedVariablesFromBothSideOfTheJoin() {
+    try {
+      String sql = "\n"
+          + "SELECT outerEmp.deptno, outerEmp.sal\n"
+          + "FROM dept\n"
+          + "LEFT JOIN emp outerEmp ON outerEmp.sal < (\n"
+          + "  SELECT AVG(avg_emp.sal)\n"
+          + "  FROM emp avg_emp\n"
+          + "  WHERE avg_emp.deptno = dept.deptno\n"
+          + "    AND avg_emp.deptno = outerEmp.deptno\n"
+          + ")\n";
+      sql(sql).convertsTo("${plan}");
+    } catch (AssertionError assertionError) {
+      assertThat(
+          assertionError.getMessage(),
+          CoreMatchers.containsString(
+              "Correlated sub-queries in ON clauses are not supported"));
+    }
+  }
+
+  @Test void testJoinDecorrelationWithCorrelatedVariablesFromTheRight() {
+    try {
+      String sql = "\n"
+          + "SELECT outerEmp.deptno, outerEmp.sal\n"
+          + "FROM dept\n"
+          + "LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND outerEmp.sal < (\n"
+          + "  SELECT AVG(avg_emp.sal)\n"
+          + "  FROM emp avg_emp\n"
+          + "  WHERE avg_emp.deptno = outerEmp.deptno\n"
+          + ")\n";
+      sql(sql).convertsTo("${plan}");
+    } catch (AssertionError exception) {
+      assertThat(
+          exception.getMessage(),
+          CoreMatchers.containsString(
+              "Correlated sub-queries in ON clauses are not supported"));
+    }
+  }
+
+  @Test void testJoinDecorrelationWithCorrelatedVariablesFromTheLeft() {
+    try {
+      String sql = "\n"
+          + "SELECT outerEmp.deptno, outerEmp.sal\n"
+          + "FROM dept\n"
+          + "LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND outerEmp.sal < (\n"
+          + "  SELECT AVG(avg_emp.sal)\n"
+          + "  FROM emp avg_emp\n"
+          + "  WHERE avg_emp.deptno = dept.deptno\n"
+          + ")\n";
+      sql(sql).convertsTo("${plan}");
+    } catch (AssertionError exception) {
+      assertThat(
+          exception.getMessage(),
+          CoreMatchers.containsString(
+              "Correlated sub-queries in ON clauses are not supported"));
+    }
   }
 
   @Test void testImplicitJoinExpandAndDecorrelation() {
@@ -4159,16 +4197,44 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  FROM emp\n"
         + "  WHERE  emp.deptno = dept.deptno\n"
         + ")";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withDecorrelationEnabled(true)
-            .withExpand(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withDecorrelationEnabled(false)
-            .withExpand(false))
-        .convertsTo("${plan_not_extended}");
+    sql(sql).convertsTo("${plan}");
+  }
+
+  @Test void testJoinSubqueryWithKeyColumnOnTheRight() {
+    String sql = "\n"
+        + "SELECT outerEmp.deptno, outerEmp.sal\n"
+        + "FROM dept\n"
+        + "LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND outerEmp.sal IN (\n"
+        + "  SELECT emp_in.sal\n"
+        + "  FROM emp emp_in)\n";
+    sql(sql).convertsTo("${plan}");
+  }
+
+  @Test void testJoinSubqueryWithKeyColumnOnTheLeft() {
+    String sql = "\n"
+        + "SELECT outerEmp.deptno, outerEmp.sal\n"
+        + "FROM dept\n"
+        + "LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND dept.deptno IN (\n"
+        + "  SELECT emp_in.deptno\n"
+        + "  FROM emp emp_in)\n";
+    sql(sql).convertsTo("${plan}");
+  }
+
+  @Test void testJoinExpandNestedQuery() {
+    String sql = "\n"
+        + "SELECT emp.deptno, emp.sal\n"
+        + "FROM dept\n"
+        + "INNER JOIN emp ON emp.deptno = dept.deptno\n"
+        + "  AND emp.sal < (\n"
+        + "    SELECT AVG(avg_emp_sal.sal)\n"
+        + "    FROM emp avg_emp_sal)\n"
+        + "  AND emp.sal >= (\n"
+        + "    SELECT MIN(sal) * 2\n"
+        + "    FROM emp)\n"
+        + "  AND emp.sal > (\n"
+        + "    SELECT AVG(avg_emp_sal.sal) / 2\n"
+        + "    FROM emp avg_emp_sal)\n";
+    sql(sql).convertsTo("${plan}");
   }
 
   /**

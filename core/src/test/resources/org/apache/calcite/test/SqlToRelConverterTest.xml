@@ -7336,45 +7336,8 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJoinExpandAndDecorrelation">
-        <Resource name="plan_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $0))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
-      LogicalJoin(condition=[=($0, $9)], joinType=[left])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-          LogicalProject(DEPTNO=[$7], SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="plan_not_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
-LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
-  LogicalProject(SAL=[$5])
-    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="sql">
-            <![CDATA[SELECT emp.deptno, emp.sal
-FROM dept
-JOIN emp ON emp.deptno = dept.deptno AND emp.sal < (
-  SELECT AVG(emp.sal)
-  FROM emp
-  WHERE  emp.deptno = dept.deptno
-)]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testImplicitJoinExpandAndDecorrelation">
-        <Resource name="plan_extended">
+        <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
   LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], DEPTNO1=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
@@ -7387,20 +7350,6 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
-        <Resource name="plan_not_extended">
-            <![CDATA[
-LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalFilter(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
-LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
-  LogicalProject(SAL=[$5])
-    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], variablesSet=[[$cor0]])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
         <Resource name="sql">
             <![CDATA[SELECT emp.deptno, emp.sal
 FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
@@ -7408,6 +7357,92 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
   FROM emp
   WHERE  emp.deptno = dept.deptno
 )]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinExpandNestedQuery">
+        <Resource name="sql">
+            <![CDATA[
+SELECT emp.deptno, emp.sal
+FROM dept
+INNER JOIN emp ON emp.deptno = dept.deptno
+  AND emp.sal < (
+    SELECT AVG(avg_emp_sal.sal)
+    FROM emp avg_emp_sal)
+  AND emp.sal >= (
+    SELECT MIN(sal) * 2
+    FROM emp)
+  AND emp.sal > (
+    SELECT AVG(avg_emp_sal.sal) / 2
+    FROM emp avg_emp_sal)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$9], SAL=[$7])
+  LogicalJoin(condition=[AND(=($9, $0), <($7, $11), >=($7, $12), >($7, $13))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
+            LogicalProject(SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EXPR$0=[*($0, 2)])
+          LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+            LogicalProject(SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[/($0, 2)])
+        LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinSubqueryWithKeyColumnOnTheRight">
+        <Resource name="sql">
+            <![CDATA[
+SELECT outerEmp.deptno, outerEmp.sal
+FROM dept
+LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND outerEmp.sal IN (
+  SELECT emp_in.sal
+  FROM emp emp_in)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$9], SAL=[$7])
+  LogicalJoin(condition=[AND(=($9, $0), =($7, $11))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinSubqueryWithKeyColumnOnTheLeft">
+        <Resource name="sql">
+            <![CDATA[
+SELECT outerEmp.deptno, outerEmp.sal
+FROM dept
+LEFT JOIN emp outerEmp ON outerEmp.deptno = dept.deptno AND dept.deptno IN (
+  SELECT emp_in.deptno
+  FROM emp emp_in)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$9], SAL=[$7])
+  LogicalJoin(condition=[AND(=($9, $0), =($0, $11))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
         </Resource>
     </TestCase>
     <TestCase name="testCompositeOfCountRange">
