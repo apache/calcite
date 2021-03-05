@@ -137,8 +137,8 @@ public abstract class TableModify extends SingleRel {
 //        requireNonNull(updateColumnList);
 //      }
 //      else {
-        Preconditions.checkArgument(updateColumnList == null);
- //     }
+//        Preconditions.checkArgument(updateColumnList == null);
+//      }
       Preconditions.checkArgument(sourceExpressionList == null);
     }
     RelOptSchema relOptSchema = table.getRelOptSchema();
