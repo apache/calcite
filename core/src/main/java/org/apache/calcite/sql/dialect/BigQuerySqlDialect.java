@@ -497,6 +497,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep("as " + operator.getAliasName());
       break;
     case PLUS:
+      //RAV-5569 is raised to handle intervals in plus and minus operations
       if (call.getOperator() == SqlLibraryOperators.TIMESTAMP_ADD
           && isIntervalHourAndSecond(call)) {
         unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
