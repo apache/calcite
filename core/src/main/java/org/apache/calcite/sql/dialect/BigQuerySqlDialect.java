@@ -118,6 +118,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
@@ -807,21 +808,33 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIMESTAMP":
-    case "FORMAT_TIME":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
-      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+      switch (call.operand(0).toString()) {
+      case "'W'":
+        TimeUnit dayOfMonth = TimeUnit.DAY;
+        unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
+        break;
+      case "'WW'":
+        TimeUnit dayOfYear = TimeUnit.DOY;
+        unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
+        break;
+      default:
+        unparseFormatCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case "PARSE_TIMESTAMP":
+    case "FORMAT_TIME":
+      unparseFormatCall(writer, call, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
-          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     case "TO_DATE":
       SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          call.operand(1), call.operand(0));
       final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
       unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
       writer.endFunCall(timestampSecond);
@@ -834,7 +847,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         break;
       }
       SqlCall parseTimestampCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-              creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          call.operand(1), call.operand(0));
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     case "INSTR":
@@ -913,6 +926,33 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseFormatCall(SqlWriter writer,
+                                 SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+        createDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+  }
+
+  /**
+   * Format_date function does not use format types of 'W' and 'WW', So to handle that
+   * we have to make a separate function that will use extract, divide, Ceil and Cast
+   * functions to make the same logic.
+   */
+  private void unparseDayWithFormat(SqlWriter writer, SqlCall call,
+                                    TimeUnit day, int leftPrec, int rightPrec) {
+    SqlNode extractNode = EXTRACT.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createSymbol(day, SqlParserPos.ZERO), call.operand(1));
+
+    SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, extractNode,
+            SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
+
+    SqlNode ceilNode = CEIL.createCall(SqlParserPos.ZERO, divideNode);
+
+    SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, ceilNode,
+            getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
+    castCall.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseMonthsBetween(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1043,7 +1083,7 @@ public class BigQuerySqlDialect extends SqlDialect {
             : operatorName;
   }
 
-  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
