@@ -29,6 +29,8 @@ import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * An operator describing a query. (Not a query itself.)
  *
@@ -68,7 +70,7 @@ public class SqlSelectOperator extends SqlOperator {
     assert functionQualifier == null;
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
-        (SqlNodeList) operands[1],
+        requireNonNull((SqlNodeList) operands[1], "selectList"),
         operands[2],
         operands[3],
         (SqlNodeList) operands[4],
@@ -83,22 +85,9 @@ public class SqlSelectOperator extends SqlOperator {
   /**
    * Creates a call to the <code>SELECT</code> operator.
    *
-   * @param keywordList List of keywords such DISTINCT and ALL, or null
-   * @param selectList  The SELECT clause, or null if empty
-   * @param fromClause  The FROM clause
-   * @param whereClause The WHERE clause, or null if not present
-   * @param groupBy     The GROUP BY clause, or null if not present
-   * @param having      The HAVING clause, or null if not present
-   * @param windowDecls The WINDOW clause, or null if not present
-   * @param orderBy     The ORDER BY clause, or null if not present
-   * @param offset      Expression for number of rows to discard before
-   *                    returning first row
-   * @param fetch       Expression for number of rows to fetch
-   * @param pos         The parser position, or
-   *                    {@link org.apache.calcite.sql.parser.SqlParserPos#ZERO}
-   *                    if not specified; must not be null.
-   * @return A {@link SqlSelect}, never null
+   * @deprecated Use {@link #createCall(SqlLiteral, SqlParserPos, SqlNode...)}.
    */
+  @Deprecated // to be removed before 2.0
   public SqlSelect createCall(
       SqlNodeList keywordList,
       SqlNodeList selectList,
@@ -161,10 +150,7 @@ public class SqlSelectOperator extends SqlOperator {
       keyword.unparse(writer, 0, 0);
     }
     writer.topN(select.fetch, select.offset);
-    final SqlNodeList selectClause =
-        select.selectList != null
-            ? select.selectList
-            : SqlNodeList.of(SqlIdentifier.star(SqlParserPos.ZERO));
+    final SqlNodeList selectClause = select.selectList;
     writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
         selectClause);
 

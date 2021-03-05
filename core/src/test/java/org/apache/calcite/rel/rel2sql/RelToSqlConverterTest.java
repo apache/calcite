@@ -5885,7 +5885,8 @@ class RelToSqlConverterTest {
           ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
-    Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
+    Sql optimize(final RuleSet ruleSet,
+        final @Nullable RelOptPlanner relOptPlanner) {
       final List<Function<RelNode, RelNode>> transforms =
           FlatLists.append(this.transforms, r -> {
             Program program = Programs.of(ruleSet);

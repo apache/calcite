@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -31,7 +32,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -259,7 +259,7 @@ public class RexImplicationCheckerTest {
     f.checkImplies(f.and(node3, node4), f.and(node5, node6));
   }
 
-  /** Similar to {@link MaterializationTest#testAlias()}:
+  /** Similar to {@link MaterializedViewSubstitutionVisitorTest#testAlias()}:
    * {@code x > 1 OR (y > 2 AND z > 4)}
    * implies
    * {@code (y > 3 AND z > 5)}. */
@@ -533,8 +533,7 @@ public class RexImplicationCheckerTest {
       executor = Frameworks.withPrepare(
           (cluster, relOptSchema, rootSchema, statement) ->
               new RexExecutorImpl(
-                  Schemas.createDataContext(statement.getConnection(),
-                      rootSchema)));
+                  DataContexts.of(statement.getConnection(), rootSchema)));
       simplify =
           new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
               .withParanoid(true);

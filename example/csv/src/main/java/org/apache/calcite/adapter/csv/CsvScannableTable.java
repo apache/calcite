@@ -33,8 +33,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Table based on a CSV file.
  *
@@ -53,7 +51,7 @@ public class CsvScannableTable extends CsvTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);

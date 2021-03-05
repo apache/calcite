@@ -1200,7 +1200,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /** Returns whether {@code set1} is less popular than {@code set2}
    * (or smaller, or younger). If so, it will be more efficient to merge set1
    * into set2 than set2 into set1. */
-  private boolean isSmaller(RelSet set1, RelSet set2) {
+  private static boolean isSmaller(RelSet set1, RelSet set2) {
     if (set1.parents.size() != set2.parents.size()) {
       return set1.parents.size() < set2.parents.size(); // true if set1 is less popular than set2
     }

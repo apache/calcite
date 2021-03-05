@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -32,7 +33,6 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -136,8 +136,7 @@ public abstract class AbstractMaterializedViewTest {
   private TestConfig build(Sql sql) {
     assert sql != null;
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-      cluster.getPlanner().setExecutor(
-          new RexExecutorImpl(Schemas.createDataContext(null, null)));
+      cluster.getPlanner().setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
       try {
         final SchemaPlus defaultSchema;
         if (sql.getDefaultSchemaSpec() == null) {

@@ -318,12 +318,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final Expression startUnchecked = builder4.append("start",
           translateBound(translator, i_, row_, minX, maxX, rows_,
-              group, true,
-              inputPhysType, comparator_, keySelector, keyComparator));
+              group, true, inputPhysType, keySelector, keyComparator));
       final Expression endUnchecked = builder4.append("end",
           translateBound(translator, i_, row_, minX, maxX, rows_,
-              group, false,
-              inputPhysType, comparator_, keySelector, keyComparator));
+              group, false, inputPhysType, keySelector, keyComparator));
 
       final Expression startX;
       final Expression endX;
@@ -919,12 +917,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   private static Expression translateBound(RexToLixTranslator translator,
-          ParameterExpression i_, Expression row_, Expression min_,
-          Expression max_, Expression rows_, Group group,
-          boolean lower,
-          PhysType physType,
-          @SuppressWarnings("unused") Expression rowComparator, // TODO: remove or use
-          @Nullable Expression keySelector, @Nullable Expression keyComparator) {
+      ParameterExpression i_, Expression row_, Expression min_, Expression max_,
+      Expression rows_, Group group, boolean lower, PhysType physType,
+      @Nullable Expression keySelector, @Nullable Expression keyComparator) {
     RexWindowBound bound = lower ? group.lowerBound : group.upperBound;
     if (bound.isUnbounded()) {
       return bound.isPreceding() ? min_ : max_;

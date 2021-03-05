@@ -39,8 +39,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Table function that executes the OS "vmstat" command
  * to share memory statistics.
@@ -52,7 +50,7 @@ public class VmstatTableFunction {
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        JavaTypeFactory typeFactory = root.getTypeFactory();
         final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());

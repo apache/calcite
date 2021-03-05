@@ -71,7 +71,7 @@ class InterpreterTest {
       return rootSchema;
     }
 
-    public @Nullable JavaTypeFactory getTypeFactory() {
+    public JavaTypeFactory getTypeFactory() {
       return (JavaTypeFactory) planner.getTypeFactory();
     }
 

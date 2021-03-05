@@ -1185,9 +1185,7 @@ public class SqlValidatorUtil {
         typeFactory,
         SqlValidator.Config.DEFAULT);
     final SqlSelect select = (SqlSelect) validator.validate(select0);
-    SqlNodeList selectList = requireNonNull(
-        select.getSelectList(),
-        () -> "selectList in " + select);
+    SqlNodeList selectList = select.getSelectList();
     assert selectList.size() == 1
         : "Expression " + expr + " should be atom expression";
     final SqlNode node = selectList.get(0);

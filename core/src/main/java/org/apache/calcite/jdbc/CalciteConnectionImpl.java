@@ -17,6 +17,7 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -71,7 +72,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -323,7 +323,7 @@ abstract class CalciteConnectionImpl
   public DataContext createDataContext(Map<String, Object> parameterValues,
       @Nullable CalciteSchema rootSchema) {
     if (config().spark()) {
-      return new SlimDataContext();
+      return DataContexts.EMPTY;
     }
     return new DataContextImpl(this, parameterValues, rootSchema);
   }
@@ -569,26 +569,6 @@ abstract class CalciteConnectionImpl
     @Override public CalcitePrepare.SparkHandler spark() {
       final boolean enable = config().spark();
       return CalcitePrepare.Dummy.getSparkHandler(enable);
-    }
-  }
-
-  /** Implementation of {@link DataContext} that has few variables and is
-   * {@link Serializable}. For Spark. */
-  private static class SlimDataContext implements DataContext, Serializable {
-    @Override public @Nullable SchemaPlus getRootSchema() {
-      return null;
-    }
-
-    @Override public @Nullable JavaTypeFactory getTypeFactory() {
-      return null;
-    }
-
-    @Override public @Nullable QueryProvider getQueryProvider() {
-      return null;
-    }
-
-    @Override public @Nullable Object get(String name) {
-      return null;
     }
   }
 

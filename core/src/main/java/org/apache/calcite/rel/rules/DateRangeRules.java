@@ -396,7 +396,7 @@ public abstract class DateRangeRules {
       if (exprs.isEmpty()) {
         return ImmutableList.of(); // a bit more efficient
       }
-      switch (requireNonNull(calls.peek(), "calls.peek()").getKind()) {
+      switch (calls.getFirst().getKind()) {
       case AND:
         return super.visitList(exprs, update);
       default:

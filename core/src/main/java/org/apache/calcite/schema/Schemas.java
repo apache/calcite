@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -185,7 +186,7 @@ public final class Schemas {
 
   public static DataContext createDataContext(
       Connection connection, @Nullable SchemaPlus rootSchema) {
-    return new DummyDataContext((CalciteConnection) connection, rootSchema);
+    return DataContexts.of((CalciteConnection) connection, rootSchema);
   }
 
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
@@ -220,8 +221,7 @@ public final class Schemas {
     QueryableTable table = (QueryableTable) requireNonNull(
         schema.getTable(tableName),
         () -> "table " + tableName + " is not found in " + schema);
-    QueryProvider queryProvider = requireNonNull(root.getQueryProvider(),
-        "root.getQueryProvider()");
+    QueryProvider queryProvider = root.getQueryProvider();
     return table.asQueryable(queryProvider, schema, tableName);
   }
 
@@ -245,7 +245,7 @@ public final class Schemas {
    * representing each row as an object array. */
   public static Enumerable<@Nullable Object[]> enumerable(
       final ProjectableFilterableTable table, final DataContext root) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     return table.scan(root, new ArrayList<>(),
         identity(table.getRowType(typeFactory).getFieldCount()));
   }
@@ -374,7 +374,7 @@ public final class Schemas {
       final CalciteConnectionConfig config =
           mutate(connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
-          createDataContext(connection, schema.root().plus()), schema,
+          DataContexts.of(connection, schema.root().plus()), schema,
           schemaPath, objectPath);
     }
   }
@@ -564,35 +564,6 @@ public final class Schemas {
       list.add(Pair.of(s.getName(), s));
     }
     return new PathImpl(ImmutableList.copyOf(Lists.reverse(list)));
-  }
-
-  /** Dummy data context that has no variables. */
-  private static class DummyDataContext implements DataContext {
-    private final CalciteConnection connection;
-    private final @Nullable SchemaPlus rootSchema;
-    private final ImmutableMap<String, Object> map;
-
-    DummyDataContext(CalciteConnection connection, @Nullable SchemaPlus rootSchema) {
-      this.connection = connection;
-      this.rootSchema = rootSchema;
-      this.map = ImmutableMap.of();
-    }
-
-    @Override public @Nullable SchemaPlus getRootSchema() {
-      return rootSchema;
-    }
-
-    @Override public @Nullable JavaTypeFactory getTypeFactory() {
-      return connection.getTypeFactory();
-    }
-
-    @Override public QueryProvider getQueryProvider() {
-      return connection;
-    }
-
-    @Override public @Nullable Object get(String name) {
-      return map.get(name);
-    }
   }
 
   /** Implementation of {@link Path}. */

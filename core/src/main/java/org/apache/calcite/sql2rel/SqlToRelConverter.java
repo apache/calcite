@@ -1479,7 +1479,7 @@ public class SqlToRelConverter {
     // Check whether query is guaranteed to produce a single value.
     if (query instanceof SqlSelect) {
       SqlSelect select = (SqlSelect) query;
-      SqlNodeList selectList = requireNonNull(select.getSelectList(), "selectList");
+      SqlNodeList selectList = select.getSelectList();
       SqlNodeList groupList = select.getGroup();
 
       if ((selectList.size() == 1)
@@ -3134,7 +3134,6 @@ public class SqlToRelConverter {
     assert bb.root != null : "precondition: child != null";
     SqlNodeList groupList = select.getGroup();
     SqlNodeList selectList = select.getSelectList();
-    assert selectList != null : "selectList must not be null for " + select;
     SqlNode having = select.getHaving();
 
     final AggConverter aggConverter = new AggConverter(bb, select);
@@ -4300,9 +4299,7 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlSelect select,
       List<SqlNode> orderList) {
-    SqlNodeList selectList = requireNonNull(
-        select.getSelectList(),
-        () -> "null selectList for " + select);
+    SqlNodeList selectList = select.getSelectList();
     selectList = validator().expandStar(selectList, select, false);
 
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
@@ -5385,9 +5382,7 @@ public class SqlToRelConverter {
 
       // Collect all expressions used in the select list so that aggregate
       // calls can be named correctly.
-      final SqlNodeList selectList = requireNonNull(
-          select.getSelectList(),
-          () -> "selectList must not be null in " + select);
+      final SqlNodeList selectList = select.getSelectList();
       for (int i = 0; i < selectList.size(); i++) {
         SqlNode selectItem = selectList.get(i);
         String name = null;

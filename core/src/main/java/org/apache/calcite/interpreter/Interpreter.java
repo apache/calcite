@@ -17,6 +17,7 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -67,8 +68,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -467,10 +466,9 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       if (!found) {
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
-          // TODO: analyze if null is permissible argument for dataContext
           node = interpretableRel.implement(
               new InterpretableRel.InterpreterImplementor(this, null,
-                  castNonNull(null)));
+                  DataContexts.EMPTY));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
@@ -505,8 +503,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     }
 
     private JavaTypeFactory getTypeFactory() {
-      return requireNonNull(interpreter.dataContext.getTypeFactory(),
-          () -> "no typeFactory in dataContext");
+      return interpreter.dataContext.getTypeFactory();
     }
 
     @Override public RelDataType combinedRowType(List<RelNode> inputs) {

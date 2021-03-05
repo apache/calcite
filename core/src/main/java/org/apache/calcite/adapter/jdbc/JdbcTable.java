@@ -180,7 +180,7 @@ public class JdbcTable extends AbstractQueryableTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
         JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
