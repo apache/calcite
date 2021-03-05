@@ -4883,12 +4883,10 @@ public class RelToSqlConverterTest {
     String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
         + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
         + "FROM \"employee\"";
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(TIMESTAMP_ADD("
-        + "TIMESTAMP_ADD(CURRENT_TIMESTAMP, INTERVAL 6 HOUR), "
-        + "INTERVAL 10 MINUTE), INTERVAL 30 SECOND), "
-        + "TIMESTAMP_SUB(TIMESTAMP_SUB(TIMESTAMP_SUB(CURRENT_TIMESTAMP, "
-        + "INTERVAL 6 HOUR), INTERVAL 10 MINUTE), INTERVAL 30 SECOND)\n"
-        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CURRENT_TIMESTAMP,"
+            + " INTERVAL 22230 SECOND), TIMESTAMP_SUB"
+            + "(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND)\n"
+            + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery);
