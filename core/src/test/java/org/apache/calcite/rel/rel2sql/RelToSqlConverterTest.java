@@ -5313,7 +5313,6 @@ public class RelToSqlConverterTest {
     sql(query)
             .withBigQuery()
             .ok(expectedBQ);
-
   }
 
   @Test
