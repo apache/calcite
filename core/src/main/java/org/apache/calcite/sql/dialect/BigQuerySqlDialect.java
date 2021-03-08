@@ -497,15 +497,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep("as " + operator.getAliasName());
       break;
     case PLUS:
-      BigQueryDateTimestampInterval plusInterval = new BigQueryDateTimestampInterval();
-      if (!plusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "")) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+      //RAV-5569 is raised to handle intervals in plus and minus operations
+      if (call.getOperator() == SqlLibraryOperators.TIMESTAMP_ADD
+          && isIntervalHourAndSecond(call)) {
+        unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
+      } else {
+        BigQueryDateTimestampInterval plusInterval = new BigQueryDateTimestampInterval();
+        if (!plusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "")) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
       }
       break;
     case MINUS:
-      BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
-      if (!minusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "-")) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+      if (call.getOperator() == SqlLibraryOperators.TIMESTAMP_SUB
+              && isIntervalHourAndSecond(call)) {
+        unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
+      } else {
+        BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
+        if (!minusInterval.handlePlusMinus(writer, call, leftPrec, rightPrec, "-")) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
       }
       break;
     case EXTRACT:
@@ -1156,6 +1167,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
     }
+  }
+
+  private boolean isIntervalHourAndSecond(SqlCall call) {
+    if (call.operand(1) instanceof SqlIntervalLiteral) {
+      return ((SqlIntervalLiteral) call.operand(1)).getTypeName()
+              == SqlTypeName.INTERVAL_HOUR_SECOND;
+    }
+    return false;
   }
 }
 
