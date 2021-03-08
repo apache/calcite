@@ -129,10 +129,11 @@ public abstract class TableModify extends SingleRel {
       Preconditions.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {
-      /**
-       * Commenting this part as merge can also have the null updateColumnlist
+      /***
+       * Commenting this part as merge can also have the null updateColumnList
        * in case if the merge statement has no matching condition
        */
+
 //      if (operation == Operation.MERGE) {
 //        requireNonNull(updateColumnList);
 //      }

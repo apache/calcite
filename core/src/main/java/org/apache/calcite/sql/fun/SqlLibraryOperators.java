@@ -37,7 +37,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
@@ -124,10 +123,14 @@ public abstract class SqlLibraryOperators {
                 }
               }),
           SqlFunctionCategory.SYSTEM) {
-        @Override public boolean validRexOperands(int count, Litmus litmus) {
-          // IF is translated to RexNode by expanding to CASE.
-          return litmus.fail("not a rex operator");
-        }
+        /***
+         * Commenting this part as we create RexCall using this function
+         */
+
+//        @Override public boolean validRexOperands(int count, Litmus litmus) {
+//          // IF is translated to RexNode by expanding to CASE.
+//          return litmus.fail("not a rex operator");
+//        }
       };
 
   /** Infers the return type of {@code IF(b, x, y)},
