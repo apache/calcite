@@ -277,7 +277,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
-      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL),
+      OperandTypes.DATETIME,
       SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -292,7 +292,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
-      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL),
+      OperandTypes.DATETIME,
       SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
