@@ -134,9 +134,11 @@ public class SqlSnapshot extends SqlCall {
       if (tableRef instanceof SqlBasicCall
           && ((SqlBasicCall) tableRef).getOperator() instanceof SqlAsOperator) {
         SqlBasicCall basicCall = (SqlBasicCall) tableRef;
-        SqlAsOperator operator = (SqlAsOperator) ((SqlBasicCall) tableRef).getOperator();
-        operator.unparse(
-            writer, basicCall, 0, 0, ignore -> writeKeywordAndPeriod(writer, snapshot));
+        basicCall.operand(0).unparse(writer, 0, 0);
+        writer.setNeedWhitespace(true);
+        writeKeywordAndPeriod(writer, snapshot);
+        writer.keyword("AS");
+        basicCall.operand(1).unparse(writer, 0, 0);
       } else {
         tableRef.unparse(writer, 0, 0);
         writeKeywordAndPeriod(writer, snapshot);
