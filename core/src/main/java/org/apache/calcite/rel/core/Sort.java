@@ -29,6 +29,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
@@ -124,11 +126,20 @@ public abstract class Sort extends SingleRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
+    final double rowCount = mq.getRowCount(this);
+    double fetchValue = getValue(fetch, rowCount);
+    if (fetchValue <= 0) {
+      return planner.getCostFactory().makeCost(rowCount, 0, 0);
+    }
+    double inCount = mq.getRowCount(input);
     // Higher cost if rows are wider discourages pushing a project through a
     // sort.
-    final double rowCount = mq.getRowCount(this);
     final double bytesPerRow = getRowType().getFieldCount() * 4;
-    final double cpu = Util.nLogN(rowCount) * bytesPerRow;
+    double offsetValue = getValue(offset, 0);
+    assert offsetValue >= 0 : "offset should not be negative:" + offsetValue;
+    double toSort = Math.min(inCount, offsetValue + fetchValue);
+    final double cpu = collation.getFieldCollations().isEmpty() ? toSort * bytesPerRow
+        : Util.nLogM(inCount, toSort) * bytesPerRow;
     return planner.getCostFactory().makeCost(rowCount, cpu, 0);
   }
 
@@ -192,5 +203,13 @@ public abstract class Sort extends SingleRel {
     pw.itemIf("offset", offset, offset != null);
     pw.itemIf("fetch", fetch, fetch != null);
     return pw;
+  }
+
+  private static double getValue(@Nullable RexNode r, double defaultValue) {
+    if (r == null || r instanceof RexDynamicParam) {
+      return defaultValue;
+    }
+    Comparable<?> value = RexLiteral.value(r);
+    return value instanceof Number ? ((Number) value).doubleValue() : defaultValue;
   }
 }
