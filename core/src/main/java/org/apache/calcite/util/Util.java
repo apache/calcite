@@ -370,6 +370,15 @@ public class Util {
   }
 
   /**
+   * Computes <code>nlog(m)</code> using the natural logarithm (or <code>
+   * n</code> if <code>m &lt; {@link Math#E}</code>, so the result is never
+   * negative.
+   */
+  public static double nLogM(double n, double m) {
+    return (m < Math.E) ? n : (n * Math.log(m));
+  }
+
+  /**
    * Prints an object using reflection. We can handle <code>null</code>;
    * arrays of objects and primitive values; for regular objects, we print all
    * public fields.
