@@ -991,10 +991,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         subset.bestCost = cost;
         subset.best = relNode;
         // since best was changed, cached metadata for this subset should be removed
-        mq.clearCache(subset);
+        mq.cache.clear(subset);
 
         for (RelNode parent : subset.getParents()) {
-          mq.clearCache(parent);
+          mq.cache.clear(parent);
           RelOptCost newCost = getCostOrInfinite(parent, mq);
           RelOptCost existingCost = propagateRels.get(parent);
           if (existingCost == null || newCost.isLt(existingCost)) {
