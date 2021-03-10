@@ -50,7 +50,6 @@ import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.stream.LogicalChi;
 import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -268,7 +267,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       }
       safeArgList(buff, method.e)
           .append(");\n")
-          .append("    final Object v = mq.map.get(r, key);\n")
+          .append("    final Object v = mq.getFromCache(r, key);\n")
           .append("    if (v != null) {\n")
           .append("      if (v == ")
           .append(NullSentinel.class.getName())
@@ -286,7 +285,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(method.e.getReturnType().getName())
           .append(") v;\n")
           .append("    }\n")
-          .append("    mq.map.put(r, key,")
+          .append("    mq.putIntoCache(r, key,")
           .append(NullSentinel.class.getName())
           .append(".ACTIVE);\n")
           .append("    try {\n")
@@ -297,14 +296,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append("_(r, mq");
       argList(buff, method.e)
           .append(");\n")
-          .append("      mq.map.put(r, key, ")
+          .append("      mq.putIntoCache(r, key, ")
           .append(NullSentinel.class.getName())
           .append(".mask(x));\n")
           .append("      return x;\n")
           .append("    } catch (")
           .append(Exception.class.getName())
           .append(" e) {\n")
-          .append("      mq.map.row(r).clear();\n")
+          .append("      mq.clearCache(r);\n")
           .append("      throw e;\n")
           .append("    }\n")
           .append("  }\n")
@@ -461,10 +460,10 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return def.handlerClass.cast(o);
   }
 
-  synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
-      MetadataDef<M> def) {
+  static synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
+      RelMetadataProvider provider, MetadataDef<M> def) {
     try {
-      final Key key = new Key((MetadataDef) def, provider,
+      final Key key = new Key(def, provider,
           ImmutableList.copyOf(ALL_RELS));
       //noinspection unchecked
       return (H) HANDLERS.get(key);
@@ -473,13 +472,19 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
+  @Deprecated
   synchronized <M extends Metadata, H extends MetadataHandler<M>> H revise(
       Class<? extends RelNode> rClass, MetadataDef<M> def) {
+    return revise(provider, rClass, def);
+  }
+
+  static synchronized <M extends Metadata, H extends MetadataHandler<M>> H revise(
+      RelMetadataProvider provider, Class<? extends RelNode> rClass, MetadataDef<M> def) {
     if (ALL_RELS.add(rClass)) {
       HANDLERS.invalidateAll();
     }
     //noinspection unchecked
-    return (H) create(def);
+    return (H) create(provider, def);
   }
 
   /** Registers some classes. Does not flush the providers, but next time we
@@ -506,12 +511,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
 
   /** Exception that indicates there there should be a handler for
    * this class but there is not. The action is probably to
-   * re-generate the handler class. */
-  public static class NoHandler extends ControlFlowException {
-    public final Class<? extends RelNode> relClass;
+   * re-generate the handler class.
+   *
+   * Please use HandleProvider.NoHandler.*/
+  @Deprecated
+  public static class NoHandler extends HandleProvider.NoHandler {
 
     public NoHandler(Class<? extends RelNode> relClass) {
-      this.relClass = relClass;
+      super(relClass);
     }
   }
 

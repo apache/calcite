@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -67,7 +68,8 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.HandleProvider;
+import org.apache.calcite.rel.metadata.JaninoHandleProvider;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
@@ -107,6 +109,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -136,6 +139,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.within;
@@ -151,6 +155,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -924,9 +929,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
         rel.getCluster().getMetadataProvider();
     final RelOptPlanner planner = rel.getCluster().getPlanner();
     for (int i = 0; i < iterationCount; i++) {
-      RelMetadataQuery.THREAD_PROVIDERS.set(
-          JaninoRelMetadataProvider.of(
-              new CachingRelMetadataProvider(metadataProvider, planner)));
+      RelOptCluster cluster = rel.getCluster();
+      cluster.setMetadataProvider(
+          new CachingRelMetadataProvider(metadataProvider, planner));
+      cluster.invalidateMetadataQuery();
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
       assertThat(result, within(14d, 0.1d));
@@ -1504,6 +1510,72 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(buf.size(), equalTo(7));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(7));
+  }
+
+  @Test void testSupportLegacyCachingBehaviorViaMetadataQuery() {
+    final BiFunction<RelNode, List<?>, List<?>> toArgList = (relNode, list) ->
+        ImmutableList.builder().addAll(list)
+            .add(relNode.getCluster().getPlanner().getRelMetadataTimestamp(relNode))
+            .build();
+    RelMetadataQuery mq = new RelMetadataQuery() {
+      @Override public @Nullable Object removeFromCache(RelNode relNode, List<?> args) {
+        return super.removeFromCache(relNode, toArgList.apply(relNode, args));
+      }
+
+      @Override public @Nullable Object getFromCache(RelNode relNode, List<?> args) {
+        return super.getFromCache(relNode, toArgList.apply(relNode, args));
+      }
+
+      @Override public @Nullable Object putIntoCache(RelNode relNode,
+          List<?> args, Object value) {
+        return super.putIntoCache(relNode, toArgList.apply(relNode, args), value);
+      }
+    };
+
+    final List<String> buf = new ArrayList<>();
+    ColTypeImpl.THREAD_LIST.set(buf);
+
+    final String sql = "select deptno, count(*) from emp where deptno > 10 "
+        + "group by deptno having count(*) = 0";
+    final RelRoot root = tester
+        .withClusterFactory(cluster -> {
+          cluster.setMetadataQuerySupplier(() -> mq);
+          return cluster;
+        })
+        .convertSqlToRel(sql);
+    final RelNode rel = root.rel;
+    ColType.Handler colTypeHandler = JaninoHandleProvider.INSTANCE.revise(
+        ColTypeImpl.SOURCE,
+        RelNode.class,
+        ColType.DEF);
+    // Top node is a filter. Its metadata uses getColType(RelNode, int).
+    assertThat(rel, instanceOf(LogicalFilter.class));
+
+    // Next node is an aggregate. Its metadata uses
+    // getColType(LogicalAggregate, int).
+    final RelNode input = rel.getInput(0);
+    assertThat(input, instanceOf(LogicalAggregate.class));
+
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(1));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(1));
+    assertThat(colTypeHandler.getColType(input, mq, 1), equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(2));
+    assertThat(colTypeHandler.getColType(input, mq, 1), equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(2));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(2));
+
+    // With a different timestamp, a metadata item is re-computed on first call.
+    final RelOptPlanner planner = rel.getCluster().getPlanner();
+    long timestamp = planner.getRelMetadataTimestamp(rel);
+    assertThat(timestamp, equalTo(0L));
+    ((MockRelOptPlanner) planner).setRelMetadataTimestamp(timestamp + 1);
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(3));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(3));
   }
 
   @Test void testCustomProviderWithRelMetadataQuery() {
@@ -3142,6 +3214,76 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkNodeTypeCount(sql, expected);
   }
 
+  /**
+   * Custom rel node for testing.
+   */
+  static class CustomRel extends AbstractRelNode {
+    CustomRel(RelOptCluster cluster, RelTraitSet traits) {
+      super(cluster, traits);
+    }
+  }
+
+  /**
+   * Custom HandleProvider for testing.
+   */
+  static class CustomHandleProvider implements HandleProvider {
+    public static final List<Pair<String, String>>  REGENERATION_CAUSES = new ArrayList<>();
+
+    @Override public <H> H initialHandler(Class<H> handlerClass) {
+      return JaninoHandleProvider.INSTANCE.initialHandler(handlerClass);
+    }
+
+    @Override public <H extends MetadataHandler<M>, M extends Metadata> H revise(
+        RelMetadataProvider relMetadataProvider, Class<? extends RelNode> rClass,
+        MetadataDef<M> def) {
+      if (rClass == CustomRel.class) {
+        REGENERATION_CAUSES.add(
+            Pair.of(def.metadataClass.getSimpleName(), rClass.getSimpleName()));
+      }
+      return JaninoHandleProvider.INSTANCE.revise(relMetadataProvider, rClass, def);
+    }
+  }
+
+  /**
+   * Custom Metadata Query for using a different HandleProvider.
+   */
+  static class CustomMq extends RelMetadataQuery {
+    CustomMq(HandleProvider handleProvider) {
+      super(handleProvider);
+    }
+
+    CustomMq(RelMetadataQuery prototype) {
+      super(prototype);
+    }
+  }
+
+  @Test void testRegenerateHandler() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final CustomMq prototype = new CustomMq(new CustomHandleProvider());
+    final CustomMq mq = new CustomMq(prototype);
+
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(builder.call(NONDETERMINISTIC_OP))
+        .build();
+
+    Pair<String, String> cause = Pair.of("Size",
+        "CustomRel");
+
+    // get metadata for the first time to make sure handler is generated.
+    mq.getAverageRowSize(filter);
+    assertFalse(CustomHandleProvider.REGENERATION_CAUSES.contains(cause));
+
+    // get metadata for the second time, with a new node type,
+    // and make sure regeneration happens.
+    RelNode customRel = new CustomRel(filter.getCluster(), filter.getTraitSet());
+    mq.getAverageRowSize(customRel);
+
+    // make sure a regeneration log is produced
+    assertTrue(CustomHandleProvider.REGENERATION_CAUSES.contains(cause));
+  }
+
   private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
           "NDC",
           SqlKind.OTHER_FUNCTION,
@@ -3339,15 +3481,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     private ColType.Handler colTypeHandler;
 
     MyRelMetadataQuery() {
-      colTypeHandler = initialHandler(ColType.Handler.class);
+      colTypeHandler = JaninoHandleProvider.INSTANCE.initialHandler(ColType.Handler.class);
     }
 
     public String colType(RelNode rel, int column) {
       for (;;) {
         try {
           return colTypeHandler.getColType(rel, this, column);
-        } catch (JaninoRelMetadataProvider.NoHandler e) {
-          colTypeHandler = revise(e.relClass, ColType.DEF);
+        } catch (HandleProvider.NoHandler e) {
+          colTypeHandler = revise(e.relClass, ColType.DEF, rel.getCluster().getMetadataProvider());
         }
       }
     }
