@@ -7766,6 +7766,15 @@ public class SqlParserTest {
         SqlParserUtil.addCarets("abcdef", 1, 7, 1, 7));
   }
 
+  @Test void testSnapshotForSystemTimeWithAlias() {
+    sql("SELECT * FROM orders LEFT JOIN products FOR SYSTEM_TIME AS OF "
+        + "orders.proctime as products ON orders.product_id = products.pro_id")
+        .ok("SELECT *\n"
+            + "FROM `ORDERS`\n"
+            + "LEFT JOIN `PRODUCTS` FOR SYSTEM_TIME AS OF `ORDERS`.`PROCTIME` AS `PRODUCTS` ON (`ORDERS`"
+            + ".`PRODUCT_ID` = `PRODUCTS`.`PRO_ID`)");
+  }
+
   @Test protected void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
