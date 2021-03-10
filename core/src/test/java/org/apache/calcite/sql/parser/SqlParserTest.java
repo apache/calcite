@@ -18,6 +18,8 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
@@ -28,6 +30,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -7764,6 +7768,32 @@ public class SqlParserTest {
     assertEquals(
         "abcdef^",
         SqlParserUtil.addCarets("abcdef", 1, 7, 1, 7));
+  }
+
+  @Test void testSnapshot() {
+    SqlNode tableRef = new SqlBasicCall(
+        new SqlAsOperator(),
+        new SqlNode[]{
+            new SqlIdentifier("default_db.products", new SqlParserPos(8, 11)),
+            new SqlIdentifier("products1", new SqlParserPos(8, 11))
+        },
+        new SqlParserPos(8, 11)
+    );
+    SqlNode period = new SqlIdentifier("orders.proctime", new SqlParserPos(8, 42));
+    SqlSnapshot sqlSnapshot = new SqlSnapshot(new SqlParserPos(8, 11), tableRef, period);
+
+    SqlWriter sqlWriter = new SqlPrettyWriter();
+    sqlSnapshot.unparse(sqlWriter, 0, 0);
+
+    assertEquals(sqlWriter.toSqlString().getSql(), "\"default_db.products\" "
+        + "FOR SYSTEM_TIME AS OF \"orders.proctime\" AS \"products1\"");
+
+    sql("SELECT * FROM orders LEFT JOIN products FOR SYSTEM_TIME AS OF "
+        + "orders.proctime ON orders.product_id = products.pro_id")
+        .ok("SELECT *\n"
+            + "FROM `ORDERS`\n"
+            + "LEFT JOIN `PRODUCTS` FOR SYSTEM_TIME AS OF `ORDERS`.`PROCTIME` ON (`ORDERS`"
+            + ".`PRODUCT_ID` = `PRODUCTS`.`PRO_ID`)");
   }
 
   @Test protected void testMetadata() {

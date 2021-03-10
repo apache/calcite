@@ -38,7 +38,9 @@ public class SqlSnapshot extends SqlCall {
   private SqlNode tableRef;
   private SqlNode period;
 
-  /** Creates a SqlSnapshot. */
+  /**
+   * Creates a SqlSnapshot.
+   */
   public SqlSnapshot(SqlParserPos pos, SqlNode tableRef, SqlNode period) {
     super(pos);
     this.tableRef = Objects.requireNonNull(tableRef, "tableRef");
@@ -127,10 +129,23 @@ public class SqlSnapshot extends SqlCall {
         int leftPrec,
         int rightPrec) {
       final SqlSnapshot snapshot = (SqlSnapshot) call;
+      SqlNode tableRef = snapshot.tableRef;
 
-      snapshot.tableRef.unparse(writer, 0, 0);
-      writer.keyword("FOR SYSTEM_TIME AS OF");
-      snapshot.period.unparse(writer, 0, 0);
+      if (tableRef instanceof SqlBasicCall
+          && ((SqlBasicCall) tableRef).getOperator() instanceof SqlAsOperator) {
+        SqlBasicCall basicCall = (SqlBasicCall) tableRef;
+        SqlAsOperator operator = (SqlAsOperator) ((SqlBasicCall) tableRef).getOperator();
+        operator.unparse(
+            writer, basicCall, 0, 0, ignore -> writeKeywordAndPeriod(writer, snapshot));
+      } else {
+        tableRef.unparse(writer, 0, 0);
+        writeKeywordAndPeriod(writer, snapshot);
+      }
     }
+  }
+
+  private static void writeKeywordAndPeriod(SqlWriter writer, SqlSnapshot snapshot) {
+    writer.keyword("FOR SYSTEM_TIME AS OF");
+    snapshot.period.unparse(writer, 0, 0);
   }
 }

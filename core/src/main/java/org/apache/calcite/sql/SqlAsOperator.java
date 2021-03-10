@@ -31,6 +31,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -69,6 +70,15 @@ public class SqlAsOperator extends SqlSpecialOperator {
       SqlCall call,
       int leftPrec,
       int rightPrec) {
+    unparse(writer, call, leftPrec, rightPrec, null);
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec,
+      Consumer<Object> beforeWriteAlias) {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame =
         writer.startList(
@@ -76,6 +86,9 @@ public class SqlAsOperator extends SqlSpecialOperator {
     call.operand(0).unparse(writer, leftPrec, getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
+    if (beforeWriteAlias != null) {
+      beforeWriteAlias.accept(null);
+    }
     if (writer.getDialect().allowsAs()) {
       writer.sep("AS");
       writer.setNeedWhitespace(needsSpace);
