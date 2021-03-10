@@ -136,17 +136,17 @@ public class SqlSnapshot extends SqlCall {
         SqlBasicCall basicCall = (SqlBasicCall) tableRef;
         basicCall.operand(0).unparse(writer, 0, 0);
         writer.setNeedWhitespace(true);
-        writeKeywordAndPeriod(writer, snapshot);
+        writeForSystemTimeAsOf(writer, snapshot);
         writer.keyword("AS");
         basicCall.operand(1).unparse(writer, 0, 0);
       } else {
         tableRef.unparse(writer, 0, 0);
-        writeKeywordAndPeriod(writer, snapshot);
+        writeForSystemTimeAsOf(writer, snapshot);
       }
     }
   }
 
-  private static void writeKeywordAndPeriod(SqlWriter writer, SqlSnapshot snapshot) {
+  private static void writeForSystemTimeAsOf(SqlWriter writer, SqlSnapshot snapshot) {
     writer.keyword("FOR SYSTEM_TIME AS OF");
     snapshot.period.unparse(writer, 0, 0);
   }
