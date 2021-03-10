@@ -7766,7 +7766,7 @@ public class SqlParserTest {
         SqlParserUtil.addCarets("abcdef", 1, 7, 1, 7));
   }
 
-  @Test void testSnapshot() {
+  @Test void testSnapshotForSystemTimeWithAlias() {
     sql("SELECT * FROM orders LEFT JOIN products FOR SYSTEM_TIME AS OF "
         + "orders.proctime as products ON orders.product_id = products.pro_id")
         .ok("SELECT *\n"
