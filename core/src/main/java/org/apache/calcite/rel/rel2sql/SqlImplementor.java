@@ -1721,47 +1721,13 @@ public abstract class SqlImplementor {
       final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
       boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
-
       boolean keepColumnAlias = false;
-      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
-          && !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
-        needNew = true;
-      }
-
-      if (rel instanceof Project && rel.getInput(0) instanceof Project
-          && !dialect.supportNestedAnalyticalFunctions()
-          && hasNestedAnalyticalFunctions((Project) rel)) {
-        needNew = true;
-      }
-
-      if (rel instanceof Aggregate
-          && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((Aggregate) rel)) {
-        needNew = true;
-      }
-
-      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
-          && dialect.getConformance().isGroupByAlias()
-          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
-        needNew = true;
-      }
-
-      if (rel instanceof Aggregate && rel.getInput(0) instanceof Project
-          && dialect.getConformance().isGroupByAlias()
-          && hasAnalyticalFunctionUsedInGroupBy((Aggregate) rel)) {
-        needNew = true;
-      }
-
-      if (rel instanceof Aggregate
-          && !dialect.supportsAnalyticalFunctionInAggregate()
-          && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
-        needNew = true;
-      }
 
       if (rel instanceof LogicalSort
           && dialect.getConformance().isSortByAlias()) {
         keepColumnAlias = true;
       }
+
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -2025,6 +1991,41 @@ public abstract class SqlImplementor {
                 && !nonWrapSet.contains(clause))) {
           return true;
         }
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+          && !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
+        return true;
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Project
+          && !dialect.supportNestedAnalyticalFunctions()
+          && hasNestedAnalyticalFunctions((Project) rel)) {
+        return true;
+      }
+
+      if (rel instanceof Aggregate
+          && !dialect.supportsNestedAggregations()
+          && hasNestedAggregations((Aggregate) rel)) {
+        return true;
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+          && dialect.getConformance().isGroupByAlias()
+          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
+        return true;
+      }
+
+      if (rel instanceof Aggregate && rel.getInput(0) instanceof Project
+          && dialect.getConformance().isGroupByAlias()
+          && hasAnalyticalFunctionUsedInGroupBy((Aggregate) rel)) {
+        return true;
+      }
+
+      if (rel instanceof Aggregate
+          && !dialect.supportsAnalyticalFunctionInAggregate()
+          && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
+        return  true;
       }
 
       if (rel instanceof Project
