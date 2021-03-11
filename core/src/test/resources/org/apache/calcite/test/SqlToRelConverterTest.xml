@@ -2580,6 +2580,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testExistsDecorrelateComplexCorrelationPredicate">
+        <Resource name="sql">
+            <![CDATA[select e1.empno from empnullables e1 where exists (
+  select 1 from empnullables e2 where COALESCE(e1.ename,'M')=COALESCE(e2.ename,'M'))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
+      LogicalJoin(condition=[=($9, $10)], joinType=[left])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(IS NOT NULL($1), $1, 'M':VARCHAR(20))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject($f9=[CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, 'M':VARCHAR(20))], $f0=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testExistsCorrelatedLimit">
         <Resource name="sql">
             <![CDATA[select*from emp where exists (
@@ -2628,14 +2647,16 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    Uncollect
-      LogicalProject(EXPR$0=[$SLICE($0)])
-        Collect(field=[EXPR$0])
-          LogicalUnion(all=[true])
-            LogicalProject(EXPR$0=[*($cor0.DEPTNO, 2)])
-              LogicalValues(tuples=[[{ 0 }]])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$3])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[*($0, 2)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      Uncollect
+        LogicalProject(EXPR$0=[$SLICE($0)])
+          Collect(field=[EXPR$0])
+            LogicalUnion(all=[true])
+              LogicalProject(EXPR$0=[$cor0.$f2])
+                LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6121,14 +6142,16 @@ LogicalProject(D2=[$0], D3=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    Uncollect
-      LogicalProject(EXPR$0=[$SLICE($0)])
-        Collect(field=[EXPR$0])
-          LogicalUnion(all=[true])
-            LogicalProject(EXPR$0=[*($cor0.DEPTNO, 2)])
-              LogicalValues(tuples=[[{ 0 }]])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$3])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[*($0, 2)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      Uncollect
+        LogicalProject(EXPR$0=[$SLICE($0)])
+          Collect(field=[EXPR$0])
+            LogicalUnion(all=[true])
+              LogicalProject(EXPR$0=[$cor0.$f2])
+                LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6571,13 +6594,14 @@ unnest(t1.fake_col) as t2(c1)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C1=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalProject(**=[$0])
-      LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
-    LogicalProject(C1=[$0])
-      Uncollect
-        LogicalProject(EXPR$0=[ITEM($cor0.**, 'FAKE_COL')])
-          LogicalValues(tuples=[[{ 0 }]])
+  LogicalProject(**=[$0], C1=[$2])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+      LogicalProject(**=[$0], $f1=[ITEM($0, 'FAKE_COL')])
+        LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+      LogicalProject(C1=[$0])
+        Uncollect
+          LogicalProject(EXPR$0=[$cor0.$f1])
+            LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -7032,11 +7056,13 @@ LogicalProject(C=[$0], D=[$1], C0=[$2])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1], D0=[$2], C0=[$3])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
-    LogicalValues(tuples=[[{ 4, 5 }]])
-    LogicalFilter(condition=[=(+($cor0.C, $cor0.D), $1)])
-      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
-        LogicalValues(tuples=[[{ 2 }]])
+  LogicalProject(C=[$0], D=[$1], C0=[$4], EXPR$1=[$5])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2, 3}])
+      LogicalProject(C=[$0], D=[$1], $f2=[+($0, $1)], C0=[$0])
+        LogicalValues(tuples=[[{ 4, 5 }]])
+      LogicalFilter(condition=[=($cor0.$f2, $1)])
+        LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
+          LogicalValues(tuples=[[{ 2 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -7053,14 +7079,16 @@ as r(n) on c=n]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], N=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
-    LogicalValues(tuples=[[{ 4 }]])
-    LogicalFilter(condition=[=($cor0.C, $0)])
-      LogicalProject(EXPR$0=[+($0, $1)])
-        LogicalJoin(condition=[=($0, $1)], joinType=[inner])
-          LogicalValues(tuples=[[{ 2 }]])
-          LogicalProject(EXPR$0=[+($cor0.C, 1)])
-            LogicalValues(tuples=[[{ 3 }]])
+  LogicalProject(C=[$0], EXPR$0=[$3])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
+      LogicalProject(C=[$0], C0=[$0], $f2=[+($0, 1)])
+        LogicalValues(tuples=[[{ 4 }]])
+      LogicalFilter(condition=[=($cor0.C, $0)])
+        LogicalProject(EXPR$0=[+($0, $1)])
+          LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+            LogicalValues(tuples=[[{ 2 }]])
+            LogicalProject(EXPR$0=[$cor0.$f2])
+              LogicalValues(tuples=[[{ 3 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -7074,11 +7102,13 @@ LogicalProject(C=[$0], N=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1], C0=[$2], F=[$3])
-  LogicalCorrelate(correlation=[$cor3], joinType=[inner], requiredColumns=[{0, 1}])
-    LogicalValues(tuples=[[{ 4, 5 }]])
-    LogicalProject(C=[$cor3.C], F=[*($0, $cor3.C)])
-      LogicalFilter(condition=[=(+($cor3.C, $cor3.D), *($0, $cor3.C))])
-        LogicalValues(tuples=[[{ 2 }]])
+  LogicalProject(C=[$0], D=[$1], C0=[$4], F=[$5])
+    LogicalCorrelate(correlation=[$cor3], joinType=[inner], requiredColumns=[{2, 3}])
+      LogicalProject(C=[$0], D=[$1], C0=[$0], $f3=[+($0, $1)])
+        LogicalValues(tuples=[[{ 4, 5 }]])
+      LogicalProject(C=[$cor3.C], F=[*($0, $cor3.C)])
+        LogicalFilter(condition=[=($cor3.$f3, *($0, $cor3.C))])
+          LogicalValues(tuples=[[{ 2 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -7096,15 +7126,17 @@ cross join lateral
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], N=[$1])
-  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
-    LogicalValues(tuples=[[{ 4 }]])
-    LogicalProject(N=[$0])
-      LogicalFilter(condition=[=($cor1.C, $0)])
-        LogicalProject(EXPR$0=[+($0, $1)])
-          LogicalJoin(condition=[=($0, $1)], joinType=[inner])
-            LogicalValues(tuples=[[{ 2 }]])
-            LogicalProject(EXPR$0=[+($cor1.C, 1)])
-              LogicalValues(tuples=[[{ 3 }]])
+  LogicalProject(C=[$0], N=[$3])
+    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1, 2}])
+      LogicalProject(C=[$0], C0=[$0], $f2=[+($0, 1)])
+        LogicalValues(tuples=[[{ 4 }]])
+      LogicalProject(N=[$0])
+        LogicalFilter(condition=[=($cor1.C, $0)])
+          LogicalProject(EXPR$0=[+($0, $1)])
+            LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+              LogicalValues(tuples=[[{ 2 }]])
+              LogicalProject(EXPR$0=[$cor1.$f2])
+                LogicalValues(tuples=[[{ 3 }]])
 ]]>
         </Resource>
     </TestCase>

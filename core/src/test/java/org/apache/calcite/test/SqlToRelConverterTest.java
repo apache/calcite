@@ -1518,6 +1518,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4560">[CALCITE-4560]
+   * Wrong plan when decorrelating EXISTS subquery with COALESCE in the predicate</a>. */
+  @Test void testExistsDecorrelateComplexCorrelationPredicate() {
+    final String sql = "select e1.empno from empnullables e1 where exists (\n"
+        + "  select 1 from empnullables e2 where COALESCE(e1.ename,'M')=COALESCE(e2.ename,'M'))";
+    sql(sql).decorrelate(true).ok();
+  }
+
   @Test void testExistsCorrelatedDecorrelateRex() {
     final String sql = "select*from emp where exists (\n"
         + "  select 1 from dept where emp.deptno=dept.deptno)";
