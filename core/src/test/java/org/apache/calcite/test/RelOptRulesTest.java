@@ -68,6 +68,7 @@ import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
+import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -4708,7 +4709,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_CONDITION_PUSH,
             CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for
@@ -6007,6 +6008,46 @@ class RelOptRulesTest extends RelOptTestBase {
     final DiffRepository diffRepos = getDiffRepos();
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
     SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testFlattenUncorrelatedCallBelowEquals() {
+    final String sql = "select * from emp e1 where exists ("
+        + "select * from emp e2 where e1.deptno = (e2.deptno+30))";
+    sql(sql).withDecorrelation(false)
+        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testCallOverCorrelationVariableIsNotFlattened() {
+    final String sql = "select * from emp e1 where exists ("
+        + "select * from emp e2 where (e1.deptno+30) = e2.deptno)";
+    sql(sql).withDecorrelation(false)
+        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .checkUnchanged();
+  }
+
+  @Test void testFlattenUncorrelatedTwoLevelCallBelowEqualsSucceeds() {
+    final String sql = "select * from emp e1 where exists ("
+        + "select * from emp e2 where e1.deptno = (2 * e2.deptno+30))";
+    sql(sql).withDecorrelation(false)
+        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testUncorrelatedCallBelowNonComparisonOpIsNotFlattened() {
+    final String sql = "select * from emp e1 where exists ("
+        + "select * from emp e2 where (e1.deptno + (e2.deptno+30)) > 0)";
+    sql(sql).withDecorrelation(false)
+        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .checkUnchanged();
+  }
+
+  @Test void testUncorrelatedCallInConjunctionIsFlattenedOnlyIfSiblingOfCorrelation() {
+    final String sql = "select * from emp e1 where exists ("
+        + "select * from emp e2 where (e2.empno+50) < 20 and e1.deptno >= (30+e2.deptno))";
+    sql(sql).withDecorrelation(false)
+        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .check();
   }
 
   @Disabled("[CALCITE-1045]")

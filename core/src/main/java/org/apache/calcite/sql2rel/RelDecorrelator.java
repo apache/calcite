@@ -55,6 +55,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
+import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -279,13 +280,26 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .addRuleInstance(FilterCorrelateRule.Config.DEFAULT
             .withRelBuilderFactory(f)
             .toRule())
+        .addRuleInstance(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
+            .withRelBuilderFactory(f)
+            .toRule())
         .build();
 
     HepPlanner planner = createPlanner(program);
 
     planner.setRoot(root);
     root = planner.findBestExp();
-
+    if (SQL2REL_LOGGER.isDebugEnabled()) {
+      SQL2REL_LOGGER.debug("Plan before extracting correlated computations:\n"
+          + RelOptUtil.toString(root));
+    }
+    root = root.accept(new CorrelateProjectExtractor(f));
+    // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor above may modify the plan
+    this.cm = new CorelMapBuilder().build(root);
+    if (SQL2REL_LOGGER.isDebugEnabled()) {
+      SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"
+          + RelOptUtil.toString(root));
+    }
     // Perform decorrelation.
     map.clear();
 
