@@ -144,10 +144,12 @@ public class SqlSnapshot extends SqlCall {
         writeForSystemTimeAsOf(writer, snapshot);
       }
     }
+
+    private static void writeForSystemTimeAsOf(SqlWriter writer, SqlSnapshot snapshot) {
+      writer.keyword("FOR SYSTEM_TIME AS OF");
+      snapshot.period.unparse(writer, 0, 0);
+    }
+
   }
 
-  private static void writeForSystemTimeAsOf(SqlWriter writer, SqlSnapshot snapshot) {
-    writer.keyword("FOR SYSTEM_TIME AS OF");
-    snapshot.period.unparse(writer, 0, 0);
-  }
 }
