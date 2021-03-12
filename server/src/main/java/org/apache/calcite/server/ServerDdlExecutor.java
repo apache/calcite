@@ -380,7 +380,10 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<CalciteSchema, String> pair = schema(context, true, create.name);
     final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
     if (subSchema0 != null) {
-      if (!create.getReplace() && !create.ifNotExists) {
+      if (create.ifNotExists) {
+        return;
+      }
+      if (!create.getReplace()) {
         throw SqlUtil.newContextException(create.name.getParserPosition(),
             RESOURCE.schemaExists(pair.right));
       }
@@ -503,12 +506,14 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         };
     if (pair.left.plus().getTable(pair.right) != null) {
       // Table exists.
-      if (!create.ifNotExists) {
+      if (create.ifNotExists) {
+        return;
+      }
+      if (!create.getReplace()) {
         // They did not specify IF NOT EXISTS, so give error.
         throw SqlUtil.newContextException(create.name.getParserPosition(),
             RESOURCE.tableExists(pair.right));
       }
-      return;
     }
     // Table does not exist. Create it.
     pair.left.add(pair.right,
