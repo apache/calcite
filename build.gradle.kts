@@ -574,6 +574,7 @@ allprojects {
 
         configure<CheckForbiddenApisExtension> {
             failOnUnsupportedJava = false
+            ignoreSignaturesOfMissingClasses = true
             bundledSignatures.addAll(
                 listOf(
                     "jdk-unsafe",
@@ -675,7 +676,8 @@ allprojects {
                     "**/org/apache/calcite/runtime/Resources${'$'}Inst.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript${'$'}ShellCommand.class",
-                    "**/org/apache/calcite/util/Unsafe.class"
+                    "**/org/apache/calcite/util/Unsafe.class",
+                    "**/org/apache/calcite/test/Unsafe.class"
                 )
             }
 

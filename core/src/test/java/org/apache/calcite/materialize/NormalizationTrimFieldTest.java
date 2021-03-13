@@ -46,7 +46,6 @@ import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Tests trimming unused fields before materialized view matching. */
@@ -104,6 +103,6 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
         + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"
         + "  LogicalTableScan(table=[[mv0]])\n";
     final String relOptimizedStr = RelOptUtil.toString(relOptimized.get(0).getKey());
-    assertThat(isLinux(optimized).matches(relOptimizedStr), is(true));
+    assertThat(relOptimizedStr, isLinux(optimized));
   }
 }

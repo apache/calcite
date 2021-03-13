@@ -51,6 +51,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -76,8 +77,9 @@ public abstract class AbstractMaterializedViewTest {
   protected Function<String, Boolean> resultContains(
       final String... expected) {
     return s -> {
+      String sLinux = Util.toLinux(s);
       for (String st : expected) {
-        if (!Matchers.containsStringLinux(st).matches(s)) {
+        if (!sLinux.contains(Util.toLinux(st))) {
           return false;
         }
       }

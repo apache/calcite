@@ -19,10 +19,5 @@ dependencies {
     api(project(":linq4j"))
     api("org.checkerframework:checker-qual")
 
-    implementation("com.google.guava:guava") {
-        because("""ForbiddenApis' signatures.txt contains com.google.common.base.Precondition
-          and it needs the file on a classpath to parse the configuration"""
-        )
-    }
     testImplementation("sqlline:sqlline")
 }

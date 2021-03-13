@@ -362,7 +362,7 @@ public class Matchers {
     }
 
     protected boolean matchesSafely(F item) {
-      return matcher.matches(f.apply(item));
+      return Unsafe.matches(matcher, f.apply(item));
     }
 
     public void describeTo(Description description) {

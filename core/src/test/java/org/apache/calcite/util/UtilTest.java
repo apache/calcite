@@ -36,6 +36,7 @@ import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.Matchers;
+import org.apache.calcite.test.Unsafe;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
@@ -2720,13 +2721,10 @@ class UtilTest {
 
   /** Unit test for {@link Matchers#compose}. */
   @Test void testComposeMatcher() {
-    assertThat("x", is("x"));
-    assertThat(is("x").matches("x"), is(true));
-    assertThat(is("X").matches("x"), is(false));
     final Function<String, String> toUpper = s -> s.toUpperCase(Locale.ROOT);
-    assertThat(Matchers.compose(is("A"), toUpper).matches("a"), is(true));
-    assertThat(Matchers.compose(is("A"), toUpper).matches("A"), is(true));
-    assertThat(Matchers.compose(is("a"), toUpper).matches("A"), is(false));
+    assertThat(Unsafe.matches(Matchers.compose(is("A"), toUpper), "a"), is(true));
+    assertThat(Unsafe.matches(Matchers.compose(is("A"), toUpper), "A"), is(true));
+    assertThat(Unsafe.matches(Matchers.compose(is("a"), toUpper), "A"), is(false));
     assertThat(describe(Matchers.compose(is("a"), toUpper)), is("is \"a\""));
     assertThat(mismatchDescription(Matchers.compose(is("a"), toUpper), "A"),
         is("was \"A\""));
@@ -2737,18 +2735,18 @@ class UtilTest {
     assertThat("xy", isLinux("xy"));
     assertThat("x\ny", isLinux("x\ny"));
     assertThat("x\r\ny", isLinux("x\ny"));
-    assertThat(isLinux("x").matches("x"), is(true));
-    assertThat(isLinux("X").matches("x"), is(false));
+    assertThat(Unsafe.matches(isLinux("x"), "x"), is(true));
+    assertThat(Unsafe.matches(isLinux("X"), "x"), is(false));
     assertThat(mismatchDescription(isLinux("X"), "x"), is("was \"x\""));
     assertThat(describe(isLinux("X")), is("is \"X\""));
-    assertThat(isLinux("x\ny").matches("x\ny"), is(true));
-    assertThat(isLinux("x\ny").matches("x\r\ny"), is(true));
+    assertThat(Unsafe.matches(isLinux("x\ny"), "x\ny"), is(true));
+    assertThat(Unsafe.matches(isLinux("x\ny"), "x\r\ny"), is(true));
     //\n\r is not a valid windows line ending
-    assertThat(isLinux("x\ny").matches("x\n\ry"), is(false));
-    assertThat(isLinux("x\ny").matches("x\n\ryz"), is(false));
+    assertThat(Unsafe.matches(isLinux("x\ny"), "x\n\ry"), is(false));
+    assertThat(Unsafe.matches(isLinux("x\ny"), "x\n\ryz"), is(false));
     // left-hand side must be linux or will never match
-    assertThat(isLinux("x\r\ny").matches("x\r\ny"), is(false));
-    assertThat(isLinux("x\r\ny").matches("x\ny"), is(false));
+    assertThat(Unsafe.matches(isLinux("x\r\ny"), "x\r\ny"), is(false));
+    assertThat(Unsafe.matches(isLinux("x\r\ny"), "x\ny"), is(false));
   }
 
   /** Tests {@link Util#andThen(UnaryOperator, UnaryOperator)}. */
