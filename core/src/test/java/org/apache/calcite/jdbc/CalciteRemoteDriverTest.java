@@ -880,6 +880,34 @@ class CalciteRemoteDriverTest {
     assertThat(updateCount, is(1));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3338">[CALCITE-3338]
+   * Error with executeBatch and preparedStatement when using RemoteMeta</a>. */
+  @Test public void testInsertBatchWithPreparedStatement() throws Exception {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:avatica:remote:factory="
+            + LocalServiceModifiableFactory.class.getName());
+
+    PreparedStatement pst = connection.prepareStatement(
+        "insert into \"foo\".\"bar\" values (?, ?, ?, ?, ?)");
+    pst.setInt(1, 1);
+    pst.setInt(2, 1);
+    pst.setString(3, "second");
+    pst.setInt(4, 1);
+    pst.setInt(5, 1);
+    pst.addBatch();
+    pst.addBatch();
+
+    int[] updateCounts = pst.executeBatch();
+    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts[0], is(1));
+    assertThat(updateCounts[1], is(1));
+    ResultSet resultSet = pst.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    connection.close();
+  }
+
   /**
    * Remote PreparedStatement insert WITH bind variables.
    */
