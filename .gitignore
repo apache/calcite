@@ -52,6 +52,8 @@ settings.xml
 nb-configuration.xml
 */nb-configuration.xml
 
+core/volcano-viz/*
+
 .mvn/wrapper/maven-wrapper.jar
 
 # Local configuration file (sdk path, etc)
