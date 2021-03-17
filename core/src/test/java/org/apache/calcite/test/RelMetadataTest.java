@@ -67,8 +67,8 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.HandleProvider;
-import org.apache.calcite.rel.metadata.JaninoHandleProvider;
+import org.apache.calcite.rel.metadata.HandlerProvider;
+import org.apache.calcite.rel.metadata.JaninoHandlerProvider;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataCache;
 import org.apache.calcite.rel.metadata.MetadataDef;
@@ -1555,7 +1555,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Deprecated
   @Test void testSupportLegacyCachingBehaviorViaMetadataQuery() {
-    RelMetadataQuery prototype = new CustomMq(new JaninoHandleProvider() {
+    RelMetadataQuery prototype = new CustomMq(new JaninoHandlerProvider() {
       @Override public MetadataCache buildCache() {
         return new LegacyInvalidationMetadataCache();
       }
@@ -1568,6 +1568,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester.convertSqlToRel(sql);
     final RelNode rel = root.rel;
+
     final RelMetadataQuery mq = new CustomMq(prototype);
     ColType.Handler colTypeHandler = JaninoMetadataHandlerCreator.newInstance(
         ColType.Handler.class, ImmutableSet.of(new ColTypeImpl()));
@@ -3247,11 +3248,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /**
-   * Custom Metadata Query for using a different HandleProvider.
+   * Custom Metadata Query for using a different HandlerProvider.
    */
   static class CustomMq extends RelMetadataQuery {
-    CustomMq(HandleProvider handleProvider) {
-      super(handleProvider);
+    CustomMq(HandlerProvider handlerProvider) {
+      super(handlerProvider);
     }
 
     CustomMq(RelMetadataQuery prototype) {
@@ -3457,15 +3458,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     private ColType.Handler colTypeHandler;
 
     MyRelMetadataQuery() {
-      colTypeHandler = JaninoHandleProvider.INSTANCE.initialHandler(ColType.Handler.class);
+      colTypeHandler = JaninoHandlerProvider.INSTANCE.initialHandler(ColType.Handler.class);
     }
 
     public String colType(RelNode rel, int column) {
       for (;;) {
         try {
           return colTypeHandler.getColType(rel, this, column);
-        } catch (HandleProvider.NoHandler e) {
-          colTypeHandler = handleProvider.revise(ColType.Handler.class);
+        } catch (HandlerProvider.NoHandler e) {
+          colTypeHandler = handlerProvider.revise(ColType.Handler.class);
         }
       }
     }

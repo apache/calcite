@@ -148,9 +148,9 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
    * this class but there is not. The action is probably to
    * re-generate the handler class.
    *
-   * Please use HandleProvider.NoHandler.*/
+   * Please use HandlerProvider.NoHandler.*/
   @Deprecated
-  public static class NoHandler extends HandleProvider.NoHandler {
+  public static class NoHandler extends HandlerProvider.NoHandler {
 
     public NoHandler(Class<? extends RelNode> relClass) {
       super(relClass);
