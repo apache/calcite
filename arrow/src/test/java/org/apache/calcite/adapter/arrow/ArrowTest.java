@@ -113,4 +113,16 @@ public class ArrowTest {
             + "    ArrowFilter(condition=[<($0, 4)])\n"
             + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
+
+  @Test void testArrowProjectFieldsWithMultipleFilters() {
+    CalciteAssert.that()
+        .with(ARROW)
+        .query("select \"fieldOne\", \"fieldTwo\" from test where \"fieldOne\">2 and \"fieldOne\"<5")
+        .limit(3)
+        .returns("fieldOne=3; fieldTwo=xyz\nfieldOne=4; fieldTwo=def\n")
+        .explainContains("PLAN=ArrowToEnumerableConverter\n"
+            + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
+            + "    ArrowFilter(condition=[<($0, 4)])\n"
+            + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
+  }
 }
