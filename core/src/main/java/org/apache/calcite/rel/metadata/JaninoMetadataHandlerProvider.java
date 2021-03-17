@@ -27,13 +27,13 @@ import static java.util.Objects.requireNonNull;
 /**
  * Provides metadata handlers generated via Janino.
  */
-public class JaninoHandlerProvider implements HandlerProvider {
+public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
 
-  public static final JaninoHandlerProvider INSTANCE = new JaninoHandlerProvider();
+  public static final JaninoMetadataHandlerProvider INSTANCE = new JaninoMetadataHandlerProvider();
   private static final ThreadLocal<@Nullable RelMetadataProvider> METADATA_PROVIDER_THREAD_LOCAL =
       new ThreadLocal<RelMetadataProvider>();
 
-  protected JaninoHandlerProvider() {
+  protected JaninoMetadataHandlerProvider() {
   }
 
   @Override public <H> H initialHandler(Class<H> handlerClass) {

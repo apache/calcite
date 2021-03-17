@@ -31,7 +31,6 @@ import java.util.Map;
 public class TableMetadataCache implements MetadataCache {
   public final Table<RelNode, Object, Object> map = HashBasedTable.create();
 
-
   /**
    * Removes cached metadata values for specified RelNode.
    *

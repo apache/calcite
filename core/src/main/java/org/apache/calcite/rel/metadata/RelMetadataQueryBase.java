@@ -62,32 +62,31 @@ public class RelMetadataQueryBase {
   //~ Instance fields --------------------------------------------------------
 
   /** Set of active metadata queries, and cache of previous results. */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public final Table<RelNode, Object, Object> map;
 
   public final MetadataCache cache;
-  protected final HandlerProvider handlerProvider;
+  protected final MetadataHandlerProvider metadataHandlerProvider;
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public final @Nullable JaninoRelMetadataProvider metadataProvider = THREAD_PROVIDERS.get();
 
   //~ Static fields/initializers ---------------------------------------------
 
-
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public static final ThreadLocal<@Nullable JaninoRelMetadataProvider> THREAD_PROVIDERS =
       new ThreadLocal<>();
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   protected static <H> H initialHandler(Class<H> handlerClass) {
-    return JaninoHandlerProvider.INSTANCE.initialHandler(handlerClass);
+    return JaninoMetadataHandlerProvider.INSTANCE.initialHandler(handlerClass);
   }
 
   //~ Constructors ----------------------------------------------------------
 
-  protected RelMetadataQueryBase(HandlerProvider handlerProvider) {
-    this.handlerProvider = handlerProvider;
-    this.cache = handlerProvider.buildCache();
+  protected RelMetadataQueryBase(MetadataHandlerProvider metadataHandlerProvider) {
+    this.metadataHandlerProvider = metadataHandlerProvider;
+    this.cache = metadataHandlerProvider.buildCache();
     if (cache instanceof TableMetadataCache) {
       map = ((TableMetadataCache) cache).map;
     } else {
@@ -99,10 +98,10 @@ public class RelMetadataQueryBase {
 
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present. */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   protected <M extends Metadata, H extends MetadataHandler<M>> H
       revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
-    return handlerProvider.revise((Class<H>) def.handlerClass);
+    return metadataHandlerProvider.revise((Class<H>) def.handlerClass);
   }
 
   /**
@@ -111,7 +110,7 @@ public class RelMetadataQueryBase {
    * @param rel RelNode whose cached metadata should be removed
    * @return true if cache for the provided RelNode was not empty
    */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public boolean clearCache(RelNode rel) {
     return cache.clear(rel);
   }

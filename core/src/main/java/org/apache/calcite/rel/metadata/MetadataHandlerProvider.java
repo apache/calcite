@@ -20,9 +20,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.ControlFlowException;
 
 /**
- * Provides Metadata Handlers callsites.
+ * Provides {@link MetadataHandler} call sites and {@link MetadataCache} for
+ * {@link RelMetadataQuery}. The handlers provided are responsible for
+ * updating the cache stored in {@link RelMetadataQuery}.
  */
-public interface HandlerProvider {
+public interface MetadataHandlerProvider {
 
   <H> H initialHandler(Class<H> handlerClass);
 
@@ -30,6 +32,11 @@ public interface HandlerProvider {
    * {@code class_} if it is not already present. */
   <H extends MetadataHandler<M>, M extends Metadata> H revise(Class<H> handlerClass);
 
+  /**
+   * Creates a new cache.
+   *
+   * @return A new cache for {@link RelMetadataQuery}
+   */
   MetadataCache buildCache();
 
 
