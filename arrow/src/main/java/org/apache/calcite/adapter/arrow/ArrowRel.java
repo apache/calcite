@@ -20,6 +20,11 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Relational expression that uses Arrow calling convention.
  */
@@ -33,6 +38,7 @@ public interface ArrowRel extends RelNode {
    * {@link ArrowRel} nodes into a SQL query. */
   class Implementor {
     int[] selectFields;
+    String whereClause;
     int fieldToCompare;
     Object valueToCompare;
     String operator;
@@ -46,17 +52,15 @@ public interface ArrowRel extends RelNode {
      * @param field Field that needs to be compared
      * @param value Value of the field that needs to be compared
      */
-    public void add(int[] fields, String condition, Integer field, Object value) {
+    public void add(int[] fields, List<String> predicates) {
       if (fields != null) {
         selectFields = new int[fields.length];
         for (int i = 0; i < fields.length; i++) {
           selectFields[i] = fields[i];
         }
       }
-      if (condition != null) {
-        operator = condition;
-        fieldToCompare = field;
-        valueToCompare = value;
+      if (predicates != null) {
+        whereClause = predicates.get(0);
       }
     }
 

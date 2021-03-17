@@ -59,7 +59,7 @@ public class ArrowProject extends Project implements ArrowRel {
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    implementor.add(getProjectFields(getProjects()), null, null, null);
+    implementor.add(getProjectFields(getProjects()), null);
   }
 
   private int[] getProjectFields(List<RexNode> exps) {

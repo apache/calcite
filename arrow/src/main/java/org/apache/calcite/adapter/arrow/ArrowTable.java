@@ -85,9 +85,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> query(DataContext root, int[] fields, String condition,
-                                    int fieldToCompare, Object valueToCompare) {
-
+  public Enumerable<Object> query(DataContext root, int[] fields, String condition) {
     if (fields == null) {
       fields = new int[schema.getFields().size()];
       for (int i = 0; i < fields.length; i++) {
@@ -111,11 +109,26 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
         throw new RuntimeException(e);
       }
     } else {
-      List<TreeNode> treeNodes = new ArrayList<>(2);
-      treeNodes.add(TreeBuilder.makeField(schema.getFields().get(fieldToCompare)));
-      treeNodes.add(makeLiteralNode(valueToCompare));
-      TreeNode treeNode = TreeBuilder.makeFunction(condition, treeNodes, new ArrowType.Bool());
-      Condition filterCondition = TreeBuilder.makeCondition(treeNode);
+      String[] conditions = condition.split(" AND ");
+      List<TreeNode> conditionNodes = new ArrayList<>(conditions.length);
+      for (String con: conditions) {
+        String[] data = con.split(" ");
+        List<TreeNode> treeNodes = new ArrayList<>(2);
+        treeNodes.add(TreeBuilder.makeField(schema.getFields()
+            .get(schema.getFields().indexOf(schema.findField(data[0])))));
+        treeNodes.add(makeLiteralNode(data[2], data[3]));
+        String equality = data[1];
+        conditionNodes.add(TreeBuilder.makeFunction(equality, treeNodes, new ArrowType.Bool()));
+      }
+      Condition filterCondition;
+      if (conditionNodes.size() == 1) {
+        filterCondition = TreeBuilder.makeCondition(conditionNodes.get(0));
+      }
+      else {
+        TreeNode treeNode = TreeBuilder.makeAnd(conditionNodes);
+        filterCondition = TreeBuilder.makeCondition(treeNode);
+      }
+
       try {
         filter = Filter.make(schema, filterCondition);
       } catch (GandivaException e) {
@@ -162,16 +175,15 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return typeFactory.createStructType(ret);
   }
 
-  private TreeNode makeLiteralNode(Object literal) {
-    if (Integer.class.equals(literal.getClass())) {
-      return TreeBuilder.makeLiteral((Integer) literal);
-    } else if (Long.class.equals(literal.getClass())) {
-      return TreeBuilder.makeLiteral((Long) literal);
-    } else if (Float.class.equals(literal.getClass())) {
-      return TreeBuilder.makeLiteral((Float) literal);
-    } else if (String.class.equals(literal.getClass())) {
-      return TreeBuilder.makeStringLiteral(literal.toString());
+  private TreeNode makeLiteralNode(String literal, String type) {
+    if (type.equals("integer")) {
+      return TreeBuilder.makeLiteral(Integer.parseInt(literal));
+    } else if (type.equals("long")) {
+      return TreeBuilder.makeLiteral(Long.parseLong(literal));
+    } else if (type.equals("float")) {
+      return TreeBuilder.makeLiteral(Float.parseFloat(literal));
+    } else if (type.equals("string")) {
+      return TreeBuilder.makeStringLiteral(literal);
     }
-    throw new AssertionError("Invalid literal");
   }
 }

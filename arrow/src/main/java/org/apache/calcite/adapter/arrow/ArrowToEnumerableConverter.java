@@ -66,8 +66,6 @@ public class ArrowToEnumerableConverter extends ConverterImpl implements Enumera
             Expressions.call(arrowImplementor.table.getExpression(ArrowTable.class),
                 ArrowMethod.ARROW_QUERY.method, implementor.getRootExpression(),
                 Expressions.constant(arrowImplementor.selectFields),
-                Expressions.constant(arrowImplementor.operator),
-                Expressions.constant(arrowImplementor.fieldToCompare),
-                Expressions.constant(arrowImplementor.valueToCompare))));
+                Expressions.constant(arrowImplementor.whereClause))));
   }
 }

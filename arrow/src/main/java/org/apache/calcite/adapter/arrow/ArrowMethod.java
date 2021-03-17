@@ -27,8 +27,7 @@ import java.lang.reflect.Method;
  * Builtin methods in the Arrow adapter.
  */
 public enum ArrowMethod {
-  ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class,
-      String.class, int.class, Object.class);
+  ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class, String.class);
 
   public final Method method;
 
