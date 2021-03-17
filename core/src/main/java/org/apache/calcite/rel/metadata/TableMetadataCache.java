@@ -30,8 +30,7 @@ import java.util.Map;
  * Rel Metadata cache back by @see HashBasedTable table.
  */
 public class TableMetadataCache implements MetadataCache {
-  public final Table<RelNode, List<?>, Object> map = HashBasedTable.create();
-
+  final Table<RelNode, List<?>, Object> map = HashBasedTable.create();
 
   /**
    * Removes cached metadata values for specified RelNode.

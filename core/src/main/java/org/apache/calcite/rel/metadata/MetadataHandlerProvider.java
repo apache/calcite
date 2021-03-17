@@ -22,18 +22,25 @@ import org.apache.calcite.util.ControlFlowException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Provides Metadata Handlers callsites.
+ * Provides {@link MetadataHandler} call sites and {@link MetadataCache} for
+ * {@link RelMetadataQuery}. The handlers provided are responsible for
+ * updating the cache stored in {@link RelMetadataQuery}.
  */
-public interface HandlerProvider {
+public interface MetadataHandlerProvider {
 
   <H> H initialHandler(Class<H> handlerClass);
 
   /** Re-generates the handler for a given kind of metadata, adding support for
-   * {@code class_} if it is not already present. */
+   * {@code class_} if it is not already present.*/
   <H extends MetadataHandler<M>, M extends Metadata> H revise(
       Class<? extends RelNode> rClass,
       MetadataDef<M> def, @Nullable RelMetadataProvider relMetadataProvider);
 
+  /**
+   * Creates a new cache.
+   *
+   * @return A new cache for {@link RelMetadataQuery}
+   */
   MetadataCache buildCache();
 
 

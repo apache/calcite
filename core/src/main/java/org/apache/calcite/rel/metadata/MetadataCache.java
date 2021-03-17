@@ -23,7 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 
 /**
- * A cache for Rel Nodes Metadata.
+ * A cache for Rel Nodes Metadata.  {@link NullSentinel} is used for storing nulls and
+ * detecting cyclic metadata calls.
  */
 public interface MetadataCache {
   /**
