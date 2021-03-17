@@ -68,8 +68,8 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.HandleProvider;
-import org.apache.calcite.rel.metadata.JaninoHandleProvider;
+import org.apache.calcite.rel.metadata.HandlerProvider;
+import org.apache.calcite.rel.metadata.JaninoHandlerProvider;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataCache;
 import org.apache.calcite.rel.metadata.MetadataDef;
@@ -1519,7 +1519,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableList.builder().addAll(list)
             .add(relNode.getCluster().getPlanner().getRelMetadataTimestamp(relNode))
             .build();
-    RelMetadataQuery prototype = new CustomMq(new JaninoHandleProvider() {
+    RelMetadataQuery prototype = new CustomMq(new JaninoHandlerProvider() {
       @Override public MetadataCache buildCache() {
         return new LegacyInvalidationMetadataCache();
       }
@@ -1538,7 +1538,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .convertSqlToRel(sql);
     final RelNode rel = root.rel;
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    ColType.Handler colTypeHandler = JaninoHandleProvider.INSTANCE.revise(
+    ColType.Handler colTypeHandler = JaninoHandlerProvider.INSTANCE.revise(
         RelNode.class, ColType.DEF, ColTypeImpl.SOURCE
     );
     // Top node is a filter. Its metadata uses getColType(RelNode, int).
@@ -3250,13 +3250,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /**
-   * Custom HandleProvider for testing.
+   * Custom HandlerProvider for testing.
    */
-  static class CustomHandleProvider implements HandleProvider {
+  static class CustomHandlerProvider implements HandlerProvider {
     public static final List<Pair<String, String>>  REGENERATION_CAUSES = new ArrayList<>();
 
     @Override public <H> H initialHandler(Class<H> handlerClass) {
-      return JaninoHandleProvider.INSTANCE.initialHandler(handlerClass);
+      return JaninoHandlerProvider.INSTANCE.initialHandler(handlerClass);
     }
 
     @Override public <H extends MetadataHandler<M>, M extends Metadata> H revise(
@@ -3266,7 +3266,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         REGENERATION_CAUSES.add(
             Pair.of(def.metadataClass.getSimpleName(), rClass.getSimpleName()));
       }
-      return JaninoHandleProvider.INSTANCE.revise(rClass, def, relMetadataProvider);
+      return JaninoHandlerProvider.INSTANCE.revise(rClass, def, relMetadataProvider);
     }
 
     @Override public MetadataCache buildCache() {
@@ -3275,11 +3275,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /**
-   * Custom Metadata Query for using a different HandleProvider.
+   * Custom Metadata Query for using a different HandlerProvider.
    */
   static class CustomMq extends RelMetadataQuery {
-    CustomMq(HandleProvider handleProvider) {
-      super(handleProvider);
+    CustomMq(HandlerProvider handlerProvider) {
+      super(handlerProvider);
     }
 
     CustomMq(RelMetadataQuery prototype) {
@@ -3290,7 +3290,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test void testRegenerateHandler() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
-    final CustomMq prototype = new CustomMq(new CustomHandleProvider());
+    final CustomMq prototype = new CustomMq(new CustomHandlerProvider());
     final CustomMq mq = new CustomMq(prototype);
 
     RelNode filter = builder
@@ -3303,7 +3303,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     // get metadata for the first time to make sure handler is generated.
     mq.getAverageRowSize(filter);
-    assertFalse(CustomHandleProvider.REGENERATION_CAUSES.contains(cause));
+    assertFalse(CustomHandlerProvider.REGENERATION_CAUSES.contains(cause));
 
     // get metadata for the second time, with a new node type,
     // and make sure regeneration happens.
@@ -3311,7 +3311,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     mq.getAverageRowSize(customRel);
 
     // make sure a regeneration log is produced
-    assertTrue(CustomHandleProvider.REGENERATION_CAUSES.contains(cause));
+    assertTrue(CustomHandlerProvider.REGENERATION_CAUSES.contains(cause));
   }
 
   private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
@@ -3511,15 +3511,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     private ColType.Handler colTypeHandler;
 
     MyRelMetadataQuery() {
-      colTypeHandler = JaninoHandleProvider.INSTANCE.initialHandler(ColType.Handler.class);
+      colTypeHandler = JaninoHandlerProvider.INSTANCE.initialHandler(ColType.Handler.class);
     }
 
     public String colType(RelNode rel, int column) {
       for (;;) {
         try {
           return colTypeHandler.getColType(rel, this, column);
-        } catch (HandleProvider.NoHandler e) {
-          colTypeHandler = handleProvider.revise(e.relClass, ColType.DEF,
+        } catch (HandlerProvider.NoHandler e) {
+          colTypeHandler = handlerProvider.revise(e.relClass, ColType.DEF,
               rel.getCluster().getMetadataProvider());
         }
       }

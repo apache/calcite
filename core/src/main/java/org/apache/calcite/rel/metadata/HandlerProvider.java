@@ -24,7 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Provides Metadata Handlers callsites.
  */
-public interface HandleProvider {
+public interface HandlerProvider {
 
   <H> H initialHandler(Class<H> handlerClass);
 

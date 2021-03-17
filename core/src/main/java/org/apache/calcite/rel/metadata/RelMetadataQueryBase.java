@@ -75,7 +75,7 @@ public class RelMetadataQueryBase {
 
   //~ Static fields/initializers ---------------------------------------------
 
-  protected final HandleProvider handleProvider;
+  protected final HandlerProvider handlerProvider;
 
   @Deprecated
   public static final ThreadLocal<@Nullable JaninoRelMetadataProvider> THREAD_PROVIDERS =
@@ -83,14 +83,14 @@ public class RelMetadataQueryBase {
 
   @Deprecated
   protected static <H> H initialHandler(Class<H> handlerClass) {
-    return JaninoHandleProvider.INSTANCE.initialHandler(handlerClass);
+    return JaninoHandlerProvider.INSTANCE.initialHandler(handlerClass);
   }
 
   //~ Constructors ----------------------------------------------------------
 
-  protected RelMetadataQueryBase(HandleProvider handleProvider) {
-    this.handleProvider = handleProvider;
-    this.cache = handleProvider.buildCache();
+  protected RelMetadataQueryBase(HandlerProvider handlerProvider) {
+    this.handlerProvider = handlerProvider;
+    this.cache = handlerProvider.buildCache();
     if (cache instanceof TableMetadataCache) {
       map = ((TableMetadataCache) cache).map;
     } else {
@@ -107,7 +107,7 @@ public class RelMetadataQueryBase {
       revise(Class<? extends RelNode> class_,
       MetadataDef<M> def,
       @Nullable RelMetadataProvider relMetadataProvider) {
-    return handleProvider.revise(
+    return handlerProvider.revise(
         class_, def, requireNonNull(relMetadataProvider, "relMetadataProvider")
     );
   }
