@@ -42,8 +42,8 @@ public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
   }
 
   @Override public <H extends MetadataHandler<M>, M extends Metadata> H revise(
-      Class<? extends RelNode> rClass,
-      MetadataDef<M> def, RelMetadataProvider relMetadataProvider) {
+      Class<? extends RelNode> rClass, MetadataDef<M> def,
+      RelMetadataProvider relMetadataProvider) {
     return JaninoRelMetadataProvider.revise(relMetadataProvider, rClass, def);
   }
 

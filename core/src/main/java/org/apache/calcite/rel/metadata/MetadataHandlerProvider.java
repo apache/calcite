@@ -19,8 +19,6 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.ControlFlowException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Provides {@link MetadataHandler} call sites and {@link MetadataCache} for
  * {@link RelMetadataQuery}. The handlers provided are responsible for
@@ -32,8 +30,7 @@ public interface MetadataHandlerProvider {
 
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present.*/
-  <H extends MetadataHandler<M>, M extends Metadata> H revise(
-      Class<? extends RelNode> rClass,
+  <H extends MetadataHandler<M>, M extends Metadata> H revise(Class<? extends RelNode> rClass,
       MetadataDef<M> def, RelMetadataProvider relMetadataProvider);
 
   /**
