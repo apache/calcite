@@ -134,7 +134,7 @@ public class RelOptCluster {
     return rexBuilder;
   }
 
-  public @Nullable RelMetadataProvider getMetadataProvider() {
+  public RelMetadataProvider getMetadataProvider() {
     return metadataProvider;
   }
 
