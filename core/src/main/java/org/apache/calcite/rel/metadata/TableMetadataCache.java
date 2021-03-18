@@ -38,7 +38,7 @@ public class TableMetadataCache implements MetadataCache {
    * @param rel RelNode whose cached metadata should be removed
    * @return true if cache for the provided RelNode was not empty
    */
-  public boolean clear(RelNode rel) {
+  @Override public boolean clear(RelNode rel) {
     Map<List<?>, Object> row = map.row(rel);
     if (row.isEmpty()) {
       return false;
