@@ -50,6 +50,7 @@ public class RelMdPopulationSize
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.PopulationSize> getDef() {
     return BuiltInMetadata.PopulationSize.DEF;
   }

@@ -182,6 +182,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return 109 + provider.hashCode();
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     throw new UnsupportedOperationException();
@@ -197,7 +198,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       ImmutableList<Class<? extends RelNode>> relClasses) {
     final StringBuilder buff = new StringBuilder();
     final String name =
-        "GeneratedMetadataHandler_" + def.metadataClass.getSimpleName();
+        "GeneratedMetadata_" + simpleNameForHandler(def.handlerClass);
     final Set<MetadataHandler> providerSet = new HashSet<>();
     final List<Pair<String, MetadataHandler>> providerList = new ArrayList<>();
     //noinspection unchecked
@@ -210,12 +211,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       }
     }
 
-    buff.append("  private final java.util.List relClasses;\n");
+    buff.append("  private final java.util.List relClasses;\n")
+        .append("  private final org.apache.calcite.rel.metadata.MetadataDef def;\n");
     for (Pair<String, MetadataHandler> pair : providerList) {
       buff.append("  public final ").append(pair.right.getClass().getName())
           .append(' ').append(pair.left).append(";\n");
     }
-    buff.append("  public ").append(name).append("(java.util.List relClasses");
+    buff.append("  public ").append(name).append("(java.util.List relClasses,\n")
+        .append("      org.apache.calcite.rel.metadata.MetadataDef def");
     for (Pair<String, MetadataHandler> pair : providerList) {
       buff.append(",\n")
           .append("      ")
@@ -224,7 +227,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(pair.left);
     }
     buff.append(") {\n")
-        .append("    this.relClasses = relClasses;\n");
+        .append("    this.relClasses = relClasses;\n")
+        .append("    this.def = def;\n");
 
     for (Pair<String, MetadataHandler> pair : providerList) {
       buff.append("    this.").append(pair.left).append(" = ").append(pair.left)
@@ -234,9 +238,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         .append("  public ")
         .append(MetadataDef.class.getName())
         .append(" getDef() {\n")
-        .append("    return ")
-        .append(def.metadataClass.getName())
-        .append(".DEF;\n")
+        .append("    return def;")
         .append("  }\n");
     for (Ord<Method> method : Ord.zip(def.methods)) {
       buff.append("  public ")
@@ -257,12 +259,11 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
               (method.e.getParameterTypes().length < 4
               ? org.apache.calcite.runtime.FlatLists.class
               : ImmutableList.class).getName())
-          .append(".of(")
-          .append(def.metadataClass.getName());
+          .append(".of(");
       if (method.i == 0) {
-        buff.append(".DEF");
+        buff.append("def");
       } else {
-        buff.append(".DEF.methods.get(")
+        buff.append("def.methods.get(")
             .append(method.i)
             .append(")");
       }
@@ -369,13 +370,27 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         buff.append(pair.getKey());
       }
     }
-    final List<Object> argList = new ArrayList<>(Pair.right(providerList));
-    argList.add(0, ImmutableList.copyOf(relClasses));
+    final List<Object> argList = new ArrayList<>();
+    argList.add(ImmutableList.copyOf(relClasses));
+    argList.add(def);
+    argList.addAll(Pair.right(providerList));
     try {
       return compile(name, buff.toString(), def, argList);
     } catch (CompileException | IOException e) {
       throw new RuntimeException("Error compiling:\n"
           + buff, e);
+    }
+  }
+
+  private static String simpleNameForHandler(Class<? extends MetadataHandler<?>> clazz) {
+    String simpleName = clazz.getSimpleName();
+    //Previously the pattern was to have a nested in class named Handler
+    //So we need to add the parents class to get a unique name
+    if (simpleName.equals("Handler")) {
+      String[] parts = clazz.getName().split("\\.|\\$");
+      return parts[parts.length - 2] + parts[parts.length - 1];
+    } else {
+      return simpleName;
     }
   }
 

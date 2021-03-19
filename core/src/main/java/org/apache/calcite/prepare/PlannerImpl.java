@@ -363,6 +363,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     return requireNonNull(typeFactory, "typeFactory");
   }
 
+  @SuppressWarnings("deprecation")
   @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);

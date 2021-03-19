@@ -204,10 +204,12 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
+  @Deprecated
   @Override public long getRelMetadataTimestamp(RelNode rel) {
     return metadataTimestamp;
   }
 
+  @Deprecated
   /** Allow tests to tweak the timestamp. */
   public void setRelMetadataTimestamp(long metadataTimestamp) {
     this.metadataTimestamp = metadataTimestamp;

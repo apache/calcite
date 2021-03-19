@@ -236,6 +236,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
             throw new AssertionError();
           }
 
+          @Deprecated
           public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
             return BuiltInMetadata.AllPredicates.DEF;
           }
