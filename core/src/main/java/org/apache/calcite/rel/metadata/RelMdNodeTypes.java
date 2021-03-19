@@ -56,6 +56,7 @@ public class RelMdNodeTypes
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.NodeTypes> getDef() {
     return BuiltInMetadata.NodeTypes.DEF;
   }

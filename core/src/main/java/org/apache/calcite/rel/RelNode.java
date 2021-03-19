@@ -213,6 +213,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
+  @Deprecated // to be removed before 2.0
   <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**

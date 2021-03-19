@@ -31,7 +31,7 @@ import java.util.List;
  * @param <M> Kind of metadata
  */
 public class MetadataDef<M extends Metadata> {
-  public final Class<M> metadataClass;
+  @Deprecated public final Class<M> metadataClass;
   public final Class<? extends MetadataHandler<M>> handlerClass;
   public final ImmutableList<Method> methods;
 

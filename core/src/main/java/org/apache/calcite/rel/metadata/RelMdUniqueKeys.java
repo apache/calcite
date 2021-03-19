@@ -68,6 +68,7 @@ public class RelMdUniqueKeys
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.UniqueKeys> getDef() {
     return BuiltInMetadata.UniqueKeys.DEF;
   }

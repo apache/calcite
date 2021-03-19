@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
  * provide which kinds of metadata, for which kinds of relational
  * expressions.</p>
  */
+@Deprecated
 public class MetadataFactoryImpl implements MetadataFactory {
   @SuppressWarnings("unchecked")
   public static final UnboundMetadata<@Nullable Metadata> DUMMY = (rel, mq) -> null;
