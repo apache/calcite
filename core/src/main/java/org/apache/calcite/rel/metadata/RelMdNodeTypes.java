@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -69,11 +68,6 @@ public class RelMdNodeTypes
   public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel,
       RelMetadataQuery mq) {
     return getNodeTypes(rel, RelNode.class, mq);
-  }
-
-  public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(HepRelVertex rel,
-      RelMetadataQuery mq) {
-    return mq.getNodeTypes(rel.getCurrentRel());
   }
 
   public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelSubset rel,

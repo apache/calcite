@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
@@ -106,10 +105,6 @@ public class RelMdDistribution
 
   public RelDistribution distribution(Exchange exchange, RelMetadataQuery mq) {
     return exchange(exchange.distribution);
-  }
-
-  public RelDistribution distribution(HepRelVertex rel, RelMetadataQuery mq) {
-    return mq.distribution(rel.getCurrentRel());
   }
 
   // Helper methods

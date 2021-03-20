@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -80,10 +79,6 @@ public class RelMdTableReferences
   // Catch-all rule when none of the others apply.
   public @Nullable Set<RelTableRef> getTableReferences(RelNode rel, RelMetadataQuery mq) {
     return null;
-  }
-
-  public @Nullable Set<RelTableRef> getTableReferences(HepRelVertex rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getCurrentRel());
   }
 
   public @Nullable Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
