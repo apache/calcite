@@ -1391,7 +1391,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     } catch (IllegalArgumentException e) {
       final String value = "No handler for method [public abstract java.lang.String "
           + "org.apache.calcite.test.RelMetadataTest$ColType.getColType(int)] "
-          + "applied to argument of type [interface org.apache.calcite.rel.RelNode]; "
+          + "applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter]; "
           + "we recommend you create a catch-all (RelNode) handler";
       assertThat(e.getMessage(), is(value));
     }
@@ -1425,7 +1425,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     } catch (IllegalArgumentException e) {
       final String value = "No handler for method [public abstract java.lang.String "
           + "org.apache.calcite.test.RelMetadataTest$ColType.getColType(int)] "
-          + "applied to argument of type [interface org.apache.calcite.rel.RelNode]; "
+          + "applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter]; "
           + "we recommend you create a catch-all (RelNode) handler";
       assertThat(e.getMessage(), is(value));
     }
