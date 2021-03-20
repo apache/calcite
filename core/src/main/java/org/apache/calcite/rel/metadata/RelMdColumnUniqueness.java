@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -385,12 +384,6 @@ public class RelMdColumnUniqueness
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
-  }
-
-  public @Nullable Boolean areColumnsUnique(HepRelVertex rel, RelMetadataQuery mq,
-      ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    return mq.areColumnsUnique(rel.getCurrentRel(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(RelSubset rel, RelMetadataQuery mq,

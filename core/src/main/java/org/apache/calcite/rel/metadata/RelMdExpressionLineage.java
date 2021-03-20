@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -101,11 +100,6 @@ public class RelMdExpressionLineage
   public @Nullable Set<RexNode> getExpressionLineage(RelNode rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return null;
-  }
-
-  public @Nullable Set<RexNode> getExpressionLineage(HepRelVertex rel, RelMetadataQuery mq,
-      RexNode outputExpression) {
-    return mq.getExpressionLineage(rel.getCurrentRel(), outputExpression);
   }
 
   public @Nullable Set<RexNode> getExpressionLineage(RelSubset rel,
