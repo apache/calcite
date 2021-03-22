@@ -49,7 +49,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -64,9 +63,6 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   public static final JaninoRelMetadataProvider DEFAULT =
       JaninoRelMetadataProvider.of(DefaultRelMetadataProvider.INSTANCE);
 
-  @Deprecated
-  private static final Set<Class<? extends RelNode>> ALL_RELS =
-      new CopyOnWriteArraySet<>();
 
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity

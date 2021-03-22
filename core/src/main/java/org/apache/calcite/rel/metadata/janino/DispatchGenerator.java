@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.argList;
 import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.generateParamList;
 
@@ -126,10 +128,14 @@ public class DispatchGenerator {
 
   private static Set<Class<? extends RelNode>> methodAndInstanceToImplementingClass(
       Method method, MetadataHandler<?> handler) {
-    return Arrays.stream(handler.getClass().getMethods())
-        .map(m -> toRelClass(method, m))
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
+    Set<Class<? extends RelNode>> set = new HashSet<>();
+    for (Method m : handler.getClass().getMethods()) {
+      Class<? extends RelNode> aClass = toRelClass(method, m);
+      if (aClass != null) {
+        set.add(aClass);
+      }
+    }
+    return set;
   }
 
   private static @Nullable Class<? extends RelNode> toRelClass(Method superMethod,
@@ -186,7 +192,7 @@ public class DispatchGenerator {
       Class<? extends RelNode> clazz) {
     for (MetadataHandler<?> mh : metadataHandlers) {
       if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
-        return this.metadataHandlerToName.get(mh);
+        return castNonNull(this.metadataHandlerToName.get(mh));
       }
     }
     throw new RuntimeException();
