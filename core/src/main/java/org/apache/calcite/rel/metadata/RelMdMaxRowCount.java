@@ -36,7 +36,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +48,7 @@ public class RelMdMaxRowCount
     implements MetadataHandler<BuiltInMetadata.MaxRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.MAX_ROW_COUNT.method, new RelMdMaxRowCount());
+          new RelMdMaxRowCount(), BuiltInMetadata.MaxRowCount.Handler.class);
 
   //~ Methods ----------------------------------------------------------------
 

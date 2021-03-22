@@ -46,7 +46,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -68,7 +67,7 @@ public class RelMdColumnUniqueness
     implements MetadataHandler<BuiltInMetadata.ColumnUniqueness> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
+          new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniqueness.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

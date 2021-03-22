@@ -33,7 +33,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
@@ -55,7 +54,7 @@ public class RelMdDistinctRowCount
     implements MetadataHandler<BuiltInMetadata.DistinctRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
+          new RelMdDistinctRowCount(), BuiltInMetadata.DistinctRowCount.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
