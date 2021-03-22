@@ -90,7 +90,7 @@ public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataR
   /**
    * Returns current implementation chosen for this vertex.
    */
-  public RelNode getCurrentRel() {
+  @Override public RelNode getCurrentRel() {
     return currentRel;
   }
 
