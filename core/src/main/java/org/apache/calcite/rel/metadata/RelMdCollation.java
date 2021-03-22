@@ -51,7 +51,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -84,7 +83,7 @@ public class RelMdCollation
     implements MetadataHandler<BuiltInMetadata.Collation> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLLATIONS.method, new RelMdCollation());
+          new RelMdCollation(), BuiltInMetadata.Collation.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

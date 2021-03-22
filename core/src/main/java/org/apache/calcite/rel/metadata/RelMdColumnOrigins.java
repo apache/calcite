@@ -35,7 +35,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -53,7 +52,7 @@ public class RelMdColumnOrigins
     implements MetadataHandler<BuiltInMetadata.ColumnOrigin> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLUMN_ORIGIN.method, new RelMdColumnOrigins());
+          new RelMdColumnOrigins(), BuiltInMetadata.ColumnOrigin.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

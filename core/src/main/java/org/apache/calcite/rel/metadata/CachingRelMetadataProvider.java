@@ -83,9 +83,15 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return underlyingProvider.handlers(def);
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return underlyingProvider.handlers(handlerClass);
   }
 
   //~ Inner Classes ----------------------------------------------------------

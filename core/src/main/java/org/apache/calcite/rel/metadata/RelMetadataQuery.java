@@ -196,7 +196,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return nodeTypesHandler.getNodeTypes(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        nodeTypesHandler = revise(e.relClass, BuiltInMetadata.NodeTypes.DEF);
+        nodeTypesHandler = revise(BuiltInMetadata.NodeTypes.Handler.class);
       } catch (CyclicMetadataException e) {
         return null;
       }
@@ -218,7 +218,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         Double result = rowCountHandler.getRowCount(rel, this);
         return RelMdUtil.validateResult(castNonNull(result));
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        rowCountHandler = revise(e.relClass, BuiltInMetadata.RowCount.DEF);
+        rowCountHandler = revise(BuiltInMetadata.RowCount.Handler.class);
       }
     }
   }
@@ -236,8 +236,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return maxRowCountHandler.getMaxRowCount(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        maxRowCountHandler =
-            revise(e.relClass, BuiltInMetadata.MaxRowCount.DEF);
+        maxRowCountHandler = revise(BuiltInMetadata.MaxRowCount.Handler.class);
       }
     }
   }
@@ -255,8 +254,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return minRowCountHandler.getMinRowCount(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        minRowCountHandler =
-            revise(e.relClass, BuiltInMetadata.MinRowCount.DEF);
+        minRowCountHandler = revise(BuiltInMetadata.MinRowCount.Handler.class);
       }
     }
   }
@@ -274,8 +272,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return cumulativeCostHandler.getCumulativeCost(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        cumulativeCostHandler =
-            revise(e.relClass, BuiltInMetadata.CumulativeCost.DEF);
+        cumulativeCostHandler = revise(BuiltInMetadata.CumulativeCost.Handler.class);
       }
     }
   }
@@ -293,8 +290,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return nonCumulativeCostHandler.getNonCumulativeCost(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        nonCumulativeCostHandler =
-            revise(e.relClass, BuiltInMetadata.NonCumulativeCost.DEF);
+        nonCumulativeCostHandler = revise(BuiltInMetadata.NonCumulativeCost.Handler.class);
       }
     }
   }
@@ -316,7 +312,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return RelMdUtil.validatePercentage(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         percentageOriginalRowsHandler =
-            revise(e.relClass, BuiltInMetadata.PercentageOriginalRows.DEF);
+            revise(BuiltInMetadata.PercentageOriginalRows.Handler.class);
       }
     }
   }
@@ -338,7 +334,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return columnOriginHandler.getColumnOrigins(rel, this, column);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         columnOriginHandler =
-            revise(e.relClass, BuiltInMetadata.ColumnOrigin.DEF);
+            revise(BuiltInMetadata.ColumnOrigin.Handler.class);
       }
     }
   }
@@ -372,7 +368,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return expressionLineageHandler.getExpressionLineage(rel, this, expression);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         expressionLineageHandler =
-            revise(e.relClass, BuiltInMetadata.ExpressionLineage.DEF);
+            revise(BuiltInMetadata.ExpressionLineage.Handler.class);
       }
     }
   }
@@ -386,7 +382,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return tableReferencesHandler.getTableReferences(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         tableReferencesHandler =
-            revise(e.relClass, BuiltInMetadata.TableReferences.DEF);
+            revise(BuiltInMetadata.TableReferences.Handler.class);
       }
     }
   }
@@ -431,7 +427,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return RelMdUtil.validatePercentage(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         selectivityHandler =
-            revise(e.relClass, BuiltInMetadata.Selectivity.DEF);
+            revise(BuiltInMetadata.Selectivity.Handler.class);
       }
     }
   }
@@ -468,7 +464,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return uniqueKeysHandler.getUniqueKeys(rel, this, ignoreNulls);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         uniqueKeysHandler =
-            revise(e.relClass, BuiltInMetadata.UniqueKeys.DEF);
+            revise(BuiltInMetadata.UniqueKeys.Handler.class);
       }
     }
   }
@@ -552,7 +548,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
             ignoreNulls);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         columnUniquenessHandler =
-            revise(e.relClass, BuiltInMetadata.ColumnUniqueness.DEF);
+            revise(BuiltInMetadata.ColumnUniqueness.Handler.class);
       }
     }
   }
@@ -571,7 +567,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return collationHandler.collations(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        collationHandler = revise(e.relClass, BuiltInMetadata.Collation.DEF);
+        collationHandler = revise(BuiltInMetadata.Collation.Handler.class);
       }
     }
   }
@@ -596,7 +592,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return distribution;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distributionHandler =
-            revise(e.relClass, BuiltInMetadata.Distribution.DEF);
+            revise(BuiltInMetadata.Distribution.Handler.class);
       }
     }
   }
@@ -622,7 +618,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return RelMdUtil.validateResult(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         populationSizeHandler =
-            revise(e.relClass, BuiltInMetadata.PopulationSize.DEF);
+            revise(BuiltInMetadata.PopulationSize.Handler.class);
       }
     }
   }
@@ -640,7 +636,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return sizeHandler.averageRowSize(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        sizeHandler = revise(e.relClass, BuiltInMetadata.Size.DEF);
+        sizeHandler = revise(BuiltInMetadata.Size.Handler.class);
       }
     }
   }
@@ -660,7 +656,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return sizeHandler.averageColumnSizes(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        sizeHandler = revise(e.relClass, BuiltInMetadata.Size.DEF);
+        sizeHandler = revise(BuiltInMetadata.Size.Handler.class);
       }
     }
   }
@@ -690,7 +686,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return parallelismHandler.isPhaseTransition(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         parallelismHandler =
-            revise(e.relClass, BuiltInMetadata.Parallelism.DEF);
+            revise(BuiltInMetadata.Parallelism.Handler.class);
       }
     }
   }
@@ -709,7 +705,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return parallelismHandler.splitCount(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         parallelismHandler =
-            revise(e.relClass, BuiltInMetadata.Parallelism.DEF);
+            revise(BuiltInMetadata.Parallelism.Handler.class);
       }
     }
   }
@@ -729,7 +725,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.memory(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        memoryHandler = revise(e.relClass, BuiltInMetadata.Memory.DEF);
+        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
       }
     }
   }
@@ -749,7 +745,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.cumulativeMemoryWithinPhase(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        memoryHandler = revise(e.relClass, BuiltInMetadata.Memory.DEF);
+        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
       }
     }
   }
@@ -769,7 +765,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.cumulativeMemoryWithinPhaseSplit(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        memoryHandler = revise(e.relClass, BuiltInMetadata.Memory.DEF);
+        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
       }
     }
   }
@@ -797,7 +793,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return RelMdUtil.validateResult(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distinctRowCountHandler =
-            revise(e.relClass, BuiltInMetadata.DistinctRowCount.DEF);
+            revise(BuiltInMetadata.DistinctRowCount.Handler.class);
       }
     }
   }
@@ -816,7 +812,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         RelOptPredicateList result = predicatesHandler.getPredicates(rel, this);
         return result != null ? result : RelOptPredicateList.EMPTY;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        predicatesHandler = revise(e.relClass, BuiltInMetadata.Predicates.DEF);
+        predicatesHandler = revise(BuiltInMetadata.Predicates.Handler.class);
       }
     }
   }
@@ -834,7 +830,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return allPredicatesHandler.getAllPredicates(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        allPredicatesHandler = revise(e.relClass, BuiltInMetadata.AllPredicates.DEF);
+        allPredicatesHandler = revise(BuiltInMetadata.AllPredicates.Handler.class);
       }
     }
   }
@@ -858,7 +854,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return b == null || b;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         explainVisibilityHandler =
-            revise(e.relClass, BuiltInMetadata.ExplainVisibility.DEF);
+            revise(BuiltInMetadata.ExplainVisibility.Handler.class);
       }
     }
   }
@@ -878,7 +874,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return distributionHandler.distribution(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
-        distributionHandler = revise(e.relClass, BuiltInMetadata.Distribution.DEF);
+        distributionHandler = revise(BuiltInMetadata.Distribution.Handler.class);
       }
     }
   }
@@ -892,7 +888,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         lowerBoundCostHandler =
-            revise(e.relClass, BuiltInMetadata.LowerBoundCost.DEF);
+            revise(BuiltInMetadata.LowerBoundCost.Handler.class);
       }
     }
   }

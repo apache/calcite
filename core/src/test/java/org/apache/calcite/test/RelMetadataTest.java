@@ -107,7 +107,6 @@ import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -1025,9 +1024,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
           return metadataProvider.apply(relClass, metadataClass);
         }
 
+        @Deprecated // to be removed before 2.0
         @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
             MetadataDef<M> def) {
           return metadataProvider.handlers(def);
+        }
+
+        @Override public List<MetadataHandler<?>> handlers(
+            Class<? extends MetadataHandler<?>> handlerClass) {
+          return metadataProvider.handlers(handlerClass);
         }
       };
       RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(wrappedProvider));
@@ -1546,8 +1551,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
       fail("expected error");
     } catch (IllegalArgumentException e) {
-      final String value = "No handler for method [public abstract java.lang.String "
-          + "org.apache.calcite.test.RelMetadataTest$ColType.getColType(int)] "
+      final String value = "No handler for method [public abstract "
+          + "java.lang.String org.apache.calcite.test.RelMetadataTest$ColType$Handler.getColType("
+          + "org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)] "
           + "applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter]; "
           + "we recommend you create a catch-all (RelNode) handler";
       assertThat(e.getMessage(), is(value));
@@ -1581,9 +1587,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
       fail("expected error");
     } catch (IllegalArgumentException e) {
       final String value = "No handler for method [public abstract java.lang.String "
-          + "org.apache.calcite.test.RelMetadataTest$ColType.getColType(int)] "
-          + "applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter]; "
-          + "we recommend you create a catch-all (RelNode) handler";
+          + "org.apache.calcite.test.RelMetadataTest$ColType$Handler.getColType("
+          + "org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)]"
+          + " applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter];"
+          + " we recommend you create a catch-all (RelNode) handler";
       assertThat(e.getMessage(), is(value));
     }
   }
@@ -1887,10 +1894,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
       // Repeat the above tests directly against the handler.
       final RelMdColumnUniqueness handler =
-          (RelMdColumnUniqueness) RelMdColumnUniqueness.SOURCE
-              .handlers(BuiltInMetadata.ColumnUniqueness.DEF)
-              .get(BuiltInMethod.COLUMN_UNIQUENESS.method)
-              .iterator().next();
+          (RelMdColumnUniqueness) Iterables.getOnlyElement(RelMdColumnUniqueness.SOURCE
+              .handlers(BuiltInMetadata.ColumnUniqueness.Handler.class));
       assertThat(handler.areColumnsUnique(values, mq, col0, false),
           is(true));
       assertThat(handler.areColumnsUnique(values, mq, col1, false),
@@ -3512,7 +3517,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * reflection. */
   public static class ColTypeImpl extends PartialColTypeImpl {
     public static final RelMetadataProvider SOURCE =
-        ReflectiveRelMetadataProvider.reflectiveSource(ColType.METHOD, new ColTypeImpl());
+        ReflectiveRelMetadataProvider.reflectiveSource(new ColTypeImpl(), ColType.Handler.class);
 
     /** Implementation of {@link ColType#getColType(int)} for
      * {@link RelNode}, called via reflection. */
@@ -3528,8 +3533,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Implementation of {@link ColType} that has no fall-back for {@link RelNode}. */
   public static class BrokenColTypeImpl extends PartialColTypeImpl {
     public static final RelMetadataProvider SOURCE =
-        ReflectiveRelMetadataProvider.reflectiveSource(ColType.METHOD,
-            new BrokenColTypeImpl());
+        ReflectiveRelMetadataProvider.reflectiveSource(
+            new BrokenColTypeImpl(), ColType.Handler.class);
   }
 
   /** Extension to {@link RelMetadataQuery} to support {@link ColType}.
@@ -3547,7 +3552,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         try {
           return colTypeHandler.getColType(rel, this, column);
         } catch (JaninoRelMetadataProvider.NoHandler e) {
-          colTypeHandler = revise(e.relClass, ColType.DEF);
+          colTypeHandler = revise(ColType.Handler.class);
         }
       }
     }

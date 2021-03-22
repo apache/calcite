@@ -154,7 +154,7 @@ public class DispatchGenerator {
       Method candidate) {
     if (!superMethod.getName().equals(candidate.getName())) {
       return null;
-    } else if (superMethod.getParameterCount() + 2 != candidate.getParameterCount()) {
+    } else if (superMethod.getParameterCount() != candidate.getParameterCount()) {
       return null;
     } else {
       Class<?>[] cpt = candidate.getParameterTypes();
@@ -164,8 +164,8 @@ public class DispatchGenerator {
       } else if (!RelMetadataQuery.class.equals(cpt[1])) {
         return null;
       }
-      for (int i = 0; i < smpt.length; i++) {
-        if (cpt[i + 2] != smpt[i]) {
+      for (int i = 2; i < smpt.length; i++) {
+        if (cpt[i] != smpt[i]) {
           return null;
         }
       }
