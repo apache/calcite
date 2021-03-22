@@ -21,6 +21,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -105,12 +106,23 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
     for (RelMetadataProvider provider : providers.reverse()) {
       builder.putAll(provider.handlers(def));
+    }
+    return builder.build();
+  }
+
+  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    final ImmutableSet.Builder<MetadataHandler<?>> builder =
+        ImmutableSet.builder();
+    for (RelMetadataProvider provider : providers.reverse()) {
+      builder.addAll(provider.handlers(handlerClass));
     }
     return builder.build();
   }

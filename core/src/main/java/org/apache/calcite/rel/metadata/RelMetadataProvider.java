@@ -18,6 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -70,6 +71,9 @@ public interface RelMetadataProvider {
   <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
+  @Deprecated // to be removed before 2.0
   <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def);
+
+  ImmutableSet<MetadataHandler<?>> handlers(Class<? extends MetadataHandler<?>> handlerClass);
 }

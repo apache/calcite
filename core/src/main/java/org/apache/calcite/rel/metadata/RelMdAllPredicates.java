@@ -41,7 +41,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -78,8 +77,9 @@ import java.util.Set;
  */
 public class RelMdAllPredicates
     implements MetadataHandler<BuiltInMetadata.AllPredicates> {
-  public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(BuiltInMethod.ALL_PREDICATES.method, new RelMdAllPredicates());
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          new RelMdAllPredicates(), BuiltInMetadata.AllPredicates.Handler.class);
 
   @Override public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
     return BuiltInMetadata.AllPredicates.DEF;
