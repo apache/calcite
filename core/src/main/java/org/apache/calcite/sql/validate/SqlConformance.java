@@ -541,4 +541,10 @@ public interface SqlConformance {
 
   boolean isDollarSupportedinAlias();
 
+
+  /**
+   * Check if the "else" condition is mandatory in the "Case" operator.
+   *
+   */
+  boolean isElseCaseNeeded();
 }

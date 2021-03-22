@@ -358,6 +358,27 @@ import static java.util.Objects.requireNonNull;
  * <td>format the value</td>
  * </tr>
  * <tr>
+ * <td>WEEKNUMBER_OF_YEAR(expression)</td>
+ * <td>week number of the year</td>
+ * </tr>
+ * <tr>
+ * <td>TO_BINARY(value, charset)</td>
+ * <td>format the value based on charset</td>
+ * </tr>
+ * <tr>
+ * <td>TIME_SUB(time, interval)</td>
+ * <td>Time minus interval</td>
+ * </tr>
+ * <tr>
+ * <td>TO_CHAR(value, format)</td>
+ * <td>format the value</td>
+ * </tr>
+ * <tr>
+ * <td>STRTOK(string, delimiter, partNr)</td>
+ * <td>format the value</td>
+ * </tr>
+ * <tr>
+ * <tr>
  * <td>USER()</td>
  * <td>User name in the DBMS
  *
@@ -776,6 +797,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
           });
       map.put("FORMAT", simple(SqlLibraryOperators.FORMAT));
       map.put("TO_VARCHAR", simple(SqlLibraryOperators.TO_VARCHAR));
+      map.put("WEEKNUMBER_OF_YEAR", simple(SqlLibraryOperators.WEEKNUMBER_OF_YEAR));
+      map.put("TO_BINARY", simple(SqlLibraryOperators.TO_BINARY));
+      map.put("TIME_SUB", simple(SqlLibraryOperators.TIME_SUB));
+      map.put("TO_CHAR", simple(SqlLibraryOperators.TO_CHAR));
+      map.put("STRTOK", simple(SqlLibraryOperators.STRTOK));
       map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
       map.put("CONVERT",
           new SimpleMakeCall(SqlStdOperatorTable.CAST) {

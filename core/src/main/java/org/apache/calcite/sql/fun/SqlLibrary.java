@@ -66,7 +66,11 @@ public enum SqlLibrary {
   /** A collection of operators that are in Teradata but not in standard SQL. */
   TERADATA("t", "teradata"),
   /** A collection of operators that are in Snowflake but not in standard SQL. */
-  SNOWFLAKE("sf", "snowflake");
+  SNOWFLAKE("sf", "snowflake"),
+  /** A collection of operators that are in MSSQL but not in standard SQL. */
+  MSSQL("mssql", "mssql"),
+  /** A collection of operators that are in NETEZZA but not in standard SQL. */
+  NETEZZA("NETEZZA", "netezza");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

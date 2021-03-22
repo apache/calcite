@@ -587,6 +587,71 @@ public class SqlDialect {
         RelDataTypeSystem.DEFAULT);
   }
 
+  protected void unparseDateModule(SqlWriter writer, SqlCall call,
+                                 int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall("MOD");
+    writer.print("(");
+    unparseTimeUnitExtract(TimeUnit.YEAR, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print("- 1900) * 10000 + ");
+    unparseTimeUnitExtract(TimeUnit.MONTH, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print(" * 100 + ");
+    unparseTimeUnitExtract(TimeUnit.DAY, call.operand(0), writer, leftPrec, rightPrec);
+    writer.print(", ");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
+  }
+
+  protected void unparseTimeUnitExtract(TimeUnit timeUnit, SqlNode operand,
+                                      SqlWriter writer, int leftPrec, int rightPrec) {
+    SqlNode[] operands = new SqlNode[] {
+        SqlLiteral.createSymbol(timeUnit, SqlParserPos.ZERO), operand
+    };
+    SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.EXTRACT, operands,
+        SqlParserPos.ZERO);
+    extractCall.unparse(writer, leftPrec, rightPrec);
+  }
+
+  protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(0) instanceof SqlDateLiteral
+        && call.operand(1) instanceof SqlDateLiteral) {
+      unparseDateOperandForDateDiff(writer, call.operand(0), leftPrec, rightPrec);
+      writer.print(" - ");
+      unparseDateOperandForDateDiff(writer, call.operand(1), leftPrec, rightPrec);
+    } else {
+      unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseDateOperandForDateDiff(SqlWriter writer, SqlDateLiteral sqlDateLiteral,
+                                             int leftPrec, int rightPrec) {
+    SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    writer.print("(YEAR(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") - 1900) * 10000");
+    writer.print(" + ");
+    writer.print("MONTH(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") * 100");
+    writer.print(" + ");
+    writer.print("DAY(");
+    sqlDateLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(") AS INT");
+    writer.endFunCall(castFrame);
+  }
+
+  protected void unparseTimestampDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    unparseTimestampOperand(writer, call, leftPrec, rightPrec, 0);
+    writer.print(" - ");
+    unparseTimestampOperand(writer, call, leftPrec, rightPrec, 1);
+  }
+
+  private void unparseTimestampOperand(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec, int index) {
+    writer.print("(");
+    call.operand(index).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
+  }
+
   /**
    * Returns whether the string contains any characters outside the
    * comfortable 7-bit ASCII range (32 through 127, plus linefeed (10) and

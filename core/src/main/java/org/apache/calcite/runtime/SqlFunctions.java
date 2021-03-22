@@ -55,14 +55,18 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -76,6 +80,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -3094,6 +3099,17 @@ public class SqlFunctions {
   }
 
   /***
+   * If first operand is not null isNull will return first operand
+   * else it will return second operand.
+   * @param first operand
+   * @param second operand
+   * @return Object
+   */
+  public static Object isNull(Object first, Object second) {
+    return first != null ? first : second;
+  }
+
+  /***
    * If size is less than the str, then return substring of str
    * Append whitespace at the beginning of the str.
    *
@@ -3176,6 +3192,90 @@ public class SqlFunctions {
     return String.format(Locale.ENGLISH, pattern.toString(), value);
   }
 
+  public static Timestamp timestampSeconds(Long value) {
+    if (null == value) {
+      return null;
+    }
+    return new Timestamp(value);
+  }
+
+  public static Object weekNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.WEEK_OF_YEAR);
+  }
+
+  public static Object yearNumberOfCalendar(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    return Integer.parseInt(dateSplit[0]);
+  }
+
+  public static Object monthNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    return Integer.parseInt(dateSplit[1]);
+  }
+
+  public static Object quarterNumberOfYear(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int monthValue = Integer.parseInt(dateSplit[1]);
+    if (monthValue <= 3) {
+      return 1;
+    } else if (monthValue <= 6) {
+      return 2;
+    } else if (monthValue <= 9) {
+      return 3;
+    }
+    return 4;
+  }
+
+  public static Object monthNumberOfQuarter(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int monthValue = Integer.parseInt(dateSplit[1]);
+    return monthValue % 3 == 0 ? 3 : monthValue % 3;
+  }
+
+  public static Object weekNumberOfMonth(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.WEEK_OF_MONTH) - 1;
+  }
+
+  public static Object weekNumberOfCalendar(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    int year = Integer.parseInt(dateSplit[0]);
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return 52 * (year - 1900) + calendar.get(Calendar.WEEK_OF_YEAR) - 5;
+  }
+
+  public static Object dayOccurrenceOfMonth(Object value) {
+    String[] dateSplit = ((String) value).split("-");
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(dateSplit[0]), Integer.parseInt(dateSplit[1]),
+        Integer.parseInt(dateSplit[2]));
+    return calendar.get(Calendar.DAY_OF_WEEK_IN_MONTH);
+  }
+
+  public static Object dayNumberOfCalendar(Object value) {
+    String inputDate = (String) value;
+    return (int) ChronoUnit.DAYS.between(LocalDate.parse("1899-12-31"), LocalDate.parse(inputDate));
+  }
+
+  public static Object dateMod(Object dateValue, Object value) {
+    String[] dateSplit = ((String) dateValue).split("-");
+    return (Integer.valueOf(dateSplit[0]) - 1900) * 10000 + Integer.valueOf(dateSplit[1]) * 100
+        + Integer.valueOf(dateSplit[2]) / (Integer) value;
+  }
+
+  public static Calendar calendar() {
+    return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
+  }
+
   /** Return date value from Timestamp. */
   public static java.sql.Date timestampToDate(Object obj) {
     long timestamp = 0;
@@ -3186,4 +3286,258 @@ public class SqlFunctions {
     }
     return new java.sql.Date(timestamp);
   }
+
+  /**Return match index value. */
+  public static Integer instr(String str, String substr, Integer start, Integer occurance) {
+    if (null == str || null == substr) {
+      return 0;
+    }
+    int next = start - 1;
+    while (occurance > 0) {
+      start = str.indexOf(substr, next);
+      next = start + 1;
+      occurance = occurance - 1;
+    }
+    return start + 1;
+  }
+
+  /**Returns matching index value.*/
+  public static Integer charindex(String strToFind, String strToSearch, Integer startLocation) {
+    if (null == strToFind || null == strToSearch) {
+      return 0;
+    }
+    return strToSearch.toLowerCase(Locale.ROOT)
+            .indexOf(strToFind.toLowerCase(Locale.ROOT), startLocation - 1) + 1;
+  }
+
+  public static long timeDiff(java.sql.Date d1, java.sql.Date d2) {
+    return d2.getTime() - d1.getTime();
+  }
+
+  public static long timestampIntAdd(Timestamp t1, Integer t2) {
+    return t1.getTime() + t2;
+  }
+
+  public static long timestampIntSub(Timestamp t1, Integer t2) {
+    return t1.getTime() - t2;
+  }
+
+  public static Object datetimeAdd(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp ts = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(ts);
+    cal.add(unit, additive);
+    ts.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object datetimeSub(Object datetime, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer additive = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "DAY":
+      unit = Calendar.DAY_OF_WEEK;
+      break;
+    case "MONTH":
+      unit = Calendar.MONTH;
+      break;
+    case "YEAR":
+      unit = Calendar.YEAR;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Timestamp timestamp = Timestamp.valueOf((String) datetime);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(timestamp);
+    cal.add(unit, additive);
+    timestamp.setTime(cal.getTime().getTime());
+    return new Timestamp(cal.getTime().getTime());
+  }
+
+  public static Object toBinary(Object value, Object charSet) {
+    Charset charset = Charset.forName((String) charSet);
+    BigInteger bigInteger = new BigInteger(1, ((String) value).getBytes(charset));
+    return upper(String.format(Locale.ENGLISH, "%x", bigInteger));
+  }
+
+  public static Object timeSub(Object timeVal, Object interval) {
+    String[] split = ((String) interval).split("\\s+");
+    Integer subtractValue = -Integer.parseInt(split[1]);
+    String timeUnit = split[2];
+    int unit;
+    switch (StringUtils.upperCase(timeUnit)) {
+    case "HOUR":
+      unit = Calendar.HOUR;
+      break;
+    case "MINUTE":
+      unit = Calendar.MINUTE;
+      break;
+    case "SECOND":
+      unit = Calendar.SECOND;
+      break;
+    default: throw new IllegalArgumentException(" unknown interval type");
+    }
+    Time time = Time.valueOf((String) timeVal);
+    Calendar cal = Calendar.getInstance(TimeZone.getDefault(),
+        Locale.getDefault(Locale.Category.FORMAT));
+    cal.setTime(time);
+    cal.add(unit, subtractValue);
+    time.setTime(cal.getTime().getTime());
+    return time;
+  }
+
+  public static Object toCharFunction(Object value, Object format) {
+    if (null == value || null == format) {
+      return null;
+    }
+    String[] formatStore = ((String) format).split("\\.");
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("%");
+    pattern.append(formatStore[0].length());
+    if (formatStore.length > 1) {
+      pattern.append(".");
+      pattern.append(formatStore[1].length());
+      pattern.append("f");
+    } else {
+      pattern.append("d");
+    }
+    return String.format(Locale.ENGLISH, pattern.toString(), value);
+  }
+
+  public static Object strTok(Object value, Object delimiter, Object part) {
+    return ((String) value).split((String) delimiter) [(Integer) part - 1];
+  }
+
+  public static Object regexpMatchCount(Object str, Object regex, Object startPos, Object flag) {
+    String newString = (String) str;
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern;
+    switch (((String) flag).toLowerCase(Locale.ROOT)) {
+    case "m":
+      pattern = Pattern.compile((String) regex, Pattern.MULTILINE);
+      break;
+    case "i":
+      pattern = Pattern.compile((String) regex, Pattern.CASE_INSENSITIVE);
+      break;
+    default:
+      pattern = Pattern.compile((String) regex);
+    }
+    Matcher matcher = pattern.matcher(newString);
+    int count = 0;
+    while (matcher.find()) {
+      count++;
+    }
+    return count;
+  }
+
+  public static Object cotFunction(Double operand) {
+    return 1 / Math.tan(operand);
+  }
+
+  public static Object bitwiseAnd(Integer firstOperand, Integer secondOperand) {
+    return firstOperand & secondOperand;
+  }
+
+  public static Object bitwiseOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand | secondOperand;
+  }
+
+  public static Object bitwiseXOR(Integer firstOperand, Integer secondOperand) {
+    return firstOperand ^ secondOperand;
+  }
+
+  public static Object bitwiseSHR(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) >> secondOperand;
+  }
+
+  public static Object bitwiseSHL(Integer firstOperand,
+                                  Integer secondOperand, Integer thirdOperand) {
+    return (firstOperand & thirdOperand) << secondOperand;
+  }
+
+  public static Object pi() {
+    return Math.acos(-1);
+  }
+
+  public static Object octetLength(Object value) {
+    return value.toString().getBytes(UTF_8).length;
+  }
+
+
+  public static Object monthsBetween(Object date1, Object date2) {
+    String[] firstDate = ((String) date1).split("-");
+    String[] secondDate = ((String) date2).split("-");
+
+    Calendar calendar = calendar();
+    calendar.set(Integer.parseInt(firstDate[0]), Integer.parseInt(firstDate[1]),
+            Integer.parseInt(firstDate[2]));
+    int firstYear = calendar.get(Calendar.YEAR);
+    int firstMonth = calendar.get(Calendar.MONTH);
+    int firstDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    calendar.set(Integer.parseInt(secondDate[0]), Integer.parseInt(secondDate[1]),
+            Integer.parseInt(secondDate[2]));
+    int secondYear = calendar.get(Calendar.YEAR);
+    int secondMonth = calendar.get(Calendar.MONTH);
+    int secondDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+    return Math.round(
+        ((firstYear - secondYear) * 12 + (firstMonth - secondMonth)
+           + (double) (firstDay - secondDay) / 31) * Math.pow(10, 9)) / Math.pow(10, 9);
+  }
+
+  public static Object regexpContains(Object value, Object regex) {
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher((String) value);
+    while (matcher.find()) {
+      return true;
+    }
+    return false;
+  }
+
+  public static Object regexpExtract(Object str, Object regex, Object startPos, Object occurrence) {
+    String newString = (String) str;
+    if ((Integer) startPos > newString.length()) {
+      return null;
+    }
+    if ((Integer) startPos > 0) {
+      int startPosition = (Integer) startPos;
+      newString = newString.substring(startPosition, newString.length());
+    }
+    Pattern pattern = Pattern.compile((String) regex);
+    Matcher matcher = pattern.matcher(newString);
+    int count = 0;
+    while (matcher.find()) {
+      if (count == (Integer) occurrence) {
+        return matcher.group();
+      }
+      count++;
+    }
+    return null;
+  }
+
 }

@@ -48,6 +48,7 @@ import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.interval.HiveDateTimestampInterval;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -90,6 +91,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -154,6 +160,10 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsColumnAliasInSort() {
     return true;
   }
@@ -180,7 +190,6 @@ public class HiveSqlDialect extends SqlDialect {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
-
     return null;
   }
 
@@ -287,7 +296,23 @@ public class HiveSqlDialect extends SqlDialect {
       unparseNullIf(writer, call, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
+    case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case PLUS:
+      HiveDateTimestampInterval plusInterval = new HiveDateTimestampInterval();
+      if (!plusInterval.unparseDateTimeMinus(writer, call, leftPrec, rightPrec, "+")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case MINUS:
+      HiveDateTimestampInterval minusInterval = new HiveDateTimestampInterval();
+      if (!minusInterval.unparseDateTimeMinus(writer, call, leftPrec, rightPrec, "-")) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case TIMESTAMP_DIFF:
+      unparseTimestampDiff(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -304,10 +329,6 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByWithCube() {
     return true;
-  }
-
-  @Override public boolean supportsNestedAggregations() {
-    return false;
   }
 
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
@@ -566,6 +587,10 @@ public class HiveSqlDialect extends SqlDialect {
       }
       writer.endFunCall(funCallFrame);
       break;
+    case "TIMESTAMPINTADD":
+    case "TIMESTAMPINTSUB":
+      unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
+      break;
     case "STRING_SPLIT":
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
       unparseCall(writer, splitCall, leftPrec, rightPrec);
@@ -584,9 +609,67 @@ public class HiveSqlDialect extends SqlDialect {
     case "LPAD":
       PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "DAYOFYEAR":
+      SqlCall formatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+          SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+      SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, formatCall,
+          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+      unparseCall(writer, castCall, leftPrec, rightPrec);
+      break;
+    case "INSTR":
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
+      }
+      writer.endFunCall(frame);
+      break;
+    case "RAND_INTEGER":
+      unparseRandomfunction(writer, call, leftPrec, rightPrec);
+      break;
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_QUARTER:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_MONTH:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    case "DATE_DIFF":
+      unparseDateDiff(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(getTimestampOperatorName(call) + " ");
+    call.operand(call.getOperandList().size() - 1)
+            .unparse(writer, leftPrec, rightPrec);
+  }
+
+  private String getTimestampOperatorName(SqlCall call) {
+    String operatorName = call.getOperator().getName();
+    return operatorName.equals("TIMESTAMPINTADD") ? "+"
+            : operatorName.equals("TIMESTAMPINTSUB") ? "-"
+            : operatorName;
+  }
+
+  /**
+   * unparse method for Random function.
+   */
+  private void unparseRandomfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall randCall = RAND.createCall(SqlParserPos.ZERO);
+    SqlCall upperLimitCall = PLUS.createCall(SqlParserPos.ZERO, MINUS.createCall
+            (SqlParserPos.ZERO, call.operand(1), call.operand(0)), call.operand(0));
+    SqlCall numberGenerator = MULTIPLY.createCall(SqlParserPos.ZERO, randCall, upperLimitCall);
+    SqlCall floorDoubleValue = FLOOR.createCall(SqlParserPos.ZERO, numberGenerator);
+    SqlCall plusNode = PLUS.createCall(SqlParserPos.ZERO, floorDoubleValue, call.operand(0));
+    unparseCall(writer, plusNode, leftPrec, rightPrec);
   }
 
   private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -609,5 +692,4 @@ public class HiveSqlDialect extends SqlDialect {
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
   }
-
 }

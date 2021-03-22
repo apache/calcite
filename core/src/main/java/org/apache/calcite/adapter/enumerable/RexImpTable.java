@@ -105,16 +105,23 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITWISE_AND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITWISE_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHARINDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_ADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
@@ -122,6 +129,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT2SHL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT2SHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT8XOR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
@@ -135,6 +147,14 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_QUARTER;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHS_BETWEEN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OCTET_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_MATCH_COUNT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
@@ -146,18 +166,28 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMPINTADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMPINTSUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_DIFF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BINARY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_MONTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
@@ -273,7 +303,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
@@ -360,8 +389,7 @@ public class RexImpTable {
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
     defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
     defineMethod(CHR, "chr", NullPolicy.STRICT);
-    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
-        NullPolicy.STRICT);
+    defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method, NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
     defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method,
@@ -381,10 +409,14 @@ public class RexImpTable {
     defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
     defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
     defineMethod(IFNULL, BuiltInMethod.IFNULL.method, NullPolicy.NONE);
+    defineMethod(ISNULL, BuiltInMethod.ISNULL.method, NullPolicy.NONE);
     defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
     defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
     defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
+    defineMethod(MONTHS_BETWEEN, BuiltInMethod.MONTHS_BETWEEN.method, NullPolicy.NONE);
+    defineOtherFunctionMethod();
+    defineMethod(DATE_MOD, BuiltInMethod.DATE_MOD.method, NullPolicy.NONE);
     defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
 
     map.put(TRIM, new TrimImplementor());
@@ -393,6 +425,13 @@ public class RexImpTable {
     map.put(AND, new LogicalAndImplementor());
     map.put(OR, new LogicalOrImplementor());
     map.put(NOT, new LogicalNotImplementor());
+
+    defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method, NullPolicy.ARG0);
+    defineMethod(INT2SHR, BuiltInMethod.INT2SHR.method, NullPolicy.NONE);
+    defineMethod(INT8XOR, BuiltInMethod.INT8XOR.method, NullPolicy.NONE);
+    defineMethod(INT2SHL, BuiltInMethod.INT2SHL.method, NullPolicy.NONE);
+    defineMethod(BITWISE_OR, BuiltInMethod.BITWISE_OR.method, NullPolicy.NONE);
+    defineMethod(BITWISE_AND, BuiltInMethod.BITWISE_AND.method, NullPolicy.NONE);
 
     // comparisons
     defineBinary(LESS_THAN, LessThan, NullPolicy.STRICT, "lt");
@@ -694,7 +733,38 @@ public class RexImpTable {
     tvfImplementorMap.put(SESSION, SessionImplementor::new);
   }
 
-  private static <T> Supplier<T> constructorSupplier(Class<T> klass) {
+  private void defineOtherFunctionMethod() {
+    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
+    defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
+        NullPolicy.NONE);
+    defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
+        NullPolicy.NONE);
+    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
+    defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
+        NullPolicy.NONE);
+    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
+    defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
+        NullPolicy.NONE);
+    defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
+        NullPolicy.NONE);
+    defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
+    defineMethod(TO_BINARY, BuiltInMethod.TO_BINARY.method, NullPolicy.NONE);
+    defineMethod(TIME_SUB, BuiltInMethod.TIME_SUB.method, NullPolicy.NONE);
+    defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.ARG0);
+    defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
+    defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+    defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
+    defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
+    defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
+    defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
+    defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method, NullPolicy.NONE);
+    defineMethod(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT.method, NullPolicy.NONE);
+  }
+
+  private <T> Supplier<T> constructorSupplier(Class<T> klass) {
     final Constructor<T> constructor;
     try {
       constructor = klass.getDeclaredConstructor();

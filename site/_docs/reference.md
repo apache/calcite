@@ -55,6 +55,23 @@ here to appease testAllFunctionsAreDocumented:
 | RPAD()         | Append paddingString to the end of the string
 | FORMAT         | Format the value as per the pattern defined
 | TO_VARCHAR     | Derives the value as per the pattern defined
+| INSTR          | Finds substring position from Source string
+| WEEKNUMBER_OF_YEAR     | Get week number of the year
+| YEARNUMBER_OF_CALENDAR | Get year from the calendar value
+| MONTHNUMBER_OF_YEAR    | Get month of the year
+| QUARTERNUMBER_OF_YEAR  | Get quarter value of the year
+| MONTHNUMBER_OF_QUARTER | Get month from the quarter of the year
+| WEEKNUMBER_OF_MONTH    | Get week number of the month
+| WEEKNUMBER_OF_CALENDAR | Get week number of the calendar
+| DAYOCCURRENCE_OF_MONTH | Get day occurrence of the month
+| DATE_MOD       | Return division result between date and integer
+| TO_BINARY      | Return binary format based on charset
+| TIME_SUB       | Return time minus from interval
+| TO_CHAR        | Format date based on the format given
+| STRTOK         | Tokenizes a given string and returns the requested part
+| REGEXP_MATCH_COUNT | Returns the number of matching occurrences in the input
+| REGEXP_CONTAINS    | Returns TRUE if value is a partial match for the regular expression.
+| MONTHS_BETWEEN | Returns the month difference between two dates or timestamp
 {% endcomment %}
 -->
 

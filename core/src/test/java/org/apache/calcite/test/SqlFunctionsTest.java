@@ -25,6 +25,7 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,31 +34,60 @@ import java.util.List;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseAnd;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseOR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHL;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseXOR;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
+import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.cotFunction;
+import static org.apache.calcite.runtime.SqlFunctions.dateMod;
+import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
+import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
+import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
+import static org.apache.calcite.runtime.SqlFunctions.dayOccurrenceOfMonth;
 import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.instr;
+import static org.apache.calcite.runtime.SqlFunctions.isNull;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.lpad;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfQuarter;
+import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
+import static org.apache.calcite.runtime.SqlFunctions.octetLength;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
+import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
+import static org.apache.calcite.runtime.SqlFunctions.regexpExtract;
+import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.strTok;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
+import static org.apache.calcite.runtime.SqlFunctions.timeSub;
 import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toBinary;
+import static org.apache.calcite.runtime.SqlFunctions.toCharFunction;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfCalendar;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfMonth;
+import static org.apache.calcite.runtime.SqlFunctions.weekNumberOfYear;
+import static org.apache.calcite.runtime.SqlFunctions.yearNumberOfCalendar;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1002,6 +1032,15 @@ class SqlFunctionsTest {
     assertThat(ifNull(substring("abc", 1, 1), "b"), is("a"));
   }
 
+  /** Test for {@link SqlFunctions#isNull}. */
+  @Test public void testisNull() {
+    assertThat(isNull("a", "b"), is("a"));
+    assertThat(isNull(null, "b"), is("b"));
+    assertThat(isNull(null, null), nullValue());
+    assertThat(isNull(1, 1), is(1));
+    assertThat(isNull(substring("abc", 1, 1), "b"), is("a"));
+  }
+
   /** Test for {@link SqlFunctions#lpad}. */
   @Test public void testLPAD() {
     assertThat(lpad("123", 6, "%"), is("%%%123"));
@@ -1036,9 +1075,204 @@ class SqlFunctionsTest {
     assertThat(toVarchar(1.5, "9.99"), is("1.50"));
   }
 
+  /** Test for {@link SqlFunctions#weekNumberOfYear}. */
+  @Test public void testWeekNumberofYear() {
+    assertThat(weekNumberOfYear("2019-03-12"), is(15));
+    assertThat(weekNumberOfYear("2019-07-12"), is(33));
+    assertThat(weekNumberOfYear("2019-09-12"), is(41));
+  }
+
+  /** Test for {@link SqlFunctions#yearNumberOfCalendar}. */
+  @Test public void testYearNumberOfCalendar() {
+    assertThat(yearNumberOfCalendar("2019-03-12"), is(2019));
+    assertThat(yearNumberOfCalendar("1901-07-01"), is(1901));
+    assertThat(yearNumberOfCalendar("1900-12-28"), is(1900));
+  }
+
+  /** Test for {@link SqlFunctions#monthNumberOfYear}. */
+  @Test public void testMonthNumberOfYear() {
+    assertThat(monthNumberOfYear("2019-03-12"), is(3));
+    assertThat(monthNumberOfYear("1901-07-01"), is(7));
+    assertThat(monthNumberOfYear("1900-12-28"), is(12));
+  }
+
+  /** Test for {@link SqlFunctions#quarterNumberOfYear}. */
+  @Test public void testQuarterNumberOfYear() {
+    assertThat(quarterNumberOfYear("2019-03-12"), is(1));
+    assertThat(quarterNumberOfYear("1901-07-01"), is(3));
+    assertThat(quarterNumberOfYear("1900-12-28"), is(4));
+  }
+
+  /** Test for {@link SqlFunctions#monthNumberOfQuarter}. */
+  @Test public void testMonthNumberOfQuarter() {
+    assertThat(monthNumberOfQuarter("2019-03-12"), is(3));
+    assertThat(monthNumberOfQuarter("1901-07-01"), is(1));
+    assertThat(monthNumberOfQuarter("1900-09-28"), is(3));
+  }
+
+  /** Test for {@link SqlFunctions#weekNumberOfMonth}. */
+  @Test public void testWeekNumberOfMonth() {
+    assertThat(weekNumberOfMonth("2019-03-12"), is(1));
+    assertThat(weekNumberOfMonth("1901-07-01"), is(0));
+    assertThat(weekNumberOfMonth("1900-09-28"), is(4));
+  }
+
+  /** Test for {@link SqlFunctions#dayOccurrenceOfMonth}. */
+  @Test public void testDayOccurrenceOfMonth() {
+    assertThat(dayOccurrenceOfMonth("2019-03-12"), is(2));
+    assertThat(dayOccurrenceOfMonth("2019-07-15"), is(3));
+    assertThat(dayOccurrenceOfMonth("2019-09-20"), is(3));
+  }
+
+  /** Test for {@link SqlFunctions#weekNumberOfCalendar}. */
+  @Test public void testWeekNumberOfCalendar() {
+    assertThat(weekNumberOfCalendar("2019-03-12"), is(6198));
+    assertThat(weekNumberOfCalendar("1901-07-01"), is(78));
+    assertThat(weekNumberOfCalendar("1900-09-01"), is(35));
+  }
+
+  /** Test for {@link SqlFunctions#dayNumberOfCalendar}. */
+  @Test public void testDayNumberOfCalendar() {
+    assertThat(dayNumberOfCalendar("2019-03-12"), is(43535));
+    assertThat(dayNumberOfCalendar("1901-07-01"), is(547));
+    assertThat(dayNumberOfCalendar("1900-09-01"), is(244));
+  }
+
+  /** Test for {@link SqlFunctions#dateMod}. */
+  @Test public void testDateMod() {
+    assertThat(dateMod("2019-03-12", 1023), is(1190300));
+    assertThat(dateMod("2008-07-15", 5794), is(1080700));
+    assertThat(dateMod("2014-01-27", 8907), is(1140100));
+  }
+
   /** Test for {@link SqlFunctions#timestampToDate}. */
   @Test public void testTimestampToDate() {
     assertThat(timestampToDate("2020-12-12 12:12:12").toString(), is("2020-12-12"));
     assertThat(timestampToDate(new Timestamp(1607731932)).toString(), is("1970-01-19"));
+  }
+
+  /** Test for {@link SqlFunctions#instr}. */
+  @Test public void testInStr() {
+    assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
+    assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#charindex}. */
+  @Test public void testCharindex() {
+    assertThat(charindex("xy", "Choose a chocolate chip cookie", 2), is(0));
+    assertThat(charindex("ch", "Choose a chocolate chip cookie", 1), is(1));
+    assertThat(charindex("ch", "Choose a chocolate chip cookie", 2), is(10));
+  }
+
+  /** Test for {@link SqlFunctions#datetimeAdd(Object, Object)}. */
+  @Test public void testdatetimeAdd() {
+    assertThat(datetimeAdd("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
+        is(Timestamp.valueOf("2000-12-13 12:12:12.0")));
+  }
+
+  /** Test for {@link SqlFunctions#datetimeSub(Object, Object)}. */
+  @Test public void testdatetimeSub() {
+    assertThat(datetimeSub("2000-12-12 12:12:12", "INTERVAL 1 DAY"),
+        is(Timestamp.valueOf("2000-12-11 12:12:12.0")));
+  }
+
+  /** Test for {@link SqlFunctions#toBinary(Object, Object)}. */
+  @Test public void testToBinary() {
+    assertThat(toBinary("williams", "UTF-8"), is("77696C6C69616D73"));
+    assertThat(toBinary("david", "UTF-8"), is("6461766964"));
+  }
+
+  /** Test for {@link SqlFunctions#timeSub(Object, Object)}. */
+  @Test public void testTimeSub() {
+    assertThat(timeSub("15:30:00", "INTERVAL 10 MINUTE"), is(Time.valueOf("15:20:00")));
+    assertThat(timeSub("10:00:00", "INTERVAL 1 HOUR"), is(Time.valueOf("09:00:00")));
+  }
+
+  /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
+  @Test public void testToChar() {
+    assertThat(toCharFunction(null, null), nullValue());
+    assertThat(toCharFunction(23, "99"), is("23"));
+    assertThat(toCharFunction(123, "999"), is("123"));
+    assertThat(toCharFunction(1.5, "9.99"), is("1.50"));
+  }
+
+  @Test public void monthsBetween() {
+    assertThat(SqlFunctions.monthsBetween("2020-05-23", "2020-04-23"), is(1.0));
+    assertThat(SqlFunctions.monthsBetween("2020-05-26", "2020-04-20"), is(1.193548387));
+    assertThat(SqlFunctions.monthsBetween("2019-05-26", "2020-04-20"), is(-10.806451613));
+  }
+
+  @Test public void cotFunctionTest() {
+    assertThat(cotFunction(0.12), is(8.293294880594532));
+  }
+
+  @Test public void bitwiseAndFunctionTest() {
+    assertThat(bitwiseAnd(3, 6), is(2));
+  }
+
+  @Test public void bitwiseORFunctionTest() {
+    assertThat(bitwiseOR(3, 6), is(7));
+  }
+
+  @Test public void bitwiseXORFunctionTest() {
+    assertThat(bitwiseXOR(3, 6), is(5));
+  }
+
+  @Test public void bitwiseSHRFunctionTest() {
+    assertThat(bitwiseSHR(3, 1, 6), is(1));
+  }
+
+  @Test public void bitwiseSHLFunctionTest() {
+    assertThat(bitwiseSHL(3, 1, 6), is(4));
+  }
+
+  @Test public void piTest() {
+    assertThat(SqlFunctions.pi(), is(3.141592653589793));
+  }
+
+  @Test public void testOctetLengthWithLiteral() {
+    assertThat(octetLength("abc"), is(3));
+  }
+
+  /** Test for {@link SqlFunctions#strTok(Object, Object, Object)}. */
+  @Test public void testStrtok() {
+    assertThat(strTok("abcd-def-ghi", "-", 1), is("abcd"));
+    assertThat(strTok("a.b.c.d", "\\.", 3), is("c"));
+  }
+
+  /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
+  @Test public void testDateTimeForm() {
+    assertThat(toCharFunction(111200, "HHMISS"), is("111200"));
+  }
+
+  /** Test for {@link SqlFunctions#regexpMatchCount(Object, Object, Object, Object)}. */
+  @Test public void testRegexpMatchCount() {
+    String regex = "Ste(v|ph)en";
+    assertThat(
+        regexpMatchCount("Steven Jones and Stephen Smith are the best players",
+        regex, 0, ""), is(2));
+    String bestPlayers = "Steven Jones and Stephen are the best players";
+    assertThat(
+        regexpMatchCount(bestPlayers,
+         "Jon", 5, "i"), is(1));
+    assertThat(
+        regexpMatchCount(bestPlayers,
+        "Jon", 20, "i"), is(0));
+  }
+
+  /** Test for {@link SqlFunctions#regexpContains(Object, Object)}. */
+  @Test public void testRegexpContains() {
+    assertThat(regexpContains("foo@example.com", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(true));
+    assertThat(regexpContains("www.example.net", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(false));
+  }
+
+  /** Test for {@link SqlFunctions#regexpExtract(Object, Object, Object, Object)}. */
+  @Test public void testRegexpExtract() {
+    assertThat(regexpExtract("foo@example.com", "^[a-zA-Z0-9_.+-]+", 0, 0),
+        is("foo"));
+    assertThat(regexpExtract("cat on the mat", ".at", 0, 0),
+        is("cat"));
+    assertThat(regexpExtract("cat on the mat", ".at", 0, 1),
+        is("mat"));
   }
 }

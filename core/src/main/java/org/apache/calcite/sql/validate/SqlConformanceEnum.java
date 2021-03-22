@@ -413,6 +413,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean isElseCaseNeeded() {
+    switch (this) {
+    case SNOWFLAKE:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   @Override public SqlLibrary semantics() {
     switch (this) {
     case BIG_QUERY:

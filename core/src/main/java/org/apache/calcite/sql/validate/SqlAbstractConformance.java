@@ -121,6 +121,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowIsTrue();
   }
 
+  public boolean isElseCaseNeeded() {
+    return SqlConformanceEnum.DEFAULT.isElseCaseNeeded();
+  }
+
   @Override public boolean allowPluralTimeUnits() {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }

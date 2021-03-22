@@ -357,7 +357,7 @@ public class SqlCaseOperator extends SqlOperator {
     }
 
     SqlNode elseExpr = kase.elseExpr;
-    if (elseExpr != null) {
+    if (elseExpr != null || writer.getDialect().getConformance().isElseCaseNeeded()) {
       writer.sep("ELSE");
       elseExpr.unparse(writer, 0, 0);
     }
