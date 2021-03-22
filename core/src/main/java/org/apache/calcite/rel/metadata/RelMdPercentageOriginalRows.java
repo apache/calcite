@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
@@ -36,30 +35,26 @@ import java.util.List;
  * {@link RelMetadataQuery#getPercentageOriginalRows} for the standard logical
  * algebra.
  */
-public class RelMdPercentageOriginalRows
-    implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
-  private static final RelMdPercentageOriginalRows INSTANCE =
-      new RelMdPercentageOriginalRows();
-
+public class RelMdPercentageOriginalRows {
   public static final RelMetadataProvider SOURCE =
       ChainedRelMetadataProvider.of(
           ImmutableList.of(
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.PERCENTAGE_ORIGINAL_ROWS.method, INSTANCE),
-
+                  new RelMdPercentageOriginalRowsHandler(),
+                  BuiltInMetadata.PercentageOriginalRows.Handler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.CUMULATIVE_COST.method, INSTANCE),
-
+                  new RelMdCumulativeCost(),
+                  BuiltInMetadata.CumulativeCost.Handler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.NON_CUMULATIVE_COST.method, INSTANCE)));
+                  new RelMdNonCumulativeCost(),
+                  BuiltInMetadata.NonCumulativeCost.Handler.class
+              )
+          ));
 
   //~ Methods ----------------------------------------------------------------
 
   private RelMdPercentageOriginalRows() {}
 
-  @Override public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
-    return BuiltInMetadata.PercentageOriginalRows.DEF;
-  }
 
   public @Nullable Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
@@ -197,6 +192,43 @@ public class RelMdPercentageOriginalRows
       return 1.0;
     } else {
       return numerator / denominator;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.CumulativeCost}.
+   */
+  private static final class RelMdCumulativeCost
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.CumulativeCost> {
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.CumulativeCost> getDef() {
+      return BuiltInMetadata.CumulativeCost.DEF;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.NonCumulativeCost}.
+   */
+  private static final class RelMdNonCumulativeCost
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.NonCumulativeCost> {
+
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.NonCumulativeCost> getDef() {
+      return BuiltInMetadata.NonCumulativeCost.DEF;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.PercentageOriginalRows}.
+   */
+  private static final class RelMdPercentageOriginalRowsHandler
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
+      return BuiltInMetadata.PercentageOriginalRows.DEF;
     }
   }
 }

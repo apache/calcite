@@ -35,7 +35,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -53,7 +52,7 @@ public class RelMdDistribution
     implements MetadataHandler<BuiltInMetadata.Distribution> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.DISTRIBUTION.method, new RelMdDistribution());
+          new RelMdDistribution(), BuiltInMetadata.Distribution.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

@@ -16,32 +16,19 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
-import java.lang.reflect.Method;
-
 /**
- * Common functions for code generation.
+ * A key used in caching with descriptive to string.  Note the key uses
+ * reference equality for performance.
  */
-class CodeGeneratorUtil {
+public final class DescriptiveCacheKey {
 
-  private CodeGeneratorUtil() {
+  private final String description;
+
+  public DescriptiveCacheKey(String description) {
+    this.description = description;
   }
 
-  /** Returns e.g. ",\n boolean ignoreNulls".  This ignores the first 2 arguments. */
-  static StringBuilder paramList(StringBuilder buff, Method method) {
-    Class<?>[] parameterTypes = method.getParameterTypes();
-    for (int i = 2; i < parameterTypes.length; i++) {
-      Class<?> t = parameterTypes[i];
-      buff.append(",\n      ").append(t.getName()).append(" a").append(i);
-    }
-    return buff;
-  }
-
-  /** Returns e.g. ", a2, a3". This ignores the first 2 arguments. */
-  static StringBuilder argList(StringBuilder buff, Method method) {
-    Class<?>[] argTypes = method.getParameterTypes();
-    for (int i = 2; i < argTypes.length; i++) {
-      buff.append(", a").append(i);
-    }
-    return buff;
+  @Override public String toString() {
+    return description;
   }
 }

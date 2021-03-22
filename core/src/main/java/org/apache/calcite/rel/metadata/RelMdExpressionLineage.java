@@ -40,7 +40,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -84,7 +83,7 @@ public class RelMdExpressionLineage
     implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.EXPRESSION_LINEAGE.method, new RelMdExpressionLineage());
+          new RelMdExpressionLineage(), BuiltInMetadata.ExpressionLineage.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
