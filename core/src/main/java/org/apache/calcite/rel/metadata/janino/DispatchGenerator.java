@@ -28,12 +28,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -81,26 +79,38 @@ public class DispatchGenerator {
         .append(" mq");
     generateParamList(sb, method)
         .append(") {\n");
-    sb
-        .append("    while (r instanceof ").append(delRelClass).append(") {\n")
-        .append("      r = ((").append(delRelClass).append(") r).getCurrentRel();\n")
-        .append("    }\n");
+    if (delegateClassList.isEmpty()) {
+      generateThrowUnknown(sb.append("    "), method)
+          .append("  }\n");
+    } else {
+      sb
+          .append("    while (r instanceof ").append(delRelClass).append(") {\n")
+          .append("      r = ((").append(delRelClass).append(") r).getCurrentRel();\n")
+          .append("    }\n");
 
-    sb
-        .append(
-            delegateClassList.stream()
-                .map(clazz ->
-                    generateIfInstanceDispatch(method, metadataHandlers, handlersToClasses, clazz))
-                .collect(
-                    Collectors.joining("    } else if ", "    if ", "    } else {\n")))
+      sb
+          .append(
+              delegateClassList.stream()
+                  .map(clazz ->
+                      generateIfInstanceDispatch(method,
+                          metadataHandlers, handlersToClasses, clazz))
+                  .collect(
+                      Collectors.joining("    } else if ",
+                          "    if ", "    } else {\n")));
+      generateThrowUnknown(sb.append("      "), method)
+          .append("    }\n")
+          .append("  }\n");
+    }
+  }
+
+  private StringBuilder generateThrowUnknown(StringBuilder buff, Method method) {
+    return buff
         .append("      throw new ")
         .append(IllegalArgumentException.class.getName())
         .append("(\"No handler for method [").append(method)
         .append("] applied to argument of type [\" + r.getClass() + ")
         .append("\"]; we recommend you create a catch-all (RelNode) handler\"")
-        .append(");\n")
-        .append("    }\n")
-        .append("  }\n");
+        .append(");\n");
   }
 
   private CharSequence generateIfInstanceDispatch(Method method,
