@@ -27,7 +27,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,7 +41,7 @@ public class RelMdPopulationSize
     implements MetadataHandler<BuiltInMetadata.PopulationSize> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
+          new RelMdPopulationSize(), BuiltInMetadata.PopulationSize.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

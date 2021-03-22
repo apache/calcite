@@ -21,7 +21,6 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
-import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -34,7 +33,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
 
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdLowerBoundCost(), BuiltInMethod.LOWER_BOUND_COST.method);
+          new RelMdLowerBoundCost(), LowerBoundCost.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

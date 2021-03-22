@@ -32,7 +32,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -65,7 +64,7 @@ public class RelMdTableReferences
     implements MetadataHandler<BuiltInMetadata.TableReferences> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.TABLE_REFERENCES.method, new RelMdTableReferences());
+          new RelMdTableReferences(), BuiltInMetadata.TableReferences.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
