@@ -19,10 +19,9 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.JaninoRexCompiler;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.janino.CacheGenerator;
 import org.apache.calcite.rel.metadata.janino.DispatchGenerator;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
@@ -30,6 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
@@ -71,9 +71,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private static final LoadingCache<Key, MetadataHandler> HANDLERS =
       maxSize(CacheBuilder.newBuilder(),
           CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())
-          .build(
-              CacheLoader.from(key ->
-                  load3(key.def, key.provider.handlers(key.def))));
+          .build(cacheLoader());
 
   // Pre-register the most common relational operators, to reduce the number of
   // times we re-generate.
@@ -124,135 +122,92 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return provider.handlers(def);
   }
 
-  private static <M extends Metadata> MetadataHandler<M> load3(
-      MetadataDef<M> def, Multimap<Method, ? extends MetadataHandler<?>> map) {
+  @Override public <M extends Metadata> ImmutableSet<? extends MetadataHandler<M>> handlers(
+      Class<? extends MetadataHandler<? extends M>> handlerClass) {
+    return provider.handlers(handlerClass);
+  }
+
+  private static <M extends Metadata, MH extends MetadataHandler<M>> MH load3(
+      Class<MH> handlerClass,
+      ImmutableSet<? extends MetadataHandler<? extends Metadata>> handlerSet) {
+    final ImmutableList<? extends MetadataHandler<?>> handlers =
+        ImmutableList.copyOf(handlerSet);
     final StringBuilder buff = new StringBuilder();
     final String name =
-        "GeneratedMetadata_" + simpleNameForHandler(def.handlerClass);
+        "GeneratedMetadata_" + simpleNameForHandler(handlerClass);
     final Set<MetadataHandler<?>> providerSet = new HashSet<>();
 
     final Map<MetadataHandler<?>, String> handlerToName = new LinkedHashMap<>();
-    for (MetadataHandler<?> provider : map.values()) {
+    for (MetadataHandler<?> provider : handlers) {
       if (providerSet.add(provider)) {
         handlerToName.put(provider,
             "provider" + (providerSet.size() - 1));
       }
     }
 
-    buff.append("  private final org.apache.calcite.rel.metadata.MetadataDef def;\n");
+    //PROPERTIES
+    for (Ord<Method> method : Ord.zip(handlerClass.getDeclaredMethods())) {
+      CacheGenerator.generateCacheProperty(buff, method.e, method.i);
+    }
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("  public final ").append(handlerAndName.getKey().getClass().getName())
           .append(' ').append(handlerAndName.getValue()).append(";\n");
     }
-    buff.append("  public ").append(name).append("(\n")
-        .append("      org.apache.calcite.rel.metadata.MetadataDef def");
+
+    //CONSTRUCTOR
+    buff.append("  public ").append(name).append("(\n");
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
-      buff.append(",\n")
-          .append("      ")
+      buff.append("      ")
           .append(handlerAndName.getKey().getClass().getName())
           .append(' ')
-          .append(handlerAndName.getValue());
+          .append(handlerAndName.getValue())
+          .append(",\n");
     }
-    buff.append(") {\n")
-        .append("    this.def = def;\n");
-
+    if (!handlerToName.isEmpty()) {
+      buff.setLength(buff.length() - 2);
+    }
+    buff.append(") {\n");
     for (String handlerName : handlerToName.values()) {
       buff.append("    this.").append(handlerName).append(" = ").append(handlerName)
           .append(";\n");
     }
-    buff.append("  }\n")
-        .append("  public ")
-        .append(MetadataDef.class.getName())
-        .append(" getDef() {\n")
-        .append("    return def;")
-        .append("  }\n");
+    buff.append("  }\n");
+
+    //METHODS
+    generateGetDefMethod(buff,
+        handlerToName.values()
+            .stream()
+            .findFirst()
+            .orElse(null));
+
     DispatchGenerator dispatchGenerator = new DispatchGenerator(handlerToName);
-    for (Ord<Method> method : Ord.zip(map.keySet())) {
-      generateCachedMethod(buff, method.e, method.i);
-      dispatchGenerator.generateDispatchMethod(buff, method.e, map.get(method.e));
+    for (Ord<Method> method : Ord.zip(handlerClass.getDeclaredMethods())) {
+      CacheGenerator.generateCachedMethod(buff, method.e, method.i);
+      dispatchGenerator.generateDispatchMethod(buff, method.e, handlers);
     }
-    //buff.append("}");
-    final List<Object> argList = new ArrayList<>();
-    argList.add(def);
-    argList.addAll(handlerToName.keySet());
+
+    final List<Object> argList = new ArrayList<>(handlerToName.keySet());
     try {
-      return compile(name, buff.toString(), def, argList);
+      return compile(name, buff.toString(), handlerClass, argList);
     } catch (CompileException | IOException e) {
       throw new RuntimeException("Error compiling:\n"
           + buff, e);
     }
   }
 
-  private static void generateCachedMethod(StringBuilder buff, Method method, int methodIndex) {
+  private static void generateGetDefMethod(StringBuilder buff, @Nullable String handlerName) {
     buff.append("  public ")
-        .append(method.getReturnType().getName())
-        .append(" ")
-        .append(method.getName())
-        .append("(\n")
-        .append("      ")
-        .append(RelNode.class.getName())
-        .append(" r,\n")
-        .append("      ")
-        .append(RelMetadataQuery.class.getName())
-        .append(" mq");
-    paramList(buff, method)
-        .append(") {\n");
-    buff.append("    final java.util.List key = ")
-        .append(
-            (method.getParameterTypes().length < 4
-                ? org.apache.calcite.runtime.FlatLists.class
-                : ImmutableList.class).getName())
-        .append(".of(");
-    if (methodIndex == 0) {
-      buff.append("def");
+        .append(MetadataDef.class.getName())
+        .append(" getDef() {\n");
+
+    if (handlerName == null) {
+      buff.append("    return null;");
     } else {
-      buff.append("def.methods.get(")
-          .append(methodIndex)
-          .append(")");
+      buff.append("    return ")
+          .append(handlerName)
+          .append(".getDef();\n");
     }
-    safeArgList(buff, method)
-        .append(");\n")
-        .append("    final Object v = mq.map.get(r, key);\n")
-        .append("    if (v != null) {\n")
-        .append("      if (v == ")
-        .append(NullSentinel.class.getName())
-        .append(".ACTIVE) {\n")
-        .append("        throw new ")
-        .append(CyclicMetadataException.class.getName())
-        .append("();\n")
-        .append("      }\n")
-        .append("      if (v == ")
-        .append(NullSentinel.class.getName())
-        .append(".INSTANCE) {\n")
-        .append("        return null;\n")
-        .append("      }\n")
-        .append("      return (")
-        .append(method.getReturnType().getName())
-        .append(") v;\n")
-        .append("    }\n")
-        .append("    mq.map.put(r, key,")
-        .append(NullSentinel.class.getName())
-        .append(".ACTIVE);\n")
-        .append("    try {\n")
-        .append("      final ")
-        .append(method.getReturnType().getName())
-        .append(" x = ")
-        .append(method.getName())
-        .append("_(r, mq");
-    argList(buff, method)
-        .append(");\n")
-        .append("      mq.map.put(r, key, ")
-        .append(NullSentinel.class.getName())
-        .append(".mask(x));\n")
-        .append("      return x;\n")
-        .append("    } catch (")
-        .append(Exception.class.getName())
-        .append(" e) {\n")
-        .append("      mq.map.row(r).clear();\n")
-        .append("      throw e;\n")
-        .append("    }\n")
-        .append("  }\n")
-        .append("\n");
+    buff.append("  }\n");
   }
 
   private static String simpleNameForHandler(Class<? extends MetadataHandler<?>> clazz) {
@@ -268,37 +223,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   }
 
 
-  /** Returns e.g. ", ignoreNulls". */
-  private static StringBuilder argList(StringBuilder buff, Method method) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
-      buff.append(", a").append(t.i);
-    }
-    return buff;
-  }
-
-  /** Returns e.g. ", ignoreNulls". */
-  private static StringBuilder safeArgList(StringBuilder buff, Method method) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
-      if (Primitive.is(t.e) || RexNode.class.isAssignableFrom(t.e)) {
-        buff.append(", a").append(t.i);
-      } else {
-        buff.append(", ") .append(NullSentinel.class.getName())
-            .append(".mask(a").append(t.i).append(")");
-      }
-    }
-    return buff;
-  }
-
-  /** Returns e.g. ",\n boolean ignoreNulls". */
-  private static StringBuilder paramList(StringBuilder buff, Method method) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
-      buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);
-    }
-    return buff;
-  }
-
-  static <M extends Metadata> MetadataHandler<M> compile(String className,
-      String classBody, MetadataDef<M> def,
+  static <MH extends MetadataHandler<?>> MH compile(String className,
+      String classBody, Class<MH> handlerClass,
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     try {
@@ -312,7 +238,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     compiler.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
 
     final String s = "public final class " + className
-        + " implements " + def.handlerClass.getCanonicalName() + " {\n"
+        + " implements " + handlerClass.getCanonicalName() + " {\n"
         + classBody
         + "\n"
         + "}";
@@ -336,13 +262,13 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    return def.handlerClass.cast(o);
+    return handlerClass.cast(o);
   }
 
   synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
       MetadataDef<M> def) {
     try {
-      final Key key = new Key((MetadataDef) def, provider);
+      final Key key = new Key(def.handlerClass, provider);
       //noinspection unchecked
       return (H) HANDLERS.get(key);
     } catch (UncheckedExecutionException | ExecutionException e) {
@@ -363,6 +289,17 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   public void register(Iterable<Class<? extends RelNode>> classes) {
   }
 
+  private static <M extends Metadata, MH extends MetadataHandler<M>>
+      CacheLoader<Key, MetadataHandler> cacheLoader() {
+    CacheLoader cacheLoader = CacheLoader.<Key<M, MH>, MH>from(key -> {
+      ImmutableSet<? extends MetadataHandler<Metadata>> handlers =
+          key.provider.handlers(key.handlerClass);
+      return JaninoRelMetadataProvider.load3(
+          key.handlerClass, handlers);
+    });
+    return cacheLoader;
+  }
+
   /** Exception that indicates there there should be a handler for
    * this class but there is not. The action is probably to
    * re-generate the handler class. */
@@ -374,25 +311,30 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
-  /** Key for the cache. */
-  private static class Key {
-    public final MetadataDef def;
+  /**
+   * Key for the cache.
+   * @param <M> Metadata type
+   * @param <MH> Handler type
+   */
+  private static class Key<M extends Metadata, MH extends MetadataHandler<M>> {
+    public final Class<MH> handlerClass;
     public final RelMetadataProvider provider;
 
-    private Key(MetadataDef def, RelMetadataProvider provider) {
-      this.def = def;
+    private Key(Class<MH> handlerClass,
+        RelMetadataProvider provider) {
+      this.handlerClass = handlerClass;
       this.provider = provider;
     }
 
     @Override public int hashCode() {
-      return (def.hashCode() * 37
+      return (handlerClass.hashCode() * 37
           + provider.hashCode()) * 37;
     }
 
     @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof Key
-          && ((Key) obj).def.equals(def)
+          && ((Key) obj).handlerClass.equals(handlerClass)
           && ((Key) obj).provider.equals(provider);
     }
   }

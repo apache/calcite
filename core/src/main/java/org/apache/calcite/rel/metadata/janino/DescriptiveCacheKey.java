@@ -16,33 +16,19 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
-import org.apache.calcite.linq4j.Ord;
-
-import java.lang.reflect.Method;
-
 /**
- * Common functions for code generation.
+ * An key used in caching with descriptive to string.  Note the key uses
+ * reference equality for performance.
  */
-public class CodeGeneratorUtil {
+public class DescriptiveCacheKey {
 
-  private CodeGeneratorUtil() {
+  private final String description;
+
+  public DescriptiveCacheKey(String description) {
+    this.description = description;
   }
 
-  /** Returns e.g. ",\n boolean ignoreNulls". */
-  static StringBuilder generateParamList(StringBuilder buff, Method method, int startIndex) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
-        .subList(startIndex, method.getParameterCount())) {
-      buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);
-    }
-    return buff;
-  }
-
-  /** Returns e.g. ", ignoreNulls". */
-  static StringBuilder argList(StringBuilder buff, Method method, int startIndex) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
-        .subList(startIndex, method.getParameterCount())) {
-      buff.append(", a").append(t.i);
-    }
-    return buff;
+  @Override public String toString() {
+    return description;
   }
 }
