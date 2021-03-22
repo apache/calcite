@@ -18,7 +18,6 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -30,8 +29,7 @@ public class RelMdExplainVisibility
     implements MetadataHandler<BuiltInMetadata.ExplainVisibility> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.EXPLAIN_VISIBILITY.method,
-          new RelMdExplainVisibility());
+          new RelMdExplainVisibility(), BuiltInMetadata.ExplainVisibility.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
