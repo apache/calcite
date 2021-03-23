@@ -1096,7 +1096,9 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT MAX(rnk) rnk1\n"
         + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) rnk\n"
         + "FROM foodmart.employee) t";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT MAX(rnk) rnk1\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) rnk\n"
+        + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
         + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) AS rnk\n"
         + "FROM foodmart.employee) AS t";
@@ -1127,7 +1129,10 @@ class RelToSqlConverterTest {
         + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1"
         + " THEN 100 ELSE 200 END rnk\n"
         + "FROM foodmart.employee) t";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT MAX(rnk) rnk1\n"
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date IS NULL, hire_date)) = 1 "
+        + "THEN 100 ELSE 200 END rnk\n"
+        + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
         + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date IS NULL, hire_date)) = 1 "
         + "THEN 100 ELSE 200 END AS rnk\n"
@@ -2223,12 +2228,10 @@ class RelToSqlConverterTest {
     final String query = "select * from (select \"product_id\" from \"product\"\n"
             + "INTERSECT select \"product_id\" from \"product\") t group by  \"product_id\"";
     final String expectedBigQuery = "SELECT product_id\n"
-            + "FROM (SELECT product_id\n"
             + "FROM foodmart.product\n"
             + "INTERSECT DISTINCT\n"
             + "SELECT product_id\n"
-            + "FROM foodmart.product) AS t1\n"
-            + "GROUP BY product_id";
+            + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expectedBigQuery);
   }
 
@@ -2252,7 +2255,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
+        + "ORDER BY [product_id] IS NULL DESC, [product_id] DESC";
     sql(query)
         .withSpark()
         .ok(expected)
@@ -2273,7 +2276,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
+        + "ORDER BY [product_id] IS NULL DESC, [product_id] DESC";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2288,7 +2291,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL, product_id";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY [product_id] IS NULL, [product_id]";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2303,7 +2306,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL, product_id";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY [product_id] IS NULL, [product_id]";
     sql(query)
         .withSpark()
         .ok(expected)
@@ -2984,10 +2987,10 @@ class RelToSqlConverterTest {
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY [product_id] IS NULL, [product_id]";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
+        + "ORDER BY [product_id] IS NULL, [product_id]\n"
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
@@ -4004,7 +4007,7 @@ class RelToSqlConverterTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
         + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("Only INT64 is supported as the interval value for BigQuery.");
+    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
   }
 
   @Test public void testFloorMysqlWeek() {
@@ -6110,7 +6113,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' minute from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "TIMESTAMP(0)), INTERVAL 2 MINUTE)\n"
+            + "TIMESTAMP), INTERVAL 2 MINUTE)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6121,7 +6124,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' hour from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "TIMESTAMP(0)), INTERVAL 2 HOUR)\n"
+            + "TIMESTAMP), INTERVAL 2 HOUR)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6131,7 +6134,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS"
-            + " TIMESTAMP(0)), INTERVAL 2 SECOND)\n"
+            + " TIMESTAMP), INTERVAL 2 SECOND)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6857,7 +6860,8 @@ class RelToSqlConverterTest {
     String query = "SELECT ntile(2)\n"
         + "OVER(order BY \"product_id\") AS abc\n"
         + "FROM \"product\"";
-    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id NULLS LAST) AS ABC\n"
+    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id IS NULL, product_id) "
+        + "AS ABC\n"
         + "FROM foodmart.product";
     sql(query)
       .withBigQuery()
@@ -6897,28 +6901,33 @@ class RelToSqlConverterTest {
         + "(ORDER BY \"department_id\" ASC) \n"
         + "from \"foodmart\".\"employee\" \n"
         + "GROUP by \"first_name\", \"department_id\"";
-    final String expected = "SELECT first_name, COUNT(*) department_id_number, ROW_NUMBER() OVER "
-        + "(ORDER BY department_id NULLS LAST), SUM(department_id) OVER (ORDER BY department_id NULLS "
-        + "LAST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+    final String expected = "SELECT first_name, department_id_number, ROW_NUMBER() "
+        + "OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
+        + "OVER (ORDER BY department_id IS NULL, department_id "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT first_name, department_id, COUNT(*) department_id_number\n"
         + "FROM foodmart.employee\n"
-        + "GROUP BY first_name, department_id";
-    final String expectedBQ = "SELECT first_name, COUNT(*) AS department_id_number, "
-        + "ROW_NUMBER() OVER (ORDER BY department_id NULLS LAST), SUM(department_id) "
-        + "OVER (ORDER BY department_id NULLS LAST RANGE BETWEEN UNBOUNDED PRECEDING "
-        + "AND CURRENT ROW)\n"
+        + "GROUP BY first_name, department_id) t0";
+    final String expectedBQ = "SELECT first_name, department_id_number, "
+        + "ROW_NUMBER() OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
+        + "OVER (ORDER BY department_id IS NULL, department_id "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT first_name, department_id, COUNT(*) AS department_id_number\n"
         + "FROM foodmart.employee\n"
-        + "GROUP BY first_name, department_id";
-    final String expectedSnowFlake = "SELECT \"first_name\", COUNT(*) AS \"department_id_number\""
-        + ", ROW_NUMBER() OVER (ORDER BY \"department_id\"), SUM(\"department_id\") OVER (ORDER BY"
-        + " \"department_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "GROUP BY first_name, department_id) AS t0";
+    final String expectedSnowFlake = "SELECT \"first_name\", \"department_id_number\", "
+        + "ROW_NUMBER() OVER (ORDER BY \"department_id\"), SUM(\"department_id\") "
+        + "OVER (ORDER BY \"department_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT \"first_name\", \"department_id\", COUNT(*) AS \"department_id_number\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY \"first_name\", \"department_id\"";
-    final String mssql = "SELECT [first_name], COUNT(*) AS [department_id_number],"
-        + " ROW_NUMBER() OVER (ORDER BY [department_id] NULLS LAST), SUM([department_id])"
-        + " OVER (ORDER BY [department_id] NULLS LAST RANGE BETWEEN UNBOUNDED "
-        + "PRECEDING AND CURRENT ROW)\n"
+        + "GROUP BY \"first_name\", \"department_id\") AS \"t0\"";
+    final String mssql = "SELECT [first_name], [department_id_number], ROW_NUMBER()"
+        + " OVER (ORDER BY [department_id] IS NULL, [department_id]), SUM([department_id])"
+        + " OVER (ORDER BY [department_id] IS NULL, [department_id] "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT [first_name], [department_id], COUNT(*) AS [department_id_number]\n"
         + "FROM [foodmart].[employee]\n"
-        + "GROUP BY [first_name], [department_id]";
+        + "GROUP BY [first_name], [department_id]) AS [t0]";
     sql(query)
       .withHive()
       .ok(expected)
@@ -7562,10 +7571,8 @@ class RelToSqlConverterTest {
     final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES (0)) AS [t] ([ZERO])\n"
         + "UNION ALL\n"
-        + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES (0)) AS [t] ([ZERO])";
+        + "SELECT 2, 'Eric', 'Washington'";
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
@@ -7845,10 +7852,10 @@ class RelToSqlConverterTest {
             .build();
 
     final String expectedDOMBiqQuery = "SELECT CAST(CEIL(EXTRACT(DAY "
-            + "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
+            + "FROM HIREDATE) / 7) AS STRING) AS FD\n"
             + "FROM scott.EMP";
     final String expectedDOYBiqQuery = "SELECT CAST(CEIL(EXTRACT(DAYOFYEAR "
-            + "FROM HIREDATE) / 7) AS VARCHAR) AS FD\n"
+            + "FROM HIREDATE) / 7) AS STRING) AS FD\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -8711,7 +8718,7 @@ class RelToSqlConverterTest {
   @Test public void testExtractDecade() {
     String query = "SELECT EXTRACT(DECADE FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT CAST(SUBSTR(CAST("
-            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS VARCHAR(100)), 0, 3) AS INTEGER)";
+            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS STRING), 0, 3) AS INTEGER)";
 
     sql(query)
             .withBigQuery()
@@ -8758,7 +8765,7 @@ class RelToSqlConverterTest {
   @Test public void testExtractMillennium() {
     String query = "SELECT EXTRACT(MILLENNIUM FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT CAST(SUBSTR(CAST("
-            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS VARCHAR(100)), 0, 1) AS INTEGER)";
+            + "EXTRACT(YEAR FROM DATE '2008-08-29') AS STRING), 0, 1) AS INTEGER)";
 
     sql(query)
             .withBigQuery()
