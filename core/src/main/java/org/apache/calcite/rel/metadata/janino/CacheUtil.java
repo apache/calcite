@@ -18,21 +18,30 @@ package org.apache.calcite.rel.metadata.janino;
 
 import org.apiguardian.api.API;
 
+import java.util.stream.IntStream;
+
 /**
- * A key used in caching with descriptive to string.  Note the key uses
- * reference equality for performance.
+ * Functions used by generated code.
  */
 @API(status = API.Status.INTERNAL)
-public final class DescriptiveCacheKey {
+public class CacheUtil {
 
-  private final String description;
-
-  @API(status = API.Status.INTERNAL)
-  public DescriptiveCacheKey(String description) {
-    this.description = description;
+  private CacheUtil() {
   }
 
-  @Override public String toString() {
-    return description;
+  @API(status = API.Status.INTERNAL)
+  public static Object[] generateRange(String description, int min, int max) {
+    return IntStream.range(min, max)
+        .mapToObj(i -> description + "(" + i + ")")
+        .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)
+        .toArray();
+  }
+
+  @API(status = API.Status.INTERNAL)
+  public static <E extends Enum<E>> Object[] generateEnum(String description, E[] values) {
+    return java.util.Arrays.stream(values)
+        .map(e -> description + "(" + e + ")")
+        .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)
+        .toArray();
   }
 }
