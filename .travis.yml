@@ -39,7 +39,7 @@ matrix:
     - jdk: openjdk11
       env:
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
-    - jdk: openjdk15
+    - jdk: openjdk16
 branches:
   only:
     - master

@@ -27,8 +27,15 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / under development
 {: #v1-27-0}
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 16;
+Guava versions 19.0 to 29.0-jre;
+other software versions as specified in gradle.properties.
+
 #### Breaking Changes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4521">CALCITE-4251</a>]
 Get the origin column, even if it is derived
