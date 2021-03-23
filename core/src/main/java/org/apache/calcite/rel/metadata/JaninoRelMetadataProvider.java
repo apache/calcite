@@ -296,7 +296,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append("_(r, mq");
       argList(buff, method.e)
           .append(");\n")
-          .append("      mq.cache.put (r, key, ")
+          .append("      mq.cache.put(r, key, ")
           .append(NullSentinel.class.getName())
           .append(".mask(x));\n")
           .append("      return x;\n")
