@@ -23,6 +23,7 @@ import org.apache.calcite.rel.metadata.CyclicMetadataException;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FlatLists;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,13 +41,7 @@ public class CacheGenerator {
   }
 
   public static void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
-    buff.append("  private final Object ");
-    appendKeyName(buff, methodIndex);
-    buff.append(" = new ")
-        .append(DescriptiveCacheKey.class.getName())
-        .append("(\"")
-        .append(method.toString())
-        .append("\");\n");
+    selectStrategy(method).generateCacheProperty(buff, method, methodIndex);
   }
 
   public static void generateCachedMethod(StringBuilder buff, Method method, int methodIndex) {
@@ -63,16 +58,9 @@ public class CacheGenerator {
         .append(" mq");
     generateParamList(buff, method, 2)
         .append(") {\n");
-    buff.append("    final java.util.List key = ")
-        .append(
-            (method.getParameterTypes().length < 6
-                ? org.apache.calcite.runtime.FlatLists.class
-                : ImmutableList.class).getName())
-        .append(".of(");
-    appendKeyName(buff, methodIndex);
-    safeArgList(buff, method)
-        .append(");\n")
-        .append("    final Object v = mq.map.get(r, key);\n")
+    buff.append("    final Object key;\n");
+    selectStrategy(method).generateCacheKeyBlock(buff, method, methodIndex);
+    buff.append("    final Object v = mq.map.get(r, key);\n")
         .append("    if (v != null) {\n")
         .append("      if (v == ")
         .append(NullSentinel.class.getName())
@@ -133,5 +121,299 @@ public class CacheGenerator {
 
   private static void appendKeyName(StringBuilder buff, int methodIndex) {
     buff.append("method_key_").append(methodIndex);
+  }
+
+  private static void appendKeyName(StringBuilder buff, int methodIndex, String arg) {
+    buff.append("method_key_")
+        .append(methodIndex).append(arg);
+  }
+
+  private static CacheKeyStrategy selectStrategy(Method method) {
+    switch (method.getParameterCount()) {
+    case 2:
+      return CacheKeyStrategy.NO_ARG;
+    case 3:
+      Class<?> clazz = method.getParameterTypes()[2];
+      if (clazz.equals(boolean.class)) {
+        return CacheKeyStrategy.BOOLEAN_ARG;
+      } else if (Enum.class.isAssignableFrom(clazz)) {
+        return CacheKeyStrategy.ENUM_ARG;
+      } else if (clazz.equals(int.class)) {
+        return CacheKeyStrategy.INT_ARG;
+      } else {
+        return CacheKeyStrategy.DEFAULT;
+      }
+    default:
+      return CacheKeyStrategy.DEFAULT;
+    }
+  }
+
+  private static void methodReturnAndName(StringBuilder buff, Method method, String arg) {
+    buff.append(method.getReturnType().getSimpleName())
+        .append(" ")
+        .append(method.getName())
+        .append("(")
+        .append(arg)
+        .append(")");
+  }
+
+  /**
+   * Generates a set of properties that are to be used by a fragment of code to
+   * efficiently create metadata keys.
+   */
+  private enum CacheKeyStrategy {
+    /**
+     * Generates an immutable method key, then during each call instantiates a new list to all
+     * the arguments.
+     *
+     * Example:
+     * <code>
+     *     private final Object method_key_0 =
+     *        new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *     .BuiltInMetadata$DistinctRowCount$Handler.getDistinctRowCount(org.apache.calcite.rel
+     *     .RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util
+     *     .ImmutableBitSet,org.apache.calcite.rex.RexNode)");
+     *
+     *  ...
+     *
+     *   public java.lang.Double getDistinctRowCount(
+     *       org.apache.calcite.rel.RelNode r,
+     *       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
+     *       org.apache.calcite.util.ImmutableBitSet a2,
+     *       org.apache.calcite.rex.RexNode a3) {
+     *     final Object key;
+     * key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
+     * .metadata.NullSentinel.mask(a2), a3);
+     *     final Object v = mq.map.get(r, key);
+     *     if (v != null) {
+     *      ...
+     * </code>
+     */
+    DEFAULT {
+      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("  private final Object ");
+        appendKeyName(buff, methodIndex);
+        buff.append(" =\n")
+            .append("    new ")
+            .append(DescriptiveCacheKey.class.getName())
+            .append("(\"")
+            .append(method.toString())
+            .append("\");\n");
+      }
+
+      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("key = ")
+            .append(
+                (method.getParameterTypes().length < 6
+                    ? org.apache.calcite.runtime.FlatLists.class
+                    : ImmutableList.class).getName())
+            .append(".of(");
+        appendKeyName(buff, methodIndex);
+        safeArgList(buff, method)
+            .append(");\n");
+      }
+    },
+    /**
+     * Generates an immutable key that is reused across all calls.
+     *
+     * Example:
+     * <code>
+     *     private final Object method_key_0 =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *   public java.lang.Double getPercentageOriginalRows(
+     *       org.apache.calcite.rel.RelNode r,
+     *       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
+     *     final Object key;
+     *     key = method_key_0;
+     *     final Object v = mq.map.get(r, key);
+     * </code>
+     */
+    NO_ARG {
+      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+        DEFAULT.generateCacheProperty(buff, method, methodIndex);
+      }
+
+      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("    key = ");
+        appendKeyName(buff, methodIndex);
+        buff.append(";\n");
+      }
+    },
+    /**
+     * Generates immutable cache keys for metadata calls with single enum argument.
+     *
+     * Example:
+     * <code>
+     *   private final Object method_key_0Null =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey(
+     *         "Boolean isVisibleInExplain(null)");
+     *   private final Object[] method_key_0 =
+     *       org.apache.calcite.rel.metadata.janino.CacheUtil.generateEnum(
+     *         "Boolean isVisibleInExplain", org.apache.calcite.sql.SqlExplainLevel.values());
+     *
+     *   ...
+     *
+     *   public java.lang.Boolean isVisibleInExplain(
+     *       org.apache.calcite.rel.RelNode r,
+     *       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
+     *       org.apache.calcite.sql.SqlExplainLevel a2) {
+     *     final Object key;
+     *     if (a2 == null) {
+     *       key = method_key_0Null;
+     *     } else {
+     *       key = method_key_0[a2.ordinal()];
+     *     }
+     * </code>
+     */
+    ENUM_ARG {
+      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("    if (a2 == null) {\n")
+            .append("      key = ");
+        appendKeyName(buff, methodIndex, "Null");
+        buff.append(";\n")
+            .append("    } else {\n")
+            .append("      key = ");
+        appendKeyName(buff, methodIndex);
+        buff.append("[a2.ordinal()];\n")
+            .append("    }\n");
+      }
+
+      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+        assert method.getParameterCount() == 3;
+
+        Class<?> clazz = method.getParameterTypes()[2];
+        assert Enum.class.isAssignableFrom(clazz);
+        buff.append("  private final Object ");
+        appendKeyName(buff, methodIndex, "Null");
+        buff.append(" =\n")
+            .append("      new ")
+            .append(DescriptiveCacheKey.class.getName())
+            .append("(\"");
+        methodReturnAndName(buff, method, "null");
+        buff.append("\");\n")
+            .append("  private final Object[] ");
+        appendKeyName(buff, methodIndex);
+        buff.append(" =\n")
+            .append("      ")
+            .append(CacheUtil.class.getName())
+            .append(".generateEnum(\"")
+            .append(method.getReturnType().getSimpleName())
+            .append(" ")
+            .append(method.getName())
+            .append("\", ")
+            .append(clazz.getName())
+            .append(".values());\n");
+      }
+    },
+    /**
+     * Generates 2 immutable keys for functions that only take a single boolean arg.
+     *
+     * Example:
+     * <code>
+     *  private final Object method_key_0True =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *   private final Object method_key_0False =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *
+     *   ...
+     *
+     *   public java.util.Set getUniqueKeys(
+     *       org.apache.calcite.rel.RelNode r,
+     *       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
+     *       boolean a2) {
+     *     final Object key;
+     *     key = a2 ? method_key_0True : method_key_0False;
+     *     final Object v = mq.map.get(r, key);
+     *     ...
+     * </code>
+     */
+    BOOLEAN_ARG {
+      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("    key = a2 ? ");
+        appendKeyName(buff, methodIndex, "True");
+        buff.append(" : ");
+        appendKeyName(buff, methodIndex, "False");
+        buff.append(";\n");
+      }
+
+      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+        assert method.getParameterCount() == 3;
+        assert method.getParameterTypes()[2].equals(boolean.class);
+        buff.append("  private final Object ");
+        appendKeyName(buff, methodIndex, "True");
+        buff.append(" =\n")
+            .append("      new ")
+            .append(DescriptiveCacheKey.class.getName())
+            .append("(\"");
+        methodReturnAndName(buff, method, "true");
+        buff.append("\");\n")
+            .append("  private final Object ");
+        appendKeyName(buff, methodIndex, "False");
+        buff.append(" =\n")
+            .append("      new ")
+            .append(DescriptiveCacheKey.class.getName())
+            .append("(\"");
+        methodReturnAndName(buff, method, "false");
+        buff.append("\");\n");
+      }
+    },
+    /**
+     * Uses a flyweight for fixed range, otherwise instantiates a new list with the arguement in it.
+     *
+     * Example:
+     * <code>
+     *   private final Object method_key_0 =
+     *         new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *   private final Object[] method_key_0FlyWeight =
+     *       org.apache.calcite.rel.metadata.janino.CacheUtil.generateRange(
+     *         "java.util.Set getColumnOrigins", -256, 256);
+     *
+     *   ...
+     *
+     *   public java.util.Set getColumnOrigins(
+     *       org.apache.calcite.rel.RelNode r,
+     *       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
+     *       int a2) {
+     *     final Object key;
+     *     if (a2 &gt;= -256 && a2 &lt; 256) {
+     *       key = method_key_0FlyWeight[a2 + 256];
+     *     } else {
+     *       key = org.apache.calcite.runtime.FlatLists.of(method_key_0, a2);
+     *     }
+     * </code>
+     */
+    INT_ARG {
+      private final int min = -256;
+      private final int max = 256;
+
+      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        assert method.getParameterCount() == 3;
+        assert method.getParameterTypes()[2] == int.class;
+        buff.append("    if (a2 >= ").append(min).append(" && a2 < ").append(max)
+            .append(") {\n")
+            .append("      key = ");
+        appendKeyName(buff, methodIndex, "FlyWeight");
+        buff.append("[a2 + ").append(-min).append("];\n")
+            .append("    } else {\n")
+            .append("      key = ").append(FlatLists.class.getName()).append(".of(");
+        appendKeyName(buff, methodIndex);
+        buff.append(", a2);\n")
+            .append("    }\n");
+      }
+
+      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+        DEFAULT.generateCacheProperty(buff, method, methodIndex);
+        buff.append("  private final Object[] ");
+        appendKeyName(buff, methodIndex, "FlyWeight");
+        buff.append(" =\n")
+            .append("      ")
+            .append(CacheUtil.class.getName()).append(".generateRange(\"")
+            .append(method.getReturnType().getName()).append(" ").append(method.getName())
+            .append("\", ").append(min).append(", ").append(max).append(");\n");
+      }
+    };
+    abstract void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex);
+    abstract void generateCacheProperty(StringBuilder buff, Method method, int methodIndex);
+
   }
 }

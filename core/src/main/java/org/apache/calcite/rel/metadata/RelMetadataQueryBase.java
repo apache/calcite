@@ -24,7 +24,6 @@ import com.google.common.collect.Table;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Proxy;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -66,7 +65,7 @@ public class RelMetadataQueryBase {
   //~ Instance fields --------------------------------------------------------
 
   /** Set of active metadata queries, and cache of previous results. */
-  public final Table<RelNode, List, Object> map = HashBasedTable.create();
+  public final Table<RelNode, Object, Object> map = HashBasedTable.create();
 
   public final @Nullable JaninoRelMetadataProvider metadataProvider;
 
@@ -107,7 +106,7 @@ public class RelMetadataQueryBase {
    * @return true if cache for the provided RelNode was not empty
    */
   public boolean clearCache(RelNode rel) {
-    Map<List, Object> row = map.row(rel);
+    Map<Object, Object> row = map.row(rel);
     if (row.isEmpty()) {
       return false;
     }
