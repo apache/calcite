@@ -23,13 +23,13 @@ import java.lang.reflect.Method;
 /**
  * Common functions for code generation.
  */
-public class CodeGeneratorUtil {
+class CodeGeneratorUtil {
 
   private CodeGeneratorUtil() {
   }
 
   /** Returns e.g. ",\n boolean ignoreNulls". */
-  static StringBuilder generateParamList(StringBuilder buff, Method method, int startIndex) {
+  static StringBuilder paramList(StringBuilder buff, Method method, int startIndex) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
         .subList(startIndex, method.getParameterCount())) {
       buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);

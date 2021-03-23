@@ -30,21 +30,21 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 
 import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.argList;
-import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.generateParamList;
+import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList;
 
 /**
  * Generates caching code for janino backed metadata.
  */
-public class CacheGenerator {
+class CacheGenerator {
 
   private CacheGenerator() {
   }
 
-  public static void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
-    selectStrategy(method).generateCacheProperty(buff, method, methodIndex);
+  static void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
+    selectStrategy(method).cacheProperties(buff, method, methodIndex);
   }
 
-  public static void generateCachedMethod(StringBuilder buff, Method method, int methodIndex) {
+  static void cachedMethod(StringBuilder buff, Method method, int methodIndex) {
     buff.append("  public ")
         .append(method.getReturnType().getName())
         .append(" ")
@@ -56,10 +56,10 @@ public class CacheGenerator {
         .append("      ")
         .append(RelMetadataQuery.class.getName())
         .append(" mq");
-    generateParamList(buff, method, 2)
+    paramList(buff, method, 2)
         .append(") {\n");
     buff.append("    final Object key;\n");
-    selectStrategy(method).generateCacheKeyBlock(buff, method, methodIndex);
+    selectStrategy(method).cacheKeyBlock(buff, method, methodIndex);
     buff.append("    final Object v = mq.map.get(r, key);\n")
         .append("    if (v != null) {\n")
         .append("      if (v == ")
@@ -103,28 +103,12 @@ public class CacheGenerator {
         .append("\n");
   }
 
-
-  /** Returns e.g. ", ignoreNulls". */
-  static StringBuilder safeArgList(StringBuilder buff, Method method) {
-    //We ignore the first 2 arguments since they are included other ways.
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
-        .subList(2, method.getParameterCount())) {
-      if (Primitive.is(t.e) || RexNode.class.isAssignableFrom(t.e)) {
-        buff.append(", a").append(t.i);
-      } else {
-        buff.append(", ").append(NullSentinel.class.getName())
-            .append(".mask(a").append(t.i).append(")");
-      }
-    }
-    return buff;
-  }
-
   private static void appendKeyName(StringBuilder buff, int methodIndex) {
-    buff.append("method_key_").append(methodIndex);
+    buff.append("methodKey").append(methodIndex);
   }
 
   private static void appendKeyName(StringBuilder buff, int methodIndex, String arg) {
-    buff.append("method_key_")
+    buff.append("methodKey")
         .append(methodIndex).append(arg);
   }
 
@@ -170,9 +154,6 @@ public class CacheGenerator {
      * <code>
      *     private final Object method_key_0 =
      *        new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
-     *     .BuiltInMetadata$DistinctRowCount$Handler.getDistinctRowCount(org.apache.calcite.rel
-     *     .RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util
-     *     .ImmutableBitSet,org.apache.calcite.rex.RexNode)");
      *
      *  ...
      *
@@ -182,7 +163,7 @@ public class CacheGenerator {
      *       org.apache.calcite.util.ImmutableBitSet a2,
      *       org.apache.calcite.rex.RexNode a3) {
      *     final Object key;
-     * key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
+     *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
      * .metadata.NullSentinel.mask(a2), a3);
      *     final Object v = mq.map.get(r, key);
      *     if (v != null) {
@@ -190,7 +171,7 @@ public class CacheGenerator {
      * </code>
      */
     DEFAULT {
-      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
         buff.append("  private final Object ");
         appendKeyName(buff, methodIndex);
         buff.append(" =\n")
@@ -201,8 +182,8 @@ public class CacheGenerator {
             .append("\");\n");
       }
 
-      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
-        buff.append("key = ")
+      @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+        buff.append("    key = ")
             .append(
                 (method.getParameterTypes().length < 6
                     ? org.apache.calcite.runtime.FlatLists.class
@@ -212,6 +193,21 @@ public class CacheGenerator {
         safeArgList(buff, method)
             .append(");\n");
       }
+
+      /** Returns e.g. ", ignoreNulls". */
+      private StringBuilder safeArgList(StringBuilder buff, Method method) {
+        //We ignore the first 2 arguments since they are included other ways.
+        for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
+            .subList(2, method.getParameterCount())) {
+          if (Primitive.is(t.e) || RexNode.class.isAssignableFrom(t.e)) {
+            buff.append(", a").append(t.i);
+          } else {
+            buff.append(", ").append(NullSentinel.class.getName())
+                .append(".mask(a").append(t.i).append(")");
+          }
+        }
+        return buff;
+      }
     },
     /**
      * Generates an immutable key that is reused across all calls.
@@ -220,6 +216,9 @@ public class CacheGenerator {
      * <code>
      *     private final Object method_key_0 =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *
+     *   ...
+     *
      *   public java.lang.Double getPercentageOriginalRows(
      *       org.apache.calcite.rel.RelNode r,
      *       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
@@ -229,11 +228,11 @@ public class CacheGenerator {
      * </code>
      */
     NO_ARG {
-      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
-        DEFAULT.generateCacheProperty(buff, method, methodIndex);
+      @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
+        DEFAULT.cacheProperties(buff, method, methodIndex);
       }
 
-      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         buff.append("    key = ");
         appendKeyName(buff, methodIndex);
         buff.append(";\n");
@@ -266,7 +265,7 @@ public class CacheGenerator {
      * </code>
      */
     ENUM_ARG {
-      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         buff.append("    if (a2 == null) {\n")
             .append("      key = ");
         appendKeyName(buff, methodIndex, "Null");
@@ -278,7 +277,7 @@ public class CacheGenerator {
             .append("    }\n");
       }
 
-      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
         assert method.getParameterCount() == 3;
 
         Class<?> clazz = method.getParameterTypes()[2];
@@ -328,7 +327,7 @@ public class CacheGenerator {
      * </code>
      */
     BOOLEAN_ARG {
-      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         buff.append("    key = a2 ? ");
         appendKeyName(buff, methodIndex, "True");
         buff.append(" : ");
@@ -336,7 +335,7 @@ public class CacheGenerator {
         buff.append(";\n");
       }
 
-      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
         assert method.getParameterCount() == 3;
         assert method.getParameterTypes()[2].equals(boolean.class);
         buff.append("  private final Object ");
@@ -386,7 +385,7 @@ public class CacheGenerator {
       private final int min = -256;
       private final int max = 256;
 
-      @Override void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
+      @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         assert method.getParameterCount() == 3;
         assert method.getParameterTypes()[2] == int.class;
         buff.append("    if (a2 >= ").append(min).append(" && a2 < ").append(max)
@@ -401,8 +400,8 @@ public class CacheGenerator {
             .append("    }\n");
       }
 
-      @Override void generateCacheProperty(StringBuilder buff, Method method, int methodIndex) {
-        DEFAULT.generateCacheProperty(buff, method, methodIndex);
+      @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
+        DEFAULT.cacheProperties(buff, method, methodIndex);
         buff.append("  private final Object[] ");
         appendKeyName(buff, methodIndex, "FlyWeight");
         buff.append(" =\n")
@@ -412,8 +411,8 @@ public class CacheGenerator {
             .append("\", ").append(min).append(", ").append(max).append(");\n");
       }
     };
-    abstract void generateCacheKeyBlock(StringBuilder buff, Method method, int methodIndex);
-    abstract void generateCacheProperty(StringBuilder buff, Method method, int methodIndex);
+    abstract void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex);
+    abstract void cacheProperties(StringBuilder buff, Method method, int methodIndex);
 
   }
 }

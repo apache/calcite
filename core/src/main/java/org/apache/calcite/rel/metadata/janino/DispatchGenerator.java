@@ -38,19 +38,19 @@ import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.argList;
-import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.generateParamList;
+import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList;
 
 /**
- * Generates the metadata dispatch.
+ * Generates the metadata dispatch to handlers.
  */
-public class DispatchGenerator {
+class DispatchGenerator {
   private final Map<MetadataHandler<?>, String> metadataHandlerToName;
 
-  public DispatchGenerator(Map<MetadataHandler<?>, String> metadataHandlerToName) {
+  DispatchGenerator(Map<MetadataHandler<?>, String> metadataHandlerToName) {
     this.metadataHandlerToName = metadataHandlerToName;
   }
 
-  public void generateDispatchMethod(StringBuilder sb, Method method,
+  void dispatchMethod(StringBuilder sb, Method method,
       Collection<? extends MetadataHandler<?>> metadataHandlers) {
     String delRelClass = DelegatingMetadataRel.class.getName();
     Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses =
@@ -77,10 +77,10 @@ public class DispatchGenerator {
         .append("      ")
         .append(RelMetadataQuery.class.getName())
         .append(" mq");
-    generateParamList(sb, method, 2)
+    paramList(sb, method, 2)
         .append(") {\n");
     if (delegateClassList.isEmpty()) {
-      generateThrowUnknown(sb.append("    "), method)
+      throwUnknown(sb.append("    "), method)
           .append("  }\n");
     } else {
       sb
@@ -92,18 +92,18 @@ public class DispatchGenerator {
           .append(
               delegateClassList.stream()
                   .map(clazz ->
-                      generateIfInstanceDispatch(method,
+                      ifInstanceThenDispatch(method,
                           metadataHandlers, handlersToClasses, clazz))
                   .collect(
                       Collectors.joining("    } else if ",
                           "    if ", "    } else {\n")));
-      generateThrowUnknown(sb.append("      "), method)
+      throwUnknown(sb.append("      "), method)
           .append("    }\n")
           .append("  }\n");
     }
   }
 
-  private StringBuilder generateThrowUnknown(StringBuilder buff, Method method) {
+  private StringBuilder throwUnknown(StringBuilder buff, Method method) {
     return buff
         .append("      throw new ")
         .append(IllegalArgumentException.class.getName())
@@ -113,7 +113,7 @@ public class DispatchGenerator {
         .append(");\n");
   }
 
-  private CharSequence generateIfInstanceDispatch(Method method,
+  private CharSequence ifInstanceThenDispatch(Method method,
       Collection<? extends MetadataHandler<?>> metadataHandlers,
       Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses,
 
@@ -122,12 +122,12 @@ public class DispatchGenerator {
     StringBuilder sb = new StringBuilder()
         .append("(r instanceof ").append(clazz.getName()).append(") {\n")
         .append("      return ");
-    generateDispatchedCall(sb, handlerName, method, clazz);
+    dispatchedCall(sb, handlerName, method, clazz);
 
     return sb;
   }
 
-  private void generateDispatchedCall(StringBuilder sb, String handlerName, Method method,
+  private void dispatchedCall(StringBuilder sb, String handlerName, Method method,
       Class<? extends RelNode> clazz) {
     sb.append(handlerName).append(".").append(method.getName())
         .append("((").append(clazz.getName()).append(") r, mq");
@@ -135,6 +135,16 @@ public class DispatchGenerator {
     sb.append(");\n");
   }
 
+  private String findProvider(Collection<? extends MetadataHandler<?>> metadataHandlers,
+      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlerToClasses,
+      Class<? extends RelNode> clazz) {
+    for (MetadataHandler<?> mh : metadataHandlers) {
+      if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
+        return castNonNull(this.metadataHandlerToName.get(mh));
+      }
+    }
+    throw new RuntimeException();
+  }
 
   private static Set<Class<? extends RelNode>> methodAndInstanceToImplementingClass(
       Method method, MetadataHandler<?> handler) {
@@ -171,7 +181,6 @@ public class DispatchGenerator {
     }
   }
 
-
   private static List<Class<? extends RelNode>> topologicalSort(
       Collection<Class<? extends RelNode>> list) {
     //This is currently N squared, wikipedia say it could be better
@@ -195,16 +204,5 @@ public class DispatchGenerator {
       }
     }
     return l;
-  }
-
-  private String findProvider(Collection<? extends MetadataHandler<?>> metadataHandlers,
-      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlerToClasses,
-      Class<? extends RelNode> clazz) {
-    for (MetadataHandler<?> mh : metadataHandlers) {
-      if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
-        return castNonNull(this.metadataHandlerToName.get(mh));
-      }
-    }
-    throw new RuntimeException();
   }
 }
