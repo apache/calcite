@@ -29,7 +29,7 @@ public class CodeGeneratorUtil {
   }
 
   /** Returns e.g. ",\n boolean ignoreNulls". */
-  static StringBuilder generateParamList(StringBuilder buff, Method method) {
+  static StringBuilder paramList(StringBuilder buff, Method method) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
       buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);
     }

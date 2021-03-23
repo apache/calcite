@@ -38,10 +38,10 @@ import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.argList;
-import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.generateParamList;
+import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList;
 
 /**
- * Generates the metadata dispatch.
+ * Generates the metadata dispatch to handlers.
  */
 public class DispatchGenerator {
   private final Map<MetadataHandler<?>, String> metadataHandlerToName;
@@ -50,7 +50,7 @@ public class DispatchGenerator {
     this.metadataHandlerToName = metadataHandlerToName;
   }
 
-  public void generateDispatchMethod(StringBuilder sb, Method method,
+  public void dispatchMethod(StringBuilder buff, Method method,
       Collection<? extends MetadataHandler<?>> metadataHandlers) {
     String delRelClass = DelegatingMetadataRel.class.getName();
     Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses =
@@ -65,7 +65,7 @@ public class DispatchGenerator {
         .flatMap(Set::stream)
         .collect(Collectors.toSet());
     List<Class<? extends RelNode>> delegateClassList = topologicalSort(delegateClassSet);
-    sb
+    buff
         .append("  private ")
         .append(method.getReturnType().getName())
         .append(" ")
@@ -77,33 +77,57 @@ public class DispatchGenerator {
         .append("      ")
         .append(RelMetadataQuery.class.getName())
         .append(" mq");
-    generateParamList(sb, method)
+    paramList(buff, method)
         .append(") {\n");
     if (delegateClassList.isEmpty()) {
-      generateThrowUnknown(sb.append("    "), method)
+      throwUnknown(buff.append("    "), method)
           .append("  }\n");
     } else {
-      sb
+      buff
           .append("    while (r instanceof ").append(delRelClass).append(") {\n")
           .append("      r = ((").append(delRelClass).append(") r).getCurrentRel();\n")
           .append("    }\n");
 
-      sb
+      buff
           .append(
               delegateClassList.stream()
                   .map(clazz ->
-                      generateIfInstanceDispatch(method,
+                      ifInstanceThenDispatch(method,
                           metadataHandlers, handlersToClasses, clazz))
                   .collect(
                       Collectors.joining("    } else if ",
                           "    if ", "    } else {\n")));
-      generateThrowUnknown(sb.append("      "), method)
+      throwUnknown(buff.append("      "), method)
           .append("    }\n")
           .append("  }\n");
     }
   }
 
-  private StringBuilder generateThrowUnknown(StringBuilder buff, Method method) {
+  private StringBuilder ifInstanceThenDispatch(Method method,
+      Collection<? extends MetadataHandler<?>> metadataHandlers,
+      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses,
+      Class<? extends RelNode> clazz) {
+    String handlerName = findProvider(metadataHandlers, handlersToClasses, clazz);
+    StringBuilder buff = new StringBuilder()
+        .append("(r instanceof ").append(clazz.getName()).append(") {\n")
+        .append("      return ");
+    dispatchedCall(buff, handlerName, method, clazz);
+
+    return buff;
+  }
+
+  private String findProvider(Collection<? extends MetadataHandler<?>> metadataHandlers,
+      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlerToClasses,
+      Class<? extends RelNode> clazz) {
+    for (MetadataHandler<?> mh : metadataHandlers) {
+      if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
+        return castNonNull(this.metadataHandlerToName.get(mh));
+      }
+    }
+    throw new RuntimeException();
+  }
+
+  private static StringBuilder throwUnknown(StringBuilder buff, Method method) {
     return buff
         .append("      throw new ")
         .append(IllegalArgumentException.class.getName())
@@ -113,28 +137,13 @@ public class DispatchGenerator {
         .append(");\n");
   }
 
-  private CharSequence generateIfInstanceDispatch(Method method,
-      Collection<? extends MetadataHandler<?>> metadataHandlers,
-      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses,
-
+  private static void dispatchedCall(StringBuilder buff, String handlerName, Method method,
       Class<? extends RelNode> clazz) {
-    String handlerName = findProvider(metadataHandlers, handlersToClasses, clazz);
-    StringBuilder sb = new StringBuilder()
-        .append("(r instanceof ").append(clazz.getName()).append(") {\n")
-        .append("      return ");
-    generateDispatchedCall(sb, handlerName, method, clazz);
-
-    return sb;
-  }
-
-  private void generateDispatchedCall(StringBuilder sb, String handlerName, Method method,
-      Class<? extends RelNode> clazz) {
-    sb.append(handlerName).append(".").append(method.getName())
+    buff.append(handlerName).append(".").append(method.getName())
         .append("((").append(clazz.getName()).append(") r, mq");
-    argList(sb, method);
-    sb.append(");\n");
+    argList(buff, method);
+    buff.append(");\n");
   }
-
 
   private static Set<Class<? extends RelNode>> methodAndInstanceToImplementingClass(
       Method method, MetadataHandler<?> handler) {
@@ -171,7 +180,6 @@ public class DispatchGenerator {
     }
   }
 
-
   private static List<Class<? extends RelNode>> topologicalSort(
       Collection<Class<? extends RelNode>> list) {
     //This is currently N squared, wikipedia say it could be better
@@ -195,16 +203,5 @@ public class DispatchGenerator {
       }
     }
     return l;
-  }
-
-  private String findProvider(Collection<? extends MetadataHandler<?>> metadataHandlers,
-      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlerToClasses,
-      Class<? extends RelNode> clazz) {
-    for (MetadataHandler<?> mh : metadataHandlers) {
-      if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
-        return castNonNull(this.metadataHandlerToName.get(mh));
-      }
-    }
-    throw new RuntimeException();
   }
 }

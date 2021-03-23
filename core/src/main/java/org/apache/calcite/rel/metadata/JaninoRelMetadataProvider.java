@@ -169,7 +169,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     DispatchGenerator dispatchGenerator = new DispatchGenerator(handlerToName);
     for (Ord<Method> method : Ord.zip(map.keySet())) {
       generateCachedMethod(buff, method.e, method.i);
-      dispatchGenerator.generateDispatchMethod(buff, method.e, map.get(method.e));
+      dispatchGenerator.dispatchMethod(buff, method.e, map.get(method.e));
     }
     //buff.append("}");
     final List<Object> argList = new ArrayList<>();
