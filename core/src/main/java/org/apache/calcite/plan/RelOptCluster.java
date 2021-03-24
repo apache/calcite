@@ -52,7 +52,7 @@ public class RelOptCluster {
   private final Map<String, RelNode> mapCorrelToRel;
   private RexNode originalExpression;
   private final RexBuilder rexBuilder;
-  private RelMetadataProvider metadataProvider;
+  @Deprecated private RelMetadataProvider metadataProvider;
   @Deprecated // to be removed before 2.0
   private MetadataFactory metadataFactory;
   private @Nullable HintStrategyTable hintStrategies;
@@ -134,6 +134,7 @@ public class RelOptCluster {
     return rexBuilder;
   }
 
+  @Deprecated
   public RelMetadataProvider getMetadataProvider() {
     return metadataProvider;
   }
@@ -144,7 +145,7 @@ public class RelOptCluster {
    * @param metadataProvider custom provider
    */
   @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
-  @SuppressWarnings("deprecation")
+  @Deprecated
   public void setMetadataProvider(
       @UnknownInitialization RelOptCluster this,
       RelMetadataProvider metadataProvider) {

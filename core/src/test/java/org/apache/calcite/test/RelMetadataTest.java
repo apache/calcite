@@ -28,7 +28,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -206,7 +205,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private static RelNode convertSql(Tester tester, String sql) {
     final RelRoot root = tester.convertSqlToRel(sql);
-    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
     return root.rel;
   }
 
@@ -1377,19 +1375,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     final String sql = "select deptno, count(*) from emp where deptno > 10 "
         + "group by deptno having count(*) = 0";
+    final MyRelMetadataQuery prototype = new MyRelMetadataQuery(
+        JaninoMetadataHandlerProvider.builder()
+            .relMetadataProvider(
+                ChainedRelMetadataProvider.of(BrokenColTypeImpl.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+                .build());
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
+          cluster.setMetadataQuerySupplier(() -> new MyRelMetadataQuery(prototype));
           return cluster;
         })
         .convertSqlToRel(sql);
 
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
-    final MyRelMetadataQuery mq = new MyRelMetadataQuery();
+    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
 
     try {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
@@ -1410,13 +1411,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     final String sql = "select deptno, count(*) from emp where deptno > 10 "
         + "group by deptno having count(*) = 0";
+
+    final MyRelMetadataQuery prototype = new MyRelMetadataQuery(
+        JaninoMetadataHandlerProvider.builder()
+            .relMetadataProvider(
+                ChainedRelMetadataProvider.of(
+                    BrokenColTypeImpl.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+            .build());
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(() -> new MyRelMetadataQuery(prototype));
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1555,11 +1560,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Deprecated
   @Test void testSupportLegacyCachingBehaviorViaMetadataQuery() {
-    RelMetadataQuery prototype = new CustomMq(new JaninoMetadataHandlerProvider() {
-      @Override public MetadataCache buildCache() {
-        return new LegacyInvalidationMetadataCache();
-      }
-    });
+    RelMetadataQuery prototype = new CustomMq(
+        JaninoMetadataHandlerProvider.builder()
+            .metadataCacheSupplier(LegacyInvalidationMetadataCache::new)
+            .build());
 
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
@@ -1607,16 +1611,18 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     final String sql = "select deptno, count(*) from emp where deptno > 10 "
         + "group by deptno having count(*) = 0";
+    final MyRelMetadataQuery prototype = new MyRelMetadataQuery(
+        JaninoMetadataHandlerProvider.builder()
+            .relMetadataProvider(
+                // Create a custom provider that includes ColType.
+                // Include the same provider twice just to be devious.
+                ChainedRelMetadataProvider.of(
+                    ColTypeImpl.SOURCE, ColTypeImpl.SOURCE, DefaultRelMetadataProvider.INSTANCE))
+            .build());
+
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          // Create a custom provider that includes ColType.
-          // Include the same provider twice just to be devious.
-          final ImmutableList<RelMetadataProvider> list =
-              ImmutableList.of(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
-                  cluster.getMetadataProvider());
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(list));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(() -> new MyRelMetadataQuery(prototype));
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -3238,15 +3244,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /**
-   * Custom rel node for testing.
-   */
-  static class CustomRel extends AbstractRelNode {
-    CustomRel(RelOptCluster cluster, RelTraitSet traits) {
-      super(cluster, traits);
-    }
-  }
-
-  /**
    * Custom Metadata Query for using a different MetadataHandlerProvider.
    */
   static class CustomMq extends RelMetadataQuery {
@@ -3456,8 +3453,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static class MyRelMetadataQuery extends RelMetadataQuery {
     private ColType.Handler colTypeHandler;
 
-    MyRelMetadataQuery() {
-      colTypeHandler = JaninoMetadataHandlerProvider.INSTANCE.initialHandler(ColType.Handler.class);
+    MyRelMetadataQuery(MetadataHandlerProvider metadataHandlerProvider) {
+      super(metadataHandlerProvider);
+      colTypeHandler = metadataHandlerProvider.initialHandler(ColType.Handler.class);
+    }
+
+    MyRelMetadataQuery(MyRelMetadataQuery prototype) {
+      super(prototype);
+      this.colTypeHandler = prototype.colTypeHandler;
     }
 
     public String colType(RelNode rel, int column) {

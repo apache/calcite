@@ -18,9 +18,8 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Proxy;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -28,12 +27,15 @@ import static java.util.Objects.requireNonNull;
  * Provides metadata handlers generated via Janino.
  */
 public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
+  private final RelMetadataProvider relMetadataProvider;
+  private final Supplier<MetadataCache> metadataCacheSupplier;
 
-  public static final JaninoMetadataHandlerProvider INSTANCE = new JaninoMetadataHandlerProvider();
-  private static final ThreadLocal<@Nullable RelMetadataProvider> METADATA_PROVIDER_THREAD_LOCAL =
-      new ThreadLocal<RelMetadataProvider>();
-
-  protected JaninoMetadataHandlerProvider() {
+  private JaninoMetadataHandlerProvider(
+      RelMetadataProvider relMetadataProvider,
+      Supplier<MetadataCache> metadataCacheSupplier
+  ) {
+    this.relMetadataProvider = relMetadataProvider;
+    this.metadataCacheSupplier = metadataCacheSupplier;
   }
 
   @Override public <H> H initialHandler(Class<H> handlerClass) {
@@ -41,7 +43,6 @@ public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {
               final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
-              METADATA_PROVIDER_THREAD_LOCAL.set(r.getCluster().getMetadataProvider());
               throw new NoHandler(r.getClass());
             }));
   }
@@ -49,11 +50,43 @@ public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
   @Override public <H extends MetadataHandler<M>, M extends Metadata> H revise(
       Class<H> handlerClass) {
     return JaninoRelMetadataProvider.revise(
-        requireNonNull(METADATA_PROVIDER_THREAD_LOCAL.get(), "relMetadataProvider"),
+        relMetadataProvider,
         handlerClass);
   }
 
   @Override public MetadataCache buildCache() {
-    return new TableMetadataCache();
+    return metadataCacheSupplier.get();
+  }
+
+  public static Builder builder() {
+    return Builder.INSTANCE;
+  }
+
+  /**
+   * Builds instances of {@link JaninoMetadataHandlerProvider}.
+   */
+  public static class Builder {
+    private static final Builder INSTANCE = new Builder(
+        DefaultRelMetadataProvider.INSTANCE, TableMetadataCache::new);
+    private RelMetadataProvider relMetadataProvider;
+    private Supplier<MetadataCache> metadataCacheSupplier;
+
+    public Builder(RelMetadataProvider relMetadataProvider,
+        Supplier<MetadataCache> metadataCacheSupplier) {
+      this.relMetadataProvider = relMetadataProvider;
+      this.metadataCacheSupplier = metadataCacheSupplier;
+    }
+
+    public Builder metadataCacheSupplier(Supplier<MetadataCache> metadataCacheSupplier) {
+      return new Builder(relMetadataProvider, metadataCacheSupplier);
+    }
+
+    public Builder relMetadataProvider(RelMetadataProvider relMetadataProvider) {
+      return new Builder(relMetadataProvider, metadataCacheSupplier);
+    }
+
+    public JaninoMetadataHandlerProvider build() {
+      return new JaninoMetadataHandlerProvider(relMetadataProvider, metadataCacheSupplier);
+    }
   }
 }

@@ -78,7 +78,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  */
 public class RelMetadataQuery extends RelMetadataQueryBase {
   private static final RelMetadataQuery PROTOTYPE =
-      new RelMetadataQuery(JaninoMetadataHandlerProvider.INSTANCE);
+      new RelMetadataQuery(LegacyJaninoMetadataHandlerProvider.INSTANCE);
 
   private BuiltInMetadata.Collation.Handler collationHandler;
   private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
@@ -115,7 +115,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /** Creates and initializes the instance that will serve as a prototype for
    * all other instances. */
   protected RelMetadataQuery(MetadataHandlerProvider metadataHandlerProvider) {
-    super(metadataHandlerProvider);
+    super(metadataHandlerProvider, true);
     this.collationHandler =
         metadataHandlerProvider.initialHandler(BuiltInMetadata.Collation.Handler.class);
     this.columnOriginHandler =

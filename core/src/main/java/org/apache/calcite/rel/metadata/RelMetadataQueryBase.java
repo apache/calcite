@@ -79,7 +79,7 @@ public class RelMetadataQueryBase {
 
   @Deprecated // to be removed before 2.0
   protected static <H> H initialHandler(Class<H> handlerClass) {
-    return JaninoMetadataHandlerProvider.INSTANCE.initialHandler(handlerClass);
+    return LegacyJaninoMetadataHandlerProvider.INSTANCE.initialHandler(handlerClass);
   }
 
   //~ Constructors ----------------------------------------------------------
@@ -91,6 +91,21 @@ public class RelMetadataQueryBase {
       map = ((TableMetadataCache) cache).map;
     } else {
       map = ImmutableTable.of();
+    }
+  }
+
+  protected RelMetadataQueryBase(MetadataHandlerProvider metadataHandlerProvider, boolean isProto) {
+    this.metadataHandlerProvider = metadataHandlerProvider;
+    if (isProto) {
+      cache = ErrorCache.INSTANCE;
+      map = ImmutableTable.of();
+    } else {
+      this.cache = metadataHandlerProvider.buildCache();
+      if (cache instanceof TableMetadataCache) {
+        map = ((TableMetadataCache) cache).map;
+      } else {
+        map = ImmutableTable.of();
+      }
     }
   }
 
@@ -113,5 +128,28 @@ public class RelMetadataQueryBase {
   @Deprecated // to be removed before 2.0
   public boolean clearCache(RelNode rel) {
     return cache.clear(rel);
+  }
+
+  /**
+   * Used in prototypes to fail fast.
+   */
+  private static class ErrorCache implements MetadataCache {
+    private static final ErrorCache INSTANCE = new ErrorCache();
+
+    @Override public boolean clear(RelNode rel) {
+      throw new UnsupportedOperationException("Prototype query");
+    }
+
+    @Override public @Nullable Object remove(RelNode relNode, Object args) {
+      throw new UnsupportedOperationException("Prototype query");
+    }
+
+    @Override public @Nullable Object get(RelNode relNode, Object args) {
+      throw new UnsupportedOperationException("Prototype query");
+    }
+
+    @Override public @Nullable Object put(RelNode relNode, Object args, Object value) {
+      throw new UnsupportedOperationException("Prototype query");
+    }
   }
 }

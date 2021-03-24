@@ -131,6 +131,11 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     return new ChainedRelMetadataProvider(ImmutableList.copyOf(list));
   }
 
+  /** Creates a chain. */
+  public static RelMetadataProvider of(RelMetadataProvider...providers) {
+    return new ChainedRelMetadataProvider(ImmutableList.copyOf(providers));
+  }
+
   /** Invocation handler that calls a list of {@link Metadata} objects,
    * returning the first non-null value. */
   private static class ChainedInvocationHandler implements InvocationHandler {
