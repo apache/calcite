@@ -118,7 +118,7 @@ ide {
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
-val buildVersion = "calcite".v + releaseParams.snapshotSuffix
+val buildVersion = "calcite".v
 
 println("Building Apache Calcite $buildVersion")
 
