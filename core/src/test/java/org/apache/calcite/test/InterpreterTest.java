@@ -54,10 +54,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 /**
  * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
@@ -201,13 +203,14 @@ class InterpreterTest {
 
   private static void assertInterpret(RelNode rel, DataContext dataContext,
       boolean unordered, String... rows) {
-    final Interpreter interpreter = new Interpreter(dataContext, rel);
-    final List<RelDataType> fieldTypes =
-        Util.transform(rel.getRowType().getFieldList(),
-            RelDataTypeField::getType);
-    assertRows(interpreter,
-        EnumUtils.toExternal(fieldTypes, DateTimeUtils.DEFAULT_ZONE), unordered,
-        rows);
+    try (Interpreter interpreter = new Interpreter(dataContext, rel)) {
+      final List<RelDataType> fieldTypes =
+          Util.transform(rel.getRowType().getFieldList(),
+              RelDataTypeField::getType);
+      final Function<@Nullable Object[], List<@Nullable Object>> converter =
+          EnumUtils.toExternal(fieldTypes, DateTimeUtils.DEFAULT_ZONE);
+      assertRows(interpreter, converter, unordered, rows);
+    }
   }
 
   private static void assertRows(Interpreter interpreter,
@@ -240,6 +243,23 @@ class InterpreterTest {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select * from \"beatles\" order by \"i\"")
         .returnsRows("[4, John]", "[4, Paul]", "[5, Ringo]", "[6, George]");
+  }
+
+  /** Tests executing a plan on a
+   * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
+  @Test void testInterpretScannableTable2() {
+    final AtomicInteger scanCount = new AtomicInteger();
+    final AtomicInteger enumerateCount = new AtomicInteger();
+    final AtomicInteger closeCount = new AtomicInteger();
+    rootSchema.add("counting",
+        ScannableTableTest.countingTable(scanCount, enumerateCount,
+            closeCount));
+    sql("select * from \"counting\" order by \"i\"")
+        .returnsRows("[0]", "[10]", "[20]", "[30]");
+    assertThat(scanCount.get(), is(1));
+    assertThat(enumerateCount.get(), is(1));
+    assertThat("close is called twice: on last fetch, and interpreter close",
+        closeCount.get(), is(2));
   }
 
   @Test void testAggregateCount() {

@@ -146,6 +146,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
   }
 
   @Override public void close() {
+    nodes.values().forEach(NodeInfo::close);
   }
 
   /** Not used. */
@@ -268,6 +269,14 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     NodeInfo(RelNode rel, @Nullable Enumerable<Row> rowEnumerable) {
       this.rel = rel;
       this.rowEnumerable = rowEnumerable;
+    }
+
+    void close() {
+      if (node != null) {
+        final Node n = node;
+        node = null;
+        n.close();
+      }
     }
   }
 

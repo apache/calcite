@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.DelegatingEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,6 +46,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -407,26 +409,12 @@ public class ScannableTableTest {
 
       final AtomicInteger scanCount = new AtomicInteger();
       final AtomicInteger enumerateCount = new AtomicInteger();
+      final AtomicInteger closeCount = new AtomicInteger();
       final Schema schema =
           new AbstractSchema() {
             @Override protected Map<String, Table> getTableMap() {
               return ImmutableMap.of("TENS",
-                  new SimpleTable() {
-                    private Enumerable<Object[]> superScan(DataContext root) {
-                      return super.scan(root);
-                    }
-
-                    @Override public Enumerable<@Nullable Object[]>
-                    scan(final DataContext root) {
-                      scanCount.incrementAndGet();
-                      return new AbstractEnumerable<Object[]>() {
-                        public Enumerator<Object[]> enumerator() {
-                          enumerateCount.incrementAndGet();
-                          return superScan(root).enumerator();
-                        }
-                      };
-                    }
-                  });
+                  countingTable(scanCount, enumerateCount, closeCount));
             }
           };
       calciteConnection.getRootSchema().add("TEST", schema);
@@ -622,6 +610,35 @@ public class ScannableTableTest {
 
       public void close() {
         current = null;
+      }
+    };
+  }
+
+  /** Returns a table that counts the number of calls to
+   * {@link ScannableTable#scan}, {@link Enumerable#enumerator()},
+   * and {@link Enumerator#close()}. */
+  static SimpleTable countingTable(AtomicInteger scanCount,
+      AtomicInteger enumerateCount, AtomicInteger closeCount) {
+    return new SimpleTable() {
+      private Enumerable<Object[]> superScan(DataContext root) {
+        return super.scan(root);
+      }
+
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+        scanCount.incrementAndGet();
+        return new AbstractEnumerable<Object[]>() {
+          @NotNull @Override public Enumerator<Object[]> enumerator() {
+            enumerateCount.incrementAndGet();
+            final Enumerator<Object[]> enumerator =
+                superScan(root).enumerator();
+            return new DelegatingEnumerator<Object[]>(enumerator) {
+              @Override public void close() {
+                closeCount.incrementAndGet();
+                super.close();
+              }
+            };
+          }
+        };
       }
     };
   }
