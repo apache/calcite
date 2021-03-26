@@ -2303,6 +2303,17 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInWithConstantList">
+    <Resource name="sql">
+      <![CDATA[1 in (1,2,3)
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+OR(=(1, 1), =(1, 2), =(1, 3))
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsert">
     <Resource name="sql">
       <![CDATA[insert into empnullables (deptno, empno, ename)

@@ -47,6 +47,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -169,6 +170,13 @@ public abstract class SqlToRelTestBase {
      */
     RelRoot convertSqlToRel(String sql);
 
+    /**
+     * Converts an expression string to  {@link RexNode}.
+     *
+     * @param expr The expression
+     */
+    RexNode convertExprToRex(String expr);
+
     SqlNode parseQuery(String sql) throws Exception;
 
     /**
@@ -221,6 +229,21 @@ public abstract class SqlToRelTestBase {
         boolean trim);
 
     /**
+     * Checks that a SQL statement converts to a given plan, optionally
+     * trimming columns that are not needed.
+     *
+     * @param sql  SQL query or expression
+     * @param plan Expected plan
+     * @param trim Whether to trim columns that are not needed
+     * @param query True if {@code sql} is a query, false if it is an expression
+     */
+    void assertConvertsTo(
+        String sql,
+        String plan,
+        boolean trim,
+        boolean query);
+
+    /**
      * Returns the diff repository.
      *
      * @return Diff repository
@@ -266,6 +289,8 @@ public abstract class SqlToRelTestBase {
 
     /** Trims a RelNode. */
     RelNode trimRelNode(RelNode relNode);
+
+    SqlNode parseExpression(String expr) throws Exception;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -594,24 +619,9 @@ public abstract class SqlToRelTestBase {
       final Prepare.CatalogReader catalogReader =
           createCatalogReader(typeFactory);
       final SqlValidator validator =
-          createValidator(
-              catalogReader, typeFactory);
-      final Context context = getContext();
-      context.maybeUnwrap(CalciteConnectionConfig.class)
-          .ifPresent(calciteConfig -> {
-            validator.transform(config ->
-                config.withDefaultNullCollation(
-                    calciteConfig.defaultNullCollation()));
-          });
-      final SqlToRelConverter.Config config =
-          configTransform.apply(SqlToRelConverter.config());
-
-      final SqlToRelConverter converter =
-          createSqlToRelConverter(
-              validator,
-              catalogReader,
-              typeFactory,
-              config);
+          createValidator(catalogReader, typeFactory);
+      SqlToRelConverter converter =
+          createSqlToRelConverter(validator, catalogReader);
 
       final SqlNode validatedQuery = validator.validate(sqlQuery);
       RelRoot root =
@@ -634,27 +644,31 @@ public abstract class SqlToRelTestBase {
       final Prepare.CatalogReader catalogReader =
           createCatalogReader(typeFactory);
       final SqlValidator validator =
-          createValidator(
-              catalogReader, typeFactory);
-      final Context context = getContext();
-      final CalciteConnectionConfig calciteConfig =
-          context.unwrap(CalciteConnectionConfig.class);
-      if (calciteConfig != null) {
-        validator.transform(config ->
-            config.withDefaultNullCollation(calciteConfig.defaultNullCollation()));
-      }
-      final SqlToRelConverter.Config config =
-          configTransform.apply(SqlToRelConverter.config());
+          createValidator(catalogReader, typeFactory);
 
       final SqlToRelConverter converter =
-          createSqlToRelConverter(
-              validator,
-              catalogReader,
-              typeFactory,
-              config);
+          createSqlToRelConverter(validator, catalogReader);
       relNode = converter.flattenTypes(relNode, true);
       relNode = converter.trimUnusedFields(true, relNode);
       return relNode;
+    }
+
+    private SqlToRelConverter createSqlToRelConverter(SqlValidator validator,
+                                                      Prepare.CatalogReader catalogReader) {
+      final Context context = getContext();
+      context.maybeUnwrap(CalciteConnectionConfig.class)
+          .ifPresent(calciteConfig -> {
+            validator.transform(config ->
+                config.withDefaultNullCollation(calciteConfig.defaultNullCollation()));
+          });
+      final SqlToRelConverter.Config config =
+          configTransform.apply(SqlToRelConverter.config());
+
+      return createSqlToRelConverter(
+          validator,
+          catalogReader,
+          typeFactory,
+          config);
     }
 
     protected SqlToRelConverter createSqlToRelConverter(
@@ -697,6 +711,13 @@ public abstract class SqlToRelTestBase {
           SqlParser.config().withConformance(getConformance());
       SqlParser parser = SqlParser.create(sql, config);
       return parser.parseQuery();
+    }
+
+    @Override public SqlNode parseExpression(String expr) throws Exception {
+      final SqlParser.Config config =
+              SqlParser.config().withConformance(getConformance());
+      SqlParser parser = SqlParser.create(expr, config);
+      return parser.parseExpression();
     }
 
     public SqlConformance getConformance() {
@@ -774,6 +795,38 @@ public abstract class SqlToRelTestBase {
         String sql,
         String plan,
         boolean trim) {
+      assertConvertsTo(sql, plan, false, true);
+    }
+
+    public void assertConvertsTo(
+        String sql,
+        String plan,
+        boolean trim,
+        boolean query) {
+      if (query) {
+        assertSqlConvertsTo(sql, plan, trim);
+      } else {
+        assertExprConvertsTo(sql, plan);
+      }
+    }
+
+    private void assertExprConvertsTo(
+        String expr,
+        String plan) {
+      String expr2 = getDiffRepos().expand("sql", expr);
+      RexNode rex = convertExprToRex(expr2);
+      assertNotNull(rex);
+      // NOTE jvs 28-Mar-2006:  insert leading newline so
+      // that plans come out nicely stacked instead of first
+      // line immediately after CDATA start
+      String actual = NL + rex.toString() + NL;
+      diffRepos.assertEquals("plan", plan, actual);
+    }
+
+    private void assertSqlConvertsTo(
+        String sql,
+        String plan,
+        boolean trim) {
       String sql2 = getDiffRepos().expand("sql", sql);
       RelNode rel = convertSqlToRel(sql2).project();
 
@@ -794,6 +847,29 @@ public abstract class SqlToRelTestBase {
       // line immediately after CDATA start
       String actual = NL + RelOptUtil.toString(rel);
       diffRepos.assertEquals("plan", plan, actual);
+    }
+
+    public RexNode convertExprToRex(String expr) {
+      Objects.requireNonNull(expr, "expr");
+      final SqlNode sqlQuery;
+      try {
+        sqlQuery = parseExpression(expr);
+      } catch (RuntimeException | Error e) {
+        throw e;
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+
+      final RelDataTypeFactory typeFactory = getTypeFactory();
+      final Prepare.CatalogReader catalogReader =
+              createCatalogReader(typeFactory);
+      final SqlValidator validator =
+              createValidator(
+                      catalogReader, typeFactory);
+      SqlToRelConverter converter = createSqlToRelConverter(validator, catalogReader);
+
+      final SqlNode validatedQuery = validator.validate(sqlQuery);
+      return converter.convertExpression(validatedQuery);
     }
 
     /**

@@ -88,7 +88,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
     return new Sql(sql, true, tester, false, UnaryOperator.identity(),
-        tester.getConformance());
+        tester.getConformance(), true);
+  }
+
+  public final Sql expr(String expr) {
+    return new Sql(expr, true, tester, false, UnaryOperator.identity(),
+            tester.getConformance(), false);
   }
 
   @Test void testDotLiteralAfterNestedRow() {
@@ -4192,6 +4197,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
+
+  @Test public void testInWithConstantList() {
+    String expr = "1 in (1,2,3)";
+    expr(expr).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
@@ -4232,10 +4243,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     private final boolean trim;
     private final UnaryOperator<SqlToRelConverter.Config> config;
     private final SqlConformance conformance;
+    private final boolean query;
+
 
     Sql(String sql, boolean decorrelate, Tester tester, boolean trim,
         UnaryOperator<SqlToRelConverter.Config> config,
-        SqlConformance conformance) {
+        SqlConformance conformance, boolean query) {
       this.sql = Objects.requireNonNull(sql, "sql");
       if (sql.contains(" \n")) {
         throw new AssertionError("trailing whitespace");
@@ -4245,6 +4258,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       this.trim = trim;
       this.config = Objects.requireNonNull(config, "config");
       this.conformance = Objects.requireNonNull(conformance, "conformance");
+      this.query = query;
     }
 
     public void ok() {
@@ -4256,13 +4270,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
           .withConformance(conformance)
           .withConfig(config)
           .withConfig(c -> c.withTrimUnusedFields(true))
-          .assertConvertsTo(sql, plan, trim);
+          .assertConvertsTo(sql, plan, trim, query);
     }
 
     public Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
       final UnaryOperator<SqlToRelConverter.Config> config2 =
           this.config.andThen(Objects.requireNonNull(config, "config"))::apply;
-      return new Sql(sql, decorrelate, tester, trim, config2, conformance);
+      return new Sql(sql, decorrelate, tester, trim, config2, conformance, query);
     }
 
     public Sql expand(boolean expand) {
@@ -4270,19 +4284,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }
 
     public Sql decorrelate(boolean decorrelate) {
-      return new Sql(sql, decorrelate, tester, trim, config, conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance, query);
     }
 
     public Sql with(Tester tester) {
-      return new Sql(sql, decorrelate, tester, trim, config, conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance, query);
     }
 
     public Sql trim(boolean trim) {
-      return new Sql(sql, decorrelate, tester, trim, config, conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance, query);
     }
 
     public Sql conformance(SqlConformance conformance) {
-      return new Sql(sql, decorrelate, tester, trim, config, conformance);
+      return new Sql(sql, decorrelate, tester, trim, config, conformance, query);
     }
   }
 }
