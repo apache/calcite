@@ -47,6 +47,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -169,6 +170,13 @@ public abstract class SqlToRelTestBase {
      */
     RelRoot convertSqlToRel(String sql);
 
+    /**
+     * Converts a expression string to  {@link RexNode}.
+     *
+     * @param expr expression
+     */
+    RexNode convertExpressionToRel(String expr);
+
     SqlNode parseQuery(String sql) throws Exception;
 
     /**
@@ -214,11 +222,13 @@ public abstract class SqlToRelTestBase {
      * @param sql  SQL query
      * @param plan Expected plan
      * @param trim Whether to trim columns that are not needed
+     * @param query True if {@code sql} is a query, false if it is an expression
      */
     void assertConvertsTo(
         String sql,
         String plan,
-        boolean trim);
+        boolean trim,
+        boolean query);
 
     /**
      * Returns the diff repository.
@@ -266,6 +276,8 @@ public abstract class SqlToRelTestBase {
 
     /** Trims a RelNode. */
     RelNode trimRelNode(RelNode relNode);
+
+    SqlNode parseExpression(String expr) throws Exception;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -699,6 +711,13 @@ public abstract class SqlToRelTestBase {
       return parser.parseQuery();
     }
 
+    @Override public SqlNode parseExpression(String expr) throws Exception {
+      final SqlParser.Config config =
+              SqlParser.config().withConformance(getConformance());
+      SqlParser parser = SqlParser.create(expr, config);
+      return parser.parseExpression();
+    }
+
     public SqlConformance getConformance() {
       return conformance;
     }
@@ -767,10 +786,29 @@ public abstract class SqlToRelTestBase {
     public void assertConvertsTo(
         String sql,
         String plan) {
-      assertConvertsTo(sql, plan, false);
+      assertConvertsTo(sql, plan, false, true);
     }
 
     public void assertConvertsTo(
+            String sql,
+            String plan,
+            boolean trim,
+            boolean query) {
+      if (query) {
+        assertSqlConvertsTo(sql, plan, trim);
+      } else {
+        assertExprConvertsTo(sql);
+      }
+    }
+
+    private void assertExprConvertsTo(
+        String expr) {
+      String expr2 = getDiffRepos().expand("sql", expr);
+      RexNode rel = convertExpressionToRel(expr2);
+      assertNotNull(rel);
+    }
+
+    private void assertSqlConvertsTo(
         String sql,
         String plan,
         boolean trim) {
@@ -794,6 +832,43 @@ public abstract class SqlToRelTestBase {
       // line immediately after CDATA start
       String actual = NL + RelOptUtil.toString(rel);
       diffRepos.assertEquals("plan", plan, actual);
+    }
+
+    public RexNode convertExpressionToRel(String expr) {
+      Objects.requireNonNull(expr, "expr");
+      final SqlNode sqlQuery;
+      try {
+        sqlQuery = parseExpression(expr);
+      } catch (RuntimeException | Error e) {
+        throw e;
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+      final RelDataTypeFactory typeFactory = getTypeFactory();
+      final Prepare.CatalogReader catalogReader =
+              createCatalogReader(typeFactory);
+      final SqlValidator validator =
+              createValidator(
+                      catalogReader, typeFactory);
+      final Context context = getContext();
+      context.maybeUnwrap(CalciteConnectionConfig.class)
+              .ifPresent(calciteConfig -> {
+                validator.transform(config ->
+                        config.withDefaultNullCollation(
+                                calciteConfig.defaultNullCollation()));
+              });
+      final SqlToRelConverter.Config config =
+              configTransform.apply(SqlToRelConverter.config());
+
+      final SqlToRelConverter converter =
+              createSqlToRelConverter(
+                      validator,
+                      catalogReader,
+                      typeFactory,
+                      config);
+
+      final SqlNode validatedQuery = validator.validate(sqlQuery);
+      return  converter.convertExpression(validatedQuery);
     }
 
     /**
