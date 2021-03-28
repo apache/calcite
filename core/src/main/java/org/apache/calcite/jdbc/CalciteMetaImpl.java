@@ -194,14 +194,6 @@ public class CalciteMetaImpl extends MetaImpl {
         new Frame(0, true, iterable));
   }
 
-  @Override protected <E> MetaResultSet
-  createEmptyResultSet(final Class<E> clazz) {
-    final List<ColumnMetaData> columns = fieldMetaData(clazz).columns;
-    final CursorFactory cursorFactory = CursorFactory.deduce(columns, clazz);
-    return createResultSet(Collections.emptyMap(), columns,
-        cursorFactory, Frame.EMPTY);
-  }
-
   @Override protected MetaResultSet createResultSet(
       Map<String, Object> internalParameters, List<ColumnMetaData> columns,
       CursorFactory cursorFactory, final Frame firstFrame) {
