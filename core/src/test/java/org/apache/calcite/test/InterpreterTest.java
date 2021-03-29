@@ -30,9 +30,11 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -562,6 +564,21 @@ class InterpreterTest {
             "[7698, 1981-01-05]", "[7782, 1981-06-09]", "[7788, 1987-04-19]",
             "[7839, 1981-11-17]", "[7844, 1981-09-08]", "[7876, 1987-05-23]",
             "[7900, 1981-12-03]", "[7902, 1981-12-03]", "[7934, 1982-01-23]");
+  }
+
+  /** Tests a user-defined scalar function. */
+  @Test void testInterpretFunction() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final ScalarFunction f =
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_EVAL_METHOD);
+    schema.add("myPlus", f);
+    final String sql = "select x, \"s\".\"myPlus\"(x, 1)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows = {"[2, 3]", "[4, 5]", "[7, 8]"};
+    final int n = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
+    sql(sql).returnsRows(rows);
+    final int n2 = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
+    assertThat(n2, is(n + 3)); // instantiated once per run, not once per row
   }
 
   /** Tests a table function. */

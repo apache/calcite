@@ -115,6 +115,8 @@ public class Smalls {
   public static final Method PROCESS_CURSORS_METHOD =
       Types.lookupMethod(Smalls.class, "processCursors",
           int.class, Enumerable.class, Enumerable.class);
+  public static final Method MY_PLUS_EVAL_METHOD =
+      Types.lookupMethod(MyPlusFunction.class, "eval", int.class, int.class);
 
   private Smalls() {}
 
