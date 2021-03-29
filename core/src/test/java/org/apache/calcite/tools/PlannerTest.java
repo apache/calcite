@@ -247,7 +247,7 @@ class PlannerTest {
   @Test void testValidateUserDefinedFunctionInSchema() throws Exception {
     SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     rootSchema.add("my_plus",
-        ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_EVAL_METHOD));
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))

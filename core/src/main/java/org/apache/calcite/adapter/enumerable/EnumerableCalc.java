@@ -194,6 +194,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             typeFactory,
             conformance,
             builder3,
+            null,
             physType,
             DataContext.ROOT,
             new RexToLixTranslator.InputGetterImpl(input, result.physType),

@@ -35,11 +35,14 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FunctionContexts;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -139,11 +142,11 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         break;
       }
       if (call.getAggregation() == SqlStdOperatorTable.SUM) {
-        return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, true);
+        return new UdaAccumulatorFactory(getAggFunction(clazz), call, true,
+            dataContext);
       } else {
-        return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, false);
+        return new UdaAccumulatorFactory(getAggFunction(clazz), call, false,
+            dataContext);
       }
     } else if (call.getAggregation() == SqlStdOperatorTable.MIN) {
       final Class<?> clazz;
@@ -168,8 +171,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         clazz = MinLong.class;
         break;
       }
-      return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
+      return new UdaAccumulatorFactory(getAggFunction(clazz), call, true,
+          dataContext);
     } else if (call.getAggregation() == SqlStdOperatorTable.MAX) {
       final Class<?> clazz;
       switch (call.getType().getSqlTypeName()) {
@@ -190,8 +193,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         clazz = MaxLong.class;
         break;
       }
-      return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
+      return new UdaAccumulatorFactory(getAggFunction(clazz), call, true,
+          dataContext);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
@@ -255,9 +258,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           Expressions.parameter(Context.class, "context");
       final ParameterExpression outputValues_ =
           Expressions.parameter(Object[].class, "outputValues");
-      Scalar addScalar =
-          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
-      return new ScalarAccumulatorDef(castNonNull(null), addScalar, castNonNull(null),
+      final Scalar.Producer addScalarProducer =
+          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock(),
+              ImmutableList.of());
+      final Scalar initScalar = castNonNull(null);
+      final Scalar addScalar = addScalarProducer.apply(dataContext);
+      final Scalar endScalar = castNonNull(null);
+      return new ScalarAccumulatorDef(initScalar, addScalar, endScalar,
           rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
     }
   }
@@ -677,26 +684,41 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
-        AggregateCall call, boolean nullIfEmpty) {
+        AggregateCall call, boolean nullIfEmpty, DataContext dataContext) {
       this.aggFunction = aggFunction;
       if (call.getArgList().size() != 1) {
         throw new UnsupportedOperationException("in current implementation, "
             + "aggregate must have precisely one argument");
       }
       argOrdinal = call.getArgList().get(0);
-      if (aggFunction.isStatic) {
-        instance = null;
-      } else {
-        try {
-          final Constructor<?> constructor =
-              aggFunction.declaringClass.getConstructor();
-          instance = constructor.newInstance();
-        } catch (InstantiationException | IllegalAccessException
-            | NoSuchMethodException | InvocationTargetException e) {
-          throw new RuntimeException(e);
-        }
-      }
+      instance = createInstance(aggFunction, dataContext);
       this.nullIfEmpty = nullIfEmpty;
+    }
+
+    static @Nullable Object createInstance(AggregateFunctionImpl aggFunction,
+        DataContext dataContext) {
+      if (aggFunction.isStatic) {
+        return null;
+      }
+      try {
+        final Constructor<?> constructor =
+            aggFunction.declaringClass.getConstructor();
+        return constructor.newInstance();
+      } catch (InstantiationException | IllegalAccessException
+          | NoSuchMethodException | InvocationTargetException e) {
+        // ignore, and try next constructor
+      }
+      try {
+        final Constructor<?> constructor =
+            aggFunction.declaringClass.getConstructor(FunctionContext.class);
+        final Object[] args = new Object[aggFunction.getParameters().size()];
+        final FunctionContext functionContext =
+            FunctionContexts.of(dataContext, args);
+        return constructor.newInstance(functionContext);
+      } catch (InstantiationException | IllegalAccessException
+          | NoSuchMethodException | InvocationTargetException e) {
+        throw Util.toUnchecked(e);
+      }
     }
 
     @Override public Accumulator get() {

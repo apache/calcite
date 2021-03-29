@@ -18,16 +18,19 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Interpreter node that implements a
@@ -37,21 +40,28 @@ public class TableFunctionScanNode implements Node {
   private final Scalar scalar;
   private final Context context;
   private final Sink sink;
+  private final Function1<?, Row> mapFn;
 
   private TableFunctionScanNode(Compiler compiler, TableFunctionScan rel) {
-    this.scalar =
-        compiler.compile(ImmutableList.of(rel.getCall()), rel.getRowType());
+    final RelDataType rowType = rel.getRowType();
+    this.scalar = compiler.compile(ImmutableList.of(rel.getCall()), rowType);
     this.context = compiler.createContext();
     this.sink = compiler.sink(rel);
+    if (rowType.getFieldCount() == 1
+        && rel.getElementType() != Object[].class) {
+      this.mapFn = (Function1<Object, Row>) Row::of;
+    } else {
+      this.mapFn = (Function1<@Nullable Object[], Row>) Row::asCopy;
+    }
   }
 
   @Override public void run() throws InterruptedException {
     final Object o = scalar.execute(context);
     if (o instanceof Enumerable) {
-      @SuppressWarnings("unchecked") final Enumerable<Row> rowEnumerable =
-          Enumerables.toRow((Enumerable) o);
-      final Enumerator<Row> enumerator = rowEnumerable.enumerator();
-      while (enumerator.moveNext()) {
+      for (@SuppressWarnings({"unchecked", "rawtypes"})
+           final Enumerator<Row> enumerator =
+           ((Enumerable) o).select(mapFn).enumerator();
+           enumerator.moveNext();) {
         sink.send(enumerator.current());
       }
     }
