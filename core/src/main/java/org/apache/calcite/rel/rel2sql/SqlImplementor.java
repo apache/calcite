@@ -324,6 +324,8 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(op, POS, sqlOperands);
 
     case EQUALS:
+    case IN:
+    case NOT:
     case IS_DISTINCT_FROM:
     case IS_NOT_DISTINCT_FROM:
     case NOT_EQUALS:
@@ -332,7 +334,6 @@ public abstract class SqlImplementor {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case LIKE:
-    case NOT:
       node = stripCastFromString(node, dialect);
       operands = ((RexCall) node).getOperands();
       op = ((RexCall) node).getOperator();
