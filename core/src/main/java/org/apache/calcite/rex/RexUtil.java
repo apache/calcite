@@ -2208,7 +2208,10 @@ public class RexUtil {
     return e -> not(rexBuilder, e);
   }
 
-  /** Applies NOT to an expression. */
+  /** Applies NOT to an expression.
+   *
+   * <p>Unlike {@link #not}, may strengthen the type from {@code BOOLEAN}
+   * to {@code BOOLEAN NOT NULL}. */
   static RexNode not(final RexBuilder rexBuilder, RexNode input) {
     return input.isAlwaysTrue()
         ? rexBuilder.makeLiteral(false)

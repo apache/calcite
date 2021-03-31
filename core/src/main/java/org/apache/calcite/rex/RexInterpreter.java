@@ -219,6 +219,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return extract(values);
     case LIKE:
       return like(values);
+    case SIMILAR:
+      return similar(values);
     case SEARCH:
       return search(call.operands.get(1).getType().getSqlTypeName(), values);
     default:
@@ -255,6 +257,24 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case 3:
       final NlsString escape = (NlsString) values.get(2);
       return SqlFunctions.like(value.getValue(), pattern.getValue(),
+          escape.getValue());
+    default:
+      throw new AssertionError();
+    }
+  }
+
+  private static Comparable similar(List<Comparable> values) {
+    if (containsNull(values)) {
+      return N;
+    }
+    final NlsString value = (NlsString) values.get(0);
+    final NlsString pattern = (NlsString) values.get(1);
+    switch (values.size()) {
+    case 2:
+      return SqlFunctions.similar(value.getValue(), pattern.getValue());
+    case 3:
+      final NlsString escape = (NlsString) values.get(2);
+      return SqlFunctions.similar(value.getValue(), pattern.getValue(),
           escape.getValue());
     default:
       throw new AssertionError();
