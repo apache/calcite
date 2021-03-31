@@ -56,6 +56,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -781,8 +782,8 @@ public class EnumUtils {
                 implementor.getTypeFactory(),
                 builder,
                 new RexToLixTranslator.InputGetterImpl(
-                    ImmutableList.of(Pair.of(left_, leftPhysType),
-                        Pair.of(right_, rightPhysType))),
+                    ImmutableMap.of(left_, leftPhysType,
+                        right_, rightPhysType)),
                 implementor.allCorrelateVariables,
                 implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);

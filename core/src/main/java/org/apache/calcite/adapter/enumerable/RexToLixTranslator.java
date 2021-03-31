@@ -107,6 +107,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   private final Expression root;
   final RexToLixTranslator.@Nullable InputGetter inputGetter;
   private final BlockBuilder list;
+  private final @Nullable BlockBuilder staticList;
   private final @Nullable Function1<String, InputGetter> correlates;
 
   /**
@@ -151,6 +152,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       Expression root,
       @Nullable InputGetter inputGetter,
       BlockBuilder list,
+      @Nullable BlockBuilder staticList,
       RexBuilder builder,
       SqlConformance conformance,
       @Nullable Function1<String, InputGetter> correlates) {
@@ -160,6 +162,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     this.root = requireNonNull(root, "root");
     this.inputGetter = inputGetter;
     this.list = requireNonNull(list, "list");
+    this.staticList = staticList;
     this.builder = requireNonNull(builder, "builder");
     this.correlates = correlates; // may be null
   }
@@ -192,17 +195,17 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        list, new RexBuilder(typeFactory), conformance, null)
+        list, null, new RexBuilder(typeFactory), conformance,  null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
 
   public static Expression translateTableFunction(JavaTypeFactory typeFactory,
-      SqlConformance conformance, BlockBuilder blockBuilder,
+      SqlConformance conformance, BlockBuilder list,
       Expression root, RexCall rexCall, Expression inputEnumerable,
       PhysType inputPhysType, PhysType outputPhysType) {
-    return new RexToLixTranslator(null, typeFactory, root, null,
-        blockBuilder, new RexBuilder(typeFactory), conformance, null)
+    return new RexToLixTranslator(null, typeFactory, root, null, list,
+        null, new RexBuilder(typeFactory), conformance, null)
         .translateTableFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
   }
 
@@ -211,7 +214,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       BlockBuilder list, @Nullable InputGetter inputGetter, SqlConformance conformance) {
     final ParameterExpression root = DataContext.ROOT;
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
-        new RexBuilder(typeFactory), conformance, null);
+        null, new RexBuilder(typeFactory), conformance, null);
   }
 
   Expression translate(RexNode expr) {
@@ -235,8 +238,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     currentStorageType = storageType;
     final Result result = expr.accept(this);
     final Expression translated =
-        EnumUtils.toInternal(result.valueVariable, storageType);
-    assert translated != null;
+        requireNonNull(EnumUtils.toInternal(result.valueVariable, storageType));
     // When we asked for not null input that would be stored as box, avoid unboxing
     if (RexImpTable.NullAs.NOT_POSSIBLE == nullAs
         && translated.type.equals(storageType)) {
@@ -900,7 +902,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final ParameterExpression root = DataContext.ROOT;
     RexToLixTranslator translator =
         new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-            new RexBuilder(typeFactory), conformance, null);
+            null, new RexBuilder(typeFactory), conformance, null);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         condition,
@@ -915,12 +917,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return e.getType().isNullable();
   }
 
-  public RexToLixTranslator setBlock(BlockBuilder block) {
-    if (block == list) {
+  public RexToLixTranslator setBlock(BlockBuilder list) {
+    if (list == this.list) {
       return this;
     }
-    return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        block, builder, conformance, correlates);
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
+        staticList, builder, conformance, correlates);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -929,7 +931,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        builder, conformance, correlates);
+        staticList, builder, conformance, correlates);
   }
 
   public Expression getRoot() {
@@ -1436,6 +1438,25 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         () -> "callOperandResultMap.get(call) for " + call);
   }
 
+  /** Returns an expression that yields the function object whose method
+   * we are about to call.
+   *
+   * <p>It might be 'new MyFunction()', but it also might be a reference
+   * to a static field 'F', defined by
+   * 'static final MyFunction F = new MyFunction()'.
+   * In future, we might look for and call a constructor that takes extra
+   * context, such as the values of arguments that are literals, which might
+   * allow the function to do some computation at class-load time. */
+  Expression functionInstance(RexCall call, Method method) {
+    final Class<?> declaringClass = method.getDeclaringClass();
+
+    // The UDF class must have a public zero-args constructor.
+    // Assume that the validator checked already.
+    final Expression target =
+        Expressions.new_(declaringClass);
+    return target;
+  }
+
   /** Translates a field of an input to an expression. */
   public interface InputGetter {
     Expression field(BlockBuilder list, int index, @Nullable Type storageType);
@@ -1444,22 +1465,38 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /** Implementation of {@link InputGetter} that calls
    * {@link PhysType#fieldReference}. */
   public static class InputGetterImpl implements InputGetter {
-    private List<Pair<Expression, PhysType>> inputs;
+    private final ImmutableMap<Expression, PhysType> inputs;
 
+    @Deprecated // to be removed before 2.0
     public InputGetterImpl(List<Pair<Expression, PhysType>> inputs) {
-      this.inputs = inputs;
+      this(mapOf(inputs));
+    }
+
+    public InputGetterImpl(Expression e, PhysType physType) {
+      this(ImmutableMap.of(e, physType));
+    }
+
+    public InputGetterImpl(Map<Expression, PhysType> inputs) {
+      this.inputs = ImmutableMap.copyOf(inputs);
+    }
+
+    private static <K, V> Map<K, V> mapOf(
+        Iterable<? extends Map.Entry<K, V>> entries) {
+      ImmutableMap.Builder<K, V> b = ImmutableMap.builder();
+      Pair.forEach(entries, b::put);
+      return b.build();
     }
 
     @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       int offset = 0;
-      for (Pair<Expression, PhysType> input : inputs) {
-        final PhysType physType = input.right;
+      for (Map.Entry<Expression, PhysType> input : inputs.entrySet()) {
+        final PhysType physType = input.getValue();
         int fieldCount = physType.getRowType().getFieldCount();
         if (index >= offset + fieldCount) {
           offset += fieldCount;
           continue;
         }
-        final Expression left = list.append("current", input.left);
+        final Expression left = list.append("current", input.getKey());
         return physType.fieldReference(left, index - offset, storageType);
       }
       throw new IllegalArgumentException("Unable to find field #" + index);

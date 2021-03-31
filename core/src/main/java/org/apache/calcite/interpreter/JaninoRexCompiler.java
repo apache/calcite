@@ -37,7 +37,6 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -84,12 +83,10 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     // public void execute(Context, Object[] outputValues)
     final RexToLixTranslator.InputGetter inputGetter =
         new RexToLixTranslator.InputGetterImpl(
-            ImmutableList.of(
-                Pair.of(
-                    Expressions.field(context_,
-                        BuiltInMethod.CONTEXT_VALUES.field),
-                    PhysTypeImpl.of(javaTypeFactory, inputRowType,
-                        JavaRowFormat.ARRAY, false))));
+            Expressions.field(context_,
+                BuiltInMethod.CONTEXT_VALUES.field),
+            PhysTypeImpl.of(javaTypeFactory, inputRowType,
+                JavaRowFormat.ARRAY, false));
     final Function1<String, RexToLixTranslator.InputGetter> correlates = a0 -> {
       throw new UnsupportedOperationException();
     };
