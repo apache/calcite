@@ -256,7 +256,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       final ParameterExpression outputValues_ =
           Expressions.parameter(Object[].class, "outputValues");
       Scalar addScalar =
-          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
+          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock(),
+              ImmutableList.of());
       return new ScalarAccumulatorDef(castNonNull(null), addScalar, castNonNull(null),
           rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
     }

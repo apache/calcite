@@ -578,7 +578,7 @@ class InterpreterTest {
     final int n = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
     sql(sql).returnsRows(rows);
     final int n2 = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
-    assertThat(n2, is(n + 3)); // instantiated once per run, not once per row
+    assertThat(n2, is(n + 1)); // instantiated once per run, not once per row
   }
 
   /** Tests a table function. */

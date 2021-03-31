@@ -175,6 +175,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * @param typeFactory Type factory
    * @param conformance SQL conformance
    * @param list List of statements, populated with declarations
+   * @param staticList List of member declarations
    * @param outputPhysType Output type, or null
    * @param root Root expression
    * @param inputGetter Generates expressions for inputs
@@ -184,7 +185,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    */
   public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory, SqlConformance conformance,
-      BlockBuilder list, @Nullable PhysType outputPhysType, Expression root,
+      BlockBuilder list, @Nullable BlockBuilder staticList,
+      @Nullable PhysType outputPhysType, Expression root,
       InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
@@ -195,9 +197,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        list, null, new RexBuilder(typeFactory), conformance,  null)
+        list, staticList, new RexBuilder(typeFactory), conformance,  null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static List<Expression> translateProjects(RexProgram program,
+      JavaTypeFactory typeFactory, SqlConformance conformance,
+      BlockBuilder list, @Nullable PhysType outputPhysType, Expression root,
+      InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
+    return translateProjects(program, typeFactory, conformance, list, null,
+        outputPhysType, root, inputGetter, correlates);
   }
 
   public static Expression translateTableFunction(JavaTypeFactory typeFactory,
@@ -1454,7 +1465,11 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     // Assume that the validator checked already.
     final Expression target =
         Expressions.new_(declaringClass);
-    return target;
+    if (staticList != null) {
+      return staticList.append("f", target);
+    } else {
+      return list.append("f", target);
+    }
   }
 
   /** Translates a field of an input to an expression. */

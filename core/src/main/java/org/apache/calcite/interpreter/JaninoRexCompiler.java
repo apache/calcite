@@ -21,14 +21,17 @@ import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -72,7 +75,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     }
     final RexProgram program = programBuilder.getProgram();
 
-    final BlockBuilder builder = new BlockBuilder();
+    final BlockBuilder list = new BlockBuilder();
+    final BlockBuilder staticList = new BlockBuilder();
     final ParameterExpression context_ =
         Expressions.parameter(Context.class, "context");
     final ParameterExpression outputValues_ =
@@ -94,26 +98,33 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
         Expressions.field(context_, BuiltInMethod.CONTEXT_ROOT.field);
     final SqlConformance conformance =
         SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
-    final List<Expression> list =
+    final List<Expression> expressionList =
         RexToLixTranslator.translateProjects(program, javaTypeFactory,
-            conformance, builder, null, root, inputGetter, correlates);
-    for (int i = 0; i < list.size(); i++) {
-      builder.add(
-          Expressions.statement(
-              Expressions.assign(
-                  Expressions.arrayIndex(outputValues_,
-                      Expressions.constant(i)),
-                  list.get(i))));
+            conformance, list, staticList, null, root, inputGetter, correlates);
+    Ord.forEach(expressionList, (expression, i) ->
+        list.add(
+            Expressions.statement(
+                Expressions.assign(
+                    Expressions.arrayIndex(outputValues_,
+                        Expressions.constant(i)),
+                    expression))));
+    final List<MemberDeclaration> declList = new ArrayList<>();
+    for (Statement statement : staticList.toBlock().statements) {
+      final DeclarationStatement decl = (DeclarationStatement) statement;
+      declList.add(
+          Expressions.fieldDecl(Modifier.STATIC, decl.parameter,
+              decl.initializer));
     }
-    return baz(context_, outputValues_, builder.toBlock());
+    return baz(context_, outputValues_, list.toBlock(), declList);
   }
 
   /** Given a method that implements {@link Scalar#execute(Context, Object[])},
    * adds a bridge method that implements {@link Scalar#execute(Context)}, and
    * compiles. */
   static Scalar baz(ParameterExpression context_,
-      ParameterExpression outputValues_, BlockStatement block) {
-    final List<MemberDeclaration> declarations = new ArrayList<>();
+      ParameterExpression outputValues_, BlockStatement block,
+      List<MemberDeclaration> staticList) {
+    final List<MemberDeclaration> declarations = new ArrayList<>(staticList);
 
     // public void execute(Context, Object[] outputValues)
     declarations.add(

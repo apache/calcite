@@ -393,6 +393,7 @@ public abstract class SparkRules {
               conformance,
               builder2,
               null,
+              null,
               DataContext.ROOT,
               new RexToLixTranslator.InputGetterImpl(e_, result.physType),
               null);
