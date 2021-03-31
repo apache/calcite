@@ -55,7 +55,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
@@ -166,9 +165,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
               program,
               typeFactory,
               builder2,
-              new RexToLixTranslator.InputGetterImpl(
-                  Collections.singletonList(
-                      Pair.of(input, result.physType))),
+              new RexToLixTranslator.InputGetterImpl(input, result.physType),
               implementor.allCorrelateVariables, implementor.getConformance());
       builder2.add(
           Expressions.ifThen(
@@ -199,9 +196,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             builder3,
             physType,
             DataContext.ROOT,
-            new RexToLixTranslator.InputGetterImpl(
-                Collections.singletonList(
-                    Pair.of(input, result.physType))),
+            new RexToLixTranslator.InputGetterImpl(input, result.physType),
             implementor.allCorrelateVariables);
     builder3.add(
         Expressions.return_(

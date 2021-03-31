@@ -40,7 +40,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,7 +49,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,11 +76,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableBitSet union = ImmutableBitSet.of();
 
-    if (rel.getGroupSets() != null) {
-      for (ImmutableBitSet group : rel.getGroupSets()) {
-        union = union.union(group);
-        groups.add(new Grouping(group));
-      }
+    for (ImmutableBitSet group : rel.getGroupSets()) {
+      union = union.union(group);
+      groups.add(new Grouping(group));
     }
 
     this.unionGroups = union;
@@ -247,9 +243,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
                   SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
                   currentBlock(),
-                  new RexToLixTranslator.InputGetterImpl(
-                      Collections.singletonList(
-                          Pair.of((Expression) inParameter, inputPhysType))),
+                  new RexToLixTranslator.InputGetterImpl(inParameter,
+                      inputPhysType),
                   conformance);
             }
           };
