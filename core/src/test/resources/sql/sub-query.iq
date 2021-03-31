@@ -809,7 +809,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS TRUE($t4)], expr#6=[null:BOOLEAN], expr#7=[IS NOT NULL($t3)], expr#8=[AND($t5, $t6, $t7)], expr#9=[IS NOT NULL($t2)], expr#10=[IS NOT FALSE($t2)], expr#11=[AND($t9, $t7, $t10)], expr#12=[OR($t8, $t11)], SAL=[$t1], EXPR$1=[$t12])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEAN], expr#6=[IS NOT NULL($t3)], expr#7=[AND($t4, $t5, $t6)], expr#8=[IS NOT NULL($t2)], expr#9=[IS NOT FALSE($t2)], expr#10=[AND($t8, $t6, $t9)], expr#11=[OR($t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -987,7 +987,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS TRUE($t4)], expr#6=[null:BOOLEAN], expr#7=[IS NOT NULL($t3)], expr#8=[AND($t5, $t6, $t7)], expr#9=[IS NOT NULL($t2)], expr#10=[IS NOT FALSE($t2)], expr#11=[AND($t9, $t7, $t10)], expr#12=[OR($t8, $t11)], SAL=[$t1], EXPR$1=[$t12])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEAN], expr#6=[IS NOT NULL($t3)], expr#7=[AND($t4, $t5, $t6)], expr#8=[IS NOT NULL($t2)], expr#9=[IS NOT FALSE($t2)], expr#10=[AND($t8, $t6, $t9)], expr#11=[OR($t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1059,7 +1059,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS TRUE($t5)], expr#7=[null:BOOLEAN], expr#8=[AND($t6, $t7)], expr#9=[IS NOT FALSE($t2)], expr#10=[IS NULL($t2)], expr#11=[AND($t9, $t10)], expr#12=[OR($t4, $t8, $t11)], SAL=[$t1], EXPR$1=[$t12])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2)], expr#6=[null:BOOLEAN], expr#7=[AND($t5, $t6)], expr#8=[IS NOT FALSE($t2)], expr#9=[IS NULL($t2)], expr#10=[AND($t8, $t9)], expr#11=[OR($t4, $t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1237,7 +1237,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS TRUE($t5)], expr#7=[null:BOOLEAN], expr#8=[AND($t6, $t7)], expr#9=[IS NOT FALSE($t2)], expr#10=[IS NULL($t2)], expr#11=[AND($t9, $t10)], expr#12=[OR($t4, $t8, $t11)], SAL=[$t1], EXPR$1=[$t12])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2)], expr#6=[null:BOOLEAN], expr#7=[AND($t5, $t6)], expr#8=[IS NOT FALSE($t2)], expr#9=[IS NULL($t2)], expr#10=[AND($t8, $t9)], expr#11=[OR($t4, $t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])

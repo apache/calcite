@@ -2928,6 +2928,11 @@ class RexProgramTest extends RexProgramTestBase {
         "?0.bool0");
   }
 
+  @Test void testSimplifyIsTrue() {
+    final RexNode ref = input(tVarchar(true, 10), 0);
+    checkSimplify(isTrue(like(ref, literal("%"))), "IS NOT NULL($0)");
+  }
+
   /** Unit tests for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2438">[CALCITE-2438]
    * RexCall#isAlwaysTrue returns incorrect result</a>. */
@@ -3084,16 +3089,51 @@ class RexProgramTest extends RexProgramTestBase {
    * RexSimplify should simplify more always true OR expressions</a>. */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
-    checkSimplify(like(ref, literal("%")),
-        "OR(null, IS NOT NULL($0))");
-    checkSimplify(like(ref, literal("%"), literal("#")),
-        "OR(null, IS NOT NULL($0))");
+    checkSimplify3(like(ref, literal("%")),
+        "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
+    checkSimplify3(like(ref, literal("%"), literal("#")),
+        "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
+    checkSimplify3(
+        or(like(ref, literal("%")),
+            like(ref, literal("% %"))),
+        "OR(null, IS NOT NULL($0), LIKE($0, '% %'))",
+        "OR(IS NOT NULL($0), LIKE($0, '% %'))", "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"))),
         "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"), literal("#"))),
         "true");
     checkSimplifyUnchanged(like(ref, literal("%A")));
     checkSimplifyUnchanged(like(ref, literal("%A"), literal("#")));
+
+    // As above, but ref is NOT NULL
+    final RexNode refMandatory = vVarcharNotNull(0);
+    checkSimplify(like(refMandatory, literal("%")), "true");
+    checkSimplify(
+        or(like(refMandatory, literal("%")),
+            like(refMandatory, literal("% %"))), "true");
+
+    // NOT LIKE and NOT SIMILAR TO are not allowed in Rex land
+    try {
+      rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE, ref, literal("%"));
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("unsupported negated operator NOT LIKE"));
+    }
+    try {
+      rexBuilder.makeCall(SqlStdOperatorTable.NOT_SIMILAR_TO, ref, literal("%"));
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          is("unsupported negated operator NOT SIMILAR TO"));
+    }
+
+    // NOT(LIKE)
+    checkSimplify3(not(like(ref, literal("%"))),
+        "NOT(OR(null, IS NOT NULL($0)))", "false", "NOT(IS NOT NULL($0))");
+    // SIMILAR TO is not optimized
+    checkSimplifyUnchanged(
+        rexBuilder.makeCall(SqlStdOperatorTable.SIMILAR_TO, ref, literal("%")));
+    // NOT(SIMILAR TO) is not optimized
+    checkSimplifyUnchanged(
+        not(rexBuilder.makeCall(SqlStdOperatorTable.SIMILAR_TO, ref, literal("%"))));
   }
 
   @Test void testSimplifyNonDeterministicFunction() {
