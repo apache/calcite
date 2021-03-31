@@ -175,7 +175,7 @@ public abstract class SqlToRelTestBase {
      *
      * @param expr expression
      */
-    RexNode convertExpressionToRel(String expr);
+    RexNode convertExprToRex(String expr);
 
     SqlNode parseQuery(String sql) throws Exception;
 
@@ -220,6 +220,19 @@ public abstract class SqlToRelTestBase {
      * trimming columns that are not needed.
      *
      * @param sql  SQL query
+     * @param plan Expected plan
+     * @param trim Whether to trim columns that are not needed
+     */
+    void assertConvertsTo(
+            String sql,
+            String plan,
+            boolean trim);
+
+    /**
+     * Checks that a SQL statement converts to a given plan, optionally
+     * trimming columns that are not needed.
+     *
+     * @param sql  SQL query or expression
      * @param plan Expected plan
      * @param trim Whether to trim columns that are not needed
      * @param query True if {@code sql} is a query, false if it is an expression
@@ -786,6 +799,12 @@ public abstract class SqlToRelTestBase {
     public void assertConvertsTo(
         String sql,
         String plan) {
+      assertConvertsTo(sql, plan, false);
+    }
+
+    public void assertConvertsTo(String sql,
+                                 String plan,
+                                 boolean trim) {
       assertConvertsTo(sql, plan, false, true);
     }
 
@@ -804,7 +823,7 @@ public abstract class SqlToRelTestBase {
     private void assertExprConvertsTo(
         String expr) {
       String expr2 = getDiffRepos().expand("sql", expr);
-      RexNode rel = convertExpressionToRel(expr2);
+      RexNode rel = convertExprToRex(expr2);
       assertNotNull(rel);
     }
 
@@ -834,7 +853,7 @@ public abstract class SqlToRelTestBase {
       diffRepos.assertEquals("plan", plan, actual);
     }
 
-    public RexNode convertExpressionToRel(String expr) {
+    public RexNode convertExprToRex(String expr) {
       Objects.requireNonNull(expr, "expr");
       final SqlNode sqlQuery;
       try {
