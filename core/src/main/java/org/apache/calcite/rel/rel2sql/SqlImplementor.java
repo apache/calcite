@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -2027,6 +2028,10 @@ public abstract class SqlImplementor {
           && !dialect.supportsAnalyticalFunctionInAggregate()
           && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
         return  true;
+      }
+
+      if (rel instanceof LogicalSort && rel.getInput(0) instanceof LogicalIntersect) {
+        return true;
       }
 
       if (rel instanceof Project
