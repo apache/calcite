@@ -171,7 +171,7 @@ public abstract class SqlToRelTestBase {
     RelRoot convertSqlToRel(String sql);
 
     /**
-     * Converts a expression string to  {@link RexNode}.
+     * Converts an expression string to  {@link RexNode}.
      *
      * @param expr expression
      */
