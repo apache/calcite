@@ -3084,13 +3084,21 @@ class RexProgramTest extends RexProgramTestBase {
    * RexSimplify should simplify more always true OR expressions</a>. */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
-    checkSimplify(like(ref, literal("%")),
-        "OR(null, IS NOT NULL($0))");
-    checkSimplify(like(ref, literal("%"), literal("#")),
-        "OR(null, IS NOT NULL($0))");
+    checkSimplify3(like(ref, literal("%")),
+        "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
+    checkSimplify3(like(ref, literal("%"), literal("#")),
+        "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"))),
         "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"), literal("#"))),
+        "true");
+    checkSimplify(isTrue(like(ref, literal("%"))),
+        "IS NOT NULL($0)");
+    checkSimplify(isFalse(like(ref, literal("%"))),
+        "false");
+    checkSimplify(isNotTrue(like(ref, literal("%"))),
+        "IS NULL($0)");
+    checkSimplify(isNotFalse(like(ref, literal("%"))),
         "true");
     checkSimplifyUnchanged(like(ref, literal("%A")));
     checkSimplifyUnchanged(like(ref, literal("%A"), literal("#")));

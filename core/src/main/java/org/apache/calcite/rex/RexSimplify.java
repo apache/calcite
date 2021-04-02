@@ -306,7 +306,7 @@ public class RexSimplify {
     case SEARCH:
       return simplifySearch((RexCall) e, unknownAs);
     case LIKE:
-      return simplifyLike((RexCall) e);
+      return simplifyLike((RexCall) e, unknownAs);
     case MINUS_PREFIX:
       return simplifyUnaryMinus((RexCall) e, unknownAs);
     case PLUS_PREFIX:
@@ -332,7 +332,7 @@ public class RexSimplify {
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 
-  private RexNode simplifyLike(RexCall e) {
+  private RexNode simplifyLike(RexCall e, RexUnknownAs unknownAs) {
     if (e.operands.get(1) instanceof RexLiteral) {
       final RexLiteral literal = (RexLiteral) e.operands.get(1);
       if ("%".equals(literal.getValueAs(String.class))) {
@@ -341,7 +341,7 @@ public class RexSimplify {
         return simplify(
             rexBuilder.makeCall(SqlStdOperatorTable.OR,
                 rexBuilder.makeNullLiteral(e.getType()),
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x)));
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x)), unknownAs);
       }
     }
     return simplifyGenericNode(e);
@@ -679,7 +679,7 @@ public class RexSimplify {
     if (a2.isAlwaysFalse()) {
       return rexBuilder.makeLiteral(true);
     }
-    return rexBuilder.makeCall(SqlStdOperatorTable.NOT, a2);
+    return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a2), unknownAs);
   }
 
   private RexNode simplifyUnaryMinus(RexCall call, RexUnknownAs unknownAs) {
@@ -778,7 +778,7 @@ public class RexSimplify {
         if (newSub == a) {
           return null;
         }
-        return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(newSub));
+        return simplify(rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(newSub)), unknownAs);
       }
     case IS_FALSE:
     case IS_NOT_TRUE:
@@ -786,8 +786,14 @@ public class RexSimplify {
       // x IS FALSE ==> NOT x (if x is not nullable)
       if (predicates.isEffectivelyNotNull(a)) {
         return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
+      } else {
+        RexNode newSub =
+            simplify(a, kind == SqlKind.IS_FALSE ? RexUnknownAs.TRUE : RexUnknownAs.FALSE);
+        if (newSub == a) {
+          return null;
+        }
+        return simplify(rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(newSub)), unknownAs);
       }
-      break;
     default:
       break;
     }
