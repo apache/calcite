@@ -72,6 +72,7 @@ import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -615,28 +616,9 @@ public abstract class SqlToRelTestBase {
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
-      final RelDataTypeFactory typeFactory = getTypeFactory();
-      final Prepare.CatalogReader catalogReader =
-          createCatalogReader(typeFactory);
-      final SqlValidator validator =
-          createValidator(
-              catalogReader, typeFactory);
-      final Context context = getContext();
-      context.maybeUnwrap(CalciteConnectionConfig.class)
-          .ifPresent(calciteConfig -> {
-            validator.transform(config ->
-                config.withDefaultNullCollation(
-                    calciteConfig.defaultNullCollation()));
-          });
-      final SqlToRelConverter.Config config =
-          configTransform.apply(SqlToRelConverter.config());
-
-      final SqlToRelConverter converter =
-          createSqlToRelConverter(
-              validator,
-              catalogReader,
-              typeFactory,
-              config);
+      Pair<SqlToRelConverter, SqlValidator> converterWithValidator = createSqlToRelConverter();
+      SqlToRelConverter converter = converterWithValidator.left;
+      SqlValidator validator = converterWithValidator.right;
 
       final SqlNode validatedQuery = validator.validate(sqlQuery);
       RelRoot root =
@@ -680,6 +662,32 @@ public abstract class SqlToRelTestBase {
       relNode = converter.flattenTypes(relNode, true);
       relNode = converter.trimUnusedFields(true, relNode);
       return relNode;
+    }
+
+    private Pair<SqlToRelConverter, SqlValidator> createSqlToRelConverter() {
+      final RelDataTypeFactory typeFactory = getTypeFactory();
+      final Prepare.CatalogReader catalogReader =
+              createCatalogReader(typeFactory);
+      final SqlValidator validator =
+              createValidator(
+                      catalogReader, typeFactory);
+      final Context context = getContext();
+      context.maybeUnwrap(CalciteConnectionConfig.class)
+              .ifPresent(calciteConfig -> {
+                validator.transform(config ->
+                        config.withDefaultNullCollation(
+                                calciteConfig.defaultNullCollation()));
+              });
+      final SqlToRelConverter.Config config =
+              configTransform.apply(SqlToRelConverter.config());
+
+      final SqlToRelConverter converter =
+              createSqlToRelConverter(
+                      validator,
+                      catalogReader,
+                      typeFactory,
+                      config);
+      return Pair.of(converter, validator);
     }
 
     protected SqlToRelConverter createSqlToRelConverter(
@@ -863,28 +871,10 @@ public abstract class SqlToRelTestBase {
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
-      final RelDataTypeFactory typeFactory = getTypeFactory();
-      final Prepare.CatalogReader catalogReader =
-              createCatalogReader(typeFactory);
-      final SqlValidator validator =
-              createValidator(
-                      catalogReader, typeFactory);
-      final Context context = getContext();
-      context.maybeUnwrap(CalciteConnectionConfig.class)
-              .ifPresent(calciteConfig -> {
-                validator.transform(config ->
-                        config.withDefaultNullCollation(
-                                calciteConfig.defaultNullCollation()));
-              });
-      final SqlToRelConverter.Config config =
-              configTransform.apply(SqlToRelConverter.config());
 
-      final SqlToRelConverter converter =
-              createSqlToRelConverter(
-                      validator,
-                      catalogReader,
-                      typeFactory,
-                      config);
+      Pair<SqlToRelConverter, SqlValidator> converterWithValidator = createSqlToRelConverter();
+      SqlToRelConverter converter = converterWithValidator.left;
+      SqlValidator validator = converterWithValidator.right;
 
       final SqlNode validatedQuery = validator.validate(sqlQuery);
       return  converter.convertExpression(validatedQuery);
