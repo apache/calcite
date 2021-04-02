@@ -173,7 +173,7 @@ public abstract class SqlToRelTestBase {
     /**
      * Converts an expression string to  {@link RexNode}.
      *
-     * @param expr expression
+     * @param expr The expression
      */
     RexNode convertExprToRex(String expr);
 
