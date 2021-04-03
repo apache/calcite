@@ -76,7 +76,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     final RexProgram program = programBuilder.getProgram();
 
     final BlockBuilder list = new BlockBuilder();
-    final BlockBuilder staticList = new BlockBuilder();
+    final BlockBuilder staticList = new BlockBuilder().withRemoveUnused(false);
     final ParameterExpression context_ =
         Expressions.parameter(Context.class, "context");
     final ParameterExpression outputValues_ =
@@ -112,8 +112,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     for (Statement statement : staticList.toBlock().statements) {
       final DeclarationStatement decl = (DeclarationStatement) statement;
       declList.add(
-          Expressions.fieldDecl(Modifier.STATIC, decl.parameter,
-              decl.initializer));
+          Expressions.fieldDecl(Modifier.STATIC | Modifier.FINAL,
+              decl.parameter, decl.initializer));
     }
     return baz(context_, outputValues_, list.toBlock(), declList);
   }

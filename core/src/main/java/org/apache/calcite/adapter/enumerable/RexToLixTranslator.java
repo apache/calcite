@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -30,9 +31,11 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -61,11 +64,13 @@ import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -1060,10 +1065,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         ? getTypedNullLiteral(literal)
         : translateLiteral(literal, literal.getType(),
             typeFactory, RexImpTable.NullAs.NOT_POSSIBLE);
-    final ParameterExpression valueVariable =
-        Expressions.parameter(valueExpression.getType(),
-            list.newName("literal_value"));
-    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+    final ParameterExpression valueVariable;
+    final Expression literalValue =
+        appendConstant("literal_value", valueExpression);
+    if (literalValue instanceof ParameterExpression) {
+      valueVariable = (ParameterExpression) literalValue;
+    } else {
+      valueVariable =
+          Expressions.parameter(valueExpression.getType(),
+              list.newName("literal_value"));
+      list.add(
+          Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+    }
 
     // Generate one line of code to check whether RexLiteral is null, e.g.,
     // "final boolean literal_isNull = false;"
@@ -1455,20 +1468,66 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * <p>It might be 'new MyFunction()', but it also might be a reference
    * to a static field 'F', defined by
    * 'static final MyFunction F = new MyFunction()'.
-   * In future, we might look for and call a constructor that takes extra
-   * context, such as the values of arguments that are literals, which might
-   * allow the function to do some computation at class-load time. */
+   *
+   * <p>If there is a constructor that takes a {@link Context} argument, we
+   * call that, passing in the values of arguments that are literals; this
+   * allows the function to do some computation at class-load time.
+   *
+   * <p>If the call is "f(1, 2 + 3, 'foo')" and "f" is implemented by method
+   * "eval(int, int, String)" in "class MyFun", the expression might be
+   * "new MyFunction(Contexts.of(Arrays.asList(1, null, "foo"))".
+   *
+   * @param method Method that implements the UDF
+   * @param call Call to the UDF
+   * @return New expression
+   */
   Expression functionInstance(RexCall call, Method method) {
-    final Class<?> declaringClass = method.getDeclaringClass();
+    final RexCallBinding callBinding =
+        RexCallBinding.create(typeFactory, call, program, ImmutableList.of());
+    final Expression target = getInstantiationExpression(method, callBinding);
+    return appendConstant("f", target);
+  }
 
+  /** Helper for {@link #functionInstance}. */
+  private Expression getInstantiationExpression(Method method,
+      RexCallBinding callBinding) {
+    final Class<?> declaringClass = method.getDeclaringClass();
+    // If the UDF class has a constructor that takes a Context argument,
+    // use that.
+    try {
+      final Constructor<?> constructor =
+          declaringClass.getConstructor(Context.class);
+      final List<Expression> constantArgs = new ArrayList<>();
+      Ord.forEach(method.getParameterTypes(),
+          (parameterType, i) ->
+              constantArgs.add(
+                  callBinding.isOperandLiteral(i, true)
+                      ? appendConstant("_arg",
+                      Expressions.constant(
+                          callBinding.getOperandLiteralValue(i, parameterType)))
+                      : Expressions.constant(null)));
+      final Expression context =
+          Expressions.call(BuiltInMethod.CONTEXTS_OF.method,
+              Expressions.call(null, BuiltInMethod.ARRAYS_AS_LIST.method,
+                  constantArgs));
+      return Expressions.new_(constructor, context);
+    } catch (NoSuchMethodException e) {
+      // ignore
+    }
     // The UDF class must have a public zero-args constructor.
     // Assume that the validator checked already.
-    final Expression target =
-        Expressions.new_(declaringClass);
+    return Expressions.new_(declaringClass);
+  }
+
+  /** Stores a constant expression in a variable. */
+  private Expression appendConstant(String name, Expression e) {
     if (staticList != null) {
-      return staticList.append("f", target);
+      // If name is "camelCase", upperName is "CAMEL_CASE".
+      final String upperName =
+          CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, name);
+      return staticList.append(upperName, e);
     } else {
-      return list.append("f", target);
+      return list.append(name, e);
     }
   }
 

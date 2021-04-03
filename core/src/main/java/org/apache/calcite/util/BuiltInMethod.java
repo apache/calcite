@@ -52,6 +52,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
@@ -604,6 +605,7 @@ public enum BuiltInMethod {
   SCALAR_EXECUTE2(Scalar.class, "execute", Context.class, Object[].class),
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
+  CONTEXTS_OF(Contexts.class, "of", Object[].class),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   METADATA_REL(Metadata.class, "rel"),
   STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class,
