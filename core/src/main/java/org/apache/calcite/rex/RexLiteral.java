@@ -639,6 +639,7 @@ public class RexLiteral extends RexNode {
       assert value instanceof Boolean;
       sb.append(value.toString());
       break;
+    case FLOAT:
     case DECIMAL:
       assert value instanceof BigDecimal;
       sb.append(value.toString());
