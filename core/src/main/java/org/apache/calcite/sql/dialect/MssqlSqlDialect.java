@@ -70,7 +70,6 @@ public class MssqlSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new MssqlSqlDialect(DEFAULT_CONTEXT);
 
-  private final boolean emulateNullDirection;
   private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -90,7 +89,6 @@ public class MssqlSqlDialect extends SqlDialect {
     // MSSQL 2008 (version 10) and earlier only supports TOP
     // MSSQL 2012 (version 11) and higher supports OFFSET and FETCH
     top = context.databaseMajorVersion() < 11;
-    emulateNullDirection = true;
   }
 
   /** {@inheritDoc}
@@ -112,9 +110,7 @@ public class MssqlSqlDialect extends SqlDialect {
     if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
       return null;
     }
-    if (emulateNullDirection) {
-      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
-    }
+
     // Grouping node should preserve grouping, no emulation needed
     if (node.getKind() == SqlKind.GROUPING) {
       return node;

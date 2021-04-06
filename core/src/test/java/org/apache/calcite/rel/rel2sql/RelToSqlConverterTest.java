@@ -2255,7 +2255,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL DESC, [product_id] DESC";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
     sql(query)
         .withSpark()
         .ok(expected)
@@ -2276,7 +2276,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL DESC, [product_id] DESC";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2291,7 +2291,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL, product_id";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2306,7 +2306,7 @@ class RelToSqlConverterTest {
         + "ORDER BY product_id IS NULL, product_id";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     sql(query)
         .withSpark()
         .ok(expected)
@@ -2987,10 +2987,10 @@ class RelToSqlConverterTest {
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] IS NULL, [product_id]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
@@ -6922,9 +6922,9 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"first_name\", \"department_id\") AS \"t0\"";
     final String mssql = "SELECT [first_name], [department_id_number], ROW_NUMBER()"
-        + " OVER (ORDER BY [department_id] IS NULL, [department_id]), SUM([department_id])"
-        + " OVER (ORDER BY [department_id] IS NULL, [department_id] "
-        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + " OVER (ORDER BY CASE WHEN [department_id] IS NULL THEN 1 ELSE 0 END,"
+        + " [department_id]), SUM([department_id]) OVER (ORDER BY CASE WHEN [department_id] IS NULL"
+        + " THEN 1 ELSE 0 END, [department_id] RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
         + "FROM (SELECT [first_name], [department_id], COUNT(*) AS [department_id_number]\n"
         + "FROM [foodmart].[employee]\n"
         + "GROUP BY [first_name], [department_id]) AS [t0]";
