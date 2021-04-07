@@ -362,6 +362,12 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
+
+    case SEARCH:
+      joinContext =
+          leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
+
     case IS_NULL:
     case IS_NOT_NULL:
       operands = ((RexCall) node).getOperands();
