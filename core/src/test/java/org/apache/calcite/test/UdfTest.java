@@ -585,7 +585,7 @@ class UdfTest {
   }
 
   /** Tests user-defined aggregate function. */
-  @Test void testUserDefinedAggregateFunctionWithMultipleParameters() throws Exception {
+  @Test void testUserDefinedAggregateFunctionWithMultipleParameters() {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
     final String sum21 = Smalls.MyTwoParamsSumFunctionFilter1.class.getName();
     final String sum22 = Smalls.MyTwoParamsSumFunctionFilter2.class.getName();

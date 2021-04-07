@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -26,7 +27,6 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
-import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
@@ -67,7 +67,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     this.rexBuilder = rexBuilder;
   }
 
-  @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+  @Override public Scalar.Producer compile(List<RexNode> nodes,
+      RelDataType inputRowType) {
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(inputRowType, rexBuilder);
     for (RexNode node : nodes) {
@@ -108,26 +109,57 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
                     Expressions.arrayIndex(outputValues_,
                         Expressions.constant(i)),
                     expression))));
-    final List<MemberDeclaration> declList = new ArrayList<>();
-    for (Statement statement : staticList.toBlock().statements) {
-      final DeclarationStatement decl = (DeclarationStatement) statement;
-      declList.add(
-          Expressions.fieldDecl(Modifier.STATIC | Modifier.FINAL,
-              decl.parameter, decl.initializer));
-    }
-    return baz(context_, outputValues_, list.toBlock(), declList);
+    return baz(context_, outputValues_, list.toBlock(),
+        staticList.toBlock().statements);
   }
 
   /** Given a method that implements {@link Scalar#execute(Context, Object[])},
    * adds a bridge method that implements {@link Scalar#execute(Context)}, and
    * compiles. */
-  static Scalar baz(ParameterExpression context_,
+  static Scalar.Producer baz(ParameterExpression context_,
       ParameterExpression outputValues_, BlockStatement block,
-      List<MemberDeclaration> staticList) {
-    final List<MemberDeclaration> declarations = new ArrayList<>(staticList);
+      List<Statement> declList) {
+    final List<MemberDeclaration> declarations = new ArrayList<>();
+    final List<MemberDeclaration> innerDeclarations = new ArrayList<>();
+
+    // public Scalar apply(DataContext root) {
+    //   <<staticList>>
+    //   return new Scalar() {
+    //     <<inner declarations>>
+    //   };
+    // }
+    final List<Statement> statements = new ArrayList<>(declList);
+    statements.add(
+        Expressions.return_(null,
+            Expressions.new_(Scalar.class, ImmutableList.of(),
+                innerDeclarations)));
+    declarations.add(
+        Expressions.methodDecl(Modifier.PUBLIC, Scalar.class,
+            BuiltInMethod.FUNCTION_APPLY.method.getName(),
+            ImmutableList.of(DataContext.ROOT),
+            Expressions.block(statements)));
+
+    // (bridge method)
+    // public Object apply(Object root) {
+    //   return this.apply((DataContext) root);
+    // }
+    final ParameterExpression objectRoot =
+        Expressions.parameter(Object.class, "root");
+    declarations.add(
+        Expressions.methodDecl(Modifier.PUBLIC, Object.class,
+            BuiltInMethod.FUNCTION_APPLY.method.getName(),
+            ImmutableList.of(
+                objectRoot),
+            Expressions.block(
+                Expressions.return_(null,
+                    Expressions.call(
+                        Expressions.parameter(Scalar.Producer.class, "this"),
+                        BuiltInMethod.FUNCTION_APPLY.method,
+                        Expressions.convert_(objectRoot,
+                            DataContext.class))))));
 
     // public void execute(Context, Object[] outputValues)
-    declarations.add(
+    innerDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, void.class,
             BuiltInMethod.SCALAR_EXECUTE2.method.getName(),
             ImmutableList.of(context_, outputValues_), block));
@@ -145,14 +177,14 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     builder.add(
         Expressions.return_(null,
             Expressions.arrayIndex(values_, Expressions.constant(0))));
-    declarations.add(
+    innerDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Object.class,
             BuiltInMethod.SCALAR_EXECUTE1.method.getName(),
             ImmutableList.of(context_), builder.toBlock()));
 
     final ClassDeclaration classDeclaration =
         Expressions.classDecl(Modifier.PUBLIC, "Buzz", null,
-            ImmutableList.of(Scalar.class), declarations);
+            ImmutableList.of(Scalar.Producer.class), declarations);
     String s = Expressions.toString(declarations, "\n", false);
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
@@ -164,7 +196,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     }
   }
 
-  static Scalar getScalar(ClassDeclaration expr, String s)
+  static Scalar.Producer getScalar(ClassDeclaration expr, String s)
       throws CompileException, IOException {
     ICompilerFactory compilerFactory;
     try {
@@ -175,12 +207,12 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     }
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
-    cbe.setImplementedInterfaces(new Class[]{Scalar.class});
+    cbe.setImplementedInterfaces(new Class[] {Scalar.Producer.class});
     cbe.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
     }
-    return (Scalar) cbe.createInstance(new StringReader(s));
+    return (Scalar.Producer) cbe.createInstance(new StringReader(s));
   }
 }

@@ -68,15 +68,15 @@ import static org.hamcrest.core.Is.is;
  */
 class InterpreterTest {
   private SchemaPlus rootSchema;
-  private Planner planner;
-  private MyDataContext dataContext;
 
   /** Implementation of {@link DataContext} for executing queries without a
    * connection. */
-  private class MyDataContext implements DataContext {
+  private static class MyDataContext implements DataContext {
+    private SchemaPlus rootSchema;
     private final Planner planner;
 
-    MyDataContext(Planner planner) {
+    MyDataContext(SchemaPlus rootSchema, Planner planner) {
+      this.rootSchema = rootSchema;
       this.planner = planner;
     }
 
@@ -100,21 +100,18 @@ class InterpreterTest {
   /** Fluent class that contains information necessary to run a test. */
   private static class Sql {
     private final String sql;
-    private final MyDataContext dataContext;
-    private final Planner planner;
+    private final SchemaPlus rootSchema;
     private final boolean project;
 
-    Sql(String sql, MyDataContext dataContext, Planner planner,
-        boolean project) {
+    Sql(String sql, SchemaPlus rootSchema, boolean project) {
       this.sql = sql;
-      this.dataContext = dataContext;
-      this.planner = planner;
+      this.rootSchema = rootSchema;
       this.project = project;
     }
 
     @SuppressWarnings("SameParameterValue")
     Sql withProject(boolean project) {
-      return new Sql(sql, dataContext, planner, project);
+      return new Sql(sql, rootSchema, project);
     }
 
     /** Interprets the sql and checks result with specified rows, ordered. */
@@ -129,13 +126,25 @@ class InterpreterTest {
       return returnsRows(true, rows);
     }
 
+    private Planner createPlanner() {
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .parserConfig(SqlParser.Config.DEFAULT)
+          .defaultSchema(
+              CalciteAssert.addSchema(rootSchema,
+                  CalciteAssert.SchemaSpec.JDBC_SCOTT,
+                  CalciteAssert.SchemaSpec.HR))
+          .build();
+      return Frameworks.getPlanner(config);
+    }
+
     /** Interprets the sql and checks result with specified rows. */
     private Sql returnsRows(boolean unordered, String[] rows) {
-      try {
+      try (Planner planner = createPlanner()) {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
         final RelRoot root = planner.rel(validate);
         RelNode convert = project ? root.project() : root.rel;
+        final MyDataContext dataContext = new MyDataContext(rootSchema, planner);
         assertInterpret(convert, dataContext, unordered, rows);
         return this;
       } catch (ValidationException
@@ -148,20 +157,11 @@ class InterpreterTest {
 
   /** Creates a {@link Sql}. */
   private Sql sql(String sql) {
-    return new Sql(sql, dataContext, planner, false);
+    return new Sql(sql, rootSchema, false);
   }
 
   private void reset() {
     rootSchema = Frameworks.createRootSchema(true);
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
-        .defaultSchema(
-            CalciteAssert.addSchema(rootSchema,
-                CalciteAssert.SchemaSpec.JDBC_SCOTT,
-                CalciteAssert.SchemaSpec.HR))
-        .build();
-    planner = Frameworks.getPlanner(config);
-    dataContext = new MyDataContext(planner);
   }
 
   @BeforeEach public void setUp() {
@@ -170,8 +170,6 @@ class InterpreterTest {
 
   @AfterEach public void tearDown() {
     rootSchema = null;
-    planner = null;
-    dataContext = null;
   }
 
   /** Tests executing a simple plan using an interpreter. */
@@ -468,7 +466,7 @@ class InterpreterTest {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x in\n"
         + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
-    try {
+    try (Planner planner = sql(sql).createPlanner()) {
       SqlNode validate = planner.validate(planner.parse(sql));
       RelNode convert = planner.rel(validate).rel;
       final HepProgram program = new HepProgramBuilder()
@@ -477,6 +475,7 @@ class InterpreterTest {
       final HepPlanner hepPlanner = new HepPlanner(program);
       hepPlanner.setRoot(convert);
       final RelNode relNode = hepPlanner.findBestExp();
+      final MyDataContext dataContext = new MyDataContext(rootSchema, planner);
       assertInterpret(relNode, dataContext, true, "[1, a]", "[3, c]");
     } catch (ValidationException
         | SqlParseException
@@ -566,7 +565,7 @@ class InterpreterTest {
             "[7900, 1981-12-03]", "[7902, 1981-12-03]", "[7934, 1982-01-23]");
   }
 
-  /** Tests a user-defined scalar function. */
+  /** Tests a user-defined scalar function that is non-static. */
   @Test void testInterpretFunction() {
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final ScalarFunction f =
@@ -579,6 +578,41 @@ class InterpreterTest {
     sql(sql).returnsRows(rows);
     final int n2 = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
     assertThat(n2, is(n + 1)); // instantiated once per run, not once per row
+  }
+
+  /** Tests a user-defined scalar function that is non-static and has a
+   * constructor that uses
+   * {@link org.apache.calcite.schema.FunctionContext}. */
+  @Test void testInterpretFunctionWithInitializer() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final ScalarFunction f =
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_INIT_EVAL_METHOD);
+    schema.add("myPlusInit", f);
+    final String sql = "select x, \"s\".\"myPlusInit\"(x, 1)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows = {"[2, 3]", "[4, 5]", "[7, 8]"};
+    final int n = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    sql(sql).returnsRows(rows);
+    final int n2 = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    assertThat(n2, is(n + 1)); // instantiated once per run, not once per row
+    final String digest = Smalls.MyPlusInitFunction.THREAD_DIGEST.get();
+    String expectedDigest = "parameterCount=2; "
+        + "argument 0 is not constant; "
+        + "argument 1 is constant and has value 1";
+    assertThat(digest, is(expectedDigest));
+
+    // Similar, but replace '1' with the expression '3 - 2'
+    final String sql2 = "select x, \"s\".\"myPlusInit\"(x, 3 - 2)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows2 = {"[2, 102]", "[4, 104]", "[7, 107]"};
+    sql(sql2).returnsRows(rows2);
+    final int n3 = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    assertThat(n3, is(n2 + 1)); // instantiated once per run, not once per row
+    final String digest2 = Smalls.MyPlusInitFunction.THREAD_DIGEST.get();
+    String expectedDigest2 = "parameterCount=2; "
+        + "argument 0 is not constant; "
+        + "argument 1 is not constant";
+    assertThat(digest2, is(expectedDigest2));
   }
 
   /** Tests a table function. */

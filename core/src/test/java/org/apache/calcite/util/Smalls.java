@@ -35,6 +35,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
@@ -117,6 +118,9 @@ public class Smalls {
           int.class, Enumerable.class, Enumerable.class);
   public static final Method MY_PLUS_EVAL_METHOD =
       Types.lookupMethod(MyPlusFunction.class, "eval", int.class, int.class);
+  public static final Method MY_PLUS_INIT_EVAL_METHOD =
+      Types.lookupMethod(MyPlusInitFunction.class, "eval", int.class,
+          int.class);
 
   private Smalls() {}
 
@@ -440,6 +444,42 @@ public class Smalls {
     public int eval(@Parameter(name = "x") int x,
         @Parameter(name = "y") int y) {
       return x + y;
+    }
+  }
+
+  /** As {@link MyPlusFunction} but constructor has a
+   *  {@link org.apache.calcite.schema.FunctionContext} parameter. */
+  public static class MyPlusInitFunction {
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+    public static final ThreadLocal<String> THREAD_DIGEST =
+        new ThreadLocal<>();
+
+    private final int initY;
+
+    public MyPlusInitFunction(FunctionContext fx) {
+      INSTANCE_COUNT.get().incrementAndGet();
+      final StringBuilder b = new StringBuilder();
+      final int parameterCount = fx.getParameterCount();
+      b.append("parameterCount=").append(parameterCount);
+      for (int i = 0; i < parameterCount; i++) {
+        b.append("; argument ").append(i);
+        if (fx.isArgumentConstant(i)) {
+          b.append(" is constant and has value ")
+              .append(fx.getArgumentValueAs(i, String.class));
+        } else {
+          b.append(" is not constant");
+        }
+      }
+      THREAD_DIGEST.set(b.toString());
+      this.initY = fx.isArgumentConstant(1)
+          ? fx.getArgumentValueAs(1, Integer.class)
+          : 100;
+    }
+
+    public int eval(@Parameter(name = "x") int x,
+        @Parameter(name = "y") int y) {
+      return x + initY;
     }
   }
 
@@ -776,9 +816,11 @@ public class Smalls {
     }
   }
 
-  /** Example of a user-defined aggregate function (UDAF). */
+  /** Example of a user-defined aggregate function (UDAF) with two parameters.
+   * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
-    public MyTwoParamsSumFunctionFilter1() {
+    public MyTwoParamsSumFunctionFilter1(/* FunctionContext fx */) {
+      // Objects.requireNonNull(fx, "fx"); // TODO
     }
     public int init() {
       return 0;
@@ -797,7 +839,8 @@ public class Smalls {
     }
   }
 
-  /** Example of a user-defined aggregate function (UDAF). */
+  /** Another example of a user-defined aggregate function (UDAF) with two
+   * parameters. */
   public static class MyTwoParamsSumFunctionFilter2 {
     public MyTwoParamsSumFunctionFilter2() {
     }
@@ -839,7 +882,8 @@ public class Smalls {
   }
 
   /** Example of a user-defined aggregate function (UDAF), whose methods are
-   * static. olny for validate to get exact function by calcite*/
+   * static. Similar to {@link MyThreeParamsSumFunctionWithFilter1}, but
+   * argument types are different. */
   public static class MyThreeParamsSumFunctionWithFilter2 {
     public static long init() {
       return 0L;

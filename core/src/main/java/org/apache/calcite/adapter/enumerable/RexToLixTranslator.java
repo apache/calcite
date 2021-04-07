@@ -31,7 +31,6 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
-import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -53,6 +52,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindowTableFunction;
@@ -1469,13 +1469,13 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * to a static field 'F', defined by
    * 'static final MyFunction F = new MyFunction()'.
    *
-   * <p>If there is a constructor that takes a {@link Context} argument, we
-   * call that, passing in the values of arguments that are literals; this
-   * allows the function to do some computation at class-load time.
+   * <p>If there is a constructor that takes a {@link FunctionContext}
+   * argument, we call that, passing in the values of arguments that are
+   * literals; this allows the function to do some computation at load time.
    *
    * <p>If the call is "f(1, 2 + 3, 'foo')" and "f" is implemented by method
    * "eval(int, int, String)" in "class MyFun", the expression might be
-   * "new MyFunction(Contexts.of(Arrays.asList(1, null, "foo"))".
+   * "new MyFunction(FunctionContexts.of(new Object[] {1, null, "foo"})".
    *
    * @param method Method that implements the UDF
    * @param call Call to the UDF
@@ -1496,20 +1496,22 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     // use that.
     try {
       final Constructor<?> constructor =
-          declaringClass.getConstructor(Context.class);
+          declaringClass.getConstructor(FunctionContext.class);
       final List<Expression> constantArgs = new ArrayList<>();
+      //noinspection unchecked
       Ord.forEach(method.getParameterTypes(),
           (parameterType, i) ->
               constantArgs.add(
                   callBinding.isOperandLiteral(i, true)
                       ? appendConstant("_arg",
                       Expressions.constant(
-                          callBinding.getOperandLiteralValue(i, parameterType)))
+                          callBinding.getOperandLiteralValue(i,
+                              Primitive.box(parameterType))))
                       : Expressions.constant(null)));
       final Expression context =
-          Expressions.call(BuiltInMethod.CONTEXTS_OF.method,
-              Expressions.call(null, BuiltInMethod.ARRAYS_AS_LIST.method,
-                  constantArgs));
+          Expressions.call(BuiltInMethod.FUNCTION_CONTEXTS_OF.method,
+              DataContext.ROOT,
+              Expressions.newArrayInit(Object.class, constantArgs));
       return Expressions.new_(constructor, context);
     } catch (NoSuchMethodException e) {
       // ignore
