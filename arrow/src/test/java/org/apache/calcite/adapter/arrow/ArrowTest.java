@@ -117,12 +117,14 @@ public class ArrowTest {
   @Test void testArrowProjectFieldsWithMultipleFilters() {
     CalciteAssert.that()
         .with(ARROW)
-        .query("select \"fieldOne\", \"fieldTwo\" from test where \"fieldOne\">2 and \"fieldOne\"<5")
+        .query(
+            "select \"fieldOne\" from test " +
+                "where \"fieldOne\">2 and \"fieldOne\"<6")
         .limit(3)
-        .returns("fieldOne=3; fieldTwo=xyz\nfieldOne=4; fieldTwo=def\n")
+        .returns("fieldOne=3\nfieldOne=4\nfieldOne=5\n")
         .explainContains("PLAN=ArrowToEnumerableConverter\n"
-            + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
-            + "    ArrowFilter(condition=[<($0, 4)])\n"
+            + "  ArrowProject(fieldOne=[$0])\n"
+            + "    ArrowFilter(condition=[AND(>($0, 2), <($0, 6))])\n"
             + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
   }
 }

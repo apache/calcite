@@ -38,7 +38,7 @@ public interface ArrowRel extends RelNode {
    * {@link ArrowRel} nodes into a SQL query. */
   class Implementor {
     int[] selectFields;
-    String whereClause;
+    List<String> whereClause = new ArrayList<>();
     int fieldToCompare;
     Object valueToCompare;
     String operator;
@@ -60,7 +60,7 @@ public interface ArrowRel extends RelNode {
         }
       }
       if (predicates != null) {
-        whereClause = predicates.get(0);
+        whereClause.addAll(predicates);
       }
     }
 
