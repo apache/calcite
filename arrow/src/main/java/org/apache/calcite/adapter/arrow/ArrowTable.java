@@ -85,7 +85,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> query(DataContext root, int[] fields, String condition) {
+  public Enumerable<Object> query(DataContext root, int[] fields, List<String> condition) {
     if (fields == null) {
       fields = new int[schema.getFields().size()];
       for (int i = 0; i < fields.length; i++) {
@@ -96,7 +96,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     Projector projector = null;
     Filter filter = null;
 
-    if (condition == null) {
+    if (condition.size() == 0) {
       List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
       for (int i = 0; i < fields.length; i++) {
         Field field = schema.getFields().get(i);
@@ -109,9 +109,8 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
         throw new RuntimeException(e);
       }
     } else {
-      String[] conditions = condition.split(" AND ");
-      List<TreeNode> conditionNodes = new ArrayList<>(conditions.length);
-      for (String con: conditions) {
+      List<TreeNode> conditionNodes = new ArrayList<>(condition.size());
+      for (String con: condition) {
         String[] data = con.split(" ");
         List<TreeNode> treeNodes = new ArrayList<>(2);
         treeNodes.add(TreeBuilder.makeField(schema.getFields()
@@ -182,8 +181,11 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       return TreeBuilder.makeLiteral(Long.parseLong(literal));
     } else if (type.equals("float")) {
       return TreeBuilder.makeLiteral(Float.parseFloat(literal));
+    } else if (type.equals("double")) {
+      return TreeBuilder.makeLiteral(Double.parseDouble(literal));
     } else if (type.equals("string")) {
       return TreeBuilder.makeStringLiteral(literal);
     }
+    throw new AssertionError("Invalid literal");
   }
 }

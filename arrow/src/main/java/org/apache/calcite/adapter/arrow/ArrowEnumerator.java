@@ -56,8 +56,6 @@ public class ArrowEnumerator implements Enumerator<Object> {
   public ArrowEnumerator(Projector projector, Filter filter, int[] fields,
                          ArrowFileReader arrowFileReader) {
     this.allocator = new RootAllocator(Long.MAX_VALUE);
-    this.buf = this.allocator.buffer(rowSize * 2);
-    this.selectionVector = new SelectionVectorInt16(buf);
 
     this.projector = projector;
     this.filter = filter;
@@ -158,6 +156,8 @@ public class ArrowEnumerator implements Enumerator<Object> {
         projector.evaluate(arrowRecordBatch, valueVectors);
       }
       if (filter != null) {
+        this.buf = this.allocator.buffer(rowSize * 2);
+        this.selectionVector = new SelectionVectorInt16(buf);
         filter.evaluate(arrowRecordBatch, selectionVector);
         this.selectionVector = selectionVector;
       }
@@ -176,12 +176,11 @@ public class ArrowEnumerator implements Enumerator<Object> {
         projector.close();
       }
       if (filter != null) {
+        buf.close();
+        allocator.close();
         filter.close();
       }
     } catch (GandivaException e) {
     }
-
-    this.buf.close();
-    this.allocator.close();
   }
 }

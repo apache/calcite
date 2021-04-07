@@ -16,10 +16,7 @@
  */
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -28,16 +25,14 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.Util;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.math.BigDecimal;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -47,10 +42,7 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
  * relational expression in Arrow.
  */
 public class ArrowFilter extends Filter implements ArrowRel {
-  Integer field;
-  Object value;
-  String operator;
-  private String match;
+  private List<String> match;
 
   public ArrowFilter(
       RelOptCluster cluster,
@@ -61,10 +53,6 @@ public class ArrowFilter extends Filter implements ArrowRel {
 
     Translator translator = new Translator(getRowType());
     this.match = translator.translateMatch(condition);
-    final SqlKind operator = condition.getKind();
-    final RexCall rexCall = (RexCall) condition;
-    RexNode left = rexCall.getOperands().get(0);
-    RexNode right = rexCall.getOperands().get(1);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
@@ -77,7 +65,7 @@ public class ArrowFilter extends Filter implements ArrowRel {
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    implementor.add(null, Collections.singletonList(match));
+    implementor.add(null, match);
   }
 
   /**
@@ -92,7 +80,7 @@ public class ArrowFilter extends Filter implements ArrowRel {
       this.fieldNames = ArrowRules.arrowFieldNames(rowType);
     }
 
-    private String translateMatch(RexNode condition) {
+    private List<String> translateMatch(RexNode condition) {
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
@@ -128,13 +116,12 @@ public class ArrowFilter extends Filter implements ArrowRel {
      * @param condition A conjunctive predicate
      * @return SQL string for the predicate
      */
-    private String translateAnd(RexNode condition) {
+    private List<String> translateAnd(RexNode condition) {
       List<String> predicates = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(condition)) {
         predicates.add(translateMatch2(node));
       }
-
-      return Util.toString(predicates, "", " AND ", "");
+      return predicates;
     }
 
     /** Translate a binary relation. */
@@ -200,6 +187,7 @@ public class ArrowFilter extends Filter implements ArrowRel {
       Object value = literalValue(right);
       String valueString = value.toString();
       String valueType = getLiteralType(value);
+
       if (value instanceof String) {
         SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
@@ -210,15 +198,13 @@ public class ArrowFilter extends Filter implements ArrowRel {
     }
 
     private String getLiteralType(Object literal) {
-      if (Integer.class.equals(literal.getClass())) {
-        return "integer";
-      } else if (Long.class.equals(literal.getClass())) {
-        return "long";
-      } else if (Float.class.equals(literal.getClass())) {
-        return "float";
-      } else if (String.class.equals(literal.getClass())) {
-        return "string";
+      if (literal instanceof BigDecimal) {
+        BigDecimal bigDecimalLiteral = (BigDecimal) literal;
+        int scale = bigDecimalLiteral.scale();
+        if (scale == 0) return "long";
+        else if (scale > 0) return "double";
       }
+      else if (String.class.equals(literal.getClass())) return "string";
       throw new AssertionError("Invalid literal");
     }
   }
