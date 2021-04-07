@@ -6292,17 +6292,26 @@ public class RelToSqlConverterTest {
         builder.literal("yyyy-MM-dd HH24:MI:SS"), builder.literal("2009-03-20 12:25:50"));
     final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
         builder.literal("MI dd-yyyy-MM SS HH24"), builder.literal("25 20-2009-03 50 12"));
+    final RexNode parseTSNode3 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+      builder.literal("YYYYMMDDHHMISS"), builder.literal("20200903201011"));
+    final RexNode parseTSNode4 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+      builder.literal("MMMDDYY"), builder.literal("APR0721"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"))
+        .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"),
+          builder.alias(parseTSNode3, "date3"), builder.alias(parseTSNode4, "date4"))
         .build();
     final String expectedSql =
         "SELECT PARSE_TIMESTAMP('yyyy-MM-dd HH24:MI:SS', '2009-03-20 12:25:50') AS \"date1\","
-            + " PARSE_TIMESTAMP('MI dd-yyyy-MM SS HH24', '25 20-2009-03 50 12') AS \"date2\"\n"
+            + " PARSE_TIMESTAMP('MI dd-yyyy-MM SS HH24', '25 20-2009-03 50 12') AS \"date2\","
+            + " PARSE_TIMESTAMP('YYYYMMDDHHMISS', '20200903201011') AS \"date3\","
+            + " PARSE_TIMESTAMP('MMMDDYY', 'APR0721') AS \"date4\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
         "SELECT PARSE_TIMESTAMP('%F %H:%M:%S', '2009-03-20 12:25:50') AS date1, "
-            + "PARSE_TIMESTAMP('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2\n"
+            + "PARSE_TIMESTAMP('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2, "
+            + "PARSE_TIMESTAMP('%Y%m%d%H%M%S', '20200903201011') AS date3, "
+            + "PARSE_TIMESTAMP('%b%d%y', 'APR0721') AS date4\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
