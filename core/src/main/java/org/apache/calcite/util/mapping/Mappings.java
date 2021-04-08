@@ -146,7 +146,7 @@ public abstract class Mappings {
    * Multiplies one mapping by another.
    *
    * <p>{@code multiply(A, B)} returns a mapping C such that A . B (the mapping
-   * B followed by the mapping A) is equivalent to C.
+   * A followed by the mapping B) is equivalent to C.
    *
    * @param mapping1 First mapping
    * @param mapping2 Second mapping
