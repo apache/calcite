@@ -105,6 +105,17 @@ class PigRelOpTest extends PigRelTestBase {
       }
     }
 
+    private Fluent assertSql(Matcher<String> sqlMatcher, int pos) {
+      try {
+        final String sql =
+            converter.pigToSql(script, PigRelSqlDialect.DEFAULT).get(pos);
+        assertThat(sql, sqlMatcher);
+        return this;
+      } catch (IOException e) {
+        throw TestUtil.rethrow(e);
+      }
+    }
+
     private Fluent assertResult(Matcher<String> resultMatcher) {
       final RelNode rel;
       try {
@@ -1622,6 +1633,29 @@ class PigRelOpTest extends PigRelTestBase {
         .assertSql(is(sql));
   }
 
+  @Test void testMultipleStores() {
+    final String script = ""
+        + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
+        + "B = FILTER A BY DEPTNO <= 30;\n"
+        + "STORE B into 'output.csv';\n"
+        + "C = FILTER A BY DEPTNO >= 20;\n"
+        + "STORE C into 'output1.csv';\n";
+    final String plan = ""
+        + "LogicalFilter(condition=[<=($0, 30)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String sql0 = ""
+        + "SELECT *\n"
+        + "FROM scott.DEPT\n"
+        + "WHERE DEPTNO <= 30";
+    final String sql1 = ""
+        + "SELECT *\n"
+        + "FROM scott.DEPT\n"
+        + "WHERE DEPTNO >= 20";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql0), 0)
+        .assertSql(is(sql1), 1);
+  }
+
   @Test void testRankAndFilter() {
     final String script = ""
         + "A = LOAD 'emp1' USING PigStorage(',')  as ("
@@ -1643,4 +1677,5 @@ class PigRelOpTest extends PigRelTestBase {
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
   }
+
 }
