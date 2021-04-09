@@ -40,6 +40,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 import com.google.common.collect.ImmutableList;
@@ -49,6 +50,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Extension from PigServer to convert Pig scripts into logical relational
@@ -98,14 +100,19 @@ public class PigConverter extends PigServer {
 
   private final PigRelBuilder builder;
 
-  private PigConverter(FrameworkConfig config, ExecType execType)
+  private PigConverter(FrameworkConfig config, ExecType execType, Properties properties)
       throws Exception {
-    super(execType);
+    super(execType, properties);
     this.builder = PigRelBuilder.create(config);
   }
 
   public static PigConverter create(FrameworkConfig config) throws Exception {
-    return new PigConverter(config, ExecType.LOCAL);
+    return new PigConverter(config, ExecType.LOCAL, PropertiesUtil.loadDefaultProperties());
+  }
+
+  public static PigConverter create(FrameworkConfig config, Properties properties)
+      throws Exception {
+    return new PigConverter(config, ExecType.LOCAL, properties);
   }
 
   public PigRelBuilder getBuilder() {
