@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -65,8 +64,7 @@ public abstract class Snapshot extends SingleRel  {
       RexNode period) {
     super(cluster, traitSet, input);
     this.period = Objects.requireNonNull(period, "period");
-    // Too expensive for everyday use:
-    assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
+    assert isValid(Litmus.THROW, null);
   }
 
   //~ Methods ----------------------------------------------------------------
