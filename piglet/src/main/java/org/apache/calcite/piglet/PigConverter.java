@@ -254,6 +254,7 @@ public class PigConverter extends PigServer {
       final SqlNode sqlNode = sqlConverter.visitRoot(rel).asStatement();
       sqlNode.unparse(writer, 0, 0);
       sqlStatements.add(writer.toString());
+      writer.reset();
     }
     return sqlStatements;
   }
