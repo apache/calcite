@@ -2375,24 +2375,28 @@ public class RelBuilder {
     }
     if (correlate) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
-      final ImmutableBitSet requiredColumns =
-          RelOptUtil.correlationColumns(id, right.rel);
       if (!RelOptUtil.notContainsCorrelation(left.rel, id, Litmus.IGNORE)) {
         throw new IllegalArgumentException("variable " + id
             + " must not be used by left input to correlation");
       }
+      // Correlate does not have an ON clause.
       switch (joinType) {
       case LEFT:
-        // Correlate does not have an ON clause.
-        // For a LEFT correlate, predicate must be evaluated first.
-        // For INNER, we can defer.
+      case SEMI:
+      case ANTI:
+        // For a LEFT/SEMI/ANTI, predicate must be evaluated first.
         stack.push(right);
         filter(condition.accept(new Shifter(left.rel, id, right.rel)));
         right = stack.pop();
         break;
-      default:
+      case INNER:
+        // For INNER, we can defer.
         postCondition = condition;
+        break;
+      default:
+        throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
       }
+      final ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, right.rel);
       join =
           struct.correlateFactory.createCorrelate(left.rel, right.rel, id,
               requiredColumns, joinType);

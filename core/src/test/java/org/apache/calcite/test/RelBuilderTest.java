@@ -2336,7 +2336,7 @@ public class RelBuilderTest {
     // Note that the join filter gets pushed to the right-hand input of
     // LogicalCorrelate
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
@@ -3670,7 +3670,7 @@ public class RelBuilderTest {
 
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[left], "
-        + "requiredColumns=[{7}])\n"
+        + "requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[OR("
@@ -3868,6 +3868,70 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSimpleSemiCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.SEMI);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSimpleAntiCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.ANTI);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSimpleLeftCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.LEFT);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSimpleInnerCorrelateViaJoin() {
+    RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.INNER);
+    final String expected = ""
+        + "LogicalFilter(condition=[=($7, $8)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{}])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSimpleRightCorrelateViaJoinThrowsException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT));
+  }
+
+  @Test void testSimpleFullCorrelateViaJoinThrowsException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> buildSimpleCorrelateWithJoin(JoinRelType.FULL));
+  }
+
+  private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
+        .scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .join(type,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
+        .build();
   }
 
   @Test void testCorrelateWithComplexFields() {
