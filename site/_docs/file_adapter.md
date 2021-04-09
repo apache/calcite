@@ -76,11 +76,11 @@ as follows.
         "name": "EMPS",
         "url": "file:file/src/test/resources/sales/EMPS.html"
       }, {
-        "name": "DEPTS"
+        "name": "DEPTS",
         "url": "file:file/src/test/resources/sales/DEPTS.html"
       } ]
     }
-  ]
+  } ]
 }
 {% endhighlight %}
 
