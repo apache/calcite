@@ -47,16 +47,16 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * {@link org.opentest4j.TestAbortedException}, which causes Junit to ignore
  * them.
  */
-class ArrowTest {
+class ArrowAdapterTest {
   static final Map<String, String> ARROW =
       ImmutableMap.of("model",
           resourceFile("/arrow.json").getAbsolutePath());
 
   static File resourceFile(String resourcePath) {
-    return Sources.of(ArrowTest.class.getResource(resourcePath)).file();
+    return Sources.of(ArrowAdapterTest.class.getResource(resourcePath)).file();
   }
 
-  public ArrowTest() {
+  ArrowAdapterTest() {
     assumeTrue(SystemUtils.IS_OS_LINUX,
         "Arrow adapter requires Linux, until [ARROW-11135] is fixed");
   }
