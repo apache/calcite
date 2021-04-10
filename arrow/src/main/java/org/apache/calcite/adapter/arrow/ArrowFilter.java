@@ -33,6 +33,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -40,6 +42,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -54,19 +58,22 @@ class ArrowFilter extends Filter implements ArrowRel {
       RexNode condition) {
     super(cluster, traitSet, input, condition);
 
-    Translator translator = new Translator(getRowType());
+    Translator translator = new Translator(input.getRowType());
     this.match = translator.translateMatch(condition);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    final RelOptCost cost = super.computeSelfCost(planner, mq);
+    return requireNonNull(cost, "cost").multiplyBy(0.1);
   }
 
-  public ArrowFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+  @Override public ArrowFilter copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition) {
     return new ArrowFilter(getCluster(), traitSet, input, condition);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitInput(0, getInput());
     implementor.add(null, match);
   }
@@ -95,7 +102,7 @@ class ArrowFilter extends Filter implements ArrowRel {
     /** Returns the value of the literal.
      *
      * @param literal Literal to translate
-     * @return The value of the literal in the form of the actual type.
+     * @return The value of the literal in the form of the actual type
      */
     private static Object literalValue(RexLiteral literal) {
       switch (literal.getTypeName()) {
@@ -103,11 +110,13 @@ class ArrowFilter extends Filter implements ArrowRel {
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         final SimpleDateFormat dateFormatter =
             getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
-        return dateFormatter.format(literal.getValueAs(Long.class));
+        Long millis = literal.getValueAs(Long.class);
+        return dateFormatter.format(requireNonNull(millis, "millis"));
       case DATE:
-        return literal.getValueAs(DateString.class).toString();
+        final DateString dateString = literal.getValueAs(DateString.class);
+        return requireNonNull(dateString, "dateString").toString();
       default:
-        return literal.getValue3();
+        return requireNonNull(literal.getValue3());
       }
     }
 
@@ -147,7 +156,7 @@ class ArrowFilter extends Filter implements ArrowRel {
     private String translateBinary(String op, String rop, RexCall call) {
       final RexNode left = call.operands.get(0);
       final RexNode right = call.operands.get(1);
-      String expression = translateBinary2(op, left, right);
+      @Nullable String expression = translateBinary2(op, left, right);
       if (expression != null) {
         return expression;
       }
@@ -159,7 +168,8 @@ class ArrowFilter extends Filter implements ArrowRel {
     }
 
     /** Translates a call to a binary operator. Returns null on failure. */
-    private String translateBinary2(String op, RexNode left, RexNode right) {
+    private @Nullable String translateBinary2(String op, RexNode left,
+        RexNode right) {
       switch (right.getKind()) {
       case LITERAL:
         break;
@@ -189,7 +199,9 @@ class ArrowFilter extends Filter implements ArrowRel {
       String valueType = getLiteralType(value);
 
       if (value instanceof String) {
-        final RelDataTypeField field = rowType.getField(name, true, false);
+        final RelDataTypeField field =
+            requireNonNull(rowType.getField(name, true, false),
+                "field");
         SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
           valueString = "'" + valueString + "'";
@@ -198,7 +210,7 @@ class ArrowFilter extends Filter implements ArrowRel {
       return name + " " + op + " " + valueString + " " + valueType;
     }
 
-    private String getLiteralType(Object literal) {
+    private static String getLiteralType(Object literal) {
       if (literal instanceof BigDecimal) {
         BigDecimal bigDecimalLiteral = (BigDecimal) literal;
         int scale = bigDecimalLiteral.scale();

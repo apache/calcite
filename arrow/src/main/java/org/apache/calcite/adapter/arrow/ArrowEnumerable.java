@@ -24,24 +24,26 @@ import org.apache.arrow.gandiva.evaluator.Filter;
 import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Enumerable that reads from Arrow value-vectors.
  */
 class ArrowEnumerable extends AbstractEnumerable<Object> {
   private final ArrowFileReader arrowFileReader;
-  private final Projector projector;
-  private final Filter filter;
+  private final @Nullable Projector projector;
+  private final @Nullable Filter filter;
   private final int[] fields;
 
-  ArrowEnumerable(ArrowFileReader arrowFileReader, Projector projector,
-      Filter filter, int[] fields) {
+  ArrowEnumerable(ArrowFileReader arrowFileReader,
+      @Nullable Projector projector, @Nullable Filter filter, int[] fields) {
     this.arrowFileReader = arrowFileReader;
     this.projector = projector;
     this.filter = filter;
     this.fields = fields;
   }
 
-  public Enumerator<Object> enumerator() {
+  @Override public Enumerator<Object> enumerator() {
     try {
       return new ArrowEnumerator(projector, filter, fields, arrowFileReader);
     } catch (Exception e) {

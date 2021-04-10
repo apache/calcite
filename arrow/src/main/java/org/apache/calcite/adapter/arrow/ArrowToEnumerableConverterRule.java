@@ -25,7 +25,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
  * Rule to convert a relational expression from
  * {@link ArrowRel#CONVENTION} to {@link EnumerableConvention}.
  */
-public class ArrowToEnumerableConverterRule extends ConverterRule {
+class ArrowToEnumerableConverterRule extends ConverterRule {
 
   /** Default configuration. */
   public static final Config DEFAULT_CONFIG = Config.INSTANCE

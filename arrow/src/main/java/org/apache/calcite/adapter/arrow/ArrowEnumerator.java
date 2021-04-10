@@ -33,6 +33,8 @@ import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,22 +42,22 @@ import java.util.List;
 /**
  * Enumerator that reads from a collection of Arrow value-vectors.
  */
-public class ArrowEnumerator implements Enumerator<Object> {
+class ArrowEnumerator implements Enumerator<Object> {
   private final BufferAllocator allocator;
   private final ArrowFileReader arrowFileReader;
-  private final Projector projector;
-  private final Filter filter;
+  private final @Nullable Projector projector;
+  private final @Nullable Filter filter;
   private int rowIndex = -1;
   private List<ValueVector> valueVectors;
   private final int[] fields;
   private final int fieldCount;
   private int rowSize;
-  private ArrowBuf buf;
-  private SelectionVector selectionVector;
+  private @Nullable ArrowBuf buf;
+  private @Nullable SelectionVector selectionVector;
   private int selectionVectorIndex = 0;
 
-  ArrowEnumerator(Projector projector, Filter filter, int[] fields,
-      ArrowFileReader arrowFileReader) {
+  ArrowEnumerator(@Nullable Projector projector, @Nullable Filter filter,
+      int[] fields, ArrowFileReader arrowFileReader) {
     this.allocator = new RootAllocator(Long.MAX_VALUE);
     this.projector = projector;
     this.filter = filter;
@@ -64,18 +66,17 @@ public class ArrowEnumerator implements Enumerator<Object> {
     this.fieldCount = fields.length;
     this.valueVectors = new ArrayList<>(fieldCount);
 
-    try {
-      if (arrowFileReader.loadNextBatch()) {
-        loadNextArrowBatch();
-      } else {
-        throw new IllegalStateException();
-      }
-    } catch (IOException e) {
-      throw Util.toUnchecked(e);
+    // Set up fields so that first call to moveNext() will trigger a call to
+    // loadNextBatch().
+    if (projector != null) {
+      rowIndex = rowSize = 0;
+    } else {
+      selectionVector = null;
+      selectionVectorIndex = 0;
     }
   }
 
-  public Object current() {
+  @Override public Object current() {
     if (fieldCount == 1) {
       return this.valueVectors.get(0).getObject(rowIndex);
     }
@@ -87,9 +88,9 @@ public class ArrowEnumerator implements Enumerator<Object> {
     return current;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (projector != null) {
-      if (rowIndex >= this.rowSize - 1) {
+      if (rowIndex >= rowSize - 1) {
         final boolean hasNextBatch;
         try {
           hasNextBatch = arrowFileReader.loadNextBatch();
@@ -109,7 +110,8 @@ public class ArrowEnumerator implements Enumerator<Object> {
         return true;
       }
     } else {
-      if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+      if (selectionVector == null
+          || selectionVectorIndex >= selectionVector.getRecordCount()) {
         final boolean hasNextBatch;
         try {
           hasNextBatch = arrowFileReader.loadNextBatch();
@@ -120,7 +122,8 @@ public class ArrowEnumerator implements Enumerator<Object> {
           selectionVectorIndex = 0;
           this.valueVectors = new ArrayList<>(fieldCount);
           loadNextArrowBatch();
-          if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
+          assert selectionVector != null;
+          if (selectionVectorIndex >= selectionVector.getRecordCount()) {
             return false;
           }
           rowIndex = selectionVector.getIndex(selectionVectorIndex++);
@@ -157,17 +160,19 @@ public class ArrowEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     try {
       if (projector != null) {
         projector.close();
       }
       if (filter != null) {
-        buf.close();
+        if (buf != null) {
+          buf.close();
+        }
         allocator.close();
         filter.close();
       }

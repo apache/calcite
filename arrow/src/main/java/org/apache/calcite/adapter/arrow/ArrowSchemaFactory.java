@@ -25,13 +25,14 @@ import java.io.File;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link ArrowSchema}.
+ * Factory that creates an {@link ArrowSchema}.
  */
 public class ArrowSchemaFactory implements SchemaFactory {
 
-  public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
-
-    File baseDirectory = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+  @Override public Schema create(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
+    File baseDirectory =
+        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final String directory = (String) operand.get("directory");
     File directoryFile = null;
     if (directory != null) {
@@ -41,8 +42,11 @@ public class ArrowSchemaFactory implements SchemaFactory {
       if (directoryFile == null) {
         directoryFile = baseDirectory;
       } else if (!directoryFile.isAbsolute()) {
-        directoryFile = new File(baseDirectory, directory);
+        directoryFile = new File(baseDirectory, directoryFile.getPath());
       }
+    }
+    if (directoryFile == null) {
+      throw new RuntimeException("no directory");
     }
     return new ArrowSchema(directoryFile);
   }

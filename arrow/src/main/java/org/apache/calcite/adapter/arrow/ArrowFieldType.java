@@ -24,9 +24,13 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Arrow field type.
@@ -52,10 +56,10 @@ enum ArrowFieldType {
           .build();
 
   ArrowFieldType(Primitive primitive) {
-    this(primitive.boxClass, primitive);
+    this(requireNonNull(primitive.boxClass, "boxClass"), primitive);
   }
 
-  ArrowFieldType(Class<?> clazz, Primitive unused) {
+  ArrowFieldType(Class<?> clazz, @Nullable Primitive unused) {
     this.clazz = clazz;
   }
 
@@ -66,6 +70,6 @@ enum ArrowFieldType {
   }
 
   public static ArrowFieldType of(ArrowType arrowType) {
-    return MAP.get(arrowType.getClass());
+    return requireNonNull(MAP.get(arrowType.getClass()), "fieldType");
   }
 }

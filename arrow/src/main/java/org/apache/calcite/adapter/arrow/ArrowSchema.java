@@ -28,6 +28,8 @@ import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -36,22 +38,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Schema mapped onto a set of Arrow files.
  */
 class ArrowSchema extends AbstractSchema {
-  private final Supplier<Map<String, Table>> tables =
-      Suppliers.memoize(this::deduceTables)::get;
-
-  private final File baseDirectory;
+  private final Supplier<Map<String, Table>> tableMapSupplier;
 
   /**
    * Creates an Arrow schema.
    *
-   * @param baseDirectory Base directory to look for relative files, or null
+   * @param baseDirectory Base directory to look for relative files
    */
   ArrowSchema(File baseDirectory) {
-    this.baseDirectory = baseDirectory;
+    requireNonNull(baseDirectory, "baseDirectory");
+    this.tableMapSupplier =
+        Suppliers.memoize(() -> deduceTableMap(baseDirectory));
   }
 
   /**
@@ -69,17 +72,17 @@ class ArrowSchema extends AbstractSchema {
    * either the string with the suffix removed
    * or null.
    */
-  private static String trimOrNull(String s, String suffix) {
+  private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    return tables.get();
+    return tableMapSupplier.get();
   }
 
-  private Map<String, Table> deduceTables() {
+  private static Map<String, Table> deduceTableMap(File baseDirectory) {
     File[] files = baseDirectory.listFiles((dir, name) -> name.endsWith(".arrow"));
     if (files == null) {
       System.out.println("directory " + baseDirectory + " not found");

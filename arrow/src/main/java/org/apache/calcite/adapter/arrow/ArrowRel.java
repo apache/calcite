@@ -20,6 +20,8 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,20 +37,19 @@ public interface ArrowRel extends RelNode {
   /** Callback for the implementation process that converts a tree of
    * {@link ArrowRel} nodes into a SQL query. */
   class Implementor {
-    int[] selectFields;
-    List<String> whereClause = new ArrayList<>();
-    RelOptTable table;
-    ArrowTable arrowTable;
+    int @Nullable[] selectFields;
+    final List<String> whereClause = new ArrayList<>();
+    @Nullable RelOptTable table;
+    @Nullable ArrowTable arrowTable;
 
     /** Adds newly projected fields and restricted predicates.
      *
      * @param fields New fields to be projected from a query
      * @param predicates Predicates
      */
-    public void add(int[] fields, List<String> predicates) {
+    void add(int @Nullable[] fields, @Nullable List<String> predicates) {
       if (fields != null) {
-        selectFields = new int[fields.length];
-        System.arraycopy(fields, 0, selectFields, 0, fields.length);
+        selectFields = fields.clone();
       }
       if (predicates != null) {
         whereClause.addAll(predicates);

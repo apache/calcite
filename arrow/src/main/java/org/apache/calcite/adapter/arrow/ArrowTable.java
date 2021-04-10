@@ -49,23 +49,28 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Arrow Table.
  */
 public class ArrowTable extends AbstractTable
     implements TranslatableTable, QueryableTable {
-  private final RelProtoDataType protoRowType;
+  private final @Nullable RelProtoDataType protoRowType;
   /** Arrow schema. (In Calcite terminology, more like a row type than a
    * Schema.) */
   private final Schema schema;
   final ArrowFileReader arrowFileReader;
 
-  ArrowTable(RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
+  ArrowTable(@Nullable RelProtoDataType protoRowType,
+      ArrowFileReader arrowFileReader) {
     try {
       this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
     } catch (IOException e) {
@@ -75,22 +80,24 @@ public class ArrowTable extends AbstractTable
     this.arrowFileReader = arrowFileReader;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (this.protoRowType != null) {
       return this.protoRowType.apply(typeFactory);
     }
     return deduceRowType(this.schema, (JavaTypeFactory) typeFactory);
   }
 
-  public Expression getExpression(SchemaPlus schema, String tableName, Class clazz) {
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
+      Class clazz) {
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public Enumerable<Object> query(DataContext root, int[] fields0,
+  /** Called via code generation; see uses of
+   * {@link org.apache.calcite.adapter.arrow.ArrowMethod#ARROW_QUERY}. */
+  @SuppressWarnings("unused")
+  public Enumerable<Object> query(DataContext root, int[] fields,
       List<String> conditions) {
-    final int[] fields = fields0 != null ? fields0
-        : Ints.toArray(Util.range(schema.getFields().size()));
-
+    requireNonNull(fields, "fields");
     final Projector projector;
     final Filter filter;
 
@@ -141,16 +148,17 @@ public class ArrowTable extends AbstractTable
     return new ArrowEnumerable(arrowFileReader, projector, filter, fields);
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     throw new UnsupportedOperationException();
   }
 
-  public Type getElementType() {
+  @Override public Type getElementType() {
     return Object[].class;
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
+      RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = Ints.toArray(Util.range(fieldCount));
     final RelOptCluster cluster = context.getCluster();
@@ -158,7 +166,8 @@ public class ArrowTable extends AbstractTable
         relOptTable, this, fields);
   }
 
-  private RelDataType deduceRowType(Schema schema, JavaTypeFactory typeFactory) {
+  private static RelDataType deduceRowType(Schema schema,
+      JavaTypeFactory typeFactory) {
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (Field field : schema.getFields()) {
       builder.add(field.getName(),

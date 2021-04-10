@@ -29,13 +29,14 @@ import java.util.List;
  *
  * @see org.apache.calcite.util.BuiltInMethod
  */
+@SuppressWarnings("ImmutableEnumChecker")
 enum ArrowMethod {
   ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class,
       List.class);
 
-  public final Method method;
+  final Method method;
 
-  public static final ImmutableMap<Method, ArrowMethod> MAP;
+  static final ImmutableMap<Method, ArrowMethod> MAP;
 
   static {
     final ImmutableMap.Builder<Method, ArrowMethod> builder =

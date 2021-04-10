@@ -74,7 +74,7 @@ class ArrowTableScan extends TableScan implements ArrowRel {
     }
   }
 
-  public void implement(ArrowRel.Implementor implementor) {
+  @Override public void implement(ArrowRel.Implementor implementor) {
     implementor.arrowTable = arrowTable;
     implementor.table = table;
   }

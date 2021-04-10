@@ -26,32 +26,42 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Util;
+
+import com.google.common.primitives.Ints;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of a table in a Arrow data source.
  */
-public class ArrowToEnumerableConverter extends ConverterImpl implements EnumerableRel {
+class ArrowToEnumerableConverter
+    extends ConverterImpl implements EnumerableRel {
 
-  protected ArrowToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits,
-                                           RelNode input) {
-    super(cluster, ConventionTraitDef.INSTANCE, traits, input);
+  protected ArrowToEnumerableConverter(RelOptCluster cluster,
+      RelTraitSet traitSet, RelNode input) {
+    super(cluster, ConventionTraitDef.INSTANCE, traitSet, input);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new ArrowToEnumerableConverter(getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.1);
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    RelOptCost cost = super.computeSelfCost(planner, mq);
+    return requireNonNull(cost, "cost").multiplyBy(.1);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor,
+      Prefer pref) {
     final ArrowRel.Implementor arrowImplementor = new ArrowRel.Implementor();
     arrowImplementor.visitInput(0, getInput());
     PhysType physType =
@@ -60,12 +70,15 @@ public class ArrowToEnumerableConverter extends ConverterImpl implements Enumera
             getRowType(),
             pref.preferArray());
 
-    return implementor.result(
-        physType,
+    final RelOptTable table = requireNonNull(arrowImplementor.table, "table");
+    final int fieldCount = table.getRowType().getFieldCount();
+    return implementor.result(physType,
         Blocks.toBlock(
-            Expressions.call(arrowImplementor.table.getExpression(ArrowTable.class),
+            Expressions.call(table.getExpression(ArrowTable.class),
                 ArrowMethod.ARROW_QUERY.method, implementor.getRootExpression(),
-                Expressions.constant(arrowImplementor.selectFields),
+                Expressions.constant(
+                    Util.first(arrowImplementor.selectFields,
+                        Ints.toArray(Util.range(fieldCount)))),
                 Expressions.constant(arrowImplementor.whereClause))));
   }
 }

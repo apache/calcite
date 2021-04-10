@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /** Planner rules relating to the Arrow adapter. */
@@ -30,6 +32,7 @@ public class ArrowRules {
    * a {@link ArrowTableScan} and pushes down projects if possible. */
   public static final ArrowProjectRule PROJECT_SCAN =
       ArrowProjectRule.DEFAULT_CONFIG.toRule(ArrowProjectRule.class);
+
   public static final ArrowFilterRule FILTER_SCAN =
       ArrowFilterRule.Config.DEFAULT.toRule();
 
@@ -37,10 +40,9 @@ public class ArrowRules {
       ArrowToEnumerableConverterRule.DEFAULT_CONFIG
           .toRule(ArrowToEnumerableConverterRule.class);
 
-  public static final RelOptRule[] RULES = {
-      PROJECT_SCAN,
-      FILTER_SCAN
-  };
+  public static final List<RelOptRule> RULES =
+      ImmutableList.of(PROJECT_SCAN,
+          FILTER_SCAN);
 
   static List<String> arrowFieldNames(final RelDataType rowType) {
     return SqlValidatorUtil.uniquify(rowType.getFieldNames(),

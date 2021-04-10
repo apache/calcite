@@ -29,14 +29,19 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression in Arrow.
  */
-public class ArrowProject extends Project implements ArrowRel {
+class ArrowProject extends Project implements ArrowRel {
 
+  /** Creates an ArrowProject. */
   ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
@@ -52,15 +57,16 @@ public class ArrowProject extends Project implements ArrowRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = super.computeSelfCost(planner, mq);
+    return requireNonNull(cost, "cost").multiplyBy(0.1);
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitInput(0, getInput());
     implementor.add(getProjectFields(getProjects()), null);
   }
 
-  private int[] getProjectFields(List<RexNode> exps) {
+  static int @Nullable[] getProjectFields(List<RexNode> exps) {
     final int[] fields = new int[exps.size()];
     for (int i = 0; i < exps.size(); i++) {
       final RexNode exp = exps.get(i);
