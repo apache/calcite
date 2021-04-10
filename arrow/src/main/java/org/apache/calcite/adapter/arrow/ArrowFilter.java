@@ -26,10 +26,12 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 
@@ -58,7 +60,8 @@ class ArrowFilter extends Filter implements ArrowRel {
       RexNode condition) {
     super(cluster, traitSet, input, condition);
 
-    Translator translator = new Translator(input.getRowType());
+    final Translator translator =
+        new Translator(cluster.getRexBuilder(), input.getRowType());
     this.match = translator.translateMatch(condition);
   }
 
@@ -82,10 +85,12 @@ class ArrowFilter extends Filter implements ArrowRel {
    * Translates SQL condition to string.
    */
   static class Translator {
-    private final RelDataType rowType;
-    private final List<String> fieldNames;
+    final RexBuilder rexBuilder;
+    final RelDataType rowType;
+    final List<String> fieldNames;
 
-    Translator(RelDataType rowType) {
+    Translator(RexBuilder rexBuilder, RelDataType rowType) {
+      this.rexBuilder = rexBuilder;
       this.rowType = rowType;
       this.fieldNames = ArrowRules.arrowFieldNames(rowType);
     }
@@ -128,7 +133,14 @@ class ArrowFilter extends Filter implements ArrowRel {
     private List<String> translateAnd(RexNode condition) {
       List<String> predicates = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(condition)) {
-        predicates.add(translateMatch2(node));
+        switch (node.getKind()) {
+        case SEARCH:
+          final RexNode node2 = RexUtil.expandSearch(rexBuilder, null, node);
+          predicates.addAll(translateMatch(node2));
+          break;
+        default:
+          predicates.add(translateMatch2(node));
+        }
       }
       return predicates;
     }

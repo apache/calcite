@@ -156,7 +156,7 @@ class ArrowAdapterTest {
         + "where \"fieldOne\" > 2 and \"fieldOne\" < 6";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(fieldOne=[$0])\n"
-        + "    ArrowFilter(condition=[AND(>($0, 2), <($0, 6))])\n"
+        + "    ArrowFilter(condition=[SEARCH($0, Sarg[(2..6)])])\n"
         + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
     String result = "fieldOne=3\n"
         + "fieldOne=4\n"
