@@ -648,7 +648,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     List<String> fieldNames = new ArrayList<>();
 
     projectedFields.add(rankField);
-    fieldNames.add(RANK_PREFIX + loRank.getAlias()); // alias of the rank field
+    fieldNames.add(loRank.getSchema().getField(0).alias); // alias of the rank field
     for (int i = 0; i < inputRowType.getFieldCount(); i++) {
       projectedFields.add(builder.field(i));
       fieldNames.add(inputRowType.getFieldNames().get(i));
