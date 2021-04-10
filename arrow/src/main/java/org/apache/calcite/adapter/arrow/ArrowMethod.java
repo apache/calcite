@@ -25,10 +25,13 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * Builtin methods in the Arrow adapter.
+ * Built-in methods in the Arrow adapter.
+ *
+ * @see org.apache.calcite.util.BuiltInMethod
  */
-public enum ArrowMethod {
-  ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class, List.class);
+enum ArrowMethod {
+  ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class,
+      List.class);
 
   public final Method method;
 
@@ -43,6 +46,7 @@ public enum ArrowMethod {
     MAP = builder.build();
   }
 
+  /** Defines a method. */
   ArrowMethod(Class clazz, String methodName, Class... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }

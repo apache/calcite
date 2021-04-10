@@ -19,10 +19,14 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.Util;
 
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
+
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,12 +34,15 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Schema mapped onto a set of Arrow files.
  */
 class ArrowSchema extends AbstractSchema {
-  private Map<String, Table> tables;
+  private final Supplier<Map<String, Table>> tables =
+      Suppliers.memoize(this::deduceTables)::get;
+
   private final File baseDirectory;
 
   /**
@@ -69,32 +76,37 @@ class ArrowSchema extends AbstractSchema {
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    if (tables == null) {
-      tables = new HashMap<>();
+    return tables.get();
+  }
 
-      File[] files = baseDirectory.listFiles((dir, name) -> name.endsWith(".arrow"));
-      if (files == null) {
-        System.out.println("directory " + baseDirectory + " not found");
-        files = new File[0];
-      }
-
-      for (File file : files) {
-        File arrowFile = new File(Sources.of(file).path());
-        FileInputStream fileInputStream = null;
-        try {
-          fileInputStream = new FileInputStream(arrowFile);
-        } catch (FileNotFoundException e) {
-          e.printStackTrace();
-        }
-        SeekableReadChannel seekableReadChannel = new SeekableReadChannel(
-            fileInputStream.getChannel());
-        RootAllocator allocator = new RootAllocator();
-        ArrowFileReader arrowFileReader = new ArrowFileReader(seekableReadChannel, allocator);
-        tables.put(
-            trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT),
-            new ArrowTable(null, arrowFileReader));
-      }
+  private Map<String, Table> deduceTables() {
+    File[] files = baseDirectory.listFiles((dir, name) -> name.endsWith(".arrow"));
+    if (files == null) {
+      System.out.println("directory " + baseDirectory + " not found");
+      return ImmutableMap.of();
     }
-    return tables;
+
+    final Map<String, Table> tables = new HashMap<>();
+    for (File file : files) {
+      final File arrowFile = new File(Sources.of(file).path());
+      final FileInputStream fileInputStream;
+      try {
+        fileInputStream = new FileInputStream(arrowFile);
+      } catch (FileNotFoundException e) {
+        throw Util.toUnchecked(e);
+      }
+      final SeekableReadChannel seekableReadChannel =
+          new SeekableReadChannel(fileInputStream.getChannel());
+      final RootAllocator allocator = new RootAllocator();
+      final ArrowFileReader arrowFileReader =
+          new ArrowFileReader(seekableReadChannel, allocator);
+      final String tableName =
+          trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT);
+      final ArrowTable table =
+          new ArrowTable(null, arrowFileReader);
+      tables.put(tableName, table);
+    }
+
+    return ImmutableMap.copyOf(tables);
   }
 }

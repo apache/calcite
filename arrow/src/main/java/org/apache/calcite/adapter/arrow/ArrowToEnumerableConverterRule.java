@@ -33,7 +33,7 @@ public class ArrowToEnumerableConverterRule extends ConverterRule {
           EnumerableConvention.INSTANCE, "ArrowToEnumerableConverterRule")
       .withRuleFactory(ArrowToEnumerableConverterRule::new);
 
-  /** Creates a ArrowToEnumerableConverterRule. */
+  /** Creates an ArrowToEnumerableConverterRule. */
   protected ArrowToEnumerableConverterRule(Config config) {
     super(config);
   }

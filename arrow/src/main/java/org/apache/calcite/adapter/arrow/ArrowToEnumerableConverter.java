@@ -53,7 +53,7 @@ public class ArrowToEnumerableConverter extends ConverterImpl implements Enumera
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final ArrowRel.Implementor arrowImplementor = new ArrowRel.Implementor();
-    arrowImplementor.visitChild(0, getInput());
+    arrowImplementor.visitInput(0, getInput());
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

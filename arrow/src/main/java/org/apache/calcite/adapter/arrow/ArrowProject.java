@@ -37,26 +37,26 @@ import java.util.List;
  */
 public class ArrowProject extends Project implements ArrowRel {
 
-  public ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,
-                          RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
+  ArrowProject(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == ArrowRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
-                                List<RexNode> projects, RelDataType rowType) {
+      List<RexNode> projects, RelDataType rowType) {
     return new ArrowProject(getCluster(), traitSet, input, projects,
         rowType);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
-                                              RelMetadataQuery mq) {
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
   public void implement(Implementor implementor) {
-    implementor.visitChild(0, getInput());
+    implementor.visitInput(0, getInput());
     implementor.add(getProjectFields(getProjects()), null);
   }
 

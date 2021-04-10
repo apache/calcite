@@ -25,13 +25,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.TimestampString;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -45,15 +45,14 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
  * relational expression in Arrow.
  */
-public class ArrowFilter extends Filter implements ArrowRel {
-  private List<String> match;
+class ArrowFilter extends Filter implements ArrowRel {
+  private final List<String> match;
 
-  public ArrowFilter(
-      RelOptCluster cluster,
+  ArrowFilter(RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
+      RelNode input,
       RexNode condition) {
-    super(cluster, traitSet, child, condition);
+    super(cluster, traitSet, input, condition);
 
     Translator translator = new Translator(getRowType());
     this.match = translator.translateMatch(condition);
@@ -68,7 +67,7 @@ public class ArrowFilter extends Filter implements ArrowRel {
   }
 
   public void implement(Implementor implementor) {
-    implementor.visitChild(0, getInput());
+    implementor.visitInput(0, getInput());
     implementor.add(null, match);
   }
 
@@ -99,17 +98,14 @@ public class ArrowFilter extends Filter implements ArrowRel {
      * @return The value of the literal in the form of the actual type.
      */
     private static Object literalValue(RexLiteral literal) {
-      Comparable value = RexLiteral.value(literal);
       switch (literal.getTypeName()) {
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        assert value instanceof TimestampString;
         final SimpleDateFormat dateFormatter =
             getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
-        return dateFormatter.format(literal.getValue2());
+        return dateFormatter.format(literal.getValueAs(Long.class));
       case DATE:
-        assert value instanceof DateString;
-        return value.toString();
+        return literal.getValueAs(DateString.class).toString();
       default:
         return literal.getValue3();
       }
@@ -193,7 +189,8 @@ public class ArrowFilter extends Filter implements ArrowRel {
       String valueType = getLiteralType(value);
 
       if (value instanceof String) {
-        SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
+        final RelDataTypeField field = rowType.getField(name, true, false);
+        SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
           valueString = "'" + valueString + "'";
         }

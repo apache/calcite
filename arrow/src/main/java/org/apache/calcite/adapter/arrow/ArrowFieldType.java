@@ -22,13 +22,14 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * ArrowFieldType.
+ * Arrow field type.
  */
 enum ArrowFieldType {
   INT(Primitive.INT),
@@ -38,27 +39,24 @@ enum ArrowFieldType {
   DATE(Date.class, null),
   LIST(List.class, null);
 
-  private final Class clazz;
-  private final Primitive primitive;
+  private final Class<?> clazz;
 
-  private static final Map<Class<? extends ArrowType>, ArrowFieldType> MAP = new HashMap<>();
-
-  static {
-    MAP.put(ArrowType.Int.class, INT);
-    MAP.put(ArrowType.Bool.class, BOOLEAN);
-    MAP.put(ArrowType.Utf8.class, STRING);
-    MAP.put(ArrowType.FloatingPoint.class, FLOAT);
-    MAP.put(ArrowType.Date.class, DATE);
-    MAP.put(ArrowType.List.class, LIST);
-  }
+  private static final Map<Class<? extends ArrowType>, ArrowFieldType> MAP =
+      ImmutableMap.<Class<? extends ArrowType>, ArrowFieldType>builder()
+          .put(ArrowType.Int.class, INT)
+          .put(ArrowType.Bool.class, BOOLEAN)
+          .put(ArrowType.Utf8.class, STRING)
+          .put(ArrowType.FloatingPoint.class, FLOAT)
+          .put(ArrowType.Date.class, DATE)
+          .put(ArrowType.List.class, LIST)
+          .build();
 
   ArrowFieldType(Primitive primitive) {
     this(primitive.boxClass, primitive);
   }
 
-  ArrowFieldType(Class clazz, Primitive primitive) {
+  ArrowFieldType(Class<?> clazz, Primitive unused) {
     this.clazz = clazz;
-    this.primitive = primitive;
   }
 
   public RelDataType toType(JavaTypeFactory typeFactory) {

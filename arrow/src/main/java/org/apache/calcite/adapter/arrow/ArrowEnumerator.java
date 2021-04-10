@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.util.Util;
 
 import org.apache.arrow.gandiva.evaluator.Filter;
 import org.apache.arrow.gandiva.evaluator.Projector;
@@ -37,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ArrowEnumerator.
+ * Enumerator that reads from a collection of Arrow value-vectors.
  */
 public class ArrowEnumerator implements Enumerator<Object> {
   private final BufferAllocator allocator;
@@ -47,22 +48,21 @@ public class ArrowEnumerator implements Enumerator<Object> {
   private int rowIndex = -1;
   private List<ValueVector> valueVectors;
   private final int[] fields;
-  private final int numFields;
+  private final int fieldCount;
   private int rowSize;
   private ArrowBuf buf;
   private SelectionVector selectionVector;
   private int selectionVectorIndex = 0;
 
-  public ArrowEnumerator(Projector projector, Filter filter, int[] fields,
-                         ArrowFileReader arrowFileReader) {
+  ArrowEnumerator(Projector projector, Filter filter, int[] fields,
+      ArrowFileReader arrowFileReader) {
     this.allocator = new RootAllocator(Long.MAX_VALUE);
-
     this.projector = projector;
     this.filter = filter;
     this.arrowFileReader = arrowFileReader;
     this.fields = fields;
-    this.numFields = fields.length;
-    this.valueVectors = new ArrayList<ValueVector>(numFields);
+    this.fieldCount = fields.length;
+    this.valueVectors = new ArrayList<>(fieldCount);
 
     try {
       if (arrowFileReader.loadNextBatch()) {
@@ -71,24 +71,16 @@ public class ArrowEnumerator implements Enumerator<Object> {
         throw new IllegalStateException();
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      throw Util.toUnchecked(e);
     }
-  }
-
-  public static int[] identityList(int n) {
-    int[] integers = new int[n];
-    for (int i = 0; i < n; i++) {
-      integers[i] = i;
-    }
-    return integers;
   }
 
   public Object current() {
-    if (numFields == 1) {
+    if (fieldCount == 1) {
       return this.valueVectors.get(0).getObject(rowIndex);
     }
-    Object[] current = new Object[numFields];
-    for (int i = 0; i < numFields; i++) {
+    Object[] current = new Object[fieldCount];
+    for (int i = 0; i < fieldCount; i++) {
       ValueVector vector = this.valueVectors.get(i);
       current[i] = vector.getObject(rowIndex);
     }
@@ -98,15 +90,15 @@ public class ArrowEnumerator implements Enumerator<Object> {
   public boolean moveNext() {
     if (projector != null) {
       if (rowIndex >= this.rowSize - 1) {
-        boolean hasNextBatch = false;
+        final boolean hasNextBatch;
         try {
           hasNextBatch = arrowFileReader.loadNextBatch();
         } catch (IOException e) {
-          e.printStackTrace();
+          throw Util.toUnchecked(e);
         }
         if (hasNextBatch) {
           rowIndex = 0;
-          this.valueVectors = new ArrayList<ValueVector>(numFields);
+          this.valueVectors = new ArrayList<>(fieldCount);
           loadNextArrowBatch();
           return true;
         } else {
@@ -118,15 +110,15 @@ public class ArrowEnumerator implements Enumerator<Object> {
       }
     } else {
       if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
-        boolean hasNextBatch = false;
+        final boolean hasNextBatch;
         try {
           hasNextBatch = arrowFileReader.loadNextBatch();
         } catch (IOException e) {
-          e.printStackTrace();
+          throw Util.toUnchecked(e);
         }
         if (hasNextBatch) {
           selectionVectorIndex = 0;
-          this.valueVectors = new ArrayList<ValueVector>(numFields);
+          this.valueVectors = new ArrayList<>(fieldCount);
           loadNextArrowBatch();
           if (selectionVectorIndex >= this.selectionVector.getRecordCount()) {
             return false;
@@ -145,7 +137,7 @@ public class ArrowEnumerator implements Enumerator<Object> {
 
   private void loadNextArrowBatch() {
     try {
-      VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
+      final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
       for (int i : fields) {
         this.valueVectors.add(vsr.getVector(i));
       }
@@ -159,10 +151,9 @@ public class ArrowEnumerator implements Enumerator<Object> {
         this.buf = this.allocator.buffer(rowSize * 2);
         this.selectionVector = new SelectionVectorInt16(buf);
         filter.evaluate(arrowRecordBatch, selectionVector);
-        this.selectionVector = selectionVector;
       }
     } catch (IOException | GandivaException e) {
-      e.printStackTrace();
+      throw Util.toUnchecked(e);
     }
   }
 
@@ -181,6 +172,7 @@ public class ArrowEnumerator implements Enumerator<Object> {
         filter.close();
       }
     } catch (GandivaException e) {
+      throw Util.toUnchecked(e);
     }
   }
 }

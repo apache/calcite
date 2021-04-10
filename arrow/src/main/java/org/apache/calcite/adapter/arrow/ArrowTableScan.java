@@ -34,21 +34,15 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 /**
- * ArrowTableScan.
+ * Relational expression representing a scan of an Arrow collection.
  */
-public class ArrowTableScan extends TableScan implements ArrowRel {
-  private RelOptTable relOptTable;
+class ArrowTableScan extends TableScan implements ArrowRel {
   final ArrowTable arrowTable;
   private final int[] fields;
 
-  public ArrowTable getArrowTable() {
-    return this.arrowTable;
-  }
-
-  public ArrowTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable relOptTable,
-                        ArrowTable arrowTable, int[] fields) {
+  ArrowTableScan(RelOptCluster cluster, RelTraitSet traitSet,
+      RelOptTable relOptTable, ArrowTable arrowTable, int[] fields) {
     super(cluster, traitSet, ImmutableList.of(), relOptTable);
-    this.relOptTable = relOptTable;
     this.arrowTable = arrowTable;
     this.fields = fields;
   }

@@ -42,7 +42,7 @@ public class ArrowProjectRule extends ArrowConverterRule {
           ArrowRel.CONVENTION, "ArrowProjectRule")
       .withRuleFactory(ArrowProjectRule::new);
 
-  /** Creates a ArrowProjectRule. */
+  /** Creates an ArrowProjectRule. */
   protected ArrowProjectRule(Config config) {
     super(config);
   }

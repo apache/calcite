@@ -37,32 +37,25 @@ public interface ArrowRel extends RelNode {
   class Implementor {
     int[] selectFields;
     List<String> whereClause = new ArrayList<>();
-    int fieldToCompare;
-    Object valueToCompare;
-    String operator;
-
     RelOptTable table;
     ArrowTable arrowTable;
 
     /** Adds newly projected fields and restricted predicates.
      *
      * @param fields New fields to be projected from a query
-     * @param field Field that needs to be compared
-     * @param value Value of the field that needs to be compared
+     * @param predicates Predicates
      */
     public void add(int[] fields, List<String> predicates) {
       if (fields != null) {
         selectFields = new int[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-          selectFields[i] = fields[i];
-        }
+        System.arraycopy(fields, 0, selectFields, 0, fields.length);
       }
       if (predicates != null) {
         whereClause.addAll(predicates);
       }
     }
 
-    public void visitChild(int ordinal, RelNode input) {
+    public void visitInput(int ordinal, RelNode input) {
       assert ordinal == 0;
       ((ArrowRel) input).implement(this);
     }

@@ -24,7 +24,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
- * ArrowFilterRule.
+ * Rule to convert a {@link org.apache.calcite.rel.core.Filter} to an
+ * {@link ArrowFilter}.
  */
 public class ArrowFilterRule extends RelRule<ArrowFilterRule.Config> {
 
