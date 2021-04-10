@@ -84,8 +84,6 @@ import java.util.Set;
  * algebra plans.
  */
 class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
-  private static final String RANK_PREFIX = "rank_";
-
   // The relational algebra builder customized for Pig
   protected final PigRelBuilder builder;
   private Operator currentRoot;
@@ -648,7 +646,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     List<String> fieldNames = new ArrayList<>();
 
     projectedFields.add(rankField);
-    fieldNames.add(RANK_PREFIX + loRank.getAlias()); // alias of the rank field
+    fieldNames.add(loRank.getSchema().getField(0).alias); // alias of the rank field
     for (int i = 0; i < inputRowType.getFieldCount(); i++) {
       projectedFields.add(builder.field(i));
       fieldNames.add(inputRowType.getFieldNames().get(i));

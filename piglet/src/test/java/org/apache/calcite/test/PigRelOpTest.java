@@ -1142,7 +1142,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "  LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     final String optimizedPlan = ""
-        + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
+        + "LogicalProject(rank_B=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
         + "aggs [RANK()])])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
@@ -1150,7 +1150,7 @@ class PigRelOpTest extends PigRelTestBase {
 
     final String script = base + "C = RANK B BY DEPTNO ASC, JOB DESC;\n";
     final String plan = ""
-        + "LogicalProject(rank_C=[RANK() OVER (ORDER BY $2, $1 DESC)], "
+        + "LogicalProject(rank_B=[RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result = ""
@@ -1170,7 +1170,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(14,7900,CLERK,30)\n";
     final String sql = ""
         + "SELECT RANK() OVER (ORDER BY DEPTNO, JOB DESC RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_C, EMPNO, JOB, DEPTNO\n"
+        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_B, EMPNO, JOB, DEPTNO\n"
         + "FROM scott.EMP";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
@@ -1179,14 +1179,14 @@ class PigRelOpTest extends PigRelTestBase {
 
     final String script2 = base + "C = RANK B BY DEPTNO ASC, JOB DESC DENSE;\n";
     final String optimizedPlan2 = ""
-        + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
+        + "LogicalProject(rank_B=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
         + "aggs [DENSE_RANK()])"
         + "])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     final String plan2 = ""
-        + "LogicalProject(rank_C=[DENSE_RANK() OVER (ORDER BY $2, $1 DESC)], "
+        + "LogicalProject(rank_B=[DENSE_RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result2 = ""
@@ -1206,7 +1206,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(9,7900,CLERK,30)\n";
     final String sql2 = ""
         + "SELECT DENSE_RANK() OVER (ORDER BY DEPTNO, JOB DESC RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_C, EMPNO, JOB, DEPTNO\n"
+        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_B, EMPNO, JOB, DEPTNO\n"
         + "FROM scott.EMP";
     pig(script2).assertRel(hasTree(plan2))
         .assertOptimizedRel(hasTree(optimizedPlan2))
@@ -1618,6 +1618,28 @@ class PigRelOpTest extends PigRelTestBase {
     final String sql = ""
         + "SELECT CAST(STRSPLIT(PIG_TUPLE(DNAME, ','))[1] AS BINARY(1)) AS NAMES\n"
         + "FROM scott.DEPT";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql));
+  }
+
+  @Test void testRankAndFilter() {
+    final String script = ""
+        + "A = LOAD 'emp1' USING PigStorage(',')  as ("
+        + "    id:int, name:chararray, age:int, city:chararray);\n"
+        + "B = rank A;\n"
+        + "C = FILTER B by ($0 > 1);";
+
+    final String plan = ""
+        + "LogicalFilter(condition=[>($0, 1)])\n"
+        + "  LogicalProject(rank_A=[RANK() OVER ()], id=[$0],"
+        + " name=[$1], age=[$2], city=[$3])\n"
+        + "    LogicalTableScan(table=[[emp1]])\n";
+
+    final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
+        + "FROM (SELECT id, name, age, city, RANK() OVER (RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "    FROM emp1) AS t\n"
+        + "WHERE w0$o0 > 1";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
   }
