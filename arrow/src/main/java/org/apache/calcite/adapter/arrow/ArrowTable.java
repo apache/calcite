@@ -113,7 +113,8 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       for (String con: condition) {
         String[] data = con.split(" ");
         List<TreeNode> treeNodes = new ArrayList<>(2);
-        treeNodes.add(TreeBuilder.makeField(schema.getFields()
+        treeNodes.add(
+            TreeBuilder.makeField(schema.getFields()
             .get(schema.getFields().indexOf(schema.findField(data[0])))));
         treeNodes.add(makeLiteralNode(data[2], data[3]));
         String equality = data[1];
@@ -122,8 +123,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
       Condition filterCondition;
       if (conditionNodes.size() == 1) {
         filterCondition = TreeBuilder.makeCondition(conditionNodes.get(0));
-      }
-      else {
+      } else {
         TreeNode treeNode = TreeBuilder.makeAnd(conditionNodes);
         filterCondition = TreeBuilder.makeCondition(treeNode);
       }

@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -29,10 +33,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.math.BigDecimal;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -201,10 +205,14 @@ public class ArrowFilter extends Filter implements ArrowRel {
       if (literal instanceof BigDecimal) {
         BigDecimal bigDecimalLiteral = (BigDecimal) literal;
         int scale = bigDecimalLiteral.scale();
-        if (scale == 0) return "long";
-        else if (scale > 0) return "double";
+        if (scale == 0) {
+          return "long";
+        } else if (scale > 0) {
+          return "double";
+        }
+      } else if (String.class.equals(literal.getClass())) {
+        return "string";
       }
-      else if (String.class.equals(literal.getClass())) return "string";
       throw new AssertionError("Invalid literal");
     }
   }

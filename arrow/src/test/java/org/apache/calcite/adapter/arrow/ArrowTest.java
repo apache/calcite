@@ -115,16 +115,21 @@ public class ArrowTest {
   }
 
   @Test void testArrowProjectFieldsWithMultipleFilters() {
+    String sql = "select \"fieldOne\"\n"
+        + "from test\n"
+        + "where \"fieldOne\" > 2 and \"fieldOne\" < 6";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(fieldOne=[$0])\n"
+        + "    ArrowFilter(condition=[AND(>($0, 2), <($0, 6))])\n"
+        + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+    String result = "fieldOne=3\n"
+        + "fieldOne=4\n"
+        + "fieldOne=5\n";
     CalciteAssert.that()
         .with(ARROW)
-        .query(
-            "select \"fieldOne\" from test " +
-                "where \"fieldOne\">2 and \"fieldOne\"<6")
+        .query(sql)
         .limit(3)
-        .returns("fieldOne=3\nfieldOne=4\nfieldOne=5\n")
-        .explainContains("PLAN=ArrowToEnumerableConverter\n"
-            + "  ArrowProject(fieldOne=[$0])\n"
-            + "    ArrowFilter(condition=[AND(>($0, 2), <($0, 6))])\n"
-            + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n");
+        .returns(result)
+        .explainContains(plan);
   }
 }
