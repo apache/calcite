@@ -22,37 +22,49 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
+
+import org.apache.commons.lang3.SystemUtils;
 
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Test of Calcite Arrow adapter reading from Arrow files.
+ * Tests for the Apache Arrow adapter.
+ *
+ * <p>The tests are only enabled on Linux, until
+ * <a href="https://issues.apache.org/jira/browse/ARROW-11135">[ARROW-11135]
+ * Using Maven Central artifacts as dependencies produce runtime errors</a>
+ * is fixed. On macOS and Windows, the tests throw
+ * {@link org.opentest4j.TestAbortedException}, which causes Junit to ignore
+ * them.
  */
-public class ArrowTest {
-  private static final ImmutableMap<String, String> ARROW =
-      ArrowTest.getDataset("/arrow.json");
+class ArrowTest {
+  static final Map<String, String> ARROW =
+      ImmutableMap.of("model",
+          resourceFile("/arrow.json").getAbsolutePath());
 
-  static ImmutableMap<String, String> getDataset(String resourcePath) {
-    return ImmutableMap.of("model",
-        Sources.of(ArrowTest.class.getResource(resourcePath))
-            .file().getAbsolutePath());
+  static File resourceFile(String resourcePath) {
+    return Sources.of(ArrowTest.class.getResource(resourcePath)).file();
   }
 
-  /**
-   * Test to read Arrow file and check it's field name.
-   */
+  public ArrowTest() {
+    assumeTrue(SystemUtils.IS_OS_LINUX,
+        "Arrow adapter requires Linux, until [ARROW-11135] is fixed");
+  }
+
+  /** Test to read an Arrow file and check its field names. */
   @Test void testArrowSchema() {
-    Source source = Sources.of(ArrowTest.class.getResource("/arrow"));
-    ArrowSchema arrowSchema = new ArrowSchema(source.file().getAbsoluteFile());
+    ArrowSchema arrowSchema =
+        new ArrowSchema(resourceFile("/arrow").getAbsoluteFile());
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataTypeFactory typeFactory =
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

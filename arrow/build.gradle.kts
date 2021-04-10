@@ -22,5 +22,6 @@ dependencies {
     implementation("org.apache.arrow:arrow-vector")
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
+    testImplementation("org.apache.commons:commons-lang3")
     testImplementation(project(":core", "testClasses"))
 }
