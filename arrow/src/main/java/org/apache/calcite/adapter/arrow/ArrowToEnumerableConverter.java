@@ -40,7 +40,7 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Relational expression representing a scan of a table in a Arrow data source.
+ * Relational expression representing a scan of a table in an Arrow data source.
  */
 class ArrowToEnumerableConverter
     extends ConverterImpl implements EnumerableRel {
