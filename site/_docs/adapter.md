@@ -27,6 +27,7 @@ limitations under the License.
 A schema adapter allows Calcite to read particular kind of data,
 presenting the data as tables within a schema.
 
+* [Arrow adapter](arrow_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/arrow/package-summary.html">calcite-arrow</a>)
 * [Cassandra adapter](cassandra_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * [Druid adapter](druid_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/druid/package-summary.html">calcite-druid</a>)
@@ -36,6 +37,7 @@ presenting the data as tables within a schema.
 * [Geode adapter](geode_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/geode/package-summary.html">calcite-geode</a>)
 * [InnoDB adapter](innodb_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/innodb/package-summary.html">calcite-innodb</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
+* [Kafka adapter](kafka_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/kafka/package-summary.html">calcite-kafka</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
 * [OS adapter](os_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/os/package-summary.html">calcite-os</a>)
 * [Pig adapter](pig_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/pig/package-summary.html">calcite-pig</a>)
@@ -44,7 +46,6 @@ presenting the data as tables within a schema.
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
-* [Apache Kafka adapter](kafka_adapter.html)
 
 ### Other language interfaces
 

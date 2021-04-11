@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ArrowAdapterTest {
   static final Map<String, String> ARROW =
       ImmutableMap.of("model",
-          resourceFile("/arrow.json").getAbsolutePath());
+          resourceFile("/arrow-model.json").getAbsolutePath());
 
   static File resourceFile(String resourcePath) {
     return Sources.of(ArrowAdapterTest.class.getResource(resourcePath)).file();
@@ -78,7 +78,7 @@ class ArrowAdapterTest {
   @Test void testArrowProjectAllFields() {
     String sql = "select * from test\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "  ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
     String result = "fieldOne=1; fieldTwo=abc; fieldThree=1.2\n"
         + "fieldOne=2; fieldTwo=def; fieldThree=3.4\n"
         + "fieldOne=3; fieldTwo=xyz; fieldThree=5.6\n"
@@ -103,7 +103,7 @@ class ArrowAdapterTest {
         + "fieldOne=6; fieldTwo=xyza\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
-        + "    ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "    ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
@@ -122,7 +122,7 @@ class ArrowAdapterTest {
         + "fieldOne=6\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(fieldOne=[$0])\n"
-        + "    ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "    ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
@@ -141,7 +141,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
         + "    ArrowFilter(condition=[<($0, 4)])\n"
-        + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
@@ -157,7 +157,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(fieldOne=[$0])\n"
         + "    ArrowFilter(condition=[SEARCH($0, Sarg[(2..6)])])\n"
-        + "      ArrowTableScan(table=[[arrow, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
     String result = "fieldOne=3\n"
         + "fieldOne=4\n"
         + "fieldOne=5\n";

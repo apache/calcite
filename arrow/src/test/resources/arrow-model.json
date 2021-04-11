@@ -16,10 +16,10 @@
  */
 {
   "version": "1.0",
-  "defaultSchema": "arrow",
+  "defaultSchema": "ARROW",
   "schemas": [
     {
-      "name": "arrow",
+      "name": "ARROW",
       "type": "custom",
       "factory": "org.apache.calcite.adapter.arrow.ArrowSchemaFactory",
       "operand": {
