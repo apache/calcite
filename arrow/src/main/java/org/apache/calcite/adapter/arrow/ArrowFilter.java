@@ -19,31 +19,13 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateString;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
-import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static java.util.Objects.requireNonNull;
 
@@ -60,8 +42,8 @@ class ArrowFilter extends Filter implements ArrowRel {
       RexNode condition) {
     super(cluster, traitSet, input, condition);
 
-    final Translator translator =
-        new Translator(cluster.getRexBuilder(), input.getRowType());
+    final ArrowTranslator translator =
+        ArrowTranslator.create(cluster.getRexBuilder(), input.getRowType());
     this.match = translator.translateMatch(condition);
   }
 
@@ -79,162 +61,5 @@ class ArrowFilter extends Filter implements ArrowRel {
   @Override public void implement(Implementor implementor) {
     implementor.visitInput(0, getInput());
     implementor.add(null, match);
-  }
-
-  /**
-   * Translates SQL condition to string.
-   */
-  static class Translator {
-    final RexBuilder rexBuilder;
-    final RelDataType rowType;
-    final List<String> fieldNames;
-
-    Translator(RexBuilder rexBuilder, RelDataType rowType) {
-      this.rexBuilder = rexBuilder;
-      this.rowType = rowType;
-      this.fieldNames = ArrowRules.arrowFieldNames(rowType);
-    }
-
-    private List<String> translateMatch(RexNode condition) {
-      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
-      if (disjunctions.size() == 1) {
-        return translateAnd(disjunctions.get(0));
-      } else {
-        throw new AssertionError("cannot translate " + condition);
-      }
-    }
-
-    /** Returns the value of the literal.
-     *
-     * @param literal Literal to translate
-     * @return The value of the literal in the form of the actual type
-     */
-    private static Object literalValue(RexLiteral literal) {
-      switch (literal.getTypeName()) {
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        final SimpleDateFormat dateFormatter =
-            getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
-        Long millis = literal.getValueAs(Long.class);
-        return dateFormatter.format(requireNonNull(millis, "millis"));
-      case DATE:
-        final DateString dateString = literal.getValueAs(DateString.class);
-        return requireNonNull(dateString, "dateString").toString();
-      default:
-        return requireNonNull(literal.getValue3());
-      }
-    }
-
-    /** Translate a conjunctive predicate to a SQL string.
-     *
-     * @param condition A conjunctive predicate
-     * @return SQL string for the predicate
-     */
-    private List<String> translateAnd(RexNode condition) {
-      List<String> predicates = new ArrayList<>();
-      for (RexNode node : RelOptUtil.conjunctions(condition)) {
-        switch (node.getKind()) {
-        case SEARCH:
-          final RexNode node2 = RexUtil.expandSearch(rexBuilder, null, node);
-          predicates.addAll(translateMatch(node2));
-          break;
-        default:
-          predicates.add(translateMatch2(node));
-        }
-      }
-      return predicates;
-    }
-
-    /** Translate a binary relation. */
-    private String translateMatch2(RexNode node) {
-      switch (node.getKind()) {
-      case EQUALS:
-        return translateBinary("equal", "=", (RexCall) node);
-      case LESS_THAN:
-        return translateBinary("less_than", ">", (RexCall) node);
-      case LESS_THAN_OR_EQUAL:
-        return translateBinary("less_than_or_equal_to", ">=", (RexCall) node);
-      case GREATER_THAN:
-        return translateBinary("greater_than", "<", (RexCall) node);
-      case GREATER_THAN_OR_EQUAL:
-        return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
-      default:
-        throw new AssertionError("cannot translate " + node);
-      }
-    }
-
-    /** Translates a call to a binary operator, reversing arguments if
-     * necessary. */
-    private String translateBinary(String op, String rop, RexCall call) {
-      final RexNode left = call.operands.get(0);
-      final RexNode right = call.operands.get(1);
-      @Nullable String expression = translateBinary2(op, left, right);
-      if (expression != null) {
-        return expression;
-      }
-      expression = translateBinary2(rop, right, left);
-      if (expression != null) {
-        return expression;
-      }
-      throw new AssertionError("cannot translate op " + op + " call " + call);
-    }
-
-    /** Translates a call to a binary operator. Returns null on failure. */
-    private @Nullable String translateBinary2(String op, RexNode left,
-        RexNode right) {
-      switch (right.getKind()) {
-      case LITERAL:
-        break;
-      default:
-        return null;
-      }
-      final RexLiteral rightLiteral = (RexLiteral) right;
-      switch (left.getKind()) {
-      case INPUT_REF:
-        final RexInputRef left1 = (RexInputRef) left;
-        String name = fieldNames.get(left1.getIndex());
-        return translateOp2(op, name, rightLiteral);
-      case CAST:
-        // FIXME This will not work in all cases (for example, we ignore string encoding)
-        return translateBinary2(op, ((RexCall) left).operands.get(0), right);
-      default:
-        return null;
-      }
-    }
-
-    /** Combines a field name, operator, and literal to produce a predicate string. */
-    private String translateOp2(String op, String name, RexLiteral right) {
-      // In case this is a key, record that it is now restricted
-
-      Object value = literalValue(right);
-      String valueString = value.toString();
-      String valueType = getLiteralType(value);
-
-      if (value instanceof String) {
-        final RelDataTypeField field =
-            requireNonNull(rowType.getField(name, true, false),
-                "field");
-        SqlTypeName typeName = field.getType().getSqlTypeName();
-        if (typeName != SqlTypeName.CHAR) {
-          valueString = "'" + valueString + "'";
-        }
-      }
-      return name + " " + op + " " + valueString + " " + valueType;
-    }
-
-    private static String getLiteralType(Object literal) {
-      if (literal instanceof BigDecimal) {
-        BigDecimal bigDecimalLiteral = (BigDecimal) literal;
-        int scale = bigDecimalLiteral.scale();
-        if (scale == 0) {
-          return "long";
-        } else if (scale > 0) {
-          return "double";
-        }
-      } else if (String.class.equals(literal.getClass())) {
-        return "string";
-      }
-      throw new AssertionError("Invalid literal");
-    }
   }
 }
