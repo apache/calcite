@@ -1607,4 +1607,18 @@ class PigRelOpTest extends PigRelTestBase {
         .assertResult(is(result))
         .assertSql(is(sql));
   }
+
+  @Test void testFlattenStrSplit() {
+    final String script = ""
+        + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
+        + "B = FOREACH A GENERATE FLATTEN(STRSPLIT(DNAME, ',')) as NAMES;\n";
+    final String plan = ""
+        + "LogicalProject(NAMES=[CAST(ITEM(STRSPLIT(PIG_TUPLE($1, ',')), 1)):BINARY(1)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String sql = ""
+        + "SELECT CAST(STRSPLIT(PIG_TUPLE(DNAME, ','))[1] AS BINARY(1)) AS NAMES\n"
+        + "FROM scott.DEPT";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql));
+  }
 }
