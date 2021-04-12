@@ -168,4 +168,59 @@ class ArrowAdapterTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  // TODO: test a table whose field names contain spaces,
+  // e.g. 'SELECT ... WHERE "my Field" > 5'
+  // (code generator does not seem to quote field names currently)
+
+  // TODO: test a character literal that contains a single-quote
+  // (quoting of literals for Gandiva doesn't look safe to me)
+
+  // TODO: test various data types (TINYINT, SMALLINT, INTEGER, BIGINT, REAL,
+  // FLOAT, DATE, TIME, TIMESTAMP, INTERVAL SECOND, INTERVAL MONTH, CHAR,
+  // VARCHAR, BINARY, VARBINARY, BOOLEAN) with and without NOT NULL
+
+  // TODO: test casts, including lossy casts
+
+  // TODO: test IS NULL, IS NOT NULL
+
+  // TODO: test 3-valued boolean logic, e.g. 'WHERE (x > 5) IS NOT FALSE',
+  // 'SELECT (x > 5) ...'
+
+  // TODO: test string operations, e.g. SUBSTRING
+
+  // TODO: test a join
+  // (The implementor can only hold one table at a time, so I suspect this will
+  // have problems.)
+
+  // TODO: test a union
+  // (The implementor can only hold one table at a time, so I suspect this will
+  // have problems.)
+
+  // TODO: test a filter on a project on a filter on a project
+  // (The implementor may not be able to combine multiple selections and
+  // projectors. Also, in some cases the optimal plan would combine selections
+  // and projectors.)
+
+  // TODO: test an OR condition
+
+  // TODO: test an IN condition, e.g. x IN (1, 7, 8, 9)
+
+  // TODO: test an aggregate without aggregate functions,
+  // 'SELECT DISTINCT ...'; hopefully Arrow can do this for us
+
+  // TODO: test an aggregate with aggregate functions,
+  // 'SELECT SUM(x) ... GROUP BY y'; hopefully Arrow can do this for us
+
+  // TODO: test an aggregate with filtered aggregate functions,
+  // 'SELECT SUM(x) FILTER WHERE (z > 5) ... GROUP BY y';
+  // hopefully Arrow can do this for us
+
+  // TODO: test an aggregate that groups by a nullable column
+
+  // TODO: test a limit (with no sort),
+  // 'SELECT ... LIMIT 10'
+
+  // TODO: test an offset and limit (with no sort),
+  // 'SELECT ... OFFSET 20 LIMIT 10'
 }
