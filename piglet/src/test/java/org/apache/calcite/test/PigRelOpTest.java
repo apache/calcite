@@ -1610,24 +1610,23 @@ class PigRelOpTest extends PigRelTestBase {
 
   @Test void testRankAndFilter() {
     final String script = ""
-        + "A = LOAD 'scott.EMP' as (EMPNO:int, ENAME:chararray,\n"
-        + "    JOB:chararray, MGR:int, HIREDATE:datetime, SAL:bigdecimal,\n"
-        + "    COMM:bigdecimal, DEPTNO:int);\n"
-        + "B = RANK A;\n"
+        + "A = LOAD 'emp1' USING PigStorage(',')  as ("
+        + "    id:int, name:chararray, age:int, city:chararray);\n"
+        + "B = rank A;\n"
         + "C = FILTER B by ($0 > 1);";
 
     final String plan = ""
         + "LogicalFilter(condition=[>($0, 1)])\n"
-        + "  LogicalProject(rank_A=[RANK() OVER ()], EMPNO=[$0], ENAME=[$1], JOB=[$2],"
-        + " MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalProject(rank_A=[RANK() OVER ()], id=[$0],"
+        + " name=[$1], age=[$2], city=[$3])\n"
+        + "    LogicalTableScan(table=[[emp1]])\n";
 
-    /*final String sql = "SELECT *\n"
-        + "FROM (SELECT RANK() OVER () AS `rank_A`, `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, "
-        + "`SAL`, `COMM`, `DEPTNO`\n"
-        + "      FROM scott.EMP) AS `t`\n"
-        + "WHERE `rank_A` > 1";*/
-
-    pig(script).assertRel(hasTree(plan));
+    final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
+        + "FROM (SELECT id, name, age, city, RANK() OVER (RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "    FROM emp1) AS t\n"
+        + "WHERE w0$o0 > 1";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql));
   }
 }
