@@ -134,7 +134,8 @@ public class ArrowRules {
 
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
-      int[] fields = ArrowProject.getProjectFields(project.getProjects());
+      @Nullable List<Integer> fields =
+          ArrowProject.getProjectFields(project.getProjects());
       if (fields == null) {
         // Project contains expressions more complex than just field references.
         return null;

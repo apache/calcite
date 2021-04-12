@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -31,8 +32,8 @@ import java.util.List;
  */
 @SuppressWarnings("ImmutableEnumChecker")
 enum ArrowMethod {
-  ARROW_QUERY(ArrowTable.class, "query", DataContext.class, int[].class,
-      List.class);
+  ARROW_QUERY(ArrowTable.class, "query", DataContext.class,
+      ImmutableIntList.class, List.class);
 
   final Method method;
 

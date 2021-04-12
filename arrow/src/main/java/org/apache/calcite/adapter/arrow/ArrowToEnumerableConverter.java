@@ -31,7 +31,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.primitives.Ints;
 
@@ -76,9 +76,14 @@ class ArrowToEnumerableConverter
         Blocks.toBlock(
             Expressions.call(table.getExpression(ArrowTable.class),
                 ArrowMethod.ARROW_QUERY.method, implementor.getRootExpression(),
-                Expressions.constant(
-                    Util.first(arrowImplementor.selectFields,
-                        Ints.toArray(Util.range(fieldCount)))),
+                arrowImplementor.selectFields != null
+                    ? Expressions.call(
+                        BuiltInMethod.IMMUTABLE_INT_LIST_COPY_OF.method,
+                        Expressions.constant(
+                            Ints.toArray(arrowImplementor.selectFields)))
+                    : Expressions.call(
+                        BuiltInMethod.IMMUTABLE_INT_LIST_IDENTITY.method,
+                        Expressions.constant(fieldCount)),
                 Expressions.constant(arrowImplementor.whereClause))));
   }
 }

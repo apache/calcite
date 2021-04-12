@@ -33,6 +33,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import org.apache.arrow.gandiva.evaluator.Filter;
@@ -46,8 +47,6 @@ import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import com.google.common.primitives.Ints;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -95,7 +94,7 @@ public class ArrowTable extends AbstractTable
   /** Called via code generation; see uses of
    * {@link org.apache.calcite.adapter.arrow.ArrowMethod#ARROW_QUERY}. */
   @SuppressWarnings("unused")
-  public Enumerable<Object> query(DataContext root, int[] fields,
+  public Enumerable<Object> query(DataContext root, ImmutableIntList fields,
       List<String> conditions) {
     requireNonNull(fields, "fields");
     final Projector projector;
@@ -104,9 +103,9 @@ public class ArrowTable extends AbstractTable
     if (conditions.size() == 0) {
       filter = null;
 
-      final List<ExpressionTree> expressionTrees = new ArrayList<>(fields.length);
-      for (int i = 0; i < fields.length; i++) {
-        Field field = schema.getFields().get(i);
+      final List<ExpressionTree> expressionTrees = new ArrayList<>();
+      for (int fieldOrdinal : fields) {
+        Field field = schema.getFields().get(fieldOrdinal);
         TreeNode node = TreeBuilder.makeField(field);
         expressionTrees.add(TreeBuilder.makeExpression(node, field));
       }
@@ -160,7 +159,8 @@ public class ArrowTable extends AbstractTable
   @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
-    final int[] fields = Ints.toArray(Util.range(fieldCount));
+    final ImmutableIntList fields =
+        ImmutableIntList.copyOf(Util.range(fieldCount));
     final RelOptCluster cluster = context.getCluster();
     return new ArrowTableScan(cluster, cluster.traitSetOf(ArrowRel.CONVENTION),
         relOptTable, this, fields);

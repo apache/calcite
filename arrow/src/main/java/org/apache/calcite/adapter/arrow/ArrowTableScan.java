@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.arrow;
 
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -28,6 +27,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 
@@ -38,10 +38,10 @@ import java.util.List;
  */
 class ArrowTableScan extends TableScan implements ArrowRel {
   final ArrowTable arrowTable;
-  private final int[] fields;
+  private final ImmutableIntList fields;
 
   ArrowTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable relOptTable, ArrowTable arrowTable, int[] fields) {
+      RelOptTable relOptTable, ArrowTable arrowTable, ImmutableIntList fields) {
     super(cluster, traitSet, ImmutableList.of(), relOptTable);
     this.arrowTable = arrowTable;
     this.fields = fields;
@@ -54,7 +54,7 @@ class ArrowTableScan extends TableScan implements ArrowRel {
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("fields", Primitive.asList(fields));
+        .item("fields", fields);
   }
 
   @Override public RelDataType deriveRowType() {

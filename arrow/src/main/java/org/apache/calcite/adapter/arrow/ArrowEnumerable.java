@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import org.apache.arrow.gandiva.evaluator.Filter;
@@ -33,10 +34,11 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
   private final ArrowFileReader arrowFileReader;
   private final @Nullable Projector projector;
   private final @Nullable Filter filter;
-  private final int[] fields;
+  private final ImmutableIntList fields;
 
   ArrowEnumerable(ArrowFileReader arrowFileReader,
-      @Nullable Projector projector, @Nullable Filter filter, int[] fields) {
+      @Nullable Projector projector, @Nullable Filter filter,
+      ImmutableIntList fields) {
     this.arrowFileReader = arrowFileReader;
     this.projector = projector;
     this.filter = filter;

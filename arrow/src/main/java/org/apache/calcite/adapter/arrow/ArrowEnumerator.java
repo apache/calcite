@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import org.apache.arrow.gandiva.evaluator.Filter;
@@ -48,23 +49,21 @@ class ArrowEnumerator implements Enumerator<Object> {
   private final @Nullable Projector projector;
   private final @Nullable Filter filter;
   private int rowIndex = -1;
-  private List<ValueVector> valueVectors;
-  private final int[] fields;
-  private final int fieldCount;
+  private final List<ValueVector> valueVectors;
+  private final List<Integer> fields;
   private int rowSize;
   private @Nullable ArrowBuf buf;
   private @Nullable SelectionVector selectionVector;
   private int selectionVectorIndex = 0;
 
   ArrowEnumerator(@Nullable Projector projector, @Nullable Filter filter,
-      int[] fields, ArrowFileReader arrowFileReader) {
+      ImmutableIntList fields, ArrowFileReader arrowFileReader) {
     this.allocator = new RootAllocator(Long.MAX_VALUE);
     this.projector = projector;
     this.filter = filter;
     this.arrowFileReader = arrowFileReader;
     this.fields = fields;
-    this.fieldCount = fields.length;
-    this.valueVectors = new ArrayList<>(fieldCount);
+    this.valueVectors = new ArrayList<>(fields.size());
 
     // Set up fields so that first call to moveNext() will trigger a call to
     // loadNextBatch().
@@ -77,11 +76,11 @@ class ArrowEnumerator implements Enumerator<Object> {
   }
 
   @Override public Object current() {
-    if (fieldCount == 1) {
+    if (fields.size() == 1) {
       return this.valueVectors.get(0).getObject(rowIndex);
     }
-    Object[] current = new Object[fieldCount];
-    for (int i = 0; i < fieldCount; i++) {
+    Object[] current = new Object[valueVectors.size()];
+    for (int i = 0; i < valueVectors.size(); i++) {
       ValueVector vector = this.valueVectors.get(i);
       current[i] = vector.getObject(rowIndex);
     }
@@ -99,7 +98,7 @@ class ArrowEnumerator implements Enumerator<Object> {
         }
         if (hasNextBatch) {
           rowIndex = 0;
-          this.valueVectors = new ArrayList<>(fieldCount);
+          this.valueVectors.clear();
           loadNextArrowBatch();
           return true;
         } else {
@@ -120,7 +119,7 @@ class ArrowEnumerator implements Enumerator<Object> {
         }
         if (hasNextBatch) {
           selectionVectorIndex = 0;
-          this.valueVectors = new ArrayList<>(fieldCount);
+          this.valueVectors.clear();
           loadNextArrowBatch();
           assert selectionVector != null;
           if (selectionVectorIndex >= selectionVector.getRecordCount()) {

@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -66,12 +67,11 @@ class ArrowProject extends Project implements ArrowRel {
     implementor.add(getProjectFields(getProjects()), null);
   }
 
-  static int @Nullable[] getProjectFields(List<RexNode> exps) {
-    final int[] fields = new int[exps.size()];
-    for (int i = 0; i < exps.size(); i++) {
-      final RexNode exp = exps.get(i);
+  static @Nullable List<Integer> getProjectFields(List<RexNode> exps) {
+    final List<Integer> fields = new ArrayList<>();
+    for (final RexNode exp : exps) {
       if (exp instanceof RexInputRef) {
-        fields[i] = ((RexInputRef) exp).getIndex();
+        fields.add(((RexInputRef) exp).getIndex());
       } else {
         return null; // not a simple projection
       }

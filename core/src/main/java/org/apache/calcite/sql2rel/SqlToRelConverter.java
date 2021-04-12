@@ -1205,7 +1205,7 @@ public class SqlToRelConverter {
             typeFactory.createSqlType(SqlTypeName.BIGINT);
         final RelNode seek = converted.r.getInput(0); // fragile
         final int keyCount = leftKeys.size();
-        final List<Integer> args = ImmutableIntList.range(0, keyCount);
+        final List<Integer> args = Util.range(keyCount);
         LogicalAggregate aggregate =
             LogicalAggregate.create(seek,
                 ImmutableList.of(),
