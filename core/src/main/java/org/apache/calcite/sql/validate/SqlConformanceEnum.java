@@ -181,6 +181,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case SQL_SERVER_2008:
     case HIVE:
     case BIG_QUERY:
+    case SNOWFLAKE:
       return true;
     default:
       return false;
