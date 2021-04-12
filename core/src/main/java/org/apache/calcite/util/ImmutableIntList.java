@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.IntUnaryOperator;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -68,6 +69,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    * Creates an ImmutableIntList from an array of {@code int}.
    */
   public static ImmutableIntList of(int... ints) {
+    if (ints.length == 0) {
+      return EMPTY;
+    }
     return new ImmutableIntList(ints.clone());
   }
 
@@ -81,6 +85,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    * Creates an ImmutableIntList from an array of {@code Number}.
    */
   public static ImmutableIntList copyOf(Number... numbers) {
+    if (numbers.length == 0) {
+      return EMPTY;
+    }
     final int[] ints = new int[numbers.length];
     for (int i = 0; i < ints.length; i++) {
       ints[i] = numbers[i].intValue();
@@ -112,6 +119,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   private static ImmutableIntList copyFromCollection(
       Collection<? extends Number> list) {
+    if (list.isEmpty()) {
+      return EMPTY;
+    }
     final int[] ints = new int[list.size()];
     int i = 0;
     for (Number number : list) {
@@ -181,7 +191,11 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ints.clone();
   }
 
-  /** Returns an List of {@code Integer}. */
+  /** Returns a List of {@code Integer}.
+   *
+   * @deprecated Instead of {@code list.toIntegerList()}, write
+   * {@code new ArrayList<>(list)} or just {@code list}. */
+  @Deprecated // to be removed before 2.0
   public List<Integer> toIntegerList() {
     ArrayList<Integer> arrayList = new ArrayList<>(size());
     for (int i : ints) {
@@ -275,6 +289,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    * @see Mappings#isIdentity(List, int)
    */
   public static ImmutableIntList identity(int count) {
+    if (count == 0) {
+      return EMPTY;
+    }
     final int[] integers = new int[count];
     for (int i = 0; i < integers.length; i++) {
       integers[i] = i;
@@ -290,16 +307,22 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ImmutableIntList.copyOf(Iterables.concat(this, list));
   }
 
+  /** Applies an operator to each element. */
+  public ImmutableIntList map(IntUnaryOperator operator) {
+    final int[] integers = new int[ints.length];
+    for (int i = 0; i < ints.length; i++) {
+      integers[i] = operator.applyAsInt(ints[i]);
+    }
+    return new ImmutableIntList(integers);
+  }
+
   /**
    * Increments {@code offset} to each element of the list and
    * returns a new int list.
    */
+  @Deprecated // to be removed before 2.0
   public ImmutableIntList incr(int offset) {
-    final int[] integers = new int[ints.length];
-    for (int i = 0; i < ints.length; i++) {
-      integers[i] = ints[i] + offset;
-    }
-    return new ImmutableIntList(integers);
+    return map(i -> i + offset);
   }
 
   /** Special sub-class of {@link ImmutableIntList} that is always
@@ -322,6 +345,10 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
     @Override public ListIterator<Integer> listIterator() {
       return Collections.<Integer>emptyList().listIterator();
+    }
+
+    @Override public ImmutableIntList map(IntUnaryOperator operator) {
+      return this;
     }
   }
 
