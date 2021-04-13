@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -76,7 +77,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * constructor had zero parameters, the {@code eval} method would have to call
  * {@code java.util.regex.Pattern.compile(pattern)} to compile the pattern each
  * time.
+ *
+ * <p>This interface is marked {@link Experimental}, which means that we may
+ * change or remove methods, or the entire interface, without notice. But
+ * probably we will add methods over time, which will just your UDFs more
+ * information to work with.
  */
+@Experimental
 public interface FunctionContext {
   /** Returns the type factory. */
   RelDataTypeFactory getTypeFactory();
