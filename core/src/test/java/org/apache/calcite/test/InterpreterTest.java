@@ -56,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -660,5 +661,17 @@ class InterpreterTest {
         + "]}', 0))\n"
         + "where \"i\" < 0 and \"d\" is not null";
     sql(sql).returnsRows();
+  }
+
+  /** Tests a table function that is a non-static class. */
+  @Test void testInterpretNonStaticTableFunction() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction tableFunction =
+        Objects.requireNonNull(
+            TableFunctionImpl.create(Smalls.MyTableFunction.class));
+    schema.add("t", tableFunction);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"t\"('=100='))";
+    sql(sql).returnsRows("[1]", "[3]", "[100]");
   }
 }

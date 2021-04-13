@@ -42,6 +42,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -694,8 +695,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.nullIfEmpty = nullIfEmpty;
     }
 
-    private @Nullable Object createInstance(
-        AggregateFunctionImpl aggFunction, DataContext dataContext) {
+    static @Nullable Object createInstance(AggregateFunctionImpl aggFunction,
+        DataContext dataContext) {
       if (aggFunction.isStatic) {
         return null;
       }
@@ -716,7 +717,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         return constructor.newInstance(functionContext);
       } catch (InstantiationException | IllegalAccessException
           | NoSuchMethodException | InvocationTargetException e) {
-        throw new RuntimeException(e);
+        throw Util.toUnchecked(e);
       }
     }
 

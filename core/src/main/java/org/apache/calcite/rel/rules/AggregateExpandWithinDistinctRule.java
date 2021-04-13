@@ -290,7 +290,7 @@ public class AggregateExpandWithinDistinctRule
     //
     // or in algebra,
     //
-    //   Aggregate($0, SUM($2 WHERE $4 = 0), SUM($3 WHERE $4 = 0))
+    //   Aggregate($0, SUM($2 WHERE $4 = 0), SUM($3 WHERE $4 = 1))
     //     Aggregate([($0), ($0, $2)], SUM($2), MIN($2), GROUPING($0, $4))
     //       Scan(emp)
     //

@@ -65,6 +65,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -819,8 +820,9 @@ public class Smalls {
   /** Example of a user-defined aggregate function (UDAF) with two parameters.
    * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
-    public MyTwoParamsSumFunctionFilter1(/* FunctionContext fx */) {
-      // Objects.requireNonNull(fx, "fx"); // TODO
+    public MyTwoParamsSumFunctionFilter1(FunctionContext fx) {
+      Objects.requireNonNull(fx, "fx");
+      assert fx.getParameterCount() == 2;
     }
     public int init() {
       return 0;

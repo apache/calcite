@@ -48,7 +48,6 @@ public class Enumerables {
   /** Converts an enumerable over singleton arrays into the enumerable of their
    * first elements. */
   public static <E> Enumerable<E> slice0(Enumerable<E[]> enumerable) {
-    //noinspection unchecked
     return enumerable.select(elements -> elements[0]);
   }
 
