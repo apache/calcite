@@ -61,7 +61,7 @@ public abstract class SqlNode implements Cloneable {
    *
    * @param pos Parser position, must not be null.
    */
-  SqlNode(SqlParserPos pos) {
+  protected SqlNode(SqlParserPos pos) {
     this.pos = Objects.requireNonNull(pos, "pos");
   }
 
