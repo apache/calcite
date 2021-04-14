@@ -304,6 +304,25 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Shifts a predicate's inputs to the left, replacing early
+   * ones with references to a {@link RexCorrelVariable}. */
+  public static RexNode correlateLeftShiftRight(RexBuilder rexBuilder,
+      RelNode left, CorrelationId id, RelNode right, RexNode rexNode) {
+    final RelDataType leftRowType = left.getRowType();
+    final int leftCount = leftRowType.getFieldCount();
+    RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        if (inputRef.getIndex() < leftCount) {
+          final RexNode v = rexBuilder.makeCorrel(leftRowType, id);
+          return rexBuilder.makeFieldAccess(v, inputRef.getIndex());
+        } else {
+          return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
+        }
+      }
+    };
+    return shuttle.apply(rexNode);
+  }
+
   /**
    * Sets a {@link RelVisitor} going on a given relational expression, and
    * returns the result.
