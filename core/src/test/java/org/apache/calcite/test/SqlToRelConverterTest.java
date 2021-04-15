@@ -4317,10 +4317,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
-
   @Test public void testInWithConstantList() {
     String expr = "1 in (1,2,3)";
     expr(expr).ok();
+  }
+
+  @Test public void testFunctionExprInOver() {
+    String sql = "select ename, row_number() over(partition by char_length(ename)\n"
+        + " order by deptno desc) as rn\n"
+        + "from emp\n"
+        + "where deptno = 10";
+    Tester newTester = tester.withValidatorTransform(
+        sqlValidator -> sqlValidator.transform(
+            config -> config.withIdentifierExpansion(false)));
+    newTester.assertConvertsTo(sql, "${plan}", false);
   }
 
   /**
