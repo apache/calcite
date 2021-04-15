@@ -2034,6 +2034,7 @@ public class SqlToRelConverter {
     final ImmutableList.Builder<RexNode> partitionKeys =
         ImmutableList.builder();
     for (SqlNode partition : partitionList) {
+      validator().deriveType(bb.scope(), partition);
       partitionKeys.add(bb.convertExpression(partition));
     }
     final RexNode lowerBound = bb.convertExpression(

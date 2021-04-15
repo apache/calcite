@@ -1646,6 +1646,21 @@ LogicalProject(EXPR$0=[ROW(ITEM($3, 1).EMPNO, ITEM($3, 1).ENAME, ROW(ITEM($3, 1)
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFunctionExprInOver">
+    <Resource name="sql">
+      <![CDATA[select ename, row_number() over(partition by char_length(ename)
+order by deptno desc) as rn
+from emp
+where deptno = 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$1], RN=[ROW_NUMBER() OVER (PARTITION BY CHAR_LENGTH($1) ORDER BY $7 DESC)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFunctionWithStructInput">
     <Resource name="sql">
       <![CDATA[select json_type(skill)
