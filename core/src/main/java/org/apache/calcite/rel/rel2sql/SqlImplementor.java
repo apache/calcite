@@ -1186,7 +1186,7 @@ public abstract class SqlImplementor {
         nullDirectionNode = dialect.emulateNullDirection(
                 node, first, field.getDirection().isDescending());
       }
-      if (nullDirectionNode != null && dialect instanceof MysqlSqlDialect) {
+      if (nullDirectionNode != null) {
         orderByList.add(nullDirectionNode);
         switch (field.getDirection()) {
         case DESCENDING:
