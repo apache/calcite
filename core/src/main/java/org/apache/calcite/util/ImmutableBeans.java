@@ -119,8 +119,6 @@ public class ImmutableBeans {
       if (property == null) {
         continue;
       }
-      final boolean hasNonnull =
-          hasAnnotation(method, "org.checkerframework.checker.nullness.qual.NonNull");
       final Mode mode;
       final Object defaultValue = getDefault(method);
       final String methodName = method.getName();
@@ -144,7 +142,9 @@ public class ImmutableBeans {
             + "' has too many parameters");
       }
       final boolean required = propertyType.isPrimitive()
-          || hasNonnull;
+          || !hasAnnotation(
+              method.getAnnotatedReturnType(),
+          "org.checkerframework.checker.nullness.qual.Nullable");
       if (required) {
         requiredPropertyNames.add(propertyName);
       }
@@ -468,8 +468,8 @@ public class ImmutableBeans {
     private final ImmutableMap<String, Object> map;
 
     BeanImpl(Def<T> def, ImmutableMap<String, Object> map) {
-      this.def = Objects.requireNonNull(def);
-      this.map = Objects.requireNonNull(map);
+      this.def = Objects.requireNonNull(def, "def");
+      this.map = Objects.requireNonNull(map, "map");
     }
 
     @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) {
@@ -502,8 +502,8 @@ public class ImmutableBeans {
     private final ImmutableMap<Method, Handler<T>> handlers;
 
     Def(Class<T> beanClass, ImmutableMap<Method, Handler<T>> handlers) {
-      this.beanClass = Objects.requireNonNull(beanClass);
-      this.handlers = Objects.requireNonNull(handlers);
+      this.beanClass = Objects.requireNonNull(beanClass, "beanClass");
+      this.handlers = Objects.requireNonNull(handlers, "handlers");
     }
 
     private T makeBean(ImmutableMap<String, Object> map) {

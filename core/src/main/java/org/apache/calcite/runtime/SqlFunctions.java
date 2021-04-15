@@ -3288,26 +3288,26 @@ public class SqlFunctions {
   }
 
   /**Return match index value. */
-  public static Integer instr(String str, String substr, Integer start, Integer occurance) {
+  public static Integer instr(String str, String substr, Object start, Object occurance) {
     if (null == str || null == substr) {
       return 0;
     }
-    int next = start - 1;
-    while (occurance > 0) {
+    int next = (Integer) start - 1;
+    while ((Integer) occurance > 0) {
       start = str.indexOf(substr, next);
-      next = start + 1;
-      occurance = occurance - 1;
+      next = (Integer) start + 1;
+      occurance = (Integer) occurance - 1;
     }
-    return start + 1;
+    return (Integer) start + 1;
   }
 
   /**Returns matching index value.*/
-  public static Integer charindex(String strToFind, String strToSearch, Integer startLocation) {
+  public static Integer charindex(String strToFind, String strToSearch, Object startLocation) {
     if (null == strToFind || null == strToSearch) {
       return 0;
     }
     return strToSearch.toLowerCase(Locale.ROOT)
-            .indexOf(strToFind.toLowerCase(Locale.ROOT), startLocation - 1) + 1;
+            .indexOf(strToFind.toLowerCase(Locale.ROOT), (Integer) startLocation - 1) + 1;
   }
 
   public static long timeDiff(java.sql.Date d1, java.sql.Date d2) {
