@@ -3636,9 +3636,13 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), =($2, 'CLERK'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedWithoutSimplify = ""
+        + "LogicalFilter(condition=[OR(>($7, 15), SEARCH($2, Sarg['CLERK']:CHAR(5)), SEARCH($7, "
+        + "Sarg[10, 11, 20]))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
-        hasTree(expected));
+        hasTree(expectedWithoutSimplify));
   }
 
   /** Tests filter builder with correlation variables. */
@@ -3707,6 +3711,24 @@ public class RelBuilderTest {
              )))
             .build();
     assertThat(root, hasTree("LogicalValues(tuples=[[]])\n"));
+  }
+
+  @Test void testFilterWithoutSimplification() {
+    final RelBuilder builder = createBuilder(c -> c.withSimplify(false));
+    final RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.or(
+                    builder.literal(null),
+                    builder.and(
+                        builder.equals(builder.field(2), builder.literal(1)),
+                        builder.equals(builder.field(2), builder.literal(2))
+                    )))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[OR(null:NULL, AND(=($2, 1), =($2, 2)))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test void testRelBuilderToString() {

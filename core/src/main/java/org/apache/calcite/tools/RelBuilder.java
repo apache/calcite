@@ -1334,22 +1334,29 @@ public class RelBuilder {
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
-   * If the result is TRUE no filter is created. */
+   * If simplification is on and the result is TRUE, no filter is created. */
   public RelBuilder filter(Iterable<CorrelationId> variablesSet,
       Iterable<? extends RexNode> predicates) {
-    final RexNode simplifiedPredicates =
-        simplifier.simplifyFilterPredicates(predicates);
-    if (simplifiedPredicates == null) {
-      return empty();
+    final RexNode conjunctionPredicates;
+    if (config.simplify()) {
+      conjunctionPredicates = simplifier.simplifyFilterPredicates(predicates);
+    } else {
+      conjunctionPredicates =
+          RexUtil.composeConjunction(simplifier.rexBuilder, predicates);
     }
 
-    if (!simplifiedPredicates.isAlwaysTrue()) {
-      final Frame frame = stack.pop();
-      final RelNode filter =
-          struct.filterFactory.createFilter(frame.rel,
-              simplifiedPredicates, ImmutableSet.copyOf(variablesSet));
-      stack.push(new Frame(filter, frame.fields));
+    if (conjunctionPredicates == null || conjunctionPredicates.isAlwaysFalse()) {
+      return empty();
     }
+    if (conjunctionPredicates.isAlwaysTrue()) {
+      return this;
+    }
+
+    final Frame frame = stack.pop();
+    final RelNode filter =
+        struct.filterFactory.createFilter(frame.rel,
+            conjunctionPredicates, ImmutableSet.copyOf(variablesSet));
+    stack.push(new Frame(filter, frame.fields));
     return this;
   }
 
