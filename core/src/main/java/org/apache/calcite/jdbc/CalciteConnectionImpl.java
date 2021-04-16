@@ -44,6 +44,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -222,8 +223,10 @@ abstract class CalciteConnectionImpl
       server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
       return calcitePreparedStatement;
     } catch (Exception e) {
-      throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + query.sql + "]", e);
+      String message = query.rel == null
+          ? "Error while preparing statement [" + query.sql + "]"
+          : "Error while preparing plan [" + RelOptUtil.toString(query.rel) + "]";
+      throw Helper.INSTANCE.createException(message, e);
     }
   }
 
