@@ -222,8 +222,16 @@ abstract class CalciteConnectionImpl
       server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
       return calcitePreparedStatement;
     } catch (Exception e) {
-      throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + query.sql + "]", e);
+      if (null != query.sql) {
+        throw Helper.INSTANCE.createException(
+            "Error while preparing statement [" + query.sql + "]", e);
+      } else if (null != query.queryable) {
+        throw Helper.INSTANCE.createException(
+            "Error while preparing statement [" + query.queryable + "]", e);
+      } else {
+        throw Helper.INSTANCE.createException(
+            "Error while preparing statement [" + RelOptUtil.toString(query.rel) + "]", e);
+      }
     }
   }
 
