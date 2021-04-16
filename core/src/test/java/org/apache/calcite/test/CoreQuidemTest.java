@@ -19,11 +19,14 @@ package org.apache.calcite.test;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.util.TryThreadLocal;
 
+import org.junit.jupiter.api.Disabled;
+
 import java.util.Collection;
 
 /**
  * Test that runs every Quidem file in the "core" module as a test.
  */
+@Disabled
 class CoreQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *

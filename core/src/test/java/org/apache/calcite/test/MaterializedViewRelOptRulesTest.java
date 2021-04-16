@@ -432,6 +432,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .ok();
   }
 
+  @Disabled
   @Test void testJoinAggregateMaterializationNoAggregateFuncs7() {
     sql("select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
             + "from \"depts\"\n"
@@ -474,6 +475,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .noMat();
   }
 
+  @Disabled
   @Test void testJoinAggregateMaterializationNoAggregateFuncs9() {
     sql("select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
             + "from \"depts\"\n"
@@ -687,6 +689,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .noMat();
   }
 
+  @Disabled
   @Test void testJoinAggregateMaterializationAggregateFuncs11() {
     sql("select \"depts\".\"deptno\", \"dependents\".\"empid\", count(\"emps\".\"salary\") as s\n"
             + "from \"depts\"\n"
@@ -874,6 +877,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
         .ok();
   }
 
+  @Disabled
   @Test void testJoinMaterialization10() {
     sql("select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
             + "from \"depts\"\n"

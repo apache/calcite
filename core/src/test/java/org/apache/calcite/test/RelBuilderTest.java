@@ -74,6 +74,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -522,6 +523,7 @@ public class RelBuilderTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2730">[CALCITE-2730]
    * RelBuilder incorrectly simplifies a filter with duplicate conjunction to
    * empty</a>. */
+  @Disabled
   @Test void testScanFilterDuplicateAnd() {
     // Equivalent SQL:
     //   SELECT *
@@ -558,6 +560,7 @@ public class RelBuilderTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4325">[CALCITE-4325]
    * RexSimplify incorrectly simplifies complex expressions with Sarg and
    * NULL</a>. */
+  @Disabled
   @Test void testFilterAndOrWithNull() {
     // Equivalent SQL:
     //   SELECT *
@@ -586,6 +589,7 @@ public class RelBuilderTest {
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
+  @Disabled
   @Test void testFilterAndOrWithNull2() {
     // Equivalent SQL:
     //   SELECT *
@@ -672,6 +676,7 @@ public class RelBuilderTest {
   }
 
   /** Tests each method that creates a scalar expression. */
+  @Disabled
   @Test void testProject2() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
@@ -3495,6 +3500,7 @@ public class RelBuilderTest {
         hasTree(expected));
   }
 
+  @Disabled
   @Test void testFilterOrIn() {
     final Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
@@ -3515,6 +3521,7 @@ public class RelBuilderTest {
   }
 
   /** Tests filter builder with correlation variables. */
+  @Disabled
   @Test void testFilterWithCorrelationVariables() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<RexCorrelVariable> v = Holder.of(null);
@@ -3884,6 +3891,7 @@ public class RelBuilderTest {
    * 'a >= b AND a <= c', whether created via
    * {@link RelBuilder#call(SqlOperator, RexNode...)} or
    * {@link RelBuilder#between(RexNode, RexNode, RexNode)}.*/
+  @Disabled
   @Test void testCallBetweenOperator() {
     final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
 

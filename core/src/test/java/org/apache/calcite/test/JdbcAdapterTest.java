@@ -23,6 +23,7 @@ import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 import org.apache.calcite.util.TestUtil;
 
 import org.hsqldb.jdbcDriver;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -131,6 +132,7 @@ class JdbcAdapterTest {
             + "WHERE \"product_id\" = 1");
   }
 
+  @Disabled
   @Test void testInPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"

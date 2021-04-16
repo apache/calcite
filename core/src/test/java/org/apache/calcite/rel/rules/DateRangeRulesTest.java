@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
@@ -81,6 +82,7 @@ class DateRangeRulesTest {
         is("<>(EXTRACT(FLAG(YEAR), $9), 2014)"));
   }
 
+  @Disabled
   @Test void testExtractYearAndMonthFromDateColumn() {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,
@@ -94,6 +96,7 @@ class DateRangeRulesTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1601">[CALCITE-1601]
    * DateRangeRules loses OR filters</a>. */
+  @Disabled
   @Test void testExtractYearAndMonthFromDateColumn2() {
     final Fixture2 f = new Fixture2();
     final String s1 = "AND("

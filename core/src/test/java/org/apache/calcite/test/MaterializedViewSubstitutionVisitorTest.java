@@ -1045,6 +1045,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
+  @Disabled
   @Test void testSatisfiable() {
     // TRUE may be satisfiable
     checkSatisfiable(rexBuilder.makeLiteral(true), "true");

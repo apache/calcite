@@ -2109,6 +2109,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         sortsAs("[=($0, 1)]"));
   }
 
+  @Disabled
   @Test void testPullUpPredicatesFromUnion1() {
     final RelNode rel = convertSql(""
         + "select empno, deptno from emp where empno=1 or deptno=2\n"
