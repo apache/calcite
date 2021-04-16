@@ -1454,9 +1454,8 @@ class PigRelOpTest extends PigRelTestBase {
         + "          LogicalTableScan(table=[[scott, EMP]])\n";
     final String optimizedPlan = ""
         + "LogicalSort(sort0=[$2], dir0=[ASC])\n"
-        + "  LogicalProject(group=[ROW($0, $1, $2)], $f1=[+(CAST($3):BIGINT, 1)], "
-        + "salSum=[CAST($4):DECIMAL(19, 0)], salAvg=[/(CAST($4):DECIMAL(19, 0), CAST(CAST($3)"
-        + ":BIGINT):DECIMAL(19, 0))])\n"
+        + "  LogicalProject(group=[ROW($0, $1, $2)], $f1=[+($3, 1)], salSum=[CAST($4):DECIMAL(19,"
+        + " 0)], salAvg=[/(CAST($4):DECIMAL(19, 0), CAST($3):DECIMAL(19, 0))])\n"
         + "    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT()], agg#1=[SUM($3)])\n"
         + "      LogicalProject(DEPTNO=[$7], MGR=[$3], HIREDATE=[$4], SAL=[$5])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -1476,10 +1475,9 @@ class PigRelOpTest extends PigRelTestBase {
         + "({20, 7566, 1987-04-19},2,3000.00,3000.00)\n"
         + "({10, null, 1981-11-17},2,5000.00,5000.00)\n";
     final String sql = ""
-        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, CAST(COUNT(*) AS "
-        + "BIGINT) + 1 AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum, "
-        + "CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(CAST(COUNT(*) AS BIGINT) "
-        + "AS DECIMAL(19, 0)) AS salAvg\n"
+        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, COUNT(*) + 1 AS $f1, CAST(SUM(SAL) AS "
+        + "DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(COUNT(*) AS DECIMAL"
+        + "(19, 0)) AS salAvg\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
@@ -1497,11 +1495,10 @@ class PigRelOpTest extends PigRelTestBase {
         + "BigDecimalSum(A.SAL) / COUNT(A) as salAvg, A;\n"
         + "D = ORDER C BY salSum;\n";
     final String sql2 = ""
-        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, CAST(COUNT(*) AS BIGINT) + 1"
-        + " AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS "
-        + "DECIMAL(19, 0)) / CAST(CAST(COUNT(*) AS BIGINT) AS DECIMAL(19, 0)) AS "
-        + "salAvg, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)"
-        + ") AS A\n"
+        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, COUNT(*) + 1 AS $f1, CAST(SUM(SAL) AS "
+        + "DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(COUNT(*) AS DECIMAL"
+        + "(19, 0)) AS salAvg, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)) "
+        + "AS A\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
