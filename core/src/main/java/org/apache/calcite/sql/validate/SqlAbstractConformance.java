@@ -133,4 +133,7 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.semantics();
   }
 
+  @Override public boolean varcharStringLiterals() {
+    return SqlConformanceEnum.DEFAULT.varcharStringLiterals();
+  }
 }

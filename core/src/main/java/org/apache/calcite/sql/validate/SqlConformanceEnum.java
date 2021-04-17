@@ -407,4 +407,12 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean varcharStringLiterals() {
+    switch (this) {
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

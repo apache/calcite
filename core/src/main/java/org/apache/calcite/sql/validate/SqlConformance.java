@@ -529,4 +529,12 @@ public interface SqlConformance {
    * </ul>
    */
   SqlLibrary semantics();
+
+  /**
+   * Controls the type of string literals.  By default they are CHAR, however, this
+   * is not case most commercial database.
+   *
+   * <p>Postgres as well as {@link SqlConformanceEnum#MYSQL_5} has this behavior.
+   */
+  boolean varcharStringLiterals();
 }

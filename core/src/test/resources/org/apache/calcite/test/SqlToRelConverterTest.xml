@@ -7422,4 +7422,16 @@ LogicalProject(EXPR$0=[COMPOSITE($0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testMysqlStringLiteralType">
+        <Resource name="sql">
+            <![CDATA[
+select 'foo ' = 'foo', 'foo ' = CAST('foo' AS CHAR(3)), CAST('foo ' AS VARCHAR(4))
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalValues(tuples=[[{ false, false, 'foo ' }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

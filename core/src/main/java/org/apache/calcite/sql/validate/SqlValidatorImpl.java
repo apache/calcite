@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -6249,7 +6250,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public RelDataType visit(SqlLiteral literal) {
-      return literal.createSqlType(typeFactory);
+      RelDataType relDataType = literal.createSqlType(typeFactory);
+      if (literal instanceof SqlCharStringLiteral
+          && config.sqlConformance().varcharStringLiterals()) {
+        return typeFactory.createSqlType(SqlTypeName.VARCHAR,
+            relDataType.getPrecision());
+      }
+      return relDataType;
     }
 
     @Override public RelDataType visit(SqlCall call) {

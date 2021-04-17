@@ -4183,6 +4183,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
+  @Test public void testMysqlStringLiteralType() {
+    final String sql = ""
+        + "select 'foo ' = 'foo', 'foo ' = CAST('foo' AS CHAR(3)), CAST('foo ' AS VARCHAR(4))";
+    sql(sql)
+        .conformance(SqlConformanceEnum.MYSQL_5)
+        .ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

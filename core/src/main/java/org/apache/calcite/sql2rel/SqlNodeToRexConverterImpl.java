@@ -109,7 +109,14 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeApproxLiteral(literal.getValueAs(BigDecimal.class));
 
     case CHAR:
-      return rexBuilder.makeCharLiteral(literal.getValueAs(NlsString.class));
+      NlsString string = literal.getValueAs(NlsString.class);
+      RexLiteral rexliteral = rexBuilder.makeCharLiteral(string);
+      if (cx.getValidator().config().sqlConformance().varcharStringLiterals()) {
+        RelDataType varCharType =
+            typeFactory.createSqlType(SqlTypeName.VARCHAR, string.getValue().length());
+        return rexBuilder.makeCast(varCharType, rexliteral);
+      }
+      return rexliteral;
     case BOOLEAN:
       return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class));
     case BINARY:
