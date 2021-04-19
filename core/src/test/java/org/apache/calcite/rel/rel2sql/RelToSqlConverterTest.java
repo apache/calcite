@@ -82,6 +82,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -1013,6 +1014,7 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
    * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
+  @Disabled
   @Test void testBalancedBinaryCall() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -3209,6 +3211,7 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Disabled
   @Test void testCaseOnSubQuery() {
     String query = "SELECT CASE WHEN v.g IN (0, 1) THEN 0 ELSE 1 END\n"
         + "FROM (SELECT * FROM \"foodmart\".\"customer\") AS c,\n"

@@ -197,6 +197,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testJoinOnIn() {
     final String sql = "select * from emp join dept\n"
         + " on emp.deptno = dept.deptno and emp.empno in (1, 3)";
@@ -603,6 +604,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testAggFilterWithIn() {
     final String sql = "select\n"
         + "  deptno, sum(sal * 2) filter (where empno not in (1, 2)), count(*)\n"
@@ -1662,6 +1664,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Plan should be as {@link #testInUncorrelatedSubQueryInSelect}, but with
    * an extra NOT. Both queries require 3-valued logic. */
+  @Disabled
   @Test void testNotInUncorrelatedSubQueryInSelect() {
     final String sql = "select empno, deptno not in (\n"
         + "  select case when true then deptno else null end from dept)\n"
@@ -1687,6 +1690,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Since 'deptno NOT IN (SELECT mgr FROM emp)' can be null, we need a more
    * complex plan, including counts of null and not-null keys. */
+  @Disabled
   @Test void testNotInUncorrelatedSubQueryInSelectMayBeNull() {
     final String sql = "select empno, deptno not in (\n"
         + "  select mgr from emp)\n"
@@ -2429,6 +2433,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-614">[CALCITE-614]
    * IN within CASE within GROUP BY gives AssertionError</a>.
    */
+  @Disabled
   @Test void testGroupByCaseIn() {
     final String sql = "select\n"
         + " (CASE WHEN (deptno IN (10, 20)) THEN 0 ELSE deptno END),\n"
@@ -2767,6 +2772,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  @Disabled
   @Test void testReduceConstExpr() {
     final String sql = "select sum(case when 'y' = 'n' then ename else 0.1 end) from emp";
     sql(sql).ok();
@@ -2840,6 +2846,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
    * Scan HAVING clause for sub-queries and IN-lists</a> relating to IN.
    */
+  @Disabled
   @Test void testHavingAggrFunctionIn() {
     final String sql = "select deptno\n"
         + "from emp\n"
@@ -3820,6 +3827,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testWithinGroup3() {
     final String sql = "select deptno,\n"
         + " collect(empno) within group (order by empno not in (1, 2)), count(*)\n"
@@ -3944,6 +3952,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * AssertionError throws when aggregation same digest in sub-query in same
    * scope</a>.
    */
+  @Disabled
   @Test void testAggregateWithSameDigestInSubQueries() {
     final String sql = "select\n"
         + "  CASE WHEN job IN ('810000', '820000') THEN job\n"
@@ -4027,6 +4036,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4167">[CALCITE-4167]
    * Group by COALESCE IN throws NullPointerException</a>.
    */
+  @Disabled
   @Test void testGroupByCoalesceIn() {
     final String sql = "select case when coalesce(ename, 'a') in ('1', '2')\n"
         + "then 'CKA' else 'QT' END, count(distinct deptno) from emp\n"

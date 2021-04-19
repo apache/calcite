@@ -289,4 +289,9 @@ public class ProjectFilterTransposeRule
           .as(Config.class);
     }
   }
+
+  /*public static final ProjectFilterTransposeRule INSTANCE =
+      new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
+          RelFactories.LOGICAL_BUILDER, expr -> false);*/
+
 }

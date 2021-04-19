@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -139,6 +140,7 @@ class RexLosslessCastTest extends RexProgramTestBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
+  @Disabled
   @Test void removeLosslesssCastInt() {
     checkSimplifyUnchanged(cast(vInt(), tBigInt()));
     // A.1
@@ -153,6 +155,7 @@ class RexLosslessCastTest extends RexProgramTestBase {
         "?0.notNullInt0");
   }
 
+  @Disabled
   @Test void removeLosslesssCastChar() {
     checkSimplifyUnchanged(cast(vVarchar(), tChar(3)));
     checkSimplifyUnchanged(cast(cast(vVarchar(), tChar(3)), tVarchar(5)));
