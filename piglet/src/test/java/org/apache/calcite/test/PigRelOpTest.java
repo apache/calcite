@@ -1674,6 +1674,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "FROM scott.DEPT\n"
         + "WHERE DEPTNO >= 20";
     pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql), 0)
         .assertSql(is(sql1), 1);
   }
 }
