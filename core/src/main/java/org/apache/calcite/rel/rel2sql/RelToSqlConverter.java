@@ -528,7 +528,13 @@ public class RelToSqlConverter extends SqlImplementor
 
 
   private SqlNode getGroupBySqlNode(Builder builder, int key) {
-    if (builder.select.getSelectList() == null || !dialect.getConformance().isGroupByAlias()) {
+    boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
+    if (builder.context.field(key).getKind() == SqlKind.LITERAL
+        && dialect.getConformance().isGroupByOrdinal()) {
+      isGroupByAlias = false;
+    }
+
+    if (builder.select.getSelectList() == null || !isGroupByAlias) {
       return builder.context.field(key);
     } else {
       return builder.context.field(key, true);
