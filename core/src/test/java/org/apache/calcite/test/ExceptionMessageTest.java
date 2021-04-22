@@ -18,13 +18,20 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -39,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class ExceptionMessageTest {
   private Connection conn;
+  private RelBuilder builder;
 
   /**
    * Simple reflective schema that provides valid and invalid entries.
@@ -76,7 +84,11 @@ public class ExceptionMessageTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     rootSchema.add("test", new ReflectiveSchema(new TestSchema()));
     calciteConnection.setSchema("test");
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
     this.conn = calciteConnection;
+    this.builder = RelBuilder.create(config);
   }
 
   private void runQuery(String sql) throws SQLException {
@@ -94,7 +106,27 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test void testValidQuery() throws SQLException {
+  private void runQuery(RelNode relNode) throws SQLException {
+    RelRunner relRunner = conn.unwrap(RelRunner.class);
+    PreparedStatement preparedStatement = null;
+    try {
+      preparedStatement = relRunner.prepare(relNode);
+      preparedStatement.executeQuery();
+    } finally {
+      try {
+        if (null != preparedStatement) {
+          preparedStatement.close();
+        }
+      } catch (Exception e) {
+        // We catch a possible exception on close so that we know we're not
+        // masking the query exception with the close exception
+        fail("Error on close");
+      }
+    }
+  }
+
+  @Test
+  void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
@@ -139,6 +171,33 @@ public class ExceptionMessageTest {
     } catch (SQLException e) {
       assertThat(e.getMessage(),
           containsString("Object 'nonexistentTable' not found"));
+    }
+  }
+
+  @Test
+  void testValidRelNodeQuery() throws SQLException {
+    final RelNode relNode = builder
+        .scan("test","entries")
+        .project(builder.field("name"))
+        .build();
+    runQuery(relNode);
+  }
+
+  @Test
+  void testRelNodeQueryException() throws SQLException {
+    try {
+      final RelNode relNode = builder
+          .scan("test","entries")
+          .project(builder.call(SqlStdOperatorTable.ABS,builder.field("name")))
+          .build();
+      runQuery(relNode);
+      fail("Query badEntries should result in an exception");
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          equalTo("java.sql.SQLException: Error while preparing statement [\n" +
+              "LogicalProject($f0=[ABS($1)])\n" +
+              "  LogicalTableScan(table=[[test, entries]])\n" +
+              "]"));
     }
   }
 }
