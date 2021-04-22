@@ -108,25 +108,19 @@ public class ExceptionMessageTest {
 
   private void runQuery(RelNode relNode) throws SQLException {
     RelRunner relRunner = conn.unwrap(RelRunner.class);
-    PreparedStatement preparedStatement = null;
+    PreparedStatement preparedStatement = relRunner.prepare(relNode);
     try {
-      preparedStatement = relRunner.prepare(relNode);
       preparedStatement.executeQuery();
     } finally {
       try {
-        if (null != preparedStatement) {
-          preparedStatement.close();
-        }
+        preparedStatement.close();
       } catch (Exception e) {
-        // We catch a possible exception on close so that we know we're not
-        // masking the query exception with the close exception
         fail("Error on close");
       }
     }
   }
 
-  @Test
-  void testValidQuery() throws SQLException {
+  @Test void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
@@ -174,30 +168,28 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test
-  void testValidRelNodeQuery() throws SQLException {
+  @Test void testValidRelNodeQuery() throws SQLException {
     final RelNode relNode = builder
-        .scan("test","entries")
+        .scan("test", "entries")
         .project(builder.field("name"))
         .build();
     runQuery(relNode);
   }
 
-  @Test
-  void testRelNodeQueryException() throws SQLException {
+  @Test void testRelNodeQueryException() throws SQLException {
     try {
       final RelNode relNode = builder
-          .scan("test","entries")
-          .project(builder.call(SqlStdOperatorTable.ABS,builder.field("name")))
+          .scan("test", "entries")
+          .project(builder.call(SqlStdOperatorTable.ABS, builder.field("name")))
           .build();
       runQuery(relNode);
       fail("Query badEntries should result in an exception");
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
-          equalTo("java.sql.SQLException: Error while preparing statement [\n" +
-              "LogicalProject($f0=[ABS($1)])\n" +
-              "  LogicalTableScan(table=[[test, entries]])\n" +
-              "]"));
+          equalTo("java.sql.SQLException: Error while preparing statement [\n"
+              + "LogicalProject($f0=[ABS($1)])\n"
+              + "  LogicalTableScan(table=[[test, entries]])\n"
+              + "]"));
     }
   }
 }

@@ -225,7 +225,8 @@ abstract class CalciteConnectionImpl
     } catch (Exception e) {
       if (null != query.rel) {
         throw Helper.INSTANCE.createException(
-            "Error while preparing statement [\n" + RelOptUtil.toString(query.rel) + "]", e);
+            "Error while preparing statement [\n"
+                + RelOptUtil.toString(query.rel) + "]", e);
       } else {
         throw Helper.INSTANCE.createException(
             "Error while preparing statement [" + query.sql + "]", e);
