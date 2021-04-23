@@ -185,11 +185,12 @@ public class ExceptionMessageTest {
       runQuery(relNode);
       fail("Query badEntries should result in an exception");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(),
-          equalTo("java.sql.SQLException: Error while preparing statement [\n"
-              + "LogicalProject($f0=[ABS($1)])\n"
-              + "  LogicalTableScan(table=[[test, entries]])\n"
-              + "]"));
+      assertThat(
+          e.getMessage(), equalTo("java.sql.SQLException: "
+          + "Error while preparing statement [" + System.lineSeparator()
+          + "LogicalProject($f0=[ABS($1)])" + System.lineSeparator()
+          + "  LogicalTableScan(table=[[test, entries]])" + System.lineSeparator()
+          + "]"));
     }
   }
 }
