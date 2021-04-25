@@ -129,8 +129,9 @@ public class TableScanNode implements Node {
     final Type elementType = queryableTable.getElementType();
     SchemaPlus schema = root.getRootSchema();
     for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
-      requireNonNull(schema, () -> "schema is null while resolving " + name + " for table"
-          + relOptTable.getQualifiedName());
+      requireNonNull(schema, () ->
+          "schema is null while resolving " + name + " for table"
+              + relOptTable.getQualifiedName());
       schema = schema.getSubSchema(name);
     }
     final Enumerable<Row> rowEnumerable;

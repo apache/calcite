@@ -271,23 +271,23 @@ public class Frameworks {
     }
 
     public ConfigBuilder context(Context c) {
-      this.context = Objects.requireNonNull(c);
+      this.context = Objects.requireNonNull(c, "c");
       return this;
     }
 
     public ConfigBuilder executor(RexExecutor executor) {
-      this.executor = Objects.requireNonNull(executor);
+      this.executor = Objects.requireNonNull(executor, "executor");
       return this;
     }
 
     public ConfigBuilder convertletTable(
         SqlRexConvertletTable convertletTable) {
-      this.convertletTable = Objects.requireNonNull(convertletTable);
+      this.convertletTable = Objects.requireNonNull(convertletTable, "convertletTable");
       return this;
     }
 
     public ConfigBuilder operatorTable(SqlOperatorTable operatorTable) {
-      this.operatorTable = Objects.requireNonNull(operatorTable);
+      this.operatorTable = Objects.requireNonNull(operatorTable, "operatorTable");
       return this;
     }
 
@@ -306,19 +306,19 @@ public class Frameworks {
     }
 
     public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
-      this.parserConfig = Objects.requireNonNull(parserConfig);
+      this.parserConfig = Objects.requireNonNull(parserConfig, "parserConfig");
       return this;
     }
 
     public ConfigBuilder sqlValidatorConfig(SqlValidator.Config sqlValidatorConfig) {
-      this.sqlValidatorConfig = Objects.requireNonNull(sqlValidatorConfig);
+      this.sqlValidatorConfig = Objects.requireNonNull(sqlValidatorConfig, "sqlValidatorConfig");
       return this;
     }
 
     public ConfigBuilder sqlToRelConverterConfig(
         SqlToRelConverter.Config sqlToRelConverterConfig) {
       this.sqlToRelConverterConfig =
-          Objects.requireNonNull(sqlToRelConverterConfig);
+          Objects.requireNonNull(sqlToRelConverterConfig, "sqlToRelConverterConfig");
       return this;
     }
 
@@ -337,7 +337,7 @@ public class Frameworks {
     }
 
     public ConfigBuilder ruleSets(List<RuleSet> ruleSets) {
-      return programs(Programs.listOf(Objects.requireNonNull(ruleSets)));
+      return programs(Programs.listOf(Objects.requireNonNull(ruleSets, "ruleSets")));
     }
 
     public ConfigBuilder programs(List<Program> programs) {
@@ -351,7 +351,7 @@ public class Frameworks {
     }
 
     public ConfigBuilder typeSystem(RelDataTypeSystem typeSystem) {
-      this.typeSystem = Objects.requireNonNull(typeSystem);
+      this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
       return this;
     }
 
@@ -362,7 +362,7 @@ public class Frameworks {
 
     public ConfigBuilder statisticProvider(
         SqlStatisticProvider statisticProvider) {
-      this.statisticProvider = Objects.requireNonNull(statisticProvider);
+      this.statisticProvider = Objects.requireNonNull(statisticProvider, "statisticProvider");
       return this;
     }
 

@@ -44,6 +44,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -68,7 +69,7 @@ public abstract class TableScan
   protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
-    this.table = table;
+    this.table = Objects.requireNonNull(table, "table");
     RelOptSchema relOptSchema = table.getRelOptSchema();
     if (relOptSchema != null) {
       cluster.getPlanner().registerSchema(relOptSchema);

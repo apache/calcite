@@ -402,9 +402,9 @@ public class JavaTypeFactoryImpl
         Type type,
         boolean nullable,
         int modifiers) {
-      this.syntheticType = requireNonNull(syntheticType);
-      this.name = requireNonNull(name);
-      this.type = requireNonNull(type);
+      this.syntheticType = requireNonNull(syntheticType, "syntheticType");
+      this.name = requireNonNull(name, "name");
+      this.type = requireNonNull(type, "type");
       this.nullable = nullable;
       this.modifiers = modifiers;
       assert !(nullable && Primitive.is(type))

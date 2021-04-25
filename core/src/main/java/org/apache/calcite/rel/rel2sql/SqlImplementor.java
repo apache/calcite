@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
@@ -64,6 +65,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
@@ -115,6 +117,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -142,7 +145,7 @@ public abstract class SqlImplementor {
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
   protected SqlImplementor(SqlDialect dialect) {
-    this.dialect = requireNonNull(dialect);
+    this.dialect = requireNonNull(dialect, "dialect");
   }
 
   /** Visits a relational expression that has no parent. */
@@ -500,7 +503,7 @@ public abstract class SqlImplementor {
 
     case SELECT:
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      if (selectList == null) {
+      if (selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         return rowType;
       }
       builder = rel.getCluster().getTypeFactory().builder();
@@ -608,8 +611,8 @@ public abstract class SqlImplementor {
     if (requiresAlias(node)) {
       node = as(node, "t");
     }
-    return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
-        SqlNodeList.EMPTY, null, null, null, null);
+    return new SqlSelect(POS, SqlNodeList.EMPTY, SqlNodeList.SINGLETON_STAR,
+        node, null, null, null, SqlNodeList.EMPTY, null, null, null, null);
   }
 
   /** Returns whether we need to add an alias if this node is to be the FROM
@@ -628,6 +631,18 @@ public abstract class SqlImplementor {
     default:
       return true;
     }
+  }
+
+  /** Returns whether a node is a call to an aggregate function. */
+  private static boolean isAggregate(SqlNode node) {
+    return node instanceof SqlCall
+        && ((SqlCall) node).getOperator() instanceof SqlAggFunction;
+  }
+
+  /** Returns whether a node is a call to a windowed aggregate function. */
+  private static boolean isWindowedAggregate(SqlNode node) {
+    return node instanceof SqlCall
+        && ((SqlCall) node).getOperator() instanceof SqlOverOperator;
   }
 
   /** Context for translating a {@link RexNode} expression (within a
@@ -878,7 +893,7 @@ public abstract class SqlImplementor {
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
-      if (sarg.containsNull) {
+      if (sarg.nullAs == RexUnknownAs.TRUE) {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {
@@ -1691,7 +1706,7 @@ public abstract class SqlImplementor {
       final Context newContext;
       Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
-      if (selectList != null) {
+      if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias();
         newContext = new Context(dialect, selectList.size()) {
@@ -1803,9 +1818,12 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
-        final boolean hasNestedAgg = hasNestedAggregations(agg);
+        final boolean hasNestedAgg =
+            hasNested(agg, SqlImplementor::isAggregate);
+        final boolean hasNestedWindowedAgg =
+            hasNested(agg, SqlImplementor::isWindowedAggregate);
         if (!dialect.supportsNestedAggregations()
-            && hasNestedAgg) {
+            && (hasNestedAgg || hasNestedWindowedAgg)) {
           return true;
         }
 
@@ -1818,14 +1836,21 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasNestedAggregations(
+    /** Returns whether an {@link Aggregate} contains nested operands that
+     * match the predicate.
+     *
+     * @param aggregate Aggregate node
+     * @param operandPredicate Predicate for the nested operands
+     * @return whether any nested operands matches the predicate */
+    private boolean hasNested(
         @UnknownInitialization Result this,
-        Aggregate rel) {
+        Aggregate aggregate,
+        Predicate<SqlNode> operandPredicate) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-        if (selectList != null) {
+        if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
           final Set<Integer> aggregatesArgs = new HashSet<>();
-          for (AggregateCall aggregateCall : rel.getAggCallList()) {
+          for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             aggregatesArgs.addAll(aggregateCall.getArgList());
           }
           for (int aggregatesArg : aggregatesArgs) {
@@ -1833,8 +1858,7 @@ public abstract class SqlImplementor {
               final SqlBasicCall call =
                   (SqlBasicCall) selectList.get(aggregatesArg);
               for (SqlNode operand : call.getOperands()) {
-                if (operand instanceof SqlCall
-                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
+                if (operand != null && operandPredicate.test(operand)) {
                   return true;
                 }
               }
@@ -2033,10 +2057,10 @@ public abstract class SqlImplementor {
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
         Context context, boolean anon,
         @Nullable Map<String, RelDataType> aliases) {
-      this.rel = requireNonNull(rel);
+      this.rel = requireNonNull(rel, "rel");
       this.clauses = ImmutableList.copyOf(clauses);
-      this.select = requireNonNull(select);
-      this.context = requireNonNull(context);
+      this.select = requireNonNull(select, "select");
+      this.context = requireNonNull(context, "context");
       this.anon = anon;
       this.aliases = aliases;
     }

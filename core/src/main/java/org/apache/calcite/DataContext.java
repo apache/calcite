@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime context allowing access to the tables in a database.
+ *
+ * @see DataContexts
  */
 public interface DataContext {
   ParameterExpression ROOT =
@@ -49,12 +51,12 @@ public interface DataContext {
   /**
    * Returns the type factory.
    */
-  @Nullable JavaTypeFactory getTypeFactory();
+  JavaTypeFactory getTypeFactory();
 
   /**
    * Returns the query provider.
    */
-  @Nullable QueryProvider getQueryProvider();
+  QueryProvider getQueryProvider();
 
   /**
    * Returns a context variable.

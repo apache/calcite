@@ -60,7 +60,7 @@ public interface Hintable {
    * @return Relational expression with the hints {@code hintList} attached
    */
   default RelNode attachHints(List<RelHint> hintList) {
-    Objects.requireNonNull(hintList);
+    Objects.requireNonNull(hintList, "hintList");
     final Set<RelHint> hints = new LinkedHashSet<>(getHints());
     hints.addAll(hintList);
     return withHints(new ArrayList<>(hints));

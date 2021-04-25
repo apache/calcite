@@ -71,9 +71,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutor executor,
       RelDataType rowType) {
-    this.builder = Objects.requireNonNull(builder);
-    this.executor = Objects.requireNonNull(executor);
-    this.rowType = Objects.requireNonNull(rowType);
+    this.builder = Objects.requireNonNull(builder, "builder");
+    this.executor = Objects.requireNonNull(executor, "executor");
+    this.rowType = Objects.requireNonNull(rowType, "rowType");
   }
 
   /**

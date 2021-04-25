@@ -40,7 +40,7 @@ public class RexCorrelVariable extends RexVariable {
       CorrelationId id,
       RelDataType type) {
     super(id.getName(), type);
-    this.id = Objects.requireNonNull(id);
+    this.id = Objects.requireNonNull(id, "id");
   }
 
   //~ Methods ----------------------------------------------------------------

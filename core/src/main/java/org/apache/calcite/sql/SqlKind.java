@@ -209,6 +209,9 @@ public enum SqlKind {
   /** {@code WITHIN GROUP} operator. */
   WITHIN_GROUP,
 
+  /** {@code WITHIN DISTINCT} operator. */
+  WITHIN_DISTINCT,
+
   /** Window specification. */
   WINDOW,
 
@@ -352,6 +355,9 @@ public enum SqlKind {
   /** {@code LIKE} operator. */
   LIKE,
 
+  /** {@code RLIKE} operator. */
+  RLIKE,
+
   /** {@code SIMILAR} operator. */
   SIMILAR,
 
@@ -373,6 +379,9 @@ public enum SqlKind {
 
   /** {@code INTERVAL} expression. */
   INTERVAL,
+
+  /** {@code SEPARATOR} expression. */
+  SEPARATOR,
 
   /** {@code NULLIF} operator. */
   NULLIF,
@@ -832,6 +841,9 @@ public enum SqlKind {
   /** The {@code ARRAY_CONCAT_AGG} aggregate function. */
   ARRAY_CONCAT_AGG,
 
+  /** The {@code GROUP_CONCAT} aggregate function. */
+  GROUP_CONCAT,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
@@ -1061,7 +1073,7 @@ public enum SqlKind {
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, COUNTIF,
+          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
           INTERSECTION, ANY_VALUE);
 
   /**
@@ -1143,7 +1155,7 @@ public enum SqlKind {
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
-                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
+                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
@@ -1408,17 +1420,6 @@ public enum SqlKind {
       return this;
     default:
       return this.negate();
-    }
-  }
-
-  public SqlKind negateNullSafe2() {
-    switch (this) {
-    case IS_NOT_NULL:
-      return IS_NULL;
-    case IS_NULL:
-      return IS_NOT_NULL;
-    default:
-      return this.negateNullSafe();
     }
   }
 

@@ -181,9 +181,9 @@ public abstract class Prepare {
 
   protected Program getProgram() {
     // Allow a test to override the default program.
-    final Holder<@Nullable Program> holder = Holder.of(null);
+    final Holder<@Nullable Program> holder = Holder.empty();
     Hook.PROGRAM.run(holder);
-    Program holderValue = holder.get();
+    @Nullable Program holderValue = holder.get();
     if (holderValue != null) {
       return holderValue;
     }
@@ -582,11 +582,11 @@ public abstract class Prepare {
         RelNode rootRel,
         TableModify.@Nullable Operation tableModOp,
         boolean isDml) {
-      this.rowType = requireNonNull(rowType);
-      this.parameterRowType = requireNonNull(parameterRowType);
-      this.fieldOrigins = requireNonNull(fieldOrigins);
+      this.rowType = requireNonNull(rowType, "rowType");
+      this.parameterRowType = requireNonNull(parameterRowType, "parameterRowType");
+      this.fieldOrigins = requireNonNull(fieldOrigins, "fieldOrigins");
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = requireNonNull(rootRel);
+      this.rootRel = requireNonNull(rootRel, "rootRel");
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

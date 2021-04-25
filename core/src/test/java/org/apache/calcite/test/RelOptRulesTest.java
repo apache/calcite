@@ -60,6 +60,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
@@ -70,6 +71,8 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -1519,6 +1522,53 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
         .check();
+  }
+
+  /** Tests {@link AggregateExpandWithinDistinctRule}. The generated query
+   * throws if arguments are not functionally dependent on the distinct key. */
+  @Test void testWithinDistinct() {
+    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** As {@link #testWithinDistinct()}, but the generated query does not throw
+   * if arguments are not functionally dependent on the distinct key.
+   *
+   * @see AggregateExpandWithinDistinctRule.Config#throwIfNotUnique() */
+  @Test void testWithinDistinctNoThrow() {
+    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
+            .config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** Tests that {@link AggregateExpandWithinDistinctRule} treats
+   * "COUNT(DISTINCT x)" as if it were "COUNT(x) WITHIN DISTINCT (x)". */
+  @Test void testWithinDistinctCountDistinct() {
+    final String sql = "SELECT deptno,\n"
+        + "  SUM(sal) WITHIN DISTINCT (job) AS ss_j,\n"
+        + "  COUNT(DISTINCT job) cdj,\n"
+        + "  COUNT(job) WITHIN DISTINCT (job) AS cj_j,\n"
+        + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
+            .config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
   }
 
   @Test void testPushProjectPastFilter() {
@@ -4690,6 +4740,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testPushAggregateThroughJoin7() {
+    final String sql = "select any_value(distinct B.sal)\n"
+        + "from sales.emp as A\n"
+        + "join (select distinct sal from sales.emp) as B\n"
+        + "on A.sal=B.sal\n";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
+  @Test void testPushAggregateThroughJoin8() {
+    final String sql = "select single_value(distinct B.sal)\n"
+        + "from sales.emp as A\n"
+        + "join (select distinct sal from sales.emp) as B\n"
+        + "on A.sal=B.sal\n";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2278">[CALCITE-2278]
    * AggregateJoinTransposeRule fails to split aggregate call if input contains
@@ -6910,5 +6982,141 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTester(t -> createDynamicTester())
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .checkUnchanged();
+  }
+
+  @Test void testJoinCommuteRuleWithAlwaysTrueConditionAllowed() {
+    checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(true);
+  }
+
+  @Test void testJoinCommuteRuleWithAlwaysTrueConditionDisallowed() {
+    checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(false);
+  }
+
+  private void checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+
+    RelNode relNode = relBuilder.push(left)
+        .push(right)
+        .join(JoinRelType.INNER,
+            relBuilder.literal(true))
+        .build();
+
+    JoinCommuteRule.Config ruleConfig = JoinCommuteRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed() {
+    checkJoinAssociateRuleWithBottomAlwaysTrueCondition(true);
+  }
+
+  @Test void testJoinAssociateRuleWithBottomAlwaysTrueConditionDisallowed() {
+    checkJoinAssociateRuleWithBottomAlwaysTrueCondition(false);
+  }
+
+  private void checkJoinAssociateRuleWithBottomAlwaysTrueCondition(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode bottomLeft = relBuilder.scan("EMP").build();
+    RelNode bottomRight = relBuilder.scan("DEPT").build();
+    RelNode top = relBuilder.scan("BONUS").build();
+
+    RelNode relNode = relBuilder.push(bottomLeft)
+        .push(bottomRight)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .push(top)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "JOB"),
+                relBuilder.field(2, 1, "JOB")))
+        .build();
+
+    JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addMatchOrder(HepMatchOrder.TOP_DOWN)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed() {
+    checkJoinAssociateRuleWithTopAlwaysTrueCondition(true);
+  }
+
+  @Test void testJoinAssociateRuleWithTopAlwaysTrueConditionDisallowed() {
+    checkJoinAssociateRuleWithTopAlwaysTrueCondition(false);
+  }
+
+  private void checkJoinAssociateRuleWithTopAlwaysTrueCondition(boolean allowAlwaysTrue) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode bottomLeft = relBuilder.scan("EMP").build();
+    RelNode bottomRight = relBuilder.scan("BONUS").build();
+    RelNode top = relBuilder.scan("DEPT").build();
+
+    RelNode relNode = relBuilder.push(bottomLeft)
+        .push(bottomRight)
+        .join(JoinRelType.INNER,
+            relBuilder.literal(true))
+        .push(top)
+        .join(JoinRelType.INNER,
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .build();
+
+    JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
+    if (!allowAlwaysTrue) {
+      ruleConfig = ruleConfig.withAllowAlwaysTrueCondition(false);
+    }
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addMatchOrder(HepMatchOrder.TOP_DOWN)
+        .addRuleInstance(ruleConfig.toRule())
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
@@ -42,7 +43,7 @@ class LinqFrontJdbcBackTest {
     ParameterExpression c =
         Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
-        Schemas.queryable(Schemas.createDataContext(connection, rootSchema),
+        Schemas.queryable(DataContexts.of(calciteConnection, rootSchema),
             rootSchema.getSubSchema("foodmart"),
             JdbcTest.Customer.class, "customer")
             .where(

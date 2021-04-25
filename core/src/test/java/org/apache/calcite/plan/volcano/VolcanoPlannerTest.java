@@ -73,6 +73,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -690,6 +691,37 @@ class VolcanoPlannerTest {
         RelOptListener.RelChosenEvent.class,
         null,
         null);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4514">[CALCITE-4514]
+   * Fine tune the merge order of two RelSets</a>. When the merging RelSets,
+   * if they are both parents of each other (that is, there is a 1-cycle), we
+   * should merge the less popular/smaller/younger set into the more
+   * popular/bigger/older one. */
+  @Test void testSetMergeWithCycle() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
+    NoneSingleRel singleRelA = new NoneSingleRel(cluster, leafRel);
+    NoneSingleRel singleRelB = new NoneSingleRel(cluster, singleRelA);
+
+    planner.setRoot(singleRelA);
+    RelSet setA = planner.ensureRegistered(singleRelA, null).getSet();
+    RelSet setB = planner.ensureRegistered(leafRel, null).getSet();
+
+    // Create the relSet dependency cycle, so that both sets are parent of each
+    // other.
+    planner.ensureRegistered(singleRelB, leafRel);
+
+    // trigger the set merge
+    planner.ensureRegistered(singleRelB, singleRelA);
+
+    // setA and setB have the same popularity (parentRels.size()).
+    // Since setB is larger than setA, setA should be merged into setB.
+    assertThat(setA.equivalentSet, sameInstance(setB));
   }
 
   private void checkEvent(

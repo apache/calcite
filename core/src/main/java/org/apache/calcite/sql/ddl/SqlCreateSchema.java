@@ -42,7 +42,7 @@ public class SqlCreateSchema extends SqlCreate {
   SqlCreateSchema(SqlParserPos pos, boolean replace, boolean ifNotExists,
       SqlIdentifier name) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
   }
 
   @Override public List<SqlNode> getOperandList() {

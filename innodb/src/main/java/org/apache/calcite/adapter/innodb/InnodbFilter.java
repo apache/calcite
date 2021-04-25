@@ -48,8 +48,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
       TableDef tableDef, @Nullable String forceIndexName) {
     super(cluster, traitSet, input, condition);
 
-    this.tableDef = Objects.requireNonNull(tableDef);
-    this.indexCondition = Objects.requireNonNull(indexCondition);
+    this.tableDef = Objects.requireNonNull(tableDef, "tableDef");
+    this.indexCondition = Objects.requireNonNull(indexCondition, "indexCondition");
     this.forceIndexName = forceIndexName;
 
     assert getConvention() == InnodbRel.CONVENTION;

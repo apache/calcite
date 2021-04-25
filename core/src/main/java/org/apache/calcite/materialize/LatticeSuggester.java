@@ -175,7 +175,7 @@ public class LatticeSuggester {
     }
 
     // Translate the query graph to mutable nodes
-    final Map<TableRef, @Nullable MutableNode> nodes = new IdentityHashMap<>();
+    final IdentityHashMap<TableRef, @Nullable MutableNode> nodes = new IdentityHashMap<>();
     final Map<List, MutableNode> nodesByParent = new HashMap<>();
     final List<MutableNode> rootNodes = new ArrayList<>();
     for (TableRef tableRef : TopologicalOrderIterator.of(g)) {
@@ -633,7 +633,7 @@ public class LatticeSuggester {
     private final int ordinalInQuery;
 
     private TableRef(LatticeTable table, int ordinalInQuery) {
-      this.table = requireNonNull(table);
+      this.table = requireNonNull(table, "table");
       this.ordinalInQuery = ordinalInQuery;
     }
 
@@ -659,7 +659,7 @@ public class LatticeSuggester {
 
     StepRef(TableRef source, TableRef target, Step step, int ordinalInQuery) {
       super(source, target);
-      this.step = requireNonNull(step);
+      this.step = requireNonNull(step, "step");
       this.ordinalInQuery = ordinalInQuery;
     }
 

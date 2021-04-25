@@ -131,11 +131,14 @@ public class RexAnalyzer {
     }
 
     @Override public Void visitCall(RexCall call) {
-      if (!RexInterpreter.SUPPORTED_SQL_KIND.contains(call.getKind())) {
+      switch (call.getKind()) {
+      case CAST:
+      case OTHER_FUNCTION:
         ++unsupportedCount;
         return null;
+      default:
+        return super.visitCall(call);
       }
-      return super.visitCall(call);
     }
   }
 }

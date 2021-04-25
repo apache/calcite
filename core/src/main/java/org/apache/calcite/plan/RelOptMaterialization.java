@@ -222,7 +222,7 @@ public class RelOptMaterialization {
         Mappings.@Nullable TargetMapping mapping, TableScan scan) {
       this.condition = condition;
       this.mapping = mapping;
-      this.scan = Objects.requireNonNull(scan);
+      this.scan = Objects.requireNonNull(scan, "scan");
     }
 
     static @Nullable ProjectFilterTable of(RelNode node) {

@@ -101,3 +101,6 @@ com.google.common.collect.Maps#newTreeMap()
 
 @defaultMessage Use "new HashSet<>()"
 com.google.common.collect.Sets#newHashSet()
+
+@defaultMessage Use "assertThat(expected, matcher)", do not call Matcher#matches directly
+org.hamcrest.Matcher#matches(java.lang.Object)

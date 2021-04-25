@@ -286,7 +286,7 @@ public class SqlParserTest {
       "HOURS",                                             "2011",
       "IDENTITY",                      "92", "99", "2003", "2011", "2014", "c",
       "IF",                            "92", "99", "2003",
-      "ILIKE",
+      "ILIKE", // PostgreSQL
       "IMMEDIATE",                     "92", "99", "2003",
       "IMMEDIATELY",
       "IMPORT",                                                            "c",
@@ -452,6 +452,7 @@ public class SqlParserTest {
       "RETURNS",                       "92", "99", "2003", "2011", "2014", "c",
       "REVOKE",                        "92", "99", "2003", "2011", "2014", "c",
       "RIGHT",                         "92", "99", "2003", "2011", "2014", "c",
+      "RLIKE", // Hive and Spark
       "ROLE",                                "99",
       "ROLLBACK",                      "92", "99", "2003", "2011", "2014", "c",
       "ROLLUP",                              "99", "2003", "2011", "2014", "c",
@@ -1913,6 +1914,22 @@ public class SqlParserTest {
     sql(sql1).ok(expected1);
   }
 
+  @Test void testRlike() {
+    // The RLIKE operator is valid when the HIVE or SPARK function library is
+    // enabled ('fun=spark' or 'fun=hive'). But the parser can always parse it.
+    final String expected = "SELECT `COLA`\n"
+        + "FROM `T`\n"
+        + "WHERE (MAX(`EMAIL`) RLIKE '.+@.+\\\\..+')";
+    final String sql = "select cola from t where max(email) rlike '.+@.+\\\\..+'";
+    sql(sql).ok(expected);
+
+    final String expected1 = "SELECT `COLA`\n"
+        + "FROM `T`\n"
+        + "WHERE (MAX(`EMAIL`) NOT RLIKE '.+@.+\\\\..+')";
+    final String sql1 = "select cola from t where max(email) not rlike '.+@.+\\\\..+'";
+    sql(sql1).ok(expected1);
+  }
+
   @Test void testArithmeticOperators() {
     expr("1-2+3*4/5/6-7")
         .ok("(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
@@ -3253,6 +3270,54 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "ORDER BY `B`, `C`\n"
             + "OFFSET 1 ROWS");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4463">[CALCITE-4463]
+   * JDBC adapter for Spark generates incorrect ORDER BY syntax</a>.
+   *
+   * <p>Similar to {@link #testLimit}, but parses and unparses in the Spark
+   * dialect, which uses LIMIT and OFFSET rather than OFFSET and FETCH. */
+  @Test void testLimitSpark() {
+    final String sql1 = "select a from foo order by b, c limit 2 offset 1";
+    final String expected1 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "LIMIT 2\n"
+        + "OFFSET 1";
+    sql(sql1).withDialect(SparkSqlDialect.DEFAULT).ok(expected1);
+
+    final String sql2 = "select a from foo order by b, c limit 2";
+    final String expected2 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "LIMIT 2";
+    sql(sql2).withDialect(SparkSqlDialect.DEFAULT).ok(expected2);
+
+    final String sql3 = "select a from foo order by b, c offset 1";
+    final String expected3 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "ORDER BY B, C\n"
+        + "OFFSET 1";
+    sql(sql3).withDialect(SparkSqlDialect.DEFAULT).ok(expected3);
+
+    final String sql4 = "select a from foo offset 10";
+    final String expected4 = "SELECT A\n"
+        + "FROM FOO\n"
+        + "OFFSET 10";
+    sql(sql4).withDialect(SparkSqlDialect.DEFAULT).ok(expected4);
+
+    final String sql5 = "select a from foo\n"
+        + "union\n"
+        + "select b from baz\n"
+        + "limit 3";
+    final String expected5 = "(SELECT A\n"
+        + "FROM FOO\n"
+        + "UNION\n"
+        + "SELECT B\n"
+        + "FROM BAZ)\n"
+        + "LIMIT 3";
+    sql(sql5).withDialect(SparkSqlDialect.DEFAULT).ok(expected5);
   }
 
   /** Test case that does not reproduce but is related to
@@ -7790,6 +7855,15 @@ public class SqlParserTest {
         SqlParserUtil.addCarets("abcdef", 1, 7, 1, 7));
   }
 
+  @Test void testSnapshotForSystemTimeWithAlias() {
+    sql("SELECT * FROM orders LEFT JOIN products FOR SYSTEM_TIME AS OF "
+        + "orders.proctime as products ON orders.product_id = products.pro_id")
+        .ok("SELECT *\n"
+            + "FROM `ORDERS`\n"
+            + "LEFT JOIN `PRODUCTS` FOR SYSTEM_TIME AS OF `ORDERS`.`PROCTIME` AS `PRODUCTS` ON (`ORDERS`"
+            + ".`PRODUCT_ID` = `PRODUCTS`.`PRO_ID`)");
+  }
+
   @Test protected void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
@@ -9015,6 +9089,50 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testGroupConcat() {
+    final String sql = "select\n"
+        + "  group_concat(ename order by deptno, ename desc) as c2,\n"
+        + "  group_concat(ename) as c3,\n"
+        + "  group_concat(ename order by deptno, ename desc separator ',') as c4\n"
+        + "from emp group by gender";
+    final String expected = "SELECT"
+        + " GROUP_CONCAT(`ENAME` ORDER BY `DEPTNO`, `ENAME` DESC) AS `C2`,"
+        + " GROUP_CONCAT(`ENAME`) AS `C3`,"
+        + " GROUP_CONCAT(`ENAME` ORDER BY `DEPTNO`, `ENAME` DESC SEPARATOR ',') AS `C4`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `GENDER`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testWithinDistinct() {
+    final String sql = "select col1,\n"
+        + " sum(col2) within distinct (col3 + col4, col5)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (SUM(`COL2`) WITHIN DISTINCT ((`COL3` + `COL4`), `COL5`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testWithinDistinct2() {
+    final String sql = "select col1,\n"
+        + " sum(col2) within distinct (col3 + col4, col5)\n"
+        + "   within group (order by col6 desc)\n"
+        + "   filter (where col7 < col8) as sum2\n"
+        + "from t\n"
+        + "group by col9";
+    final String expected = "SELECT `COL1`,"
+        + " (SUM(`COL2`) WITHIN DISTINCT ((`COL3` + `COL4`), `COL5`))"
+        + " WITHIN GROUP (ORDER BY `COL6` DESC)"
+        + " FILTER (WHERE (`COL7` < `COL8`)) AS `SUM2`\n"
+        + "FROM `T`\n"
+        + "GROUP BY `COL9`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     expr("foo format json")
         .ok("`FOO` FORMAT JSON");
@@ -9952,10 +10070,10 @@ public class SqlParserTest {
 
     Sql(StringAndPos sap, boolean expression, SqlDialect dialect,
         Consumer<SqlParser> parserChecker) {
-      this.sap = Objects.requireNonNull(sap);
+      this.sap = Objects.requireNonNull(sap, "sap");
       this.expression = expression;
       this.dialect = dialect;
-      this.parserChecker = Objects.requireNonNull(parserChecker);
+      this.parserChecker = Objects.requireNonNull(parserChecker, "parserChecker");
     }
 
     public Sql same() {

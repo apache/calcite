@@ -81,8 +81,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Objects.requireNonNull(url);
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url, "url");
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
   }
 
   /** Executes a query request.
@@ -312,7 +312,7 @@ class DruidConnectionImpl implements DruidConnection {
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static void parseFieldForName(List<String> fieldNames,
       List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
@@ -498,7 +498,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
@@ -678,7 +678,7 @@ class DruidConnectionImpl implements DruidConnection {
   private static class BlockingQueueEnumerator<E> implements Enumerator<E> {
     final BlockingQueue<E> queue = new ArrayBlockingQueue<>(1000);
     final AtomicBoolean done = new AtomicBoolean(false);
-    final Holder<Throwable> throwableHolder = Holder.of(null);
+    final Holder<Throwable> throwableHolder = Holder.empty();
 
     E next;
 

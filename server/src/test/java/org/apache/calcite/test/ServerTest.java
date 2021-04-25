@@ -54,8 +54,10 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -127,6 +129,16 @@ class ServerTest {
         assertThat(r.getInt(1), is(1));
         assertThat(r.next(), is(false));
       }
+
+      assertDoesNotThrow(() -> {
+        s.execute("create schema if not exists s");
+        s.executeUpdate("insert into s.t values 2");
+      }, "IF NOT EXISTS should not overwrite the existing schema");
+
+      assertDoesNotThrow(() -> {
+        s.execute("create or replace schema s");
+        s.execute("create table s.t (i int not null)");
+      }, "REPLACE must overwrite the existing schema");
     }
   }
 
@@ -169,10 +181,6 @@ class ServerTest {
     }
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3046">[CALCITE-3046]
-   * CompileException when inserting casted value of composited user defined type
-   * into table</a>. */
   @Test void testCreateTable() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
@@ -207,6 +215,11 @@ class ServerTest {
       assertThat(b, is(false));
       x = s.executeUpdate("insert into t2 values (1, NULL)");
       assertThat(x, is(1));
+
+      assertDoesNotThrow(() -> {
+        s.execute("create or replace table t2 (i int not null)");
+        s.executeUpdate("insert into t2 values (1)");
+      }, "REPLACE must recreate the table, leaving only one column");
     }
   }
 
@@ -273,6 +286,10 @@ class ServerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3046">[CALCITE-3046]
+   * CompileException when inserting casted value of composited user defined type
+   * into table</a>. */
   @Test void testInsertCastedValueOfCompositeUdt() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
@@ -515,5 +532,27 @@ class ServerTest {
         assertThat(r.getString(1), isLinux(plan));
       }
     }
+  }
+
+  @Test public void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "schema", "Schema");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "table", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "materialized view", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "view", "View");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "type", "Type");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "function", "Function");
+    }
+  }
+
+  private void checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(
+      Statement statement, String objectType, String objectTypeInErrorMessage) throws Exception {
+    SQLException e = assertThrows(SQLException.class, () ->
+        statement.execute("drop " + objectType + " s.o"),
+        "expected error because the object doesn't exist");
+    assertThat(e.getMessage(), containsString(objectTypeInErrorMessage + " 'O' not found"));
+
+    statement.execute("drop " + objectType + " if exists s.o");
   }
 }

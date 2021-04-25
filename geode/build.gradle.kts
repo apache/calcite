@@ -17,12 +17,13 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.apache.geode:geode-core")
+    api("org.checkerframework:checker-qual")
+    api("org.slf4j:slf4j-api")
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
-    implementation("org.apache.geode:geode-core")
-    implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")

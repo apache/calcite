@@ -310,14 +310,17 @@ public interface SqlValidator {
   /**
    * Validates parameters for aggregate function.
    *
-   * @param aggCall     Call to aggregate function
-   * @param filter      Filter ({@code FILTER (WHERE)} clause), or null
-   * @param orderList   Ordering specification ({@code WITHING GROUP} clause),
-   *                    or null
-   * @param scope       Syntactic scope
+   * @param aggCall      Call to aggregate function
+   * @param filter       Filter ({@code FILTER (WHERE)} clause), or null
+   * @param distinctList Distinct specification ({@code WITHIN DISTINCT}
+   *                     clause), or null
+   * @param orderList    Ordering specification ({@code WITHIN GROUP} clause),
+   *                     or null
+   * @param scope        Syntactic scope
    */
   void validateAggregateParams(SqlCall aggCall, @Nullable SqlNode filter,
-      @Nullable SqlNodeList orderList, SqlValidatorScope scope);
+      @Nullable SqlNodeList distinctList, @Nullable SqlNodeList orderList,
+      SqlValidatorScope scope);
 
   /**
    * Validates a COLUMN_LIST parameter.

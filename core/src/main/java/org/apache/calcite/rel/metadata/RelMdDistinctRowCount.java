@@ -227,6 +227,21 @@ public class RelMdDistinctRowCount
         return 1D;
       }
     }
+
+    // try to remove const columns from the group keys, as they do not
+    // affect the distinct row count
+    ImmutableBitSet nonConstCols = RexUtil.getNonConstColumns(groupKey, rel.getProjects());
+    if (nonConstCols.cardinality() == 0) {
+      // all columns are constants, the distinct row count should be 1
+      return 1D;
+    }
+
+    if (nonConstCols.cardinality() < groupKey.cardinality()) {
+      // some const columns can be removed, call the method recursively
+      // with the trimmed columns
+      return getDistinctRowCount(rel, mq, nonConstCols, predicate);
+    }
+
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();

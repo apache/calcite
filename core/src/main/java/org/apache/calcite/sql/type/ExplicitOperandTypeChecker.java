@@ -37,7 +37,7 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   private final RelDataType type;
 
   public ExplicitOperandTypeChecker(RelDataType type) {
-    this.type = Objects.requireNonNull(type);
+    this.type = Objects.requireNonNull(type, "type");
   }
 
   @Override public boolean isOptional(int i) {

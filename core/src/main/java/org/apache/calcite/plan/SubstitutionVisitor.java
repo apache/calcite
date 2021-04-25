@@ -935,10 +935,10 @@ public class SubstitutionVisitor {
 
     public UnifyRuleCall(UnifyRule rule, MutableRel query, MutableRel target,
         ImmutableList<MutableRel> slots) {
-      this.rule = requireNonNull(rule);
-      this.query = requireNonNull(query);
-      this.target = requireNonNull(target);
-      this.slots = requireNonNull(slots);
+      this.rule = requireNonNull(rule, "rule");
+      this.query = requireNonNull(query, "query");
+      this.target = requireNonNull(target, "target");
+      this.slots = requireNonNull(slots, "slots");
     }
 
     public UnifyResult result(MutableRel result) {
@@ -1949,7 +1949,7 @@ public class SubstitutionVisitor {
                 AggregateCall.create(aggregateCall.getAggregation(),
                     aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                     aggregateCall.ignoreNulls(),
-                    ImmutableList.of(newIndex), -1,
+                    ImmutableList.of(newIndex), -1, aggregateCall.distinctKeys,
                     aggregateCall.collation, aggregateCall.type,
                     aggregateCall.name));
             continue;
@@ -1962,7 +1962,7 @@ public class SubstitutionVisitor {
         }
         // When an SqlAggFunction does not support roll up, it will return null, which means that
         // it cannot do secondary aggregation and the materialization recognition will fail.
-        final SqlAggFunction aggFunction = getRollup(aggregateCall.getAggregation());
+        final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
         if (aggFunction == null) {
           return null;
         }
@@ -1971,8 +1971,8 @@ public class SubstitutionVisitor {
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 aggregateCall.ignoreNulls(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.collation, aggregateCall.type,
-                aggregateCall.name));
+                aggregateCall.distinctKeys, aggregateCall.collation,
+                aggregateCall.type, aggregateCall.name));
       }
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
         RexProgram compenRexProgram = RexProgram.create(
@@ -1992,6 +1992,7 @@ public class SubstitutionVisitor {
     return result;
   }
 
+  @Deprecated // to be removed before 2.0
   public static @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN

@@ -31,8 +31,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 /**
- * Unit test for extensions of AbstractMaterializedViewRule,
- * in which materialized view gets matched by using structual information of plan.
+ * Unit test for
+ * {@link org.apache.calcite.rel.rules.materialize.MaterializedViewRule} and its
+ * sub-classes, in which materialized views are matched to the structure of a
+ * plan.
  */
 public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
 
@@ -756,6 +758,38 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "from \"emps\" join \"depts\" using (\"deptno\")\n"
             + "where \"depts\".\"name\" is not null and \"emps\".\"name\" = 'a'\n"
             + "group by \"depts\".\"deptno\"")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4276">[CALCITE-4276]
+   * If query contains join and rollup function (FLOOR), rewrite to materialized
+   * view contains bad field offset</a>. */
+  @Test void testJoinAggregateMaterializationAggregateFuncs15() {
+    final String m = ""
+        + "SELECT \"deptno\",\n"
+        + "  COUNT(*) AS \"dept_size\",\n"
+        + "  SUM(\"salary\") AS \"dept_budget\"\n"
+        + "FROM \"emps\"\n"
+        + "GROUP BY \"deptno\"";
+    final String q = ""
+        + "SELECT FLOOR(\"CREATED_AT\" TO YEAR) AS by_year,\n"
+        + "  COUNT(*) AS \"num_emps\"\n"
+        + "FROM (SELECT\"deptno\"\n"
+        + "    FROM \"emps\") AS \"t\"\n"
+        + "JOIN (SELECT \"deptno\",\n"
+        + "        \"inceptionDate\" as \"CREATED_AT\"\n"
+        + "    FROM \"depts2\") using (\"deptno\")\n"
+        + "GROUP BY FLOOR(\"CREATED_AT\" TO YEAR)";
+    String plan = ""
+        + "EnumerableAggregate(group=[{8}], num_emps=[$SUM0($1)])\n"
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], "
+        + "expr#9=[FLOOR($t3, $t8)], proj#0..7=[{exprs}], $f8=[$t9])\n"
+        + "    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "      EnumerableTableScan(table=[[hr, MV0]])\n"
+        + "      EnumerableTableScan(table=[[hr, depts2]])\n";
+    sql(m, q)
+        .withChecker(resultContains(plan))
         .ok();
   }
 

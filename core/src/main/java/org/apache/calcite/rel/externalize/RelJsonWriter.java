@@ -42,7 +42,7 @@ public class RelJsonWriter implements RelWriter {
 
   protected final JsonBuilder jsonBuilder;
   protected final RelJson relJson;
-  private final Map<RelNode, String> relIdMap = new IdentityHashMap<>();
+  private final IdentityHashMap<RelNode, String> relIdMap = new IdentityHashMap<>();
   protected final List<@Nullable Object> relList;
   private final List<Pair<String, @Nullable Object>> values = new ArrayList<>();
   private @Nullable String previousId;

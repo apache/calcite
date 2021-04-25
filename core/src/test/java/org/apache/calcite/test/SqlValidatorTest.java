@@ -1018,6 +1018,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature ILIKE");
   }
 
+  @Test void testRlike() {
+    // RLIKE is supported for SPARK
+    final Sql s = sql("?")
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    s.expr("'first_name' rlike '%Ted%'").columnType("BOOLEAN NOT NULL");
+    s.expr("'first_name' rlike '^M+'").columnType("BOOLEAN NOT NULL");
+
+    // RLIKE is only supported for Spark and Hive
+    String noMatch = "(?s).*No match found for function signature RLIKE";
+    expr("^'b' rlike '.+@.+\\\\..+'^")
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .columnType("BOOLEAN NOT NULL")
+        .withOperatorTable(operatorTableFor(SqlLibrary.HIVE))
+        .columnType("BOOLEAN NOT NULL");
+  }
+
   public void _testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"
@@ -1225,8 +1244,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testCastRegisteredType() {
-    expr("cast(123 as customBigInt)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: CUSTOMBIGINT");
+    expr("cast(123 as ^customBigInt^)")
+        .fails("Unknown identifier 'CUSTOMBIGINT'");
     expr("cast(123 as sales.customBigInt)")
         .columnType("BIGINT NOT NULL");
     expr("cast(123 as catalog.sales.customBigInt)")
@@ -1235,7 +1254,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCastFails() {
     expr("cast('foo' as ^bar^)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: BAR");
+        .fails("Unknown identifier 'BAR'");
     wholeExpr("cast(multiset[1] as integer)")
         .fails("(?s).*Cast function cannot convert value of type "
             + "INTEGER MULTISET to type INTEGER");
@@ -7259,7 +7278,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
-  @Test void testGroupAgg() {
+  @Test void testGroupByAliasedColumn() {
     // alias in GROUP BY query has been known to cause problems
     sql("select deptno as d, count(*) as c from emp group by deptno").ok();
   }
@@ -7988,9 +8007,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "VARCHAR(5) NOT NULL ARRAY NOT NULL F1) NOT NULL "
             + "ARRAY NOT NULL MULTISET NOT NULL");
     // test UDT collection type.
-    sql("select cast(a as MyUDT array multiset) from COMPLEXTYPES.CTC_T1")
+    sql("select cast(a as ^MyUDT^ array multiset) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .fails("(?s).*class org\\.apache\\.calcite\\.sql\\.SqlIdentifier: MYUDT.*");
+        .fails("Unknown identifier 'MYUDT'");
   }
 
   @Test void testCastAsRowType() {
@@ -9398,6 +9417,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
+        + "WITHIN DISTINCT left\n"
         + "WITHIN GROUP left\n"
         + "\n"
         + "PATTERN_QUANTIFIER -\n"

@@ -26,21 +26,7 @@ limitations under the License.
 
 # Upcoming talks
 
-## An introduction to query processing & Apache Calcite
-
-At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
-
-## Event timestamp semantic based streaming SQL
-
-At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
-
-## Implementing spatial queries using algebra rewrites
-
-At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
-
-## Apache Calcite integration into Hazelcast distributed SQL engine
-
-At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021.
+There are no upcoming talks at the moment. Stay tuned!
 
 # Project Members
 
@@ -100,6 +86,28 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## An introduction to query processing & Apache Calcite
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021;
+[[summary](https://github.com/zabetak/slides/blob/master/2021/calcite-meetup-january/an-introduction-to-query-processing-and-apache-calcite.md)],
+[[slides](https://github.com/zabetak/slides/blob/master/2021/calcite-meetup-january/an-introduction-to-query-processing-and-apache-calcite.pdf)],
+[[video](https://youtu.be/p1O3E33FIs8)].
+
+## Calcite streaming for event-time semantics
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021;
+[[video](https://youtu.be/n4NU8J1DlWI)].
+
+## Efficient spatial queries on vanilla databases
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021;
+[[video](https://youtu.be/6iozdGUL-aw)].
+
+## Apache Calcite integration in Hazelcast In-Memory Data Grid
+
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/275461117/), January 20, 2021;
+[[video](https://youtu.be/2cKE4HyhIrc)].
 
 ## Fast federated SQL with Apache Calcite
 

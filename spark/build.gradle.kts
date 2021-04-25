@@ -17,9 +17,9 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.apache.spark:spark-core_2.10")
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.spark:spark-core_2.10")
     implementation("org.eclipse.jetty:jetty-server")
     implementation("org.eclipse.jetty:jetty-util")
     implementation("org.scala-lang:scala-library")

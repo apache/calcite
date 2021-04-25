@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
@@ -133,8 +132,7 @@ public class AggregateFilterTransposeRule
       final List<AggregateCall> topAggCallList = new ArrayList<>();
       int i = newGroupSet.cardinality();
       for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-        final SqlAggFunction rollup =
-            SubstitutionVisitor.getRollup(aggregateCall.getAggregation());
+        final SqlAggFunction rollup = aggregateCall.getAggregation().getRollup();
         if (rollup == null) {
           // This aggregate cannot be rolled up.
           return;
@@ -146,7 +144,8 @@ public class AggregateFilterTransposeRule
         topAggCallList.add(
             AggregateCall.create(rollup, aggregateCall.isDistinct(),
                 aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-                ImmutableList.of(i++), -1, aggregateCall.collation,
+                ImmutableList.of(i++), -1,
+                aggregateCall.distinctKeys, aggregateCall.collation,
                 aggregateCall.type, aggregateCall.name));
       }
       final Aggregate topAggregate =

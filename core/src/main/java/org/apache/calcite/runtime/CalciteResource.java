@@ -356,10 +356,13 @@ public interface CalciteResource {
   @BaseMessage("WITHIN GROUP must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInWithinGroupIllegal();
 
-  @BaseMessage("Aggregate expression ''{0}'' must contain a within group clause")
+  @BaseMessage("WITHIN DISTINCT must not contain aggregate expression")
+  ExInst<SqlValidatorException> aggregateInWithinDistinctIllegal();
+
+  @BaseMessage("Aggregate expression ''{0}'' must contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> aggregateMissingWithinGroupClause(String a0);
 
-  @BaseMessage("Aggregate expression ''{0}'' must not contain a within group clause")
+  @BaseMessage("Aggregate expression ''{0}'' must not contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> withinGroupClauseIllegalInAggregate(String a0);
 
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
@@ -474,6 +477,9 @@ public interface CalciteResource {
 
   @BaseMessage("WITHIN GROUP not allowed with {0} function")
   ExInst<SqlValidatorException> withinGroupNotAllowed(String a0);
+
+  @BaseMessage("WITHIN DISTINCT not allowed with {0} function")
+  ExInst<SqlValidatorException> withinDistinctNotAllowed(String a0);
 
   @BaseMessage("Some but not all arguments are named")
   ExInst<SqlValidatorException> someButNotAllArgumentsAreNamed();

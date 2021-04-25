@@ -225,8 +225,8 @@ public class RexLiteral extends RexNode {
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = requireNonNull(type);
-    this.typeName = requireNonNull(typeName);
+    this.type = requireNonNull(type, "type");
+    this.typeName = requireNonNull(typeName, "typeName");
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
@@ -393,7 +393,10 @@ public class RexLiteral extends RexNode {
     }
   }
 
-  /** Returns the strict literal type for a given type. */
+  /**
+   * Returns the strict literal type for a given type. The rules should keep
+   * sync with what {@link RexBuilder#makeLiteral} defines.
+   */
   public static SqlTypeName strictTypeName(RelDataType type) {
     final SqlTypeName typeName = type.getSqlTypeName();
     switch (typeName) {
@@ -401,6 +404,9 @@ public class RexLiteral extends RexNode {
     case TINYINT:
     case SMALLINT:
       return SqlTypeName.DECIMAL;
+    case REAL:
+    case FLOAT:
+      return SqlTypeName.DOUBLE;
     case VARBINARY:
       return SqlTypeName.BINARY;
     case VARCHAR:

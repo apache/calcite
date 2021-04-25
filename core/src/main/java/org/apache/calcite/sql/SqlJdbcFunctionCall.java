@@ -616,7 +616,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      */
     PermutingMakeCall(SqlOperator operator, int[] order) {
       super(operator);
-      this.order = requireNonNull(order);
+      this.order = requireNonNull(order, "order");
     }
 
     @Override public SqlCall createCall(SqlParserPos pos,

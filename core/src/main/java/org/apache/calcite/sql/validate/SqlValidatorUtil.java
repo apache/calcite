@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -59,6 +60,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -74,6 +76,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -280,7 +283,7 @@ public class SqlValidatorUtil {
   static void checkIdentifierListForDuplicates(List<? extends @Nullable SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
     final List<List<String>> names = Util.transform(columnList,
-        o -> ((SqlIdentifier) requireNonNull(o, "sqlNode")).names);
+        sqlNode -> ((SqlIdentifier) requireNonNull(sqlNode, "sqlNode")).names);
     final int i = Util.firstDuplicate(names);
     if (i >= 0) {
       throw validationErrorFunction.apply(
@@ -1182,9 +1185,7 @@ public class SqlValidatorUtil {
         typeFactory,
         SqlValidator.Config.DEFAULT);
     final SqlSelect select = (SqlSelect) validator.validate(select0);
-    SqlNodeList selectList = requireNonNull(
-        select.getSelectList(),
-        () -> "selectList in " + select);
+    SqlNodeList selectList = select.getSelectList();
     assert selectList.size() == 1
         : "Expression " + expr + " should be atom expression";
     final SqlNode node = selectList.get(0);
@@ -1233,6 +1234,31 @@ public class SqlValidatorUtil {
         new ArrayList<>(new ArrayList<>()),
         typeFactory,
         connectionConfig);
+  }
+
+  /**
+   * Flattens an aggregate call.
+   */
+  public static FlatAggregate flatten(SqlCall call) {
+    return flattenRecurse(null, null, null, call);
+  }
+
+  private static FlatAggregate flattenRecurse(@Nullable SqlCall filterCall,
+      @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall,
+      SqlCall call) {
+    switch (call.getKind()) {
+    case FILTER:
+      assert filterCall == null;
+      return flattenRecurse(call, distinctCall, orderCall, call.operand(0));
+    case WITHIN_DISTINCT:
+      assert distinctCall == null;
+      return flattenRecurse(filterCall, call, orderCall, call.operand(0));
+    case WITHIN_GROUP:
+      assert orderCall == null;
+      return flattenRecurse(filterCall, distinctCall, call, call.operand(0));
+    default:
+      return new FlatAggregate(call, filterCall, distinctCall, orderCall);
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -1331,7 +1357,7 @@ public class SqlValidatorUtil {
     private final RelDataType rowType;
 
     ExplicitRowTypeTable(RelDataType rowType) {
-      this.rowType = requireNonNull(rowType);
+      this.rowType = requireNonNull(rowType, "rowType");
     }
 
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -1346,11 +1372,41 @@ public class SqlValidatorUtil {
     private final Map<String, Table> tableMap;
 
     ExplicitTableSchema(Map<String, Table> tableMap) {
-      this.tableMap = requireNonNull(tableMap);
+      this.tableMap = requireNonNull(tableMap, "tableMap");
     }
 
     @Override protected Map<String, Table> getTableMap() {
       return tableMap;
+    }
+  }
+
+  /** Flattens any FILTER, WITHIN DISTINCT, WITHIN GROUP surrounding a call to
+   * an aggregate function. */
+  public static class FlatAggregate {
+    public final SqlCall aggregateCall;
+    public final @Nullable SqlCall filterCall;
+    public final @Nullable SqlNode filter;
+    public final @Nullable SqlCall distinctCall;
+    public final @Nullable SqlNodeList distinctList;
+    public final @Nullable SqlCall orderCall;
+    public final @Nullable SqlNodeList orderList;
+
+    FlatAggregate(SqlCall aggregateCall, @Nullable SqlCall filterCall,
+        @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
+      this.aggregateCall =
+          Objects.requireNonNull(aggregateCall, "aggregateCall");
+      Preconditions.checkArgument(filterCall == null
+          || filterCall.getKind() == SqlKind.FILTER);
+      Preconditions.checkArgument(distinctCall == null
+          || distinctCall.getKind() == SqlKind.WITHIN_DISTINCT);
+      Preconditions.checkArgument(orderCall == null
+          || orderCall.getKind() == SqlKind.WITHIN_GROUP);
+      this.filterCall = filterCall;
+      this.filter = filterCall == null ? null : filterCall.operand(1);
+      this.distinctCall = distinctCall;
+      this.distinctList = distinctCall == null ? null : distinctCall.operand(1);
+      this.orderCall = orderCall;
+      this.orderList = orderCall == null ? null : orderCall.operand(1);
     }
   }
 }

@@ -59,7 +59,7 @@ public abstract class Exchange extends SingleRel {
   protected Exchange(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RelDistribution distribution) {
     super(cluster, traitSet, input);
-    this.distribution = Objects.requireNonNull(distribution);
+    this.distribution = Objects.requireNonNull(distribution, "distribution");
 
     assert traitSet.containsIfApplicable(distribution)
         : "traits=" + traitSet + ", distribution" + distribution;

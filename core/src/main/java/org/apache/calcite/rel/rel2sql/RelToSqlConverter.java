@@ -174,11 +174,10 @@ public class RelToSqlConverter extends SqlImplementor
   private static class AliasReplacementShuttle extends SqlShuttle {
     private final String tableAlias;
     private final RelDataType tableType;
-    private final @Nullable SqlNodeList replaceSource;
+    private final SqlNodeList replaceSource;
 
     AliasReplacementShuttle(String tableAlias, RelDataType tableType,
-        @Nullable SqlNodeList replaceSource) {
-      // TODO: should replaceSource be non-nullable?
+        SqlNodeList replaceSource) {
       this.tableAlias = tableAlias;
       this.tableType = tableType;
       this.replaceSource = replaceSource;
@@ -678,10 +677,9 @@ public class RelToSqlConverter extends SqlImplementor
         if (!rename) {
           query = as(query, "t");
         }
-        query = new SqlSelect(POS, null,
-                null, query,
-                createAlwaysFalseCondition(),
-                null, null, null,
+        query =
+            new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, query,
+                createAlwaysFalseCondition(), null, null, null,
                 null, null, null, null);
       }
     }
@@ -754,7 +752,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Result x = visitInput(e, 0, Clause.ORDER_BY, Clause.OFFSET,
         Clause.FETCH);
     final Builder builder = x.builder(e);
-    if (stack.size() != 1 && builder.select.getSelectList() == null) {
+    if (stack.size() != 1
+        && builder.select.getSelectList().equals(SqlNodeList.SINGLETON_STAR)) {
       // Generates explicit column names instead of start(*) for
       // non-root order by to avoid ambiguity.
       final List<SqlNode> selectList = Expressions.list();
@@ -993,10 +992,10 @@ public class RelToSqlConverter extends SqlImplementor
     // Convert to table function call, "TABLE($function_name(xxx))"
     SqlNode tableCall = new SqlBasicCall(
         SqlStdOperatorTable.COLLECTION_TABLE,
-        new SqlNode[]{callNode},
+        new SqlNode[] {callNode},
         SqlParserPos.ZERO);
     SqlNode select = new SqlSelect(
-        SqlParserPos.ZERO, null, null, tableCall,
+        SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR, tableCall,
         null, null, null, null, null, null, null, SqlNodeList.EMPTY);
     return result(select, ImmutableList.of(Clause.SELECT), e, null);
   }
@@ -1050,9 +1049,9 @@ public class RelToSqlConverter extends SqlImplementor
 
     Frame(RelNode parent, int ordinalInParent, RelNode r, boolean anon,
         boolean ignoreClauses, Iterable<? extends Clause> expectedClauses) {
-      this.parent = requireNonNull(parent);
+      this.parent = requireNonNull(parent, "parent");
       this.ordinalInParent = ordinalInParent;
-      this.r = requireNonNull(r);
+      this.r = requireNonNull(r, "r");
       this.anon = anon;
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);

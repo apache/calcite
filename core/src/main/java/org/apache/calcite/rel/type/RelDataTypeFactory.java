@@ -429,7 +429,7 @@ public interface RelDataTypeFactory {
      * Creates a Builder with the given type factory.
      */
     public Builder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = Objects.requireNonNull(typeFactory);
+      this.typeFactory = Objects.requireNonNull(typeFactory, "typeFactory");
     }
 
     /**

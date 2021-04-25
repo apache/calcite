@@ -372,7 +372,7 @@ public class SqlAdvisor {
     List<SqlNode> nodes = SqlUtil.getAncestry(root,
         input -> input instanceof SqlIdentifier
             && ((SqlIdentifier) input).names.contains(hintToken),
-        input -> Objects.requireNonNull(input).getParserPosition()
+        input -> Objects.requireNonNull(input, "input").getParserPosition()
             .startsAt(pos));
     assert nodes.get(0) == root;
     nodes = Lists.reverse(nodes);

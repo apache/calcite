@@ -87,6 +87,7 @@ public abstract class Correlate extends BiRel {
    * @param requiredColumns Set of columns that are used by correlation
    * @param joinType Join type
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Correlate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -97,9 +98,10 @@ public abstract class Correlate extends BiRel {
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
     assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
-    this.joinType = requireNonNull(joinType);
-    this.correlationId = requireNonNull(correlationId);
-    this.requiredColumns = requireNonNull(requiredColumns);
+    this.joinType = requireNonNull(joinType, "joinType");
+    this.correlationId = requireNonNull(correlationId, "correlationId");
+    this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
+    assert isValid(Litmus.THROW, null);
   }
 
   /**

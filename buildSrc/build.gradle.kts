@@ -26,7 +26,7 @@ plugins {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     gradlePluginPortal()
 }
 
@@ -34,7 +34,7 @@ val skipAutostyle by props()
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
         gradlePluginPortal()
     }
     applyKotlinProjectConventions()

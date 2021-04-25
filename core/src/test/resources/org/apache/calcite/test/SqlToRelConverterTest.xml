@@ -4887,6 +4887,33 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectSortLimitWithCorrelateInput">
+        <Resource name="sql">
+            <![CDATA[SELECT ename||deptno FROM
+    (SELECT deptno, ename
+    FROM
+        (SELECT DISTINCT deptno FROM emp) t1,
+          LATERAL (
+            SELECT ename, sal
+            FROM emp
+            WHERE deptno = t1.deptno)
+    ORDER BY ename DESC
+    LIMIT 3)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[||($1, CAST($0):VARCHAR NOT NULL)])
+  LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
+    LogicalProject(DEPTNO=[$0], ENAME=[$1])
+      LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushDownJoinCondition">
         <Resource name="sql">
             <![CDATA[select *
@@ -6829,6 +6856,19 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalValues(tuples=[[{ 'commission' }, { 'salary    ' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinDistinct1">
+        <Resource name="sql">
+            <![CDATA[select avg(empno) within distinct (deptno)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0) WITHIN DISTINCT ($1)])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

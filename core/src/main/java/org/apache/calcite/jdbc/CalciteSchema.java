@@ -90,17 +90,17 @@ public abstract class CalciteSchema {
     if (tableMap == null) {
       this.tableMap = new NameMap<>();
     } else {
-      this.tableMap = Objects.requireNonNull(tableMap);
+      this.tableMap = Objects.requireNonNull(tableMap, "tableMap");
     }
     if (latticeMap == null) {
       this.latticeMap = new NameMap<>();
     } else {
-      this.latticeMap = Objects.requireNonNull(latticeMap);
+      this.latticeMap = Objects.requireNonNull(latticeMap, "latticeMap");
     }
     if (subSchemaMap == null) {
       this.subSchemaMap = new NameMap<>();
     } else {
-      this.subSchemaMap = Objects.requireNonNull(subSchemaMap);
+      this.subSchemaMap = Objects.requireNonNull(subSchemaMap, "subSchemaMap");
     }
     if (functionMap == null) {
       this.functionMap = new NameMultimap<>();
@@ -109,14 +109,14 @@ public abstract class CalciteSchema {
     } else {
       // If you specify functionMap, you must also specify functionNames and
       // nullaryFunctionMap.
-      this.functionMap = Objects.requireNonNull(functionMap);
-      this.functionNames = Objects.requireNonNull(functionNames);
-      this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap);
+      this.functionMap = Objects.requireNonNull(functionMap, "functionMap");
+      this.functionNames = Objects.requireNonNull(functionNames, "functionNames");
+      this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap, "nullaryFunctionMap");
     }
     if (typeMap == null) {
       this.typeMap = new NameMap<>();
     } else {
-      this.typeMap = Objects.requireNonNull(typeMap);
+      this.typeMap = Objects.requireNonNull(typeMap, "typeMap");
     }
     this.path = path;
   }
@@ -568,8 +568,8 @@ public abstract class CalciteSchema {
     public final String name;
 
     protected Entry(CalciteSchema schema, String name) {
-      this.schema = Objects.requireNonNull(schema);
-      this.name = Objects.requireNonNull(name);
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.name = Objects.requireNonNull(name, "name");
     }
 
     /** Returns this object's path. For example ["hr", "emps"]. */
@@ -585,7 +585,7 @@ public abstract class CalciteSchema {
     protected TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
-      this.sqls = Objects.requireNonNull(sqls);
+      this.sqls = Objects.requireNonNull(sqls, "sqls");
     }
 
     public abstract Table getTable();
@@ -754,7 +754,7 @@ public abstract class CalciteSchema {
     public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
-      this.table = Objects.requireNonNull(table);
+      this.table = Objects.requireNonNull(table, "table");
     }
 
     @Override public Table getTable() {

@@ -152,7 +152,7 @@ public interface Pattern {
     final Op op;
 
     AbstractPattern(Op op) {
-      this.op = Objects.requireNonNull(op);
+      this.op = Objects.requireNonNull(op, "op");
     }
 
     @Override public Automaton toAutomaton() {
@@ -166,7 +166,7 @@ public interface Pattern {
 
     SymbolPattern(String name) {
       super(Op.SYMBOL);
-      this.name = Objects.requireNonNull(name);
+      this.name = Objects.requireNonNull(name, "name");
     }
 
     @Override public String toString() {

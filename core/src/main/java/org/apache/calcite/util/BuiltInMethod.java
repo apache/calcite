@@ -86,6 +86,7 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.CompressionFunctions;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.FunctionContexts;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
@@ -135,6 +136,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
 
@@ -239,6 +241,8 @@ public enum BuiltInMethod {
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
       Enumerable.class, int.class, boolean.class, EqualityComparer.class),
+  MERGE_UNION(EnumerableDefaults.class, "mergeUnion", List.class, Function1.class,
+      Comparator.class, boolean.class, EqualityComparer.class),
   LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,
       Enumerable.class),
   INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
@@ -284,6 +288,7 @@ public enum BuiltInMethod {
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
   ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
+  FUNCTION_APPLY(Function.class, "apply", Object.class),
   PREDICATE_TEST(Predicate.class, "test", Object.class),
   BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
   CONSUMER_ACCEPT(Consumer.class, "accept", Object.class),
@@ -342,6 +347,7 @@ public enum BuiltInMethod {
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
   MD5(SqlFunctions.class, "md5", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
+  THROW_UNLESS(SqlFunctions.class, "throwUnless", boolean.class, String.class),
   COMPRESS(CompressionFunctions.class, "compress", String.class),
   EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
   XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
@@ -420,6 +426,7 @@ public enum BuiltInMethod {
   RTRIM(SqlFunctions.class, "rtrim", String.class),
   LIKE(SqlFunctions.class, "like", String.class, String.class),
   ILIKE(SqlFunctions.class, "ilike", String.class, String.class),
+  RLIKE(SqlFunctions.class, "rlike", String.class, String.class),
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
   POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, boolean.class),
   REGEXP_REPLACE3(SqlFunctions.class, "regexpReplace", String.class,
@@ -600,6 +607,8 @@ public enum BuiltInMethod {
   SCALAR_EXECUTE2(Scalar.class, "execute", Context.class, Object[].class),
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
+  FUNCTION_CONTEXTS_OF(FunctionContexts.class, "of", DataContext.class,
+      Object[].class),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   METADATA_REL(Metadata.class, "rel"),
   STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class,

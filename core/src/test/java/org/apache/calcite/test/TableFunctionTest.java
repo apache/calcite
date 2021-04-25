@@ -57,7 +57,7 @@ class TableFunctionTest {
     final String c = Smalls.class.getName();
     final String m = Smalls.MULTIPLICATION_TABLE_METHOD.getName();
     final String m2 = Smalls.FIBONACCI_TABLE_METHOD.getName();
-    final String m3 = Smalls.FIBONACCI2_TABLE_METHOD.getName();
+    final String m3 = Smalls.FIBONACCI_LIMIT_TABLE_METHOD.getName();
     return CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"

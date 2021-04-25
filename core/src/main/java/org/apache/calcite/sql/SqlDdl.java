@@ -31,7 +31,7 @@ public abstract class SqlDdl extends SqlCall {
   /** Creates a SqlDdl. */
   protected SqlDdl(SqlOperator operator, SqlParserPos pos) {
     super(pos);
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Objects.requireNonNull(operator, "operator");
   }
 
   @Override public SqlOperator getOperator() {

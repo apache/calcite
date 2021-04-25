@@ -77,7 +77,7 @@ public class Hoist {
   }
 
   private Hoist(Config config) {
-    this.config = Objects.requireNonNull(config);
+    this.config = Objects.requireNonNull(config, "config");
   }
 
   /** Converts a {@link Variable} to a string "?N",
@@ -141,9 +141,9 @@ public class Hoist {
     public final int end;
 
     private Variable(String originalSql, int ordinal, SqlNode node) {
-      this.originalSql = Objects.requireNonNull(originalSql);
+      this.originalSql = Objects.requireNonNull(originalSql, "originalSql");
       this.ordinal = ordinal;
-      this.node = Objects.requireNonNull(node);
+      this.node = Objects.requireNonNull(node, "node");
       final SqlParserPos pos = node.getParserPosition();
       start = SqlParserUtil.lineColToIndex(originalSql,
           pos.getLineNum(), pos.getColumnNum());

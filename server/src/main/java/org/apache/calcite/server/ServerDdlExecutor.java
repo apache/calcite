@@ -47,6 +47,7 @@ import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -62,7 +63,6 @@ import org.apache.calcite.sql.ddl.SqlCreateSchema;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
-import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
 import org.apache.calcite.sql.ddl.SqlDropObject;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -281,41 +281,54 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
    * {@code DROP VIEW} commands. */
   public void execute(SqlDropObject drop,
       CalcitePrepare.Context context) {
-    final List<String> path = context.getDefaultSchemaPath();
-    CalciteSchema schema = context.getRootSchema();
-    for (String p : path) {
-      schema = schema.getSubSchema(p, true);
-    }
-    final boolean existed;
+    final Pair<CalciteSchema, String> pair = schema(context, false, drop.name);
+    CalciteSchema schema = pair.left;
+    String objectName = pair.right;
+    assert objectName != null;
+
+    boolean schemaExists = schema != null;
+
+    boolean existed;
     switch (drop.getKind()) {
     case DROP_TABLE:
     case DROP_MATERIALIZED_VIEW:
-      existed = schema.removeTable(drop.name.getSimple());
-      if (!existed && !drop.ifExists) {
+      Table materializedView = schemaExists && drop.getKind() == SqlKind.DROP_MATERIALIZED_VIEW
+          ? schema.plus().getTable(objectName) : null;
+
+      existed = schemaExists && schema.removeTable(objectName);
+      if (existed) {
+        if (materializedView instanceof Wrapper) {
+          ((Wrapper) materializedView).maybeUnwrap(MaterializationKey.class)
+              .ifPresent(materializationKey -> {
+                MaterializationService.instance()
+                    .removeMaterialization(materializationKey);
+              });
+        }
+      } else if (!drop.ifExists) {
         throw SqlUtil.newContextException(drop.name.getParserPosition(),
-            RESOURCE.tableNotFound(drop.name.getSimple()));
+            RESOURCE.tableNotFound(objectName));
       }
       break;
     case DROP_VIEW:
       // Not quite right: removes any other functions with the same name
-      existed = schema.removeFunction(drop.name.getSimple());
+      existed = schemaExists && schema.removeFunction(objectName);
       if (!existed && !drop.ifExists) {
         throw SqlUtil.newContextException(drop.name.getParserPosition(),
-            RESOURCE.viewNotFound(drop.name.getSimple()));
+            RESOURCE.viewNotFound(objectName));
       }
       break;
     case DROP_TYPE:
-      existed = schema.removeType(drop.name.getSimple());
+      existed = schemaExists && schema.removeType(objectName);
       if (!existed && !drop.ifExists) {
         throw SqlUtil.newContextException(drop.name.getParserPosition(),
-            RESOURCE.typeNotFound(drop.name.getSimple()));
+            RESOURCE.typeNotFound(objectName));
       }
       break;
     case DROP_FUNCTION:
-      existed = schema.removeFunction(drop.name.getSimple());
+      existed = schemaExists && schema.removeFunction(objectName);
       if (!existed && !drop.ifExists) {
         throw SqlUtil.newContextException(drop.name.getParserPosition(),
-            RESOURCE.functionNotFound(drop.name.getSimple()));
+            RESOURCE.functionNotFound(objectName));
       }
       break;
     case OTHER_DDL:
@@ -356,31 +369,16 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
             sql, schemaPath, pair.right, true, true);
   }
 
-  /** Executes a {@code DROP MATERIALIZED VIEW} command. */
-  public void execute(SqlDropMaterializedView drop,
-      CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair = schema(context, true, drop.name);
-    final Table table = pair.left.plus().getTable(pair.right);
-    if (table != null) {
-      // Materialized view exists.
-      execute((SqlDropObject) drop, context);
-      if (table instanceof Wrapper) {
-        ((Wrapper) table).maybeUnwrap(MaterializationKey.class)
-            .ifPresent(materializationKey -> {
-              MaterializationService.instance()
-                  .removeMaterialization(materializationKey);
-            });
-      }
-    }
-  }
-
   /** Executes a {@code CREATE SCHEMA} command. */
   public void execute(SqlCreateSchema create,
       CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair = schema(context, true, create.name);
     final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
     if (subSchema0 != null) {
-      if (!create.getReplace() && !create.ifNotExists) {
+      if (create.ifNotExists) {
+        return;
+      }
+      if (!create.getReplace()) {
         throw SqlUtil.newContextException(create.name.getParserPosition(),
             RESOURCE.schemaExists(pair.right));
       }
@@ -392,15 +390,11 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
   /** Executes a {@code DROP SCHEMA} command. */
   public void execute(SqlDropSchema drop,
       CalcitePrepare.Context context) {
-    final List<String> path = context.getDefaultSchemaPath();
-    CalciteSchema schema = context.getRootSchema();
-    for (String p : path) {
-      schema = schema.getSubSchema(p, true);
-    }
-    final boolean existed = schema.removeSubSchema(drop.name.getSimple());
+    final Pair<CalciteSchema, String> pair = schema(context, false, drop.name);
+    final boolean existed = pair.left != null && pair.left.removeSubSchema(pair.right);
     if (!existed && !drop.ifExists) {
       throw SqlUtil.newContextException(drop.name.getParserPosition(),
-          RESOURCE.schemaNotFound(drop.name.getSimple()));
+          RESOURCE.schemaNotFound(pair.right));
     }
   }
 
@@ -503,12 +497,14 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         };
     if (pair.left.plus().getTable(pair.right) != null) {
       // Table exists.
-      if (!create.ifNotExists) {
+      if (create.ifNotExists) {
+        return;
+      }
+      if (!create.getReplace()) {
         // They did not specify IF NOT EXISTS, so give error.
         throw SqlUtil.newContextException(create.name.getParserPosition(),
             RESOURCE.tableExists(pair.right));
       }
-      return;
     }
     // Table does not exist. Create it.
     pair.left.add(pair.right,
@@ -577,7 +573,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         ColumnStrategy strategy) {
       this.expr = expr;
       this.type = type;
-      this.strategy = Objects.requireNonNull(strategy);
+      this.strategy = Objects.requireNonNull(strategy, "strategy");
       Preconditions.checkArgument(
           strategy == ColumnStrategy.NULLABLE
               || strategy == ColumnStrategy.NOT_NULLABLE

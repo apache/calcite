@@ -106,6 +106,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -3590,12 +3591,16 @@ List<Object> Expression2(ExprContext exprContext) :
                         |
                             <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
                         |
+                            <RLIKE> { op = SqlLibraryOperators.NOT_RLIKE; }
+                        |
                             <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
                         )
                     |
                         <LIKE> { op = SqlStdOperatorTable.LIKE; }
                     |
                         <ILIKE> { op = SqlLibraryOperators.ILIKE; }
+                    |
+                        <RLIKE> { op = SqlLibraryOperators.RLIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )
@@ -3896,21 +3901,24 @@ SqlNode RowExpressionExtension() :
 }
 
 /**
- * Parses a call to the STRING_AGG aggregate function.
+ * Parses a call to the STRING_AGG aggregate function (or to an aggregate
+ * function with similar syntax: ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT).
  */
 SqlCall StringAggFunctionCall() :
 {
-    final Span s;
+    final Span s, s2;
     final SqlOperator op;
     final List<SqlNode> args = new ArrayList();
     final SqlLiteral qualifier;
     final SqlNodeList orderBy;
     final Pair<SqlParserPos, SqlOperator> nullTreatment;
+    final SqlNode separator;
 }
 {
     (
         <ARRAY_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_AGG; }
     |   <ARRAY_CONCAT_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_CONCAT_AGG; }
+    |   <GROUP_CONCAT> { s = span(); op = SqlLibraryOperators.GROUP_CONCAT; }
     |   <STRING_AGG> { s = span(); op = SqlLibraryOperators.STRING_AGG; }
     )
     <LPAREN>
@@ -3935,6 +3943,11 @@ SqlCall StringAggFunctionCall() :
     [
         orderBy = OrderBy(true) {
             args.add(orderBy);
+        }
+    ]
+    [
+        <SEPARATOR> { s2 = span(); } separator = StringLiteral() {
+            args.add(SqlInternalOperators.SEPARATOR.createCall(s2.end(this), separator));
         }
     ]
     <RPAREN>
@@ -6633,20 +6646,35 @@ SqlCall MatchRecognizeNavigationPhysical() :
     }
 }
 
+SqlCall withinDistinct(SqlNode arg) :
+{
+    final Span s;
+    final SqlNodeList distinctList;
+}
+{
+    <WITHIN> { s = span(); }
+    <DISTINCT>
+    <LPAREN>
+    distinctList = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.WITHIN_DISTINCT.createCall(
+            s.end(this), arg, distinctList);
+    }
+}
+
 SqlCall withinGroup(SqlNode arg) :
 {
-    final Span withinGroupSpan;
+    final Span s;
     final SqlNodeList orderList;
 }
 {
-
-    <WITHIN> { withinGroupSpan = span(); }
+    <WITHIN> { s = span(); }
     <GROUP>
     <LPAREN>
     orderList = OrderBy(true)
     <RPAREN> {
         return SqlStdOperatorTable.WITHIN_GROUP.createCall(
-            withinGroupSpan.end(this), arg, orderList);
+            s.end(this), arg, orderList);
     }
 }
 
@@ -6705,6 +6733,10 @@ SqlNode NamedFunctionCall() :
     )
     [
         LOOKAHEAD(2) call = nullTreatment(call)
+    ]
+    [
+        LOOKAHEAD(2) // decide between WITHIN DISTINCT and WITHIN GROUP
+        call = withinDistinct(call)
     ]
     [
         call = withinGroup(call)
@@ -7441,6 +7473,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < GRANT: "GRANT" >
 |   < GRANTED: "GRANTED" >
 |   < GROUP: "GROUP" >
+|   < GROUP_CONCAT: "GROUP_CONCAT" >
 |   < GROUPING: "GROUPING" >
 |   < GROUPS: "GROUPS" >
 |   < HAVING: "HAVING" >
@@ -7676,6 +7709,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < RETURNS: "RETURNS" >
 |   < REVOKE: "REVOKE" >
 |   < RIGHT: "RIGHT" >
+|   < RLIKE: "RLIKE" >
 |   < ROLE: "ROLE" >
 |   < ROLLBACK: "ROLLBACK" >
 |   < ROLLUP: "ROLLUP" >
@@ -7707,6 +7741,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SELECT: "SELECT" > { afterTableName(); }
 |   < SELF: "SELF" >
 |   < SENSITIVE: "SENSITIVE" >
+|   < SEPARATOR: "SEPARATOR" >
 |   < SEQUENCE: "SEQUENCE" >
 |   < SERIALIZABLE: "SERIALIZABLE" >
 |   < SERVER: "SERVER" >

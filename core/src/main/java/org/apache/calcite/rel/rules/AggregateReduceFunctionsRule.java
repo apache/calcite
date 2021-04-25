@@ -20,20 +20,17 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
@@ -56,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.IntPredicate;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -146,7 +144,7 @@ public class AggregateReduceFunctionsRule
         .as(Config.class)
         .withOperandFor(aggregateClass)
         // reduce specific functions provided by the client
-        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce)));
+        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce, "functionsToReduce")));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -170,19 +168,12 @@ public class AggregateReduceFunctionsRule
    * @param aggCallList List of aggregate calls
    */
   private boolean containsAvgStddevVarCall(List<AggregateCall> aggCallList) {
-    for (AggregateCall call : aggCallList) {
-      if (isReducible(call.getAggregation().getKind())) {
-        return true;
-      }
-    }
-    return false;
+    return aggCallList.stream().anyMatch(this::canReduce);
   }
 
-  /**
-   * Returns whether the aggregate call is a reducible function.
-   */
-  private boolean isReducible(final SqlKind kind) {
-    return functionsToReduce.contains(kind);
+  /** Returns whether this rule can reduce a given aggregate function call. */
+  public boolean canReduce(AggregateCall call) {
+    return functionsToReduce.contains(call.getAggregation().getKind());
   }
 
   /**
@@ -208,10 +199,7 @@ public class AggregateReduceFunctionsRule
 
     // pass through group key
     for (int i = 0; i < groupCount; ++i) {
-      projList.add(
-          rexBuilder.makeInputRef(
-              getFieldType(oldAggRel, i),
-              i));
+      projList.add(rexBuilder.makeInputRef(oldAggRel, i));
     }
 
     // List of input expressions. If a particular aggregate needs more, it
@@ -247,10 +235,10 @@ public class AggregateReduceFunctionsRule
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       List<RexNode> inputExprs) {
-    final SqlKind kind = oldCall.getAggregation().getKind();
-    if (isReducible(kind)) {
+    if (canReduce(oldCall)) {
       final Integer y;
       final Integer x;
+      final SqlKind kind = oldCall.getAggregation().getKind();
       switch (kind) {
       case SUM:
         // replace original SUM(x) with
@@ -323,14 +311,11 @@ public class AggregateReduceFunctionsRule
       // anything else:  preserve original call
       RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
       final int nGroups = oldAggRel.getGroupCount();
-      List<RelDataType> oldArgTypes =
-          SqlTypeUtil.projectTypes(
-              oldAggRel.getInput().getRowType(), oldCall.getArgList());
       return rexBuilder.addAggCall(oldCall,
           nGroups,
           newCalls,
           aggCallMapping,
-          oldArgTypes);
+          oldAggRel.getInput()::fieldIsNullable);
     }
   }
 
@@ -352,6 +337,7 @@ public class AggregateReduceFunctionsRule
         oldCall.ignoreNulls(),
         ImmutableIntList.of(argOrdinal),
         filter,
+        oldCall.distinctKeys,
         oldCall.collation,
         aggFunction.inferReturnType(binding),
         null);
@@ -365,11 +351,6 @@ public class AggregateReduceFunctionsRule
       @SuppressWarnings("unused") List<RexNode> inputExprs) {
     final int nGroups = oldAggRel.getGroupCount();
     final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
-    final int iAvgInput = oldCall.getArgList().get(0);
-    final RelDataType avgInputType =
-        getFieldType(
-            oldAggRel.getInput(),
-            iAvgInput);
     final AggregateCall sumCall =
         AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
@@ -377,6 +358,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
@@ -389,6 +371,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
@@ -402,13 +385,13 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(avgInputType));
+            oldAggRel.getInput()::fieldIsNullable);
     final RexNode denominatorRef =
         rexBuilder.addAggCall(countCall,
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(avgInputType));
+            oldAggRel.getInput()::fieldIsNullable);
 
     final RelDataTypeFactory typeFactory = oldAggRel.getCluster().getTypeFactory();
     final RelDataType avgType = typeFactory.createTypeWithNullability(
@@ -426,16 +409,11 @@ public class AggregateReduceFunctionsRule
       Map<AggregateCall, RexNode> aggCallMapping) {
     final int nGroups = oldAggRel.getGroupCount();
     RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
-    int arg = oldCall.getArgList().get(0);
-    RelDataType argType =
-        getFieldType(
-            oldAggRel.getInput(),
-            arg);
 
     final AggregateCall sumZeroCall =
         AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
             oldCall.isApproximate(), oldCall.ignoreNulls(),
-            oldCall.getArgList(), oldCall.filterArg,
+            oldCall.getArgList(), oldCall.filterArg, oldCall.distinctKeys,
             oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
             null, oldCall.name);
     final AggregateCall countCall =
@@ -445,6 +423,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel,
@@ -458,7 +437,7 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(argType));
+            oldAggRel.getInput()::fieldIsNullable);
     if (!oldCall.getType().isNullable()) {
       // If SUM(x) is not nullable, the validator must have determined that
       // nulls are impossible (because the group is never empty and x is never
@@ -470,7 +449,7 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(argType));
+            oldAggRel.getInput()::fieldIsNullable);
     return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
             countRef, rexBuilder.makeExactLiteral(BigDecimal.ZERO)),
@@ -504,10 +483,10 @@ public class AggregateReduceFunctionsRule
 
     assert oldCall.getArgList().size() == 1 : oldCall.getArgList();
     final int argOrdinal = oldCall.getArgList().get(0);
-    final RelDataType argOrdinalType = getFieldType(oldAggRel.getInput(), argOrdinal);
+    final IntPredicate fieldIsNullable = oldAggRel.getInput()::fieldIsNullable;
     final RelDataType oldCallType =
         typeFactory.createTypeWithNullability(oldCall.getType(),
-            argOrdinalType.isNullable());
+            fieldIsNullable.test(argOrdinal));
 
     final RexNode argRef =
         rexBuilder.ensureType(oldCallType, inputExprs.get(argOrdinal), true);
@@ -525,7 +504,7 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(sumArgSquaredAggCall.getType()));
+            oldAggRel.getInput()::fieldIsNullable);
 
     final AggregateCall sumArgAggCall =
         AggregateCall.create(SqlStdOperatorTable.SUM,
@@ -534,6 +513,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             ImmutableIntList.of(argOrdinal),
             oldCall.filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
@@ -545,7 +525,7 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(sumArgAggCall.getType()));
+            oldAggRel.getInput()::fieldIsNullable);
     final RexNode sumArgCast = rexBuilder.ensureType(oldCallType, sumArg, true);
     final RexNode sumSquaredArg =
         rexBuilder.makeCall(
@@ -558,6 +538,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel,
@@ -569,7 +550,7 @@ public class AggregateReduceFunctionsRule
             nGroups,
             newCalls,
             aggCallMapping,
-            ImmutableList.of(argOrdinalType));
+            oldAggRel.getInput()::fieldIsNullable);
 
     final RexNode div = divide(biased, rexBuilder, sumArgSquared, sumSquaredArg,
         countArg);
@@ -603,6 +584,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             ImmutableIntList.of(argOrdinal),
             filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel.getInput(),
@@ -612,7 +594,7 @@ public class AggregateReduceFunctionsRule
         oldAggRel.getGroupCount(),
         newCalls,
         aggCallMapping,
-        ImmutableList.of(aggregateCall.getType()));
+        oldAggRel.getInput()::fieldIsNullable);
   }
 
   private static RexNode getSumAggregatedRexNodeWithBinding(Aggregate oldAggRel,
@@ -631,7 +613,7 @@ public class AggregateReduceFunctionsRule
         oldAggRel.getGroupCount(),
         newCalls,
         aggCallMapping,
-        ImmutableList.of(sumArgSquaredAggCall.getType()));
+        oldAggRel.getInput()::fieldIsNullable);
   }
 
   private static RexNode getRegrCountRexNode(Aggregate oldAggRel,
@@ -639,7 +621,6 @@ public class AggregateReduceFunctionsRule
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       ImmutableIntList argOrdinals,
-      ImmutableList<RelDataType> operandTypes,
       int filterArg) {
     final AggregateCall countArgAggCall =
         AggregateCall.create(SqlStdOperatorTable.REGR_COUNT,
@@ -648,6 +629,7 @@ public class AggregateReduceFunctionsRule
             oldCall.ignoreNulls(),
             argOrdinals,
             filterArg,
+            oldCall.distinctKeys,
             oldCall.collation,
             oldAggRel.getGroupCount(),
             oldAggRel,
@@ -658,7 +640,7 @@ public class AggregateReduceFunctionsRule
         oldAggRel.getGroupCount(),
         newCalls,
         aggCallMapping,
-        operandTypes);
+        oldAggRel.getInput()::fieldIsNullable);
   }
 
   private static RexNode reduceRegrSzz(
@@ -677,15 +659,13 @@ public class AggregateReduceFunctionsRule
     final RelOptCluster cluster = oldAggRel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-    final RelDataType argXType = getFieldType(oldAggRel.getInput(), xIndex);
-    final RelDataType argYType =
-        xIndex == yIndex ? argXType : getFieldType(oldAggRel.getInput(), yIndex);
-    final RelDataType nullFilterIndexType =
-        nullFilterIndex == yIndex ? argYType : getFieldType(oldAggRel.getInput(), yIndex);
+    final IntPredicate fieldIsNullable = oldAggRel.getInput()::fieldIsNullable;
 
     final RelDataType oldCallType =
         typeFactory.createTypeWithNullability(oldCall.getType(),
-            argXType.isNullable() || argYType.isNullable() || nullFilterIndexType.isNullable());
+            fieldIsNullable.test(xIndex)
+                || fieldIsNullable.test(yIndex)
+                || fieldIsNullable.test(nullFilterIndex));
 
     final RexNode argX =
         rexBuilder.ensureType(oldCallType, inputExprs.get(xIndex), true);
@@ -718,7 +698,7 @@ public class AggregateReduceFunctionsRule
     final RexNode sumXSumY = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumX, sumY);
 
     final RexNode countArg = getRegrCountRexNode(oldAggRel, oldCall, newCalls, aggCallMapping,
-        ImmutableIntList.of(xIndex), ImmutableList.of(argXType), argXAndYNotNullFilterOrdinal);
+        ImmutableIntList.of(xIndex), argXAndYNotNullFilterOrdinal);
 
     RexLiteral zero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
     RexNode nul = rexBuilder.makeNullLiteral(zero.getType());
@@ -751,10 +731,11 @@ public class AggregateReduceFunctionsRule
     assert oldCall.getArgList().size() == 2 : oldCall.getArgList();
     final int argXOrdinal = oldCall.getArgList().get(0);
     final int argYOrdinal = oldCall.getArgList().get(1);
-    final RelDataType argXOrdinalType = getFieldType(oldAggRel.getInput(), argXOrdinal);
-    final RelDataType argYOrdinalType = getFieldType(oldAggRel.getInput(), argYOrdinal);
-    final RelDataType oldCallType = typeFactory.createTypeWithNullability(oldCall.getType(),
-        argXOrdinalType.isNullable() || argYOrdinalType.isNullable());
+    final IntPredicate fieldIsNullable = oldAggRel.getInput()::fieldIsNullable;
+    final RelDataType oldCallType =
+        typeFactory.createTypeWithNullability(oldCall.getType(),
+            fieldIsNullable.test(argXOrdinal)
+                || fieldIsNullable.test(argYOrdinal));
     final RexNode argX = rexBuilder.ensureType(oldCallType, inputExprs.get(argXOrdinal), true);
     final RexNode argY = rexBuilder.ensureType(oldCallType, inputExprs.get(argYOrdinal), true);
     final RexNode argXAndYNotNullFilter = rexBuilder.makeCall(SqlStdOperatorTable.AND,
@@ -772,7 +753,6 @@ public class AggregateReduceFunctionsRule
     final RexNode sumXSumY = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumX, sumY);
     final RexNode countArg = getRegrCountRexNode(oldAggRel, oldCall, newCalls, aggCallMapping,
         ImmutableIntList.of(argXOrdinal, argYOrdinal),
-        ImmutableList.of(argXOrdinalType, argYOrdinalType),
         argXAndYNotNullFilterOrdinal);
     final RexNode result = divide(biased, rexBuilder, sumXY, sumXSumY, countArg);
     return rexBuilder.makeCast(oldCall.getType(), result);
@@ -849,12 +829,6 @@ public class AggregateReduceFunctionsRule
       RelDataType rowType,
       List<RexNode> exprs) {
     relBuilder.project(exprs, rowType.getFieldNames());
-  }
-
-  private static RelDataType getFieldType(RelNode relNode, int i) {
-    final RelDataTypeField inputField =
-        relNode.getRowType().getFieldList().get(i);
-    return inputField.getType();
   }
 
   /** Rule configuration. */

@@ -26,5 +26,5 @@ import org.checkerframework.checker.nullness.qual.*;
  * @param <T> return type
  */
 public class Iterables {
-  <T> T[] toArray(Iterable<? extends @Nullable T> iterable, Class<T> type);
+  public static <T> T[] toArray(Iterable<? extends @Nullable T> iterable, Class<T> type);
 }

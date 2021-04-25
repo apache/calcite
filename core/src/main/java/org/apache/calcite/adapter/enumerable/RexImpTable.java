@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -30,6 +31,7 @@ import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -42,6 +44,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -87,6 +90,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -103,6 +107,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
@@ -137,6 +142,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -341,6 +347,7 @@ public class RexImpTable {
 
   @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
+    defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
@@ -471,18 +478,18 @@ public class RexImpTable {
     map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
 
     // LIKE, ILIKE and SIMILAR
-    final MethodImplementor likeImplementor =
+    map.put(LIKE,
         new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
-            false);
-    map.put(LIKE, likeImplementor);
-    final MethodImplementor ilikeImplementor =
+            false));
+    map.put(ILIKE,
         new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
-            false);
-    map.put(ILIKE, ilikeImplementor);
-    final MethodImplementor similarImplementor =
+            false));
+    map.put(RLIKE,
+        new MethodImplementor(BuiltInMethod.RLIKE.method, NullPolicy.STRICT,
+            false));
+    map.put(SIMILAR_TO,
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
-            false);
-    map.put(SIMILAR_TO, similarImplementor);
+        false));
 
     // POSIX REGEX
     final MethodImplementor posixRegexImplementorCaseSensitive =
@@ -1372,8 +1379,7 @@ public class RexImpTable {
       if (!afi.isStatic) {
         reset.currentBlock().add(
             Expressions.statement(
-                Expressions.assign(acc.get(1),
-                    Expressions.new_(afi.declaringClass))));
+                Expressions.assign(acc.get(1), makeNew(afi))));
       }
       reset.currentBlock().add(
           Expressions.statement(
@@ -1381,6 +1387,31 @@ public class RexImpTable {
                   Expressions.call(afi.isStatic
                       ? null
                       : acc.get(1), afi.initMethod))));
+    }
+
+    private static NewExpression makeNew(AggregateFunctionImpl afi) {
+      try {
+        Constructor<?> constructor = afi.declaringClass.getConstructor();
+        Objects.requireNonNull(constructor, "constructor");
+        return Expressions.new_(afi.declaringClass);
+      } catch (NoSuchMethodException e) {
+        // ignore, and try next constructor
+      }
+      try {
+        Constructor<?> constructor =
+            afi.declaringClass.getConstructor(FunctionContext.class);
+        Objects.requireNonNull(constructor, "constructor");
+        return Expressions.new_(afi.declaringClass,
+            Expressions.call(BuiltInMethod.FUNCTION_CONTEXTS_OF.method,
+                DataContext.ROOT,
+                // TODO: pass in the values of arguments that are literals
+                Expressions.newArrayBounds(Object.class, 1,
+                    Expressions.constant(afi.getParameters().size()))));
+      } catch (NoSuchMethodException e) {
+        // This should never happen: validator should have made sure that the
+        // class had an appropriate constructor.
+        throw new AssertionError("no valid constructor for " + afi);
+      }
     }
 
     @Override protected void implementNotNullAdd(AggContext info,

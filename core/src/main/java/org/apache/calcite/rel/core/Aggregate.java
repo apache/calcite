@@ -155,7 +155,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     super(cluster, traitSet, input);
     this.hints = ImmutableList.copyOf(hints);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
-    this.groupSet = Objects.requireNonNull(groupSet);
+    this.groupSet = Objects.requireNonNull(groupSet, "groupSet");
     if (groupSets == null) {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
@@ -315,7 +315,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
   /**
    * Returns the list of grouping sets computed by this Aggregate.
    *
-   * @return List of all grouping sets; null for just {@code groupSet}
+   * @return List of all grouping sets
    */
   public ImmutableList<ImmutableBitSet> getGroupSets() {
     return groupSets;

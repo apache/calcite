@@ -116,6 +116,12 @@ public class CoreRules {
       AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN =
       AggregateExpandDistinctAggregatesRule.Config.JOIN.toRule();
 
+  /** Rule that rewrites a {@link LogicalAggregate} that contains
+   * {@code WITHIN DISTINCT} aggregate functions to one that does not. */
+  public static final AggregateExpandWithinDistinctRule
+      AGGREGATE_EXPAND_WITHIN_DISTINCT =
+      AggregateExpandWithinDistinctRule.Config.DEFAULT.toRule();
+
   /** Rule that matches an {@link Aggregate}
    * on a {@link Filter} and transposes them,
    * pushing the aggregate below the filter. */

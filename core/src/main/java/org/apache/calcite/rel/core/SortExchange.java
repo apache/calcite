@@ -57,7 +57,7 @@ public abstract class SortExchange extends Exchange {
   protected SortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution);
-    this.collation = Objects.requireNonNull(collation);
+    this.collation = Objects.requireNonNull(collation, "collation");
 
     assert traitSet.containsIfApplicable(collation)
         : "traits=" + traitSet + ", collation=" + collation;

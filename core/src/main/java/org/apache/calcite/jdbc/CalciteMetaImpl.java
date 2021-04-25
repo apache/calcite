@@ -46,8 +46,13 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -165,7 +170,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    requireNonNull(names);
+    requireNonNull(names, "names");
     final List<ColumnMetaData> columns = new ArrayList<>(names.length);
     final List<Field> fields = new ArrayList<>(names.length);
     final List<String> fieldNames = new ArrayList<>(names.length);
@@ -187,14 +192,6 @@ public class CalciteMetaImpl extends MetaImpl {
     return createResultSet(Collections.emptyMap(),
         columns, CursorFactory.record(clazz, fields, fieldNames),
         new Frame(0, true, iterable));
-  }
-
-  @Override protected <E> MetaResultSet
-  createEmptyResultSet(final Class<E> clazz) {
-    final List<ColumnMetaData> columns = fieldMetaData(clazz).columns;
-    final CursorFactory cursorFactory = CursorFactory.deduce(columns, clazz);
-    return createResultSet(Collections.emptyMap(), columns,
-        cursorFactory, Frame.EMPTY);
   }
 
   @Override protected MetaResultSet createResultSet(
@@ -502,6 +499,70 @@ public class CalciteMetaImpl extends MetaImpl {
         "TABLE_TYPE");
   }
 
+  @Override public MetaResultSet getFunctions(ConnectionHandle ch,
+      String catalog,
+      Pat schemaPattern,
+      Pat functionNamePattern) {
+    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
+    return createResultSet(schemas(catalog)
+            .where(schemaMatcher)
+            .selectMany(schema -> functions(schema, catalog, matcher(functionNamePattern)))
+            .orderBy(x ->
+                (Comparable) FlatLists.of(
+                    x.functionCat, x.functionSchem, x.functionName, x.specificName
+                )),
+        MetaFunction.class,
+        "FUNCTION_CAT",
+        "FUNCTION_SCHEM",
+        "FUNCTION_NAME",
+        "REMARKS",
+        "FUNCTION_TYPE",
+        "SPECIFIC_NAME");
+  }
+
+  Enumerable<MetaFunction> functions(final MetaSchema schema_, final String catalog) {
+    final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
+    Enumerable<MetaFunction> opTableFunctions = Linq4j.emptyEnumerable();
+    if (schema.calciteSchema.schema.equals(MetadataSchema.INSTANCE)) {
+      SqlOperatorTable opTable = getConnection().config()
+          .fun(SqlOperatorTable.class, SqlStdOperatorTable.instance());
+      List<SqlOperator> q = opTable.getOperatorList();
+      opTableFunctions = Linq4j.asEnumerable(q)
+          .where(op -> SqlKind.FUNCTION.contains(op.getKind()))
+          .select(op ->
+              new MetaFunction(
+                  catalog,
+                  schema.getName(),
+                  op.getName(),
+                  (short) DatabaseMetaData.functionResultUnknown,
+                  op.getName()
+              )
+          );
+    }
+    return Linq4j.asEnumerable(schema.calciteSchema.getFunctionNames())
+        .selectMany(name ->
+            Linq4j.asEnumerable(schema.calciteSchema.getFunctions(name, true))
+                //exclude materialized views from the result set
+                .where(fn -> !(fn instanceof MaterializedViewTable.MaterializedViewTableMacro))
+                .select(fnx ->
+                    new MetaFunction(
+                        catalog,
+                        schema.getName(),
+                        name,
+                        (short) DatabaseMetaData.functionResultUnknown,
+                        name
+                    )
+                )
+        )
+        .concat(opTableFunctions);
+  }
+
+  Enumerable<MetaFunction> functions(final MetaSchema schema, final String catalog,
+      final Predicate1<String> functionNameMatcher) {
+    return functions(schema, catalog)
+        .where(v1 -> functionNameMatcher.apply(v1.functionName));
+  }
+
   @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
       Signature signature, @Nullable List<TypedValue> parameterValues, @Nullable Frame firstFrame) {
     // Drop QueryState
@@ -752,7 +813,7 @@ public class CalciteMetaImpl extends MetaImpl {
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);
-      this.calciteTable = requireNonNull(calciteTable);
+      this.calciteTable = requireNonNull(calciteTable, "calciteTable");
     }
   }
 

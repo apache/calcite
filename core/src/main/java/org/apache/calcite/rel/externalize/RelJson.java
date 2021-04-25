@@ -250,39 +250,66 @@ public class RelJson {
     } else if (o instanceof Map) {
       @SuppressWarnings("unchecked")
       final Map<String, Object> map = (Map<String, Object>) o;
-      final Object fields = map.get("fields");
-      if (fields != null) {
-        // Nested struct
-        return toType(typeFactory, fields);
-      } else {
-        final SqlTypeName sqlTypeName =
-            enumVal(SqlTypeName.class, map, "type");
-        final Integer precision = (Integer) map.get("precision");
-        final Integer scale = (Integer) map.get("scale");
-        if (SqlTypeName.INTERVAL_TYPES.contains(sqlTypeName)) {
-          TimeUnit startUnit = sqlTypeName.getStartUnit();
-          TimeUnit endUnit = sqlTypeName.getEndUnit();
-          return typeFactory.createSqlIntervalType(
-              new SqlIntervalQualifier(startUnit, endUnit, SqlParserPos.ZERO));
-        }
-        final RelDataType type;
-        if (sqlTypeName == SqlTypeName.ARRAY) {
-          type = typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
-        } else if (precision == null) {
-          type = typeFactory.createSqlType(sqlTypeName);
-        } else if (scale == null) {
-          type = typeFactory.createSqlType(sqlTypeName, precision);
-        } else {
-          type = typeFactory.createSqlType(sqlTypeName, precision, scale);
-        }
-        final boolean nullable = get(map, "nullable");
-        return typeFactory.createTypeWithNullability(type, nullable);
-      }
+      final RelDataType type = getRelDataType(typeFactory, map);
+      final boolean nullable = get(map, "nullable");
+      return typeFactory.createTypeWithNullability(type, nullable);
     } else {
       final SqlTypeName sqlTypeName = requireNonNull(
           Util.enumVal(SqlTypeName.class, (String) o),
           () -> "unable to find enum value " + o + " in class " + SqlTypeName.class);
       return typeFactory.createSqlType(sqlTypeName);
+    }
+  }
+
+  private RelDataType getRelDataType(RelDataTypeFactory typeFactory, Map<String, Object> map) {
+    final Object fields = map.get("fields");
+    if (fields != null) {
+      // Nested struct
+      return toType(typeFactory, fields);
+    }
+    final SqlTypeName sqlTypeName =
+        enumVal(SqlTypeName.class, map, "type");
+    final Object component;
+    final RelDataType componentType;
+    switch (sqlTypeName) {
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      TimeUnit startUnit = sqlTypeName.getStartUnit();
+      TimeUnit endUnit = sqlTypeName.getEndUnit();
+      return typeFactory.createSqlIntervalType(
+          new SqlIntervalQualifier(startUnit, endUnit, SqlParserPos.ZERO));
+
+    case ARRAY:
+      component = requireNonNull(map.get("component"), "component");
+      componentType = toType(typeFactory, component);
+      return typeFactory.createArrayType(componentType, -1);
+
+    case MULTISET:
+      component = requireNonNull(map.get("component"), "component");
+      componentType = toType(typeFactory, component);
+      return typeFactory.createMultisetType(componentType, -1);
+
+    default:
+      final Integer precision = (Integer) map.get("precision");
+      final Integer scale = (Integer) map.get("scale");
+      if (precision == null) {
+        return typeFactory.createSqlType(sqlTypeName);
+      } else if (scale == null) {
+        return typeFactory.createSqlType(sqlTypeName, precision);
+      } else {
+        return typeFactory.createSqlType(sqlTypeName, precision, scale);
+      }
     }
   }
 
@@ -345,24 +372,28 @@ public class RelJson {
   }
 
   private Object toJson(RelDataType node) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
     if (node.isStruct()) {
       final List<@Nullable Object> list = jsonBuilder().list();
       for (RelDataTypeField field : node.getFieldList()) {
         list.add(toJson(field));
       }
-      return list;
+      map.put("fields", list);
+      map.put("nullable", node.isNullable());
     } else {
-      final Map<String, @Nullable Object> map = jsonBuilder().map();
       map.put("type", node.getSqlTypeName().name());
       map.put("nullable", node.isNullable());
+      if (node.getComponentType() != null) {
+        map.put("component", toJson(node.getComponentType()));
+      }
       if (node.getSqlTypeName().allowsPrec()) {
         map.put("precision", node.getPrecision());
       }
       if (node.getSqlTypeName().allowsScale()) {
         map.put("scale", node.getScale());
       }
-      return map;
     }
+    return map;
   }
 
   private Object toJson(RelDataTypeField node) {

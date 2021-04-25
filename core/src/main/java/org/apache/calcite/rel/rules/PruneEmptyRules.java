@@ -329,7 +329,7 @@ public abstract class PruneEmptyRules {
           .withOperandFor(clazz, predicate));
     }
 
-    @SuppressWarnings("Guava")
+    @SuppressWarnings({"Guava", "UnnecessaryMethodReference"})
     @Deprecated // to be removed before 2.0
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         com.google.common.base.Predicate<R> predicate,

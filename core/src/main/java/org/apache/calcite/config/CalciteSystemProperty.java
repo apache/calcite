@@ -242,6 +242,23 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.redis", true);
 
   /**
+   * Whether to use Docker containers (https://www.testcontainers.org/) in tests.
+   *
+   * If the property is set to <code>true</code>, affected tests will attempt to start Docker
+   * containers; when Docker is not available tests fallback to other execution modes and if it's
+   * not possible they are skipped entirely.
+   *
+   * If the property is set to <code>false</code>, Docker containers are not used at all and
+   * affected tests either fallback to other execution modes or skipped entirely.
+   *
+   * Users can override the default behavior to force non-Dockerized execution even when Docker
+   * is installed on the machine; this can be useful for replicating an issue that appears only in
+   * non-docker test mode or for running tests both with and without containers in CI.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_WITH_DOCKER_CONTAINER =
+      booleanProperty("calcite.test.docker", true);
+
+  /**
    * A list of ids designating the queries
    * (from query.json in new.hydromatic:foodmart-queries:0.4.1)
    * that should be run as part of FoodmartTest.
@@ -251,7 +268,7 @@ public final class CalciteSystemProperty<T> {
   // calcite.test.foodmart.queries.ids. Moreover, I am not in favor of using system properties for
   // parameterized tests.
   public static final CalciteSystemProperty<@Nullable String> TEST_FOODMART_QUERY_IDS =
-      new CalciteSystemProperty<>("calcite.ids", Function.identity());
+      new CalciteSystemProperty<>("calcite.ids", Function.<@Nullable String>identity());
 
   /**
    * Whether the optimizer will consider adding converters of infinite cost in

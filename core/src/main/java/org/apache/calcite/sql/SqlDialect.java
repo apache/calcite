@@ -1304,8 +1304,8 @@ public class SqlDialect {
     @SuppressWarnings("argument.type.incompatible")
     DatabaseProduct(String databaseProductName, @Nullable String quoteString,
         NullCollation nullCollation) {
-      Objects.requireNonNull(databaseProductName);
-      Objects.requireNonNull(nullCollation);
+      Objects.requireNonNull(databaseProductName, "databaseProductName");
+      Objects.requireNonNull(nullCollation, "nullCollation");
       // Note: below lambda accesses uninitialized DatabaseProduct.this, so it might be
       // worth refactoring
       dialect = Suppliers.memoize(() -> {
@@ -1403,7 +1403,7 @@ public class SqlDialect {
         SqlConformance conformance, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
         JethroDataSqlDialect.JethroInfo jethroInfo) {
-      this.databaseProduct = Objects.requireNonNull(databaseProduct);
+      this.databaseProduct = Objects.requireNonNull(databaseProduct, "databaseProduct");
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
       this.databaseMajorVersion = databaseMajorVersion;
@@ -1411,13 +1411,13 @@ public class SqlDialect {
       this.literalQuoteString = literalQuoteString;
       this.literalEscapedQuoteString = literalEscapedQuoteString;
       this.identifierQuoteString = identifierQuoteString;
-      this.quotedCasing = Objects.requireNonNull(quotedCasing);
-      this.unquotedCasing = Objects.requireNonNull(unquotedCasing);
+      this.quotedCasing = Objects.requireNonNull(quotedCasing, "quotedCasing");
+      this.unquotedCasing = Objects.requireNonNull(unquotedCasing, "unquotedCasing");
       this.caseSensitive = caseSensitive;
-      this.conformance = Objects.requireNonNull(conformance);
-      this.nullCollation = Objects.requireNonNull(nullCollation);
-      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem);
-      this.jethroInfo = Objects.requireNonNull(jethroInfo);
+      this.conformance = Objects.requireNonNull(conformance, "conformance");
+      this.nullCollation = Objects.requireNonNull(nullCollation, "nullCollation");
+      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem, "dataTypeSystem");
+      this.jethroInfo = Objects.requireNonNull(jethroInfo, "jethroInfo");
     }
 
     @Override public DatabaseProduct databaseProduct() {

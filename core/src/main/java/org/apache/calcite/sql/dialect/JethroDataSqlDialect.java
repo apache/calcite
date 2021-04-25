@@ -128,7 +128,7 @@ public class JethroDataSqlDialect extends SqlDialect {
     private final List<SqlTypeName> operandTypes;
 
     JethroSupportedFunction(String name, String operands) {
-      Objects.requireNonNull(name); // not currently used
+      Objects.requireNonNull(name, "name"); // not currently used
       final ImmutableList.Builder<SqlTypeName> b = ImmutableList.builder();
       for (String strType : operands.split(":")) {
         b.add(parse(strType));

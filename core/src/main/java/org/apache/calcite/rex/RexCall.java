@@ -75,15 +75,15 @@ public class RexCall extends RexNode {
 
   protected RexCall(
       RelDataType type,
-      SqlOperator op,
+      SqlOperator operator,
       List<? extends RexNode> operands) {
     this.type = requireNonNull(type, "type");
-    this.op = requireNonNull(op, "operator");
+    this.op = requireNonNull(operator, "operator");
     this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
-    assert op.getKind() != null : op;
-    assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
-    assert op.kind != SqlKind.IN || this instanceof RexSubQuery;
+    assert operator.getKind() != null : operator;
+    assert operator.validRexOperands(operands.size(), Litmus.THROW) : this;
+    assert operator.kind != SqlKind.IN || this instanceof RexSubQuery;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -214,7 +214,8 @@ public class RexCall extends RexNode {
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isAll()
-          && (sarg.containsNull || !operands.get(0).getType().isNullable());
+          && (sarg.nullAs == RexUnknownAs.TRUE
+              || !operands.get(0).getType().isNullable());
     default:
       return false;
     }
@@ -235,7 +236,8 @@ public class RexCall extends RexNode {
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isNone()
-          && (!sarg.containsNull || !operands.get(0).getType().isNullable());
+          && (sarg.nullAs == RexUnknownAs.FALSE
+              || !operands.get(0).getType().isNullable());
     default:
       return false;
     }

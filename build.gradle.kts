@@ -43,6 +43,7 @@ plugins {
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false
+    id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
     // IDE configuration
@@ -53,6 +54,7 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.license-gather") apply false
     id("com.github.vlsi.stage-vote-release")
+    id("com.autonomousapps.dependency-analysis") apply false
 }
 
 repositories {
@@ -68,6 +70,8 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
+val enableDependencyAnalysis by props()
+val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -228,6 +232,26 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
                 }
             }
         )
+    }
+}
+
+if (enableDependencyAnalysis) {
+    apply(plugin = "com.autonomousapps.dependency-analysis")
+    configure<com.autonomousapps.DependencyAnalysisExtension> {
+        // See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin
+        // Most of the time the recommendations are good, however, there are cases the suggestsions
+        // are off, so we don't include the dependency analysis to CI workflow yet
+        // ./gradlew -PenableDependencyAnalysis buildHealth --no-parallel --no-daemon
+        issues {
+            all { // all projects
+                onAny {
+                    severity("fail")
+                }
+                onRedundantPlugins {
+                    severity("ignore")
+                }
+            }
+        }
     }
 }
 
@@ -431,6 +455,11 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
+        configure<JavaPluginExtension> {
+            consistentResolution {
+                useCompileClasspathVersions()
+            }
+        }
 
         repositories {
             if (enableMavenLocal) {
@@ -442,6 +471,15 @@ allprojects {
 
         apply(plugin = "de.thetaphi.forbiddenapis")
         apply(plugin = "maven-publish")
+
+        if (!skipJandex) {
+            apply(plugin = "com.github.vlsi.jandex")
+
+            project.configure<com.github.vlsi.jandex.JandexExtension> {
+                toolVersion.set("jandex".v)
+                skipIndexFileGeneration()
+            }
+        }
 
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
@@ -498,6 +536,7 @@ allprojects {
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
                     replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
+                    replaceRegex("require message for requireNonNull", """(?<!#)requireNonNull\(\s*(\w+)\s*(?:,\s*"(?!\1")\w+"\s*)?\)""", "requireNonNull($1, \"$1\")")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
@@ -535,6 +574,7 @@ allprojects {
 
         configure<CheckForbiddenApisExtension> {
             failOnUnsupportedJava = false
+            ignoreSignaturesOfMissingClasses = true
             bundledSignatures.addAll(
                 listOf(
                     "jdk-unsafe",
@@ -570,6 +610,7 @@ allprojects {
                     // Analyze issues, and enable the check
                     disable(
                         "BigDecimalEquals",
+                        "DoNotCallSuggester",
                         "StringSplitter"
                     )
                 }
@@ -635,7 +676,8 @@ allprojects {
                     "**/org/apache/calcite/runtime/Resources${'$'}Inst.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class",
                     "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript${'$'}ShellCommand.class",
-                    "**/org/apache/calcite/util/Unsafe.class"
+                    "**/org/apache/calcite/util/Unsafe.class",
+                    "**/org/apache/calcite/test/Unsafe.class"
                 )
             }
 

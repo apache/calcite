@@ -3852,6 +3852,43 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab\ncd\nef' not like '%cde%'", Boolean.TRUE);
   }
 
+  @Test void testRlikeOperator() {
+    checkRlike(SqlLibrary.SPARK);
+    checkRlike(SqlLibrary.HIVE);
+    checkRlikeFails(SqlLibrary.MYSQL);
+    checkRlikeFails(SqlLibrary.ORACLE);
+  }
+
+  void checkRlike(SqlLibrary library) {
+    final SqlTester tester1 = libraryTester(library);
+    tester1.setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike '.+@*\\.com'", Boolean.TRUE);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike '.com$'", Boolean.TRUE);
+    tester1.checkBoolean("'acbd' rlike '^ac+'", Boolean.TRUE);
+    tester1.checkBoolean("'acb' rlike 'acb|efg'", Boolean.TRUE);
+    tester1.checkBoolean("'acb|efg' rlike 'acb\\|efg'", Boolean.TRUE);
+    tester1.checkBoolean("'Acbd' rlike '^ac+'", Boolean.FALSE);
+    tester1.checkBoolean("'Merrisa@gmail.com' rlike 'Merrisa_'", Boolean.FALSE);
+    tester1.checkBoolean("'abcdef' rlike '%cd%'", Boolean.FALSE);
+
+    tester1.setFor(SqlLibraryOperators.NOT_RLIKE, VM_EXPAND);
+    tester1.checkBoolean("'Merrisagmail' not rlike '.+@*\\.com'", Boolean.TRUE);
+    tester1.checkBoolean("'acbd' not rlike '^ac+'", Boolean.FALSE);
+    tester1.checkBoolean("'acb|efg' not rlike 'acb\\|efg'", Boolean.FALSE);
+    tester1.checkBoolean("'Merrisa@gmail.com' not rlike 'Merrisa_'", Boolean.TRUE);
+  }
+
+  void checkRlikeFails(SqlLibrary library) {
+    final SqlTester tester1 = libraryTester(library);
+    tester1.setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    final String noRlike = "(?s).*No match found for function signature RLIKE";
+    tester1.checkFails("^'Merrisa@gmail.com' rlike '.+@*\\.com'^", noRlike, false);
+    tester1.checkFails("^'acb' rlike 'acb|efg'^", noRlike, false);
+    final String noNotRlike = "(?s).*No match found for function signature NOT RLIKE";
+    tester1.checkFails("^'abcdef' not rlike '%cd%'^", noNotRlike, false);
+    tester1.checkFails("^'Merrisa@gmail.com' not rlike 'Merrisa_'^", noNotRlike, false);
+  }
+
   @Test void testLikeEscape() {
     tester.setFor(SqlStdOperatorTable.LIKE);
     tester.checkBoolean("'a_c' like 'a#_c' escape '#'", Boolean.TRUE);
@@ -7422,6 +7459,43 @@ public abstract class SqlOperatorBaseTest {
         false);
     t.checkAggFails("^string_agg(x, ',' order by x desc)^", values,
         "No match found for function signature STRING_AGG\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+  }
+
+  @Test void testGroupConcatFunc() {
+    checkGroupConcatFunc(libraryTester(SqlLibrary.MYSQL));
+    checkGroupConcatFuncFails(libraryTester(SqlLibrary.BIG_QUERY));
+    checkGroupConcatFuncFails(libraryTester(SqlLibrary.POSTGRESQL));
+  }
+
+  private void checkGroupConcatFunc(SqlTester t) {
+    final String[] values = {"'x'", "null", "'yz'"};
+    t.checkAgg("group_concat(x)", values, "x,yz", 0);
+    t.checkAgg("group_concat(x,':')", values, "x:yz", 0);
+    t.checkAgg("group_concat(x,':' order by x)", values, "x:yz", 0);
+    t.checkAgg("group_concat(x order by x separator '|')", values, "x|yz", 0);
+    t.checkAgg("group_concat(x order by char_length(x) desc)", values,
+        "yz,x", 0);
+    t.checkAggFails("^group_concat(x respect nulls order by x desc)^", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
+        false);
+    t.checkAggFails("^group_concat(x order by x desc)^ respect nulls", values,
+        "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
+        false);
+  }
+
+  private void checkGroupConcatFuncFails(SqlTester t) {
+    final String[] values = {"'x'", "'y'"};
+    t.checkAggFails("^group_concat(x)^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^group_concat(x, ',')^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>, "
+            + "<CHARACTER>\\)",
+        false);
+    t.checkAggFails("^group_concat(x, ',' order by x desc)^", values,
+        "No match found for function signature GROUP_CONCAT\\(<CHARACTER>, "
             + "<CHARACTER>\\)",
         false);
   }

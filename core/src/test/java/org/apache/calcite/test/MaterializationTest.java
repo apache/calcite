@@ -29,6 +29,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.test.JdbcTest.Department;
+import org.apache.calcite.test.JdbcTest.DepartmentPlus;
 import org.apache.calcite.test.JdbcTest.Dependent;
 import org.apache.calcite.test.JdbcTest.Employee;
 import org.apache.calcite.test.JdbcTest.Event;
@@ -401,6 +402,14 @@ public class MaterializationTest {
         new Department(30, "Marketing", ImmutableList.of(),
             new Location(0, 52)),
         new Department(20, "HR", Collections.singletonList(emps[1]), null),
+    };
+    public final DepartmentPlus[] depts2 = {
+        new DepartmentPlus(10, "Sales", Arrays.asList(emps[0], emps[2], emps[3]),
+            new Location(-122, 38), new Timestamp(0)),
+        new DepartmentPlus(30, "Marketing", ImmutableList.of(),
+            new Location(0, 52), new Timestamp(0)),
+        new DepartmentPlus(20, "HR", Collections.singletonList(emps[1]),
+            null, new Timestamp(0)),
     };
     public final Dependent[] dependents = {
         new Dependent(10, "Michael"),

@@ -420,6 +420,11 @@ public interface RelNode extends RelOptNode, Cloneable {
    */
   RelNode accept(RexShuttle shuttle);
 
+  /** Returns whether a field is nullable. */
+  default boolean fieldIsNullable(int i) {
+    return getRowType().getFieldList().get(i).getType().isNullable();
+  }
+
   /** Context of a relational expression, for purposes of checking validity. */
   interface Context {
     Set<CorrelationId> correlationIds();

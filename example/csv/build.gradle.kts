@@ -23,14 +23,12 @@ dependencies {
     api(project(":core"))
     api(project(":file"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
-    implementation("commons-io:commons-io")
-    implementation("net.sf.opencsv:opencsv")
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.apache.commons:commons-lang3")
 
     testImplementation("sqlline:sqlline")
     testImplementation(project(":core", "testClasses"))

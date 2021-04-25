@@ -53,8 +53,12 @@ public class JoinNode implements Node {
 
   }
 
-  @Override public void run() throws InterruptedException {
+  @Override public void close() {
+    leftSource.close();
+    rightSource.close();
+  }
 
+  @Override public void run() throws InterruptedException {
     final int fieldCount = rel.getLeft().getRowType().getFieldCount()
         + rel.getRight().getRowType().getFieldCount();
     context.values = new Object[fieldCount];

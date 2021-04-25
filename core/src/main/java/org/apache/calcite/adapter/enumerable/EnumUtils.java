@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -55,6 +56,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -62,6 +64,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.Collator;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
@@ -72,6 +77,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -775,8 +782,8 @@ public class EnumUtils {
                 implementor.getTypeFactory(),
                 builder,
                 new RexToLixTranslator.InputGetterImpl(
-                    ImmutableList.of(Pair.of(left_, leftPhysType),
-                        Pair.of(right_, rightPhysType))),
+                    ImmutableMap.of(left_, leftPhysType,
+                        right_, rightPhysType)),
                 implementor.allCorrelateVariables,
                 implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
@@ -1139,5 +1146,62 @@ public class EnumUtils {
             Expressions.constant(locale.getCountry()),
             Expressions.constant(locale.getVariant())),
         Expressions.constant(strength));
+  }
+
+  /** Returns a function that converts an internal value to an external
+   * value.
+   *
+   * <p>Datetime values' internal representations have no time zone,
+   * and their external values are moments (relative to UTC epoch),
+   * so the {@code timeZone} parameter supplies the implicit time zone of
+   * the internal representation. If you specify the local time zone of the
+   * JVM, then {@link Timestamp#toString}, {@link Date#toString()}, and
+   * {@link Time#toString()} on the external values will give a value
+   * consistent with the internal values. */
+  public static Function<Object, Object> toExternal(RelDataType type,
+      TimeZone timeZone) {
+    switch (type.getSqlTypeName()) {
+    case DATE:
+      return o -> {
+        int d = (Integer) o;
+        long v = d * DateTimeUtils.MILLIS_PER_DAY;
+        v -= timeZone.getOffset(v);
+        return new Date(v);
+      };
+    case TIME:
+      return o -> {
+        long v = (Integer) o;
+        v -= timeZone.getOffset(v);
+        return new Time(v % DateTimeUtils.MILLIS_PER_DAY);
+      };
+    case TIMESTAMP:
+      return o -> {
+        long v = (Long) o;
+        v -= timeZone.getOffset(v);
+        return new Timestamp(v);
+      };
+    default:
+      return Function.identity();
+    }
+  }
+
+  /** Returns a function that converts an array of internal values to
+   * a list of external values. */
+  @SuppressWarnings("unchecked")
+  public static Function<@Nullable Object[], List<@Nullable Object>> toExternal(
+      List<RelDataType> types, TimeZone timeZone) {
+    final Function<Object, Object>[] functions = new Function[types.size()];
+    for (int i = 0; i < types.size(); i++) {
+      functions[i] = toExternal(types.get(i), timeZone);
+    }
+    final @Nullable Object[] objects = new @Nullable Object[types.size()];
+    return values -> {
+      for (int i = 0; i < values.length; i++) {
+        objects[i] = values[i] == null
+            ? null
+            : functions[i].apply(values[i]);
+      }
+      return Arrays.asList(objects.clone());
+    };
   }
 }

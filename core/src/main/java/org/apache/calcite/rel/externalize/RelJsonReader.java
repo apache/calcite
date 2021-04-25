@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.Schema;
@@ -88,6 +89,17 @@ public class RelJsonReader {
     final List<Map<String, Object>> rels = (List) requireNonNull(o.get("rels"), "rels");
     readRels(rels);
     return requireNonNull(lastRel, "lastRel");
+  }
+
+  /** Converts a JSON string (such as that produced by
+   * {@link RelJson#toJson(Object)}) into a Calcite type. */
+  public static RelDataType readType(RelDataTypeFactory typeFactory, String s)
+      throws IOException {
+    final ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> o = mapper
+        .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+        .readValue(s, TYPE_REF);
+    return new RelJson(null).toType(typeFactory, o);
   }
 
   private void readRels(List<Map<String, Object>> jsonRels) {
@@ -309,8 +321,7 @@ public class RelJsonReader {
     final String name = (String) jsonAggCall.get("name");
     return AggregateCall.create(aggregation, distinct, false, false, operands,
         filterOperand == null ? -1 : filterOperand,
-        RelCollations.EMPTY,
-        type, name);
+        null, RelCollations.EMPTY, type, name);
   }
 
   private RelNode lookupInput(String jsonInput) {

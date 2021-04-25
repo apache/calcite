@@ -54,6 +54,7 @@ import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWithinDistinctOperator;
 import org.apache.calcite.sql.SqlWithinGroupOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -197,6 +198,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** <code>WITHIN_GROUP</code> operator performs aggregations on ordered data input. */
   public static final SqlWithinGroupOperator WITHIN_GROUP = new SqlWithinGroupOperator();
+
+  /** <code>WITHIN_DISTINCT</code> operator performs aggregations on distinct
+   * data input. */
+  public static final SqlWithinDistinctOperator WITHIN_DISTINCT =
+      new SqlWithinDistinctOperator();
 
   /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */

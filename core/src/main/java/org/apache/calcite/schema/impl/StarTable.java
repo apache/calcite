@@ -68,7 +68,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
-    this.lattice = Objects.requireNonNull(lattice);
+    this.lattice = Objects.requireNonNull(lattice, "lattice");
     this.tables = tables;
   }
 

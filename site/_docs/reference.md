@@ -624,6 +624,7 @@ GRANTED,
 **GROUP**,
 **GROUPING**,
 **GROUPS**,
+GROUP_CONCAT,
 **HAVING**,
 HIERARCHY,
 **HOLD**,
@@ -858,6 +859,7 @@ RETURNING,
 **RETURNS**,
 **REVOKE**,
 **RIGHT**,
+RLIKE,
 ROLE,
 **ROLLBACK**,
 **ROLLUP**,
@@ -889,6 +891,7 @@ SECURITY,
 **SELECT**,
 SELF,
 **SENSITIVE**,
+SEPARATOR,
 SEQUENCE,
 SERIALIZABLE,
 SERVER,
@@ -1794,7 +1797,8 @@ Syntax:
 {% highlight sql %}
 aggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+      [ WITHIN DISTINCT '(' expression [, expression ]* ')' ]
+      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
       [ FILTER '(' WHERE condition ')' ]
   |   agg '(' '*' ')' [ FILTER (WHERE condition) ]
 {% endhighlight %}
@@ -1807,6 +1811,9 @@ If `FILTER` is present, the aggregate function only considers rows for which
 
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
+
+If `WITHIN DISTINCT` is present, argument values are made distinct within
+each value of specified keys before being passed to the aggregate function.
 
 If `WITHIN GROUP` is present, the aggregate function sorts the input rows
 according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating
@@ -2527,6 +2534,8 @@ semantics.
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
+| h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
+| h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
@@ -2579,6 +2588,7 @@ Dialect-specific aggregate functions.
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`
 | p | BOOL_OR(condition)                             | Synonym for `SOME`
 | b | COUNTIF(condition)                             | Returns the number of rows for which *condition* is TRUE; equivalent to `COUNT(*) FILTER (WHERE condition)`
+| m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`

@@ -124,7 +124,7 @@ public class RelOptRuleOperand {
       assert children.size() > 0;
     }
     this.childPolicy = childPolicy;
-    this.clazz = Objects.requireNonNull(clazz);
+    this.clazz = Objects.requireNonNull(clazz, "clazz");
     this.trait = trait;
     //noinspection unchecked
     this.predicate = Objects.requireNonNull((Predicate) predicate);

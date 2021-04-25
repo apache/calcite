@@ -68,6 +68,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -455,10 +456,10 @@ class RelWriterTest {
                   null,
                   ImmutableList.of(
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          true, false, false, ImmutableList.of(1), -1,
+                          true, false, false, ImmutableList.of(1), -1, null,
                           RelCollations.EMPTY, bigIntType, "c"),
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          false, false, false, ImmutableList.of(), -1,
+                          false, false, false, ImmutableList.of(), -1, null,
                           RelCollations.EMPTY, bigIntType, "d")));
           aggregate.explain(writer);
           return writer.asString();
@@ -760,7 +761,7 @@ class RelWriterTest {
   void testCorrelateQuery(SqlExplainFormat format) {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
-    final Holder<RexCorrelVariable> v = Holder.of(null);
+    final Holder<RexCorrelVariable> v = Holder.empty();
     RelNode relNode = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")
@@ -923,7 +924,7 @@ class RelWriterTest {
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
    * in this plan, or null if there are no scans. */
   private RelOptSchema getSchema(RelNode rel) {
-    final Holder<RelOptSchema> schemaHolder = Holder.of(null);
+    final Holder<@Nullable RelOptSchema> schemaHolder = Holder.empty();
     rel.accept(
         new RelShuttleImpl() {
           @Override public RelNode visit(TableScan scan) {

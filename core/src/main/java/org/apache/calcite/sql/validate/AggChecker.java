@@ -107,8 +107,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlQualified fqId = requireNonNull(scopes.peek(), "scopes.peek()")
-        .fullyQualify(id);
+    final SqlQualified fqId = scopes.getFirst().fullyQualify(id);
     if (isGroupExpr(fqId.identifier)) {
       return null;
     }
@@ -157,6 +156,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     case WITHIN_GROUP:
     case RESPECT_NULLS:
     case IGNORE_NULLS:
+    case WITHIN_DISTINCT:
       call.operand(0).accept(this);
       return null;
     default:

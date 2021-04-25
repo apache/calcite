@@ -324,7 +324,7 @@ public class SqlValidatorTestCase {
      * Checks that a SQL expression gives a particular error.
      */
     Sql fails(String expected) {
-      Objects.requireNonNull(expected);
+      Objects.requireNonNull(expected, "expected");
       tester.assertExceptionIsThrown(toSql(true), expected);
       return this;
     }

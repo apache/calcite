@@ -30,7 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.

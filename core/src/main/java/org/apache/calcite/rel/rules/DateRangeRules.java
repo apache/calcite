@@ -287,10 +287,10 @@ public abstract class DateRangeRules {
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<RexNode, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
-      this.rexBuilder = requireNonNull(rexBuilder);
-      this.timeUnit = requireNonNull(timeUnit);
-      this.operandRanges = requireNonNull(operandRanges);
-      this.timeUnitRanges = requireNonNull(timeUnitRanges);
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
+      this.timeUnit = requireNonNull(timeUnit, "timeUnit");
+      this.operandRanges = requireNonNull(operandRanges, "operandRanges");
+      this.timeUnitRanges = requireNonNull(timeUnitRanges, "timeUnitRanges");
       this.timeZone = timeZone;
     }
 
@@ -396,7 +396,7 @@ public abstract class DateRangeRules {
       if (exprs.isEmpty()) {
         return ImmutableList.of(); // a bit more efficient
       }
-      switch (requireNonNull(calls.peek(), "calls.peek()").getKind()) {
+      switch (calls.getFirst().getKind()) {
       case AND:
         return super.visitList(exprs, update);
       default:

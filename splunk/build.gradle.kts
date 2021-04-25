@@ -17,11 +17,11 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("com.google.guava:guava")
+    api("org.apache.calcite.avatica:avatica-core")
+    api("org.slf4j:slf4j-api")
 
-    implementation("com.google.guava:guava")
     implementation("net.sf.opencsv:opencsv")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")

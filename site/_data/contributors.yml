@@ -161,6 +161,11 @@
   githubId: laurentgo
   org: Dremio
   role: PMC
+- name: Liya Fan
+  apacheId: liyafan
+  githubId: liyafan82
+  org: Alibaba
+  role: Committer
 - name: Maryann Xue
   apacheId: maryannxue
   githubId: maryannxue

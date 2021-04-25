@@ -105,6 +105,17 @@ class PigRelOpTest extends PigRelTestBase {
       }
     }
 
+    private Fluent assertSql(Matcher<String> sqlMatcher, int pos) {
+      try {
+        final String sql =
+            converter.pigToSql(script, PigRelSqlDialect.DEFAULT).get(pos);
+        assertThat(sql, sqlMatcher);
+        return this;
+      } catch (IOException e) {
+        throw TestUtil.rethrow(e);
+      }
+    }
+
     private Fluent assertResult(Matcher<String> resultMatcher) {
       final RelNode rel;
       try {
@@ -1142,7 +1153,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "  LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     final String optimizedPlan = ""
-        + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
+        + "LogicalProject(rank_B=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
         + "aggs [RANK()])])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
@@ -1150,7 +1161,7 @@ class PigRelOpTest extends PigRelTestBase {
 
     final String script = base + "C = RANK B BY DEPTNO ASC, JOB DESC;\n";
     final String plan = ""
-        + "LogicalProject(rank_C=[RANK() OVER (ORDER BY $2, $1 DESC)], "
+        + "LogicalProject(rank_B=[RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result = ""
@@ -1170,7 +1181,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(14,7900,CLERK,30)\n";
     final String sql = ""
         + "SELECT RANK() OVER (ORDER BY DEPTNO, JOB DESC RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_C, EMPNO, JOB, DEPTNO\n"
+        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_B, EMPNO, JOB, DEPTNO\n"
         + "FROM scott.EMP";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
@@ -1179,14 +1190,14 @@ class PigRelOpTest extends PigRelTestBase {
 
     final String script2 = base + "C = RANK B BY DEPTNO ASC, JOB DESC DENSE;\n";
     final String optimizedPlan2 = ""
-        + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
+        + "LogicalProject(rank_B=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
         + "aggs [DENSE_RANK()])"
         + "])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     final String plan2 = ""
-        + "LogicalProject(rank_C=[DENSE_RANK() OVER (ORDER BY $2, $1 DESC)], "
+        + "LogicalProject(rank_B=[DENSE_RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result2 = ""
@@ -1206,7 +1217,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(9,7900,CLERK,30)\n";
     final String sql2 = ""
         + "SELECT DENSE_RANK() OVER (ORDER BY DEPTNO, JOB DESC RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_C, EMPNO, JOB, DEPTNO\n"
+        + "UNBOUNDED PRECEDING AND CURRENT ROW) AS rank_B, EMPNO, JOB, DEPTNO\n"
         + "FROM scott.EMP";
     pig(script2).assertRel(hasTree(plan2))
         .assertOptimizedRel(hasTree(optimizedPlan2))
@@ -1443,9 +1454,8 @@ class PigRelOpTest extends PigRelTestBase {
         + "          LogicalTableScan(table=[[scott, EMP]])\n";
     final String optimizedPlan = ""
         + "LogicalSort(sort0=[$2], dir0=[ASC])\n"
-        + "  LogicalProject(group=[ROW($0, $1, $2)], $f1=[+(CAST($3):BIGINT, 1)], "
-        + "salSum=[CAST($4):DECIMAL(19, 0)], salAvg=[/(CAST($4):DECIMAL(19, 0), CAST(CAST($3)"
-        + ":BIGINT):DECIMAL(19, 0))])\n"
+        + "  LogicalProject(group=[ROW($0, $1, $2)], $f1=[+($3, 1)], salSum=[CAST($4):DECIMAL(19,"
+        + " 0)], salAvg=[/(CAST($4):DECIMAL(19, 0), CAST($3):DECIMAL(19, 0))])\n"
         + "    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT()], agg#1=[SUM($3)])\n"
         + "      LogicalProject(DEPTNO=[$7], MGR=[$3], HIREDATE=[$4], SAL=[$5])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -1465,10 +1475,9 @@ class PigRelOpTest extends PigRelTestBase {
         + "({20, 7566, 1987-04-19},2,3000.00,3000.00)\n"
         + "({10, null, 1981-11-17},2,5000.00,5000.00)\n";
     final String sql = ""
-        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, CAST(COUNT(*) AS "
-        + "BIGINT) + 1 AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum, "
-        + "CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(CAST(COUNT(*) AS BIGINT) "
-        + "AS DECIMAL(19, 0)) AS salAvg\n"
+        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, COUNT(*) + 1 AS $f1, CAST(SUM(SAL) AS "
+        + "DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(COUNT(*) AS DECIMAL"
+        + "(19, 0)) AS salAvg\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
@@ -1486,11 +1495,10 @@ class PigRelOpTest extends PigRelTestBase {
         + "BigDecimalSum(A.SAL) / COUNT(A) as salAvg, A;\n"
         + "D = ORDER C BY salSum;\n";
     final String sql2 = ""
-        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, CAST(COUNT(*) AS BIGINT) + 1"
-        + " AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS "
-        + "DECIMAL(19, 0)) / CAST(CAST(COUNT(*) AS BIGINT) AS DECIMAL(19, 0)) AS "
-        + "salAvg, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)"
-        + ") AS A\n"
+        + "SELECT ROW(DEPTNO, MGR, HIREDATE) AS group, COUNT(*) + 1 AS $f1, CAST(SUM(SAL) AS "
+        + "DECIMAL(19, 0)) AS salSum, CAST(SUM(SAL) AS DECIMAL(19, 0)) / CAST(COUNT(*) AS DECIMAL"
+        + "(19, 0)) AS salAvg, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)) "
+        + "AS A\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
@@ -1607,4 +1615,64 @@ class PigRelOpTest extends PigRelTestBase {
         .assertResult(is(result))
         .assertSql(is(sql));
   }
+
+  @Test void testFlattenStrSplit() {
+    final String script = ""
+        + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
+        + "B = FOREACH A GENERATE FLATTEN(STRSPLIT(DNAME, ',')) as NAMES;\n";
+    final String plan = ""
+        + "LogicalProject(NAMES=[CAST(ITEM(STRSPLIT(PIG_TUPLE($1, ',')), 1)):BINARY(1)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String sql = ""
+        + "SELECT CAST(STRSPLIT(PIG_TUPLE(DNAME, ','))[1] AS BINARY(1)) AS NAMES\n"
+        + "FROM scott.DEPT";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql));
+  }
+
+  @Test void testMultipleStores() {
+    final String script = ""
+        + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
+        + "B = FILTER A BY DEPTNO <= 30;\n"
+        + "STORE B into 'output.csv';\n"
+        + "C = FILTER A BY DEPTNO >= 20;\n"
+        + "STORE C into 'output1.csv';\n";
+    final String plan = ""
+        + "LogicalFilter(condition=[<=($0, 30)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String sql0 = ""
+        + "SELECT *\n"
+        + "FROM scott.DEPT\n"
+        + "WHERE DEPTNO <= 30";
+    final String sql1 = ""
+        + "SELECT *\n"
+        + "FROM scott.DEPT\n"
+        + "WHERE DEPTNO >= 20";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql0), 0)
+        .assertSql(is(sql1), 1);
+  }
+
+  @Test void testRankAndFilter() {
+    final String script = ""
+        + "A = LOAD 'emp1' USING PigStorage(',')  as ("
+        + "    id:int, name:chararray, age:int, city:chararray);\n"
+        + "B = rank A;\n"
+        + "C = FILTER B by ($0 > 1);";
+
+    final String plan = ""
+        + "LogicalFilter(condition=[>($0, 1)])\n"
+        + "  LogicalProject(rank_A=[RANK() OVER ()], id=[$0],"
+        + " name=[$1], age=[$2], city=[$3])\n"
+        + "    LogicalTableScan(table=[[emp1]])\n";
+
+    final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
+        + "FROM (SELECT id, name, age, city, RANK() OVER (RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "    FROM emp1) AS t\n"
+        + "WHERE w0$o0 > 1";
+    pig(script).assertRel(hasTree(plan))
+        .assertSql(is(sql));
+  }
+
 }

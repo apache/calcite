@@ -2020,6 +2020,16 @@ public abstract class Expressions {
   /**
    * Creates a NewArrayExpression that represents creating an array
    * that has a specified rank.
+   *
+   * <p>For example,
+   * {@code newArrayBounds(int.class, 1, constant(8))}
+   * yields {@code new int[8]};
+   * {@code newArrayBounds(int.class, 3, constant(8))}
+   * yields {@code new int[8][][]};
+   *
+   * @param type Element type of the array
+   * @param dimension Dimension of the array
+   * @param bound Size of the first dimension
    */
   public static NewArrayExpression newArrayBounds(Type type, int dimension,
       @Nullable Expression bound) {
@@ -2031,7 +2041,12 @@ public abstract class Expressions {
    * one-dimensional array and initializing it from a list of
    * elements.
    *
-   * @param type Element type of the array.
+   * <p>For example, "{@code newArrayInit(int.class,
+   * Arrays.asList(constant(1), constant(2))}"
+   * yields "{@code new int[] {1, 2}}".
+   *
+   * @param type Element type of the array
+   * @param expressions Initializer expressions
    */
   public static NewArrayExpression newArrayInit(Type type,
       Iterable<? extends Expression> expressions) {
@@ -2043,7 +2058,11 @@ public abstract class Expressions {
    * one-dimensional array and initializing it from a list of
    * elements, using varargs.
    *
-   * @param type Element type of the array.
+   * <p>For example, "{@code newArrayInit(int.class, constant(1), constant(2)}"
+   * yields "{@code new int[] {1, 2}}".
+   *
+   * @param type Element type of the array
+   * @param expressions Initializer expressions
    */
   public static NewArrayExpression newArrayInit(Type type,
       Expression... expressions) {
@@ -2055,7 +2074,12 @@ public abstract class Expressions {
    * n-dimensional array and initializing it from a list of
    * elements.
    *
-   * @param type Element type of the array.
+   * <p>For example, "{@code newArrayInit(int.class, 2, Arrays.asList())}"
+   * yields "{@code new int[][] {}}".
+   *
+   * @param type Element type of the array
+   * @param dimension Dimension of the array
+   * @param expressions Initializer expressions
    */
   public static NewArrayExpression newArrayInit(Type type, int dimension,
       Iterable<? extends Expression> expressions) {
@@ -2067,7 +2091,12 @@ public abstract class Expressions {
    * n-dimensional array and initializing it from a list of
    * elements, using varargs.
    *
-   * @param type Element type of the array.
+   * <p>For example, "{@code newArrayInit(int.class, 2)}"
+   * yields "{@code new int[][] {}}".
+   *
+   * @param type Element type of the array
+   * @param dimension Dimension of the array
+   * @param expressions Initializer expressions
    */
   public static NewArrayExpression newArrayInit(Type type, int dimension,
       Expression... expressions) {
@@ -3043,7 +3072,7 @@ public abstract class Expressions {
    * Evaluates an expression and returns the result.
    */
   public static @Nullable Object evaluate(Node node) {
-    requireNonNull(node);
+    requireNonNull(node, "node");
     final Evaluator evaluator = new Evaluator();
     return ((AbstractNode) node).evaluate(evaluator);
   }

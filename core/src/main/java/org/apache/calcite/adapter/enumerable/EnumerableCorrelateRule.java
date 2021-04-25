@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 
 /**
@@ -40,7 +41,7 @@ public class EnumerableCorrelateRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final LogicalCorrelate c = (LogicalCorrelate) rel;
+    final Correlate c = (Correlate) rel;
     return EnumerableCorrelate.create(
         convert(c.getLeft(), c.getLeft().getTraitSet()
             .replace(EnumerableConvention.INSTANCE)),

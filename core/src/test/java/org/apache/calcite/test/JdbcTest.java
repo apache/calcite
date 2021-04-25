@@ -1162,10 +1162,10 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableMergeJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {7.656040129282498E8 rows, 5.0023949296644424E10 cpu, 0.0 io}\n"
-                + "  EnumerableSort(sort0=[$0], dir0=[ASC]): rowcount = 2.0087351932499997E7, cumulative cost = {4.044858016499999E7 rows, 5.0023896255644424E10 cpu, 0.0 io}\n"
-                + "    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.0361228232499994E7 rows, 3.232400376004586E7 cpu, 0.0 io}\n"
-                + "      EnumerableSort(sort0=[$2], dir0=[ASC]): rowcount = 86837.0, cumulative cost = {173674.0 rows, 3.168658076004586E7 cpu, 0.0 io}\n"
+                + "EnumerableMergeJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {7.656040129282498E8 rows, 5.408916992330521E10 cpu, 0.0 io}\n"
+                + "  EnumerableSort(sort0=[$0], dir0=[ASC]): rowcount = 2.0087351932499997E7, cumulative cost = {4.044858016499999E7 rows, 5.408911688230521E10 cpu, 0.0 io}\n"
+                + "    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.0361228232499994E7 rows, 4.4173907295063056E7 cpu, 0.0 io}\n"
+                + "      EnumerableSort(sort0=[$2], dir0=[ASC]): rowcount = 86837.0, cumulative cost = {173674.0 rows, 4.3536484295063056E7 cpu, 0.0 io}\n"
                 + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
                 + "      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
                 + "        EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
@@ -7908,6 +7908,16 @@ public class JdbcTest {
       return obj == this
           || obj instanceof Department
           && deptno == ((Department) obj).deptno;
+    }
+  }
+
+  public static class DepartmentPlus extends Department {
+    public final Timestamp inceptionDate;
+
+    public DepartmentPlus(int deptno, String name, List<Employee> employees,
+        Location location, Timestamp inceptionDate) {
+      super(deptno, name, employees, location);
+      this.inceptionDate = inceptionDate;
     }
   }
 

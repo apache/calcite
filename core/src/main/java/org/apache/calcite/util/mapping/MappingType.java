@@ -19,7 +19,7 @@ package org.apache.calcite.util.mapping;
 /**
  * Describes the type of a mapping, from the most general
  * {@link #MULTI_FUNCTION} (every element in the source and target domain can
- * participate in many mappings) to the most retricted {@link #BIJECTION} (every
+ * participate in many mappings) to the most restricted {@link #BIJECTION} (every
  * element in the source and target domain must be paired with precisely one
  * element in the other domain).
  *

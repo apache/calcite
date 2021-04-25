@@ -38,8 +38,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Table based on a CSV file that can implement simple filtering.
  *
@@ -58,7 +56,7 @@ public class CsvFilterableTable extends CsvTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "typeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
     final @Nullable String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 plugins {
-    kotlin("jvm")
     id("com.github.vlsi.ide")
     calcite.fmpp
     calcite.javacc
@@ -23,9 +22,9 @@ plugins {
 
 dependencies {
     api(project(":core"))
+    api("org.apache.calcite.avatica:avatica-core")
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.slf4j:slf4j-api")
 
     testImplementation("net.hydromatic:quidem")

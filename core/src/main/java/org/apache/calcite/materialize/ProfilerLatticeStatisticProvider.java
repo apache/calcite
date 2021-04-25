@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.profile.Profiler;
 import org.apache.calcite.profile.ProfilerImpl;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -46,7 +46,7 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a ProfilerLatticeStatisticProvider. */
   private ProfilerLatticeStatisticProvider(Lattice lattice) {
-    Objects.requireNonNull(lattice);
+    Objects.requireNonNull(lattice, "lattice");
     this.profile = Suppliers.memoize(() -> {
       final ProfilerImpl profiler =
           ProfilerImpl.builder()
@@ -67,7 +67,7 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
           ImmutableList.of();
       final Enumerable<List<Comparable>> rows =
           ((ScannableTable) table).scan(
-              Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+              DataContexts.of(MaterializedViewTable.MATERIALIZATION_CONNECTION,
                   lattice.rootSchema.plus()))
               .select(values -> {
                 for (int i = 0; i < values.length; i++) {

@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -297,6 +299,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(EQUALS)",
           "KEYWORD(FORMAT)",
           "KEYWORD(ILIKE)",
+          "KEYWORD(RLIKE)",
           "KEYWORD(IMMEDIATELY)",
           "KEYWORD(IN)",
           "KEYWORD(IS)",
@@ -1584,5 +1587,54 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
         "SELECT * FROM [DEPT] a WHERE _suggest_ and deptno < 5";
     assertSimplify(sql, simplified);
     assertComplete(sql, EXPR_KEYWORDS, Collections.singletonList("TABLE(a)"), DEPT_COLUMNS);
+  }
+
+
+  @Test public void testFilterComment() {
+    // SqlSimpleParser.Tokenizer#nextToken() lines 401 - 423
+    // is used to recognize the sql of TokenType.ID or some keywords
+    // if a certain segment of characters is continuously composed of Token,
+    // the function of this code may be wrong
+    // E.g :
+    // (1)select * from a where price> 10.0--comment
+    // 【10.0--comment】should be recognize as TokenType.ID("10.0") and TokenType.COMMENT
+    // but it recognize as TokenType.ID("10.0--comment")
+    // (2)select * from a where column_b='/* this is not comment */'
+    // 【/* this is not comment */】should be recognize as
+    // TokenType.SQID("/* this is not comment */"), but it was not
+
+    final String baseOriginSql = "select * from a ";
+    final String baseResultSql = "SELECT * FROM a ";
+    String originSql;
+
+    // when SqlSimpleParser.Tokenizer#nextToken() method parse sql,
+    // ignore the  "--" after 10.0, this is a comment,
+    // but Tokenizer#nextToken() does not recognize it
+    originSql = baseOriginSql + "where price > 10.0-- this is comment "
+        + System.lineSeparator() + " -- comment ";
+    assertSimplifySql(originSql, baseResultSql + "WHERE price > 10.0");
+
+    originSql = baseOriginSql + "where column_b='/* this is not comment */'";
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '/* this is not comment */'");
+
+    originSql = baseOriginSql + "where column_b='2021 --this is not comment'";
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '2021 --this is not comment'");
+
+    originSql = baseOriginSql + "where column_b='2021--this is not comment'";
+    assertSimplifySql(originSql, baseResultSql + "WHERE column_b= '2021--this is not comment'");
+  }
+
+  /**
+   * Tests that the simplified originSql is consistent with expectedSql.
+   *
+   * @param originSql   a string sql to simplify.
+   * @param expectedSql Expected result after simplification.
+   */
+  private void assertSimplifySql(String originSql, String expectedSql) {
+    SqlSimpleParser simpleParser =
+        new SqlSimpleParser("_suggest_", SqlParser.Config.DEFAULT);
+
+    String actualSql = simpleParser.simplifySql(originSql);
+    assertThat("simpleParser.simplifySql(" + originSql + ")", actualSql, equalTo(expectedSql));
   }
 }

@@ -43,6 +43,7 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -251,20 +252,20 @@ class ToLogicalConverterTest {
 
   @Test void testAggregate() {
     // Equivalent SQL:
-    //   SELECT COUNT(empno) AS c
+    //   SELECT deptno, COUNT(sal) AS c
     //   FROM emp
     //   GROUP BY deptno
     final RelBuilder builder = builder();
     final RelNode rel =
         builder.scan("EMP")
             .aggregate(builder.groupKey(builder.field("DEPTNO")),
-                builder.count(false, "C", builder.field("EMPNO")))
+                builder.count(false, "C", builder.field("SAL")))
             .build();
     String expectedPhysical = ""
-        + "EnumerableAggregate(group=[{7}], C=[COUNT($0)])\n"
+        + "EnumerableAggregate(group=[{7}], C=[COUNT($5)])\n"
         + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical = ""
-        + "LogicalAggregate(group=[{7}], C=[COUNT($0)])\n"
+        + "LogicalAggregate(group=[{7}], C=[COUNT($5)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysical, expectedLogical);
   }
@@ -322,7 +323,7 @@ class ToLogicalConverterTest {
 
   @Test void testCorrelation() {
     final RelBuilder builder = builder();
-    final Holder<RexCorrelVariable> v = Holder.of(null);
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")

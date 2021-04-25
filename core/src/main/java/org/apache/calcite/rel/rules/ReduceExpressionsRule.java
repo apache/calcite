@@ -1025,14 +1025,15 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       //
       // REVIEW zfong 6/13/08 - Are there other expressions where we
       // also need to preserve casts?
-      if (parentCallTypeStack.isEmpty()) {
+      SqlOperator op = parentCallTypeStack.peek();
+      if (op == null) {
         addCasts.add(false);
       } else {
-        addCasts.add(isUdf(parentCallTypeStack.peek()));
+        addCasts.add(isUdf(op));
       }
     }
 
-    private static Boolean isUdf(@SuppressWarnings("unused") @Nullable SqlOperator operator) {
+    private static Boolean isUdf(@SuppressWarnings("unused") SqlOperator operator) {
       // return operator instanceof UserDefinedRoutine
       return false;
     }

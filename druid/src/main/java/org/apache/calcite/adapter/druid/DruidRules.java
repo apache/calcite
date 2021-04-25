@@ -672,10 +672,10 @@ public class DruidRules {
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         if ((uniqueFilterRefs.size() == 1
-            && allHaveFilters) // filters get extracted
+                && allHaveFilters) // filters get extracted
             || aggCall.hasFilter()
             && project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
-          aggCall = aggCall.copy(aggCall.getArgList(), -1, aggCall.collation);
+          aggCall = aggCall.withFilter(-1);
         }
         newCalls.add(aggCall);
       }

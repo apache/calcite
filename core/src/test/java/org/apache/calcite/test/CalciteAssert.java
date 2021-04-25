@@ -745,7 +745,18 @@ public class CalciteAssert {
     throw new AssertionError("method " + methodName + " not found");
   }
 
-  public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
+  /** Adds a schema specification (or specifications) to the root schema,
+   * returning the last one created. */
+  public static SchemaPlus addSchema(SchemaPlus rootSchema,
+      SchemaSpec... schemas) {
+    SchemaPlus s = rootSchema;
+    for (SchemaSpec schema : schemas) {
+      s = addSchema_(rootSchema, schema);
+    }
+    return s;
+  }
+
+  static SchemaPlus addSchema_(SchemaPlus rootSchema, SchemaSpec schema) {
     final SchemaPlus foodmart;
     final SchemaPlus jdbcScott;
     final SchemaPlus scott;
@@ -1034,7 +1045,7 @@ public class CalciteAssert {
         new AssertThat(EMPTY_CONNECTION_FACTORY);
 
     private AssertThat(ConnectionFactory connectionFactory) {
-      this.connectionFactory = Objects.requireNonNull(connectionFactory);
+      this.connectionFactory = Objects.requireNonNull(connectionFactory, "connectionFactory");
     }
 
     public AssertThat with(Config config) {
@@ -1311,8 +1322,8 @@ public class CalciteAssert {
     private final Schema schema;
 
     public AddSchemaPostProcessor(String name, Schema schema) {
-      this.name = Objects.requireNonNull(name);
-      this.schema = Objects.requireNonNull(schema);
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
     }
 
     public Connection apply(Connection connection) throws SQLException {
@@ -1392,8 +1403,8 @@ public class CalciteAssert {
 
     private MapConnectionFactory(ImmutableMap<String, String> map,
         ImmutableList<ConnectionPostProcessor> postProcessors) {
-      this.map = Objects.requireNonNull(map);
-      this.postProcessors = Objects.requireNonNull(postProcessors);
+      this.map = Objects.requireNonNull(map, "map");
+      this.postProcessors = Objects.requireNonNull(postProcessors, "postProcessors");
     }
 
     @Override public boolean equals(Object obj) {
@@ -2164,7 +2175,7 @@ public class CalciteAssert {
     private final String sql;
 
     JavaSql(String java, String sql) {
-      this.java = Objects.requireNonNull(java);
+      this.java = Objects.requireNonNull(java, "java");
       this.sql = sql;
     }
 

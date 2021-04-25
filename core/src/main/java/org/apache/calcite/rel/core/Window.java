@@ -234,11 +234,11 @@ public abstract class Window extends SingleRel {
         RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
-      this.keys = Objects.requireNonNull(keys);
+      this.keys = Objects.requireNonNull(keys, "keys");
       this.isRows = isRows;
-      this.lowerBound = Objects.requireNonNull(lowerBound);
-      this.upperBound = Objects.requireNonNull(upperBound);
-      this.orderKeys = Objects.requireNonNull(orderKeys);
+      this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
+      this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
+      this.orderKeys = Objects.requireNonNull(orderKeys, "orderKeys");
       this.aggCalls = ImmutableList.copyOf(aggCalls);
       this.digest = computeString();
     }
@@ -341,7 +341,7 @@ public abstract class Window extends SingleRel {
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
           return AggregateCall.create(op, aggCall.distinct, false,
               aggCall.ignoreNulls, getProjectOrdinals(aggCall.getOperands()),
-              -1, RelCollations.EMPTY,
+              -1, null, RelCollations.EMPTY,
               aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };
