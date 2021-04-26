@@ -208,8 +208,7 @@ class MatchTest {
     RelNode root = builder.build();
 
     RelRunner ru = (RelRunner) con.unwrap(Class.forName("org.apache.calcite.tools.RelRunner"));
-    try (PreparedStatement preparedStatement = ru.prepare(root)) {
-
+    try (PreparedStatement preparedStatement = ru.prepareStatement(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = ""
           + "_MAP={id=02154, city=NORTH WALTHAM, loc=[-71.236497, 42.382492], "

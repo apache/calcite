@@ -46,6 +46,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
@@ -74,6 +75,7 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -94,7 +96,7 @@ import static java.util.Objects.requireNonNull;
  * Implementation of JDBC connection
  * in the Calcite engine.
  *
- * <p>Abstract to allow newer versions of JDBC to add methods.</p>
+ * <p>Abstract to allow newer versions of JDBC to add methods.
  */
 abstract class CalciteConnectionImpl
     extends AvaticaConnection
@@ -111,7 +113,7 @@ abstract class CalciteConnectionImpl
   /**
    * Creates a CalciteConnectionImpl.
    *
-   * <p>Not public; method is called only from the driver.</p>
+   * <p>Not public; method is called only from the driver.
    *
    * @param driver Driver
    * @param factory Factory for JDBC objects
@@ -180,13 +182,21 @@ abstract class CalciteConnectionImpl
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == RelRunner.class) {
-      return iface.cast((RelRunner) rel -> {
-        try {
-          return prepareStatement_(CalcitePrepare.Query.of(rel),
-              ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-              getHoldability());
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+      return iface.cast(new RelRunner() {
+        @Override public PreparedStatement prepareStatement(RelNode rel)
+            throws SQLException {
+            return prepareStatement_(CalcitePrepare.Query.of(rel),
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                getHoldability());
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override public PreparedStatement prepare(RelNode rel) {
+          try {
+            return prepareStatement(rel);
+          } catch (SQLException e) {
+            throw Util.throwAsRuntime(e);
+          }
         }
       });
     }

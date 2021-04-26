@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.rel.RelNode;
 
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 /**
  * Runs a relational expression.
@@ -28,6 +29,15 @@ import java.sql.PreparedStatement;
  * @see RelRunners
  */
 public interface RelRunner {
-  /** Runs a relational expression. */
+  /** Prepares a statement based on a relational expression. */
+  @Deprecated // to be removed before 1.28
   PreparedStatement prepare(RelNode rel);
+
+  /** Prepares a statement based on a relational expression.
+   *
+   * @param rel Relational expression
+   * @throws SQLException on error */
+  default PreparedStatement prepareStatement(RelNode rel) throws SQLException {
+    return prepare(rel);
+  }
 }
