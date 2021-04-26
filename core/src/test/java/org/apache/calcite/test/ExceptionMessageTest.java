@@ -187,7 +187,7 @@ public class ExceptionMessageTest {
     } catch (RuntimeException e) {
       assertThat(
           e.getMessage(), equalTo("java.sql.SQLException: "
-          + "Error while preparing statement [" + System.lineSeparator()
+          + "Error while preparing plan [" + System.lineSeparator()
           + "LogicalProject($f0=[ABS($1)])" + System.lineSeparator()
           + "  LogicalTableScan(table=[[test, entries]])" + System.lineSeparator()
           + "]"));
