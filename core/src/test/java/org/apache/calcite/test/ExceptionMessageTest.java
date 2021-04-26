@@ -169,6 +169,7 @@ public class ExceptionMessageTest {
   }
 
   @Test void testValidRelNodeQuery() throws SQLException {
+    // Ensure that the relNode test case runs successfully
     final RelNode relNode = builder
         .scan("test", "entries")
         .project(builder.field("name"))
@@ -177,20 +178,21 @@ public class ExceptionMessageTest {
   }
 
   @Test void testRelNodeQueryException() throws SQLException {
+    // Just by the incorrect function usage to verify exception log
     try {
       final RelNode relNode = builder
           .scan("test", "entries")
           .project(builder.call(SqlStdOperatorTable.ABS, builder.field("name")))
           .build();
       runQuery(relNode);
-      fail("Query badEntries should result in an exception");
+      fail("RelNode query about entries should result in an exception");
     } catch (RuntimeException e) {
       assertThat(
-          e.getMessage(), equalTo("java.sql.SQLException: "
-          + "Error while preparing plan [" + System.lineSeparator()
-          + "LogicalProject($f0=[ABS($1)])" + System.lineSeparator()
-          + "  LogicalTableScan(table=[[test, entries]])" + System.lineSeparator()
-          + "]"));
+          e.getMessage(), Matchers.isLinux("java.sql.SQLException: "
+              + "Error while preparing plan ["
+              + "LogicalProject($f0=[ABS($1)])\n"
+              + "  LogicalTableScan(table=[[test, entries]])\n"
+              + "]"));
     }
   }
 }
