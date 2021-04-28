@@ -411,7 +411,7 @@ public class DiffRepository {
           if (unexpectedOutOfOrderTests.contains(testCaseName)) {
             throw new IllegalArgumentException("TestCase '" + testCaseName
                 + "' is out of order in the reference file: "
-                + refFile.getPath() + "\n"
+                + Sources.of(refFile).file() + "\n"
                 + "To fix, copy the generated log file: " + logFile + "\n");
           }
           return testCase;
