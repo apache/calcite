@@ -33,18 +33,18 @@ import java.util.List;
  * Planner rule that matches a {@link Filter} expression with correlated variables, and rewrites the
  * condition in a simpler form that is more convenient for the decorrelation logic.
  *
- * Uncorrelated calls below a comparison operator are turned into input references by extracting the
- * computation in a {@link org.apache.calcite.rel.core.Project} expression. An additional projection
- * may be added on top of the new filter to retain expression equivalence.
+ * <p>Uncorrelated calls below a comparison operator are turned into input references by extracting
+ * the computation in a {@link org.apache.calcite.rel.core.Project} expression. An additional
+ * projection may be added on top of the new filter to retain expression equivalence.</p>
  *
- * Sub-plan before
+ * <p>Sub-plan before</p>
  * <pre>
  * LogicalProject($f0=[true])
  *   LogicalFilter(condition=[=($cor0.DEPTNO, +($7, 30))])
  *     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * </pre>
  *
- * Sub-plan after
+ * <p>Sub-plan after</p>
  * <pre>
  * LogicalProject($f0=[true])
  *   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2],..., COMM=[$6], DEPTNO=[$7], SLACKER=[$8])

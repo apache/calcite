@@ -53,7 +53,7 @@ import java.util.Set;
  * computation over the correlated variables, from the right side of a correlation
  * ({@link org.apache.calcite.rel.core.Correlate}) and places it on the left side.
  *
- * Plan before
+ * <p>Plan before</p>
  * <pre>
  * LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
  *   LogicalTableScan(table=[[scott, EMP]])
@@ -61,7 +61,7 @@ import java.util.Set;
  *     LogicalTableScan(table=[[scott, DEPT]])
  * </pre>
  *
- * Plan after
+ * <p>Plan after</p>
  * <pre>
  * LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],... DNAME=[$10], LOC=[$11])
  *   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{8}])
@@ -71,9 +71,9 @@ import java.util.Set;
  *       LogicalTableScan(table=[[scott, DEPT]])
  * </pre>
  *
- * Essentially this transformation moves the computation over a correlated expression from the inner
- * loop to the outer loop. It materializes the computation on the left side and flattens expressions
- * on correlated variables on the right side.
+ * <p>Essentially this transformation moves the computation over a correlated expression from the
+ * inner loop to the outer loop. It materializes the computation on the left side and flattens
+ * expressions on correlated variables on the right side.</p>
  */
 public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
 
