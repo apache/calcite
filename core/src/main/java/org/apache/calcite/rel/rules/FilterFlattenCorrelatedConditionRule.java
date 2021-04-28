@@ -54,7 +54,7 @@ import java.util.List;
  *       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2],..., SLACKER=[$8], $f9=[+($7, 30)])
  *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * </pre>
- * 
+ *
  * <p>The rule should be used in conjunction with other rules and transformations to have a positive
  * impact on the plan. At the moment it is tightly connected with the decorrelation logic and may
  * not be useful in a broader context. Projects may implement decorrelation differently so they may
@@ -90,6 +90,8 @@ public final class FilterFlattenCorrelatedConditionRule
         case GREATER_THAN_OR_EQUAL:
         case LESS_THAN:
         case LESS_THAN_OR_EQUAL:
+        case IS_DISTINCT_FROM:
+        case IS_NOT_DISTINCT_FROM:
           RexNode op0 = call.operands.get(0);
           RexNode op1 = call.operands.get(1);
           final int replaceIndex;
