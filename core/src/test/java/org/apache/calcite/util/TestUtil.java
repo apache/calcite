@@ -18,28 +18,16 @@ package org.apache.calcite.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import com.google.common.collect.ImmutableSortedSet;
-
-import jdk.internal.net.http.common.ImmutableSSLSession;
-
-import org.apache.calcite.linq4j.Ord;
-
-import org.apache.calcite.util.mapping.IntPair;
 
 import org.junit.jupiter.api.Assertions;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

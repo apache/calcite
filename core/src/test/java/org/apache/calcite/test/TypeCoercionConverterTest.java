@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 

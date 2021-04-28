@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
@@ -28,8 +26,8 @@ import org.apache.calcite.util.XmlOutput;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
@@ -48,7 +46,6 @@ import java.io.Writer;
 import java.net.URL;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;

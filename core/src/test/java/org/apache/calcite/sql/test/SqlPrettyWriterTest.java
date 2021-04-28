@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql.test;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -28,6 +26,8 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.calcite.util.Litmus;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
