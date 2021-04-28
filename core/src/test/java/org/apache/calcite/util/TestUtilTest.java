@@ -16,7 +16,17 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -121,5 +131,34 @@ class TestUtilTest {
         is("14181.57"));
     // can't handle nines that start right after the point very well. oh well.
     assertThat(TestUtil.correctRoundedFloat("12.999999"), is("12."));
+  }
+
+  /** Tests {@link TestUtil#outOfOrderItems(List)}. */
+  @Test void testOutOfOrderItems() {
+    final List<String> list =
+        new ArrayList<>(Arrays.asList("a", "g", "b", "c", "e", "d"));
+    final SortedSet<String> distance = TestUtil.outOfOrderItems(list);
+    assertThat(distance.toString(), is("[b, d]"));
+
+    list.add("f");
+    final SortedSet<String> distance2 = TestUtil.outOfOrderItems(list);
+    assertThat(distance2.toString(), is("[b, d]"));
+
+    list.add(1, "b");
+    final SortedSet<String> distance3 = TestUtil.outOfOrderItems(list);
+    assertThat(distance3.toString(), is("[b, d]"));
+
+    list.add(1, "c");
+    final SortedSet<String> distance4 = TestUtil.outOfOrderItems(list);
+    assertThat(distance4.toString(), is("[b, d]"));
+
+    list.add(0, "z");
+    final SortedSet<String> distance5 = TestUtil.outOfOrderItems(list);
+    assertThat(distance5.toString(), is("[a, b, d]"));
+  }
+
+  private long totalDistance(ImmutableMap<String, IntPair> map) {
+    return map.entrySet().stream()
+        .collect(Collectors.summarizingInt(e -> e.getValue().target)).getSum();
   }
 }
