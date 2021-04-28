@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.test;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
@@ -26,6 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
@@ -42,11 +46,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
+import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -175,6 +185,7 @@ public class DiffRepository {
   private final Element root;
   private final File logFile;
   private final Filter filter;
+  private final List<String> expectedOutOfOrderTests;
 
   /**
    * Creates a DiffRepository.
@@ -183,14 +194,17 @@ public class DiffRepository {
    * @param logFile   Log file
    * @param baseRepository Parent repository or null
    * @param filter    Filter or null
+   * @param indent    Indentation of XML file
+   * @param expectedOutOfOrderTests Names of tests that are out of order in the
+   *                                XML file
    */
-  private DiffRepository(
-      URL refFile,
-      File logFile,
-      DiffRepository baseRepository,
-      Filter filter) {
+  private DiffRepository(URL refFile, File logFile,
+      DiffRepository baseRepository, Filter filter, int indent,
+      List<String> expectedOutOfOrderTests) {
     this.baseRepository = baseRepository;
     this.filter = filter;
+    this.expectedOutOfOrderTests = expectedOutOfOrderTests;
+    this.indent = indent;
     if (refFile == null) {
       throw new IllegalArgumentException("url must not be null");
     }
@@ -217,9 +231,31 @@ public class DiffRepository {
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
-    indent = logFile.getPath().contains("RelOptRulesTest")
-        || logFile.getPath().contains("SqlToRelConverterTest")
-        || logFile.getPath().contains("SqlLimitsTest") ? 4 : 2;
+    final List<String> names = new ArrayList<>();
+    for (Node testCase : iterate(root.getElementsByTagName("TestCase"))) {
+      if (testCase instanceof Element) {
+        names.add(((Element) testCase).getAttribute("name"));
+      }
+    }
+    final SortedSet<String> outOfOrderTests = TestUtil.outOfOrderItems(names);
+    final SortedSet<String> unexpectedOutOfOrderTests =
+        new TreeSet<>(outOfOrderTests);
+    unexpectedOutOfOrderTests.removeAll(expectedOutOfOrderTests);
+    if (!unexpectedOutOfOrderTests.isEmpty()) {
+      throw new IllegalArgumentException("expected "
+          + expectedOutOfOrderTests.size()
+          + " test cases to be out of order, but there were "
+          + outOfOrderTests.size()
+          + "; here are the new ones:\n"
+          + toLiteralArray(unexpectedOutOfOrderTests));
+    }
+    final Set<String> inOrderNames = new TreeSet<>(expectedOutOfOrderTests);
+    inOrderNames.removeAll(outOfOrderTests);
+    final boolean debug = false;
+    if (debug && !inOrderNames.isEmpty()) {
+      throw new IllegalArgumentException("some names were expected to be out "
+          + "of order but were not: " + toLiteralArray(inOrderNames));
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -693,6 +729,10 @@ public class DiffRepository {
     }
   }
 
+  private static String toLiteralArray(Collection<String> strings) {
+    return strings.stream().collect(Collectors.joining("\",\n\"", "\"", "\""));
+  }
+
   private static boolean isWhitespace(String text) {
     for (int i = 0, count = text.length(); i < count; ++i) {
       final char c = text.charAt(i);
@@ -719,18 +759,17 @@ public class DiffRepository {
     return lookup(clazz, null);
   }
 
-  /**
-   * Finds the repository instance for a given class and inheriting from
-   * a given repository.
-   *
-   * @param clazz     Test case class
-   * @param baseRepository Base class of test class
-   * @return The diff repository shared between test cases in this class.
-   */
+  @Deprecated // to be removed before 1.28
   public static DiffRepository lookup(
       Class<?> clazz,
       DiffRepository baseRepository) {
     return lookup(clazz, baseRepository, null);
+  }
+
+  @Deprecated // to be removed before 1.28
+  public static DiffRepository lookup(Class<?> clazz,
+      DiffRepository baseRepository, Filter filter) {
+    return lookup(clazz, baseRepository, filter, 2, ImmutableList.of());
   }
 
   /**
@@ -756,12 +795,16 @@ public class DiffRepository {
    * @param clazz     Test case class
    * @param baseRepository Base repository
    * @param filter    Filters each string returned by the repository
+   * @param indent    Indent of the XML file (usually 2)
+   * @param expectedOutOfOrderTests List of {@code <TestCase>} elements that
+   *                                are known to be out of order in the XML file
    * @return The diff repository shared between test cases in this class.
    */
   public static DiffRepository lookup(Class<?> clazz,
-      DiffRepository baseRepository,
-      Filter filter) {
-    final Key key = new Key(clazz, baseRepository, filter);
+      DiffRepository baseRepository, Filter filter, int indent,
+      List<String> expectedOutOfOrderTests) {
+    final Key key =
+        new Key(clazz, baseRepository, filter, indent, expectedOutOfOrderTests);
     return REPOSITORY_CACHE.getUnchecked(key);
   }
 
@@ -792,11 +835,16 @@ public class DiffRepository {
     private final Class<?> clazz;
     private final DiffRepository baseRepository;
     private final Filter filter;
+    private final int indent;
+    private final List<String> expectedOutOfOrderTests;
 
-    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter) {
+    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter,
+        int indent, List<String> expectedOutOfOrderTests) {
       this.clazz = Objects.requireNonNull(clazz, "clazz");
       this.baseRepository = baseRepository;
       this.filter = filter;
+      this.indent = indent;
+      this.expectedOutOfOrderTests = ImmutableList.copyOf(expectedOutOfOrderTests);
     }
 
     @Override public int hashCode() {
@@ -817,7 +865,20 @@ public class DiffRepository {
       final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
-      return new DiffRepository(refFile, logFile, baseRepository, filter);
+      return new DiffRepository(refFile, logFile, baseRepository, filter,
+          indent, expectedOutOfOrderTests);
     }
+  }
+
+  private static Iterable<Node> iterate(NodeList nodeList) {
+    return new AbstractList<Node>() {
+      @Override public Node get(int index) {
+        return nodeList.item(index);
+      }
+
+      @Override public int size() {
+        return nodeList.getLength();
+      }
+    };
   }
 }

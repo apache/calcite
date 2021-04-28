@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -90,7 +92,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 class SqlHintsConverterTest extends SqlToRelTestBase {
 
   protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlHintsConverterTest.class);
+    return DiffRepository.lookup(SqlHintsConverterTest.class, null, null, 2,
+        ImmutableList.of("testAggregateHints",
+            "testFourLevelNestedQueryHint",
+            "testJoinHintRequiresSpecificInputs",
+            "testSameHintsWithDifferentInheritPath",
+            "testThreeLevelNestedQueryHint"));
   }
 
   //~ Tests ------------------------------------------------------------------
