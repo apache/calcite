@@ -27,6 +27,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
@@ -178,11 +181,12 @@ public class DiffRepository {
 
   private final DiffRepository baseRepository;
   private final int indent;
+  private final ImmutableSortedSet<String> unexpectedOutOfOrderTests;
   private Document doc;
   private final Element root;
+  private final URL refFile;
   private final File logFile;
   private final Filter filter;
-  private final List<String> expectedOutOfOrderTests;
 
   /**
    * Creates a DiffRepository.
@@ -200,11 +204,11 @@ public class DiffRepository {
       List<String> expectedOutOfOrderTests) {
     this.baseRepository = baseRepository;
     this.filter = filter;
-    this.expectedOutOfOrderTests = expectedOutOfOrderTests;
     this.indent = indent;
     if (refFile == null) {
       throw new IllegalArgumentException("url must not be null");
     }
+    this.refFile = refFile;
     this.logFile = logFile;
 
     // Load the document.
@@ -228,30 +232,28 @@ public class DiffRepository {
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
+
+    // Test cases should be sorted, but we allow exceptions.
+    // Figure out which test cases are out of order.
     final List<String> names = new ArrayList<>();
     for (Node testCase : iterate(root.getElementsByTagName("TestCase"))) {
       if (testCase instanceof Element) {
-        names.add(((Element) testCase).getAttribute("name"));
+        names.add(((Element) testCase).getAttribute(TEST_CASE_NAME_ATTR));
       }
     }
     final SortedSet<String> outOfOrderTests = TestUtil.outOfOrderItems(names);
-    final SortedSet<String> unexpectedOutOfOrderTests =
-        new TreeSet<>(outOfOrderTests);
-    unexpectedOutOfOrderTests.removeAll(expectedOutOfOrderTests);
-    if (!unexpectedOutOfOrderTests.isEmpty()) {
-      throw new IllegalArgumentException("expected "
-          + expectedOutOfOrderTests.size()
-          + " test cases to be out of order, but there were "
-          + outOfOrderTests.size()
-          + "; here are the new ones:\n"
-          + toLiteralArray(unexpectedOutOfOrderTests));
-    }
-    final Set<String> inOrderNames = new TreeSet<>(expectedOutOfOrderTests);
-    inOrderNames.removeAll(outOfOrderTests);
+    this.unexpectedOutOfOrderTests =
+        ImmutableSortedSet.copyOf(Ordering.natural(),
+            Sets.difference(outOfOrderTests,
+                new HashSet<>(expectedOutOfOrderTests)));
     final boolean debug = false;
-    if (debug && !inOrderNames.isEmpty()) {
-      throw new IllegalArgumentException("some names were expected to be out "
-          + "of order but were not: " + toLiteralArray(inOrderNames));
+    if (debug) {
+      final Set<String> inOrderNames = new TreeSet<>(expectedOutOfOrderTests);
+      inOrderNames.removeAll(outOfOrderTests);
+      if (!inOrderNames.isEmpty()) {
+        throw new IllegalArgumentException("some names were expected to be out "
+            + "of order but were not: " + toLiteralArray(inOrderNames));
+      }
     }
   }
 
@@ -405,6 +407,12 @@ public class DiffRepository {
                 "TestCase  '" + testCaseName + "' overrides a "
                 + "test case in the base repository, but does "
                 + "not specify 'overrides=true'");
+          }
+          if (unexpectedOutOfOrderTests.contains(testCaseName)) {
+            throw new IllegalArgumentException("TestCase '" + testCaseName
+                + "' is out of order in the reference file: "
+                + refFile.getPath() + "\n"
+                + "To fix, copy the generated log file: " + logFile + "\n");
           }
           return testCase;
         }
