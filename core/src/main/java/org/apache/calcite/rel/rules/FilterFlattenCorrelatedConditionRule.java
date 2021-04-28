@@ -26,6 +26,8 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.apiguardian.api.API;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +54,13 @@ import java.util.List;
  *       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2],..., SLACKER=[$8], $f9=[+($7, 30)])
  *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * </pre>
+ * 
+ * <p>The rule should be used in conjunction with other rules and transformations to have a positive
+ * impact on the plan. At the moment it is tightly connected with the decorrelation logic and may
+ * not be useful in a broader context. Projects may implement decorrelation differently so they may
+ * choose to use this rule or not.</p>
  */
+@API(since = "1.27", status = API.Status.EXPERIMENTAL)
 public final class FilterFlattenCorrelatedConditionRule
     extends RelRule<FilterFlattenCorrelatedConditionRule.Config> {
 
@@ -71,6 +79,8 @@ public final class FilterFlattenCorrelatedConditionRule
     b.push(filter.getInput());
     final int proj = b.fields().size();
     List<RexNode> projOperands = new ArrayList<>();
+    // Visitor logic strongly dependent on RelDecorrelator#findCorrelationEquivalent
+    // Handling more kinds of expressions may be useless if the respective logic cannot exploit them
     RexNode newCondition = filter.getCondition().accept(new RexShuttle() {
       @Override public RexNode visitCall(RexCall call) {
         switch (call.getKind()) {

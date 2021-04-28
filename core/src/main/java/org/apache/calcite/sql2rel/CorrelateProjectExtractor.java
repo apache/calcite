@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ import java.util.Set;
  * inner loop to the outer loop. It materializes the computation on the left side and flattens
  * expressions on correlated variables on the right side.</p>
  */
+@API(since = "1.27", status = API.Status.EXPERIMENTAL)
 public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
 
   private final RelBuilderFactory builderFactory;
