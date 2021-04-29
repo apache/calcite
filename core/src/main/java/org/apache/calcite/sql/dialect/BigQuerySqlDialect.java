@@ -137,6 +137,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1300,17 +1301,4 @@ public class BigQuerySqlDialect extends SqlDialect {
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
-
-  /**
-   * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
-   */
-  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, false);
-
-  private static final SqlSetOperator EXCEPT_DISTINCT =
-      new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);
-
-  private static final SqlSetOperator INTERSECT_DISTINCT =
-      new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
-
 }
