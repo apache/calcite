@@ -54,7 +54,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
@@ -578,17 +580,35 @@ public class DiffRepository {
           + "', but found '" + root.getNodeName() + "'");
     }
 
-    // Make sure that there are no duplicate test cases.
-    final Set<String> testCases = new HashSet<>();
+    // Make sure that there are no duplicate test cases, and count how many
+    // tests are out of order.
+    final SortedMap<String, Node> testCases = new TreeMap<>();
     final NodeList childNodes = root.getChildNodes();
+    int outOfOrderCount = 0;
+    String previousName = null;
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
         Element testCase = (Element) child;
         final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
-        if (!testCases.add(name)) {
+        if (testCases.put(name, testCase) != null) {
           throw new RuntimeException("TestCase '" + name + "' is duplicate");
         }
+        if (previousName != null
+            && previousName.compareTo(name) > 0) {
+          ++outOfOrderCount;
+        }
+        previousName = name;
+      }
+    }
+
+    // If any nodes were out of order, rebuild the document in sorted order.
+    if (outOfOrderCount > 0) {
+      for (Node testCase : testCases.values()) {
+        root.removeChild(testCase);
+      }
+      for (Node testCase : testCases.values()) {
+        root.appendChild(testCase);
       }
     }
   }
@@ -670,9 +690,6 @@ public class DiffRepository {
         Node child = childNodes.item(i);
         writeNode(child, out);
       }
-
-      //            writeNode(((Document) node).getDocumentElement(),
-      // out);
       break;
 
     case Node.ELEMENT_NODE:
@@ -735,6 +752,7 @@ public class DiffRepository {
   }
 
   private static String toLiteralArray(Collection<String> strings) {
+    // assumes that strings are alphanumeric; does not check for embedded quotes
     return strings.stream().collect(Collectors.joining("\",\n\"", "\"", "\""));
   }
 

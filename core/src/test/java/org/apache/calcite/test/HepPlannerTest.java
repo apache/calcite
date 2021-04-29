@@ -85,12 +85,7 @@ class HepPlannerTest extends RelOptTestBase {
   //~ Methods ----------------------------------------------------------------
 
   protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(HepPlannerTest.class, null, null, 2,
-        ImmutableList.of("testGroup",
-            "testMatchLimitOneBottomUp",
-            "testMatchLimitOneTopDown",
-            "testMatchUntilFixpoint",
-            "testRuleDescription"));
+    return DiffRepository.lookup(HepPlannerTest.class);
   }
 
   @Test void testRuleClass() {

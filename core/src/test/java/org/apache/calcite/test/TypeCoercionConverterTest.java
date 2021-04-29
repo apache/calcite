@@ -18,8 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
-import com.google.common.collect.ImmutableList;
-
 import org.junit.jupiter.api.Test;
 
 /**
@@ -30,12 +28,7 @@ import org.junit.jupiter.api.Test;
 class TypeCoercionConverterTest extends SqlToRelTestBase {
 
   @Override protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(TypeCoercionConverterTest.class, null, null, 2,
-        ImmutableList.of("testBinaryComparison",
-            "testBooleanEquality",
-            "testCaseWhen",
-            "testInDateTimestamp",
-            "testSetOperation"));
+    return DiffRepository.lookup(TypeCoercionConverterTest.class);
   }
 
   @Override protected Tester createTester() {

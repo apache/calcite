@@ -27,8 +27,6 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.collect.ImmutableList;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -46,16 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SqlPrettyWriterTest {
   protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlPrettyWriterTest.class, null, null, 2,
-        ImmutableList.of("testBetween",
-            "testBlackSubQueryStyle",
-            "testCase",
-            "testClausesNotOnNewLine",
-            "testInnerJoin",
-            "testKeywordsLowerCase",
-            "testMultiset",
-            "testOnlyQuoteIdentifiersWhichNeedIt",
-            "testWhereListItemsOnSeparateLinesAnd"));
+    return DiffRepository.lookup(SqlPrettyWriterTest.class);
   }
 
   /**

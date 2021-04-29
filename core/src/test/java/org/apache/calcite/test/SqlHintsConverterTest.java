@@ -66,8 +66,6 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableList;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -92,12 +90,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 class SqlHintsConverterTest extends SqlToRelTestBase {
 
   protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlHintsConverterTest.class, null, null, 2,
-        ImmutableList.of("testAggregateHints",
-            "testFourLevelNestedQueryHint",
-            "testJoinHintRequiresSpecificInputs",
-            "testSameHintsWithDifferentInheritPath",
-            "testThreeLevelNestedQueryHint"));
+    return DiffRepository.lookup(SqlHintsConverterTest.class);
   }
 
   //~ Tests ------------------------------------------------------------------

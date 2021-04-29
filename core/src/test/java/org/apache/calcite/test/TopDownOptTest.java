@@ -752,23 +752,7 @@ class TopDownOptTest extends RelOptTestBase {
  */
 class Query extends RelOptTestBase {
   protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(TopDownOptTest.class, null, null, 2,
-        ImmutableList.of("testBatchNestedLoopJoinLeftOuterJoinPushDownSort",
-            "testCorrelateInnerJoinDeriveLeft",
-            "testHashJoinFullOuterJoinNotPushDownSort",
-            "testHashJoinInnerJoinPushDownSort",
-            "testMergeJoinDeriveLeft1",
-            "testNestedLoopJoinLeftOuterJoinPushDownSort",
-            "testSortAggPartialKey",
-            "testSortCalc",
-            "testSortCalcWhenCastLeadingToMonotonic",
-            "testSortFilter",
-            "testSortMergeJoinRight",
-            "testSortProjectDerive",
-            "testSortProjectDerive3",
-            "testSortProjectDeriveOnRexCall",
-            "testSortProjectDeriveWhenCastLeadingToMonotonic",
-            "testSortProjectDeriveWhenCastLeadingToNonMonotonic"));
+    return DiffRepository.lookup(TopDownOptTest.class);
   }
 
   private String sql;
