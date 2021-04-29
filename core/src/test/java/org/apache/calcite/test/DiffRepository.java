@@ -25,6 +25,7 @@ import org.apache.calcite.util.XmlOutput;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 
 import org.junit.jupiter.api.Assertions;
@@ -179,6 +180,8 @@ public class DiffRepository {
   private final URL refFile;
   private final File logFile;
   private final Filter filter;
+  private int modCount;
+  private int modCountAtLastWrite;
 
   /**
    * Creates a DiffRepository.
@@ -194,11 +197,10 @@ public class DiffRepository {
     this.baseRepository = baseRepository;
     this.filter = filter;
     this.indent = indent;
-    if (refFile == null) {
-      throw new IllegalArgumentException("url must not be null");
-    }
-    this.refFile = refFile;
+    this.refFile = Objects.requireNonNull(refFile, "refFile");
     this.logFile = logFile;
+    this.modCountAtLastWrite = 0;
+    this.modCount = 0;
 
     // Load the document.
     DocumentBuilderFactory fac = DocumentBuilderFactory.newInstance();
@@ -375,6 +377,7 @@ public class DiffRepository {
                 + "not specify 'overrides=true'");
           }
           if (outOfOrderTests.contains(testCaseName)) {
+            ++modCount;
             flushDoc();
             throw new IllegalArgumentException("TestCase '" + testCaseName
                 + "' is out of order in the reference file: "
@@ -471,6 +474,7 @@ public class DiffRepository {
       testCaseElement.setAttribute(TEST_CASE_NAME_ATTR, testCaseName);
       Node refElement = ref(testCaseName, map);
       root.insertBefore(testCaseElement, refElement);
+      ++modCount;
     }
     Element resourceElement =
         getResourceElement(testCaseElement, resourceName, true);
@@ -478,11 +482,20 @@ public class DiffRepository {
       resourceElement = doc.createElement(RESOURCE_TAG);
       resourceElement.setAttribute(RESOURCE_NAME_ATTR, resourceName);
       testCaseElement.appendChild(resourceElement);
+      ++modCount;
+      if (!value.equals("")) {
+        resourceElement.appendChild(doc.createCDATASection(value));
+      }
     } else {
-      removeAllChildren(resourceElement);
-    }
-    if (!value.equals("")) {
-      resourceElement.appendChild(doc.createCDATASection(value));
+      final List<Node> newChildList;
+      if (value.equals("")) {
+        newChildList = ImmutableList.of();
+      } else {
+        newChildList = ImmutableList.of(doc.createCDATASection(value));
+      }
+      if (replaceChildren(resourceElement, newChildList)) {
+        ++modCount;
+      }
     }
 
     // Write out the document.
@@ -525,17 +538,23 @@ public class DiffRepository {
   /**
    * Flushes the reference document to the file system.
    */
-  private void flushDoc() {
+  private synchronized void flushDoc() {
+    if (modCount == modCountAtLastWrite) {
+      // Document has not been modified since last write.
+      return;
+    }
     try {
       boolean b = logFile.getParentFile().mkdirs();
       Util.discard(b);
       try (Writer w = Util.printWriter(logFile)) {
         write(doc, w, indent);
       }
+      System.out.println("write; modCount=" + modCount);
     } catch (IOException e) {
-      throw new RuntimeException("error while writing test reference log '"
+      throw Util.throwAsRuntime("error while writing test reference log '"
           + logFile + "'", e);
     }
+    modCountAtLastWrite = modCount;
   }
 
   /** Validates the root element.
@@ -634,6 +653,34 @@ public class DiffRepository {
     while (childNodes.getLength() > 0) {
       element.removeChild(childNodes.item(0));
     }
+  }
+
+  private static boolean replaceChildren(Element element, List<Node> children) {
+    // Current children
+    final NodeList childNodes = element.getChildNodes();
+    final List<Node> list = new ArrayList<>();
+    for (Node item : iterate(childNodes)) {
+      if (item.getNodeType() != Node.TEXT_NODE) {
+        list.add(item);
+      }
+    }
+
+    // Are new children equal to old?
+    if (equalList(children, list)) {
+      return false;
+    }
+
+    // Replace old children with new children
+    removeAllChildren(element);
+    children.forEach(element::appendChild);
+    return true;
+  }
+
+  /** Returns whether two lists of nodes are equal. */
+  private static boolean equalList(List<Node> list0, List<Node> list1) {
+    return list1.size() == list0.size()
+        && Pair.zip(list1, list0).stream()
+        .allMatch(p -> p.left.isEqualNode(p.right));
   }
 
   /**

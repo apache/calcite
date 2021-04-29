@@ -967,6 +967,9 @@ public class Util {
       throwable.addSuppressed(new Throwable(message));
       throw (Error) throwable;
     }
+    if (throwable instanceof IOException) {
+      return new UncheckedIOException(message, (IOException) throwable);
+    }
     throw new RuntimeException(message, throwable);
   }
 
